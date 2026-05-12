@@ -37,9 +37,14 @@ help:
 	@printf "    make db-migrate    Run pending ledger migrations\n"
 	@printf "    make db-reset      Drop, recreate, and re-migrate dev database\n"
 	@printf "    make db-psql       Open a psql shell on the dev database\n"
-	@printf "\n  \033[1mBuild\033[0m\n"
-	@printf "    make check         cargo check --workspace (core/)\n"
-	@printf "    make test          cargo test  --workspace (core/)\n"
+	@printf "\n  \033[1mRust core\033[0m\n"
+	@printf "    make check             cargo check --workspace (core/)\n"
+	@printf "    make test              cargo test  --workspace (core/)\n"
+	@printf "\n  \033[1mGo gateway\033[0m\n"
+	@printf "    make gateway-build     go build ./... (services/api-gateway)\n"
+	@printf "    make gateway-run       go run cmd/gateway/main.go\n"
+	@printf "    make gateway-check     go vet ./...\n"
+	@printf "    make gateway-test      go test ./...\n"
 	@printf "\n"
 
 # ---------------------------------------------------------------------------
@@ -107,7 +112,7 @@ db-psql:
 	$(COMPOSE) exec postgres psql -U banzami -d banzami_dev
 
 # ---------------------------------------------------------------------------
-# Build
+# Build — Rust core
 # ---------------------------------------------------------------------------
 .PHONY: check
 check:
@@ -116,3 +121,24 @@ check:
 .PHONY: test
 test:
 	cargo test --workspace --manifest-path core/Cargo.toml
+
+# ---------------------------------------------------------------------------
+# Gateway — Go
+# ---------------------------------------------------------------------------
+GATEWAY_DIR = services/api-gateway
+
+.PHONY: gateway-build
+gateway-build:
+	cd $(GATEWAY_DIR) && go build ./...
+
+.PHONY: gateway-run
+gateway-run: _require-database-url
+	cd $(GATEWAY_DIR) && go run cmd/gateway/main.go
+
+.PHONY: gateway-check
+gateway-check:
+	cd $(GATEWAY_DIR) && go vet ./...
+
+.PHONY: gateway-test
+gateway-test:
+	cd $(GATEWAY_DIR) && go test ./...
