@@ -52,6 +52,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 		r.Route("/v1", func(r chi.Router) {
 			r.Post("/transactions", txHandler.Create)
+			r.Get("/transactions", txHandler.List)
+			r.Get("/transactions/{id}", txHandler.Get)
 		})
 	})
 

@@ -2,7 +2,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
@@ -73,4 +77,67 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusCreated, tx)
+}
+
+// Get handles GET /v1/transactions/{id}.
+func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"only merchant accounts may access transactions")
+		return
+	}
+
+	id := chi.URLParam(r, "id")
+	tx, err := h.svc.Get(r.Context(), principal.MerchantID, id)
+	if err != nil {
+		if errors.Is(err, service.ErrTransactionNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND",
+				"transaction not found")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"transaction could not be fetched")
+		return
+	}
+
+	respond(w, http.StatusOK, tx)
+}
+
+// List handles GET /v1/transactions.
+//
+// Query parameters:
+//   - limit  — page size, 1–100, default 20
+//   - cursor — opaque pagination token from a previous response's next_cursor
+func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"only merchant accounts may access transactions")
+		return
+	}
+
+	limit := 20
+	if raw := r.URL.Query().Get("limit"); raw != "" {
+		parsed, err := strconv.Atoi(raw)
+		if err != nil || parsed < 1 || parsed > 100 {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM",
+				"limit must be an integer between 1 and 100")
+			return
+		}
+		limit = parsed
+	}
+
+	page, err := h.svc.List(r.Context(), service.ListTransactionsRequest{
+		MerchantID: principal.MerchantID,
+		Cursor:     r.URL.Query().Get("cursor"),
+		Limit:      limit,
+	})
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"transactions could not be listed")
+		return
+	}
+
+	respond(w, http.StatusOK, page)
 }
