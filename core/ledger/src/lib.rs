@@ -1,10 +1,14 @@
 pub mod account;
+pub mod engine;
 pub mod entry;
 pub mod posting;
+pub mod repository;
 
 pub use account::{Account, AccountType};
+pub use engine::LedgerEngine;
 pub use entry::{EntryType, LedgerEntry};
 pub use posting::{LedgerPosting, PostingBuilder, PostingError};
+pub use repository::PostgresLedgerRepository;
 
 use thiserror::Error;
 
@@ -32,6 +36,18 @@ pub enum LedgerError {
 
     #[error("posting must have at least two entries")]
     InsufficientEntries,
+
+    #[error("unknown currency code: {0}")]
+    UnknownCurrency(String),
+
+    #[error("unknown account type: {0}")]
+    UnknownAccountType(String),
+
+    #[error("unknown entry type: {0}")]
+    UnknownEntryType(String),
+
+    #[error("database error: {0}")]
+    Database(#[from] sqlx::Error),
 
     #[error(transparent)]
     Money(#[from] banzami_types::MoneyError),

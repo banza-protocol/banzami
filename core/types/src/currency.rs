@@ -28,6 +28,18 @@ impl Currency {
     }
 }
 
+impl Currency {
+    /// Parse from an ISO 4217 code string. Returns None for unknown codes.
+    pub fn from_code(code: &str) -> Option<Self> {
+        match code {
+            "AOA" => Some(Currency::AOA),
+            "USD" => Some(Currency::USD),
+            "EUR" => Some(Currency::EUR),
+            _ => None,
+        }
+    }
+}
+
 impl fmt::Display for Currency {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.write_str(self.code())

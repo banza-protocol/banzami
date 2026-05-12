@@ -30,6 +30,27 @@ impl AccountType {
     pub const fn normal_balance_is_debit(self) -> bool {
         matches!(self, AccountType::Asset | AccountType::Expense)
     }
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            AccountType::Asset     => "ASSET",
+            AccountType::Liability => "LIABILITY",
+            AccountType::Equity    => "EQUITY",
+            AccountType::Revenue   => "REVENUE",
+            AccountType::Expense   => "EXPENSE",
+        }
+    }
+
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "ASSET"     => Some(AccountType::Asset),
+            "LIABILITY" => Some(AccountType::Liability),
+            "EQUITY"    => Some(AccountType::Equity),
+            "REVENUE"   => Some(AccountType::Revenue),
+            "EXPENSE"   => Some(AccountType::Expense),
+            _ => None,
+        }
+    }
 }
 
 /// A node in the chart of accounts.

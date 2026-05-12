@@ -21,6 +21,21 @@ impl EntryType {
             EntryType::Credit => EntryType::Debit,
         }
     }
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            EntryType::Debit  => "DEBIT",
+            EntryType::Credit => "CREDIT",
+        }
+    }
+
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "DEBIT"  => Some(EntryType::Debit),
+            "CREDIT" => Some(EntryType::Credit),
+            _ => None,
+        }
+    }
 }
 
 /// A single debit or credit line within a [`LedgerPosting`].
