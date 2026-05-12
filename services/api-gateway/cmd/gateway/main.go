@@ -10,8 +10,11 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/redis/go-redis/v9"
+
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/server"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 func main() {
@@ -23,7 +26,19 @@ func main() {
 
 	initLogger(cfg)
 
-	srv := server.New(cfg)
+	opt, err := redis.ParseURL(cfg.RedisURL)
+	if err != nil {
+		slog.Error("invalid REDIS_URL", "error", err)
+		os.Exit(1)
+	}
+	rdb := redis.NewClient(opt)
+
+	deps := server.Dependencies{
+		Redis:          rdb,
+		TransactionSvc: &service.StubTransactionService{},
+	}
+
+	srv := server.New(cfg, deps)
 
 	// Capture SIGINT / SIGTERM for graceful shutdown.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
