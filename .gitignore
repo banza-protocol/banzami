@@ -1,0 +1,88 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE / editors
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+*.swp
+*.swo
+*~
+
+# Environment & secrets
+# NOTE: secrets must never be committed (CLAUDE.md §7.3).
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+secrets/
+credentials/
+
+# Logs
+*.log
+logs/
+
+# Node / TypeScript / Next.js
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+.npm/
+.yarn/
+.pnpm-store/
+.turbo/
+
+# Rust
+# NOTE: Cargo.lock is intentionally NOT ignored. Commit it for reproducibility,
+# even for library crates — fintech reproducibility matters more than convention.
+target/
+**/*.rs.bk
+
+# Go
+bin/
+*.test
+*.out
+coverage.out
+vendor/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+ios/Pods/
+ios/.symlinks/
+android/.gradle/
+android/local.properties
+
+# Terraform
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+
+# Docker
+*.pid
+
+# Python (tooling/scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Misc
+tmp/
+temp/
+.cache/
