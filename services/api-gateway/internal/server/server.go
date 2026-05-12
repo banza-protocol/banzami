@@ -48,6 +48,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
 		r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
+		r.Use(middleware.Idempotency(deps.Redis))
 
 		r.Route("/v1", func(r chi.Router) {
 			r.Post("/transactions", txHandler.Create)
