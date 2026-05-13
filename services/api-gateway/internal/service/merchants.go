@@ -77,6 +77,10 @@ type MerchantService interface {
 	CreateApiKey(ctx context.Context, merchantID, name string) (*ApiKeyWithSecret, error)
 	ListApiKeys(ctx context.Context, merchantID string) ([]*ApiKeyRecord, error)
 	RevokeApiKey(ctx context.Context, merchantID, keyID string) error
+
+	// VerifyApiKey validates a raw API key and returns the owning merchant.
+	// Returns ErrInvalidApiKey for unknown keys and ErrKeyRevoked for revoked ones.
+	VerifyApiKey(ctx context.Context, rawKey string) (*MerchantRecord, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -194,6 +198,28 @@ func (s *StubMerchantService) ListApiKeys(_ context.Context, merchantID string) 
 		}
 	}
 	return keys, nil
+}
+
+func (s *StubMerchantService) VerifyApiKey(_ context.Context, rawKey string) (*MerchantRecord, error) {
+	h := hashKey(rawKey)
+
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	for _, k := range s.apiKeys {
+		if k.keyHash == h {
+			if k.record.RevokedAt != nil {
+				return nil, ErrKeyRevoked
+			}
+			m, ok := s.merchants[k.record.MerchantID]
+			if !ok {
+				return nil, ErrMerchantNotFound
+			}
+			cp := *m
+			return &cp, nil
+		}
+	}
+	return nil, ErrInvalidApiKey
 }
 
 func (s *StubMerchantService) RevokeApiKey(_ context.Context, merchantID, keyID string) error {

@@ -38,6 +38,7 @@ func main() {
 		TransactionSvc: service.NewStubTransactionService(),
 		WebhookSvc:     service.NewStubWebhookService(),
 		MerchantSvc:    service.NewStubMerchantService(),
+		WalletSvc:      service.NewStubWalletService(),
 	}
 
 	srv := server.New(cfg, deps)

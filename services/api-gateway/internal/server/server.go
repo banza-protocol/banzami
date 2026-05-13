@@ -21,6 +21,7 @@ type Dependencies struct {
 	TransactionSvc service.TransactionService
 	WebhookSvc     service.WebhookService
 	MerchantSvc    service.MerchantService
+	WalletSvc      service.WalletService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -43,11 +44,16 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Get("/readyz", handler.Readiness(cfg))
 
 	// ---------------------------------------------------------------------------
-	// Versioned public API — JWT auth + rate limiting required
+	// Handlers
 	// ---------------------------------------------------------------------------
-	txHandler  := handler.NewTransactionHandler(deps.TransactionSvc)
-	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
-	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
+	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
+	txHandler   := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler  := handler.NewWebhookHandler(deps.WebhookSvc)
+	mchHandler  := handler.NewMerchantHandler(deps.MerchantSvc)
+	wltHandler  := handler.NewWalletHandler(deps.WalletSvc)
+
+	// Auth — no JWT required; the API key is the credential
+	r.Post("/v1/auth/token", authHandler.Token)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
@@ -76,6 +82,12 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/{id}/api-keys", mchHandler.CreateApiKey)
 				r.Get("/{id}/api-keys", mchHandler.ListApiKeys)
 				r.Delete("/{id}/api-keys/{keyID}", mchHandler.RevokeApiKey)
+			})
+
+			r.Route("/wallets", func(r chi.Router) {
+				r.Post("/", wltHandler.Create)
+				r.Get("/{id}", wltHandler.Get)
+				r.Get("/{id}/balance", wltHandler.Balance)
 			})
 		})
 	})

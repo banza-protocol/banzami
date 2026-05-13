@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 
@@ -77,6 +78,27 @@ func RequireScope(scope string) func(http.Handler) http.Handler {
 				"missing required scope: "+scope)
 		})
 	}
+}
+
+// NewMerchantToken mints a signed JWT for the given merchant. The returned
+// string is the expiry time in RFC3339, suitable for inclusion in the response.
+func NewMerchantToken(secret, merchantID string, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {
+	now := time.Now()
+	exp := now.Add(ttl)
+	claims := &jwtClaims{
+		MerchantID: merchantID,
+		Scopes:     scopes,
+		RegisteredClaims: jwt.RegisteredClaims{
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(exp),
+		},
+	}
+	tok := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := tok.SignedString([]byte(secret))
+	if err != nil {
+		return "", "", err
+	}
+	return signed, exp.UTC().Format(time.RFC3339), nil
 }
 
 // ---------------------------------------------------------------------------
