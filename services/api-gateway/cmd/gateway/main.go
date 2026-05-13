@@ -43,13 +43,16 @@ func main() {
 	}
 	rdb := redis.NewClient(opt)
 
+	// Real core-api client — delegates all financial operations to the Rust core.
+	coreClient := service.NewCoreApiClient(cfg.CoreAPIURL)
+
 	deps := server.Dependencies{
 		Redis:          rdb,
-		TransactionSvc: service.NewStubTransactionService(),
-		WebhookSvc:     service.NewStubWebhookService(),
-		MerchantSvc:    service.NewStubMerchantService(),
-		WalletSvc:      service.NewStubWalletService(),
-		PayoutSvc:      service.NewStubPayoutService(),
+		TransactionSvc: service.NewCoreApiTransactionService(coreClient),
+		WebhookSvc:     service.NewStubWebhookService(), // webhook delivery deferred (needs DB worker)
+		MerchantSvc:    service.NewCoreApiMerchantService(coreClient),
+		WalletSvc:      service.NewCoreApiWalletService(coreClient),
+		PayoutSvc:      service.NewCoreApiPayoutService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)

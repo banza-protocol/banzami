@@ -50,9 +50,19 @@ async fn main() {
         .route("/health", get(health))
 
         // Merchants
-        .route("/internal/v1/merchants",       post(routes::merchants::create_merchant))
-        .route("/internal/v1/merchants/:id",   get(routes::merchants::get_merchant))
-        .route("/internal/v1/auth/verify-key", post(routes::merchants::verify_api_key))
+        .route("/internal/v1/merchants",                      post(routes::merchants::create_merchant))
+        .route("/internal/v1/merchants/:id",                  get(routes::merchants::get_merchant))
+        .route("/internal/v1/merchants/:id/suspend",          post(routes::merchants::suspend_merchant))
+        .route("/internal/v1/merchants/:id/api-keys",         post(routes::merchants::create_api_key))
+        .route("/internal/v1/merchants/:id/api-keys",         get(routes::merchants::list_api_keys))
+        .route("/internal/v1/merchants/:id/api-keys/:key_id", axum::routing::delete(routes::merchants::revoke_api_key))
+        .route("/internal/v1/auth/verify-key",                post(routes::merchants::verify_api_key))
+
+        // Wallets
+        .route("/internal/v1/wallets",             post(routes::wallets::create))
+        .route("/internal/v1/wallets",             get(routes::wallets::get_for_merchant))
+        .route("/internal/v1/wallets/:id",         get(routes::wallets::get))
+        .route("/internal/v1/wallets/:id/balance", get(routes::wallets::balance))
 
         // Transactions
         .route("/internal/v1/transactions",                  post(routes::transactions::create))

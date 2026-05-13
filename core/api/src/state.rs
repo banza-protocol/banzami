@@ -36,17 +36,18 @@ pub type ReconEng      = StaticReconciliationEngine<PostgresReconciliationReposi
 #[derive(Clone)]
 pub struct AppState {
     #[allow(dead_code)]
-    pub pool:          PgPool,
-    pub tx_engine:     Arc<TxEng>,
-    pub merchant:      Arc<MerchantEng>,
-    pub settlement:    Arc<SettlementEng>,
-    pub payout:        Arc<PayoutEng>,
-    pub compliance:    Arc<ComplianceEng>,
+    pub pool:           PgPool,
+    pub wallet:         Arc<WalletEng>,
+    pub tx_engine:      Arc<TxEng>,
+    pub merchant:       Arc<MerchantEng>,
+    pub settlement:     Arc<SettlementEng>,
+    pub payout:         Arc<PayoutEng>,
+    pub compliance:     Arc<ComplianceEng>,
     pub reconciliation: Arc<ReconEng>,
     #[allow(dead_code)]
-    pub routing:       Arc<StaticRoutingEngine>,
+    pub routing:        Arc<StaticRoutingEngine>,
     #[allow(dead_code)]
-    pub risk:          Arc<StaticRiskEngine>,
+    pub risk:           Arc<StaticRiskEngine>,
 }
 
 impl AppState {
@@ -55,18 +56,26 @@ impl AppState {
         transit_account_id: AccountId,
         bank_account_id: AccountId,
     ) -> Self {
-        // --- Wallet engine ---
+        // --- Wallet engine (for wallet routes) ---
         let wallet_ledger = PostgresLedgerRepository::new(pool.clone());
         let wallet_repo   = PostgresWalletRepository::new(pool.clone());
-        let wallet_engine = Arc::new(PostgresWalletEngine::new(
+        let wallet = Arc::new(PostgresWalletEngine::new(
             Arc::new(wallet_ledger),
             wallet_repo,
         ));
 
+        // --- Wallet engine (for transaction engine — separate instance, same DB) ---
+        let tx_wallet_ledger = PostgresLedgerRepository::new(pool.clone());
+        let tx_wallet_repo   = PostgresWalletRepository::new(pool.clone());
+        let tx_wallet_engine = PostgresWalletEngine::new(
+            Arc::new(tx_wallet_ledger),
+            tx_wallet_repo,
+        );
+
         // --- Transaction engine ---
         let tx_repo   = PostgresTransactionRepository::new(pool.clone());
         let tx_engine = Arc::new(PostgresTransactionEngine::new(
-            wallet_engine,
+            Arc::new(tx_wallet_engine),
             tx_repo,
             transit_account_id,
         ));
@@ -111,6 +120,7 @@ impl AppState {
 
         Self {
             pool,
+            wallet,
             tx_engine,
             merchant,
             settlement,

@@ -29,6 +29,7 @@ impl ApiKey {
 
 /// Returned only at key creation — the raw secret is never stored and cannot
 /// be recovered after this point.
+#[derive(serde::Serialize)]
 pub struct ApiKeySecret {
     pub key:    ApiKey,
     pub secret: String,

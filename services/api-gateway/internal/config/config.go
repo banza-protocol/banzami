@@ -13,6 +13,7 @@ type Config struct {
 	LogFormat    string
 	DatabaseURL  string
 	RedisURL     string
+	CoreAPIURL   string
 	OTLPEndpoint string // optional; tracing is a no-op when empty
 	// JWTSecret is required for protected routes.
 	// Deliberately left optional here so the gateway starts for health-check
@@ -53,6 +54,12 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("JWT_SECRET"); v != "" {
 		cfg.JWTSecret = v
+	}
+	if v := os.Getenv("CORE_API_URL"); v != "" {
+		cfg.CoreAPIURL = v
+	}
+	if cfg.CoreAPIURL == "" {
+		cfg.CoreAPIURL = "http://127.0.0.1:8081"
 	}
 	if v := os.Getenv("OTLP_ENDPOINT"); v != "" {
 		cfg.OTLPEndpoint = v
