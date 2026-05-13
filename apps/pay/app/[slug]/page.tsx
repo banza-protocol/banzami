@@ -1,0 +1,63 @@
+import { notFound } from 'next/navigation';
+import { getPaymentLink, formatAmount } from '@/lib/api';
+import PayClient from './pay-client';
+
+interface Props {
+  params: { slug: string };
+}
+
+export default async function PayPage({ params }: Props) {
+  const link = await getPaymentLink(params.slug);
+  if (!link) notFound();
+
+  if (link.status === 'USED') {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
+            <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Pagamento recebido</h1>
+          <p className="mt-2 text-sm text-gray-400">Este link de pagamento já foi utilizado.</p>
+        </div>
+      </main>
+    );
+  }
+
+  if (link.status === 'EXPIRED' || link.status === 'CANCELLED') {
+    return (
+      <main className="flex min-h-screen items-center justify-center p-4">
+        <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+            <svg className="h-7 w-7 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">Link inválido</h1>
+          <p className="mt-2 text-sm text-gray-400">
+            {link.status === 'EXPIRED' ? 'Este link de pagamento expirou.' : 'Este link foi cancelado.'}
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  const amountDisplay = link.amount_minor != null
+    ? formatAmount(link.amount_minor, link.currency)
+    : null;
+
+  const deepLink = `banzami://pay/link/${link.slug}`;
+
+  return (
+    <PayClient
+      slug={link.slug}
+      amountDisplay={amountDisplay}
+      currency={link.currency}
+      description={link.description}
+      deepLink={deepLink}
+      expiresAt={link.expires_at}
+    />
+  );
+}

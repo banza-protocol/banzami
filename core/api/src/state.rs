@@ -21,6 +21,7 @@ use banzami_consumer_wallets::{
 };
 use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository};
 use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
+use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 
 // ---------------------------------------------------------------------------
 // Concrete engine types wired to PostgreSQL
@@ -38,6 +39,7 @@ pub type IdentityEng      = PostgresIdentityEngine<PostgresIdentityRepository>;
 pub type ConsumerWalletEng = PostgresConsumerWalletEngine<LedgerRepo, PostgresConsumerWalletRepository>;
 pub type TransferEng      = PostgresTransferEngine<PostgresTransferRepository>;
 pub type QrEng            = PostgresQrEngine<PostgresQrRepository>;
+pub type PaymentLinksEng  = PostgresPaymentLinkEngine<PostgresPaymentLinkRepository>;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -62,6 +64,7 @@ pub struct AppState {
     pub consumer_wallet: Arc<ConsumerWalletEng>,
     pub transfer:        Arc<TransferEng>,
     pub qr:              Arc<QrEng>,
+    pub payment_links:   Arc<PaymentLinksEng>,
 }
 
 impl AppState {
@@ -155,6 +158,10 @@ impl AppState {
         let qr_repo = PostgresQrRepository::new(pool.clone());
         let qr      = Arc::new(PostgresQrEngine::new(qr_repo, qr_signing_key));
 
+        // --- Payment links engine ---
+        let pl_repo     = PostgresPaymentLinkRepository::new(pool.clone());
+        let payment_links = Arc::new(PostgresPaymentLinkEngine::new(pl_repo));
+
         Self {
             pool,
             wallet,
@@ -170,6 +177,7 @@ impl AppState {
             consumer_wallet,
             transfer,
             qr,
+            payment_links,
         }
     }
 }

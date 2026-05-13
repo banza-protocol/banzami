@@ -1,0 +1,22 @@
+[package]
+name        = "banzami-payment-links"
+description = "Shareable payment links for WhatsApp/social commerce and informal merchants"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+authors.workspace    = true
+
+[dependencies]
+banzami-types = { workspace = true }
+serde         = { workspace = true }
+serde_json    = { workspace = true }
+uuid          = { workspace = true }
+chrono        = { workspace = true }
+thiserror     = { workspace = true }
+tracing       = { workspace = true }
+sqlx          = { workspace = true }
+tokio         = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

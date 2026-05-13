@@ -11,6 +11,7 @@ use axum::{
 use tower_http::trace::TraceLayer;
 
 use banzami_qr::run_expiry_worker;
+use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
 use state::AppState;
 
 #[tokio::main]
@@ -52,7 +53,10 @@ async fn main() {
         .ok()
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(60);
-    tokio::spawn(run_expiry_worker(pool, Duration::from_secs(qr_expiry_secs)));
+    tokio::spawn(run_expiry_worker(pool.clone(), Duration::from_secs(qr_expiry_secs)));
+
+    // Spawn the payment link expiry worker (shares the QR interval setting).
+    tokio::spawn(run_pl_expiry_worker(pool, Duration::from_secs(qr_expiry_secs)));
 
     let app = Router::new()
         // Health
@@ -134,6 +138,14 @@ async fn main() {
         .route("/internal/v1/qr/decode",        post(routes::qr::decode))
         .route("/internal/v1/qr/:id",           get(routes::qr::get))
         .route("/internal/v1/qr/:id/use",       post(routes::qr::mark_used))
+
+        // Payment links
+        .route("/internal/v1/payment-links",                 post(routes::payment_links::create))
+        .route("/internal/v1/payment-links",                 get(routes::payment_links::list))
+        .route("/internal/v1/payment-links/by-slug/:slug",   get(routes::payment_links::get_by_slug))
+        .route("/internal/v1/payment-links/:id",             get(routes::payment_links::get))
+        .route("/internal/v1/payment-links/:id/cancel",      post(routes::payment_links::cancel))
+        .route("/internal/v1/payment-links/:id/mark-used",   post(routes::payment_links::mark_used))
 
         .with_state(state)
         .layer(TraceLayer::new_for_http());

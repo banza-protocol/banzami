@@ -29,6 +29,7 @@ type Dependencies struct {
 	ConsumerWalletSvc   service.ConsumerWalletService
 	TransferSvc         service.TransferService
 	QrSvc               service.QrService
+	PaymentLinkSvc      service.PaymentLinkService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -67,6 +68,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	consumerWltHandler   := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler      := handler.NewTransferHandler(deps.TransferSvc)
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
+	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -144,7 +146,23 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", qrHandler.Get)
 				r.Post("/{id}/use", qrHandler.MarkUsed)
 			})
+
+			// Payment links
+			r.Route("/payment-links", func(r chi.Router) {
+				r.Post("/", paymentLinkHandler.Create)
+				r.Get("/", paymentLinkHandler.List)
+				r.Get("/{id}", paymentLinkHandler.Get)
+				r.Delete("/{id}", paymentLinkHandler.Cancel)
+				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
+			})
 		})
+	})
+
+	// Public endpoints — no auth, no rate limiting.
+	// Consumed by the apps/pay Next.js app.
+	r.Route("/public/pay", func(r chi.Router) {
+		r.Get("/{slug}", paymentLinkHandler.GetPublic)
+		r.Get("/{slug}/status", paymentLinkHandler.Status)
 	})
 
 	// Wrap the entire chi router with otelhttp. This creates one trace span per

@@ -27,6 +27,7 @@ banzami-identity         = { workspace = true }
 banzami-consumer-wallets = { workspace = true }
 banzami-transfers        = { workspace = true }
 banzami-qr               = { workspace = true }
+banzami-payment-links    = { workspace = true }
 serde                = { workspace = true }
 serde_json           = { workspace = true }
 uuid                 = { workspace = true }

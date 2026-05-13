@@ -15,6 +15,7 @@ members = [
     "consumer-wallets",
     "transfers",
     "qr",
+    "payment-links",
     "api",
 ]
 resolver = "2"
@@ -46,6 +47,7 @@ banzami-identity        = { path = "identity" }
 banzami-consumer-wallets = { path = "consumer-wallets" }
 banzami-transfers       = { path = "transfers" }
 banzami-qr              = { path = "qr" }
+banzami-payment-links   = { path = "payment-links" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }

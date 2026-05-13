@@ -27,6 +27,7 @@ COPY identity/        ./identity/
 COPY consumer-wallets/ ./consumer-wallets/
 COPY transfers/       ./transfers/
 COPY qr/              ./qr/
+COPY payment-links/   ./payment-links/
 COPY api/             ./api/
 
 # sqlx validates queries against a real database at compile time.

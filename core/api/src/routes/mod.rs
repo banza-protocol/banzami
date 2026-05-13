@@ -3,6 +3,7 @@ pub mod consumer_wallets;
 pub mod consumers;
 pub mod merchants;
 pub mod payouts;
+pub mod payment_links;
 pub mod qr;
 pub mod reconciliation;
 pub mod settlements;
