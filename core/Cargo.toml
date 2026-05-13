@@ -25,7 +25,8 @@ authors    = ["Banzami Engineering <engineering@banzami.ao>"]
 # ---------------------------------------------------------------------------
 [workspace.dependencies]
 # Internal
-banzami-types = { path = "types" }
+banzami-types  = { path = "types" }
+banzami-ledger = { path = "ledger" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }
