@@ -22,8 +22,12 @@ COPY payouts/        ./payouts/
 COPY reconciliation/ ./reconciliation/
 COPY compliance/     ./compliance/
 COPY risk/           ./risk/
-COPY routing/        ./routing/
-COPY api/            ./api/
+COPY routing/         ./routing/
+COPY identity/        ./identity/
+COPY consumer-wallets/ ./consumer-wallets/
+COPY transfers/       ./transfers/
+COPY qr/              ./qr/
+COPY api/             ./api/
 
 # sqlx validates queries against a real database at compile time.
 # SQLX_OFFLINE=true tells it to use the cached metadata in .sqlx/ instead.
