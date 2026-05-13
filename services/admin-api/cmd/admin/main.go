@@ -3,8 +3,7 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/banzami/banzami/services/admin-api/internal/config"
+	"github.com/banzami/banzami/services/admin-api/internal/observability"
 	"github.com/banzami/banzami/services/admin-api/internal/server"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
@@ -19,30 +19,77 @@ import (
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("config: %v", err)
+		slog.Error("config error", "error", err)
+		os.Exit(1)
+	}
+
+	initLogger(cfg)
+
+	// Initialise OpenTelemetry. Metrics are always active (Prometheus);
+	// tracing is active only when OTLP_ENDPOINT is set.
+	ctx := context.Background()
+	shutdownOTel, err := observability.Setup(ctx, "admin-api", "0.1.0", cfg.OTLPEndpoint)
+	if err != nil {
+		slog.Error("otel setup error", "error", err)
+		os.Exit(1)
 	}
 
 	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
-	addr := fmt.Sprintf(":%d", cfg.Port)
-	srv := server.New(addr, cfg.AdminAPIKey, core)
+	srv := server.New(cfg, core)
 
-	stop := make(chan os.Signal, 1)
-	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	go func() {
-		log.Printf("admin-api listening on %s", addr)
+		slog.Info("admin-api starting",
+			"port",         cfg.Port,
+			"log_level",    cfg.LogLevel,
+			"otlp_enabled", cfg.OTLPEndpoint != "",
+		)
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			log.Fatalf("server: %v", err)
+			slog.Error("server error", "error", err)
+			os.Exit(1)
 		}
 	}()
 
-	<-stop
-	log.Println("shutting down gracefully...")
+	<-sigCtx.Done()
+	stop()
+	slog.Info("shutdown signal received — draining requests")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	if err := srv.Shutdown(ctx); err != nil {
-		log.Printf("shutdown error: %v", err)
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("graceful shutdown failed", "error", err)
 	}
+
+	// Flush and shut down OTel providers.
+	if err := shutdownOTel(shutdownCtx); err != nil {
+		slog.Error("otel shutdown error", "error", err)
+	}
+
+	slog.Info("shutdown complete")
+}
+
+func initLogger(cfg *config.Config) {
+	var level slog.Level
+	switch cfg.LogLevel {
+	case "debug":
+		level = slog.LevelDebug
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	opts := &slog.HandlerOptions{Level: level}
+	var handler slog.Handler
+	if cfg.LogFormat == "pretty" {
+		handler = slog.NewTextHandler(os.Stdout, opts)
+	} else {
+		handler = slog.NewJSONHandler(os.Stdout, opts)
+	}
+	slog.SetDefault(slog.New(handler))
 }

@@ -2,12 +2,16 @@ package server
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/banzami/banzami/services/admin-api/internal/config"
 	"github.com/banzami/banzami/services/admin-api/internal/handler"
 	"github.com/banzami/banzami/services/admin-api/internal/middleware"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -17,26 +21,28 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(addr, adminKey string, core *service.CoreAdminClient) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 	r := chi.NewRouter()
 
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
-	r.Use(chimiddleware.Logger)
+	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
 	r.Use(chimiddleware.Timeout(30 * time.Second))
+	r.Use(middleware.RouteSpan) // enriches otelhttp span with chi route pattern
 
-	// Health — unauthenticated
+	// Health and metrics — unauthenticated
 	r.Get("/health", handler.Liveness)
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// All admin routes require API key authentication
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AdminAuth(adminKey))
+		r.Use(middleware.AdminAuth(cfg.AdminAPIKey))
 
-		complianceH := handler.NewComplianceHandler(core)
-		settlementH := handler.NewSettlementHandler(core)
-		payoutH := handler.NewPayoutHandler(core)
-		merchantH := handler.NewMerchantHandler(core)
+		complianceH     := handler.NewComplianceHandler(core)
+		settlementH     := handler.NewSettlementHandler(core)
+		payoutH         := handler.NewPayoutHandler(core)
+		merchantH       := handler.NewMerchantHandler(core)
 		reconciliationH := handler.NewReconciliationHandler(core)
 
 		// Merchants
@@ -70,10 +76,14 @@ func New(addr, adminKey string, core *service.CoreAdminClient) *Server {
 		r.Post("/admin/v1/reconciliation/run", reconciliationH.Run)
 	})
 
+	// Wrap chi router with otelhttp: creates one span per request and records
+	// http.server.request.duration metrics via the OTel SDK.
+	traced := otelhttp.NewHandler(r, "admin-api")
+
 	return &Server{
 		httpServer: &http.Server{
-			Addr:         addr,
-			Handler:      r,
+			Addr:         fmt.Sprintf(":%d", cfg.Port),
+			Handler:      traced,
 			ReadTimeout:  15 * time.Second,
 			WriteTimeout: 30 * time.Second,
 			IdleTimeout:  60 * time.Second,

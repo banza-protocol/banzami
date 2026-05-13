@@ -13,6 +13,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/observability"
 	"github.com/banzami/banzami/services/api-gateway/internal/server"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
@@ -25,6 +26,15 @@ func main() {
 	}
 
 	initLogger(cfg)
+
+	// Initialise OpenTelemetry. Metrics are always active (Prometheus);
+	// tracing is active only when OTLP_ENDPOINT is set.
+	ctx := context.Background()
+	shutdownOTel, err := observability.Setup(ctx, "api-gateway", "0.1.0", cfg.OTLPEndpoint)
+	if err != nil {
+		slog.Error("otel setup error", "error", err)
+		os.Exit(1)
+	}
 
 	opt, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
@@ -45,15 +55,16 @@ func main() {
 	srv := server.New(cfg, deps)
 
 	// Capture SIGINT / SIGTERM for graceful shutdown.
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
 		slog.Info("api-gateway starting",
-			"port",        cfg.Port,
-			"environment", cfg.Environment,
-			"log_level",   cfg.LogLevel,
-			"log_format",  cfg.LogFormat,
+			"port",         cfg.Port,
+			"environment",  cfg.Environment,
+			"log_level",    cfg.LogLevel,
+			"log_format",   cfg.LogFormat,
+			"otlp_enabled", cfg.OTLPEndpoint != "",
 		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("server error", "error", err)
@@ -61,7 +72,7 @@ func main() {
 		}
 	}()
 
-	<-ctx.Done()
+	<-sigCtx.Done()
 	stop()
 	slog.Info("shutdown signal received — draining requests")
 
@@ -70,7 +81,11 @@ func main() {
 
 	if err := srv.Shutdown(shutdownCtx); err != nil {
 		slog.Error("graceful shutdown failed", "error", err)
-		os.Exit(1)
+	}
+
+	// Flush and shut down OTel providers (ensures all spans/metrics are exported).
+	if err := shutdownOTel(shutdownCtx); err != nil {
+		slog.Error("otel shutdown error", "error", err)
 	}
 
 	slog.Info("shutdown complete")

@@ -48,6 +48,40 @@ services:
     networks:
       - banzami_net
 
+  # ─── Observability stack ──────────────────────────────────────────────────────
+
+  prometheus:
+    image: prom/prometheus:v3.3.1
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+      - --web.enable-lifecycle
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  grafana:
+    image: grafana/grafana:12.0.1
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER:     admin
+      GF_SECURITY_ADMIN_PASSWORD: banzami_dev
+      GF_USERS_ALLOW_SIGN_UP:     "false"
+    volumes:
+      - ../../infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
   # ─── Application services ────────────────────────────────────────────────────
 
   # Rust financial core — the single source of financial truth.
@@ -85,11 +119,12 @@ services:
       context: ../../services/api-gateway
       dockerfile: Dockerfile
     environment:
-      PORT:         "8080"
-      JWT_SECRET:   ${JWT_SECRET}
-      CORE_API_URL: http://core-api:8081
-      REDIS_ADDR:   redis:6379
-      LOG_LEVEL:    ${LOG_LEVEL:-info}
+      PORT:          "8080"
+      JWT_SECRET:    ${JWT_SECRET}
+      CORE_API_URL:  http://core-api:8081
+      REDIS_URL:     redis://redis:6379
+      LOG_LEVEL:     ${LOG_LEVEL:-info}
+      OTLP_ENDPOINT: ${OTLP_ENDPOINT:-}
     ports:
       - "8080:8080"
     depends_on:
@@ -111,6 +146,7 @@ services:
       CORE_API_URL:   http://core-api:8081
       ADMIN_API_KEY:  ${ADMIN_API_KEY}
       LOG_LEVEL:      ${LOG_LEVEL:-info}
+      OTLP_ENDPOINT:  ${OTLP_ENDPOINT:-}
     ports:
       - "8082:8082"
     depends_on:
@@ -123,6 +159,8 @@ services:
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:
 
 networks:
   banzami_net:

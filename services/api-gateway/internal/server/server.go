@@ -7,7 +7,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
@@ -26,6 +28,8 @@ type Dependencies struct {
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
+// The chi router is wrapped with otelhttp so every request gets a trace span;
+// RouteSpan then sets the low-cardinality route pattern on that span.
 func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r := chi.NewRouter()
 
@@ -37,12 +41,14 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Use(middleware.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(60 * time.Second))
+	r.Use(middleware.RouteSpan) // enriches the otelhttp span with chi route pattern
 
 	// ---------------------------------------------------------------------------
-	// Observability endpoints — no auth, no rate limit
+	// Observability endpoints — no auth, no rate limit, no tracing noise
 	// ---------------------------------------------------------------------------
 	r.Get("/health", handler.Liveness)
 	r.Get("/readyz", handler.Readiness(cfg))
+	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	// ---------------------------------------------------------------------------
 	// Handlers
@@ -100,9 +106,14 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		})
 	})
 
+	// Wrap the entire chi router with otelhttp. This creates one trace span per
+	// request and records http.server.request.duration / active_requests metrics
+	// automatically using OTel semantic conventions.
+	traced := otelhttp.NewHandler(r, "api-gateway")
+
 	return &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.Port),
-		Handler:      r,
+		Handler:      traced,
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  120 * time.Second,

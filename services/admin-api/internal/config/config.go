@@ -8,10 +8,12 @@ import (
 
 // Config holds all runtime configuration for the admin-api service.
 type Config struct {
-	Port        int
-	CoreAPIURL  string
-	AdminAPIKey string // secret required in every request via X-Admin-Key header
-	LogLevel    string
+	Port         int
+	CoreAPIURL   string
+	AdminAPIKey  string // secret required in every request via X-Admin-Key header
+	LogLevel     string
+	LogFormat    string
+	OTLPEndpoint string // optional; tracing is a no-op when empty
 }
 
 // Load reads config from environment variables.
@@ -36,10 +38,21 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("ADMIN_API_KEY must be set")
 	}
 
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
+	}
+	logFormat := os.Getenv("LOG_FORMAT")
+	if logFormat == "" {
+		logFormat = "json"
+	}
+
 	return &Config{
-		Port:        port,
-		CoreAPIURL:  coreURL,
-		AdminAPIKey: adminKey,
-		LogLevel:    os.Getenv("LOG_LEVEL"),
+		Port:         port,
+		CoreAPIURL:   coreURL,
+		AdminAPIKey:  adminKey,
+		LogLevel:     logLevel,
+		LogFormat:    logFormat,
+		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
 	}, nil
 }

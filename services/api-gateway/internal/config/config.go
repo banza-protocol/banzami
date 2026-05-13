@@ -7,12 +7,13 @@ import (
 )
 
 type Config struct {
-	Port        int
-	Environment string
-	LogLevel    string
-	LogFormat   string
-	DatabaseURL string
-	RedisURL    string
+	Port         int
+	Environment  string
+	LogLevel     string
+	LogFormat    string
+	DatabaseURL  string
+	RedisURL     string
+	OTLPEndpoint string // optional; tracing is a no-op when empty
 	// JWTSecret is required for protected routes.
 	// Deliberately left optional here so the gateway starts for health-check
 	// purposes even before auth is fully wired.
@@ -52,6 +53,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("JWT_SECRET"); v != "" {
 		cfg.JWTSecret = v
+	}
+	if v := os.Getenv("OTLP_ENDPOINT"); v != "" {
+		cfg.OTLPEndpoint = v
 	}
 
 	return cfg, nil
