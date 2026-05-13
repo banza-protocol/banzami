@@ -23,10 +23,14 @@ abstract class BanzamiColors {
   static const Color gray900 = Color(0xFF1A1816);
 
   // Semantic
-  static const Color success = Color(0xFF1A7A4A);
-  static const Color warning = Color(0xFFB45309);
-  static const Color error = Color(0xFFB91C1C);
-  static const Color info = Color(0xFF1E40AF);
+  static const Color success   = Color(0xFF1A7A4A);
+  static const Color successBg = Color(0xFFECFDF5);
+  static const Color warning   = Color(0xFFB45309);
+  static const Color warningBg = Color(0xFFFFFBEB);
+  static const Color error     = Color(0xFFB91C1C);
+  static const Color errorBg   = Color(0xFFFEF2F2);
+  static const Color info      = Color(0xFF1E40AF);
+  static const Color infoBg    = Color(0xFFEFF6FF);
 
   BanzamiColors._();
 }
@@ -170,10 +174,11 @@ abstract class BanzamiRadius {
   static const double xl = 16;
   static const double full = 999;
 
-  static const BorderRadius smAll = BorderRadius.all(Radius.circular(sm));
-  static const BorderRadius mdAll = BorderRadius.all(Radius.circular(md));
-  static const BorderRadius lgAll = BorderRadius.all(Radius.circular(lg));
-  static const BorderRadius xlAll = BorderRadius.all(Radius.circular(xl));
+  static const BorderRadius smAll   = BorderRadius.all(Radius.circular(sm));
+  static const BorderRadius mdAll   = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius lgAll   = BorderRadius.all(Radius.circular(lg));
+  static const BorderRadius xlAll   = BorderRadius.all(Radius.circular(xl));
+  static const BorderRadius fullAll = BorderRadius.all(Radius.circular(full));
 
   BanzamiRadius._();
 }
@@ -286,21 +291,21 @@ abstract class BanzamiTheme {
           horizontal: BanzamiSpacing.lg,
           vertical: BanzamiSpacing.md,
         ),
-        border: OutlineInputBorder(
+        border: const OutlineInputBorder(
           borderRadius: BanzamiRadius.mdAll,
           borderSide: BorderSide.none,
         ),
-        enabledBorder: OutlineInputBorder(
+        enabledBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.mdAll,
           borderSide: BorderSide.none,
         ),
-        focusedBorder: OutlineInputBorder(
+        focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.mdAll,
-          borderSide: const BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide: BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
-        errorBorder: OutlineInputBorder(
+        errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.mdAll,
-          borderSide: const BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderSide: BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         hintStyle: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
         labelStyle: BanzamiTextStyles.label,
@@ -323,7 +328,7 @@ abstract class BanzamiTheme {
         space: 0,
       ),
 
-      chipTheme: ChipThemeData(
+      chipTheme: const ChipThemeData(
         backgroundColor: BanzamiColors.gray100,
         labelStyle: BanzamiTextStyles.label,
         side: BorderSide.none,

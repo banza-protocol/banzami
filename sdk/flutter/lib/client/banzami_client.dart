@@ -1,0 +1,219 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+
+import '../models/consumer.dart';
+import '../models/qr_code.dart';
+import '../models/transfer.dart';
+import '../models/wallet_balance.dart';
+import 'api_exception.dart';
+
+/// HTTP client for the Banzami Go api-gateway.
+///
+/// All financial operations are delegated to the gateway, which in turn
+/// calls the Rust core-api. This client mirrors the gateway's REST surface.
+///
+/// Usage:
+/// ```dart
+/// final client = BanzamiClient(
+///   baseUrl: 'https://api.banzami.ao',
+///   apiKey:  'bz_live_...',
+/// );
+/// ```
+class BanzamiClient {
+  final String baseUrl;
+  final String apiKey;
+  final http.Client _http;
+  final Uuid _uuid;
+
+  BanzamiClient({
+    required this.baseUrl,
+    required this.apiKey,
+    http.Client? httpClient,
+  })  : _http = httpClient ?? http.Client(),
+        _uuid = const Uuid();
+
+  // ---------------------------------------------------------------------------
+  // Consumers
+  // ---------------------------------------------------------------------------
+
+  Future<Consumer> createConsumer({
+    required String handle,
+    String? displayName,
+  }) async {
+    final json = await _post('/v1/consumers', {
+      'handle':       handle,
+      if (displayName != null) 'display_name': displayName,
+    });
+    return Consumer.fromJson(json);
+  }
+
+  Future<Consumer> getConsumer(String id) async {
+    final json = await _get('/v1/consumers/$id');
+    return Consumer.fromJson(json);
+  }
+
+  Future<Consumer> getConsumerByHandle(String handle) async {
+    final json = await _get('/v1/consumers/handle/$handle');
+    return Consumer.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Consumer Wallets
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>> getOrCreateWallet({
+    required String consumerId,
+    String currency = 'AOA',
+  }) async {
+    return _post('/v1/consumer-wallets', {
+      'consumer_id': consumerId,
+      'currency':    currency,
+    });
+  }
+
+  Future<WalletBalance> getBalance(String walletId) async {
+    final json = await _get('/v1/consumer-wallets/$walletId/balance');
+    return WalletBalance.fromJson(json);
+  }
+
+  Future<Map<String, dynamic>> getWalletForConsumer({
+    required String consumerId,
+    String currency = 'AOA',
+  }) async {
+    return _get('/v1/consumer-wallets?consumer_id=$consumerId&currency=$currency');
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transfers
+  // ---------------------------------------------------------------------------
+
+  Future<Transfer> sendTransfer({
+    required String senderId,
+    required String recipientId,
+    required int amountMinor,
+    String currency = 'AOA',
+    String? description,
+    String? idempotencyKey,
+  }) async {
+    final json = await _post('/v1/transfers', {
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      'sender_id':       senderId,
+      'recipient_id':    recipientId,
+      'amount_minor':    amountMinor,
+      'currency':        currency,
+      if (description != null) 'description': description,
+    });
+    return Transfer.fromJson(json);
+  }
+
+  Future<Transfer> getTransfer(String id) async {
+    final json = await _get('/v1/transfers/$id');
+    return Transfer.fromJson(json);
+  }
+
+  Future<TransferPage> listTransfers({
+    required String consumerId,
+    int limit = 20,
+    String? cursor,
+  }) async {
+    var path = '/v1/transfers?consumer_id=$consumerId&limit=$limit';
+    if (cursor != null) path += '&cursor=$cursor';
+    final json = await _get(path);
+    return TransferPage.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // QR Codes
+  // ---------------------------------------------------------------------------
+
+  Future<QrResponse> createStaticQr({
+    required String ownerId,
+    String ownerType = 'CONSUMER',
+    String currency  = 'AOA',
+  }) async {
+    final json = await _post('/v1/qr/static', {
+      'owner_id':   ownerId,
+      'owner_type': ownerType,
+      'currency':   currency,
+    });
+    return QrResponse.fromJson(json);
+  }
+
+  Future<QrResponse> createDynamicQr({
+    required String ownerId,
+    required int amountMinor,
+    required DateTime expiresAt,
+    String ownerType = 'CONSUMER',
+    String currency  = 'AOA',
+    String? reference,
+  }) async {
+    final json = await _post('/v1/qr/dynamic', {
+      'owner_id':     ownerId,
+      'owner_type':   ownerType,
+      'currency':     currency,
+      'amount_minor': amountMinor,
+      'expires_at':   expiresAt.toUtc().toIso8601String(),
+      if (reference != null) 'reference': reference,
+    });
+    return QrResponse.fromJson(json);
+  }
+
+  Future<QrResponse> getQrCode(String id) async {
+    final json = await _get('/v1/qr/$id');
+    return QrResponse.fromJson(json);
+  }
+
+  Future<ParsedQr> decodeQrPayload(String payload) async {
+    final json = await _post('/v1/qr/decode', {'payload': payload});
+    return ParsedQr.fromJson(json);
+  }
+
+  Future<QrCode> markQrUsed(String id) async {
+    final json = await _post('/v1/qr/$id/use', null);
+    return QrCode.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // HTTP helpers
+  // ---------------------------------------------------------------------------
+
+  Map<String, String> get _headers => {
+    'Content-Type':  'application/json',
+    'Authorization': 'Bearer $apiKey',
+  };
+
+  Future<Map<String, dynamic>> _get(String path) async {
+    late http.Response resp;
+    try {
+      resp = await _http.get(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+      );
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    return _decode(resp);
+  }
+
+  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic>? body) async {
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+        body:    body != null ? jsonEncode(body) : null,
+      );
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    return _decode(resp);
+  }
+
+  Map<String, dynamic> _decode(http.Response resp) {
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 200 && resp.statusCode < 300) return body;
+    throw BanzamiApiException.fromJson(resp.statusCode, body);
+  }
+}
