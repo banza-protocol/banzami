@@ -2,7 +2,7 @@ mod error;
 mod routes;
 mod state;
 
-use std::env;
+use std::{env, time::Duration};
 
 use axum::{
     routing::{get, post},
@@ -10,6 +10,7 @@ use axum::{
 };
 use tower_http::trace::TraceLayer;
 
+use banzami_qr::run_expiry_worker;
 use state::AppState;
 
 #[tokio::main]
@@ -43,7 +44,15 @@ async fn main() {
         .await
         .expect("failed to connect to PostgreSQL");
 
-    let state = AppState::new(pool, transit_account_id, bank_account_id);
+    let state = AppState::new(pool.clone(), transit_account_id, bank_account_id);
+
+    // Spawn the QR expiry background worker.
+    // Interval is configurable via QR_EXPIRY_INTERVAL_SECS (default: 60 s).
+    let qr_expiry_secs = env::var("QR_EXPIRY_INTERVAL_SECS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(60);
+    tokio::spawn(run_expiry_worker(pool, Duration::from_secs(qr_expiry_secs)));
 
     let app = Router::new()
         // Health
