@@ -66,12 +66,16 @@ func main() {
 	}
 
 	deps := server.Dependencies{
-		Redis:          rdb,
-		TransactionSvc: service.NewCoreApiTransactionService(coreClient),
-		WebhookSvc:     webhookSvc,
-		MerchantSvc:    service.NewCoreApiMerchantService(coreClient),
-		WalletSvc:      service.NewCoreApiWalletService(coreClient),
-		PayoutSvc:      service.NewCoreApiPayoutService(coreClient),
+		Redis:             rdb,
+		TransactionSvc:    service.NewCoreApiTransactionService(coreClient),
+		WebhookSvc:        webhookSvc,
+		MerchantSvc:       service.NewCoreApiMerchantService(coreClient),
+		WalletSvc:         service.NewCoreApiWalletService(coreClient),
+		PayoutSvc:         service.NewCoreApiPayoutService(coreClient),
+		ConsumerSvc:       service.NewCoreApiConsumerService(coreClient),
+		ConsumerWalletSvc: service.NewCoreApiConsumerWalletService(coreClient),
+		TransferSvc:       service.NewCoreApiTransferService(coreClient),
+		QrSvc:             service.NewCoreApiQrService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)

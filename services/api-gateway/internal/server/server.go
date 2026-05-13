@@ -19,12 +19,16 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis          *redis.Client
-	TransactionSvc service.TransactionService
-	WebhookSvc     service.WebhookService
-	MerchantSvc    service.MerchantService
-	WalletSvc      service.WalletService
-	PayoutSvc      service.PayoutService
+	Redis               *redis.Client
+	TransactionSvc      service.TransactionService
+	WebhookSvc          service.WebhookService
+	MerchantSvc         service.MerchantService
+	WalletSvc           service.WalletService
+	PayoutSvc           service.PayoutService
+	ConsumerSvc         service.ConsumerService
+	ConsumerWalletSvc   service.ConsumerWalletService
+	TransferSvc         service.TransferService
+	QrSvc               service.QrService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -53,12 +57,16 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	// Handlers
 	// ---------------------------------------------------------------------------
-	authHandler   := handler.NewAuthHandler(cfg, deps.MerchantSvc)
-	txHandler     := handler.NewTransactionHandler(deps.TransactionSvc)
-	wbhHandler    := handler.NewWebhookHandler(deps.WebhookSvc)
-	mchHandler    := handler.NewMerchantHandler(deps.MerchantSvc)
-	wltHandler    := handler.NewWalletHandler(deps.WalletSvc)
-	payoutHandler := handler.NewPayoutHandler(deps.PayoutSvc)
+	authHandler          := handler.NewAuthHandler(cfg, deps.MerchantSvc)
+	txHandler            := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler           := handler.NewWebhookHandler(deps.WebhookSvc)
+	mchHandler           := handler.NewMerchantHandler(deps.MerchantSvc)
+	wltHandler           := handler.NewWalletHandler(deps.WalletSvc)
+	payoutHandler        := handler.NewPayoutHandler(deps.PayoutSvc)
+	consumerHandler      := handler.NewConsumerHandler(deps.ConsumerSvc)
+	consumerWltHandler   := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
+	transferHandler      := handler.NewTransferHandler(deps.TransferSvc)
+	qrHandler            := handler.NewQrHandler(deps.QrSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -102,6 +110,39 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/", payoutHandler.Create)
 				r.Get("/", payoutHandler.List)
 				r.Get("/{id}", payoutHandler.Get)
+			})
+
+			// Consumer identity
+			r.Route("/consumers", func(r chi.Router) {
+				r.Post("/", consumerHandler.Create)
+				r.Get("/handle/{handle}", consumerHandler.GetByHandle)
+				r.Get("/{id}", consumerHandler.Get)
+				r.Post("/{id}/suspend", consumerHandler.Suspend)
+				r.Post("/{id}/close", consumerHandler.Close)
+			})
+
+			// Consumer wallets
+			r.Route("/consumer-wallets", func(r chi.Router) {
+				r.Post("/", consumerWltHandler.Create)
+				r.Get("/", consumerWltHandler.GetForConsumer) // ?consumer_id=X&currency=AOA
+				r.Get("/{id}", consumerWltHandler.Get)
+				r.Get("/{id}/balance", consumerWltHandler.Balance)
+			})
+
+			// Instant P2P transfers
+			r.Route("/transfers", func(r chi.Router) {
+				r.Post("/", transferHandler.Send)
+				r.Get("/", transferHandler.List) // ?consumer_id=X&limit=20&cursor=...
+				r.Get("/{id}", transferHandler.Get)
+			})
+
+			// QR payments
+			r.Route("/qr", func(r chi.Router) {
+				r.Post("/static", qrHandler.CreateStatic)
+				r.Post("/dynamic", qrHandler.CreateDynamic)
+				r.Post("/decode", qrHandler.Decode)
+				r.Get("/{id}", qrHandler.Get)
+				r.Post("/{id}/use", qrHandler.MarkUsed)
 			})
 		})
 	})

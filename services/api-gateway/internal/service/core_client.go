@@ -474,6 +474,452 @@ func (s *CoreApiPayoutService) List(
 }
 
 // ---------------------------------------------------------------------------
+// CoreApiConsumerService — implements ConsumerService via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiConsumerService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiConsumerService(client *CoreApiClient) *CoreApiConsumerService {
+	return &CoreApiConsumerService{client: client}
+}
+
+type coreConsumerResp struct {
+	ID          string     `json:"id"`
+	Handle      string     `json:"handle"`
+	DisplayName *string    `json:"display_name"`
+	Status      string     `json:"status"`
+	CreatedAt   time.Time  `json:"created_at"`
+	UpdatedAt   time.Time  `json:"updated_at"`
+}
+
+func (r *coreConsumerResp) toConsumerRecord() *ConsumerRecord {
+	return &ConsumerRecord{
+		ID:          r.ID,
+		Handle:      r.Handle,
+		DisplayName: r.DisplayName,
+		Status:      r.Status,
+		CreatedAt:   r.CreatedAt,
+		UpdatedAt:   r.UpdatedAt,
+	}
+}
+
+func (s *CoreApiConsumerService) Create(
+	ctx context.Context,
+	handle string,
+	displayName *string,
+) (*ConsumerRecord, error) {
+	body := map[string]any{"handle": handle, "display_name": displayName}
+	var resp coreConsumerResp
+	if err := s.client.post(ctx, "/internal/v1/consumers", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toConsumerRecord(), nil
+}
+
+func (s *CoreApiConsumerService) Get(ctx context.Context, id string) (*ConsumerRecord, error) {
+	var resp coreConsumerResp
+	if err := s.client.get(ctx, "/internal/v1/consumers/"+id, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerNotFound
+		}
+		return nil, err
+	}
+	return resp.toConsumerRecord(), nil
+}
+
+func (s *CoreApiConsumerService) GetByHandle(ctx context.Context, handle string) (*ConsumerRecord, error) {
+	var resp coreConsumerResp
+	if err := s.client.get(ctx, "/internal/v1/consumers/handle/"+handle, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrHandleNotFound
+		}
+		return nil, err
+	}
+	return resp.toConsumerRecord(), nil
+}
+
+func (s *CoreApiConsumerService) Suspend(ctx context.Context, id string) (*ConsumerRecord, error) {
+	var resp coreConsumerResp
+	if err := s.client.post(ctx, "/internal/v1/consumers/"+id+"/suspend", nil, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerNotFound
+		}
+		return nil, err
+	}
+	return resp.toConsumerRecord(), nil
+}
+
+func (s *CoreApiConsumerService) Close(ctx context.Context, id string) (*ConsumerRecord, error) {
+	var resp coreConsumerResp
+	if err := s.client.post(ctx, "/internal/v1/consumers/"+id+"/close", nil, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerNotFound
+		}
+		return nil, err
+	}
+	return resp.toConsumerRecord(), nil
+}
+
+// ---------------------------------------------------------------------------
+// CoreApiConsumerWalletService — implements ConsumerWalletService via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiConsumerWalletService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiConsumerWalletService(client *CoreApiClient) *CoreApiConsumerWalletService {
+	return &CoreApiConsumerWalletService{client: client}
+}
+
+type coreConsumerWalletResp struct {
+	ID                 string    `json:"id"`
+	ConsumerID         string    `json:"consumer_id"`
+	Currency           string    `json:"currency"`
+	Status             string    `json:"status"`
+	AvailableAccountID string    `json:"available_account_id"`
+	ReservedAccountID  string    `json:"reserved_account_id"`
+	CreatedAt          time.Time `json:"created_at"`
+}
+
+func (r *coreConsumerWalletResp) toRecord() *ConsumerWalletRecord {
+	return &ConsumerWalletRecord{
+		ID:                 r.ID,
+		ConsumerID:         r.ConsumerID,
+		Currency:           r.Currency,
+		Status:             r.Status,
+		AvailableAccountID: r.AvailableAccountID,
+		ReservedAccountID:  r.ReservedAccountID,
+		CreatedAt:          r.CreatedAt,
+	}
+}
+
+type coreConsumerWalletBalanceResp struct {
+	WalletID   string        `json:"wallet_id"`
+	ConsumerID string        `json:"consumer_id"`
+	Currency   string        `json:"currency"`
+	Available  coreMoneyResp `json:"available"`
+	Reserved   coreMoneyResp `json:"reserved"`
+	Total      coreMoneyResp `json:"total"`
+	ComputedAt time.Time     `json:"computed_at"`
+}
+
+func (s *CoreApiConsumerWalletService) GetOrCreate(
+	ctx context.Context,
+	consumerID, currency string,
+) (*ConsumerWalletRecord, error) {
+	body := map[string]string{"consumer_id": consumerID, "currency": currency}
+	var resp coreConsumerWalletResp
+	if err := s.client.post(ctx, "/internal/v1/consumer-wallets", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toRecord(), nil
+}
+
+func (s *CoreApiConsumerWalletService) Get(ctx context.Context, id string) (*ConsumerWalletRecord, error) {
+	var resp coreConsumerWalletResp
+	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+id, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerWalletNotFound
+		}
+		return nil, err
+	}
+	return resp.toRecord(), nil
+}
+
+func (s *CoreApiConsumerWalletService) Balance(ctx context.Context, id string) (*ConsumerWalletBalance, error) {
+	var resp coreConsumerWalletBalanceResp
+	if err := s.client.get(ctx, "/internal/v1/consumer-wallets/"+id+"/balance", &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerWalletNotFound
+		}
+		return nil, err
+	}
+	return &ConsumerWalletBalance{
+		WalletID:       resp.WalletID,
+		ConsumerID:     resp.ConsumerID,
+		Currency:       resp.Currency,
+		AvailableMinor: resp.Available.AmountMinor,
+		ReservedMinor:  resp.Reserved.AmountMinor,
+		TotalMinor:     resp.Total.AmountMinor,
+		ComputedAt:     resp.ComputedAt,
+	}, nil
+}
+
+func (s *CoreApiConsumerWalletService) GetForConsumer(
+	ctx context.Context,
+	consumerID, currency string,
+) (*ConsumerWalletRecord, error) {
+	path := fmt.Sprintf("/internal/v1/consumer-wallets?consumer_id=%s&currency=%s", consumerID, currency)
+	var resp coreConsumerWalletResp
+	if err := s.client.get(ctx, path, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrNoWalletForConsumer
+		}
+		return nil, err
+	}
+	return resp.toRecord(), nil
+}
+
+// ---------------------------------------------------------------------------
+// CoreApiTransferService — implements TransferService via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiTransferService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiTransferService(client *CoreApiClient) *CoreApiTransferService {
+	return &CoreApiTransferService{client: client}
+}
+
+type coreTransferResp struct {
+	ID              string        `json:"id"`
+	IdempotencyKey  string        `json:"idempotency_key"`
+	SenderID        string        `json:"sender_id"`
+	RecipientID     string        `json:"recipient_id"`
+	Amount          coreMoneyResp `json:"amount"`
+	Currency        string        `json:"currency"`
+	Status          string        `json:"status"`
+	Description     *string       `json:"description"`
+	FailureReason   *string       `json:"failure_reason"`
+	LedgerPostingID *string       `json:"ledger_posting_id"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
+}
+
+func (r *coreTransferResp) toTransfer() *Transfer {
+	return &Transfer{
+		ID:             r.ID,
+		IdempotencyKey: r.IdempotencyKey,
+		SenderID:       r.SenderID,
+		RecipientID:    r.RecipientID,
+		Amount: TransferMoney{
+			AmountMinor: r.Amount.AmountMinor,
+			Currency:    r.Amount.Currency,
+		},
+		Currency:        r.Currency,
+		Status:          r.Status,
+		Description:     r.Description,
+		FailureReason:   r.FailureReason,
+		LedgerPostingID: r.LedgerPostingID,
+		CreatedAt:       r.CreatedAt,
+		UpdatedAt:       r.UpdatedAt,
+	}
+}
+
+func (s *CoreApiTransferService) Send(
+	ctx context.Context,
+	req SendTransferRequest,
+) (*Transfer, error) {
+	body := map[string]any{
+		"idempotency_key": req.IdempotencyKey,
+		"sender_id":       req.SenderID,
+		"recipient_id":    req.RecipientID,
+		"amount_minor":    req.AmountMinor,
+		"currency":        req.Currency,
+		"description":     req.Description,
+	}
+	var resp coreTransferResp
+	if err := s.client.post(ctx, "/internal/v1/transfers", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toTransfer(), nil
+}
+
+func (s *CoreApiTransferService) Get(ctx context.Context, id string) (*Transfer, error) {
+	var resp coreTransferResp
+	if err := s.client.get(ctx, "/internal/v1/transfers/"+id, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrTransferNotFound
+		}
+		return nil, err
+	}
+	return resp.toTransfer(), nil
+}
+
+func (s *CoreApiTransferService) List(
+	ctx context.Context,
+	consumerID string,
+	limit int,
+	cursor string,
+) (*TransferPage, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	path := fmt.Sprintf("/internal/v1/transfers?consumer_id=%s&limit=%d", consumerID, limit)
+	if cursor != "" {
+		ts, id, err := decodeCursor(cursor)
+		if err == nil {
+			path += fmt.Sprintf("&before_created_at=%s&before_id=%s",
+				ts.UTC().Format(time.RFC3339Nano), id)
+		}
+	}
+
+	var result struct {
+		Data    []*coreTransferResp `json:"data"`
+		HasMore bool                `json:"has_more"`
+	}
+	if err := s.client.get(ctx, path, &result); err != nil {
+		return nil, err
+	}
+
+	transfers := make([]*Transfer, len(result.Data))
+	for i, r := range result.Data {
+		transfers[i] = r.toTransfer()
+	}
+
+	var nextCursor string
+	if result.HasMore && len(transfers) > 0 {
+		last := transfers[len(transfers)-1]
+		nextCursor = encodeCursor(last.CreatedAt, last.ID)
+	}
+
+	return &TransferPage{
+		Data:       transfers,
+		HasMore:    result.HasMore,
+		NextCursor: nextCursor,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// CoreApiQrService — implements QrService via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiQrService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiQrService(client *CoreApiClient) *CoreApiQrService {
+	return &CoreApiQrService{client: client}
+}
+
+type coreQrCodeResp struct {
+	ID          string     `json:"id"`
+	OwnerID     string     `json:"owner_id"`
+	OwnerType   string     `json:"owner_type"`
+	QrType      string     `json:"qr_type"`
+	Currency    string     `json:"currency"`
+	AmountMinor *int64     `json:"amount_minor"`
+	Status      string     `json:"status"`
+	ExpiresAt   *time.Time `json:"expires_at"`
+	UsedAt      *time.Time `json:"used_at"`
+	Reference   *string    `json:"reference"`
+	CreatedAt   time.Time  `json:"created_at"`
+}
+
+func (r *coreQrCodeResp) toRecord() *QrCodeRecord {
+	return &QrCodeRecord{
+		ID:          r.ID,
+		OwnerID:     r.OwnerID,
+		OwnerType:   r.OwnerType,
+		QrType:      r.QrType,
+		Currency:    r.Currency,
+		AmountMinor: r.AmountMinor,
+		Status:      r.Status,
+		ExpiresAt:   r.ExpiresAt,
+		UsedAt:      r.UsedAt,
+		Reference:   r.Reference,
+		CreatedAt:   r.CreatedAt,
+	}
+}
+
+type coreQrResponseResp struct {
+	QrCode  coreQrCodeResp `json:"qr_code"`
+	Payload string         `json:"payload"`
+}
+
+func (r *coreQrResponseResp) toQrResponse() *QrResponse {
+	return &QrResponse{
+		QrCode:  r.QrCode.toRecord(),
+		Payload: r.Payload,
+	}
+}
+
+type coreParsedQrResp struct {
+	QrType    string  `json:"qr_type"`
+	OwnerID   *string `json:"owner_id"`
+	OwnerType *string `json:"owner_type"`
+	Currency  *string `json:"currency"`
+	QrCodeID  *string `json:"qr_code_id"`
+}
+
+func (s *CoreApiQrService) CreateStatic(
+	ctx context.Context,
+	req CreateStaticQrRequest,
+) (*QrResponse, error) {
+	body := map[string]any{
+		"owner_id":     req.OwnerID,
+		"owner_type":   req.OwnerType,
+		"currency":     req.Currency,
+		"amount_minor": req.AmountMinor,
+	}
+	var resp coreQrResponseResp
+	if err := s.client.post(ctx, "/internal/v1/qr/static", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toQrResponse(), nil
+}
+
+func (s *CoreApiQrService) CreateDynamic(
+	ctx context.Context,
+	req CreateDynamicQrRequest,
+) (*QrResponse, error) {
+	body := map[string]any{
+		"owner_id":     req.OwnerID,
+		"owner_type":   req.OwnerType,
+		"currency":     req.Currency,
+		"amount_minor": req.AmountMinor,
+		"expires_at":   req.ExpiresAt.UTC().Format(time.RFC3339),
+		"reference":    req.Reference,
+	}
+	var resp coreQrResponseResp
+	if err := s.client.post(ctx, "/internal/v1/qr/dynamic", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp.toQrResponse(), nil
+}
+
+func (s *CoreApiQrService) Get(ctx context.Context, id string) (*QrResponse, error) {
+	var resp coreQrResponseResp
+	if err := s.client.get(ctx, "/internal/v1/qr/"+id, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrQrNotFound
+		}
+		return nil, err
+	}
+	return resp.toQrResponse(), nil
+}
+
+func (s *CoreApiQrService) Decode(ctx context.Context, payload string) (*ParsedQr, error) {
+	body := map[string]string{"payload": payload}
+	var resp coreParsedQrResp
+	if err := s.client.post(ctx, "/internal/v1/qr/decode", body, &resp); err != nil {
+		return nil, err
+	}
+	return &ParsedQr{
+		QrType:    resp.QrType,
+		OwnerID:   resp.OwnerID,
+		OwnerType: resp.OwnerType,
+		Currency:  resp.Currency,
+		QrCodeID:  resp.QrCodeID,
+	}, nil
+}
+
+func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeRecord, error) {
+	var resp coreQrCodeResp
+	if err := s.client.post(ctx, "/internal/v1/qr/"+id+"/use", nil, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrQrNotFound
+		}
+		return nil, err
+	}
+	return resp.toRecord(), nil
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 
