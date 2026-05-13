@@ -17,7 +17,7 @@ ifneq (,$(wildcard .env))
 endif
 
 COMPOSE       = docker compose -f infra/docker/docker-compose.yml
-LEDGER_MIG    = core/ledger/migrations
+DB_MIG        = db/migrations
 
 .DEFAULT_GOAL := help
 
@@ -34,8 +34,9 @@ help:
 	@printf "    make dev-logs      Tail all service logs\n"
 	@printf "    make dev-status    Show service health\n"
 	@printf "\n  \033[1mDatabase\033[0m\n"
-	@printf "    make db-migrate    Run pending ledger migrations\n"
+	@printf "    make db-migrate    Run all pending migrations (ledger → wallets → transactions)\n"
 	@printf "    make db-reset      Drop, recreate, and re-migrate dev database\n"
+	@printf "    make db-status     Show applied and pending migrations\n"
 	@printf "    make db-psql       Open a psql shell on the dev database\n"
 	@printf "\n  \033[1mRust core\033[0m\n"
 	@printf "    make check             cargo check --workspace (core/)\n"
@@ -97,15 +98,19 @@ _require-sqlx:
 
 .PHONY: db-migrate
 db-migrate: _require-database-url _require-sqlx
-	@echo "Running ledger migrations against: $(DATABASE_URL)"
-	sqlx migrate run --source $(LEDGER_MIG)
+	@echo "Running migrations against: $(DATABASE_URL)"
+	sqlx migrate run --source $(DB_MIG)
 
 .PHONY: db-reset
 db-reset: _require-database-url _require-sqlx
 	@echo "Resetting database: $(DATABASE_URL)"
 	sqlx database drop -y
 	sqlx database create
-	sqlx migrate run --source $(LEDGER_MIG)
+	sqlx migrate run --source $(DB_MIG)
+
+.PHONY: db-status
+db-status: _require-database-url _require-sqlx
+	sqlx migrate info --source $(DB_MIG)
 
 .PHONY: db-psql
 db-psql:
