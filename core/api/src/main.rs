@@ -27,8 +27,6 @@ async fn main() {
         .parse::<u16>()
         .expect("CORE_API_PORT must be a valid port number");
 
-    // Transit and bank account IDs are bootstrapped from env or created at startup.
-    // In production these are seeded by the DB migration / platform init script.
     let transit_account_id = env::var("TRANSIT_ACCOUNT_ID")
         .ok()
         .and_then(|s| s.parse().ok())
@@ -50,17 +48,48 @@ async fn main() {
     let app = Router::new()
         // Health
         .route("/health", get(health))
+
         // Merchants
-        .route("/internal/v1/merchants",        post(routes::merchants::create_merchant))
-        .route("/internal/v1/merchants/:id",    get(routes::merchants::get_merchant))
-        .route("/internal/v1/auth/verify-key",  post(routes::merchants::verify_api_key))
+        .route("/internal/v1/merchants",       post(routes::merchants::create_merchant))
+        .route("/internal/v1/merchants/:id",   get(routes::merchants::get_merchant))
+        .route("/internal/v1/auth/verify-key", post(routes::merchants::verify_api_key))
+
         // Transactions
-        .route("/internal/v1/transactions",              post(routes::transactions::create))
-        .route("/internal/v1/transactions/:id",          get(routes::transactions::get))
-        .route("/internal/v1/transactions/:id/authorize", post(routes::transactions::authorize))
-        .route("/internal/v1/transactions/:id/capture",   post(routes::transactions::capture))
-        .route("/internal/v1/transactions/:id/reverse",   post(routes::transactions::reverse))
-        .route("/internal/v1/transactions/:id/fail",      post(routes::transactions::fail))
+        .route("/internal/v1/transactions",                  post(routes::transactions::create))
+        .route("/internal/v1/transactions/:id",              get(routes::transactions::get))
+        .route("/internal/v1/transactions/:id/authorize",    post(routes::transactions::authorize))
+        .route("/internal/v1/transactions/:id/capture",      post(routes::transactions::capture))
+        .route("/internal/v1/transactions/:id/reverse",      post(routes::transactions::reverse))
+        .route("/internal/v1/transactions/:id/fail",         post(routes::transactions::fail))
+
+        // Settlements
+        .route("/internal/v1/settlements",              post(routes::settlements::create_batch))
+        .route("/internal/v1/settlements",              get(routes::settlements::list_for_merchant))
+        .route("/internal/v1/settlements/:id",          get(routes::settlements::get))
+        .route("/internal/v1/settlements/:id/submit",   post(routes::settlements::submit))
+        .route("/internal/v1/settlements/:id/confirm",  post(routes::settlements::confirm))
+        .route("/internal/v1/settlements/:id/fail",     post(routes::settlements::fail))
+
+        // Payouts
+        .route("/internal/v1/payouts",                  post(routes::payouts::initiate))
+        .route("/internal/v1/payouts",                  get(routes::payouts::list_for_merchant))
+        .route("/internal/v1/payouts/:id",              get(routes::payouts::get))
+        .route("/internal/v1/payouts/:id/process",      post(routes::payouts::process))
+        .route("/internal/v1/payouts/:id/sent",         post(routes::payouts::mark_sent))
+        .route("/internal/v1/payouts/:id/confirm",      post(routes::payouts::confirm))
+        .route("/internal/v1/payouts/:id/fail",         post(routes::payouts::fail))
+        .route("/internal/v1/payouts/:id/returned",     post(routes::payouts::mark_returned))
+
+        // Compliance
+        .route("/internal/v1/compliance/merchants/:id",           get(routes::compliance::get_merchant))
+        .route("/internal/v1/compliance/merchants/:id/approve",   post(routes::compliance::approve_merchant))
+        .route("/internal/v1/compliance/merchants/:id/reject",    post(routes::compliance::reject_merchant))
+        .route("/internal/v1/compliance/merchants/:id/suspend",   post(routes::compliance::suspend_merchant))
+        .route("/internal/v1/compliance/merchants/:id/flag-aml",  post(routes::compliance::flag_aml))
+
+        // Reconciliation
+        .route("/internal/v1/reconciliation/run", post(routes::reconciliation::run))
+
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 

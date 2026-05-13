@@ -18,8 +18,11 @@ banzami-wallets      = { workspace = true }
 banzami-transactions = { workspace = true }
 banzami-merchants    = { workspace = true }
 banzami-settlement   = { workspace = true }
-banzami-routing      = { workspace = true }
-banzami-risk         = { workspace = true }
+banzami-routing        = { workspace = true }
+banzami-risk           = { workspace = true }
+banzami-payouts        = { workspace = true }
+banzami-compliance     = { workspace = true }
+banzami-reconciliation = { workspace = true }
 serde                = { workspace = true }
 serde_json           = { workspace = true }
 uuid                 = { workspace = true }

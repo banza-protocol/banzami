@@ -103,6 +103,66 @@ func VerifyKeyViaCore(ctx context.Context, client *CoreApiClient, rawKey string)
 }
 
 // ---------------------------------------------------------------------------
+// CoreApiPayoutService — implements PayoutService via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiPayoutService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiPayoutService(client *CoreApiClient) *CoreApiPayoutService {
+	return &CoreApiPayoutService{client: client}
+}
+
+func (s *CoreApiPayoutService) Create(
+	ctx context.Context,
+	req CreatePayoutRequest,
+) (*Payout, error) {
+	body := map[string]any{
+		"idempotency_key":     req.IdempotencyKey,
+		"merchant_id":         req.MerchantID,
+		"wallet_id":           req.WalletID,
+		"amount_minor":        req.AmountMinor,
+		"currency":            req.Currency,
+		"bank_account_number": req.BankAccountNumber,
+		"bank_code":           req.BankCode,
+		"account_holder_name": req.AccountHolderName,
+	}
+	var p Payout
+	if err := s.client.post(ctx, "/internal/v1/payouts", body, &p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (s *CoreApiPayoutService) Get(
+	ctx context.Context,
+	_ string, // merchantID is validated by the core-api
+	id string,
+) (*Payout, error) {
+	var p Payout
+	if err := s.client.get(ctx, "/internal/v1/payouts/"+id, &p); err != nil {
+		return nil, err
+	}
+	return &p, nil
+}
+
+func (s *CoreApiPayoutService) List(
+	ctx context.Context,
+	merchantID string,
+	limit int,
+) ([]*Payout, error) {
+	path := fmt.Sprintf("/internal/v1/payouts?merchant_id=%s&limit=%d", merchantID, limit)
+	var result struct {
+		Data []*Payout `json:"data"`
+	}
+	if err := s.client.get(ctx, path, &result); err != nil {
+		return nil, err
+	}
+	return result.Data, nil
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 

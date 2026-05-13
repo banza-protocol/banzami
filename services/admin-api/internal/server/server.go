@@ -1,0 +1,90 @@
+package server
+
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/banzami/banzami/services/admin-api/internal/handler"
+	"github.com/banzami/banzami/services/admin-api/internal/middleware"
+	"github.com/banzami/banzami/services/admin-api/internal/service"
+)
+
+type Server struct {
+	httpServer *http.Server
+}
+
+func New(addr, adminKey string, core *service.CoreAdminClient) *Server {
+	r := chi.NewRouter()
+
+	r.Use(chimiddleware.RequestID)
+	r.Use(chimiddleware.RealIP)
+	r.Use(chimiddleware.Logger)
+	r.Use(chimiddleware.Recoverer)
+	r.Use(chimiddleware.Timeout(30 * time.Second))
+
+	// Health — unauthenticated
+	r.Get("/health", handler.Liveness)
+
+	// All admin routes require API key authentication
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.AdminAuth(adminKey))
+
+		complianceH := handler.NewComplianceHandler(core)
+		settlementH := handler.NewSettlementHandler(core)
+		payoutH := handler.NewPayoutHandler(core)
+		merchantH := handler.NewMerchantHandler(core)
+		reconciliationH := handler.NewReconciliationHandler(core)
+
+		// Merchants
+		r.Get("/admin/v1/merchants/{id}", merchantH.Get)
+
+		// Compliance
+		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)
+		r.Post("/admin/v1/compliance/merchants/{id}/approve", complianceH.ApproveMerchant)
+		r.Post("/admin/v1/compliance/merchants/{id}/reject", complianceH.RejectMerchant)
+		r.Post("/admin/v1/compliance/merchants/{id}/suspend", complianceH.SuspendMerchant)
+		r.Post("/admin/v1/compliance/merchants/{id}/flag-aml", complianceH.FlagAML)
+
+		// Settlements
+		r.Post("/admin/v1/settlements", settlementH.CreateBatch)
+		r.Get("/admin/v1/settlements", settlementH.List)
+		r.Get("/admin/v1/settlements/{id}", settlementH.Get)
+		r.Post("/admin/v1/settlements/{id}/submit", settlementH.Submit)
+		r.Post("/admin/v1/settlements/{id}/confirm", settlementH.Confirm)
+		r.Post("/admin/v1/settlements/{id}/fail", settlementH.Fail)
+
+		// Payouts
+		r.Get("/admin/v1/payouts", payoutH.List)
+		r.Get("/admin/v1/payouts/{id}", payoutH.Get)
+		r.Post("/admin/v1/payouts/{id}/process", payoutH.Process)
+		r.Post("/admin/v1/payouts/{id}/sent", payoutH.MarkSent)
+		r.Post("/admin/v1/payouts/{id}/confirm", payoutH.Confirm)
+		r.Post("/admin/v1/payouts/{id}/fail", payoutH.Fail)
+		r.Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
+
+		// Reconciliation
+		r.Post("/admin/v1/reconciliation/run", reconciliationH.Run)
+	})
+
+	return &Server{
+		httpServer: &http.Server{
+			Addr:         addr,
+			Handler:      r,
+			ReadTimeout:  15 * time.Second,
+			WriteTimeout: 30 * time.Second,
+			IdleTimeout:  60 * time.Second,
+		},
+	}
+}
+
+func (s *Server) Start() error {
+	return s.httpServer.ListenAndServe()
+}
+
+func (s *Server) Shutdown(ctx context.Context) error {
+	return s.httpServer.Shutdown(ctx)
+}

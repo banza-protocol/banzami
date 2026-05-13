@@ -12,16 +12,22 @@ use banzami_merchants::{
 use banzami_settlement::{PostgresSettlementEngine, PostgresSettlementRepository};
 use banzami_routing::StaticRoutingEngine;
 use banzami_risk::StaticRiskEngine;
+use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
+use banzami_compliance::{PostgresComplianceEngine, PostgresComplianceRepository};
+use banzami_reconciliation::{PostgresReconciliationRepository, StaticReconciliationEngine};
 
 // ---------------------------------------------------------------------------
 // Concrete engine types wired to PostgreSQL
 // ---------------------------------------------------------------------------
 
-pub type LedgerRepo = PostgresLedgerRepository;
-pub type WalletEng  = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
-pub type TxEng      = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
-pub type MerchantEng = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
+pub type LedgerRepo    = PostgresLedgerRepository;
+pub type WalletEng     = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
+pub type TxEng         = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
+pub type MerchantEng   = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
 pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
+pub type PayoutEng     = PostgresPayoutEngine<PostgresWalletRepository, LedgerRepo, PostgresPayoutRepository>;
+pub type ComplianceEng = PostgresComplianceEngine<PostgresComplianceRepository>;
+pub type ReconEng      = StaticReconciliationEngine<PostgresReconciliationRepository>;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -29,13 +35,18 @@ pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlement
 
 #[derive(Clone)]
 pub struct AppState {
-    #[allow(dead_code)] pub pool:       PgPool,
-    pub tx_engine:  Arc<TxEng>,
-    pub merchant:   Arc<MerchantEng>,
-    // Reserved for settlement, routing, and risk endpoints (not yet wired as routes)
-    #[allow(dead_code)] pub settlement: Arc<SettlementEng>,
-    #[allow(dead_code)] pub routing:    Arc<StaticRoutingEngine>,
-    #[allow(dead_code)] pub risk:       Arc<StaticRiskEngine>,
+    #[allow(dead_code)]
+    pub pool:          PgPool,
+    pub tx_engine:     Arc<TxEng>,
+    pub merchant:      Arc<MerchantEng>,
+    pub settlement:    Arc<SettlementEng>,
+    pub payout:        Arc<PayoutEng>,
+    pub compliance:    Arc<ComplianceEng>,
+    pub reconciliation: Arc<ReconEng>,
+    #[allow(dead_code)]
+    pub routing:       Arc<StaticRoutingEngine>,
+    #[allow(dead_code)]
+    pub risk:          Arc<StaticRiskEngine>,
 }
 
 impl AppState {
@@ -44,6 +55,7 @@ impl AppState {
         transit_account_id: AccountId,
         bank_account_id: AccountId,
     ) -> Self {
+        // --- Wallet engine ---
         let wallet_ledger = PostgresLedgerRepository::new(pool.clone());
         let wallet_repo   = PostgresWalletRepository::new(pool.clone());
         let wallet_engine = Arc::new(PostgresWalletEngine::new(
@@ -51,17 +63,20 @@ impl AppState {
             wallet_repo,
         ));
 
-        let tx_repo = PostgresTransactionRepository::new(pool.clone());
+        // --- Transaction engine ---
+        let tx_repo   = PostgresTransactionRepository::new(pool.clone());
         let tx_engine = Arc::new(PostgresTransactionEngine::new(
             wallet_engine,
             tx_repo,
             transit_account_id,
         ));
 
+        // --- Merchant engine ---
         let merchant_repo = PostgresMerchantRepository::new(pool.clone());
         let api_key_repo  = PostgresApiKeyRepository::new(pool.clone());
         let merchant = Arc::new(PostgresMerchantEngine::new(merchant_repo, api_key_repo));
 
+        // --- Settlement engine ---
         let settlement_ledger = PostgresLedgerRepository::new(pool.clone());
         let settlement_repo   = PostgresSettlementRepository::new(pool.clone());
         let settlement = Arc::new(PostgresSettlementEngine::new(
@@ -71,9 +86,39 @@ impl AppState {
             transit_account_id,
         ));
 
+        // --- Payout engine ---
+        let payout_wallet_repo = PostgresWalletRepository::new(pool.clone());
+        let payout_ledger      = PostgresLedgerRepository::new(pool.clone());
+        let payout_repo        = PostgresPayoutRepository::new(pool.clone());
+        let payout = Arc::new(PostgresPayoutEngine::new(
+            payout_wallet_repo,
+            Arc::new(payout_ledger),
+            payout_repo,
+            bank_account_id,
+        ));
+
+        // --- Compliance engine ---
+        let compliance_repo = PostgresComplianceRepository::new(pool.clone());
+        let compliance = Arc::new(PostgresComplianceEngine::new(compliance_repo));
+
+        // --- Reconciliation engine ---
+        let recon_repo = PostgresReconciliationRepository::new(pool.clone());
+        let reconciliation = Arc::new(StaticReconciliationEngine::new(recon_repo));
+
+        // --- Routing + Risk ---
         let routing = Arc::new(StaticRoutingEngine::angola_defaults());
         let risk    = Arc::new(StaticRiskEngine::conservative());
 
-        Self { pool, tx_engine, merchant, settlement, routing, risk }
+        Self {
+            pool,
+            tx_engine,
+            merchant,
+            settlement,
+            payout,
+            compliance,
+            reconciliation,
+            routing,
+            risk,
+        }
     }
 }

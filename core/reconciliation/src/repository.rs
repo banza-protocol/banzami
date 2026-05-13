@@ -26,6 +26,7 @@ pub trait ReconciliationRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct RunRow {
+    #[allow(dead_code)]
     id:                      Uuid,
     total_checked:           i64,
     matched:                 i64,

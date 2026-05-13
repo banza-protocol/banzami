@@ -169,8 +169,11 @@ name = "banzami-core-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "banzami-compliance",
  "banzami-ledger",
  "banzami-merchants",
+ "banzami-payouts",
+ "banzami-reconciliation",
  "banzami-risk",
  "banzami-routing",
  "banzami-settlement",

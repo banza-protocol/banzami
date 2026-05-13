@@ -1,7 +1,7 @@
 pub mod engine;
 pub mod repository;
 
-pub use engine::{ReconciliationEngine, StaticReconciliationEngine};
+pub use engine::{ReconciliationEngine, SettlementView, StaticReconciliationEngine};
 pub use repository::{PostgresReconciliationRepository, ReconciliationRepository};
 
 use chrono::{DateTime, Utc};
