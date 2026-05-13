@@ -36,6 +36,7 @@ func main() {
 	deps := server.Dependencies{
 		Redis:          rdb,
 		TransactionSvc: service.NewStubTransactionService(),
+		WebhookSvc:     service.NewStubWebhookService(),
 	}
 
 	srv := server.New(cfg, deps)

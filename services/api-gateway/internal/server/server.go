@@ -19,6 +19,7 @@ import (
 type Dependencies struct {
 	Redis          *redis.Client
 	TransactionSvc service.TransactionService
+	WebhookSvc     service.WebhookService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -43,7 +44,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	// Versioned public API — JWT auth + rate limiting required
 	// ---------------------------------------------------------------------------
-	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
+	txHandler  := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
@@ -54,6 +56,16 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)
 			r.Get("/transactions/{id}", txHandler.Get)
+
+			r.Route("/webhooks", func(r chi.Router) {
+				r.Post("/endpoints", wbhHandler.Register)
+				r.Get("/endpoints", wbhHandler.ListEndpoints)
+				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
+				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
+
+				r.Get("/events", wbhHandler.ListEvents)
+				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
+			})
 		})
 	})
 
