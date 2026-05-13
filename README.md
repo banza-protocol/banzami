@@ -1,10 +1,88 @@
 # Banzami
 
-> Modern payment infrastructure for Angola — engineered to banking-grade reliability.
+> Modern financial infrastructure for Africa — engineered for reliability, interoperability, and operational excellence.
 
-Banzami is a fintech platform in the same category as Stripe, Adyen, and Paystack. It is not a bank or a core banking system. It is a modern API-first payment infrastructure layer, built with the operational discipline of critical financial infrastructure.
+Banzami is a financial technology platform focused on building secure, resilient, and developer-friendly payment infrastructure for Angola and emerging African markets.
 
-**Philosophy:** fintech-grade agility + banking-grade reliability. See [CLAUDE.md](CLAUDE.md) for the full Engineering Constitution.
+The platform provides:
+
+* payment processing,
+* wallet infrastructure,
+* merchant settlements,
+* payout orchestration,
+* reconciliation systems,
+* compliance enforcement,
+* and financial operations tooling.
+
+Banzami is designed as an API-first infrastructure layer enabling businesses, platforms, and digital services to move money safely and efficiently.
+
+---
+
+## Engineering Philosophy
+
+Banzami is built with:
+
+* fintech-grade agility,
+* banking-grade reliability,
+* infrastructure-grade operational discipline.
+
+The system prioritizes:
+
+* deterministic financial correctness,
+* operational resilience,
+* observability,
+* auditability,
+* idempotent financial operations,
+* and long-term maintainability.
+
+Critical financial systems are intentionally designed to remain:
+
+* simple,
+* predictable,
+* traceable,
+* and highly reliable under real-world operational conditions.
+
+See [CLAUDE.md](CLAUDE.md) for the full Engineering Constitution.
+
+---
+
+## Architectural Principles
+
+Banzami follows a modular monolith architecture with strong internal domain boundaries.
+
+* Rust powers the financial core:
+  ledger, wallets, settlements, reconciliation, payouts, and financial invariants.
+
+* Go powers the orchestration layer:
+  APIs, authentication, operational workflows, integrations, and middleware.
+
+* PostgreSQL remains the single financial source of truth.
+
+The platform is designed for gradual evolution, operational simplicity, and controlled scalability.
+
+---
+
+## Mission
+
+To provide modern, reliable, and accessible financial infrastructure that enables African businesses to build and operate digital financial products with confidence.
+
+---
+
+## Core Values
+
+* Financial correctness over hype
+* Reliability over unnecessary complexity
+* Operational maturity over premature scale patterns
+* Clear boundaries over architectural chaos
+* Long-term maintainability over short-term shortcuts
+
+---
+
+## Product Vision
+
+Banzami aims to become a foundational infrastructure layer for digital commerce and financial operations across African markets.
+
+The focus is not on reinventing banking, but on making modern financial infrastructure more accessible, interoperable, and operationally reliable.
 
 ---
 
@@ -162,7 +240,8 @@ banzami/
 │   │   └── internal/
 │   │       ├── config/            Environment configuration
 │   │       ├── handler/           HTTP handlers (transactions, wallets, payouts, …)
-│   │       ├── middleware/        Auth, rate limit, idempotency, logging
+│   │       ├── middleware/        Auth, rate limit, idempotency, logging, tracing
+│   │       ├── observability/     OTel setup (traces + Prometheus metrics)
 │   │       ├── service/           Service interfaces + core-api client
 │   │       └── server/            Chi router and server construction
 │   │
@@ -171,7 +250,8 @@ banzami/
 │       └── internal/
 │           ├── config/            Environment configuration
 │           ├── handler/           Admin handlers (compliance, settlements, payouts, …)
-│           ├── middleware/        Admin key authentication
+│           ├── middleware/        Admin key auth, structured logging, tracing
+│           ├── observability/     OTel setup (traces + Prometheus metrics)
 │           ├── service/           CoreAdminClient (wraps Rust internal routes)
 │           └── server/            Chi router and server construction
 │
@@ -194,13 +274,12 @@ banzami/
 ├── infra/
 │   ├── docker/                    Docker Compose for local development
 │   ├── terraform/                 Infrastructure as code
-│   ├── monitoring/                Prometheus + Grafana configuration
+│   ├── monitoring/                Prometheus scrape config + Grafana provisioning
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
-│   ├── architecture/              Architecture decision records (ADRs)
-│   ├── adr/                       ADR index
-│   ├── domains/                   Per-domain documentation
+│   ├── adr/                       Architecture Decision Records
+│   ├── domains/                   Per-domain technical documentation
 │   ├── security/                  Security model and threat analysis
 │   ├── runbooks/                  Operational runbooks
 │   ├── playbooks/                 Incident playbooks
@@ -428,12 +507,13 @@ The public internet-facing service. All merchant API calls enter here.
 **Middleware stack (in order):**
 1. `RealIP` — trust X-Forwarded-For from Cloudflare
 2. `RequestID` — assigns correlation ID to every request
-3. `Logger` — structured request logging
+3. `Logger` — structured slog request logging (JSON in production)
 4. `Recoverer` — panic → 500, never crashes the server
 5. `Timeout(60s)` — kills slow upstream calls
-6. `Auth` — JWT Bearer token validation (authenticated routes only)
-7. `RateLimit` — Redis sliding-window: 1,000 req/min authenticated, 60 req/min anonymous
-8. `Idempotency` — Redis-backed: replays cached response for duplicate keys
+6. `RouteSpan` — enriches the OTel span with the chi route pattern
+7. `Auth` — JWT Bearer token validation (authenticated routes only)
+8. `RateLimit` — Redis sliding-window: 1,000 req/min authenticated, 60 req/min anonymous
+9. `Idempotency` — Redis-backed: replays cached response for duplicate keys
 
 **Configuration (environment variables):**
 | Variable              | Default   | Description                            |
@@ -441,7 +521,10 @@ The public internet-facing service. All merchant API calls enter here.
 | `PORT`                | `8080`    | Listen port                            |
 | `JWT_SECRET`          | required  | HS256 signing key                      |
 | `CORE_API_URL`        | required  | Rust core-api base URL                 |
-| `REDIS_ADDR`          | required  | Redis address                          |
+| `REDIS_URL`           | required  | Redis URL (`redis://host:port`)        |
+| `OTLP_ENDPOINT`       | optional  | OTLP HTTP endpoint for trace export    |
+| `LOG_LEVEL`           | `info`    | `debug` / `info` / `warn` / `error`   |
+| `LOG_FORMAT`          | `json`    | `json` (production) / `pretty` (dev)  |
 
 ---
 
@@ -449,7 +532,7 @@ The public internet-facing service. All merchant API calls enter here.
 
 Internal-only service for compliance operations, settlement management, and reconciliation triggers. Never exposed to the public internet.
 
-**Authentication:** `X-Admin-Key: <key>` header or `Authorization: Bearer <key>`.
+**Authentication:** `X-Admin-Key: <key>` header.
 
 **Configuration (environment variables):**
 | Variable              | Default                   | Description                   |
@@ -457,6 +540,9 @@ Internal-only service for compliance operations, settlement management, and reco
 | `ADMIN_API_PORT`      | `8082`                    | Listen port                   |
 | `CORE_API_URL`        | `http://127.0.0.1:8081`   | Rust core-api base URL        |
 | `ADMIN_API_KEY`       | required                  | Shared secret for admin auth  |
+| `OTLP_ENDPOINT`       | optional                  | OTLP HTTP endpoint            |
+| `LOG_LEVEL`           | `info`                    | Log verbosity                 |
+| `LOG_FORMAT`          | `json`                    | `json` / `pretty`             |
 
 ---
 
@@ -506,6 +592,7 @@ Internal HTTP server binding all Rust domain crates. Only reachable from localho
 Observability:
 - `GET /health` — liveness probe
 - `GET /readyz` — readiness probe (checks core-api connectivity)
+- `GET /metrics` — Prometheus metrics
 
 ---
 
@@ -555,6 +642,10 @@ Observability:
 | Method | Path                         | Description            |
 |--------|------------------------------|------------------------|
 | GET    | `/admin/v1/merchants/{id}`   | Get merchant details   |
+
+Observability:
+- `GET /health` — liveness probe
+- `GET /metrics` — Prometheus metrics
 
 ---
 
@@ -768,7 +859,7 @@ Layer 2: API Gateway (api-gateway)
   All authenticated routes: Bearer JWT required
 
 Layer 3: Admin API (admin-api)
-  X-Admin-Key header or Authorization: Bearer <key>
+  X-Admin-Key header
   Network-level: only reachable from internal network
 
 Layer 4: Core API (core-api)
@@ -803,22 +894,32 @@ Redis sliding-window rate limiter:
 
 Every service exposes structured logs, metrics, and traces per CLAUDE.md §9.
 
-| Signal    | Technology        | Details                                         |
-|-----------|-------------------|-------------------------------------------------|
-| Logs      | `slog` (Go), `tracing` (Rust) | Structured JSON, includes request ID   |
-| Traces    | OpenTelemetry     | End-to-end request tracing across Go and Rust   |
-| Metrics   | Prometheus        | HTTP request rates, durations, error rates      |
-| Dashboards| Grafana           | Pre-built dashboards per service domain         |
+| Signal    | Technology        | Details                                                        |
+|-----------|-------------------|----------------------------------------------------------------|
+| Logs      | `slog` (Go), `tracing` (Rust) | Structured JSON; includes request ID and duration  |
+| Traces    | OpenTelemetry SDK + OTLP HTTP | End-to-end spans across Go and Rust; no-op if `OTLP_ENDPOINT` unset |
+| Metrics   | Prometheus        | `GET /metrics` on `:8080` and `:8082`; `http.server.request.duration`, active request counts |
+| Dashboards| Grafana           | Auto-provisioned with Prometheus datasource at `:3000`         |
 
-Minimum required traces:
-- Every HTTP request (request ID, duration, status code)
-- Every transaction lifecycle event
-- Every ledger posting
-- Every settlement and payout status transition
+### Trace Instrumentation
 
-Health endpoints:
+- `otelhttp.NewHandler` wraps each chi router — one span per HTTP request
+- `RouteSpan` middleware sets the low-cardinality route pattern (`GET /v1/payouts/{id}`) on the span, preventing label cardinality explosion in Prometheus and Jaeger
+- W3C TraceContext propagation is always enabled — upstream `traceparent` headers are honoured
+
+### Health Endpoints
+
 - `GET /health` — liveness (is the process alive?)
 - `GET /readyz` — readiness (can the service handle traffic?)
+- `GET /metrics` — Prometheus scrape endpoint
+
+### Full Observability Stack (Docker Compose)
+
+```bash
+make stack-up
+# Prometheus available at http://localhost:9090
+# Grafana available at http://localhost:3000 (admin / banzami_dev)
+```
 
 ---
 
@@ -831,73 +932,62 @@ Health endpoints:
 - Docker + Docker Compose
 - `sqlx-cli` — `cargo install sqlx-cli --features postgres`
 
-### Start Infrastructure
+### Quick Start (full stack)
 
 ```bash
-docker compose -f infra/docker/docker-compose.yml up -d
-# Starts: PostgreSQL on :5432, Redis on :6379
+cp .env.example .env
+# Edit .env: set JWT_SECRET, ADMIN_API_KEY, and the account IDs
+
+make stack-up
+# Starts: PostgreSQL, Redis, core-api, api-gateway, admin-api, Prometheus, Grafana
+# Applies migrations automatically before starting app services
 ```
 
-### Apply Migrations
+### Manual Development Setup
 
 ```bash
-export DATABASE_URL="postgres://banzami:banzami@localhost:5432/banzami"
-sqlx migrate run --source db/migrations
-```
+# 1. Start infrastructure
+make dev-up        # PostgreSQL :5433, Redis :6379
 
-### Build and Run Rust Core
+# 2. Apply migrations
+make db-migrate
 
-```bash
-cd core
-cargo build
-
-export DATABASE_URL="postgres://banzami:banzami@localhost:5432/banzami"
-export TRANSIT_ACCOUNT_ID="<uuid>"
-export BANK_ACCOUNT_ID="<uuid>"
-cargo run --bin core-api
-# Listening on :8081
-```
-
-### Build and Run API Gateway
-
-```bash
-cd services/api-gateway
-go build ./...
-
-export PORT=8080
-export JWT_SECRET="dev-secret-change-in-production"
-export CORE_API_URL="http://127.0.0.1:8081"
-export REDIS_ADDR="localhost:6379"
-go run ./cmd/gateway
-# Listening on :8080
-```
-
-### Build and Run Admin API
-
-```bash
-cd services/admin-api
-go build ./...
-
-export ADMIN_API_PORT=8082
-export CORE_API_URL="http://127.0.0.1:8081"
-export ADMIN_API_KEY="dev-admin-key-change-in-production"
-go run ./cmd/admin
-# Listening on :8082
+# 3. Run services (separate terminals)
+make core-run      # Rust core-api on :8081
+make gateway-run   # Go api-gateway on :8080
+make admin-api-run # Go admin-api on :8082
 ```
 
 ### Run Tests
 
 ```bash
-# Rust unit tests (no DB required)
-cd core && cargo test --workspace
+# Rust — all workspace tests (integration tests require DATABASE_URL)
+DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
+  cargo test --workspace
 
-# Rust with DB (migrations must be applied first)
-cd core && DATABASE_URL="..." cargo test --workspace
+# Or with make
+make test-all
 
 # Go
 cd services/api-gateway && go test ./...
-cd services/admin-api && go test ./...
+cd services/admin-api   && go test ./...
 ```
+
+### Useful Make Targets
+
+| Target            | Description                                       |
+|-------------------|---------------------------------------------------|
+| `make dev-up`     | Start PostgreSQL and Redis                        |
+| `make dev-down`   | Stop infrastructure                               |
+| `make db-migrate` | Apply all pending migrations                      |
+| `make core-run`   | Run the Rust core-api                             |
+| `make gateway-run`| Run the Go api-gateway                            |
+| `make admin-api-run` | Run the Go admin-api                           |
+| `make stack-up`   | Full stack: infra + migrations + all services     |
+| `make stack-down` | Tear down the full stack                          |
+| `make test-all`   | Run all Rust tests across the workspace           |
+| `make sqlx-prepare` | Regenerate `.sqlx/` offline query cache         |
+| `make check-all`  | `cargo check` across all workspace crates         |
 
 ---
 
