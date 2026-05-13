@@ -165,3 +165,164 @@ async fn entries_for_account_returns_chronological_history(pool: PgPool) -> sqlx
 
     Ok(())
 }
+
+// ─── Rejection invariants ─────────────────────────────────────────────────────
+
+/// An unbalanced posting (debits ≠ credits) must be rejected before reaching the DB.
+#[test]
+fn unbalanced_posting_is_rejected_by_builder() {
+    let bank   = banzami_types::AccountId::new();
+    let wallet = banzami_types::AccountId::new();
+
+    let result = PostingBuilder::new("unbalanced", "idem-reject-01")
+        .debit(bank, kz(100_00))
+        .credit(wallet, kz(90_00))   // 10 Kz missing → not balanced
+        .build();
+
+    assert!(result.is_err(), "expected Err for unbalanced posting, got Ok");
+}
+
+/// A posting with only one entry must be rejected.
+#[test]
+fn single_entry_posting_is_rejected() {
+    let bank = banzami_types::AccountId::new();
+
+    let result = PostingBuilder::new("single", "idem-reject-02")
+        .debit(bank, kz(50_00))
+        .build();
+
+    assert!(result.is_err(), "expected Err for single-entry posting, got Ok");
+}
+
+/// A posting with zero entries must be rejected.
+#[test]
+fn empty_posting_is_rejected() {
+    let result = PostingBuilder::new("empty", "idem-reject-03").build();
+    assert!(result.is_err(), "expected Err for empty posting, got Ok");
+}
+
+/// Double-entry balance must hold per-currency independently.
+/// A posting balanced in AOA but not USD must be rejected.
+#[test]
+fn multi_currency_imbalance_is_rejected() {
+    use banzami_types::Money;
+    let usd = |minor: i64| Money::new(minor, Currency::USD);
+
+    let bank   = banzami_types::AccountId::new();
+    let wallet = banzami_types::AccountId::new();
+
+    let result = PostingBuilder::new("mc-imbalance", "idem-reject-04")
+        .debit(bank, kz(100_00))
+        .credit(wallet, usd(100_00)) // different currencies → net ≠ 0 per currency
+        .build();
+
+    assert!(result.is_err(), "expected Err for cross-currency imbalance, got Ok");
+}
+
+/// A multi-currency posting balanced within each currency must be accepted.
+#[test]
+fn multi_currency_balanced_posting_is_accepted() {
+    use banzami_types::Money;
+    let usd = |minor: i64| Money::new(minor, Currency::USD);
+
+    let bank_aoa = banzami_types::AccountId::new();
+    let wallet_aoa = banzami_types::AccountId::new();
+    let bank_usd = banzami_types::AccountId::new();
+    let wallet_usd = banzami_types::AccountId::new();
+
+    // Two separate balanced pairs in one posting — unusual but valid.
+    let result = PostingBuilder::new("mc-balanced", "idem-mc-01")
+        .debit(bank_aoa, kz(100_00))
+        .credit(wallet_aoa, kz(100_00))
+        .debit(bank_usd, usd(50_00))
+        .credit(wallet_usd, usd(50_00))
+        .build();
+
+    assert!(result.is_ok(), "expected Ok for balanced multi-currency posting, got {:?}", result);
+}
+
+// ─── Idempotency — DB-level ───────────────────────────────────────────────────
+
+/// Re-submitting the same idempotency key with *different* amounts must return
+/// the original posting unchanged (not create a second one).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn different_amount_same_key_returns_original(pool: PgPool) -> sqlx::Result<()> {
+    let ledger = PostgresLedgerRepository::new(pool);
+
+    let src = ledger.create_account(asset_account("src-idem")).await.unwrap();
+    let dst = ledger.create_account(liability_account("dst-idem")).await.unwrap();
+
+    let first = ledger.post(
+        PostingBuilder::new("payment A", "idem-amount-check")
+            .debit(src.id, kz(1_000_00))
+            .credit(dst.id, kz(1_000_00))
+            .build()
+            .unwrap(),
+    ).await.unwrap();
+
+    // Re-submit with the same key but different amounts.
+    // The engine must return the original posting, not a second one.
+    let second = ledger.post(
+        PostingBuilder::new("payment B", "idem-amount-check")
+            .debit(src.id, kz(500_00))
+            .credit(dst.id, kz(500_00))
+            .build()
+            .unwrap(),
+    ).await.unwrap();
+
+    assert_eq!(first.id, second.id, "re-submission must return the original posting");
+
+    // Balance must reflect exactly ONE posting of 1 000 Kz.
+    let balance = ledger.balance(dst.id).await.unwrap();
+    assert_eq!(balance.amount_minor().abs(), 1_000_00);
+
+    Ok(())
+}
+
+/// Concurrent duplicate submissions must not result in duplicate ledger entries.
+/// We simulate concurrency by racing two identical postings from parallel tasks.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sqlx::Result<()> {
+    use std::sync::Arc;
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool));
+
+    let src = ledger.create_account(asset_account("src-conc")).await.unwrap();
+    let dst = ledger.create_account(liability_account("dst-conc")).await.unwrap();
+
+    let l1 = ledger.clone();
+    let l2 = ledger.clone();
+
+    let (r1, r2) = tokio::join!(
+        tokio::spawn(async move {
+            l1.post(
+                PostingBuilder::new("conc payment", "idem-conc-01")
+                    .debit(src.id, kz(200_00))
+                    .credit(dst.id, kz(200_00))
+                    .build()
+                    .unwrap(),
+            ).await
+        }),
+        tokio::spawn(async move {
+            l2.post(
+                PostingBuilder::new("conc payment", "idem-conc-01")
+                    .debit(src.id, kz(200_00))
+                    .credit(dst.id, kz(200_00))
+                    .build()
+                    .unwrap(),
+            ).await
+        }),
+    );
+
+    // Both tasks must succeed (one returns the original, one returns the duplicate).
+    let p1 = r1.unwrap().unwrap();
+    let p2 = r2.unwrap().unwrap();
+
+    // They must have the same posting ID.
+    assert_eq!(p1.id, p2.id, "concurrent submissions must return the same posting ID");
+
+    // Balance must reflect exactly one 200 Kz posting.
+    let balance = ledger.balance(dst.id).await.unwrap();
+    assert_eq!(balance.amount_minor().abs(), 200_00, "balance must reflect exactly one posting");
+
+    Ok(())
+}
