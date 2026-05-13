@@ -64,3 +64,4 @@ typed_id!(PayoutId);
 typed_id!(MerchantId);
 typed_id!(CustomerId);
 typed_id!(IdempotencyKeyId);
+typed_id!(ApiKeyId);

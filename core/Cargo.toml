@@ -4,6 +4,7 @@ members = [
     "ledger",
     "wallets",
     "transactions",
+    "merchants",
     "settlement",
     "routing",
     "reconciliation",
@@ -29,6 +30,7 @@ banzami-types        = { path = "types" }
 banzami-ledger       = { path = "ledger" }
 banzami-wallets      = { path = "wallets" }
 banzami-transactions = { path = "transactions" }
+banzami-merchants    = { path = "merchants" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }
@@ -57,3 +59,6 @@ sqlx = { version = "0.7", features = [
 
 # Observability (CLAUDE.md §9)
 tracing = "0.1"
+
+# Cryptography — API key hashing
+sha2 = "0.10"

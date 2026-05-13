@@ -20,6 +20,7 @@ type Dependencies struct {
 	Redis          *redis.Client
 	TransactionSvc service.TransactionService
 	WebhookSvc     service.WebhookService
+	MerchantSvc    service.MerchantService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -46,6 +47,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	txHandler  := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
+	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
@@ -65,6 +67,15 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 				r.Get("/events", wbhHandler.ListEvents)
 				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
+			})
+
+			r.Route("/merchants", func(r chi.Router) {
+				r.Post("/", mchHandler.Create)
+				r.Get("/{id}", mchHandler.Get)
+				r.Post("/{id}/suspend", mchHandler.Suspend)
+				r.Post("/{id}/api-keys", mchHandler.CreateApiKey)
+				r.Get("/{id}/api-keys", mchHandler.ListApiKeys)
+				r.Delete("/{id}/api-keys/{keyID}", mchHandler.RevokeApiKey)
 			})
 		})
 	})

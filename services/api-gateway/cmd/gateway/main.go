@@ -37,6 +37,7 @@ func main() {
 		Redis:          rdb,
 		TransactionSvc: service.NewStubTransactionService(),
 		WebhookSvc:     service.NewStubWebhookService(),
+		MerchantSvc:    service.NewStubMerchantService(),
 	}
 
 	srv := server.New(cfg, deps)

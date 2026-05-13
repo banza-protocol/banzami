@@ -94,6 +94,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "banzami-merchants"
+version = "0.1.0"
+dependencies = [
+ "banzami-types",
+ "chrono",
+ "serde",
+ "sha2",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "banzami-payouts"
 version = "0.1.0"
 dependencies = [
@@ -153,10 +168,14 @@ name = "banzami-transactions"
 version = "0.1.0"
 dependencies = [
  "banzami-types",
+ "banzami-wallets",
  "chrono",
  "serde",
+ "sqlx",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -173,11 +192,15 @@ dependencies = [
 name = "banzami-wallets"
 version = "0.1.0"
 dependencies = [
+ "banzami-ledger",
  "banzami-types",
  "chrono",
  "serde",
+ "sqlx",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
