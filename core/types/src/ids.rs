@@ -65,3 +65,4 @@ typed_id!(MerchantId);
 typed_id!(CustomerId);
 typed_id!(IdempotencyKeyId);
 typed_id!(ApiKeyId);
+typed_id!(ReconciliationRunId);

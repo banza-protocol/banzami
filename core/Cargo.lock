@@ -156,8 +156,12 @@ dependencies = [
  "banzami-types",
  "chrono",
  "serde",
+ "serde_json",
+ "sqlx",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -219,11 +223,17 @@ dependencies = [
 name = "banzami-payouts"
 version = "0.1.0"
 dependencies = [
+ "banzami-ledger",
  "banzami-types",
+ "banzami-wallets",
  "chrono",
  "serde",
+ "serde_json",
+ "sqlx",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
@@ -233,8 +243,12 @@ dependencies = [
  "banzami-types",
  "chrono",
  "serde",
+ "serde_json",
+ "sqlx",
  "thiserror",
+ "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]
