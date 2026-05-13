@@ -17,6 +17,11 @@ ADRs document the major technical decisions made in this project, their rational
 | [ADR-003](adr/ADR-003-authentication-strategy.md) | Authentication Strategy | Accepted |
 | [ADR-004](adr/ADR-004-idempotency-and-rate-limiting.md) | Idempotency and Rate Limiting with Redis | Accepted |
 | [ADR-005](adr/ADR-005-modular-monolith.md) | Modular Monolith Deployment Strategy | Accepted |
+| [ADR-006](adr/ADR-006-qr-payment-system.md) | QR Code Payment System | Accepted |
+| [ADR-007](adr/ADR-007-flutter-sdk-architecture.md) | Flutter SDK Architecture | Accepted |
+| [ADR-008](adr/ADR-008-dashboard-separation.md) | Dashboard Separation | Accepted |
+| [ADR-009](adr/ADR-009-payment-links.md) | Payment Links: Shareable URL Commerce Primitive | Accepted |
+| [ADR-010](adr/ADR-010-consumer-auth-pin-jwt.md) | Consumer Authentication: PIN + JWT | Accepted |
 
 New ADRs should be numbered sequentially and placed in `docs/adr/`. ADRs are immutable once accepted — supersede with a new ADR rather than editing.
 
@@ -36,6 +41,11 @@ Each financial domain has a dedicated document covering its business purpose, ar
 | [Payouts](domains/payouts/README.md) | Merchant disbursement to external bank accounts |
 | [Reconciliation](domains/reconciliation/README.md) | External statement matching and discrepancy reporting |
 | [Compliance](domains/compliance/README.md) | KYB / KYC / AML enforcement and transaction gates |
+| [Consumer Wallets](domains/consumer-wallets/README.md) | Consumer wallet lifecycle and balance management |
+| [Identity](domains/identity/README.md) | Consumer identity and handle registry |
+| [Transfers](domains/transfers/README.md) | Instant P2P money transfers |
+| [QR Codes](domains/qr/README.md) | Static and dynamic QR payment codes |
+| [Payment Links](domains/payment-links/README.md) | Shareable URL payments for informal commerce |
 
 ---
 
@@ -44,11 +54,11 @@ Each financial domain has a dedicated document covering its business purpose, ar
 | Directory | Contents |
 |-----------|----------|
 | `security/` | Threat model, security controls, vulnerability management |
-| `runbooks/` | Operational procedures (deployments, incidents, rollbacks) |
+| `runbooks/` | [Operational procedures](runbooks/README.md) (deployments, incidents, PIN reset) |
 | `playbooks/` | Incident response playbooks |
 | `incident-management/` | Incident response procedures and post-mortems |
-| `api/` | API reference (request/response schemas, examples, error catalogs) |
-| `architecture/` | System-wide diagrams and architecture notes beyond ADRs |
+| `api/` | [API reference](api/README.md) — request/response schemas, error catalogs |
+| `architecture/` | [System architecture](architecture/README.md) — service map, data flows, dependency graph |
 | `compliance/` | Regulatory documentation (BNA, AML, data protection, audit obligations) |
 
 ---

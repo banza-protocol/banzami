@@ -189,6 +189,7 @@ dependencies = [
  "banzami-identity",
  "banzami-ledger",
  "banzami-merchants",
+ "banzami-payment-links",
  "banzami-payouts",
  "banzami-qr",
  "banzami-reconciliation",
@@ -248,6 +249,21 @@ dependencies = [
  "chrono",
  "serde",
  "sha2",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "banzami-payment-links"
+version = "0.1.0"
+dependencies = [
+ "banzami-types",
+ "chrono",
+ "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tokio",

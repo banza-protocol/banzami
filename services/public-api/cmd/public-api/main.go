@@ -1,0 +1,111 @@
+package main
+
+import (
+	"context"
+	"errors"
+	"log/slog"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/banzami/banzami/services/public-api/internal/config"
+	"github.com/banzami/banzami/services/public-api/internal/observability"
+	"github.com/banzami/banzami/services/public-api/internal/server"
+	"github.com/banzami/banzami/services/public-api/internal/service"
+)
+
+func main() {
+	cfg, err := config.Load()
+	if err != nil {
+		slog.Error("config error", "error", err)
+		os.Exit(1)
+	}
+
+	initLogger(cfg)
+
+	ctx := context.Background()
+	shutdownOTel, err := observability.Setup(ctx, "public-api", "0.1.0", cfg.OTLPEndpoint)
+	if err != nil {
+		slog.Error("otel setup error", "error", err)
+		os.Exit(1)
+	}
+
+	pool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+	if err != nil {
+		slog.Error("database connection error", "error", err)
+		os.Exit(1)
+	}
+	defer pool.Close()
+
+	if err := pool.Ping(ctx); err != nil {
+		slog.Error("database ping failed", "error", err)
+		os.Exit(1)
+	}
+
+	core  := service.NewCorePublicClient(cfg.CoreAPIURL)
+	creds := service.NewCredentialStore(pool)
+
+	srv := server.New(cfg, server.Dependencies{
+		CoreClient: core,
+		CredStore:  creds,
+	})
+
+	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	go func() {
+		slog.Info("public-api starting",
+			"port",         cfg.Port,
+			"log_level",    cfg.LogLevel,
+			"otlp_enabled", cfg.OTLPEndpoint != "",
+		)
+		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			slog.Error("server error", "error", err)
+			os.Exit(1)
+		}
+	}()
+
+	<-sigCtx.Done()
+	stop()
+	slog.Info("shutdown signal received — draining requests")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		slog.Error("graceful shutdown failed", "error", err)
+	}
+
+	if err := shutdownOTel(shutdownCtx); err != nil {
+		slog.Error("otel shutdown error", "error", err)
+	}
+
+	slog.Info("shutdown complete")
+}
+
+func initLogger(cfg *config.Config) {
+	var level slog.Level
+	switch cfg.LogLevel {
+	case "debug":
+		level = slog.LevelDebug
+	case "warn":
+		level = slog.LevelWarn
+	case "error":
+		level = slog.LevelError
+	default:
+		level = slog.LevelInfo
+	}
+
+	opts := &slog.HandlerOptions{Level: level}
+	var h slog.Handler
+	if cfg.LogFormat == "pretty" {
+		h = slog.NewTextHandler(os.Stdout, opts)
+	} else {
+		h = slog.NewJSONHandler(os.Stdout, opts)
+	}
+	slog.SetDefault(slog.New(h))
+}
