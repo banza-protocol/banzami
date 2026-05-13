@@ -7,47 +7,65 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
+// Dependencies holds the runtime dependencies injected into the server.
+type Dependencies struct {
+	Redis          *redis.Client
+	TransactionSvc service.TransactionService
+	WebhookSvc     service.WebhookService
+}
+
 // New constructs the HTTP server with the full middleware stack and route table.
-func New(cfg *config.Config) *http.Server {
+func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r := chi.NewRouter()
 
 	// ---------------------------------------------------------------------------
 	// Global middleware — applied to every request
 	// ---------------------------------------------------------------------------
-	r.Use(chimw.RealIP)           // resolve X-Forwarded-For → r.RemoteAddr
-	r.Use(middleware.RequestID)   // generate / propagate X-Request-ID
-	r.Use(middleware.Logger)      // structured request log after completion
-	r.Use(chimw.Recoverer)        // panic → 500, never crash the process
-	r.Use(chimw.Timeout(60 * time.Second)) // global request timeout
+	r.Use(chimw.RealIP)
+	r.Use(middleware.RequestID)
+	r.Use(middleware.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.Timeout(60 * time.Second))
 
 	// ---------------------------------------------------------------------------
-	// Observability endpoints — no auth, not rate-limited
+	// Observability endpoints — no auth, no rate limit
 	// ---------------------------------------------------------------------------
 	r.Get("/health", handler.Liveness)
 	r.Get("/readyz", handler.Readiness(cfg))
 
 	// ---------------------------------------------------------------------------
-	// Versioned public API
-	// The auth and rate-limit middleware are registered here but commented out
-	// until the JWT secret and Redis client are available.
+	// Versioned public API — JWT auth + rate limiting required
 	// ---------------------------------------------------------------------------
+	txHandler  := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
+
 	r.Group(func(r chi.Router) {
-		// r.Use(middleware.Auth(cfg))
-		// r.Use(middleware.RateLimit(redisClient, cfg))
-		// r.Use(middleware.Idempotency(redisClient))
+		r.Use(middleware.Auth(cfg))
+		r.Use(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits))
+		r.Use(middleware.Idempotency(deps.Redis))
 
 		r.Route("/v1", func(r chi.Router) {
-			// Domain routes will be mounted here as each service is implemented.
-			// Example:
-			//   r.Mount("/wallets",      walletRoutes(walletSvc))
-			//   r.Mount("/transactions", transactionRoutes(txSvc))
-			//   r.Mount("/payouts",      payoutRoutes(payoutSvc))
+			r.Post("/transactions", txHandler.Create)
+			r.Get("/transactions", txHandler.List)
+			r.Get("/transactions/{id}", txHandler.Get)
+
+			r.Route("/webhooks", func(r chi.Router) {
+				r.Post("/endpoints", wbhHandler.Register)
+				r.Get("/endpoints", wbhHandler.ListEndpoints)
+				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
+				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
+
+				r.Get("/events", wbhHandler.ListEvents)
+				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
+			})
 		})
 	})
 
