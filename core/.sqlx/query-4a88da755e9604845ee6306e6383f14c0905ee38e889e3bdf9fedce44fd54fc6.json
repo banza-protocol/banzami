@@ -1,0 +1,82 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM reconciliation_records WHERE run_id = $1 ORDER BY reconciled_at",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "run_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "settlement_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 4,
+        "name": "external_ref",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "internal_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "external_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "discrepancy_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 10,
+        "name": "reconciled_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "4a88da755e9604845ee6306e6383f14c0905ee38e889e3bdf9fedce44fd54fc6"
+}

@@ -1,0 +1,64 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM reconciliation_runs WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "total_checked",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 2,
+        "name": "matched",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 3,
+        "name": "missing_external",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 4,
+        "name": "missing_internal",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_mismatches",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "total_discrepancy_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 7,
+        "name": "generated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "2f7db45ed943dedad2aac55232f0062e0fe9821db8d433764136188eec020ae1"
+}

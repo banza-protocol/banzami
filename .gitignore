@@ -86,3 +86,6 @@ venv/
 tmp/
 temp/
 .cache/
+
+# Claude Code internal state
+.claude/
