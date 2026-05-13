@@ -1,0 +1,129 @@
+# Full-stack Compose — all infrastructure + all application services.
+#
+# IMPORTANT: Database migrations must be applied before starting app services.
+# Run `make stack-up` which handles the correct startup order automatically.
+# Never run `docker compose -f docker-compose.full.yml up` directly on a fresh
+# database without migrations applied first.
+#
+# Prerequisites:
+#   - .env file at the repo root (copy from .env.example)
+#   - For core-api: run `make sqlx-prepare` and commit .sqlx/ before building
+
+services:
+
+  # ─── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER:     banzami
+      POSTGRES_PASSWORD: banzami_dev
+      POSTGRES_DB:       banzami_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U banzami -d banzami_dev"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test:     ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  3s
+      retries:  10
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # ─── Application services ────────────────────────────────────────────────────
+
+  # Rust financial core — the single source of financial truth.
+  # Only reachable from within the banzami_net Docker network.
+  # Port 8081 is exposed here for local debugging only; in production
+  # it should be firewalled and only accessible via loopback.
+  core-api:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL:       postgres://banzami:banzami_dev@postgres:5432/banzami_dev
+      CORE_API_PORT:      "8081"
+      TRANSIT_ACCOUNT_ID: ${TRANSIT_ACCOUNT_ID}
+      BANK_ACCOUNT_ID:    ${BANK_ACCOUNT_ID}
+      RUST_LOG:           core_api=info,warn
+    ports:
+      - "8081:8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test:     ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
+      interval: 10s
+      timeout:  5s
+      start_period: 20s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # Go public API gateway — the only internet-facing service.
+  api-gateway:
+    build:
+      context: ../../services/api-gateway
+      dockerfile: Dockerfile
+    environment:
+      PORT:         "8080"
+      JWT_SECRET:   ${JWT_SECRET}
+      CORE_API_URL: http://core-api:8081
+      REDIS_ADDR:   redis:6379
+      LOG_LEVEL:    ${LOG_LEVEL:-info}
+    ports:
+      - "8080:8080"
+    depends_on:
+      core-api:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # Go admin API — internal only, never exposed to the internet.
+  admin-api:
+    build:
+      context: ../../services/admin-api
+      dockerfile: Dockerfile
+    environment:
+      ADMIN_API_PORT: "8082"
+      CORE_API_URL:   http://core-api:8081
+      ADMIN_API_KEY:  ${ADMIN_API_KEY}
+      LOG_LEVEL:      ${LOG_LEVEL:-info}
+    ports:
+      - "8082:8082"
+    depends_on:
+      core-api:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  banzami_net:
+    driver: bridge

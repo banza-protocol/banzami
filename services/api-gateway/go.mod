@@ -1,6 +1,6 @@
 module github.com/banzami/banzami/services/api-gateway
 
-go 1.26
+go 1.22
 
 require (
 	github.com/go-chi/chi/v5 v5.2.1

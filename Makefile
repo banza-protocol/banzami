@@ -4,146 +4,225 @@
 # Prerequisites:
 #   docker        https://docs.docker.com/get-docker/
 #   sqlx-cli      cargo install sqlx-cli --no-default-features --features postgres
+#   Go 1.22+      https://go.dev/dl/
+#   Rust stable   https://rustup.rs/
 #
-# Quick start:
-#   cp .env.example .env
-#   make dev-up
-#   make db-migrate
+# Quick start (local processes, DB in Docker):
+#   cp .env.example .env    # fill in JWT_SECRET, ADMIN_API_KEY, account IDs
+#   make dev-up             # start PostgreSQL + Redis
+#   make db-migrate         # apply all migrations
+#   make core-run           # terminal 1 — Rust core-api
+#   make gateway-run        # terminal 2 — Go api-gateway
+#   make admin-api-run      # terminal 3 — Go admin-api
+#
+# Full containerised stack:
+#   make sqlx-prepare       # generate .sqlx/ cache (once, then commit)
+#   make stack-build        # build all Docker images
+#   make stack-up           # start everything in containers
 
-# Load .env if present (never required — env vars can be set externally)
 ifneq (,$(wildcard .env))
   include .env
   export
 endif
 
-COMPOSE       = docker compose -f infra/docker/docker-compose.yml
+COMPOSE_INFRA = docker compose -f infra/docker/docker-compose.yml
+COMPOSE_FULL  = docker compose -f infra/docker/docker-compose.full.yml
 DB_MIG        = db/migrations
+CORE_DIR      = core
+GATEWAY_DIR   = services/api-gateway
+ADMIN_DIR     = services/admin-api
 
 .DEFAULT_GOAL := help
 
-# ---------------------------------------------------------------------------
-# Help
-# ---------------------------------------------------------------------------
+# ─── Help ─────────────────────────────────────────────────────────────────────
 .PHONY: help
 help:
 	@printf "\nBanzami — local development\n\n"
-	@printf "  \033[1mServices\033[0m\n"
-	@printf "    make dev-up        Start PostgreSQL and Redis (detached)\n"
-	@printf "    make dev-down      Stop all services\n"
-	@printf "    make dev-reset     Destroy volumes and restart (fresh state)\n"
-	@printf "    make dev-logs      Tail all service logs\n"
-	@printf "    make dev-status    Show service health\n"
+	@printf "  \033[1mInfrastructure (DB + Redis only)\033[0m\n"
+	@printf "    make dev-up          Start PostgreSQL and Redis (detached)\n"
+	@printf "    make dev-down        Stop infrastructure\n"
+	@printf "    make dev-reset       Destroy volumes and restart (fresh state)\n"
+	@printf "    make dev-logs        Tail infrastructure logs\n"
+	@printf "    make dev-status      Show container health\n"
 	@printf "\n  \033[1mDatabase\033[0m\n"
-	@printf "    make db-migrate    Run all pending migrations (ledger → wallets → transactions)\n"
-	@printf "    make db-reset      Drop, recreate, and re-migrate dev database\n"
-	@printf "    make db-status     Show applied and pending migrations\n"
-	@printf "    make db-psql       Open a psql shell on the dev database\n"
-	@printf "\n  \033[1mRust core\033[0m\n"
-	@printf "    make check             cargo check --workspace (core/)\n"
-	@printf "    make test              cargo test  --workspace (core/)\n"
-	@printf "\n  \033[1mGo gateway\033[0m\n"
-	@printf "    make gateway-build     go build ./... (services/api-gateway)\n"
-	@printf "    make gateway-run       go run cmd/gateway/main.go\n"
-	@printf "    make gateway-check     go vet ./...\n"
-	@printf "    make gateway-test      go test ./...\n"
+	@printf "    make db-migrate      Apply all pending migrations\n"
+	@printf "    make db-reset        Drop, recreate, and re-migrate dev database\n"
+	@printf "    make db-status       Show applied and pending migrations\n"
+	@printf "    make db-psql         Open a psql shell on the dev database\n"
+	@printf "\n  \033[1mRust core-api (:8081)\033[0m\n"
+	@printf "    make core-run        Run core-api (requires dev-up + db-migrate)\n"
+	@printf "    make core-check      cargo check --workspace\n"
+	@printf "    make core-test       cargo test  --workspace\n"
+	@printf "    make core-build      cargo build --release\n"
+	@printf "    make sqlx-prepare    Generate .sqlx/ offline cache for Docker builds\n"
+	@printf "\n  \033[1mGo api-gateway (:8080)\033[0m\n"
+	@printf "    make gateway-run     Run api-gateway (requires core-run)\n"
+	@printf "    make gateway-build   go build ./...\n"
+	@printf "    make gateway-check   go vet ./...\n"
+	@printf "    make gateway-test    go test ./...\n"
+	@printf "\n  \033[1mGo admin-api (:8082)\033[0m\n"
+	@printf "    make admin-api-run   Run admin-api (requires core-run)\n"
+	@printf "    make admin-api-build go build ./...\n"
+	@printf "    make admin-api-check go vet ./...\n"
+	@printf "    make admin-api-test  go test ./...\n"
+	@printf "\n  \033[1mFull containerised stack\033[0m\n"
+	@printf "    make stack-build     Build all Docker images\n"
+	@printf "    make stack-up        Start full stack in containers (runs migrations)\n"
+	@printf "    make stack-down      Stop and remove containers\n"
+	@printf "    make stack-logs      Tail all service logs\n"
+	@printf "\n  \033[1mQuality\033[0m\n"
+	@printf "    make check-all       Run all linters and type-checkers\n"
+	@printf "    make test-all        Run all test suites\n"
 	@printf "\n"
 
-# ---------------------------------------------------------------------------
-# Services
-# ---------------------------------------------------------------------------
-.PHONY: dev-up
-dev-up:
-	$(COMPOSE) up -d
-	@echo "Waiting for PostgreSQL to be ready..."
-	@for i in $$(seq 1 20); do \
-	  $(COMPOSE) exec -T postgres pg_isready -U banzami -d banzami_dev -q 2>/dev/null && break; \
-	  [ $$i -eq 20 ] && echo "  PostgreSQL not ready after 20s — run 'make dev-logs'" && exit 1; \
-	  sleep 1; \
-	done
-	@echo "  PostgreSQL: ready"
-	@echo "  Redis:      ready"
-	@echo ""
-	@echo "  DATABASE_URL=$(DATABASE_URL)"
-	@echo "  REDIS_URL=$(REDIS_URL)"
+# ─── Prereq guards ────────────────────────────────────────────────────────────
+.PHONY: _require-database-url _require-sqlx
 
-.PHONY: dev-down
-dev-down:
-	$(COMPOSE) down
-
-.PHONY: dev-reset
-dev-reset:
-	$(COMPOSE) down -v
-	$(COMPOSE) up -d
-
-.PHONY: dev-logs
-dev-logs:
-	$(COMPOSE) logs -f
-
-.PHONY: dev-status
-dev-status:
-	$(COMPOSE) ps
-
-# ---------------------------------------------------------------------------
-# Database
-# ---------------------------------------------------------------------------
-.PHONY: _require-database-url
 _require-database-url:
 	@test -n "$(DATABASE_URL)" \
-	  || (echo "\n  DATABASE_URL is not set.\n  Copy .env.example to .env and re-run.\n"; exit 1)
+	  || (printf "\n  DATABASE_URL is not set.\n  Copy .env.example to .env and re-run.\n\n"; exit 1)
 
-.PHONY: _require-sqlx
 _require-sqlx:
 	@command -v sqlx > /dev/null 2>&1 \
-	  || (printf "\n  sqlx-cli not found. Install with:\n\n    cargo install sqlx-cli --no-default-features --features postgres\n\n"; exit 1)
+	  || (printf "\n  sqlx-cli not found. Install:\n\n    cargo install sqlx-cli --no-default-features --features postgres\n\n"; exit 1)
 
-.PHONY: db-migrate
+# ─── Infrastructure ───────────────────────────────────────────────────────────
+.PHONY: dev-up dev-down dev-reset dev-logs dev-status
+
+dev-up:
+	$(COMPOSE_INFRA) up -d
+	@printf "Waiting for PostgreSQL..."
+	@for i in $$(seq 1 30); do \
+	  $(COMPOSE_INFRA) exec -T postgres pg_isready -U banzami -d banzami_dev -q 2>/dev/null && break; \
+	  [ $$i -eq 30 ] && printf "\n  Timed out waiting for PostgreSQL. Run 'make dev-logs'.\n" && exit 1; \
+	  printf "."; sleep 1; \
+	done
+	@printf " ready\n"
+	@printf "  PostgreSQL  → localhost:5433\n"
+	@printf "  Redis       → localhost:6379\n"
+
+dev-down:
+	$(COMPOSE_INFRA) down
+
+dev-reset:
+	$(COMPOSE_INFRA) down -v
+	$(COMPOSE_INFRA) up -d
+
+dev-logs:
+	$(COMPOSE_INFRA) logs -f
+
+dev-status:
+	$(COMPOSE_INFRA) ps
+
+# ─── Database ─────────────────────────────────────────────────────────────────
+.PHONY: db-migrate db-reset db-status db-psql
+
 db-migrate: _require-database-url _require-sqlx
-	@echo "Running migrations against: $(DATABASE_URL)"
+	@printf "Applying migrations → $(DATABASE_URL)\n"
 	sqlx migrate run --source $(DB_MIG)
 
-.PHONY: db-reset
 db-reset: _require-database-url _require-sqlx
-	@echo "Resetting database: $(DATABASE_URL)"
+	@printf "Resetting database → $(DATABASE_URL)\n"
 	sqlx database drop -y
 	sqlx database create
 	sqlx migrate run --source $(DB_MIG)
 
-.PHONY: db-status
 db-status: _require-database-url _require-sqlx
 	sqlx migrate info --source $(DB_MIG)
 
-.PHONY: db-psql
 db-psql:
-	$(COMPOSE) exec postgres psql -U banzami -d banzami_dev
+	$(COMPOSE_INFRA) exec postgres psql -U banzami -d banzami_dev
 
-# ---------------------------------------------------------------------------
-# Build — Rust core
-# ---------------------------------------------------------------------------
-.PHONY: check
-check:
-	cargo check --workspace --manifest-path core/Cargo.toml
+# ─── Rust core-api ────────────────────────────────────────────────────────────
+.PHONY: core-run core-check core-test core-build sqlx-prepare
 
-.PHONY: test
-test:
-	cargo test --workspace --manifest-path core/Cargo.toml
+core-run: _require-database-url
+	cd $(CORE_DIR) && cargo run --bin core-api
 
-# ---------------------------------------------------------------------------
-# Gateway — Go
-# ---------------------------------------------------------------------------
-GATEWAY_DIR = services/api-gateway
+core-check:
+	cargo check --workspace --manifest-path $(CORE_DIR)/Cargo.toml
 
-.PHONY: gateway-build
+core-test:
+	cargo test --workspace --manifest-path $(CORE_DIR)/Cargo.toml
+
+core-build:
+	cargo build --release --manifest-path $(CORE_DIR)/Cargo.toml
+
+# Generate .sqlx/ query metadata for offline Docker builds.
+# Run this once after any sqlx::query! change, then commit the .sqlx/ directory.
+sqlx-prepare: _require-database-url _require-sqlx
+	@printf "Generating sqlx offline cache (.sqlx/)...\n"
+	cd $(CORE_DIR) && cargo sqlx prepare --workspace
+	@printf "Done. Commit the .sqlx/ directory before building Docker images.\n"
+
+# ─── Go api-gateway ───────────────────────────────────────────────────────────
+.PHONY: gateway-run gateway-build gateway-check gateway-test
+
+gateway-run: _require-database-url
+	cd $(GATEWAY_DIR) && go run ./cmd/gateway
+
 gateway-build:
 	cd $(GATEWAY_DIR) && go build ./...
 
-.PHONY: gateway-run
-gateway-run: _require-database-url
-	cd $(GATEWAY_DIR) && go run cmd/gateway/main.go
-
-.PHONY: gateway-check
 gateway-check:
 	cd $(GATEWAY_DIR) && go vet ./...
 
-.PHONY: gateway-test
 gateway-test:
 	cd $(GATEWAY_DIR) && go test ./...
+
+# ─── Go admin-api ─────────────────────────────────────────────────────────────
+.PHONY: admin-api-run admin-api-build admin-api-check admin-api-test
+
+admin-api-run:
+	cd $(ADMIN_DIR) && go run ./cmd/admin
+
+admin-api-build:
+	cd $(ADMIN_DIR) && go build ./...
+
+admin-api-check:
+	cd $(ADMIN_DIR) && go vet ./...
+
+admin-api-test:
+	cd $(ADMIN_DIR) && go test ./...
+
+# ─── Full containerised stack ─────────────────────────────────────────────────
+.PHONY: stack-build stack-up stack-down stack-logs
+
+stack-build:
+	$(COMPOSE_FULL) build
+
+# Starts the full stack. Applies migrations before launching app containers.
+# Requires: .env with JWT_SECRET, ADMIN_API_KEY, TRANSIT_ACCOUNT_ID, BANK_ACCOUNT_ID set.
+# Requires: .sqlx/ committed (run `make sqlx-prepare` first).
+stack-up: _require-database-url _require-sqlx
+	$(COMPOSE_FULL) up -d postgres redis
+	@printf "Waiting for PostgreSQL..."
+	@for i in $$(seq 1 30); do \
+	  $(COMPOSE_FULL) exec -T postgres pg_isready -U banzami -d banzami_dev -q 2>/dev/null && break; \
+	  [ $$i -eq 30 ] && printf "\n  Timed out.\n" && exit 1; \
+	  printf "."; sleep 1; \
+	done
+	@printf " ready\n"
+	sqlx migrate run --source $(DB_MIG)
+	$(COMPOSE_FULL) up -d core-api api-gateway admin-api
+	@printf "\n  Services starting...\n"
+	@printf "  api-gateway  → http://localhost:8080\n"
+	@printf "  admin-api    → http://localhost:8082\n"
+	@printf "  core-api     → http://localhost:8081  (internal)\n"
+	@printf "  PostgreSQL   → localhost:5433\n"
+	@printf "  Redis        → localhost:6379\n\n"
+
+stack-down:
+	$(COMPOSE_FULL) down
+
+stack-logs:
+	$(COMPOSE_FULL) logs -f
+
+# ─── Quality gates ────────────────────────────────────────────────────────────
+.PHONY: check-all test-all
+
+check-all: core-check gateway-check admin-api-check
+	@printf "\nAll checks passed.\n"
+
+test-all: core-test gateway-test admin-api-test
+	@printf "\nAll test suites passed.\n"
