@@ -15,19 +15,29 @@ use banzami_risk::StaticRiskEngine;
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
 use banzami_compliance::{PostgresComplianceEngine, PostgresComplianceRepository};
 use banzami_reconciliation::{PostgresReconciliationRepository, StaticReconciliationEngine};
+use banzami_identity::{PostgresIdentityEngine, PostgresIdentityRepository};
+use banzami_consumer_wallets::{
+    PostgresConsumerWalletEngine, PostgresConsumerWalletRepository,
+};
+use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository};
+use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
 
 // ---------------------------------------------------------------------------
 // Concrete engine types wired to PostgreSQL
 // ---------------------------------------------------------------------------
 
-pub type LedgerRepo    = PostgresLedgerRepository;
-pub type WalletEng     = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
-pub type TxEng         = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
-pub type MerchantEng   = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
-pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
-pub type PayoutEng     = PostgresPayoutEngine<PostgresWalletRepository, LedgerRepo, PostgresPayoutRepository>;
-pub type ComplianceEng = PostgresComplianceEngine<PostgresComplianceRepository>;
-pub type ReconEng      = StaticReconciliationEngine<PostgresReconciliationRepository>;
+pub type LedgerRepo       = PostgresLedgerRepository;
+pub type WalletEng        = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
+pub type TxEng            = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
+pub type MerchantEng      = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
+pub type SettlementEng    = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
+pub type PayoutEng        = PostgresPayoutEngine<PostgresWalletRepository, LedgerRepo, PostgresPayoutRepository>;
+pub type ComplianceEng    = PostgresComplianceEngine<PostgresComplianceRepository>;
+pub type ReconEng         = StaticReconciliationEngine<PostgresReconciliationRepository>;
+pub type IdentityEng      = PostgresIdentityEngine<PostgresIdentityRepository>;
+pub type ConsumerWalletEng = PostgresConsumerWalletEngine<LedgerRepo, PostgresConsumerWalletRepository>;
+pub type TransferEng      = PostgresTransferEngine<PostgresTransferRepository>;
+pub type QrEng            = PostgresQrEngine<PostgresQrRepository>;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -36,18 +46,22 @@ pub type ReconEng      = StaticReconciliationEngine<PostgresReconciliationReposi
 #[derive(Clone)]
 pub struct AppState {
     #[allow(dead_code)]
-    pub pool:           PgPool,
-    pub wallet:         Arc<WalletEng>,
-    pub tx_engine:      Arc<TxEng>,
-    pub merchant:       Arc<MerchantEng>,
-    pub settlement:     Arc<SettlementEng>,
-    pub payout:         Arc<PayoutEng>,
-    pub compliance:     Arc<ComplianceEng>,
-    pub reconciliation: Arc<ReconEng>,
+    pub pool:            PgPool,
+    pub wallet:          Arc<WalletEng>,
+    pub tx_engine:       Arc<TxEng>,
+    pub merchant:        Arc<MerchantEng>,
+    pub settlement:      Arc<SettlementEng>,
+    pub payout:          Arc<PayoutEng>,
+    pub compliance:      Arc<ComplianceEng>,
+    pub reconciliation:  Arc<ReconEng>,
     #[allow(dead_code)]
-    pub routing:        Arc<StaticRoutingEngine>,
+    pub routing:         Arc<StaticRoutingEngine>,
     #[allow(dead_code)]
-    pub risk:           Arc<StaticRiskEngine>,
+    pub risk:            Arc<StaticRiskEngine>,
+    pub identity:        Arc<IdentityEng>,
+    pub consumer_wallet: Arc<ConsumerWalletEng>,
+    pub transfer:        Arc<TransferEng>,
+    pub qr:              Arc<QrEng>,
 }
 
 impl AppState {
@@ -118,6 +132,29 @@ impl AppState {
         let routing = Arc::new(StaticRoutingEngine::angola_defaults());
         let risk    = Arc::new(StaticRiskEngine::conservative());
 
+        // --- Identity engine ---
+        let identity_repo = PostgresIdentityRepository::new(pool.clone());
+        let identity      = Arc::new(PostgresIdentityEngine::new(identity_repo));
+
+        // --- Consumer wallet engine ---
+        let cw_ledger = PostgresLedgerRepository::new(pool.clone());
+        let cw_repo   = PostgresConsumerWalletRepository::new(pool.clone());
+        let consumer_wallet = Arc::new(PostgresConsumerWalletEngine::new(
+            Arc::new(cw_ledger),
+            cw_repo,
+        ));
+
+        // --- Transfer engine ---
+        let transfer_repo = PostgresTransferRepository::new(pool.clone());
+        let transfer      = Arc::new(PostgresTransferEngine::new(pool.clone(), transfer_repo));
+
+        // --- QR engine ---
+        let qr_signing_key = std::env::var("QR_SIGNING_KEY")
+            .map(|s| s.into_bytes())
+            .unwrap_or_else(|_| b"banzami-dev-qr-key-change-in-production".to_vec());
+        let qr_repo = PostgresQrRepository::new(pool.clone());
+        let qr      = Arc::new(PostgresQrEngine::new(qr_repo, qr_signing_key));
+
         Self {
             pool,
             wallet,
@@ -129,6 +166,10 @@ impl AppState {
             reconciliation,
             routing,
             risk,
+            identity,
+            consumer_wallet,
+            transfer,
+            qr,
         }
     }
 }

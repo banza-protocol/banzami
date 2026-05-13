@@ -11,6 +11,10 @@ members = [
     "risk",
     "compliance",
     "payouts",
+    "identity",
+    "consumer-wallets",
+    "transfers",
+    "qr",
     "api",
 ]
 resolver = "2"
@@ -27,17 +31,21 @@ authors    = ["Banzami Engineering <engineering@banzami.ao>"]
 # ---------------------------------------------------------------------------
 [workspace.dependencies]
 # Internal
-banzami-types        = { path = "types" }
-banzami-ledger       = { path = "ledger" }
-banzami-wallets      = { path = "wallets" }
-banzami-transactions = { path = "transactions" }
-banzami-merchants    = { path = "merchants" }
-banzami-settlement   = { path = "settlement" }
-banzami-routing        = { path = "routing" }
-banzami-risk           = { path = "risk" }
-banzami-reconciliation = { path = "reconciliation" }
-banzami-payouts        = { path = "payouts" }
-banzami-compliance     = { path = "compliance" }
+banzami-types           = { path = "types" }
+banzami-ledger          = { path = "ledger" }
+banzami-wallets         = { path = "wallets" }
+banzami-transactions    = { path = "transactions" }
+banzami-merchants       = { path = "merchants" }
+banzami-settlement      = { path = "settlement" }
+banzami-routing         = { path = "routing" }
+banzami-risk            = { path = "risk" }
+banzami-reconciliation  = { path = "reconciliation" }
+banzami-payouts         = { path = "payouts" }
+banzami-compliance      = { path = "compliance" }
+banzami-identity        = { path = "identity" }
+banzami-consumer-wallets = { path = "consumer-wallets" }
+banzami-transfers       = { path = "transfers" }
+banzami-qr              = { path = "qr" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }
@@ -68,8 +76,10 @@ sqlx = { version = "0.7", features = [
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Cryptography — API key hashing
-sha2 = "0.10"
+# Cryptography — API key hashing + QR signatures
+sha2   = "0.10"
+hmac   = "0.12"
+base64 = { version = "0.22", features = ["alloc"] }
 
 # HTTP server — internal core-api
 axum   = "0.7"

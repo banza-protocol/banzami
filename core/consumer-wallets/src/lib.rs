@@ -1,0 +1,58 @@
+pub mod engine;
+pub mod repository;
+pub mod wallet;
+
+pub use engine::{ConsumerWalletEngine, PostgresConsumerWalletEngine};
+pub use repository::{ConsumerWalletRepository, PostgresConsumerWalletRepository};
+pub use wallet::{
+    ConsumerWallet, ConsumerWalletBalance, ConsumerWalletStatus, CreateConsumerWalletRequest,
+};
+
+use thiserror::Error;
+
+use banzami_types::{ConsumerId, ConsumerWalletId, Currency, MoneyError};
+
+#[derive(Debug, Error)]
+pub enum ConsumerWalletError {
+    #[error("consumer wallet {0} not found")]
+    NotFound(ConsumerWalletId),
+
+    #[error("no active wallet for consumer {consumer_id} in {currency}")]
+    NoWalletForConsumer {
+        consumer_id: ConsumerId,
+        currency:    Currency,
+    },
+
+    #[error("wallet {0} is not active")]
+    NotActive(ConsumerWalletId),
+
+    #[error("insufficient funds: available {available}, requested {requested}")]
+    InsufficientFunds {
+        available: banzami_types::Money,
+        requested: banzami_types::Money,
+    },
+
+    #[error("currency mismatch: wallet is {wallet_currency}, operation is {operation_currency}")]
+    CurrencyMismatch {
+        wallet_currency:    Currency,
+        operation_currency: Currency,
+    },
+
+    #[error("unknown currency code: {0}")]
+    UnknownCurrency(String),
+
+    #[error("unknown wallet status: {0}")]
+    UnknownStatus(String),
+
+    #[error("posting error: {0}")]
+    Posting(String),
+
+    #[error("ledger error: {0}")]
+    Ledger(#[from] banzami_ledger::LedgerError),
+
+    #[error(transparent)]
+    Money(#[from] MoneyError),
+
+    #[error("database error: {0}")]
+    Database(#[from] sqlx::Error),
+}

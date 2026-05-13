@@ -101,6 +101,31 @@ async fn main() {
         // Reconciliation
         .route("/internal/v1/reconciliation/run", post(routes::reconciliation::run))
 
+        // Consumers (identity)
+        .route("/internal/v1/consumers",                   post(routes::consumers::create))
+        .route("/internal/v1/consumers/:id",               get(routes::consumers::get))
+        .route("/internal/v1/consumers/:id/suspend",       post(routes::consumers::suspend))
+        .route("/internal/v1/consumers/:id/close",         post(routes::consumers::close))
+        .route("/internal/v1/consumers/handle/:handle",    get(routes::consumers::get_by_handle))
+
+        // Consumer wallets
+        .route("/internal/v1/consumer-wallets",            post(routes::consumer_wallets::create))
+        .route("/internal/v1/consumer-wallets",            get(routes::consumer_wallets::get_for_consumer))
+        .route("/internal/v1/consumer-wallets/:id",        get(routes::consumer_wallets::get))
+        .route("/internal/v1/consumer-wallets/:id/balance", get(routes::consumer_wallets::balance))
+
+        // Transfers
+        .route("/internal/v1/transfers",        post(routes::transfers::send))
+        .route("/internal/v1/transfers",        get(routes::transfers::list))
+        .route("/internal/v1/transfers/:id",    get(routes::transfers::get))
+
+        // QR codes
+        .route("/internal/v1/qr/static",        post(routes::qr::create_static))
+        .route("/internal/v1/qr/dynamic",       post(routes::qr::create_dynamic))
+        .route("/internal/v1/qr/decode",        post(routes::qr::decode))
+        .route("/internal/v1/qr/:id",           get(routes::qr::get))
+        .route("/internal/v1/qr/:id/use",       post(routes::qr::mark_used))
+
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 

@@ -12,17 +12,21 @@ repository.workspace = true
 authors.workspace    = true
 
 [dependencies]
-banzami-types        = { workspace = true }
-banzami-ledger       = { workspace = true }
-banzami-wallets      = { workspace = true }
-banzami-transactions = { workspace = true }
-banzami-merchants    = { workspace = true }
-banzami-settlement   = { workspace = true }
-banzami-routing        = { workspace = true }
-banzami-risk           = { workspace = true }
-banzami-payouts        = { workspace = true }
-banzami-compliance     = { workspace = true }
-banzami-reconciliation = { workspace = true }
+banzami-types            = { workspace = true }
+banzami-ledger           = { workspace = true }
+banzami-wallets          = { workspace = true }
+banzami-transactions     = { workspace = true }
+banzami-merchants        = { workspace = true }
+banzami-settlement       = { workspace = true }
+banzami-routing          = { workspace = true }
+banzami-risk             = { workspace = true }
+banzami-payouts          = { workspace = true }
+banzami-compliance       = { workspace = true }
+banzami-reconciliation   = { workspace = true }
+banzami-identity         = { workspace = true }
+banzami-consumer-wallets = { workspace = true }
+banzami-transfers        = { workspace = true }
+banzami-qr               = { workspace = true }
 serde                = { workspace = true }
 serde_json           = { workspace = true }
 uuid                 = { workspace = true }

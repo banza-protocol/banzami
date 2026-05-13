@@ -66,3 +66,12 @@ typed_id!(CustomerId);
 typed_id!(IdempotencyKeyId);
 typed_id!(ApiKeyId);
 typed_id!(ReconciliationRunId);
+
+// ---------------------------------------------------------------------------
+// Consumer / P2P domains
+// ---------------------------------------------------------------------------
+
+typed_id!(ConsumerId);         // Consumer identity (end-user)
+typed_id!(ConsumerWalletId);   // Consumer wallet (distinct from merchant WalletId)
+typed_id!(TransferId);         // Instant P2P wallet transfer
+typed_id!(QrCodeId);           // Static or dynamic QR code

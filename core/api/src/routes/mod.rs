@@ -1,7 +1,11 @@
 pub mod compliance;
+pub mod consumer_wallets;
+pub mod consumers;
 pub mod merchants;
 pub mod payouts;
+pub mod qr;
 pub mod reconciliation;
 pub mod settlements;
 pub mod transactions;
+pub mod transfers;
 pub mod wallets;
