@@ -24,6 +24,15 @@ pub trait TransactionRepository: Send + Sync {
         status: TransactionStatus,
         failure_reason: Option<&str>,
     ) -> Result<Transaction, TransactionError>;
+    /// Keyset-paginated list for a merchant, newest first.
+    /// Pass `before_ts` + `before_id` (from the last returned row) to get the next page.
+    async fn list_for_merchant(
+        &self,
+        merchant_id: MerchantId,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransactionId>,
+    ) -> Result<Vec<Transaction>, TransactionError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -154,6 +163,45 @@ impl TransactionRepository for PostgresTransactionRepository {
         .map_err(TransactionError::Database)?;
 
         self.get(id).await
+    }
+
+    async fn list_for_merchant(
+        &self,
+        merchant_id: MerchantId,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransactionId>,
+    ) -> Result<Vec<Transaction>, TransactionError> {
+        let rows = if let (Some(ts), Some(bid)) = (before_ts, before_id) {
+            sqlx::query_as::<_, TransactionRow>(&format!(
+                "{SELECT}
+                 WHERE merchant_id = $1
+                   AND (created_at < $2 OR (created_at = $2 AND id < $3))
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT $4"
+            ))
+            .bind(merchant_id.as_uuid())
+            .bind(ts)
+            .bind(bid.as_uuid())
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(TransactionError::Database)?
+        } else {
+            sqlx::query_as::<_, TransactionRow>(&format!(
+                "{SELECT}
+                 WHERE merchant_id = $1
+                 ORDER BY created_at DESC, id DESC
+                 LIMIT $2"
+            ))
+            .bind(merchant_id.as_uuid())
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+            .map_err(TransactionError::Database)?
+        };
+
+        rows.into_iter().map(tx_from_row).collect()
     }
 }
 

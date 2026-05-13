@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -31,6 +31,16 @@ pub struct CreateTransactionBody {
 #[derive(Deserialize)]
 pub struct FailBody {
     pub reason: String,
+}
+
+#[derive(Deserialize)]
+pub struct ListQuery {
+    pub merchant_id:       String,
+    pub limit:             Option<i64>,
+    /// Keyset cursor: RFC3339 timestamp of the last returned transaction.
+    pub before_created_at: Option<chrono::DateTime<chrono::Utc>>,
+    /// Keyset cursor: UUID of the last returned transaction (tiebreaker).
+    pub before_id:         Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -172,6 +182,36 @@ pub async fn reverse(
         })?;
 
     Ok(Json(serde_json::to_value(&tx).unwrap()))
+}
+
+pub async fn list(
+    State(state): State<AppState>,
+    Query(q): Query<ListQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let merchant_id: MerchantId = q.merchant_id.parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+
+    let limit = q.limit.unwrap_or(20).clamp(1, 100);
+
+    let before_id = q.before_id
+        .map(|s| s.parse::<TransactionId>())
+        .transpose()
+        .map_err(|_| ApiError::bad_request("invalid before_id"))?;
+
+    // Fetch one extra to determine whether a next page exists.
+    let mut txs = state
+        .tx_engine
+        .list(merchant_id, limit + 1, q.before_created_at, before_id)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let has_more = txs.len() as i64 > limit;
+    txs.truncate(limit as usize);
+
+    Ok(Json(serde_json::json!({
+        "data":     txs,
+        "has_more": has_more,
+    })))
 }
 
 pub async fn fail(

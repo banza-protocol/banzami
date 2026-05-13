@@ -1,8 +1,8 @@
 use std::sync::Arc;
 
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 
-use banzami_types::{AccountId, Money, TransactionId};
+use banzami_types::{AccountId, MerchantId, Money, TransactionId};
 use banzami_wallets::{ReleaseRequest, ReserveRequest, SettleRequest, WalletEngine};
 
 use crate::{
@@ -51,6 +51,16 @@ pub trait TransactionEngine: Send + Sync {
     async fn fail(&self, req: FailRequest) -> Result<Transaction, TransactionError>;
 
     async fn get(&self, id: TransactionId) -> Result<Transaction, TransactionError>;
+
+    /// Keyset-paginated list for a merchant, newest first. Fetch `limit+1` to detect
+    /// whether more pages exist; truncate to `limit` before returning to callers.
+    async fn list(
+        &self,
+        merchant_id: MerchantId,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransactionId>,
+    ) -> Result<Vec<Transaction>, TransactionError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -208,6 +218,16 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
     async fn get(&self, id: TransactionId) -> Result<Transaction, TransactionError> {
         self.repo.get(id).await
     }
+
+    async fn list(
+        &self,
+        merchant_id: MerchantId,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransactionId>,
+    ) -> Result<Vec<Transaction>, TransactionError> {
+        self.repo.list_for_merchant(merchant_id, limit, before_ts, before_id).await
+    }
 }
 
 fn guard_transition(tx: &Transaction, to: TransactionStatus) -> Result<(), TransactionError> {
@@ -336,6 +356,22 @@ mod tests {
             tx.failure_reason = failure_reason.map(str::to_owned);
             tx.updated_at = Utc::now();
             Ok(tx.clone())
+        }
+
+        async fn list_for_merchant(
+            &self,
+            merchant_id: MerchantId,
+            limit: i64,
+            _before_ts: Option<DateTime<Utc>>,
+            _before_id: Option<TransactionId>,
+        ) -> Result<Vec<Transaction>, TransactionError> {
+            let rows = self.rows.lock().unwrap();
+            Ok(rows
+                .iter()
+                .filter(|tx| tx.merchant_id == merchant_id)
+                .take(limit as usize)
+                .cloned()
+                .collect())
         }
     }
 

@@ -43,6 +43,40 @@ func NewCoreApiTransactionService(client *CoreApiClient) *CoreApiTransactionServ
 	return &CoreApiTransactionService{client: client}
 }
 
+// coreTransactionResp mirrors the Rust Transaction JSON, where monetary values
+// are nested Money objects rather than flat fields.
+type coreTransactionResp struct {
+	ID              string        `json:"id"`
+	IdempotencyKey  string        `json:"idempotency_key"`
+	TransactionType string        `json:"transaction_type"`
+	Status          string        `json:"status"`
+	Amount          coreMoneyResp `json:"amount"`
+	Currency        string        `json:"currency"`
+	MerchantID      string        `json:"merchant_id"`
+	WalletID        string        `json:"wallet_id"`
+	Description     *string       `json:"description"`
+	FailureReason   *string       `json:"failure_reason"`
+	CreatedAt       time.Time     `json:"created_at"`
+	UpdatedAt       time.Time     `json:"updated_at"`
+}
+
+func (r *coreTransactionResp) toTransaction() *Transaction {
+	desc := ""
+	if r.Description != nil {
+		desc = *r.Description
+	}
+	return &Transaction{
+		ID:             r.ID,
+		Status:         r.Status,
+		AmountMinor:    r.Amount.AmountMinor,
+		Currency:       r.Amount.Currency,
+		MerchantID:     r.MerchantID,
+		IdempotencyKey: r.IdempotencyKey,
+		Description:    desc,
+		CreatedAt:      r.CreatedAt,
+	}
+}
+
 func (s *CoreApiTransactionService) Create(
 	ctx context.Context,
 	req CreateTransactionRequest,
@@ -57,11 +91,11 @@ func (s *CoreApiTransactionService) Create(
 		"description":      req.Description,
 	}
 
-	var tx Transaction
-	if err := s.client.post(ctx, "/internal/v1/transactions", body, &tx); err != nil {
+	var resp coreTransactionResp
+	if err := s.client.post(ctx, "/internal/v1/transactions", body, &resp); err != nil {
 		return nil, err
 	}
-	return &tx, nil
+	return resp.toTransaction(), nil
 }
 
 func (s *CoreApiTransactionService) Get(
@@ -69,22 +103,60 @@ func (s *CoreApiTransactionService) Get(
 	_ string, // merchantID validated in the handler
 	id string,
 ) (*Transaction, error) {
-	var tx Transaction
-	if err := s.client.get(ctx, "/internal/v1/transactions/"+id, &tx); err != nil {
+	var resp coreTransactionResp
+	if err := s.client.get(ctx, "/internal/v1/transactions/"+id, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrTransactionNotFound
 		}
 		return nil, err
 	}
-	return &tx, nil
+	return resp.toTransaction(), nil
 }
 
 func (s *CoreApiTransactionService) List(
 	ctx context.Context,
 	req ListTransactionsRequest,
 ) (*TransactionPage, error) {
-	// Transaction listing not yet exposed by core-api. Return empty page.
-	return &TransactionPage{Data: []*Transaction{}, HasMore: false}, nil
+	limit := req.Limit
+	if limit <= 0 {
+		limit = 20
+	}
+
+	path := fmt.Sprintf("/internal/v1/transactions?merchant_id=%s&limit=%d",
+		req.MerchantID, limit)
+
+	if req.Cursor != "" {
+		ts, id, err := decodeCursor(req.Cursor)
+		if err == nil {
+			path += fmt.Sprintf("&before_created_at=%s&before_id=%s",
+				ts.UTC().Format(time.RFC3339Nano), id)
+		}
+	}
+
+	var result struct {
+		Data    []*coreTransactionResp `json:"data"`
+		HasMore bool                   `json:"has_more"`
+	}
+	if err := s.client.get(ctx, path, &result); err != nil {
+		return nil, err
+	}
+
+	txs := make([]*Transaction, len(result.Data))
+	for i, r := range result.Data {
+		txs[i] = r.toTransaction()
+	}
+
+	var nextCursor string
+	if result.HasMore && len(txs) > 0 {
+		last := txs[len(txs)-1]
+		nextCursor = encodeCursor(last.CreatedAt, last.ID)
+	}
+
+	return &TransactionPage{
+		Data:       txs,
+		NextCursor: nextCursor,
+		HasMore:    result.HasMore,
+	}, nil
 }
 
 // ---------------------------------------------------------------------------

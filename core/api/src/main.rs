@@ -66,6 +66,7 @@ async fn main() {
 
         // Transactions
         .route("/internal/v1/transactions",                  post(routes::transactions::create))
+        .route("/internal/v1/transactions",                  get(routes::transactions::list))
         .route("/internal/v1/transactions/:id",              get(routes::transactions::get))
         .route("/internal/v1/transactions/:id/authorize",    post(routes::transactions::authorize))
         .route("/internal/v1/transactions/:id/capture",      post(routes::transactions::capture))
