@@ -21,6 +21,7 @@ export 'client/api_exception.dart';
 export 'models/consumer.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
+export 'models/payment_link.dart';
 export 'models/qr_code.dart';
 
 // Theme
@@ -41,3 +42,4 @@ export 'screens/home_screen.dart';
 export 'screens/send_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
+export 'screens/checkout_screen.dart';

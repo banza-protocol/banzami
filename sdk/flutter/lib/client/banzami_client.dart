@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
+import '../models/payment_link.dart';
 import '../models/qr_code.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
@@ -173,6 +174,38 @@ class BanzamiClient {
   Future<QrCode> markQrUsed(String id) async {
     final json = await _post('/v1/qr/$id/use', null);
     return QrCode.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment links — public endpoints (no auth required)
+  // ---------------------------------------------------------------------------
+
+  /// Fetch a payment link by its public slug.
+  /// Calls the unauthenticated /public/pay/{slug} endpoint.
+  Future<PaymentLink> getPaymentLinkBySlug(String slug) async {
+    late http.Response resp;
+    try {
+      resp = await _http.get(Uri.parse('$baseUrl/public/pay/$slug'));
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    return PaymentLink.fromJson(body);
+  }
+
+  /// Poll whether a payment link has been paid.
+  /// Returns true when the link status is USED.
+  Future<bool> getPaymentLinkStatus(String slug) async {
+    late http.Response resp;
+    try {
+      resp = await _http.get(Uri.parse('$baseUrl/public/pay/$slug/status'));
+    } catch (e) {
+      return false;
+    }
+    if (resp.statusCode >= 400) return false;
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    return body['paid'] as bool? ?? false;
   }
 
   // ---------------------------------------------------------------------------

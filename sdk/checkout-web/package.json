@@ -1,0 +1,29 @@
+{
+  "name": "@banzami/checkout",
+  "version": "0.1.0",
+  "description": "Embeddable Banzami payment checkout for any website",
+  "license": "UNLICENSED",
+  "main": "./dist/checkout.cjs.js",
+  "module": "./dist/checkout.esm.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/checkout.esm.js",
+      "require": "./dist/checkout.cjs.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json && node scripts/build-iife.js",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0",
+    "esbuild": "^0.21.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
