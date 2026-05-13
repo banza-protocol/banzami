@@ -39,11 +39,13 @@ type Transaction struct {
 
 // CreateTransactionRequest carries validated, enriched inputs for transaction creation.
 type CreateTransactionRequest struct {
-	IdempotencyKey string
-	AmountMinor    int64
-	Currency       string
-	Description    string
-	MerchantID     string // populated from the authenticated principal, not the request body
+	IdempotencyKey  string
+	TransactionType string // e.g. "payment"; defaults to "payment" if empty
+	AmountMinor     int64
+	Currency        string
+	Description     string
+	MerchantID      string // populated from the authenticated principal, not the request body
+	WalletID        string // optional; core derives from merchant context if empty
 }
 
 // ListTransactionsRequest parameterises a paginated transaction listing.

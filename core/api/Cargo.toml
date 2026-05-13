@@ -1,0 +1,34 @@
+[[bin]]
+name = "core-api"
+path = "src/main.rs"
+
+[package]
+name        = "banzami-core-api"
+description = "Internal HTTP service exposing the Rust financial core to the Go API gateway"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+authors.workspace    = true
+
+[dependencies]
+banzami-types        = { workspace = true }
+banzami-ledger       = { workspace = true }
+banzami-wallets      = { workspace = true }
+banzami-transactions = { workspace = true }
+banzami-merchants    = { workspace = true }
+banzami-settlement   = { workspace = true }
+banzami-routing      = { workspace = true }
+banzami-risk         = { workspace = true }
+serde                = { workspace = true }
+serde_json           = { workspace = true }
+uuid                 = { workspace = true }
+chrono               = { workspace = true }
+thiserror            = { workspace = true }
+tracing              = { workspace = true }
+tracing-subscriber   = { workspace = true }
+sqlx                 = { workspace = true }
+tokio                = { workspace = true }
+axum                 = { workspace = true }
+tower                = { workspace = true }
+tower-http           = { workspace = true }

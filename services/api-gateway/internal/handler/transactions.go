@@ -23,10 +23,12 @@ func NewTransactionHandler(svc service.TransactionService) *TransactionHandler {
 }
 
 type createTransactionBody struct {
-	IdempotencyKey string `json:"idempotency_key"`
-	AmountMinor    int64  `json:"amount_minor"`
-	Currency       string `json:"currency"`
-	Description    string `json:"description"`
+	IdempotencyKey  string `json:"idempotency_key"`
+	TransactionType string `json:"transaction_type"` // optional; defaults to "payment"
+	AmountMinor     int64  `json:"amount_minor"`
+	Currency        string `json:"currency"`
+	Description     string `json:"description"`
+	WalletID        string `json:"wallet_id"` // optional
 }
 
 // Create handles POST /v1/transactions.
@@ -63,12 +65,19 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	txType := body.TransactionType
+	if txType == "" {
+		txType = "payment"
+	}
+
 	tx, err := h.svc.Create(r.Context(), service.CreateTransactionRequest{
-		IdempotencyKey: body.IdempotencyKey,
-		AmountMinor:    body.AmountMinor,
-		Currency:       body.Currency,
-		Description:    body.Description,
-		MerchantID:     principal.MerchantID,
+		IdempotencyKey:  body.IdempotencyKey,
+		TransactionType: txType,
+		AmountMinor:     body.AmountMinor,
+		Currency:        body.Currency,
+		Description:     body.Description,
+		MerchantID:      principal.MerchantID,
+		WalletID:        body.WalletID,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",

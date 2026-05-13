@@ -11,6 +11,7 @@ members = [
     "risk",
     "compliance",
     "payouts",
+    "api",
 ]
 resolver = "2"
 
@@ -31,6 +32,9 @@ banzami-ledger       = { path = "ledger" }
 banzami-wallets      = { path = "wallets" }
 banzami-transactions = { path = "transactions" }
 banzami-merchants    = { path = "merchants" }
+banzami-settlement   = { path = "settlement" }
+banzami-routing      = { path = "routing" }
+banzami-risk         = { path = "risk" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }
@@ -58,7 +62,13 @@ sqlx = { version = "0.7", features = [
 ] }
 
 # Observability (CLAUDE.md §9)
-tracing = "0.1"
+tracing            = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Cryptography — API key hashing
 sha2 = "0.10"
+
+# HTTP server — internal core-api
+axum   = "0.7"
+tower  = "0.4"
+tower-http = { version = "0.5", features = ["trace", "cors"] }
