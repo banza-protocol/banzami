@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
@@ -46,10 +47,28 @@ func main() {
 	// Real core-api client — delegates all financial operations to the Rust core.
 	coreClient := service.NewCoreApiClient(cfg.CoreAPIURL)
 
+	// Webhook service: use PostgreSQL-backed implementation when DATABASE_URL is
+	// set; fall back to the in-memory stub for local dev without a full stack.
+	var webhookSvc service.WebhookService
+	if cfg.DatabaseURL != "" {
+		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
+		if err != nil {
+			slog.Error("webhook db connect error", "error", err)
+			os.Exit(1)
+		}
+		pgWebhook := service.NewPostgresWebhookService(dbPool)
+		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
+		webhookSvc = pgWebhook
+		slog.Info("webhook service: postgres backend")
+	} else {
+		webhookSvc = service.NewStubWebhookService()
+		slog.Warn("webhook service: in-memory stub (DATABASE_URL not set)")
+	}
+
 	deps := server.Dependencies{
 		Redis:          rdb,
 		TransactionSvc: service.NewCoreApiTransactionService(coreClient),
-		WebhookSvc:     service.NewStubWebhookService(), // webhook delivery deferred (needs DB worker)
+		WebhookSvc:     webhookSvc,
 		MerchantSvc:    service.NewCoreApiMerchantService(coreClient),
 		WalletSvc:      service.NewCoreApiWalletService(coreClient),
 		PayoutSvc:      service.NewCoreApiPayoutService(coreClient),
