@@ -1,0 +1,22 @@
+{
+    "name": "banzami/banzami-php",
+    "description": "Banzami payment integration library for PHP — payment links, webhooks, and signature verification",
+    "license": "UNLICENSED",
+    "type": "library",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "Banzami\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Banzami\\Tests\\": "tests/"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10"
+    }
+}
