@@ -17,3 +17,7 @@ thiserror      = { workspace = true }
 tracing        = { workspace = true }
 sqlx           = { workspace = true }
 tokio          = { workspace = true }
+
+[dev-dependencies]
+sqlx  = { workspace = true }
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }

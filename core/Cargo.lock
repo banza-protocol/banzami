@@ -284,6 +284,7 @@ version = "0.1.0"
 dependencies = [
  "banzami-ledger",
  "banzami-types",
+ "banzami-wallets",
  "chrono",
  "serde",
  "sqlx",
