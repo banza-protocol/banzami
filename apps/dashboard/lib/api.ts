@@ -172,10 +172,25 @@ export class BanzamiApi {
     return this.req<PayoutPage>(`/payouts?${p}`);
   }
 
-  createPayout(walletId: string, amountMinor: number, currency = 'AOA'): Promise<Payout> {
+  createPayout(opts: {
+    walletId:          string;
+    amountMinor:       number;
+    currency?:         string;
+    bankAccountNumber: string;
+    bankCode:          string;
+    accountHolderName: string;
+  }): Promise<Payout> {
     return this.req<Payout>('/payouts', {
       method: 'POST',
-      body:   JSON.stringify({ wallet_id: walletId, amount_minor: amountMinor, currency }),
+      body:   JSON.stringify({
+        idempotency_key:     crypto.randomUUID(),
+        wallet_id:           opts.walletId,
+        amount_minor:        opts.amountMinor,
+        currency:            opts.currency ?? 'AOA',
+        bank_account_number: opts.bankAccountNumber,
+        bank_code:           opts.bankCode,
+        account_holder_name: opts.accountHolderName,
+      }),
     });
   }
 
