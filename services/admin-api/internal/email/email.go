@@ -49,14 +49,14 @@ func (s *Sender) Enabled() bool {
 
 // MerchantWelcome sends the welcome email with credentials to a new merchant.
 // It is intentionally non-blocking — call it in a goroutine.
-func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey, walletID, currency string) {
+func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
 	if !s.Enabled() {
 		slog.Warn("email not configured — skipping merchant welcome email",
 			"merchant_id", merchantID, "to", to)
 		return
 	}
 
-	body, err := renderMerchantWelcome(merchantName, merchantID, apiKey, walletID, currency)
+	body, err := renderMerchantWelcome(merchantName, merchantID, apiKey)
 	if err != nil {
 		slog.Error("failed to render merchant welcome email", "error", err)
 		return
@@ -136,11 +136,11 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
     .header p  { margin:8px 0 0; color:rgba(255,255,255,.75); font-size:14px; }
     .body { padding:36px 40px; }
     .body p { color:#374151; font-size:15px; line-height:1.6; margin:0 0 20px; }
-    .cred { background:#f9fafb; border:1px solid #e5e7eb; border-radius:12px; padding:20px 24px; margin:24px 0; }
-    .cred-row { display:flex; flex-direction:column; margin-bottom:16px; }
+    .cred { margin:24px 0; }
+    .cred-row { margin-bottom:12px; }
     .cred-row:last-child { margin-bottom:0; }
-    .cred-label { font-size:11px; font-weight:600; color:#9ca3af; text-transform:uppercase; letter-spacing:.05em; margin-bottom:4px; }
-    .cred-value { font-family: 'Courier New', monospace; font-size:13px; color:#111827; word-break:break-all; }
+    .cred-label { font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+    .cred-value { display:block; background:#f3f4f6; border:1px solid #e5e7eb; border-radius:8px; padding:12px 16px; font-family:'Courier New',monospace; font-size:13px; color:#111827; word-break:break-all; cursor:text; }
     .warning { background:#fff7ed; border:1px solid #fed7aa; border-radius:10px; padding:14px 18px; margin:20px 0; }
     .warning p { color:#92400e; font-size:13px; margin:0; }
     .footer { padding:24px 40px; border-top:1px solid #f3f4f6; }
@@ -159,20 +159,12 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
 
       <div class="cred">
         <div class="cred-row">
-          <span class="cred-label">Merchant ID</span>
+          <div class="cred-label">Merchant ID</div>
           <span class="cred-value">{{.MerchantID}}</span>
         </div>
         <div class="cred-row">
-          <span class="cred-label">API Key</span>
+          <div class="cred-label">API Key</div>
           <span class="cred-value">{{.APIKey}}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Wallet ID</span>
-          <span class="cred-value">{{.WalletID}}</span>
-        </div>
-        <div class="cred-row">
-          <span class="cred-label">Moeda</span>
-          <span class="cred-value">{{.Currency}}</span>
         </div>
       </div>
 
@@ -194,18 +186,14 @@ type welcomeData struct {
 	MerchantName string
 	MerchantID   string
 	APIKey       string
-	WalletID     string
-	Currency     string
 }
 
-func renderMerchantWelcome(name, merchantID, apiKey, walletID, currency string) (string, error) {
+func renderMerchantWelcome(name, merchantID, apiKey string) (string, error) {
 	var buf bytes.Buffer
 	if err := welcomeTmpl.Execute(&buf, welcomeData{
 		MerchantName: name,
 		MerchantID:   merchantID,
 		APIKey:       apiKey,
-		WalletID:     walletID,
-		Currency:     currency,
 	}); err != nil {
 		return "", err
 	}

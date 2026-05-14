@@ -67,8 +67,7 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// delays or blocks the HTTP response.
 	go func() {
 		rawKey, _ := apiKey["secret"].(string)
-		walletID, _ := wallet["id"].(string)
-		h.email.MerchantWelcome(body.Email, body.Name, merchantID, rawKey, walletID, currency)
+		h.email.MerchantWelcome(body.Email, body.Name, merchantID, rawKey)
 	}()
 
 	writeJSON(w, http.StatusCreated, map[string]any{
@@ -102,13 +101,12 @@ func (h *MerchantSetupHandler) ResendCredentials(w http.ResponseWriter, r *http.
 		wallet = map[string]any{}
 	}
 
-	name, _     := merchant["name"].(string)
-	email, _    := merchant["email"].(string)
-	rawKey, _   := apiKey["secret"].(string)
-	walletID, _ := wallet["id"].(string)
+	name, _   := merchant["name"].(string)
+	email, _  := merchant["email"].(string)
+	rawKey, _ := apiKey["secret"].(string)
 
 	go func() {
-		h.email.MerchantWelcome(email, name, id, rawKey, walletID, currency)
+		h.email.MerchantWelcome(email, name, id, rawKey)
 	}()
 
 	writeJSON(w, http.StatusOK, map[string]any{
