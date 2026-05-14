@@ -120,6 +120,8 @@ tmux kill-session -t "$SESSION" 2>/dev/null || true
 sleep 0.5
 
 # ── Window 0: split layout ──────────────────────────────────────────────────
+# Load project tmux config (enables mouse, scrollback, styling).
+TMUX_CONF="$REPO_ROOT/.tmux.conf"
 # Left column  : status pane (full height)
 # Right column : 4 backend service panes stacked vertically
 #
@@ -133,7 +135,7 @@ sleep 0.5
 #  │              │    public-api    │
 #  └──────────────┴──────────────────┘
 
-tmux new-session -d -s "$SESSION" -n "banzami"
+tmux -f "$TMUX_CONF" new-session -d -s "$SESSION" -n "banzami"
 
 # Capture the status pane ID (left column, full height)
 STATUS=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
