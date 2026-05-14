@@ -77,6 +77,7 @@ func main() {
 		TransferSvc:       service.NewCoreApiTransferService(coreClient),
 		QrSvc:             service.NewCoreApiQrService(coreClient),
 		PaymentLinkSvc:    service.NewCoreApiPaymentLinkService(coreClient),
+		AcquiringSvc:      service.NewCoreApiAcquiringService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)

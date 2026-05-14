@@ -171,6 +171,11 @@ async fn main() {
         .route("/internal/v1/payment-links/:id/cancel",      post(routes::payment_links::cancel))
         .route("/internal/v1/payment-links/:id/mark-used",   post(routes::payment_links::mark_used))
 
+        // Acquiring — payment initiation, callbacks, and simulation helper
+        .route("/internal/v1/acquiring/payments",            post(routes::acquiring::initiate_payment))
+        .route("/internal/v1/acquiring/callbacks/emis",      post(routes::acquiring::emis_callback))
+        .route("/internal/v1/acquiring/test/confirm",        post(routes::acquiring::test_confirm))
+
         .with_state(state)
         .layer(TraceLayer::new_for_http());
 

@@ -30,6 +30,7 @@ type Dependencies struct {
 	TransferSvc         service.TransferService
 	QrSvc               service.QrService
 	PaymentLinkSvc      service.PaymentLinkService
+	AcquiringSvc        service.AcquiringService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -70,6 +71,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	transferHandler      := handler.NewTransferHandler(deps.TransferSvc)
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
 	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
+	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -159,11 +161,17 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		})
 	})
 
+	// Acquiring callbacks — no auth (EMIS calls us with HMAC-signed bodies).
+	// The Rust core validates the HMAC before processing.
+	r.Post("/v1/callbacks/emis", acquiringHandler.EmisCallback)
+
 	// Public endpoints — no auth, no rate limiting.
 	// Consumed by the apps/pay Next.js app.
 	r.Route("/public/pay", func(r chi.Router) {
 		r.Get("/{slug}", paymentLinkHandler.GetPublic)
 		r.Get("/{slug}/status", paymentLinkHandler.Status)
+		r.Post("/{slug}/pay", acquiringHandler.InitiatePay)
+		r.Post("/{slug}/test-confirm", acquiringHandler.TestConfirm) // dev only
 	})
 
 	// Wrap the entire chi router with otelhttp. This creates one trace span per

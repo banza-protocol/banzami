@@ -22,6 +22,10 @@ use banzami_consumer_wallets::{
 use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository};
 use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
+use banzami_acquiring::{
+    AcquirerKind, EMISProvider, PostgresAcquiringEngine, PostgresAcquiringRepository,
+    SimulatedProvider,
+};
 
 // ---------------------------------------------------------------------------
 // Concrete engine types wired to PostgreSQL
@@ -40,6 +44,7 @@ pub type ConsumerWalletEng = PostgresConsumerWalletEngine<LedgerRepo, PostgresCo
 pub type TransferEng      = PostgresTransferEngine<PostgresTransferRepository>;
 pub type QrEng            = PostgresQrEngine<PostgresQrRepository>;
 pub type PaymentLinksEng  = PostgresPaymentLinkEngine<PostgresPaymentLinkRepository>;
+pub type AcquiringEng     = PostgresAcquiringEngine;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -65,6 +70,7 @@ pub struct AppState {
     pub transfer:        Arc<TransferEng>,
     pub qr:              Arc<QrEng>,
     pub payment_links:   Arc<PaymentLinksEng>,
+    pub acquiring:       Arc<AcquiringEng>,
 }
 
 impl AppState {
@@ -162,6 +168,22 @@ impl AppState {
         let pl_repo     = PostgresPaymentLinkRepository::new(pool.clone());
         let payment_links = Arc::new(PostgresPaymentLinkEngine::new(pl_repo));
 
+        // --- Acquiring engine ---
+        // Selects provider based on ACQUIRING_PROVIDER env var (default: SIMULATED).
+        // For production, set ACQUIRING_PROVIDER=EMIS and the EMIS_* env vars.
+        let webhook_secret = std::env::var("ACQUIRING_WEBHOOK_SECRET")
+            .unwrap_or_else(|_| "change-in-production".into())
+            .into_bytes();
+        let provider = match std::env::var("ACQUIRING_PROVIDER").as_deref() {
+            Ok("EMIS") => AcquirerKind::Emis(
+                EMISProvider::from_env()
+                    .expect("ACQUIRING_PROVIDER=EMIS but EMIS_* env vars are missing"),
+            ),
+            _ => AcquirerKind::Simulated(SimulatedProvider::new(webhook_secret)),
+        };
+        let acquiring_repo = PostgresAcquiringRepository::new(pool.clone());
+        let acquiring = Arc::new(PostgresAcquiringEngine::new(provider, acquiring_repo));
+
         Self {
             pool,
             wallet,
@@ -178,6 +200,7 @@ impl AppState {
             transfer,
             qr,
             payment_links,
+            acquiring,
         }
     }
 }

@@ -74,5 +74,6 @@ typed_id!(ReconciliationRunId);
 typed_id!(ConsumerId);         // Consumer identity (end-user)
 typed_id!(ConsumerWalletId);   // Consumer wallet (distinct from merchant WalletId)
 typed_id!(TransferId);         // Instant P2P wallet transfer
-typed_id!(QrCodeId);           // Static or dynamic QR code
-typed_id!(PaymentLinkId);      // Shareable payment link
+typed_id!(QrCodeId);             // Static or dynamic QR code
+typed_id!(PaymentLinkId);        // Shareable payment link
+typed_id!(AcquiringPaymentId);   // External payment via acquirer (EMIS, bank, etc.)

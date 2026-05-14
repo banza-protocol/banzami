@@ -1,0 +1,22 @@
+[package]
+name        = "banzami-acquiring"
+description = "Acquiring layer — bridges Banzami payment primitives to external providers (EMIS, banks)"
+version.workspace    = true
+edition.workspace    = true
+license.workspace    = true
+repository.workspace = true
+authors.workspace    = true
+
+[dependencies]
+banzami-types  = { workspace = true }
+serde          = { workspace = true }
+serde_json     = { workspace = true }
+uuid           = { workspace = true }
+chrono         = { workspace = true }
+thiserror      = { workspace = true }
+tokio          = { workspace = true }
+sqlx           = { workspace = true }
+tracing        = { workspace = true }
+hmac           = { workspace = true }
+sha2           = { workspace = true }
+hex            = "0.4"

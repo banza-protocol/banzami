@@ -54,6 +54,7 @@ export default async function PayPage({ params }: Props) {
     <PayClient
       slug={link.slug}
       amountDisplay={amountDisplay}
+      amountMinor={link.amount_minor}
       currency={link.currency}
       description={link.description}
       deepLink={deepLink}

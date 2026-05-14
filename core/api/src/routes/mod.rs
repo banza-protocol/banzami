@@ -1,3 +1,4 @@
+pub mod acquiring;
 pub mod compliance;
 pub mod consumer_wallets;
 pub mod consumers;

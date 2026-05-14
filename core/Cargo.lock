@@ -150,6 +150,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "banzami-acquiring"
+version = "0.1.0"
+dependencies = [
+ "banzami-types",
+ "chrono",
+ "hex",
+ "hmac",
+ "serde",
+ "serde_json",
+ "sha2",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "banzami-compliance"
 version = "0.1.0"
 dependencies = [
@@ -184,6 +202,7 @@ name = "banzami-core-api"
 version = "0.1.0"
 dependencies = [
  "axum",
+ "banzami-acquiring",
  "banzami-compliance",
  "banzami-consumer-wallets",
  "banzami-identity",
