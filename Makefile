@@ -6,15 +6,20 @@
 #   sqlx-cli      cargo install sqlx-cli --no-default-features --features postgres
 #   Go 1.22+      https://go.dev/dl/
 #   Rust stable   https://rustup.rs/
+#   tmux          brew install tmux  |  sudo apt install tmux
 #
-# Quick start (local processes, DB in Docker):
+# Quick start — full stack in one command (requires tmux):
 #   cp .env.example .env    # fill in JWT_SECRET, ADMIN_API_KEY, account IDs
+#   ./dev.sh                # launches infra + all services + all apps in tmux
+#   ./dev.sh stop           # kills everything
+#
+# Manual (individual terminals, no tmux):
 #   make dev-up             # start PostgreSQL + Redis
 #   make db-migrate         # apply all migrations
-#   make core-run           # terminal 1 — Rust core-api
-#   make gateway-run        # terminal 2 — Go api-gateway
-#   make admin-api-run      # terminal 3 — Go admin-api
-#   make public-api-run     # terminal 4 — Go public-api (consumer-facing)
+#   make core-run           # Rust core-api (:8081)
+#   make gateway-run        # Go api-gateway (:8080)
+#   make admin-api-run      # Go admin-api (:8082)
+#   make public-api-run     # Go public-api (:8083)
 #
 # Full containerised stack:
 #   make sqlx-prepare       # generate .sqlx/ cache (once, then commit)
@@ -40,7 +45,11 @@ PUBLIC_API_DIR = services/public-api
 .PHONY: help
 help:
 	@printf "\nBanzami — local development\n\n"
-	@printf "  \033[1mInfrastructure (DB + Redis only)\033[0m\n"
+	@printf "  \033[1mFull stack (tmux required)\033[0m\n"
+	@printf "    ./dev.sh             Launch everything in a tmux session\n"
+	@printf "    ./dev.sh stop        Kill all services and the tmux session\n"
+	@printf "    tmux attach -t banzami  Re-attach to a running session\n"
+	@printf "\n  \033[1mInfrastructure (DB + Redis only)\033[0m\n"
 	@printf "    make dev-up          Start PostgreSQL and Redis (detached)\n"
 	@printf "    make dev-down        Stop infrastructure\n"
 	@printf "    make dev-reset       Destroy volumes and restart (fresh state)\n"
@@ -83,7 +92,11 @@ help:
 	@printf "\n"
 
 # ─── Prereq guards ────────────────────────────────────────────────────────────
-.PHONY: _require-database-url _require-sqlx
+.PHONY: _require-database-url _require-sqlx _require-tmux
+
+_require-tmux:
+	@command -v tmux > /dev/null 2>&1 \
+	  || (printf "\n  tmux not found. Install:\n\n    macOS:  brew install tmux\n    Debian: sudo apt install tmux\n\n"; exit 1)
 
 _require-database-url:
 	@test -n "$(DATABASE_URL)" \

@@ -1050,10 +1050,12 @@ make stack-up
 
 - Rust (stable, 1.75+) — `rustup update stable`
 - Go 1.22+ — `go version`
+- Node 20+ + npm — `node --version`
 - Docker + Docker Compose
 - `sqlx-cli` — `cargo install sqlx-cli --features postgres`
+- **tmux** — `brew install tmux` (macOS) / `sudo apt install tmux` (Debian/Ubuntu)
 
-### Quick Start (full containerised stack)
+### Quick Start
 
 ```bash
 cp .env.example .env
@@ -1061,56 +1063,60 @@ cp .env.example .env
 # Generate secrets: openssl rand -hex 32
 # Generate UUIDs:   uuidgen | tr '[:upper:]' '[:lower:]'
 
-make sqlx-prepare   # generate .sqlx/ offline cache (once, then commit)
-make stack-build    # build all Docker images
-make stack-up       # start everything (applies migrations automatically)
+./dev.sh
 ```
 
-Services started by `make stack-up`:
+`dev.sh` handles everything in one step: starts PostgreSQL and Redis, applies migrations, installs npm dependencies if missing, then opens a tmux session with one window per service:
 
-| Service      | URL                        |
-|--------------|----------------------------|
-| api-gateway  | http://localhost:8080      |
-| admin-api    | http://localhost:8082      |
-| public-api   | http://localhost:8083      |
-| core-api     | http://localhost:8081      |
-| Prometheus   | http://localhost:9090      |
-| Grafana      | http://localhost:3000 (admin / banzami_dev) |
+| tmux window  | What runs                        | URL                        |
+|--------------|----------------------------------|----------------------------|
+| `core-api`   | Rust financial core              | http://localhost:8081      |
+| `api-gateway`| Go merchant API                  | http://localhost:8080      |
+| `admin-api`  | Go admin API                     | http://localhost:8082      |
+| `public-api` | Go consumer API                  | http://localhost:8083      |
+| `dashboard`  | Next.js merchant dashboard       | http://localhost:3001      |
+| `admin-app`  | Next.js admin panel              | http://localhost:3002      |
+| `pay`        | Next.js consumer pay page        | http://localhost:3003      |
 
-### Manual Development Setup (local processes)
+**tmux navigation:**
+
+| Keys          | Action                    |
+|---------------|---------------------------|
+| `Ctrl-b n`    | Next window               |
+| `Ctrl-b p`    | Previous window           |
+| `Ctrl-b w`    | Window list (interactive) |
+| `Ctrl-b d`    | Detach (session keeps running) |
+| `tmux attach -t banzami` | Re-attach |
+| `./dev.sh stop` | Kill everything         |
+
+### Manual Setup (without tmux)
 
 ```bash
 # Terminal 0 — infrastructure
 make dev-up        # PostgreSQL :5433, Redis :6379
 make db-migrate    # apply all 15 migrations
 
-# Terminal 1 — Rust financial core
+# Terminal 1 — Rust financial core (start first)
 make core-run      # :8081
 
-# Terminal 2 — merchant API gateway
-make gateway-run   # :8080
-
-# Terminal 3 — internal admin API
-make admin-api-run # :8082
-
-# Terminal 4 — consumer-facing API
+# Terminal 2-4 — Go services (after core-api is healthy)
+make gateway-run    # :8080
+make admin-api-run  # :8082
 make public-api-run # :8083
+
+# Terminal 5-7 — Next.js apps
+cd apps/dashboard && npm run dev   # :3001
+cd apps/admin     && npm run dev   # :3002
+cd apps/pay       && npm run dev   # :3003
 ```
 
-### Frontend Apps (Next.js)
-
-Each app runs independently. Install dependencies once per app.
+### Full Docker Stack (optional, for staging-like environment)
 
 ```bash
-# Merchant dashboard
-cd apps/dashboard && npm install && npm run dev   # http://localhost:3001
-
-# Admin panel
-cd apps/admin && npm install && npm run dev        # http://localhost:3002
-
-# Consumer pay page (payment links)
-cd apps/pay && npm install && npm run dev          # http://localhost:3003
-# Navigate to: http://localhost:3003/{slug}
+make sqlx-prepare   # generate .sqlx/ offline cache (once, then commit)
+make stack-build    # build all Docker images
+make stack-up       # start everything (applies migrations automatically)
+# Also starts Prometheus (:9090) and Grafana (:3000, admin/banzami_dev)
 ```
 
 ### Run Tests
