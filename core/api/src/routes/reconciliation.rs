@@ -16,12 +16,12 @@ use crate::{
 // Trigger a reconciliation run
 // ---------------------------------------------------------------------------
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct RunBody {
-    pub merchant_id:    String,
-    pub period_start:   chrono::DateTime<chrono::Utc>,
-    pub period_end:     chrono::DateTime<chrono::Utc>,
-    pub external_lines: Vec<ExternalStatementLineBody>,
+    pub merchant_id:    Option<String>,
+    pub period_start:   Option<chrono::DateTime<chrono::Utc>>,
+    pub period_end:     Option<chrono::DateTime<chrono::Utc>>,
+    pub external_lines: Option<Vec<ExternalStatementLineBody>>,
 }
 
 #[derive(Deserialize)]
@@ -36,10 +36,8 @@ pub async fn run(
     State(state): State<AppState>,
     Json(body): Json<RunBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = body.merchant_id.parse()
-        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
-
     let external_lines: Vec<ExternalStatementLine> = body.external_lines
+        .unwrap_or_default()
         .into_iter()
         .map(|l| ExternalStatementLine {
             reference:    l.reference,
@@ -49,21 +47,30 @@ pub async fn run(
         })
         .collect();
 
-    // Fetch internal settlements for this merchant, filter by period.
-    let all_settlements = state.settlement
-        .list_for_merchant(merchant_id)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    let settlement_views: Vec<SettlementView> = if let Some(mid) = body.merchant_id {
+        let merchant_id: MerchantId = mid.parse()
+            .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
-    let settlement_views: Vec<SettlementView> = all_settlements
-        .into_iter()
-        .filter(|s| s.period_start >= body.period_start && s.period_end <= body.period_end)
-        .map(|s| SettlementView {
-            settlement_id:    s.id,
-            net_amount_minor: s.net_amount.amount_minor(),
-            currency:         s.currency,
-        })
-        .collect();
+        let all_settlements = state.settlement
+            .list_for_merchant(merchant_id)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+
+        let period_start = body.period_start.unwrap_or(chrono::DateTime::<chrono::Utc>::MIN_UTC);
+        let period_end   = body.period_end.unwrap_or(chrono::Utc::now());
+
+        all_settlements
+            .into_iter()
+            .filter(|s| s.period_start >= period_start && s.period_end <= period_end)
+            .map(|s| SettlementView {
+                settlement_id:    s.id,
+                net_amount_minor: s.net_amount.amount_minor(),
+                currency:         s.currency,
+            })
+            .collect()
+    } else {
+        vec![]
+    };
 
     let report = state.reconciliation
         .run(external_lines, settlement_views)
