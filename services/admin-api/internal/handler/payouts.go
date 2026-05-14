@@ -44,6 +44,17 @@ func (h *PayoutHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// ListAll handles GET /admin/v1/payouts/all?status={optional}.
+func (h *PayoutHandler) ListAll(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	result, err := h.core.ListAllPayouts(r.Context(), status)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // Process handles POST /admin/v1/payouts/{id}/process.
 // Transitions payout from Pending to Processing and posts the ledger entry.
 func (h *PayoutHandler) Process(w http.ResponseWriter, r *http.Request) {

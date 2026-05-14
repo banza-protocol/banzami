@@ -119,6 +119,7 @@ async fn main() {
         // Payouts
         .route("/internal/v1/payouts",                  post(routes::payouts::initiate))
         .route("/internal/v1/payouts",                  get(routes::payouts::list_for_merchant))
+        .route("/internal/v1/payouts/all",              get(routes::payouts::list_all))
         .route("/internal/v1/payouts/:id",              get(routes::payouts::get))
         .route("/internal/v1/payouts/:id/process",      post(routes::payouts::process))
         .route("/internal/v1/payouts/:id/sent",         post(routes::payouts::mark_sent))

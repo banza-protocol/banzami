@@ -41,6 +41,11 @@ pub trait PayoutEngine: Send + Sync {
         merchant_id: MerchantId,
         limit: i64,
     ) -> Result<Vec<Payout>, PayoutError>;
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<String>,
+    ) -> Result<Vec<Payout>, PayoutError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -264,6 +269,14 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PayoutEngine
         limit: i64,
     ) -> Result<Vec<Payout>, PayoutError> {
         self.repo.list_for_merchant(merchant_id, limit).await
+    }
+
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<String>,
+    ) -> Result<Vec<Payout>, PayoutError> {
+        self.repo.list_all(limit, status.as_deref()).await
     }
 }
 

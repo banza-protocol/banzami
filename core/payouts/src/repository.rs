@@ -20,6 +20,11 @@ pub trait PayoutRepository: Send + Sync {
         merchant_id: MerchantId,
         limit: i64,
     ) -> Result<Vec<Payout>, PayoutError>;
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<&str>,
+    ) -> Result<Vec<Payout>, PayoutError>;
     async fn update_status(
         &self,
         id: PayoutId,
@@ -169,6 +174,32 @@ impl PayoutRepository for PostgresPayoutRepository {
         )
         .fetch_all(&self.pool)
         .await?;
+        rows.into_iter().map(row_to_payout).collect()
+    }
+
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<&str>,
+    ) -> Result<Vec<Payout>, PayoutError> {
+        let rows = if let Some(s) = status {
+            sqlx::query_as!(
+                PayoutRow,
+                "SELECT * FROM payouts WHERE status = $1 ORDER BY created_at DESC LIMIT $2",
+                s,
+                limit
+            )
+            .fetch_all(&self.pool)
+            .await?
+        } else {
+            sqlx::query_as!(
+                PayoutRow,
+                "SELECT * FROM payouts ORDER BY created_at DESC LIMIT $1",
+                limit
+            )
+            .fetch_all(&self.pool)
+            .await?
+        };
         rows.into_iter().map(row_to_payout).collect()
     }
 

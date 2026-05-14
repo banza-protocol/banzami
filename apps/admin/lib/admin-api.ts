@@ -156,6 +156,10 @@ export class AdminApi {
   }
 
   // Payouts
+  listAllPayouts(status?: string):              Promise<PayoutList> {
+    const qs = status ? `?status=${status}` : '';
+    return this.req(`/admin/v1/payouts/all${qs}`);
+  }
   listPayouts(merchantId: string):              Promise<PayoutList> {
     return this.req(`/admin/v1/payouts?merchant_id=${merchantId}`);
   }

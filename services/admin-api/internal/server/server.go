@@ -73,6 +73,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 
 		// Payouts
 		r.Get("/admin/v1/payouts", payoutH.List)
+		r.Get("/admin/v1/payouts/all", payoutH.ListAll)
 		r.Get("/admin/v1/payouts/{id}", payoutH.Get)
 		r.Post("/admin/v1/payouts/{id}/process", payoutH.Process)
 		r.Post("/admin/v1/payouts/{id}/sent", payoutH.MarkSent)

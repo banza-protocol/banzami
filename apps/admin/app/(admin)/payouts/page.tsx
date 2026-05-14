@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search } from 'lucide-react';
+import { useCallback, useEffect, useState } from 'react';
+import { Search, RefreshCw } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Payout } from '@/lib/admin-api';
 import { formatMinor } from '@/lib/money';
@@ -21,29 +21,36 @@ const ACTION_LABELS: Record<ActionType, string> = {
   returned: 'Devolvido',
 };
 
+const STATUS_OPTIONS = ['', 'PENDING', 'PROCESSING', 'SENT', 'CONFIRMED', 'FAILED', 'RETURNED'];
+
 export default function PayoutsPage() {
-  const [merchantId, setMerchantId] = useState('');
   const [payouts, setPayouts]       = useState<Payout[]>([]);
-  const [loading, setLoading]       = useState(false);
+  const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState('');
+  const [merchantId, setMerchantId] = useState('');
+  const [status, setStatus]         = useState('PENDING');
   const [action, setAction]         = useState<Action | null>(null);
 
-  async function lookup() {
-    const id = merchantId.trim();
-    if (!id) return;
+  const load = useCallback(async (mid: string, st: string) => {
     const session = getSession();
     if (!session) return;
     setLoading(true); setError('');
     try {
-      const api  = new AdminApi(session.apiUrl, session.adminKey);
-      const page = await api.listPayouts(id);
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const page = mid.trim()
+        ? await api.listPayouts(mid.trim())
+        : await api.listAllPayouts(st || undefined);
       setPayouts(page.data);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
+
+  useEffect(() => { load(merchantId, status); }, []);
+
+  function search() { load(merchantId, status); }
 
   function updateRow(updated: Payout) {
     setPayouts(prev => prev.map(p => p.id === updated.id ? updated : p));
@@ -69,20 +76,48 @@ export default function PayoutsPage() {
   const isDanger   = action?.type === 'fail' || action?.type === 'returned';
 
   return (
-    <div className="max-w-4xl mx-auto flex flex-col gap-xl">
-      <div className="flex gap-md">
-        <input value={merchantId} onChange={e => setMerchantId(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && lookup()}
-          className="flex-1 h-10 bg-white border border-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-gray-900/20"
-          placeholder="ID do comerciante" />
-        <button onClick={lookup} disabled={loading}
-          className="h-10 px-lg bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 disabled:opacity-60 transition-colors flex items-center gap-sm">
-          <Search size={15} /> Pesquisar
+    <div className="max-w-5xl mx-auto flex flex-col gap-xl">
+      {/* Filters */}
+      <div className="flex gap-md flex-wrap items-center">
+        <input
+          value={merchantId}
+          onChange={e => setMerchantId(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && search()}
+          placeholder="ID do comerciante (opcional)"
+          className="flex-1 min-w-[220px] h-9 bg-white border border-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-gray-900/20"
+        />
+        <select
+          value={status}
+          onChange={e => setStatus(e.target.value)}
+          className="h-9 bg-white border border-gray-100 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-gray-900/20"
+        >
+          {STATUS_OPTIONS.map(s => (
+            <option key={s} value={s}>{s || 'Todos'}</option>
+          ))}
+        </select>
+        <button
+          onClick={search}
+          disabled={loading}
+          className="h-9 px-lg bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 disabled:opacity-60 transition-colors flex items-center gap-sm"
+        >
+          <Search size={14} /> Pesquisar
+        </button>
+        <button
+          onClick={() => load(merchantId, status)}
+          disabled={loading}
+          title="Actualizar"
+          className="h-9 w-9 flex items-center justify-center bg-white border border-gray-100 rounded-md text-gray-500 hover:bg-gray-50 disabled:opacity-60 transition-colors"
+        >
+          <RefreshCw size={14} />
         </button>
       </div>
 
       {loading && <div className="flex justify-center py-xl"><Spinner className="h-6 w-6" /></div>}
       {error   && <p className="text-sm text-error bg-error-bg rounded-lg px-xl py-lg">{error}</p>}
+
+      {!loading && payouts.length === 0 && (
+        <EmptyState message="Nenhum pagamento encontrado" />
+      )}
 
       {payouts.length > 0 && (
         <div className="bg-white rounded-lg shadow-card overflow-hidden">
@@ -91,6 +126,7 @@ export default function PayoutsPage() {
               <thead>
                 <tr className="bg-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wide">
                   <th className="px-xl py-md">ID</th>
+                  <th className="px-xl py-md">Comerciante</th>
                   <th className="px-xl py-md">Montante</th>
                   <th className="px-xl py-md">Estado</th>
                   <th className="px-xl py-md">Data</th>
@@ -101,6 +137,7 @@ export default function PayoutsPage() {
                 {payouts.map(p => (
                   <tr key={p.id} className="hover:bg-gray-100/50">
                     <td className="px-xl py-md font-mono text-xs text-gray-400">{p.id.slice(-12)}</td>
+                    <td className="px-xl py-md font-mono text-xs text-gray-400">{p.merchant_id.slice(-8)}</td>
                     <td className="px-xl py-md font-semibold font-mono tabular-nums whitespace-nowrap">
                       {formatMinor(p.amount_minor, p.currency)}
                     </td>
@@ -110,10 +147,10 @@ export default function PayoutsPage() {
                     </td>
                     <td className="px-xl py-md">
                       <div className="flex gap-xs flex-wrap">
-                        {p.status === 'PENDING'    && <ActionBtn label="Processar"  onClick={() => setAction({ type: 'process',  payoutId: p.id })} />}
-                        {p.status === 'PROCESSING' && <ActionBtn label="Enviado"    onClick={() => setAction({ type: 'sent',     payoutId: p.id })} />}
-                        {p.status === 'SENT'       && <ActionBtn label="Confirmar"  onClick={() => setAction({ type: 'confirm',  payoutId: p.id })} success />}
-                        {p.status === 'SENT'       && <ActionBtn label="Devolvido"  onClick={() => setAction({ type: 'returned', payoutId: p.id })} danger />}
+                        {p.status === 'PENDING'    && <ActionBtn label="Processar" onClick={() => setAction({ type: 'process',  payoutId: p.id })} />}
+                        {p.status === 'PROCESSING' && <ActionBtn label="Enviado"   onClick={() => setAction({ type: 'sent',     payoutId: p.id })} />}
+                        {p.status === 'SENT'       && <ActionBtn label="Confirmar" onClick={() => setAction({ type: 'confirm',  payoutId: p.id })} success />}
+                        {p.status === 'SENT'       && <ActionBtn label="Devolvido" onClick={() => setAction({ type: 'returned', payoutId: p.id })} danger />}
                         {(p.status === 'PENDING' || p.status === 'PROCESSING') && (
                           <ActionBtn label="Falhou" onClick={() => setAction({ type: 'fail', payoutId: p.id })} danger />
                         )}
@@ -127,14 +164,10 @@ export default function PayoutsPage() {
         </div>
       )}
 
-      {!loading && payouts.length === 0 && merchantId && (
-        <EmptyState message="Nenhum pagamento encontrado" />
-      )}
-
       {action && (
         <ConfirmDialog
           title={ACTION_LABELS[action.type]}
-          description={`Esta acção irá actualizar o estado do pagamento.`}
+          description="Esta acção irá actualizar o estado do pagamento."
           confirmLabel={ACTION_LABELS[action.type]}
           danger={isDanger}
           withNotes={needsNotes}
@@ -146,7 +179,9 @@ export default function PayoutsPage() {
   );
 }
 
-function ActionBtn({ label, onClick, danger, success }: { label: string; onClick: () => void; danger?: boolean; success?: boolean }) {
+function ActionBtn({ label, onClick, danger, success }: {
+  label: string; onClick: () => void; danger?: boolean; success?: boolean;
+}) {
   return (
     <button onClick={onClick}
       className={`h-7 px-sm rounded text-xs font-medium transition-colors ${

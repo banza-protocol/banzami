@@ -110,6 +110,15 @@ func (c *CoreAdminClient) ListPayouts(ctx context.Context, merchantID string) (m
 	return out, c.get(ctx, "/internal/v1/payouts?merchant_id="+merchantID, &out)
 }
 
+func (c *CoreAdminClient) ListAllPayouts(ctx context.Context, status string) (map[string]any, error) {
+	var out map[string]any
+	url := "/internal/v1/payouts/all"
+	if status != "" {
+		url += "?status=" + status
+	}
+	return out, c.get(ctx, url, &out)
+}
+
 func (c *CoreAdminClient) ProcessPayout(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/payouts/"+id+"/process", nil, &out)
