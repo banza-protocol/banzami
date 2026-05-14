@@ -49,6 +49,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 
 		// Merchants
 		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
+		r.Get("/admin/v1/merchants",                     merchantH.List)
 		r.Get("/admin/v1/merchants/{id}",                merchantH.Get)
 		r.Post("/admin/v1/merchants/{id}/api-keys",      merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)

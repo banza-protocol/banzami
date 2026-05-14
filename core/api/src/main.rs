@@ -63,7 +63,7 @@ async fn main() {
         .route("/health", get(health))
 
         // Merchants
-        .route("/internal/v1/merchants",                      post(routes::merchants::create_merchant))
+        .route("/internal/v1/merchants",                      get(routes::merchants::list_merchants).post(routes::merchants::create_merchant))
         .route("/internal/v1/merchants/:id",                  get(routes::merchants::get_merchant))
         .route("/internal/v1/merchants/:id/suspend",          post(routes::merchants::suspend_merchant))
         .route("/internal/v1/merchants/:id/api-keys",         post(routes::merchants::create_api_key))

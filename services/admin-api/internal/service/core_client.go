@@ -149,6 +149,15 @@ func (c *CoreAdminClient) RunReconciliation(ctx context.Context, body map[string
 // Merchants
 // ---------------------------------------------------------------------------
 
+func (c *CoreAdminClient) ListMerchants(ctx context.Context, search string) ([]map[string]any, error) {
+	path := "/internal/v1/merchants"
+	if search != "" {
+		path += "?search=" + search
+	}
+	var out []map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
 func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.get(ctx, "/internal/v1/merchants/"+id, &out)

@@ -19,6 +19,7 @@ pub trait MerchantRepository: Send + Sync {
     async fn create(&self, merchant: Merchant) -> Result<Merchant, MerchantError>;
     async fn get(&self, id: MerchantId) -> Result<Merchant, MerchantError>;
     async fn get_by_email(&self, email: &str) -> Result<Option<Merchant>, MerchantError>;
+    async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError>;
     async fn update_status(
         &self,
         id: MerchantId,
@@ -141,6 +142,25 @@ impl MerchantRepository for PostgresMerchantRepository {
             .map_err(MerchantError::Database)?;
 
         row.map(merchant_from_row).transpose()
+    }
+
+    async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError> {
+        let rows = if let Some(q) = search {
+            let pattern = format!("%{}%", q.to_lowercase());
+            sqlx::query_as::<_, MerchantRow>(&format!(
+                "{MERCHANT_SELECT} WHERE lower(name) LIKE $1 OR lower(email) LIKE $1 ORDER BY created_at DESC"
+            ))
+            .bind(pattern)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, MerchantRow>(&format!("{MERCHANT_SELECT} ORDER BY created_at DESC"))
+                .fetch_all(&self.pool)
+                .await
+        }
+        .map_err(MerchantError::Database)?;
+
+        rows.into_iter().map(merchant_from_row).collect()
     }
 
     async fn update_status(

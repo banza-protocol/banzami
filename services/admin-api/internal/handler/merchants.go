@@ -17,6 +17,17 @@ func NewMerchantHandler(core *service.CoreAdminClient) *MerchantHandler {
 	return &MerchantHandler{core: core}
 }
 
+// List handles GET /admin/v1/merchants[?search=].
+func (h *MerchantHandler) List(w http.ResponseWriter, r *http.Request) {
+	search := r.URL.Query().Get("search")
+	result, err := h.core.ListMerchants(r.Context(), search)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": result})
+}
+
 // Get handles GET /admin/v1/merchants/{id}.
 func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

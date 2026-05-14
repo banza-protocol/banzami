@@ -17,6 +17,7 @@ use crate::{
 pub trait MerchantEngine: Send + Sync {
     async fn create(&self, req: CreateMerchantRequest) -> Result<Merchant, MerchantError>;
     async fn get(&self, id: MerchantId) -> Result<Merchant, MerchantError>;
+    async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError>;
     async fn suspend(&self, id: MerchantId) -> Result<Merchant, MerchantError>;
 
     /// Issues a new API key for the merchant. The raw secret is in the returned
@@ -68,6 +69,10 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
 
     async fn get(&self, id: MerchantId) -> Result<Merchant, MerchantError> {
         self.merchant_repo.get(id).await
+    }
+
+    async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError> {
+        self.merchant_repo.list(search).await
     }
 
     async fn suspend(&self, id: MerchantId) -> Result<Merchant, MerchantError> {

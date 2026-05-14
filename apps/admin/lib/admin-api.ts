@@ -96,6 +96,10 @@ export class AdminApi {
   }
 
   // Merchants
+  listMerchants(search?: string): Promise<{ data: Merchant[] }> {
+    const q = search ? `?search=${encodeURIComponent(search)}` : '';
+    return this.req(`/admin/v1/merchants${q}`);
+  }
   getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
 
   createMerchant(name: string, email: string, currency = 'AOA'): Promise<{

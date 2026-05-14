@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { Search, Plus, Copy, Check } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+import { Search, Plus, Copy, Check, ArrowLeft } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Merchant, type MerchantCompliance } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
@@ -52,14 +52,19 @@ function CredentialRow({ label, value, mono = false }: { label: string; value: s
 }
 
 export default function MerchantsPage() {
-  const [tab, setTab]           = useState<'search' | 'create'>('search');
+  const [tab, setTab] = useState<'list' | 'create'>('list');
 
-  // Search state
-  const [merchantId, setMerchantId] = useState('');
+  // List + search state
+  const [search, setSearch]         = useState('');
+  const [merchants, setMerchants]   = useState<Merchant[]>([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listError, setListError]   = useState('');
+
+  // Detail state
   const [merchant, setMerchant]     = useState<Merchant | null>(null);
   const [compliance, setCompliance] = useState<MerchantCompliance | null>(null);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState('');
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError]     = useState('');
   const [action, setAction]         = useState<Action | null>(null);
 
   // Create state
@@ -70,21 +75,40 @@ export default function MerchantsPage() {
   const [createError, setCreateError]       = useState('');
   const [credentials, setCredentials]       = useState<CreatedCredentials | null>(null);
 
-  async function lookup() {
-    const id = merchantId.trim();
-    if (!id) return;
+  const loadMerchants = useCallback(async (q?: string) => {
     const session = getSession();
     if (!session) return;
-    setLoading(true); setError(''); setMerchant(null); setCompliance(null);
+    setListLoading(true); setListError('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const res = await api.listMerchants(q);
+      setMerchants(res.data ?? []);
+    } catch (e) {
+      setListError(e instanceof Error ? e.message : 'Erro ao carregar.');
+    } finally {
+      setListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadMerchants(); }, [loadMerchants]);
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    loadMerchants(search.trim() || undefined);
+  }
+
+  async function openDetail(id: string) {
+    const session = getSession();
+    if (!session) return;
+    setDetailLoading(true); setDetailError(''); setMerchant(null); setCompliance(null);
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
       const [m, c] = await Promise.all([api.getMerchant(id), api.getMerchantCompliance(id)]);
-      setMerchant(m);
-      setCompliance(c);
+      setMerchant(m); setCompliance(c);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Comerciante não encontrado.');
+      setDetailError(e instanceof Error ? e.message : 'Erro.');
     } finally {
-      setLoading(false);
+      setDetailLoading(false);
     }
   }
 
@@ -116,14 +140,14 @@ export default function MerchantsPage() {
 
   async function executeAction(notes: string) {
     const session = getSession();
-    if (!session || !action || !merchantId) return;
+    if (!session || !action || !merchant) return;
     const api = new AdminApi(session.apiUrl, session.adminKey);
     let result: MerchantCompliance;
     switch (action) {
-      case 'approve':  result = await api.approveMerchant(merchantId); break;
-      case 'reject':   result = await api.rejectMerchant(merchantId, notes); break;
-      case 'suspend':  result = await api.suspendMerchant(merchantId, notes); break;
-      case 'flag_aml': result = await api.flagAML(merchantId, notes); break;
+      case 'approve':  result = await api.approveMerchant(merchant.id); break;
+      case 'reject':   result = await api.rejectMerchant(merchant.id, notes); break;
+      case 'suspend':  result = await api.suspendMerchant(merchant.id, notes); break;
+      case 'flag_aml': result = await api.flagAML(merchant.id, notes); break;
     }
     setCompliance(result);
     setAction(null);
@@ -134,37 +158,66 @@ export default function MerchantsPage() {
 
       {/* Tabs */}
       <div className="flex gap-xs border-b border-gray-100">
-        {(['search', 'create'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
+        {(['list', 'create'] as const).map(t => (
+          <button key={t} onClick={() => { setTab(t); setMerchant(null); }}
             className={`px-lg py-sm text-sm font-medium transition-colors border-b-2 -mb-px ${
-              tab === t
-                ? 'border-gray-900 text-gray-900'
-                : 'border-transparent text-gray-400 hover:text-gray-700'
+              tab === t ? 'border-gray-900 text-gray-900' : 'border-transparent text-gray-400 hover:text-gray-700'
             }`}>
-            {t === 'search' ? <><Search size={13} className="inline mr-xs" />Pesquisar</> : <><Plus size={13} className="inline mr-xs" />Criar Comerciante</>}
+            {t === 'list' ? <><Search size={13} className="inline mr-xs" />Comerciantes</> : <><Plus size={13} className="inline mr-xs" />Criar Comerciante</>}
           </button>
         ))}
       </div>
 
-      {/* ── Search tab ─────────────────────────────────────────────────── */}
-      {tab === 'search' && (
+      {/* ── List tab ───────────────────────────────────────────────────── */}
+      {tab === 'list' && !merchant && (
         <>
-          <div className="flex gap-md">
+          <form onSubmit={handleSearch} className="flex gap-md">
             <input
-              value={merchantId}
-              onChange={e => setMerchantId(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && lookup()}
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               className="flex-1 h-10 bg-white border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-gray-900/20"
-              placeholder="ID do comerciante (mch_…)"
+              placeholder="Pesquisar por nome ou email…"
             />
-            <button onClick={lookup} disabled={loading}
+            <button type="submit" disabled={listLoading}
               className="h-10 px-lg bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 disabled:opacity-60 transition-colors flex items-center gap-sm">
               <Search size={15} />Pesquisar
             </button>
-          </div>
+          </form>
 
-          {loading && <div className="flex justify-center py-xl"><Spinner className="h-6 w-6" /></div>}
-          {error   && <p className="text-sm text-error bg-error-bg rounded-lg px-xl py-lg">{error}</p>}
+          {listLoading && <div className="flex justify-center py-xl"><Spinner className="h-6 w-6" /></div>}
+          {listError   && <p className="text-sm text-error bg-error-bg rounded-lg px-xl py-lg">{listError}</p>}
+
+          {!listLoading && merchants.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-xl">Nenhum comerciante encontrado.</p>
+          )}
+
+          {merchants.length > 0 && (
+            <div className="bg-white rounded-lg shadow-card overflow-hidden divide-y divide-gray-100">
+              {merchants.map(m => (
+                <button key={m.id} onClick={() => openDetail(m.id)}
+                  className="w-full flex items-center justify-between px-xl py-lg hover:bg-gray-50 transition-colors text-left">
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{m.name}</p>
+                    <p className="text-xs text-gray-400 font-mono mt-xs">{m.id}</p>
+                  </div>
+                  <Badge label={m.status} />
+                </button>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Detail view ────────────────────────────────────────────────── */}
+      {tab === 'list' && (merchant || detailLoading || detailError) && (
+        <>
+          <button onClick={() => { setMerchant(null); setCompliance(null); setAction(null); }}
+            className="flex items-center gap-sm text-sm text-gray-400 hover:text-gray-900 transition-colors self-start">
+            <ArrowLeft size={14} /> Voltar à lista
+          </button>
+
+          {detailLoading && <div className="flex justify-center py-xl"><Spinner className="h-6 w-6" /></div>}
+          {detailError   && <p className="text-sm text-error bg-error-bg rounded-lg px-xl py-lg">{detailError}</p>}
 
           {merchant && compliance && (
             <div className="flex flex-col gap-lg">
@@ -174,6 +227,7 @@ export default function MerchantsPage() {
                   <p className="text-xs font-mono text-gray-400">{merchant.id}</p>
                 </div>
                 <div className="divide-y divide-gray-100">
+                  <Row label="Email"      value={merchant.email} />
                   <Row label="Estado"     value={<Badge label={merchant.status} />} />
                   <Row label="Compliance" value={<Badge label={compliance.compliance_status} />} />
                   {compliance.notes && <Row label="Notas" value={<span className="text-sm text-gray-700 max-w-xs text-right">{compliance.notes}</span>} />}

@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -35,6 +35,23 @@ pub struct VerifyApiKeyResponse {
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct ListQuery {
+    pub search: Option<String>,
+}
+
+pub async fn list_merchants(
+    State(state): State<AppState>,
+    Query(q): Query<ListQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let merchants = state.merchant
+        .list(q.search.as_deref())
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    Ok(Json(serde_json::to_value(&merchants).unwrap()))
+}
 
 pub async fn create_merchant(
     State(state): State<AppState>,
