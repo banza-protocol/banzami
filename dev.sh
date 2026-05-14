@@ -113,7 +113,7 @@ tmux kill-session -t "$SESSION" 2>/dev/null || true
 # Window 1 — core-api (Rust)
 # Starts first; other Go services are launched only after its health check passes.
 tmux new-session -d -s "$SESSION" -n "core-api" \
-  "cd '$REPO_ROOT/core' && cargo run --bin core-api; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/core' && cargo run --bin core-api; exec $SHELL"
 
 log "Waiting for core-api (first compile may take ~2 min)..."
 for i in $(seq 1 90); do
@@ -129,27 +129,27 @@ log "core-api ready."
 
 # Window 2 — api-gateway (Go, :8080)
 tmux new-window -t "$SESSION" -n "api-gateway" \
-  "cd '$REPO_ROOT/services/api-gateway' && go run ./cmd/gateway; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/services/api-gateway' && go run ./cmd/gateway; exec $SHELL"
 
 # Window 3 — admin-api (Go, :8082)
 tmux new-window -t "$SESSION" -n "admin-api" \
-  "cd '$REPO_ROOT/services/admin-api' && go run ./cmd/admin; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/services/admin-api' && go run ./cmd/admin; exec $SHELL"
 
 # Window 4 — public-api (Go, :8083)
 tmux new-window -t "$SESSION" -n "public-api" \
-  "cd '$REPO_ROOT/services/public-api' && go run ./cmd/public-api; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/services/public-api' && go run ./cmd/public-api; exec $SHELL"
 
 # Window 5 — dashboard (Next.js, :3001)
 tmux new-window -t "$SESSION" -n "dashboard" \
-  "cd '$REPO_ROOT/apps/dashboard' && npm run dev; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/apps/dashboard' && npm run dev; exec $SHELL"
 
 # Window 6 — admin app (Next.js, :3002)
 tmux new-window -t "$SESSION" -n "admin-app" \
-  "cd '$REPO_ROOT/apps/admin' && npm run dev; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/apps/admin' && npm run dev; exec $SHELL"
 
 # Window 7 — pay page (Next.js, :3003)
 tmux new-window -t "$SESSION" -n "pay" \
-  "cd '$REPO_ROOT/apps/pay' && npm run dev; read -rp '[press enter to close]'"
+  "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
 
 # Focus on core-api window before attaching
 tmux select-window -t "$SESSION:core-api"
