@@ -169,7 +169,7 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
       </div>
 
       <div class="warning">
-        <p>⚠️ <strong>Guarde a API Key em segurança.</strong> Por razões de segurança, esta chave não volta a ser mostrada. Se a perder, contacte o suporte para gerar uma nova.</p>
+        <p>⚠️ <strong>Guarde a API Key em segurança.</strong> Por razões de segurança, esta chave não deve ser mostrada a ninguém. Se a perder, contacte o suporte para gerar uma nova.</p>
       </div>
 
       <p>Para começar a receber pagamentos, descarregue a app <strong>Banzami Comerciante</strong> e introduza as credenciais acima quando solicitado.</p>
