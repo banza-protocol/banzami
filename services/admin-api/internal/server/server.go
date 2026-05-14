@@ -24,6 +24,7 @@ type Server struct {
 func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 	r := chi.NewRouter()
 
+	r.Use(middleware.CORS)
 	r.Use(chimiddleware.RequestID)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.Logger)
