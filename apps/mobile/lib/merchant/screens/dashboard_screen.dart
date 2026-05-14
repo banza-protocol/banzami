@@ -31,20 +31,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
 
-    try {
-      final results = await Future.wait([
-        client.getMerchantBalance(session.walletId),
-        client.listPaymentLinks(merchantId: session.merchantId, limit: 5),
-      ]);
-      setState(() {
-        _balance = results[0] as MerchantBalance;
-        _recent  = (results[1] as PaymentLinkPage).data;
-      });
-    } catch (_) {
-      setState(() => _error = 'Não foi possível carregar os dados.');
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
+    String? err;
+
+    // Load balance and links independently — one failure doesn't block the other.
+    final balanceFuture = client.getMerchantBalance(session.walletId)
+        .then((b) { if (mounted) setState(() => _balance = b); })
+        .catchError((_) { err = 'Não foi possível carregar o saldo.'; });
+
+    final linksFuture = client.listPaymentLinks(merchantId: session.merchantId, limit: 5)
+        .then((p) { if (mounted) setState(() => _recent = p.data); })
+        .catchError((_) { err ??= 'Não foi possível carregar os dados.'; });
+
+    await Future.wait([balanceFuture, linksFuture]);
+
+    if (mounted) setState(() { _loading = false; _error = err; });
   }
 
   @override
