@@ -66,7 +66,7 @@ export default function MerchantsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError]     = useState('');
   const [action, setAction]         = useState<Action | null>(null);
-  const [creditAmount, setCreditAmount] = useState('50000');
+  const [creditAmount, setCreditAmount] = useState('500');
   const [creditLoading, setCreditLoading] = useState(false);
   const [creditMsg, setCreditMsg]   = useState('');
 
@@ -144,13 +144,13 @@ export default function MerchantsPage() {
   async function applyTestCredit() {
     const session = getSession();
     if (!session || !merchant) return;
-    const amount = Math.round(parseFloat(creditAmount));
-    if (!amount || amount <= 0) { setCreditMsg('Montante inválido.'); return; }
+    const kz = Math.round(parseFloat(creditAmount));
+    if (!kz || kz <= 0) { setCreditMsg('Montante inválido.'); return; }
     setCreditLoading(true); setCreditMsg('');
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
-      await api.testCredit(merchant.id, amount);
-      setCreditMsg(`✓ ${(amount / 100).toLocaleString('pt-AO')} Kz creditados com sucesso.`);
+      await api.testCredit(merchant.id, kz * 100); // convert Kz → minor units
+      setCreditMsg(`✓ ${kz.toLocaleString('pt-AO')} Kz creditados com sucesso.`);
     } catch (e) {
       setCreditMsg(e instanceof Error ? e.message : 'Erro ao creditar.');
     } finally {
@@ -283,7 +283,7 @@ export default function MerchantsPage() {
                       onChange={e => setCreditAmount(e.target.value)}
                       className="w-32 h-9 bg-gray-50 border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-warning/30"
                     />
-                    <span className="text-sm text-gray-400">Kz (minor)</span>
+                    <span className="text-sm text-gray-400">Kz</span>
                   </div>
                   <button
                     onClick={applyTestCredit}
