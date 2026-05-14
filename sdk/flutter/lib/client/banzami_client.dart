@@ -238,6 +238,44 @@ class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Transactions (merchant)
+  // ---------------------------------------------------------------------------
+
+  Future<MerchantTransactionPage> listMerchantTransactions({
+    int     limit  = 20,
+    String? cursor,
+  }) async {
+    var path = '/v1/transactions?limit=$limit';
+    if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
+    final json = await _get(path);
+    return MerchantTransactionPage.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payouts
+  // ---------------------------------------------------------------------------
+
+  Future<Map<String, dynamic>> createPayout({
+    required String walletId,
+    required int    amountMinor,
+    required String bankAccountNumber,
+    required String bankCode,
+    required String accountHolderName,
+    String?         idempotencyKey,
+    String          currency = 'AOA',
+  }) async {
+    return _post('/v1/payouts', {
+      'idempotency_key':     idempotencyKey ?? _uuid.v4(),
+      'wallet_id':           walletId,
+      'amount_minor':        amountMinor,
+      'currency':            currency,
+      'bank_account_number': bankAccountNumber,
+      'bank_code':           bankCode,
+      'account_holder_name': accountHolderName,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Payment links — public endpoints (no auth required)
   // ---------------------------------------------------------------------------
 

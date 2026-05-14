@@ -3,9 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/merchant_session_service.dart';
+import '../services/payment_notification_service.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'qr_screen.dart';
 
 class MerchantMainScreen extends StatefulWidget {
   const MerchantMainScreen({super.key});
@@ -17,15 +19,23 @@ class MerchantMainScreen extends StatefulWidget {
 class _MerchantMainScreenState extends State<MerchantMainScreen>
     with WidgetsBindingObserver {
   int _tab = 0;
+  PaymentNotificationService? _notifSvc;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
+  }
+
+  void _startNotifications() {
+    final client = context.read<BanzamiClient>();
+    _notifSvc = PaymentNotificationService(client)..startPolling();
   }
 
   @override
   void dispose() {
+    _notifSvc?.stopPolling();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -33,7 +43,10 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      _notifSvc?.stopPolling();
       context.read<MerchantSessionService>().lock();
+    } else if (state == AppLifecycleState.resumed) {
+      _notifSvc?.startPolling();
     }
   }
 
@@ -42,6 +55,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     const tabs = [
       DashboardScreen(),
       MerchantHistoryScreen(),
+      MerchantQrScreen(),
       MerchantProfileScreen(),
     ];
 
@@ -63,6 +77,11 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
             icon:         Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history_rounded, color: BanzamiColors.wine),
             label:        'Histórico',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.qr_code_rounded),
+            selectedIcon: Icon(Icons.qr_code_rounded, color: BanzamiColors.wine),
+            label:        'Receber',
           ),
           NavigationDestination(
             icon:         Icon(Icons.person_outline_rounded),

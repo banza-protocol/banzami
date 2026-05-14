@@ -35,6 +35,9 @@ dependencies:
   # Google Fonts (Inter) — no font files needed
   google_fonts: ^6.2.1
 
+  # Local notifications (payment alerts via polling)
+  flutter_local_notifications: ^18.0.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

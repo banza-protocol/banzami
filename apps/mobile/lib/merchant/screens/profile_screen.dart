@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/merchant_session_service.dart';
+import 'payout_screen.dart';
 
 class MerchantProfileScreen extends StatefulWidget {
   const MerchantProfileScreen({super.key});
@@ -148,6 +149,21 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                   onChanged:       _bioBusy ? null : (v) => _toggleBio(svc, v),
                 );
               },
+            ),
+          ]),
+
+          const SizedBox(height: 8),
+
+          // Levantamento
+          _Section(children: [
+            ListTile(
+              leading: const Icon(Icons.account_balance_outlined, color: BanzamiColors.wine),
+              title:   const Text('Pedir levantamento'),
+              subtitle: const Text('Transferir saldo para conta bancária'),
+              trailing: const Icon(Icons.chevron_right_rounded, color: BanzamiColors.gray400),
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const PayoutScreen()),
+              ),
             ),
           ]),
 

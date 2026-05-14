@@ -15,7 +15,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   MerchantBalance? _balance;
   List<PaymentLink> _recent = [];
-  bool   _loading = false;
+  int  _todayMinor  = 0;
+  int  _monthMinor  = 0;
+  bool _loading     = false;
   String? _error;
 
   @override
@@ -33,7 +35,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     String? err;
 
-    // Load balance and links independently — one failure doesn't block the other.
     final balanceFuture = client.getMerchantBalance(session.walletId)
         .then((b) { if (mounted) setState(() => _balance = b); })
         .catchError((_) { err = 'Não foi possível carregar o saldo.'; });
@@ -42,7 +43,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .then((p) { if (mounted) setState(() => _recent = p.data); })
         .catchError((_) { err ??= 'Não foi possível carregar os dados.'; });
 
-    await Future.wait([balanceFuture, linksFuture]);
+    // Stats — compute today and this month from the 100 most recent transactions.
+    final statsFuture = client.listMerchantTransactions(limit: 100)
+        .then((page) {
+          final now   = DateTime.now();
+          int today = 0, month = 0;
+          for (final tx in page.data) {
+            if (!tx.isCompleted) continue;
+            final local = tx.createdAt.toLocal();
+            if (local.year == now.year && local.month == now.month) {
+              month += tx.amountMinor;
+              if (local.day == now.day) today += tx.amountMinor;
+            }
+          }
+          if (mounted) setState(() { _todayMinor = today; _monthMinor = month; });
+        })
+        .catchError((_) {});   // stats are non-critical
+
+    await Future.wait([balanceFuture, linksFuture, statsFuture]);
 
     if (mounted) setState(() { _loading = false; _error = err; });
   }
@@ -96,17 +114,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildBody() {
+    final currency = _balance?.currency ?? 'AOA';
     return ListView(
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
       children: [
         _BalanceCard(balance: _balance),
+        const SizedBox(height: BanzamiSpacing.md),
+
+        // Stats row
+        Row(children: [
+          Expanded(child: _StatCard(
+            label: 'Hoje',
+            value: formatMinor(_todayMinor, currency),
+            icon:  Icons.today_rounded,
+          )),
+          const SizedBox(width: BanzamiSpacing.md),
+          Expanded(child: _StatCard(
+            label: 'Este mês',
+            value: formatMinor(_monthMinor, currency),
+            icon:  Icons.calendar_month_rounded,
+          )),
+        ]),
         const SizedBox(height: BanzamiSpacing.lg),
+
         _QuickChargeButton(onTap: () => Navigator.of(context).push(
           MaterialPageRoute(builder: (_) => const ChargeScreen()),
         ).then((_) => _load())),
         const SizedBox(height: BanzamiSpacing.xl),
         if (_recent.isNotEmpty) ...[
-          const Text('Recentes', style: BanzamiTextStyles.headingSm),
+          const Text('Cobranças recentes', style: BanzamiTextStyles.headingSm),
           const SizedBox(height: BanzamiSpacing.md),
           ..._recent.map((l) => _LinkTile(link: l)),
         ],
@@ -176,6 +212,37 @@ class _QuickChargeButton extends StatelessWidget {
           textStyle:  BanzamiTextStyles.headingSm,
         ),
       ),
+    );
+  }
+}
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  const _StatCard({required this.label, required this.value, required this.icon});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(BanzamiSpacing.md),
+      decoration: BoxDecoration(
+        color:        BanzamiColors.white,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Icon(icon, color: BanzamiColors.wine, size: 18),
+          const SizedBox(width: 6),
+          Text(label,
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+        ]),
+        const SizedBox(height: 6),
+        Text(value,
+            style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis),
+      ]),
     );
   }
 }

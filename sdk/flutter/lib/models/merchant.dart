@@ -51,6 +51,59 @@ class MerchantWallet {
       );
 }
 
+class MerchantTransaction {
+  final String  id;
+  final String  status;
+  final int     amountMinor;
+  final String  currency;
+  final String  merchantId;
+  final String? description;
+  final DateTime createdAt;
+
+  const MerchantTransaction({
+    required this.id,
+    required this.status,
+    required this.amountMinor,
+    required this.currency,
+    required this.merchantId,
+    this.description,
+    required this.createdAt,
+  });
+
+  bool get isCompleted => status == 'COMPLETED' || status == 'PAID';
+
+  factory MerchantTransaction.fromJson(Map<String, dynamic> json) => MerchantTransaction(
+        id:          json['id']           as String,
+        status:      json['status']       as String,
+        amountMinor: (json['amount_minor'] as num).toInt(),
+        currency:    json['currency']     as String,
+        merchantId:  json['merchant_id']  as String,
+        description: json['description']  as String?,
+        createdAt:   DateTime.parse(json['created_at'] as String),
+      );
+}
+
+class MerchantTransactionPage {
+  final List<MerchantTransaction> data;
+  final String? nextCursor;
+  final bool    hasMore;
+
+  const MerchantTransactionPage({
+    required this.data,
+    this.nextCursor,
+    required this.hasMore,
+  });
+
+  factory MerchantTransactionPage.fromJson(Map<String, dynamic> json) =>
+      MerchantTransactionPage(
+        data: (json['data'] as List<dynamic>)
+            .map((e) => MerchantTransaction.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        nextCursor: json['next_cursor'] as String?,
+        hasMore:    json['has_more']    as bool? ?? false,
+      );
+}
+
 class MerchantBalance {
   final String walletId;
   final String currency;
