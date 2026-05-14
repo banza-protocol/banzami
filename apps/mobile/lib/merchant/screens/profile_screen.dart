@@ -29,6 +29,12 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     }
   }
 
+  static String _fmtExpiry(DateTime dt) {
+    final local = dt.toLocal();
+    String pad(int n) => n.toString().padLeft(2, '0');
+    return 'Expira em ${local.day}/${pad(local.month)}/${local.year} às ${pad(local.hour)}:${pad(local.minute)}';
+  }
+
   Future<void> _confirmLogout(BuildContext context, MerchantSessionService svc) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -106,6 +112,23 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                 }
               },
             ),
+          ]),
+
+          const SizedBox(height: 8),
+
+          // Sessão API
+          _Section(children: [
+            Builder(builder: (ctx) {
+              final expiry = ctx.watch<BanzamiClient>().sessionExpiresAt;
+              final label  = expiry == null
+                  ? 'Renovada automaticamente a cada 24 h'
+                  : _fmtExpiry(expiry);
+              return ListTile(
+                leading:  const Icon(Icons.access_time_rounded, color: BanzamiColors.wine),
+                title:    const Text('Sessão API'),
+                subtitle: Text(label),
+              );
+            }),
           ]),
 
           const SizedBox(height: 8),

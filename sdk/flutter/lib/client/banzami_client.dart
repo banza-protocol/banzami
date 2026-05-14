@@ -29,6 +29,12 @@ class BanzamiClient {
   final http.Client _http;
   final Uuid _uuid;
 
+  String?   _jwt;
+  DateTime? _jwtExpiry;
+
+  /// When the current session token expires. Null until the first API call.
+  DateTime? get sessionExpiresAt => _jwtExpiry;
+
   BanzamiClient({
     required this.baseUrl,
     required this.apiKey,
@@ -267,17 +273,48 @@ class BanzamiClient {
   // HTTP helpers
   // ---------------------------------------------------------------------------
 
-  Map<String, String> get _headers => {
-    'Content-Type':  'application/json',
-    'Authorization': 'Bearer $apiKey',
-  };
+  // Exchanges the raw API key for a short-lived JWT (TTL: 24 h).
+  // Cached until 5 minutes before expiry, then transparently renewed.
+  Future<void> _ensureJwt() async {
+    const buffer = Duration(minutes: 5);
+    if (_jwt != null &&
+        _jwtExpiry != null &&
+        DateTime.now().isBefore(_jwtExpiry!.subtract(buffer))) {
+      return;
+    }
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl/v1/auth/token'),
+        headers: {'Content-Type': 'application/json'},
+        body:    jsonEncode({'api_key': apiKey}),
+      );
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    _jwt = body['token'] as String;
+    final expiresAtStr = body['expires_at'] as String?;
+    _jwtExpiry = expiresAtStr != null
+        ? DateTime.parse(expiresAtStr)
+        : DateTime.now().add(const Duration(hours: 24));
+  }
+
+  Future<Map<String, String>> get _headers async {
+    await _ensureJwt();
+    return {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer $_jwt',
+    };
+  }
 
   Future<Map<String, dynamic>> _get(String path) async {
     late http.Response resp;
     try {
       resp = await _http.get(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: await _headers,
       );
     } catch (e) {
       throw BanzamiNetworkException(e.toString());
@@ -290,7 +327,7 @@ class BanzamiClient {
     try {
       resp = await _http.delete(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: await _headers,
       );
     } catch (e) {
       throw BanzamiNetworkException(e.toString());
@@ -303,7 +340,7 @@ class BanzamiClient {
     try {
       resp = await _http.post(
         Uri.parse('$baseUrl$path'),
-        headers: _headers,
+        headers: await _headers,
         body:    body != null ? jsonEncode(body) : null,
       );
     } catch (e) {
