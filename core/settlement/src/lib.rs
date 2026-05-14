@@ -1,8 +1,10 @@
 mod engine;
 mod repository;
+pub mod scheduler;
 
 pub use engine::{CreateSettlementBatchRequest, PostgresSettlementEngine, SettlementEngine};
 pub use repository::{PostgresSettlementRepository, SettlementRepository};
+pub use scheduler::run_settlement_scheduler;
 
 use chrono::{DateTime, Utc};
 use thiserror::Error;
