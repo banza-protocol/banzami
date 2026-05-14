@@ -4,7 +4,7 @@
 
 CREATE TABLE consumer_wallets (
     id                   UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-    consumer_id          UUID        NOT NULL REFERENCES consumer_identities(id),
+    consumer_id          UUID        NOT NULL REFERENCES consumers(id),
     currency             CHAR(3)     NOT NULL,
     status               TEXT        NOT NULL DEFAULT 'ACTIVE'
                                      CHECK (status IN ('ACTIVE', 'SUSPENDED', 'CLOSED')),

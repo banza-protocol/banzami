@@ -48,12 +48,12 @@ impl PostgresIdentityRepository {
 
 const SELECT: &str =
     "SELECT id, handle, display_name, status, created_at, updated_at
-     FROM consumer_identities";
+     FROM consumers";
 
 impl IdentityRepository for PostgresIdentityRepository {
     async fn create(&self, identity: ConsumerIdentity) -> Result<ConsumerIdentity, IdentityError> {
         let result = sqlx::query(
-            "INSERT INTO consumer_identities
+            "INSERT INTO consumers
              (id, handle, display_name, status, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6)",
         )
@@ -68,7 +68,7 @@ impl IdentityRepository for PostgresIdentityRepository {
 
         match result {
             Err(sqlx::Error::Database(ref db_err))
-                if db_err.constraint() == Some("consumer_identities_handle_key") =>
+                if db_err.constraint() == Some("consumers_handle_key") =>
             {
                 return Err(IdentityError::HandleTaken(identity.handle));
             }
@@ -113,7 +113,7 @@ impl IdentityRepository for PostgresIdentityRepository {
     ) -> Result<ConsumerIdentity, IdentityError> {
         let now = Utc::now();
         sqlx::query(
-            "UPDATE consumer_identities SET status = $1, updated_at = $2 WHERE id = $3",
+            "UPDATE consumers SET status = $1, updated_at = $2 WHERE id = $3",
         )
         .bind(status.as_str())
         .bind(now)

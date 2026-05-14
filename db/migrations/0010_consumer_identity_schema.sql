@@ -2,7 +2,7 @@
 -- These identities are the public-facing layer for QR payments and P2P transfers.
 -- (CLAUDE.md §2.1 — consumers never see raw UUIDs)
 
-CREATE TABLE consumer_identities (
+CREATE TABLE consumers (
     id           UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     handle       TEXT        NOT NULL,
     display_name TEXT,
@@ -11,12 +11,11 @@ CREATE TABLE consumer_identities (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
 
-    CONSTRAINT consumer_identities_handle_key UNIQUE (handle)
+    CONSTRAINT consumers_handle_key UNIQUE (handle)
 );
 
-COMMENT ON TABLE  consumer_identities        IS 'End-user identities — the human-readable layer above consumer wallets.';
-COMMENT ON COLUMN consumer_identities.handle IS 'Normalized lowercase handle (without @). Globally unique. 3–30 chars.';
-COMMENT ON COLUMN consumer_identities.status IS 'ACTIVE → SUSPENDED → CLOSED lifecycle.';
+COMMENT ON TABLE  consumers        IS 'End-user identities — the human-readable layer above consumer wallets.';
+COMMENT ON COLUMN consumers.handle IS 'Normalized lowercase handle (without @). Globally unique. 3–30 chars.';
+COMMENT ON COLUMN consumers.status IS 'ACTIVE → SUSPENDED → CLOSED lifecycle.';
 
--- Case-insensitive handle lookup (handle is already lowercased at insert time).
-CREATE INDEX consumer_identities_status_idx ON consumer_identities (status);
+CREATE INDEX consumers_status_idx ON consumers (status);

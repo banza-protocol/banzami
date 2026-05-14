@@ -4,8 +4,8 @@
 CREATE TABLE transfers (
     id                UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
     idempotency_key   TEXT        NOT NULL,
-    sender_id         UUID        NOT NULL REFERENCES consumer_identities(id),
-    recipient_id      UUID        NOT NULL REFERENCES consumer_identities(id),
+    sender_id         UUID        NOT NULL REFERENCES consumers(id),
+    recipient_id      UUID        NOT NULL REFERENCES consumers(id),
     amount_minor      BIGINT      NOT NULL CHECK (amount_minor > 0),
     currency          CHAR(3)     NOT NULL,
     status            TEXT        NOT NULL DEFAULT 'PENDING'
