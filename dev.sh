@@ -27,13 +27,17 @@ if [[ "${1:-}" == "stop" ]]; then
   else
     warn "No active session '$SESSION'."
   fi
-  # Kill any service processes still holding the ports (cargo/go survive tmux kill).
-  for port in 8081 8080 8082 8083 3001 3002 3003; do
-    pid=$(lsof -ti:"$port" 2>/dev/null || true)
-    if [[ -n "$pid" ]]; then
-      kill -9 $pid 2>/dev/null || true
-      log "Killed process on port $port (PID $pid)."
-    fi
+  # Kill only our own processes by name (avoids killing Docker proxies on the same ports).
+  for pattern in \
+    "cargo run --bin core-api" \
+    "target/debug/core-api" \
+    "go run ./cmd/gateway" \
+    "go run ./cmd/admin" \
+    "go run ./cmd/public-api" \
+    "next dev --port 3001" \
+    "next dev --port 3002" \
+    "next dev --port 3003"; do
+    pkill -f "$pattern" 2>/dev/null && log "Killed: $pattern" || true
   done
   log "Infrastructure (PostgreSQL + Redis) still running. To stop: make dev-down"
   exit 0
