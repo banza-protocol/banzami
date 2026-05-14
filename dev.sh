@@ -28,7 +28,7 @@ if [[ "${1:-}" == "stop" ]]; then
     warn "No active session '$SESSION'."
   fi
   # Kill any service processes still holding the ports (cargo/go survive tmux kill).
-  for port in 8081 8080 8082 8083; do
+  for port in 8081 8080 8082 8083 3001 3002 3003; do
     pid=$(lsof -ti:"$port" 2>/dev/null || true)
     if [[ -n "$pid" ]]; then
       kill -9 $pid 2>/dev/null || true
