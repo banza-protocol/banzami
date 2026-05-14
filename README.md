@@ -112,8 +112,8 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                            External Clients                               │
 │                                                                           │
-│  Merchant Apps   Admin Dashboard   Mobile App (consumer)   Plugins       │
-│  (REST API)      (Next.js :3002)   (Flutter SDK)           (WooComm.)    │
+│  Merchant Apps   Admin Dashboard   Mobile Apps (Flutter)    Plugins       │
+│  (REST API)      (Next.js :3002)   consumer + merchant      (WooComm.)    │
 └──────┬───────────────┬─────────────────────┬──────────────────┬──────────┘
        │               │ (internal only)      │                  │
        │           ┌───▼──────────────────┐   │                  │
@@ -276,14 +276,24 @@ banzami/
 │           ├── service/           CorePublicClient + CredentialStore
 │           └── server/            Chi router and server construction
 │
-├── apps/                          Frontend applications (Next.js)
-│   ├── dashboard/                 Merchant dashboard (:3010)
-│   ├── admin/                     Internal admin panel (:3002)
-│   ├── pay/                       Consumer pay page — payment links (:3003)
+├── apps/                          Frontend and mobile applications
+│   ├── dashboard/                 Merchant dashboard (Next.js, :3010)
+│   ├── admin/                     Internal admin panel (Next.js, :3002)
+│   ├── pay/                       Consumer pay page — payment links (Next.js, :3003)
+│   ├── mobile/                    Flutter multi-flavor mobile app
+│   │   ├── lib/main_consumer.dart Consumer entry point (Banzami app)
+│   │   ├── lib/main_merchant.dart Merchant entry point (Banzami Comerciante)
+│   │   ├── lib/merchant/          Merchant screens and session service
+│   │   ├── ios/                   iOS project with consumer + merchant xcschemes
+│   │   └── android/               Android project with consumer + merchant productFlavors
+│   ├── merchant/                  Standalone Flutter merchant app (reference project)
 │   └── docs/                      Developer documentation site
 │
 ├── sdk/
-│   ├── flutter/                   Mobile checkout SDK
+│   ├── flutter/                   Flutter SDK — shared by consumer and merchant flavors
+│   │   ├── lib/client/            BanzamiClient (HTTP, auth, all API calls)
+│   │   ├── lib/models/            Shared models (Merchant, PaymentLink, …)
+│   │   └── lib/screens/           Reusable UI (checkout, etc.)
 │   └── typescript/                TypeScript/Node.js SDK
 │
 ├── plugins/
@@ -1051,6 +1061,7 @@ make stack-up
 - Rust (stable, 1.75+) — `rustup update stable`
 - Go 1.22+ — `go version`
 - Node 20+ + npm — `node --version`
+- Flutter (stable, 3.x+) — `flutter --version`
 - Docker + Docker Compose
 - `sqlx-cli` — `cargo install sqlx-cli --features postgres`
 - **tmux** — `brew install tmux` (macOS) / `sudo apt install tmux` (Debian/Ubuntu)
@@ -1149,6 +1160,66 @@ make stack-build    # build all Docker images
 make stack-up       # start everything (applies migrations automatically)
 # Also starts Prometheus (:9090) and Grafana (:3000, admin/banzami_dev)
 ```
+
+### Mobile Apps (Flutter)
+
+`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banzami) and **merchant** (Banzami Comerciante) — built and published to the App Store and Play Store separately.
+
+**Run in development:**
+
+```bash
+cd apps/mobile
+
+# Consumer app
+flutter run --flavor consumer -t lib/main_consumer.dart
+
+# Merchant app
+flutter run --flavor merchant -t lib/main_merchant.dart
+```
+
+**Build for release:**
+
+```bash
+cd apps/mobile
+
+# iOS IPA (requires Xcode and Apple Developer account)
+flutter build ipa --flavor consumer -t lib/main_consumer.dart
+flutter build ipa --flavor merchant -t lib/main_merchant.dart
+
+# Android APK
+flutter build apk --flavor consumer -t lib/main_consumer.dart
+flutter build apk --flavor merchant -t lib/main_merchant.dart
+
+# Android App Bundle (Play Store)
+flutter build appbundle --flavor consumer -t lib/main_consumer.dart
+flutter build appbundle --flavor merchant -t lib/main_merchant.dart
+```
+
+**Bundle identifiers:**
+
+| Flavor   | iOS Bundle ID          | Android Application ID   | Display Name         |
+|----------|------------------------|--------------------------|----------------------|
+| consumer | `com.banzami.app`      | `com.banzami.app`        | Banzami              |
+| merchant | `com.banzami.merchant` | `com.banzami.merchant`   | Banzami Comerciante  |
+
+**iOS schemes** are at `apps/mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/`:
+- `consumer.xcscheme` — Debug-consumer / Release-consumer configurations
+- `merchant.xcscheme` — Debug-merchant / Release-merchant configurations
+
+**Required `--dart-define` variables** (set in CI or passed at build time):
+
+| Variable           | Description                          |
+|--------------------|--------------------------------------|
+| `GATEWAY_URL`      | Banzami API Gateway base URL         |
+| `PAY_BASE_URL`     | Banzami pay page base URL            |
+
+**Merchant app setup flow:**
+1. Merchant enters their API Key + Merchant ID
+2. App verifies credentials against `GET /v1/merchants/{id}` and fetches the wallet via `GET /v1/wallets?currency=AOA`
+3. Merchant creates a 6-digit PIN (stored encrypted with `FlutterSecureStorage`)
+4. Subsequent launches require PIN or biometrics (Face ID / fingerprint)
+
+---
 
 ### Run Tests
 
