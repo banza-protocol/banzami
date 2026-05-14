@@ -7,14 +7,6 @@ import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_button.dart';
 import '../widgets/banzami_qr_display.dart';
 
-/// Receive payment screen — shows the consumer's @handle as a scannable QR.
-///
-/// The QR content is generated locally (no API call needed):
-///   Static:  `banzami:@{handle}`
-///   Dynamic: `banzami:@{handle}?amount={minor}&currency=AOA`
-///
-/// When another consumer scans this QR in [BanzamiScanScreen] it parses
-/// the handle and optionally the pre-set amount, then opens the send flow.
 class BanzamiReceiveScreen extends StatefulWidget {
   final String handle;
 
@@ -25,9 +17,8 @@ class BanzamiReceiveScreen extends StatefulWidget {
 }
 
 class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
-  int  _amountMinor    = 0;
-  bool _showAmountMode = false;
-  bool _amountSet      = false;
+  int  _amountMinor = 0;
+  bool _amountSet   = false;
 
   String get _qrPayload {
     if (_amountSet && _amountMinor > 0) {
@@ -36,15 +27,60 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     return 'banzami:@${widget.handle}';
   }
 
-  void _applyAmount() {
-    if (_amountMinor > 0) setState(() { _amountSet = true; _showAmountMode = false; });
-  }
+  void _clearAmount() => setState(() { _amountSet = false; _amountMinor = 0; });
 
-  void _clearAmount() => setState(() {
-    _amountSet      = false;
-    _showAmountMode = false;
-    _amountMinor    = 0;
-  });
+  Future<void> _showAmountSheet() async {
+    int draft = 0;
+    await showModalBottomSheet<int>(
+      context:          context,
+      isScrollControlled: true,
+      backgroundColor: BanzamiColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+          BanzamiSpacing.xl,
+          BanzamiSpacing.xl,
+          BanzamiSpacing.xl,
+          MediaQuery.of(ctx).viewInsets.bottom + BanzamiSpacing.xl,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
+            const SizedBox(height: BanzamiSpacing.md),
+            BanzamiAmountInput(
+              onChanged: (v) => draft = v,
+            ),
+            const SizedBox(height: BanzamiSpacing.lg),
+            Row(children: [
+              Expanded(
+                child: BanzamiButton.secondary(
+                  label:     'Cancelar',
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ),
+              const SizedBox(width: BanzamiSpacing.sm),
+              Expanded(
+                child: BanzamiButton(
+                  label:     'Aplicar',
+                  onPressed: () {
+                    if (draft > 0) Navigator.pop(ctx, draft);
+                  },
+                ),
+              ),
+            ]),
+          ],
+        ),
+      ),
+    ).then((result) {
+      if (result != null && result > 0) {
+        setState(() { _amountMinor = result; _amountSet = true; });
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -73,7 +109,6 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
               const SizedBox(height: BanzamiSpacing.lg),
 
-              // Copy handle
               TextButton.icon(
                 onPressed: () async {
                   await Clipboard.setData(ClipboardData(text: '@${widget.handle}'));
@@ -92,13 +127,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
               const Spacer(),
 
-              // Amount controls
-              if (!_showAmountMode && !_amountSet)
-                BanzamiButton.secondary(
-                  label:     'Definir montante fixo',
-                  onPressed: () => setState(() => _showAmountMode = true),
-                )
-              else if (_amountSet)
+              if (_amountSet)
                 Row(children: [
                   Expanded(
                     child: BanzamiButton.secondary(
@@ -107,29 +136,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                     ),
                   ),
                 ])
-              else ...[
-                const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
-                const SizedBox(height: BanzamiSpacing.sm),
-                BanzamiAmountInput(
-                  onChanged: (v) => setState(() => _amountMinor = v),
+              else
+                BanzamiButton.secondary(
+                  label:     'Definir montante fixo',
+                  onPressed: _showAmountSheet,
                 ),
-                const SizedBox(height: BanzamiSpacing.md),
-                Row(children: [
-                  Expanded(
-                    child: BanzamiButton.secondary(
-                      label:     'Cancelar',
-                      onPressed: () => setState(() { _showAmountMode = false; _amountMinor = 0; }),
-                    ),
-                  ),
-                  const SizedBox(width: BanzamiSpacing.sm),
-                  Expanded(
-                    child: BanzamiButton(
-                      label:     'Aplicar',
-                      onPressed: _applyAmount,
-                    ),
-                  ),
-                ]),
-              ],
 
               const SizedBox(height: BanzamiSpacing.lg),
             ],

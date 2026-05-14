@@ -41,6 +41,8 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>A câmara é usada para ler códigos QR de pagamento.</string>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Use o Face ID para entrar na Banzami de forma segura.</string>
 	<key>UIApplicationSceneManifest</key>
