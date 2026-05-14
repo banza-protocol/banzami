@@ -18,14 +18,14 @@ class MerchantWelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              Container(
-                width:  64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color:        BanzamiColors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(18),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/images/icon_master_1024.png',
+                  width:  72,
+                  height: 72,
+                  fit:    BoxFit.cover,
                 ),
-                child: const Icon(Icons.storefront_rounded, color: BanzamiColors.white, size: 36),
               ),
               const SizedBox(height: 24),
 
