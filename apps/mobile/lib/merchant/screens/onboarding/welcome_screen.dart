@@ -75,28 +75,11 @@ class MerchantWelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BanzamiColors.white,
                     foregroundColor: BanzamiColors.wine,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    padding:   const EdgeInsets.symmetric(vertical: 16),
+                    shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     textStyle: BanzamiTextStyles.headingSm,
                   ),
-                  child: const Text('Configurar conta'),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const MerchantSetupScreen()),
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: BanzamiColors.white,
-                    side:            BorderSide(color: BanzamiColors.white.withValues(alpha: 0.5), width: 1.5),
-                    padding:         const EdgeInsets.symmetric(vertical: 16),
-                    shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle:       BanzamiTextStyles.headingSm,
-                  ),
-                  child: const Text('Já tenho conta'),
+                  child: const Text('Conectar conta'),
                 ),
               ),
               const SizedBox(height: 32),
