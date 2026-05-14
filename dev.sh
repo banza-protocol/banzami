@@ -117,21 +117,63 @@ done
 
 # ─── tmux session ─────────────────────────────────────────────────────────────
 tmux kill-session -t "$SESSION" 2>/dev/null || true
-sleep 0.5  # let tmux fully release the session before creating a new one
+sleep 0.5
 
-# Window 0 — banzami (main/status window — stays open as a reference)
-tmux new-session -d -s "$SESSION" -n "banzami" "exec $SHELL"
+# ── Window 0: split layout ──────────────────────────────────────────────────
+# Left column  : status pane (full height)
+# Right column : 4 backend service panes stacked vertically
+#
+#  ┌──────────────┬──────────────────┐
+#  │              │    core-api      │
+#  │   STATUS     ├──────────────────┤
+#  │              │    api-gateway   │
+#  │              ├──────────────────┤
+#  │              │    admin-api     │
+#  │              ├──────────────────┤
+#  │              │    public-api    │
+#  └──────────────┴──────────────────┘
 
-# Window 1 — core-api (Rust) — starts first; Go services wait for its health check
-tmux new-window -t "$SESSION:1" -n "core-api" \
-  "cd '$REPO_ROOT/core' && cargo run --bin core-api; exec $SHELL"
+tmux new-session -d -s "$SESSION" -n "banzami"
+
+# Capture the status pane ID (left column, full height)
+STATUS=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
+
+# Split right column at 65% width — core-api top pane
+tmux split-window -t "${STATUS}" -h -p 65
+CORE=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
+
+# Split core pane down — api-gateway (core keeps top 25%)
+tmux split-window -t "${CORE}" -v -p 75
+GATEWAY=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
+
+# Split gateway pane down — admin-api (gateway keeps 33% of remaining)
+tmux split-window -t "${GATEWAY}" -v -p 67
+ADMIN=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
+
+# Split admin pane down — public-api (equal halves)
+tmux split-window -t "${ADMIN}" -v -p 50
+PUBLIC=$(tmux display-message -p -t "$SESSION:banzami" '#{pane_id}')
+
+# ── Windows 1-3: Next.js apps ────────────────────────────────────────────────
+tmux new-window -t "$SESSION:1" -n "dashboard" \
+  "cd '$REPO_ROOT/apps/dashboard' && npm run dev; exec $SHELL"
+tmux new-window -t "$SESSION:2" -n "admin-app" \
+  "cd '$REPO_ROOT/apps/admin' && npm run dev; exec $SHELL"
+tmux new-window -t "$SESSION:3" -n "pay" \
+  "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
+
+# Go back to main window before starting services
+tmux select-window -t "$SESSION:banzami"
+
+# ── Start core-api and wait for health ───────────────────────────────────────
+tmux send-keys -t "${CORE}" "cd '$REPO_ROOT/core' && cargo run --bin core-api" Enter
 
 log "Waiting for core-api (first compile may take ~2 min)..."
 for i in $(seq 1 90); do
   curl -fsS http://localhost:8081/health &>/dev/null && break
   [[ $i -eq 90 ]] && {
-    err "core-api did not become healthy. Switch to the 'core-api' window to see errors."
-    tmux select-window -t "$SESSION:core-api"
+    err "core-api did not become healthy. Check the top-right pane for errors."
+    tmux select-pane -t "${CORE}"
     tmux attach-session -t "$SESSION"
     exit 1
   }
@@ -139,80 +181,40 @@ for i in $(seq 1 90); do
 done
 log "core-api ready."
 
-# Window 2 — api-gateway (Go, :8080)
-tmux new-window -t "$SESSION:2" -n "api-gateway" \
-  "cd '$REPO_ROOT/services/api-gateway' && go run ./cmd/gateway; exec $SHELL"
+# ── Start Go services ─────────────────────────────────────────────────────────
+tmux send-keys -t "${GATEWAY}" "cd '$REPO_ROOT/services/api-gateway' && go run ./cmd/gateway" Enter
+tmux send-keys -t "${ADMIN}"   "cd '$REPO_ROOT/services/admin-api'   && go run ./cmd/admin"   Enter
+tmux send-keys -t "${PUBLIC}"  "cd '$REPO_ROOT/services/public-api'  && go run ./cmd/public-api" Enter
 
-# Window 3 — admin-api (Go, :8082)
-tmux new-window -t "$SESSION:3" -n "admin-api" \
-  "cd '$REPO_ROOT/services/admin-api' && go run ./cmd/admin; exec $SHELL"
+# ── Populate status pane (left column) ───────────────────────────────────────
+tmux send-keys -t "${STATUS}" "clear" Enter
+tmux send-keys -t "${STATUS}" "cat <<'BANNER'
 
-# Window 4 — public-api (Go, :8083)
-tmux new-window -t "$SESSION:4" -n "public-api" \
-  "cd '$REPO_ROOT/services/public-api' && go run ./cmd/public-api; exec $SHELL"
-
-# Window 5 — dashboard (Next.js, :3001)
-tmux new-window -t "$SESSION:5" -n "dashboard" \
-  "cd '$REPO_ROOT/apps/dashboard' && npm run dev; exec $SHELL"
-
-# Window 6 — admin app (Next.js, :3002)
-tmux new-window -t "$SESSION:6" -n "admin-app" \
-  "cd '$REPO_ROOT/apps/admin' && npm run dev; exec $SHELL"
-
-# Window 7 — pay page (Next.js, :3003)
-tmux new-window -t "$SESSION:7" -n "pay" \
-  "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
-
-# Print the status summary into the main window, then leave the cursor there
-tmux send-keys -t "$SESSION:banzami" "clear" Enter
-tmux send-keys -t "$SESSION:banzami" "printf '
-\033[1;32mBanzami — dev session\033[0m
-─────────────────────────────────────────────
-  \033[1mServices\033[0m
+  Banzami — dev session
+  ──────────────────────────────────────
+  Services (right panes)
   core-api     →  http://localhost:8081
   api-gateway  →  http://localhost:8080
   admin-api    →  http://localhost:8082
   public-api   →  http://localhost:8083
 
-  \033[1mApps\033[0m
+  Apps (windows 1-3)
   dashboard    →  http://localhost:3001
   admin-app    →  http://localhost:3002
   pay          →  http://localhost:3003
 
-  \033[1mNavigate\033[0m
-  Ctrl-b 0   this window (status)
-  Ctrl-b 1   core-api
-  Ctrl-b 2   api-gateway
-  Ctrl-b 3   admin-api
-  Ctrl-b 4   public-api
-  Ctrl-b 5   dashboard
-  Ctrl-b 6   admin-app
-  Ctrl-b 7   pay
-  Ctrl-b d   detach   (session keeps running)
-  ./dev.sh stop       kill everything
-─────────────────────────────────────────────
-'" Enter
+  Navigate
+  Ctrl-b 0   this window
+  Ctrl-b 1   dashboard
+  Ctrl-b 2   admin-app
+  Ctrl-b 3   pay
+  Ctrl-b d   detach
+  ./dev.sh stop   kill everything
+  ──────────────────────────────────────
+BANNER" Enter
 
-# Focus on the main status window when attaching
+tmux select-pane -t "${STATUS}"
 tmux select-window -t "$SESSION:banzami"
 
-printf "\n"
 log "Session '$SESSION' ready — attaching."
-printf "\n"
-printf "  Navigate:      Ctrl-b n   next window\n"
-printf "                 Ctrl-b p   previous window\n"
-printf "                 Ctrl-b w   window list\n"
-printf "  Detach:        Ctrl-b d   (session keeps running)\n"
-printf "  Re-attach:     tmux attach -t banzami\n"
-printf "  Stop all:      ./dev.sh stop\n"
-printf "\n"
-printf "  core-api     →  http://localhost:8081\n"
-printf "  api-gateway  →  http://localhost:8080\n"
-printf "  admin-api    →  http://localhost:8082\n"
-printf "  public-api   →  http://localhost:8083\n"
-printf "  dashboard    →  http://localhost:3001\n"
-printf "  admin-app    →  http://localhost:3002\n"
-printf "  pay          →  http://localhost:3003\n"
-printf "\n"
-
 tmux attach-session -t "$SESSION"
