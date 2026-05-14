@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
 
-const STATUSES = ['', 'PENDING', 'COMPLETED', 'FAILED', 'REFUNDED'] as const;
+const STATUSES = ['', 'PENDING', 'AUTHORIZED', 'CAPTURED', 'FAILED', 'REVERSED', 'REFUNDED'] as const;
 
 export default function TransactionsPage() {
   const [rows, setRows]         = useState<Transaction[]>([]);
