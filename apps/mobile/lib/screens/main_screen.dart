@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/session_service.dart';
+import '../services/transfer_notification_service.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
@@ -15,15 +16,25 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _tab = 0;
+  TransferNotificationService? _notifSvc;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
+  }
+
+  void _startNotifications() {
+    final session = context.read<SessionService>().session!;
+    final client  = context.read<ConsumerPublicClient>();
+    _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
+      ..startPolling();
   }
 
   @override
   void dispose() {
+    _notifSvc?.stopPolling();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -31,7 +42,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
+      _notifSvc?.stopPolling();
       context.read<SessionService>().lock();
+    } else if (state == AppLifecycleState.resumed) {
+      _notifSvc?.startPolling();
     }
   }
 
