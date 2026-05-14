@@ -25,6 +25,7 @@ credentials/
 # Logs
 *.log
 logs/
+.dev-logs/
 
 # Node / TypeScript / Next.js
 node_modules/
