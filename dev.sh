@@ -46,18 +46,50 @@ if [[ ${#missing[@]} -gt 0 ]]; then
   exit 1
 fi
 
-[[ -f "$REPO_ROOT/.env" ]] || {
-  err ".env not found. Run:  cp .env.example .env  and fill in the required values."
-  exit 1
-}
+# ─── .env bootstrap ───────────────────────────────────────────────────────────
+if [[ ! -f "$REPO_ROOT/.env" ]]; then
+  warn ".env not found — copying from .env.example..."
+  cp "$REPO_ROOT/.env.example" "$REPO_ROOT/.env"
+fi
 
-# Load .env so we can validate required vars before doing anything
+# Load current .env
 set -a; source "$REPO_ROOT/.env"; set +a
 
-: "${JWT_SECRET:?JWT_SECRET is not set in .env}"
-: "${ADMIN_API_KEY:?ADMIN_API_KEY is not set in .env}"
-: "${TRANSIT_ACCOUNT_ID:?TRANSIT_ACCOUNT_ID is not set in .env}"
-: "${BANK_ACCOUNT_ID:?BANK_ACCOUNT_ID is not set in .env}"
+# Auto-generate any missing secrets so the developer never has to do this by hand.
+_env_set() {
+  local key="$1" value="$2"
+  # Update the key in-place whether the line exists (empty or missing value) or not.
+  if grep -q "^${key}=" "$REPO_ROOT/.env"; then
+    sed -i.bak "s|^${key}=.*|${key}=${value}|" "$REPO_ROOT/.env" && rm -f "$REPO_ROOT/.env.bak"
+  else
+    printf "\n%s=%s\n" "$key" "$value" >> "$REPO_ROOT/.env"
+  fi
+  # Export into current shell so the rest of the script can use it immediately.
+  export "${key}=${value}"
+}
+
+generated=()
+
+if [[ -z "${JWT_SECRET:-}" ]]; then
+  _env_set JWT_SECRET "$(openssl rand -hex 32)"
+  generated+=("JWT_SECRET")
+fi
+if [[ -z "${ADMIN_API_KEY:-}" ]]; then
+  _env_set ADMIN_API_KEY "$(openssl rand -hex 32)"
+  generated+=("ADMIN_API_KEY")
+fi
+if [[ -z "${TRANSIT_ACCOUNT_ID:-}" ]]; then
+  _env_set TRANSIT_ACCOUNT_ID "$(uuidgen | tr '[:upper:]' '[:lower:]')"
+  generated+=("TRANSIT_ACCOUNT_ID")
+fi
+if [[ -z "${BANK_ACCOUNT_ID:-}" ]]; then
+  _env_set BANK_ACCOUNT_ID "$(uuidgen | tr '[:upper:]' '[:lower:]')"
+  generated+=("BANK_ACCOUNT_ID")
+fi
+
+if [[ ${#generated[@]} -gt 0 ]]; then
+  warn "Generated and saved to .env: ${generated[*]}"
+fi
 
 # ─── infrastructure ───────────────────────────────────────────────────────────
 log "Starting PostgreSQL and Redis..."
