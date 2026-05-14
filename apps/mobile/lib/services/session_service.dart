@@ -187,19 +187,16 @@ class SessionService extends ChangeNotifier {
   // Session control
   // ---------------------------------------------------------------------------
 
-  /// Locks the session — credentials stay in storage, PIN screen is shown.
+  /// Clears all stored credentials and returns to the welcome screen.
   Future<void> logout() async {
-    _locked = true;
-    notifyListeners();
-  }
-
-  /// Fully wipes all stored data. Use only for "switch account" / "remove account".
-  Future<void> clearAccount() async {
     await _store.deleteAll();
     _session = null;
     _locked  = true;
     notifyListeners();
   }
+
+  /// Alias for logout — kept for the "Remover conta" flow in the profile screen.
+  Future<void> clearAccount() => logout();
 
   // ---------------------------------------------------------------------------
   // PIN hashing — SHA-256 with app-specific salt (for local lock screen)
