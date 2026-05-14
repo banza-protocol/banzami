@@ -169,7 +169,7 @@ class _BalanceHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return SliverToBoxAdapter(
       child: Container(
-        color: BanzamiColors.wine,
+        decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
         padding: EdgeInsets.fromLTRB(
           BanzamiSpacing.xl,
           MediaQuery.of(context).padding.top + BanzamiSpacing.xl,

@@ -52,56 +52,9 @@ class BanzamiMerchantApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-    final base = ThemeData(
-      colorScheme: ColorScheme.fromSeed(
-        seedColor:  BanzamiColors.wine,
-        primary:    BanzamiColors.wine,
-        brightness: Brightness.light,
-      ),
-      useMaterial3: true,
-    );
+    final base = BanzamiTheme.light;
     return base.copyWith(
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
-      appBarTheme: const AppBarTheme(
-        surfaceTintColor: Colors.transparent,
-        elevation:        0,
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled:      true,
-        fillColor:   BanzamiColors.gray100,
-        border:      OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:   BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.wine, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      ),
-      navigationBarTheme: NavigationBarThemeData(
-        labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
-          return BanzamiTextStyles.label.copyWith(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
-          );
-        }),
-        iconTheme: WidgetStateProperty.resolveWith((states) {
-          final selected = states.contains(WidgetState.selected);
-          return IconThemeData(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
-            size:  24,
-          );
-        }),
-      ),
     );
   }
 }

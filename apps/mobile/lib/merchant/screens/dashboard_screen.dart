@@ -160,11 +160,7 @@ class _BalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [BanzamiColors.wine, BanzamiColors.wine.withValues(alpha: 0.8)],
-          begin:  Alignment.topLeft,
-          end:    Alignment.bottomRight,
-        ),
+        gradient: BanzamiGradients.wine,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
