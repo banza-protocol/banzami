@@ -34,17 +34,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context: context,
       builder: (_) => AlertDialog(
         title:   const Text('Terminar sessão?'),
-        content: const Text('Terá de introduzir o seu handle e criar um novo PIN para voltar a entrar.'),
+        content: const Text('A aplicação vai bloquear. Introduza o PIN para voltar a entrar.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Sair', style: TextStyle(color: BanzamiColors.error)),
+            child: const Text('Bloquear', style: TextStyle(color: BanzamiColors.error)),
           ),
         ],
       ),
     );
     if (confirm == true) await svc.logout();
+  }
+
+  Future<void> _confirmClearAccount(BuildContext context, SessionService svc) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title:   const Text('Remover conta?'),
+        content: const Text('Todos os dados guardados serão apagados. Terá de criar conta ou entrar novamente.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) await svc.clearAccount();
   }
 
   @override
@@ -130,13 +148,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           const SizedBox(height: 8),
 
-          // Logout
+          // Logout / conta
           _Section(children: [
             ListTile(
-              leading:   const Icon(Icons.logout_rounded, color: BanzamiColors.error),
-              title:     const Text('Terminar sessão',
-                style: TextStyle(color: BanzamiColors.error)),
-              onTap:     () => _confirmLogout(context, svc),
+              leading: const Icon(Icons.logout_rounded, color: BanzamiColors.error),
+              title:   const Text('Terminar sessão',
+                  style: TextStyle(color: BanzamiColors.error)),
+              onTap:   () => _confirmLogout(context, svc),
+            ),
+            const Divider(height: 1, indent: 56),
+            ListTile(
+              leading:  const Icon(Icons.delete_outline_rounded, color: BanzamiColors.gray400),
+              title:    const Text('Remover conta',
+                  style: TextStyle(color: BanzamiColors.gray600)),
+              subtitle: const Text('Apaga todos os dados guardados'),
+              onTap:    () => _confirmClearAccount(context, svc),
             ),
           ]),
 
