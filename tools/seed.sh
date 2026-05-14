@@ -49,8 +49,8 @@ KEY_RESPONSE=$(curl -fsS -X POST "$CORE_API/internal/v1/merchants/$MERCHANT_ID/a
   -H "Content-Type: application/json" \
   -d '{"name":"dev"}')
 
-RAW_KEY=$(echo "$KEY_RESPONSE" | jq -r '.raw_key')
-[[ -z "$RAW_KEY" || "$RAW_KEY" == "null" ]] && err "Failed to get raw_key. Response: $KEY_RESPONSE"
+RAW_KEY=$(echo "$KEY_RESPONSE" | jq -r '.secret')
+[[ -z "$RAW_KEY" || "$RAW_KEY" == "null" ]] && err "Failed to get secret. Response: $KEY_RESPONSE"
 log "API key created."
 
 # ─── create wallet ────────────────────────────────────────────────────────────
