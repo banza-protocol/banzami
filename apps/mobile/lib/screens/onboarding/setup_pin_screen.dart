@@ -87,8 +87,12 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
 
       final canBio = await svc.canUseBiometrics();
       if (!mounted) return;
+
+      // Pop the entire onboarding stack — app.dart has already rebuilt with
+      // MainScreen as home now that the session exists.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
       if (canBio) _showBiometricsPrompt();
-      // SessionService notifies listeners → app.dart rebuilds → MainScreen shown.
     } on BanzamiApiException catch (e) {
       setState(() {
         _apiError   = e.code == 'HANDLE_TAKEN'

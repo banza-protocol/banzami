@@ -58,7 +58,8 @@ class _LoginScreenState extends State<LoginScreen> {
         pin:         _pin,
         token:       result.token,
       );
-      // SessionService notifies → app.dart rebuilds → MainScreen.
+      if (!mounted) return;
+      Navigator.of(context).popUntil((route) => route.isFirst);
     } on BanzamiApiException catch (e) {
       setState(() {
         _error   = e.code == 'INVALID_CREDENTIALS'
