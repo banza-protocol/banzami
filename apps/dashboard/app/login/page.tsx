@@ -120,8 +120,8 @@ export default function LoginPage() {
 
         <p className="text-xs text-center text-gray-400">
           Não tem credenciais? Contacte{' '}
-          <a href="mailto:contact@banzami.org" className="text-wine hover:underline">
-            contact@banzami.org
+          <a href="mailto:noreply@banzami.org" className="text-wine hover:underline">
+            noreply@banzami.org
           </a>
         </p>
       </div>
