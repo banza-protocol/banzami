@@ -30,20 +30,25 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     try {
-      // Verify credentials by fetching the merchant
-      const res = await fetch(
-        `${form.gatewayUrl.replace(/\/$/, '')}/v1/merchants/${form.merchantId}`,
-        { headers: { Authorization: `Bearer ${form.apiKey}` } },
-      );
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body.message ?? `HTTP ${res.status}`);
+      const base = form.gatewayUrl.replace(/\/$/, '');
+
+      // Exchange the raw API key for a short-lived JWT
+      const tokenRes = await fetch(`${base}/v1/auth/token`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ api_key: form.apiKey }),
+      });
+      if (!tokenRes.ok) {
+        const body = await tokenRes.json().catch(() => ({}));
+        throw new Error(body.message ?? `HTTP ${tokenRes.status}`);
       }
+      const { token } = await tokenRes.json() as { token: string };
+
       saveSession({
-        apiKey:     form.apiKey,
+        apiKey:     token,
         merchantId: form.merchantId,
         walletId:   form.walletId.trim() || undefined,
-        gatewayUrl: form.gatewayUrl.replace(/\/$/, ''),
+        gatewayUrl: base,
       });
       router.replace('/');
     } catch (err) {
