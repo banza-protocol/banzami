@@ -161,6 +161,6 @@ export class AdminApi {
 
   // Reconciliation
   runReconciliation(): Promise<Record<string, unknown>> {
-    return this.req('/admin/v1/reconciliation/run', { method: 'POST' });
+    return this.req('/admin/v1/reconciliation/run', { method: 'POST', body: JSON.stringify({}) });
   }
 }

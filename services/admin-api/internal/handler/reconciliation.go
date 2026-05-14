@@ -20,22 +20,14 @@ func NewReconciliationHandler(core *service.CoreAdminClient) *ReconciliationHand
 // Body must include merchant_id, period_start, period_end and the external statement lines.
 func (h *ReconciliationHandler) Run(w http.ResponseWriter, r *http.Request) {
 	var body map[string]any
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
-		return
+	if r.ContentLength != 0 {
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+			return
+		}
 	}
-
-	if _, ok := body["merchant_id"]; !ok {
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "merchant_id is required")
-		return
-	}
-	if _, ok := body["period_start"]; !ok {
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "period_start is required")
-		return
-	}
-	if _, ok := body["period_end"]; !ok {
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "period_end is required")
-		return
+	if body == nil {
+		body = map[string]any{}
 	}
 
 	result, err := h.core.RunReconciliation(r.Context(), body)
