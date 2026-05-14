@@ -117,13 +117,13 @@ done
 
 # ─── tmux session ─────────────────────────────────────────────────────────────
 tmux kill-session -t "$SESSION" 2>/dev/null || true
+sleep 0.5  # let tmux fully release the session before creating a new one
 
 # Window 0 — banzami (main/status window — stays open as a reference)
-tmux new-session -d -s "$SESSION" -n "banzami" \
-  "exec $SHELL"
+tmux new-session -d -s "$SESSION" -n "banzami" "exec $SHELL"
 
 # Window 1 — core-api (Rust) — starts first; Go services wait for its health check
-tmux new-window -t "$SESSION" -n "core-api" \
+tmux new-window -t "$SESSION:1" -n "core-api" \
   "cd '$REPO_ROOT/core' && cargo run --bin core-api; exec $SHELL"
 
 log "Waiting for core-api (first compile may take ~2 min)..."
@@ -140,27 +140,27 @@ done
 log "core-api ready."
 
 # Window 2 — api-gateway (Go, :8080)
-tmux new-window -t "$SESSION" -n "api-gateway" \
+tmux new-window -t "$SESSION:2" -n "api-gateway" \
   "cd '$REPO_ROOT/services/api-gateway' && go run ./cmd/gateway; exec $SHELL"
 
 # Window 3 — admin-api (Go, :8082)
-tmux new-window -t "$SESSION" -n "admin-api" \
+tmux new-window -t "$SESSION:3" -n "admin-api" \
   "cd '$REPO_ROOT/services/admin-api' && go run ./cmd/admin; exec $SHELL"
 
 # Window 4 — public-api (Go, :8083)
-tmux new-window -t "$SESSION" -n "public-api" \
+tmux new-window -t "$SESSION:4" -n "public-api" \
   "cd '$REPO_ROOT/services/public-api' && go run ./cmd/public-api; exec $SHELL"
 
 # Window 5 — dashboard (Next.js, :3001)
-tmux new-window -t "$SESSION" -n "dashboard" \
+tmux new-window -t "$SESSION:5" -n "dashboard" \
   "cd '$REPO_ROOT/apps/dashboard' && npm run dev; exec $SHELL"
 
 # Window 6 — admin app (Next.js, :3002)
-tmux new-window -t "$SESSION" -n "admin-app" \
+tmux new-window -t "$SESSION:6" -n "admin-app" \
   "cd '$REPO_ROOT/apps/admin' && npm run dev; exec $SHELL"
 
 # Window 7 — pay page (Next.js, :3003)
-tmux new-window -t "$SESSION" -n "pay" \
+tmux new-window -t "$SESSION:7" -n "pay" \
   "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
 
 # Print the status summary into the main window, then leave the cursor there
