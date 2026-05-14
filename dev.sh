@@ -187,12 +187,13 @@ tmux send-keys -t "${ADMIN}"   "cd '$REPO_ROOT/services/admin-api'   && go run .
 tmux send-keys -t "${PUBLIC}"  "cd '$REPO_ROOT/services/public-api'  && go run ./cmd/public-api" Enter
 
 # ── Populate status pane (left column) ───────────────────────────────────────
-tmux send-keys -t "${STATUS}" "clear" Enter
-tmux send-keys -t "${STATUS}" "cat <<'BANNER'
+# Write the status content to a temp file — avoids send-keys heredoc/escape issues.
+STATUS_FILE=$(mktemp /tmp/banzami-status-XXXXX)
+cat > "$STATUS_FILE" << 'EOF'
 
-  Banzami — dev session
-  ──────────────────────────────────────
-  Services (right panes)
+  Banzami Dev Session
+  ─────────────────────────────────────
+  Backend (right panes)
   core-api     →  http://localhost:8081
   api-gateway  →  http://localhost:8080
   admin-api    →  http://localhost:8082
@@ -204,14 +205,15 @@ tmux send-keys -t "${STATUS}" "cat <<'BANNER'
   pay          →  http://localhost:3003
 
   Navigate
-  Ctrl-b 0   this window
-  Ctrl-b 1   dashboard
-  Ctrl-b 2   admin-app
-  Ctrl-b 3   pay
-  Ctrl-b d   detach
-  ./dev.sh stop   kill everything
-  ──────────────────────────────────────
-BANNER" Enter
+  Ctrl-b 0       this window
+  Ctrl-b 1/2/3   dashboard / admin / pay
+  Ctrl-b ← →     switch panes
+  Ctrl-b d       detach (keeps running)
+  ./dev.sh stop  kill everything
+  ─────────────────────────────────────
+
+EOF
+tmux send-keys -t "${STATUS}" "clear && cat '$STATUS_FILE'" Enter
 
 tmux select-pane -t "${STATUS}"
 tmux select-window -t "$SESSION:banzami"
