@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -8,25 +11,54 @@ import 'services/session_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/pin_screen.dart';
 import 'screens/main_screen.dart';
+import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 
-class BanzamiApp extends StatelessWidget {
+final _navigatorKey = GlobalKey<NavigatorState>();
+
+class BanzamiApp extends StatefulWidget {
   const BanzamiApp({super.key});
+
+  @override
+  State<BanzamiApp> createState() => _BanzamiAppState();
+}
+
+class _BanzamiAppState extends State<BanzamiApp> {
+  StreamSubscription<Uri>? _linkSub;
+
+  @override
+  void initState() {
+    super.initState();
+    _linkSub = AppLinks().uriLinkStream.listen(_handleLink);
+  }
+
+  @override
+  void dispose() {
+    _linkSub?.cancel();
+    super.dispose();
+  }
+
+  void _handleLink(Uri uri) {
+    // banzami://pay/link/{slug}
+    if (uri.host == 'pay' &&
+        uri.pathSegments.length >= 2 &&
+        uri.pathSegments[0] == 'link') {
+      final slug = uri.pathSegments[1];
+      _navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => LinkPayScreen(slug: slug),
+      ));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SessionService()..initialize()),
-        // ConsumerPublicClient is provided here; the token is injected from
-        // the session after the first build (see _home below).
-        Provider(create: (_) => ConsumerPublicClient(
-          baseUrl: AppConfig.publicApiUrl,
-        )),
+        Provider(create: (_) => ConsumerPublicClient(baseUrl: AppConfig.publicApiUrl)),
       ],
       child: Consumer<SessionService>(
         builder: (context, session, _) {
-          // Keep the client's token in sync with the stored session token.
           if (session.session != null) {
             context.read<ConsumerPublicClient>().setToken(session.session!.token);
           }
@@ -34,6 +66,7 @@ class BanzamiApp extends StatelessWidget {
             title:                      'Banzami',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
+            navigatorKey:               _navigatorKey,
             home:                       _home(session),
           );
         },
@@ -50,8 +83,6 @@ class BanzamiApp extends StatelessWidget {
 
   ThemeData _buildTheme() {
     final base = BanzamiTheme.light;
-    return base.copyWith(
-      textTheme: GoogleFonts.interTextTheme(base.textTheme),
-    );
+    return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
   }
 }
