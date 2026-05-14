@@ -431,6 +431,45 @@ func NewCoreApiPayoutService(client *CoreApiClient) *CoreApiPayoutService {
 	return &CoreApiPayoutService{client: client}
 }
 
+// corePayoutResp mirrors the Rust Payout JSON, where the monetary value is a
+// nested Money object { amount_minor, currency } rather than flat fields.
+type corePayoutResp struct {
+	ID              string        `json:"id"`
+	MerchantID      string        `json:"merchant_id"`
+	WalletID        string        `json:"wallet_id"`
+	IdempotencyKey  string        `json:"idempotency_key"`
+	Status          string        `json:"status"`
+	Amount          coreMoneyResp `json:"amount"`
+	Destination     BankDestination `json:"destination"`
+	LedgerPostingID *string       `json:"ledger_posting_id"`
+	FailureReason   *string       `json:"failure_reason"`
+	CreatedAt       time.Time     `json:"created_at"`
+	SentAt          *time.Time    `json:"sent_at"`
+	ConfirmedAt     *time.Time    `json:"confirmed_at"`
+	ReturnedAt      *time.Time    `json:"returned_at"`
+	FailedAt        *time.Time    `json:"failed_at"`
+}
+
+func (r *corePayoutResp) toPayout() *Payout {
+	return &Payout{
+		ID:              r.ID,
+		MerchantID:      r.MerchantID,
+		WalletID:        r.WalletID,
+		IdempotencyKey:  r.IdempotencyKey,
+		Status:          PayoutStatus(r.Status),
+		AmountMinor:     r.Amount.AmountMinor,
+		Currency:        r.Amount.Currency,
+		Destination:     r.Destination,
+		LedgerPostingID: r.LedgerPostingID,
+		FailureReason:   r.FailureReason,
+		CreatedAt:       r.CreatedAt,
+		SentAt:          r.SentAt,
+		ConfirmedAt:     r.ConfirmedAt,
+		ReturnedAt:      r.ReturnedAt,
+		FailedAt:        r.FailedAt,
+	}
+}
+
 func (s *CoreApiPayoutService) Create(
 	ctx context.Context,
 	req CreatePayoutRequest,
@@ -445,14 +484,14 @@ func (s *CoreApiPayoutService) Create(
 		"bank_code":           req.BankCode,
 		"account_holder_name": req.AccountHolderName,
 	}
-	var p Payout
-	if err := s.client.post(ctx, "/internal/v1/payouts", body, &p); err != nil {
+	var resp corePayoutResp
+	if err := s.client.post(ctx, "/internal/v1/payouts", body, &resp); err != nil {
 		if strings.Contains(err.Error(), "INSUFFICIENT") {
 			return nil, ErrPayoutInsufficientFunds
 		}
 		return nil, err
 	}
-	return &p, nil
+	return resp.toPayout(), nil
 }
 
 func (s *CoreApiPayoutService) Get(
@@ -460,14 +499,14 @@ func (s *CoreApiPayoutService) Get(
 	_ string,
 	id string,
 ) (*Payout, error) {
-	var p Payout
-	if err := s.client.get(ctx, "/internal/v1/payouts/"+id, &p); err != nil {
+	var resp corePayoutResp
+	if err := s.client.get(ctx, "/internal/v1/payouts/"+id, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrPayoutNotFound
 		}
 		return nil, err
 	}
-	return &p, nil
+	return resp.toPayout(), nil
 }
 
 func (s *CoreApiPayoutService) List(
@@ -477,12 +516,16 @@ func (s *CoreApiPayoutService) List(
 ) ([]*Payout, error) {
 	path := fmt.Sprintf("/internal/v1/payouts?merchant_id=%s&limit=%d", merchantID, limit)
 	var result struct {
-		Data []*Payout `json:"data"`
+		Data []*corePayoutResp `json:"data"`
 	}
 	if err := s.client.get(ctx, path, &result); err != nil {
 		return nil, err
 	}
-	return result.Data, nil
+	out := make([]*Payout, len(result.Data))
+	for i, r := range result.Data {
+		out[i] = r.toPayout()
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------------------

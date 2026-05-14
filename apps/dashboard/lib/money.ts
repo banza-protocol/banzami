@@ -1,11 +1,12 @@
 export function formatMinor(amountMinor: number, currency = 'AOA'): string {
+  const ccy   = currency || 'AOA';
   const major = amountMinor / 100;
-  if (currency === 'AOA') {
+  if (ccy === 'AOA') {
     return `${major.toLocaleString('pt-AO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Kz`;
   }
   return new Intl.NumberFormat('pt-AO', {
-    style: 'currency',
-    currency,
+    style:                 'currency',
+    currency:              ccy,
     minimumFractionDigits: 2,
   }).format(major);
 }
