@@ -23,7 +23,7 @@ export interface Transaction {
   consumer_id?: string;
   amount_minor: number;
   currency:     string;
-  status:       'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+  status:       'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'FAILED' | 'REVERSED' | 'REFUNDED';
   reference?:   string;
   description?: string;
   created_at:   string;

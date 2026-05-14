@@ -14,15 +14,18 @@ const STATUS_MAP: Record<string, Variant> = {
   SETTLED:        'success',
   CONFIRMED:      'success',
   COMPLETED:      'success',
+  CAPTURED:       'success',
   PENDING:        'warning',
   PENDING_REVIEW: 'warning',
   PROCESSING:     'warning',
+  AUTHORIZED:     'warning',
   SUBMITTED:      'info',
   SENT:           'info',
   FAILED:         'error',
   REJECTED:       'error',
   FLAGGED_AML:    'error',
   SUSPENDED:      'error',
+  REVERSED:       'neutral',
   RETURNED:       'neutral',
 };
 

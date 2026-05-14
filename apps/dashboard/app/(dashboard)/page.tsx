@@ -24,7 +24,7 @@ export default function OverviewPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const completed  = txs.filter(t => t.status === 'COMPLETED');
+  const completed  = txs.filter(t => t.status === 'CAPTURED');
   const totalVol   = completed.reduce((s, t) => s + t.amount_minor, 0);
   const currency   = txs[0]?.currency ?? 'AOA';
   const successPct = txs.length ? Math.round((completed.length / txs.length) * 100) : 0;

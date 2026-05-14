@@ -9,17 +9,20 @@ const styles: Record<Variant, string> = {
 };
 
 const STATUS_MAP: Record<string, Variant> = {
-  COMPLETED: 'success',
-  ACTIVE:    'success',
-  PAID:      'success',
-  PENDING:   'warning',
-  PROCESSING:'warning',
-  FAILED:    'error',
-  EXPIRED:   'error',
-  CANCELLED: 'error',
-  REFUNDED:  'info',
-  SUSPENDED: 'warning',
-  USED:      'neutral',
+  COMPLETED:  'success',
+  CAPTURED:   'success',
+  ACTIVE:     'success',
+  PAID:       'success',
+  PENDING:    'warning',
+  AUTHORIZED: 'warning',
+  PROCESSING: 'warning',
+  FAILED:     'error',
+  EXPIRED:    'error',
+  CANCELLED:  'error',
+  REVERSED:   'neutral',
+  REFUNDED:   'info',
+  SUSPENDED:  'warning',
+  USED:       'neutral',
 };
 
 export function Badge({ label }: { label: string }) {
