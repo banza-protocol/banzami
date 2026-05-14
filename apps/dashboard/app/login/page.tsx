@@ -7,13 +7,8 @@ import { saveSession } from '@/lib/session';
 export default function LoginPage() {
   const router = useRouter();
 
-  const [form, setForm] = useState({
-    gatewayUrl: process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'http://localhost:8080',
-    apiKey:     '',
-    merchantId: '',
-    walletId:   '',
-  });
-  const [error, setError] = useState('');
+  const [form, setForm] = useState({ merchantId: '', apiKey: '' });
+  const [error, setError]   = useState('');
   const [loading, setLoading] = useState(false);
 
   function set(k: keyof typeof form) {
@@ -24,15 +19,16 @@ export default function LoginPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!form.apiKey.trim() || !form.merchantId.trim()) {
-      setError('API Key e ID do comerciante são obrigatórios.');
+      setError('Merchant ID e API Key são obrigatórios.');
       return;
     }
     setLoading(true);
     setError('');
-    try {
-      const base = form.gatewayUrl.replace(/\/$/, '');
 
-      // Exchange the raw API key for a short-lived JWT
+    const base = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+
+    try {
+      // Exchange API key for a short-lived JWT
       const tokenRes = await fetch(`${base}/v1/auth/token`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -40,14 +36,28 @@ export default function LoginPage() {
       });
       if (!tokenRes.ok) {
         const body = await tokenRes.json().catch(() => ({}));
-        throw new Error(body.message ?? `HTTP ${tokenRes.status}`);
+        throw new Error(body.message ?? 'Credenciais inválidas. Verifique o Merchant ID e a API Key.');
       }
       const { token } = await tokenRes.json() as { token: string };
 
+      // Fetch wallet ID automatically (optional — dashboard works without it)
+      let walletId: string | undefined;
+      try {
+        const walletRes = await fetch(`${base}/v1/wallets?currency=AOA`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (walletRes.ok) {
+          const wallets = await walletRes.json() as { data?: { id: string }[] };
+          walletId = wallets.data?.[0]?.id;
+        }
+      } catch {
+        // Non-fatal — proceed without wallet ID
+      }
+
       saveSession({
         apiKey:     token,
-        merchantId: form.merchantId,
-        walletId:   form.walletId.trim() || undefined,
+        merchantId: form.merchantId.trim(),
+        walletId,
         gatewayUrl: base,
       });
       router.replace('/');
@@ -65,17 +75,20 @@ export default function LoginPage() {
         <div>
           <p className="text-xs font-semibold text-wine uppercase tracking-widest mb-xs">Banzami</p>
           <h1 className="text-xl font-bold text-gray-900">Acesso ao Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-xs">Introduza as credenciais do comerciante.</p>
+          <p className="text-sm text-gray-400 mt-xs">
+            Introduza as credenciais fornecidas pela Banzami.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-lg">
-          <Field label="Gateway URL">
+          <Field label="Merchant ID">
             <input
-              type="url"
-              value={form.gatewayUrl}
-              onChange={set('gatewayUrl')}
+              type="text"
+              value={form.merchantId}
+              onChange={set('merchantId')}
               className={inputCls}
-              placeholder="http://localhost:8080"
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              autoComplete="username"
               required
             />
           </Field>
@@ -87,29 +100,8 @@ export default function LoginPage() {
               onChange={set('apiKey')}
               className={inputCls}
               placeholder="bz_live_…"
-              required
               autoComplete="current-password"
-            />
-          </Field>
-
-          <Field label="ID do Comerciante">
-            <input
-              type="text"
-              value={form.merchantId}
-              onChange={set('merchantId')}
-              className={inputCls}
-              placeholder="mch_…"
               required
-            />
-          </Field>
-
-          <Field label="ID da Carteira (opcional)">
-            <input
-              type="text"
-              value={form.walletId}
-              onChange={set('walletId')}
-              className={inputCls}
-              placeholder="wlt_…"
             />
           </Field>
 
@@ -125,6 +117,13 @@ export default function LoginPage() {
             {loading ? 'A verificar…' : 'Entrar'}
           </button>
         </form>
+
+        <p className="text-xs text-center text-gray-400">
+          Não tem credenciais? Contacte{' '}
+          <a href="mailto:contact@banzami.org" className="text-wine hover:underline">
+            contact@banzami.org
+          </a>
+        </p>
       </div>
     </div>
   );
