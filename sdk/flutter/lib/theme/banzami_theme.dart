@@ -5,42 +5,41 @@ import 'package:flutter/material.dart';
 // ---------------------------------------------------------------------------
 
 abstract class BanzamiColors {
-  // Primary — Banzami Burgundy
-  // Deep, sophisticated, premium. Less saturated than raw red.
-  static const Color wine      = Color(0xFF7A0019); // primary identity
-  static const Color wineDark  = Color(0xFF560012); // pressed / deep gradient
-  static const Color wineLight = Color(0xFF9B1F35); // gradient end / hover
+  // Primary — Sailor Blue
+  static const Color navy      = Color(0xFF00203F); // primary identity
+  static const Color navyDark  = Color(0xFF001428); // gradient deep / pressed
+  static const Color navyMid   = Color(0xFF003A6B); // mid tone for gradients
 
-  // Secondary — Wine Rose
-  // Softer sibling. Used for secondary actions and decorative accents.
-  static const Color wineRose      = Color(0xFFA63A50);
-  static const Color wineRoseLight = Color(0xFFBF6070);
+  // Backward-compatibility aliases (all existing screens use these names)
+  static const Color wine      = navy;
+  static const Color wineDark  = navyDark;
+  static const Color wineLight = navyMid;
 
-  // Accent — Savanna Gold
-  // Premium African warmth. CTAs, highlights, badges.
-  static const Color gold      = Color(0xFFC89B3C);
-  static const Color goldLight = Color(0xFFD4AE65);
-  static const Color goldBg    = Color(0xFFFDF6E3);
+  // Accent — Mint
+  static const Color mint      = Color(0xFFADEFD1); // accent / highlight
+  static const Color mintDark  = Color(0xFF7EC8A8); // pressed / deeper mint
+  static const Color mintLight = Color(0xFFD6F7EC); // subtle mint fill
+  static const Color mintBg    = Color(0xFFEEFAF5); // very light mint surface
 
-  // Neutrals — warm tinted for comfort on screen
+  // Neutrals — cool-tinted to pair with navy
   static const Color white    = Color(0xFFFFFFFF);
-  static const Color offWhite = Color(0xFFFAF8F7); // Warm Ivory — main background
-  static const Color gray100  = Color(0xFFF0ECEB); // form fills, dividers
-  static const Color gray200  = Color(0xFFE8E3E1); // borders, subtle lines
-  static const Color gray400  = Color(0xFF6B6B6B); // secondary text
-  static const Color gray600  = Color(0xFF4A4744); // tertiary text
-  static const Color gray700  = Color(0xFF4A4744); // alias → gray600
-  static const Color gray900  = Color(0xFF1A1A1A); // primary text
+  static const Color offWhite = Color(0xFFF7F9FB); // cool near-white — main background
+  static const Color gray100  = Color(0xFFEEF1F5); // form fills, chips
+  static const Color gray200  = Color(0xFFDDE3EC); // borders, dividers
+  static const Color gray400  = Color(0xFF6B7A8D); // secondary text
+  static const Color gray600  = Color(0xFF3D4F63); // tertiary text
+  static const Color gray700  = Color(0xFF3D4F63); // alias → gray600
+  static const Color gray900  = Color(0xFF0A1628); // primary text (navy-tinted black)
 
   // Semantic
-  static const Color success   = Color(0xFF166534); // green-800 — less bright
-  static const Color successBg = Color(0xFFF0FDF4);
-  static const Color warning   = Color(0xFF92400E);
+  static const Color success   = Color(0xFF0D7A52);
+  static const Color successBg = Color(0xFFEEFAF5);
+  static const Color warning   = Color(0xFF92600E);
   static const Color warningBg = Color(0xFFFFFBEB);
-  static const Color error     = Color(0xFF991B1B); // red-800 — not too loud
+  static const Color error     = Color(0xFFC0392B);
   static const Color errorBg   = Color(0xFFFEF2F2);
-  static const Color info      = Color(0xFF1E3A8A);
-  static const Color infoBg    = Color(0xFFEFF6FF);
+  static const Color info      = Color(0xFF00203F);
+  static const Color infoBg    = Color(0xFFEEF4FF);
 
   BanzamiColors._();
 }
@@ -50,26 +49,29 @@ abstract class BanzamiColors {
 // ---------------------------------------------------------------------------
 
 abstract class BanzamiGradients {
-  /// Primary wine gradient — balance card, key headers.
-  static const LinearGradient wine = LinearGradient(
-    colors: [Color(0xFF7A0019), Color(0xFF560012)],
+  /// Primary navy gradient — balance card, key headers.
+  static const LinearGradient navy = LinearGradient(
+    colors: [Color(0xFF00203F), Color(0xFF001428)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
   );
 
-  /// Subtle wine rose — secondary surfaces, category chips.
-  static const LinearGradient wineRose = LinearGradient(
-    colors: [Color(0xFF7A0019), Color(0xFFA63A50)],
+  /// Navy to mid blue — secondary surfaces.
+  static const LinearGradient navyBlue = LinearGradient(
+    colors: [Color(0xFF00203F), Color(0xFF003A6B)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
   );
 
-  /// Gold accent — premium badge, highlight strip.
-  static const LinearGradient gold = LinearGradient(
-    colors: [Color(0xFFC89B3C), Color(0xFFD4AE65)],
+  /// Mint accent — premium badge, highlight strip.
+  static const LinearGradient mint = LinearGradient(
+    colors: [Color(0xFFADEFD1), Color(0xFF7EC8A8)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
   );
+
+  // Keep wine as alias during transition (unused but prevents SDK breakage).
+  static const LinearGradient wine = navy;
 
   BanzamiGradients._();
 }
@@ -82,30 +84,30 @@ abstract class BanzamiTextStyles {
   static const String _fontFamily = 'Inter';
 
   static const TextStyle displayXl = TextStyle(
-    fontFamily:  _fontFamily,
-    fontSize:    48,
-    fontWeight:  FontWeight.w700,
-    height:      56 / 48,
+    fontFamily:    _fontFamily,
+    fontSize:      48,
+    fontWeight:    FontWeight.w700,
+    height:        56 / 48,
     letterSpacing: -0.5,
-    color:       BanzamiColors.gray900,
+    color:         BanzamiColors.gray900,
   );
 
   static const TextStyle displayLg = TextStyle(
-    fontFamily:  _fontFamily,
-    fontSize:    36,
-    fontWeight:  FontWeight.w700,
-    height:      44 / 36,
+    fontFamily:    _fontFamily,
+    fontSize:      36,
+    fontWeight:    FontWeight.w700,
+    height:        44 / 36,
     letterSpacing: -0.3,
-    color:       BanzamiColors.gray900,
+    color:         BanzamiColors.gray900,
   );
 
   static const TextStyle displayMd = TextStyle(
-    fontFamily:  _fontFamily,
-    fontSize:    28,
-    fontWeight:  FontWeight.w600,
-    height:      36 / 28,
+    fontFamily:    _fontFamily,
+    fontSize:      28,
+    fontWeight:    FontWeight.w600,
+    height:        36 / 28,
     letterSpacing: -0.2,
-    color:       BanzamiColors.gray900,
+    color:         BanzamiColors.gray900,
   );
 
   static const TextStyle headingLg = TextStyle(
@@ -165,7 +167,6 @@ abstract class BanzamiTextStyles {
     color:         BanzamiColors.gray900,
   );
 
-  /// Monetary amounts — tabular numerals for decimal alignment.
   static const TextStyle mono = TextStyle(
     fontFamily:   'JetBrains Mono',
     fontSize:     14,
@@ -278,25 +279,25 @@ abstract class BanzamiShadows {
 abstract class BanzamiTheme {
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor:  BanzamiColors.wine,
-      primary:    BanzamiColors.wine,
-      onPrimary:  BanzamiColors.white,
-      secondary:  BanzamiColors.wineRose,
-      onSecondary: BanzamiColors.white,
-      tertiary:   BanzamiColors.gold,
-      onTertiary: BanzamiColors.white,
-      surface:    BanzamiColors.white,
-      onSurface:  BanzamiColors.gray900,
-      error:      BanzamiColors.error,
-      onError:    BanzamiColors.white,
-      brightness: Brightness.light,
+      seedColor:   BanzamiColors.navy,
+      primary:     BanzamiColors.navy,
+      onPrimary:   BanzamiColors.white,
+      secondary:   BanzamiColors.mint,
+      onSecondary: BanzamiColors.navy,
+      tertiary:    BanzamiColors.mintDark,
+      onTertiary:  BanzamiColors.white,
+      surface:     BanzamiColors.white,
+      onSurface:   BanzamiColors.gray900,
+      error:       BanzamiColors.error,
+      onError:     BanzamiColors.white,
+      brightness:  Brightness.light,
     );
 
     return ThemeData(
-      useMaterial3:           true,
-      colorScheme:            colorScheme,
+      useMaterial3:            true,
+      colorScheme:             colorScheme,
       scaffoldBackgroundColor: BanzamiColors.offWhite,
-      fontFamily:             'Inter',
+      fontFamily:              'Inter',
 
       appBarTheme: const AppBarTheme(
         backgroundColor:        BanzamiColors.white,
@@ -310,7 +311,7 @@ abstract class BanzamiTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzamiColors.wine,
+          backgroundColor: BanzamiColors.navy,
           foregroundColor: BanzamiColors.white,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
@@ -326,12 +327,12 @@ abstract class BanzamiTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
+          foregroundColor: BanzamiColors.navy,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
             borderRadius: BanzamiRadius.lgAll,
           ),
-          side: const BorderSide(color: BanzamiColors.wine, width: 1.5),
+          side: const BorderSide(color: BanzamiColors.navy, width: 1.5),
           textStyle: BanzamiTextStyles.label.copyWith(
             fontSize:   15,
             fontWeight: FontWeight.w600,
@@ -341,7 +342,7 @@ abstract class BanzamiTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
+          foregroundColor: BanzamiColors.navy,
           textStyle: BanzamiTextStyles.label.copyWith(
             fontSize:   14,
             fontWeight: FontWeight.w600,
@@ -366,7 +367,7 @@ abstract class BanzamiTheme {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.lgAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   BorderSide(color: BanzamiColors.navy, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.lgAll,
@@ -380,7 +381,7 @@ abstract class BanzamiTheme {
         labelStyle: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray600),
         errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
         floatingLabelStyle: const TextStyle(
-          color:      BanzamiColors.wine,
+          color:      BanzamiColors.navy,
           fontSize:   12,
           fontWeight: FontWeight.w500,
         ),
@@ -411,7 +412,7 @@ abstract class BanzamiTheme {
       ),
 
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: BanzamiColors.wine,
+        color: BanzamiColors.navy,
       ),
 
       snackBarTheme: SnackBarThemeData(
@@ -422,28 +423,28 @@ abstract class BanzamiTheme {
         shape: const RoundedRectangleBorder(
           borderRadius: BanzamiRadius.lgAll,
         ),
-        behavior: SnackBarBehavior.floating,
+        behavior:  SnackBarBehavior.floating,
         elevation: 4,
       ),
 
       listTileTheme: const ListTileThemeData(
-        tileColor:           BanzamiColors.white,
-        contentPadding:      EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        minLeadingWidth:     20,
-        iconColor:           BanzamiColors.gray600,
+        tileColor:      BanzamiColors.white,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+        minLeadingWidth: 20,
+        iconColor:      BanzamiColors.gray600,
       ),
 
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: BanzamiColors.white,
-        indicatorColor:  BanzamiColors.wine,
+        indicatorColor:  BanzamiColors.navy,
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation:  0,
         shadowColor: const Color(0x1A000000),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return BanzamiTextStyles.label.copyWith(
             fontSize: 11,
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzamiColors.navy : BanzamiColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
