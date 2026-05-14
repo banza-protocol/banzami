@@ -35,17 +35,18 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
   bool    _confirming = false;
   bool    _error      = false;
   bool    _saving     = false;
+  int     _padKey     = 0;
 
   void _onPinComplete() async {
     if (_pin.length < kPinLength) return;
 
     if (!_confirming) {
-      setState(() { _firstPin = _pin; _pin = ''; _confirming = true; });
+      setState(() { _firstPin = _pin; _pin = ''; _confirming = true; _padKey++; });
       return;
     }
 
     if (_pin != _firstPin) {
-      setState(() { _error = true; _pin = ''; _confirming = false; _firstPin = null; });
+      setState(() { _error = true; _pin = ''; _confirming = false; _firstPin = null; _padKey++; });
       return;
     }
 
@@ -97,6 +98,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
               ),
               const SizedBox(height: 40),
               PinPad(
+                key:        ValueKey(_padKey),
                 onChanged:  (v) => setState(() { _pin = v; _error = false; }),
                 onComplete: _onPinComplete,
                 disabled:   _saving,
