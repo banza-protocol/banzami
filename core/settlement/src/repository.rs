@@ -18,6 +18,11 @@ pub trait SettlementRepository: Send + Sync {
         &self,
         merchant_id: MerchantId,
     ) -> Result<Vec<Settlement>, SettlementError>;
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<&str>,
+    ) -> Result<Vec<Settlement>, SettlementError>;
     async fn update_status(
         &self,
         id: SettlementId,
@@ -128,6 +133,32 @@ impl SettlementRepository for PostgresSettlementRepository {
         .bind(merchant_id.as_uuid())
         .fetch_all(&self.pool)
         .await
+        .map_err(SettlementError::Database)?;
+
+        rows.into_iter().map(settlement_from_row).collect()
+    }
+
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<&str>,
+    ) -> Result<Vec<Settlement>, SettlementError> {
+        let rows = if let Some(s) = status {
+            sqlx::query_as::<_, SettlementRow>(&format!(
+                "{SELECT} WHERE status = $1 ORDER BY created_at DESC LIMIT $2"
+            ))
+            .bind(s)
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+        } else {
+            sqlx::query_as::<_, SettlementRow>(&format!(
+                "{SELECT} ORDER BY created_at DESC LIMIT $1"
+            ))
+            .bind(limit)
+            .fetch_all(&self.pool)
+            .await
+        }
         .map_err(SettlementError::Database)?;
 
         rows.into_iter().map(settlement_from_row).collect()

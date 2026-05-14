@@ -12,16 +12,19 @@ export class AdminApiError extends Error {
 // ---------------------------------------------------------------------------
 
 export interface Settlement {
-  id:             string;
-  merchant_id:    string;
-  wallet_id:      string;
-  amount_minor:   number;
-  currency:       string;
-  status:         'PENDING' | 'SUBMITTED' | 'SETTLED' | 'FAILED';
-  period_from:    string;
-  period_to:      string;
-  created_at:     string;
-  updated_at:     string;
+  id:                string;
+  merchant_id:       string;
+  wallet_id:         string;
+  currency:          string;
+  status:            'PENDING' | 'SUBMITTED' | 'SETTLED' | 'FAILED';
+  gross_amount:      { amount_minor: number; currency: string };
+  fee_amount:        { amount_minor: number; currency: string };
+  net_amount:        { amount_minor: number; currency: string };
+  transaction_count: number;
+  period_start:      string;
+  period_end:        string;
+  created_at:        string;
+  updated_at:        string;
 }
 
 export interface SettlementList {
@@ -136,6 +139,10 @@ export class AdminApi {
   }
 
   // Settlements
+  listAllSettlements(status?: string):            Promise<SettlementList> {
+    const qs = status ? `?status=${status}` : '';
+    return this.req(`/admin/v1/settlements/all${qs}`);
+  }
   listSettlements(merchantId: string):            Promise<SettlementList> {
     return this.req(`/admin/v1/settlements?merchant_id=${merchantId}`);
   }

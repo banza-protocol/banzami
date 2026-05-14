@@ -57,6 +57,12 @@ pub trait SettlementEngine: Send + Sync {
         &self,
         merchant_id: MerchantId,
     ) -> Result<Vec<Settlement>, SettlementError>;
+
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<String>,
+    ) -> Result<Vec<Settlement>, SettlementError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -198,6 +204,14 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         merchant_id: MerchantId,
     ) -> Result<Vec<Settlement>, SettlementError> {
         self.repo.list_for_merchant(merchant_id).await
+    }
+
+    async fn list_all(
+        &self,
+        limit: i64,
+        status: Option<String>,
+    ) -> Result<Vec<Settlement>, SettlementError> {
+        self.repo.list_all(limit, status.as_deref()).await
     }
 }
 

@@ -66,6 +66,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 		// Settlements
 		r.Post("/admin/v1/settlements", settlementH.CreateBatch)
 		r.Get("/admin/v1/settlements", settlementH.List)
+		r.Get("/admin/v1/settlements/all", settlementH.ListAll)
 		r.Get("/admin/v1/settlements/{id}", settlementH.Get)
 		r.Post("/admin/v1/settlements/{id}/submit", settlementH.Submit)
 		r.Post("/admin/v1/settlements/{id}/confirm", settlementH.Confirm)

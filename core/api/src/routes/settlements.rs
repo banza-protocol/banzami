@@ -109,6 +109,30 @@ pub async fn list_for_merchant(
 }
 
 // ---------------------------------------------------------------------------
+// List all (admin — no merchant filter)
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct ListAllQuery {
+    #[serde(default = "default_limit")]
+    pub limit: i64,
+    pub status: Option<String>,
+}
+
+fn default_limit() -> i64 { 100 }
+
+pub async fn list_all(
+    State(state): State<AppState>,
+    Query(q): Query<ListAllQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let settlements = state.settlement
+        .list_all(q.limit.clamp(1, 200), q.status)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+    Ok(Json(serde_json::json!({ "data": settlements })))
+}
+
+// ---------------------------------------------------------------------------
 // State transitions
 // ---------------------------------------------------------------------------
 

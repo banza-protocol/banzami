@@ -111,6 +111,7 @@ async fn main() {
         // Settlements
         .route("/internal/v1/settlements",              post(routes::settlements::create_batch))
         .route("/internal/v1/settlements",              get(routes::settlements::list_for_merchant))
+        .route("/internal/v1/settlements/all",          get(routes::settlements::list_all))
         .route("/internal/v1/settlements/:id",          get(routes::settlements::get))
         .route("/internal/v1/settlements/:id/submit",   post(routes::settlements::submit))
         .route("/internal/v1/settlements/:id/confirm",  post(routes::settlements::confirm))

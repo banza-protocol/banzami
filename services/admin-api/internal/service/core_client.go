@@ -80,6 +80,15 @@ func (c *CoreAdminClient) ListSettlements(ctx context.Context, merchantID string
 	return out, c.get(ctx, "/internal/v1/settlements?merchant_id="+merchantID, &out)
 }
 
+func (c *CoreAdminClient) ListAllSettlements(ctx context.Context, status string) (map[string]any, error) {
+	var out map[string]any
+	url := "/internal/v1/settlements/all"
+	if status != "" {
+		url += "?status=" + status
+	}
+	return out, c.get(ctx, url, &out)
+}
+
 func (c *CoreAdminClient) SubmitSettlement(ctx context.Context, id string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/settlements/"+id+"/submit", nil, &out)

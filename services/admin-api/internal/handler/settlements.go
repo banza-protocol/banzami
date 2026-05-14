@@ -61,6 +61,17 @@ func (h *SettlementHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// ListAll handles GET /admin/v1/settlements/all?status={optional}.
+func (h *SettlementHandler) ListAll(w http.ResponseWriter, r *http.Request) {
+	status := r.URL.Query().Get("status")
+	result, err := h.core.ListAllSettlements(r.Context(), status)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // Submit handles POST /admin/v1/settlements/{id}/submit.
 // Transitions the settlement from Pending to Submitted (queued for acquirer).
 func (h *SettlementHandler) Submit(w http.ResponseWriter, r *http.Request) {
