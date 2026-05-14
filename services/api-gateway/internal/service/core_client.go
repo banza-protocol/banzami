@@ -10,11 +10,20 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
 // ErrNotFound is returned by CoreApi* services when the resource does not exist.
 var ErrNotFound = errors.New("resource not found")
+
+// coreErrBody is the standard error envelope returned by the Rust core-api.
+type coreErrBody struct {
+	Error struct {
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+}
 
 // CoreApiClient is a thin HTTP client over the Rust core-api service.
 type CoreApiClient struct {
@@ -438,6 +447,9 @@ func (s *CoreApiPayoutService) Create(
 	}
 	var p Payout
 	if err := s.client.post(ctx, "/internal/v1/payouts", body, &p); err != nil {
+		if strings.Contains(err.Error(), "INSUFFICIENT") {
+			return nil, ErrPayoutInsufficientFunds
+		}
 		return nil, err
 	}
 	return &p, nil
@@ -970,6 +982,11 @@ func (c *CoreApiClient) do(req *http.Request, out any) error {
 
 	if resp.StatusCode == http.StatusNotFound {
 		return ErrNotFound
+	}
+	if resp.StatusCode == http.StatusUnprocessableEntity {
+		var e coreErrBody
+		_ = json.Unmarshal(raw, &e)
+		return fmt.Errorf("core-api 422 %s: %s", e.Error.Code, e.Error.Message)
 	}
 	if resp.StatusCode >= 400 {
 		return fmt.Errorf("core-api error %d: %s", resp.StatusCode, string(raw))
