@@ -1104,6 +1104,22 @@ Wallet ID     wlt_xxxxxxxx-...
 
 **Admin panel** (`http://localhost:3002/login`) uses the `ADMIN_API_KEY` from `.env`.
 
+### Test Bank Account (for Payouts)
+
+When testing the payout flow from the merchant dashboard, use this fictitious but structurally valid Angolan bank account:
+
+| Field                    | Value                         |
+|--------------------------|-------------------------------|
+| Titular da conta         | `Loja Teste`                  |
+| Número de conta (NIB)    | `0040 0000 0000 0001 010 10`  |
+| Código do banco (BIC)    | `BAIAOLUAXXX`                 |
+
+**Bank:** BAI — Banco Angolano de Investimentos (code `0040`)
+
+> NIB format: `BBBB SSSS CCCCCCCCCCC DD` (4-digit bank code · 4-digit branch · 11-digit account · 2 check digits). This account is entirely fictitious and safe to use in any non-production environment.
+
+Payouts require available balance. Use the Admin panel (`http://localhost:3002`) to run a settlement first, or create a test transaction so the merchant wallet has funds before attempting a payout.
+
 ### Manual Setup (without tmux)
 
 ```bash
