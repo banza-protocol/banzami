@@ -109,87 +109,94 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 ### System Topology
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                          External Clients                         │
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            External Clients                               │
+│                                                                           │
+│  Merchant Apps   Admin Dashboard   Mobile App (consumer)   Plugins       │
+│  (REST API)      (Next.js :3002)   (Flutter SDK)           (WooComm.)    │
+└──────┬───────────────┬─────────────────────┬──────────────────┬──────────┘
+       │               │ (internal only)      │                  │
+       │           ┌───▼──────────────────┐   │                  │
+       │           │  Go Admin API  :8082  │   │                  │
+       │           │  X-Admin-Key auth     │   │                  │
+       │           │  Compliance lifecycle │   │                  │
+       │           │  Settlement mgmt      │   │                  │
+       │           │  Payout operations    │   │                  │
+       │           │  Reconciliation       │   │                  │
+       │           └───────────┬───────────┘   │                  │
+       │                       │               │                  │
+       ▼                       │               ▼                  │
+┌──────────────────┐           │  ┌────────────────────────────┐  │
+│ Cloudflare       │           │  │  Go Public API  :8083      │  │
+│ WAF / CDN        │           │  │  Consumer-facing (mobile)  │  │
+└────────┬─────────┘           │  │  PIN + JWT auth            │  │
+         │                     │  │  P2P transfers             │  │
+         ▼                     │  │  Consumer wallets          │  │
+┌──────────────────────────────┴──┴────────────────────────────┴──┐
+│               HTTP /internal/v1/*  (loopback, never internet)    │
 │                                                                   │
-│   Merchant Apps     Admin Dashboard     Mobile SDK    Plugins     │
-│   (REST API)        (Next.js)           (Flutter)     (WooComm.)  │
-└──────┬──────────────────┬──────────────────────────────┬─────────┘
-       │                  │ (internal network only)       │
-       │              ┌───▼──────────────────────┐        │
-       │              │    Go Admin API  :8082    │        │
-       │              │  X-Admin-Key auth         │        │
-       │              │  Compliance lifecycle     │        │
-       │              │  Settlement management    │        │
-       │              │  Payout operations        │        │
-       │              │  Reconciliation triggers  │        │
-       │              └───────────┬──────────────┘        │
-       │                          │                        │
-       ▼                          │ HTTP /internal/v1/*    │
-┌──────────────────────┐          │                        │
-│  Cloudflare WAF/CDN  │          │                        │
-└──────────┬───────────┘          │                        │
-           │                      │                        │
-           ▼                      ▼                        ▼
-┌──────────────────────────────────────────────────────────────────┐
 │                    Go API Gateway  :8080                          │
 │                                                                   │
-│   JWT Bearer auth  │  Redis rate limiting (1000 req/min)         │
+│   JWT Bearer auth  │  Redis rate limiting (1,000 req/min)        │
 │   Redis idempotency keys  │  Request tracing  │  Panic recovery  │
 │                                                                   │
 │   POST /v1/auth/token          — API key → JWT exchange          │
 │   POST /v1/transactions        — initiate payment                │
-│   GET  /v1/transactions/{id}   — transaction status              │
 │   POST /v1/wallets             — provision wallet                │
-│   GET  /v1/wallets/{id}/balance                                  │
 │   POST /v1/payouts             — request payout                  │
 │   POST /v1/webhooks/endpoints  — register webhook                │
 │   POST /v1/merchants           — register merchant               │
-└──────────────────────────────┬───────────────────────────────────┘
-                                │ HTTP loopback  /internal/v1/*
-                                │ (never exposed to the internet)
-                                ▼
+└───────────────────────────────────┬──────────────────────────────┘
+                                    │ HTTP /internal/v1/*
+                                    ▼
 ┌──────────────────────────────────────────────────────────────────┐
-│                    Rust Core API  :8081                          │
+│                    Rust Core API  :8081                           │
 │                                                                   │
 │  The single financial authority. Go services orchestrate.        │
 │  Go NEVER writes financial data directly to PostgreSQL.          │
 │                                                                   │
-│  ┌────────────────┐  ┌───────────────┐  ┌──────────────────┐    │
-│  │  banzami-ledger│  │banzami-wallets│  │banzami-transactions│   │
-│  │                │  │               │  │                  │    │
-│  │ Double-entry   │  │ Reserve       │  │ Authorize        │    │
-│  │ Immutable log  │  │ Release       │  │ Capture          │    │
-│  │ Balanced posts │  │ Settle        │  │ Reverse / Fail   │    │
-│  └────────────────┘  └───────────────┘  └──────────────────┘    │
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
+│  │banzami-ledger│  │banzami-walls│  │banzami-transactions│      │
+│  │ Double-entry │  │ Reserve     │  │ Authorize          │      │
+│  │ Immutable    │  │ Release     │  │ Capture            │      │
+│  │ Balanced     │  │ Settle      │  │ Reverse / Fail     │      │
+│  └──────────────┘  └─────────────┘  └────────────────────┘      │
 │                                                                   │
-│  ┌────────────────┐  ┌───────────────┐  ┌──────────────────┐    │
-│  │banzami-settlement│ │banzami-payouts│  │banzami-reconcil. │    │
-│  │                │  │               │  │                  │    │
-│  │ Batch netting  │  │ Lifecycle mgmt│  │ Statement match  │    │
-│  │ Acquirer submit│  │ Ledger DR/CR  │  │ Discrepancy rpt  │    │
-│  │ DR bank/CR tran│  │ Bank reversal │  │                  │    │
-│  └────────────────┘  └───────────────┘  └──────────────────┘    │
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
+│  │banzami-settle│  │banzami-pouts│  │banzami-reconcil.   │      │
+│  │ Batch netting│  │ Lifecycle   │  │ Statement match    │      │
+│  │ Acquirer sub.│  │ Ledger DR/CR│  │ Discrepancy rpt    │      │
+│  └──────────────┘  └─────────────┘  └────────────────────┘      │
 │                                                                   │
-│  ┌────────────────┐  ┌───────────────┐  ┌──────────────────┐    │
-│  │banzami-complian│  │ banzami-risk  │  │banzami-routing   │    │
-│  │                │  │               │  │                  │    │
-│  │ KYB / KYC      │  │ Transaction   │  │ Acquirer / PSP   │    │
-│  │ AML flagging   │  │ risk scoring  │  │ selection        │    │
-│  │ Tx limit gates │  │               │  │                  │    │
-│  └────────────────┘  └───────────────┘  └──────────────────┘    │
-└──────────────────────────────┬───────────────────────────────────┘
-                                │
-                ┌───────────────┴───────────────┐
-                ▼                               ▼
-┌───────────────────────────┐   ┌───────────────────────────────┐
-│   PostgreSQL (primary DB) │   │           Redis               │
-│                           │   │                               │
-│  8 migration files        │   │  Rate limiting (sliding win.) │
-│  Immutable ledger entries │   │  Idempotency key store        │
-│  Double-entry accounting  │   │  Session management           │
-│  All financial state      │   │  Distributed coordination     │
-└───────────────────────────┘   └───────────────────────────────┘
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
+│  │banzami-comply│  │banzami-risk │  │banzami-routing     │      │
+│  │ KYB / KYC   │  │ Tx scoring  │  │ Acquirer selection │      │
+│  │ AML flagging │  │             │  │                    │      │
+│  └──────────────┘  └─────────────┘  └────────────────────┘      │
+│                                                                   │
+│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
+│  │banzami-cnsmr │  │banzami-trans│  │banzami-qr          │      │
+│  │ Consumer     │  │ P2P instant │  │ Static + dynamic   │      │
+│  │ wallets      │  │ transfers   │  │ QR payment codes   │      │
+│  └──────────────┘  └─────────────┘  └────────────────────┘      │
+│                                                                   │
+│  ┌──────────────┐  ┌─────────────┐                               │
+│  │banzami-links │  │banzami-ident│                               │
+│  │ Payment links│  │ Consumer ID │                               │
+│  │ Shareable URL│  │ Handle reg. │                               │
+│  └──────────────┘  └─────────────┘                               │
+└───────────────────────────────┬──────────────────────────────────┘
+                                 │
+                 ┌───────────────┴───────────────┐
+                 ▼                               ▼
+┌────────────────────────────┐   ┌───────────────────────────────┐
+│  PostgreSQL  (primary DB)  │   │           Redis               │
+│                            │   │                               │
+│  15 migration files        │   │  Rate limiting (sliding win.) │
+│  Immutable ledger entries  │   │  Idempotency key store        │
+│  Double-entry accounting   │   │  Session management           │
+│  All financial state       │   │  Distributed coordination     │
+└────────────────────────────┘   └───────────────────────────────┘
 ```
 
 ### Go ↔ Rust Boundary
@@ -223,7 +230,7 @@ banzami/
 ├── core/                          Rust financial core (Cargo workspace)
 │   ├── types/                     Shared types: Money, Currency, typed IDs
 │   ├── ledger/                    Double-entry accounting engine
-│   ├── wallets/                   Wallet lifecycle and balance management
+│   ├── wallets/                   Merchant wallet lifecycle and balance management
 │   ├── transactions/              Payment transaction state machine
 │   ├── merchants/                 Merchant registration and API key management
 │   ├── settlement/                Settlement batch netting and lifecycle
@@ -232,10 +239,15 @@ banzami/
 │   ├── compliance/                KYB/KYC/AML enforcement
 │   ├── risk/                      Transaction risk scoring
 │   ├── routing/                   Acquirer/PSP selection
+│   ├── identity/                  Consumer identity and handle registry
+│   ├── consumer-wallets/          Consumer wallet lifecycle and balance management
+│   ├── transfers/                 Instant P2P transfer engine
+│   ├── qr/                        Static and dynamic QR payment codes
+│   ├── payment-links/             Shareable URL payments for informal commerce
 │   └── api/                       Axum HTTP server wiring all domains
 │
 ├── services/                      Go services
-│   ├── api-gateway/               Public-facing API gateway (:8080)
+│   ├── api-gateway/               Merchant-facing API gateway (:8080)
 │   │   ├── cmd/gateway/           Entry point
 │   │   └── internal/
 │   │       ├── config/            Environment configuration
@@ -245,19 +257,29 @@ banzami/
 │   │       ├── service/           Service interfaces + core-api client
 │   │       └── server/            Chi router and server construction
 │   │
-│   └── admin-api/                 Internal admin service (:8082)
-│       ├── cmd/admin/             Entry point
+│   ├── admin-api/                 Internal admin service (:8082)
+│   │   ├── cmd/admin/             Entry point
+│   │   └── internal/
+│   │       ├── config/            Environment configuration
+│   │       ├── handler/           Admin handlers (compliance, settlements, payouts, …)
+│   │       ├── middleware/        Admin key auth, structured logging, tracing
+│   │       ├── observability/     OTel setup (traces + Prometheus metrics)
+│   │       ├── service/           CoreAdminClient (wraps Rust internal routes)
+│   │       └── server/            Chi router and server construction
+│   │
+│   └── public-api/                Consumer-facing API (:8083)
+│       ├── cmd/public-api/        Entry point
 │       └── internal/
 │           ├── config/            Environment configuration
-│           ├── handler/           Admin handlers (compliance, settlements, payouts, …)
-│           ├── middleware/        Admin key auth, structured logging, tracing
-│           ├── observability/     OTel setup (traces + Prometheus metrics)
-│           ├── service/           CoreAdminClient (wraps Rust internal routes)
+│           ├── handler/           Auth, transfers, wallets, payment-links handlers
+│           ├── middleware/        Consumer JWT auth, structured logging, tracing
+│           ├── service/           CorePublicClient + CredentialStore
 │           └── server/            Chi router and server construction
 │
 ├── apps/                          Frontend applications (Next.js)
-│   ├── dashboard/                 Merchant dashboard
-│   ├── admin/                     Internal admin panel
+│   ├── dashboard/                 Merchant dashboard (:3001)
+│   ├── admin/                     Internal admin panel (:3002)
+│   ├── pay/                       Consumer pay page — payment links (:3003)
 │   └── docs/                      Developer documentation site
 │
 ├── sdk/
@@ -266,10 +288,12 @@ banzami/
 │
 ├── plugins/
 │   ├── woocommerce/               WooCommerce payment plugin
-│   └── shopify/                   Shopify payment app
+│   ├── generic-php/               Generic PHP integration
+│   ├── generic-laravel/           Laravel integration
+│   └── generic-node/              Node.js integration
 │
 ├── db/
-│   └── migrations/                Global PostgreSQL migrations (0001–0008)
+│   └── migrations/                Global PostgreSQL migrations (0001–0015)
 │
 ├── infra/
 │   ├── docker/                    Docker Compose for local development
@@ -278,7 +302,7 @@ banzami/
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
-│   ├── adr/                       Architecture Decision Records
+│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-010)
 │   ├── domains/                   Per-domain technical documentation
 │   ├── security/                  Security model and threat analysis
 │   ├── runbooks/                  Operational runbooks
@@ -498,6 +522,49 @@ Both use static configuration today. Dynamic rule evaluation is a planned future
 
 ---
 
+#### `banzami-identity`
+Consumer identity and handle registry. Handles are the human-readable address for P2P payments (e.g. `@joao`). Unique within the platform. Consumers are independent of merchants — separate domain with separate typed IDs (`ConsumerId`).
+
+---
+
+#### `banzami-consumer-wallets`
+Consumer wallet lifecycle. Each consumer has an AOA wallet with two ledger accounts:
+- **available** — spendable balance
+- **reserved** — funds held for pending transfers
+
+Operations: `provision`, `get_balance`. Balances are derived from ledger entries — no stored balance field.
+
+---
+
+#### `banzami-transfers`
+Instant P2P transfer engine. Atomic double-entry postings: debits sender's available account, credits recipient's available account in a single transaction.
+
+Core invariants:
+- Zero and negative amounts rejected before any DB write
+- Self-transfer rejected (sender == recipient)
+- Insufficient funds checked via `SELECT FOR UPDATE` — concurrent transfers are serialised at the row lock level
+- Fully idempotent: duplicate `idempotency_key` returns the original transfer
+
+---
+
+#### `banzami-qr`
+Static and dynamic QR code payment codes. Static codes link to a merchant and accept any amount. Dynamic codes embed a specific amount and expire after use or a configurable TTL.
+
+---
+
+#### `banzami-payment-links`
+Shareable URL payments for informal commerce. A payment link has a human-readable slug, an optional fixed amount (open links accept any amount), and a state machine:
+
+```
+ACTIVE ──► USED       (single-use link paid)
+       ──► CANCELLED  (merchant cancelled)
+       ──► EXPIRED    (TTL elapsed, background worker)
+```
+
+Idempotency: the pay endpoint uses `"pl-pay-" + link.ID` as the transfer idempotency key, so network retries never double-charge.
+
+---
+
 ## Services
 
 ### API Gateway (`services/api-gateway`, port 8080)
@@ -543,6 +610,46 @@ Internal-only service for compliance operations, settlement management, and reco
 | `OTLP_ENDPOINT`       | optional                  | OTLP HTTP endpoint            |
 | `LOG_LEVEL`           | `info`                    | Log verbosity                 |
 | `LOG_FORMAT`          | `json`                    | `json` / `pretty`             |
+
+---
+
+### Public API (`services/public-api`, port 8083)
+
+Consumer-facing service. This is what the mobile app (Flutter SDK) calls directly. Never used by merchants.
+
+**Authentication:** PIN + JWT (HS256, 24h TTL). Consumer registers with a unique handle and a 4–8 digit PIN. Credentials (bcrypt-hashed PIN) are stored in `public_api_credentials` — the only table public-api owns directly. All monetary operations delegate to core-api.
+
+**Public endpoints (no auth):**
+
+| Method | Path                           | Description                             |
+|--------|--------------------------------|-----------------------------------------|
+| POST   | `/v1/auth/register`            | Register consumer — returns JWT         |
+| POST   | `/v1/auth/token`               | PIN login — returns JWT                 |
+| GET    | `/v1/payment-links/{slug}`     | Resolve a payment link (public)         |
+| GET    | `/health`                      | Liveness probe                          |
+| GET    | `/metrics`                     | Prometheus metrics                      |
+
+**Authenticated endpoints (Bearer JWT required):**
+
+| Method | Path                           | Description                             |
+|--------|--------------------------------|-----------------------------------------|
+| GET    | `/v1/me`                       | Get own consumer profile                |
+| GET    | `/v1/me/wallet`                | Get own AOA wallet                      |
+| GET    | `/v1/me/wallet/balance`        | Get available and reserved balance      |
+| POST   | `/v1/transfers`                | Send P2P transfer (by recipient handle) |
+| GET    | `/v1/transfers`                | List own transfers                      |
+| GET    | `/v1/transfers/{id}`           | Get transfer by ID                      |
+| POST   | `/v1/payment-links/{slug}/pay` | Pay a payment link                      |
+
+**Configuration (environment variables):**
+| Variable          | Default  | Description                           |
+|-------------------|----------|---------------------------------------|
+| `PUBLIC_API_PORT` | `8083`   | Listen port                           |
+| `CORE_API_URL`    | required | Rust core-api base URL                |
+| `DATABASE_URL`    | required | PostgreSQL (for `public_api_credentials`) |
+| `JWT_SECRET`      | required | Shared HS256 key (same as api-gateway)|
+| `LOG_LEVEL`       | `info`   | Log verbosity                         |
+| `OTLP_ENDPOINT`   | optional | OTLP HTTP endpoint                    |
 
 ---
 
@@ -821,16 +928,23 @@ Admin triggers reconciliation:
 
 All schema changes are managed as numbered migrations in `db/migrations/`. Migrations must be applied in sequence before running `cargo check` (sqlx validates queries at compile time).
 
-| Migration | Domain         | Key Tables                                      |
-|-----------|----------------|-------------------------------------------------|
-| `0001`    | Ledger         | `accounts`, `ledger_postings`, `ledger_entries` |
-| `0002`    | Wallets        | `wallets`, `wallet_events`                      |
-| `0003`    | Transactions   | `transactions`                                  |
-| `0004`    | Merchants      | `merchants`, `api_keys`                         |
-| `0005`    | Settlements    | `settlements`                                   |
-| `0006`    | Payouts        | `payouts`                                       |
-| `0007`    | Reconciliation | `reconciliation_runs`, `reconciliation_records` |
-| `0008`    | Compliance     | `merchant_compliance`, `customer_compliance`    |
+| Migration | Domain              | Key Tables                                           |
+|-----------|---------------------|------------------------------------------------------|
+| `0001`    | Ledger              | `ledger_accounts`, `ledger_postings`, `ledger_entries` |
+| `0002`    | Wallets             | `wallets`, `wallet_events`                           |
+| `0003`    | Transactions        | `transactions`                                       |
+| `0004`    | Merchants           | `merchants`, `api_keys`                              |
+| `0005`    | Settlements         | `settlements`                                        |
+| `0006`    | Payouts             | `payouts`                                            |
+| `0007`    | Reconciliation      | `reconciliation_runs`, `reconciliation_records`      |
+| `0008`    | Compliance          | `merchant_compliance`, `customer_compliance`         |
+| `0009`    | Webhooks            | `webhook_endpoints`, `webhook_events`, `webhook_deliveries` |
+| `0010`    | Consumer Identity   | `consumers`                                          |
+| `0011`    | Consumer Wallets    | `consumer_wallets`                                   |
+| `0012`    | Transfers           | `transfers`                                          |
+| `0013`    | QR Codes            | `qr_codes`                                           |
+| `0014`    | Payment Links       | `payment_links`                                      |
+| `0015`    | Public API Auth     | `public_api_credentials`                             |
 
 ### Financial Precision
 
@@ -853,10 +967,17 @@ The database enforces that ledger postings are balanced through application-leve
 Layer 1: Cloudflare
   DDoS protection, WAF rules, TLS termination
 
-Layer 2: API Gateway (api-gateway)
+Layer 2: API Gateway (api-gateway) — merchants
   Merchants authenticate with API Key → GET JWT
   JWT: HS256, short-lived, contains MerchantID + scopes
   All authenticated routes: Bearer JWT required
+
+Layer 2b: Public API (public-api) — consumers
+  Consumers authenticate with handle + PIN → GET JWT
+  JWT: HS256, 24h TTL, contains CustomerID + scopes
+  PIN stored as bcrypt hash; plaintext never persisted
+  Consumer tokens carry customer_id claim (not merchant_id)
+  → merchant tokens are rejected at the consumer middleware
 
 Layer 3: Admin API (admin-api)
   X-Admin-Key header
@@ -932,62 +1053,101 @@ make stack-up
 - Docker + Docker Compose
 - `sqlx-cli` — `cargo install sqlx-cli --features postgres`
 
-### Quick Start (full stack)
+### Quick Start (full containerised stack)
 
 ```bash
 cp .env.example .env
-# Edit .env: set JWT_SECRET, ADMIN_API_KEY, and the account IDs
+# Edit .env — fill in: JWT_SECRET, ADMIN_API_KEY, TRANSIT_ACCOUNT_ID, BANK_ACCOUNT_ID
+# Generate secrets: openssl rand -hex 32
+# Generate UUIDs:   uuidgen | tr '[:upper:]' '[:lower:]'
 
-make stack-up
-# Starts: PostgreSQL, Redis, core-api, api-gateway, admin-api, Prometheus, Grafana
-# Applies migrations automatically before starting app services
+make sqlx-prepare   # generate .sqlx/ offline cache (once, then commit)
+make stack-build    # build all Docker images
+make stack-up       # start everything (applies migrations automatically)
 ```
 
-### Manual Development Setup
+Services started by `make stack-up`:
+
+| Service      | URL                        |
+|--------------|----------------------------|
+| api-gateway  | http://localhost:8080      |
+| admin-api    | http://localhost:8082      |
+| public-api   | http://localhost:8083      |
+| core-api     | http://localhost:8081      |
+| Prometheus   | http://localhost:9090      |
+| Grafana      | http://localhost:3000 (admin / banzami_dev) |
+
+### Manual Development Setup (local processes)
 
 ```bash
-# 1. Start infrastructure
+# Terminal 0 — infrastructure
 make dev-up        # PostgreSQL :5433, Redis :6379
+make db-migrate    # apply all 15 migrations
 
-# 2. Apply migrations
-make db-migrate
+# Terminal 1 — Rust financial core
+make core-run      # :8081
 
-# 3. Run services (separate terminals)
-make core-run      # Rust core-api on :8081
-make gateway-run   # Go api-gateway on :8080
-make admin-api-run # Go admin-api on :8082
+# Terminal 2 — merchant API gateway
+make gateway-run   # :8080
+
+# Terminal 3 — internal admin API
+make admin-api-run # :8082
+
+# Terminal 4 — consumer-facing API
+make public-api-run # :8083
+```
+
+### Frontend Apps (Next.js)
+
+Each app runs independently. Install dependencies once per app.
+
+```bash
+# Merchant dashboard
+cd apps/dashboard && npm install && npm run dev   # http://localhost:3001
+
+# Admin panel
+cd apps/admin && npm install && npm run dev        # http://localhost:3002
+
+# Consumer pay page (payment links)
+cd apps/pay && npm install && npm run dev          # http://localhost:3003
+# Navigate to: http://localhost:3003/{slug}
 ```
 
 ### Run Tests
 
 ```bash
-# Rust — all workspace tests (integration tests require DATABASE_URL)
-DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
-  cargo test --workspace
-
-# Or with make
+# All test suites
 make test-all
 
-# Go
-cd services/api-gateway && go test ./...
-cd services/admin-api   && go test ./...
+# Rust only (integration tests require DATABASE_URL)
+DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
+  cargo test --workspace --manifest-path core/Cargo.toml
+
+# Go services individually
+cd services/api-gateway  && go test ./...
+cd services/admin-api    && go test ./...
+cd services/public-api   && go test ./...
 ```
 
 ### Useful Make Targets
 
-| Target            | Description                                       |
-|-------------------|---------------------------------------------------|
-| `make dev-up`     | Start PostgreSQL and Redis                        |
-| `make dev-down`   | Stop infrastructure                               |
-| `make db-migrate` | Apply all pending migrations                      |
-| `make core-run`   | Run the Rust core-api                             |
-| `make gateway-run`| Run the Go api-gateway                            |
-| `make admin-api-run` | Run the Go admin-api                           |
-| `make stack-up`   | Full stack: infra + migrations + all services     |
-| `make stack-down` | Tear down the full stack                          |
-| `make test-all`   | Run all Rust tests across the workspace           |
-| `make sqlx-prepare` | Regenerate `.sqlx/` offline query cache         |
-| `make check-all`  | `cargo check` across all workspace crates         |
+| Target               | Description                                        |
+|----------------------|----------------------------------------------------|
+| `make dev-up`        | Start PostgreSQL and Redis                         |
+| `make dev-down`      | Stop infrastructure                                |
+| `make db-migrate`    | Apply all pending migrations                       |
+| `make db-reset`      | Drop, recreate, and re-migrate dev database        |
+| `make core-run`      | Run the Rust core-api (:8081)                      |
+| `make gateway-run`   | Run the Go api-gateway (:8080)                     |
+| `make admin-api-run` | Run the Go admin-api (:8082)                       |
+| `make public-api-run`| Run the Go public-api (:8083)                      |
+| `make stack-build`   | Build all Docker images                            |
+| `make stack-up`      | Full stack: infra + migrations + all services      |
+| `make stack-down`    | Tear down the full stack                           |
+| `make stack-logs`    | Tail all service logs                              |
+| `make test-all`      | Run all test suites (Rust + Go)                    |
+| `make check-all`     | Run all linters and type-checkers                  |
+| `make sqlx-prepare`  | Regenerate `.sqlx/` offline query cache            |
 
 ---
 
