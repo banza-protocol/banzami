@@ -85,7 +85,8 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
 
 		// Reconciliation
-		r.Post("/admin/v1/reconciliation/run", reconciliationH.Run)
+		r.Post("/admin/v1/reconciliation/run",       reconciliationH.Run)
+		r.Get("/admin/v1/reconciliation/runs/{id}",  reconciliationH.Get)
 	})
 
 	// Wrap chi router with otelhttp: creates one span per request and records

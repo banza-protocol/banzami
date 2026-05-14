@@ -163,6 +163,11 @@ func (c *CoreAdminClient) RunReconciliation(ctx context.Context, body map[string
 	return out, c.post(ctx, "/internal/v1/reconciliation/run", body, &out)
 }
 
+func (c *CoreAdminClient) GetReconciliationRun(ctx context.Context, runID string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/reconciliation/runs/"+runID, &out)
+}
+
 // ---------------------------------------------------------------------------
 // Merchants
 // ---------------------------------------------------------------------------

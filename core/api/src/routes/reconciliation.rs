@@ -1,11 +1,14 @@
-use axum::{extract::State, Json};
+use axum::{
+    extract::{Path, State},
+    Json,
+};
 use serde::Deserialize;
 
 use banzami_reconciliation::{
-    ExternalStatementLine, ReconciliationEngine, SettlementView,
+    ExternalStatementLine, ReconciliationEngine, ReconciliationError, SettlementView,
 };
 use banzami_settlement::SettlementEngine;
-use banzami_types::MerchantId;
+use banzami_types::{MerchantId, ReconciliationRunId};
 
 use crate::{
     error::{ApiError, ApiResult},
@@ -76,6 +79,30 @@ pub async fn run(
         .run(external_lines, settlement_views)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    Ok(Json(serde_json::to_value(&report).unwrap()))
+}
+
+// ---------------------------------------------------------------------------
+// Retrieve a past reconciliation report by run ID
+// ---------------------------------------------------------------------------
+
+pub async fn get_report(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let run_id: ReconciliationRunId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid run id"))?;
+
+    let report = state
+        .reconciliation
+        .get_report(run_id)
+        .await
+        .map_err(|e| match e {
+            ReconciliationError::NotFound(_) => ApiError::not_found("reconciliation run not found"),
+            other => ApiError::internal(other.to_string()),
+        })?;
 
     Ok(Json(serde_json::to_value(&report).unwrap()))
 }

@@ -13,6 +13,7 @@ use tower_http::trace::TraceLayer;
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_qr::run_expiry_worker;
 use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
+use banzami_settlement::run_settlement_scheduler;
 use banzami_types::Currency;
 use state::AppState;
 
@@ -78,7 +79,18 @@ async fn main() {
     tokio::spawn(run_expiry_worker(pool.clone(), Duration::from_secs(qr_expiry_secs)));
 
     // Spawn the payment link expiry worker (shares the QR interval setting).
-    tokio::spawn(run_pl_expiry_worker(pool, Duration::from_secs(qr_expiry_secs)));
+    tokio::spawn(run_pl_expiry_worker(pool.clone(), Duration::from_secs(qr_expiry_secs)));
+
+    // Spawn the settlement batch scheduler.
+    // Runs daily by default (86 400 s); override with SETTLEMENT_SCHEDULER_INTERVAL_SECS.
+    let settlement_interval_secs = env::var("SETTLEMENT_SCHEDULER_INTERVAL_SECS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(86_400);
+    tokio::spawn(run_settlement_scheduler(
+        pool,
+        Duration::from_secs(settlement_interval_secs),
+    ));
 
     let app = Router::new()
         // Health
@@ -136,7 +148,8 @@ async fn main() {
         .route("/internal/v1/compliance/merchants/:id/flag-aml",  post(routes::compliance::flag_aml))
 
         // Reconciliation
-        .route("/internal/v1/reconciliation/run", post(routes::reconciliation::run))
+        .route("/internal/v1/reconciliation/run",       post(routes::reconciliation::run))
+        .route("/internal/v1/reconciliation/runs/:id",  get(routes::reconciliation::get_report))
 
         // Consumers (identity)
         .route("/internal/v1/consumers",                   post(routes::consumers::create))

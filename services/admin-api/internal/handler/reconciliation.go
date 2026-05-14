@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/chi/v5"
+
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
@@ -14,6 +16,17 @@ type ReconciliationHandler struct {
 
 func NewReconciliationHandler(core *service.CoreAdminClient) *ReconciliationHandler {
 	return &ReconciliationHandler{core: core}
+}
+
+// Get handles GET /admin/v1/reconciliation/runs/{id}.
+func (h *ReconciliationHandler) Get(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	result, err := h.core.GetReconciliationRun(r.Context(), id)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Run handles POST /admin/v1/reconciliation/run.

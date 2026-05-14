@@ -146,9 +146,7 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
         )
         .fetch_optional(&self.pool)
         .await?
-        .ok_or_else(|| {
-            ReconciliationError::ParseError(format!("run {run_id} not found"))
-        })?;
+        .ok_or(ReconciliationError::NotFound(run_id))?;
 
         let record_rows = sqlx::query_as!(
             RecordRow,

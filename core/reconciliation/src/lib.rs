@@ -107,6 +107,9 @@ pub struct ReconciliationReport {
 
 #[derive(Debug, Error)]
 pub enum ReconciliationError {
+    #[error("reconciliation run {0} not found")]
+    NotFound(ReconciliationRunId),
+
     #[error("external statement parse error: {0}")]
     ParseError(String),
 
