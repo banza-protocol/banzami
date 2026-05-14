@@ -61,3 +61,17 @@ enum PaymentLinkStatus {
         _           => active,
       };
 }
+
+class PaymentLinkPage {
+  final List<PaymentLink> data;
+  final String? nextCursor;
+
+  const PaymentLinkPage({required this.data, this.nextCursor});
+
+  factory PaymentLinkPage.fromJson(Map<String, dynamic> json) => PaymentLinkPage(
+        data: (json['data'] as List<dynamic>)
+            .map((e) => PaymentLink.fromJson(e as Map<String, dynamic>))
+            .toList(),
+        nextCursor: json['next_cursor'] as String?,
+      );
+}

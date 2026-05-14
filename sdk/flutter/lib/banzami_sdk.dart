@@ -19,6 +19,7 @@ export 'client/api_exception.dart';
 
 // Models
 export 'models/consumer.dart';
+export 'models/merchant.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
 export 'models/payment_link.dart';

@@ -1,0 +1,8 @@
+// Consumer flavor — shared settings for Debug + Release.
+// Debug builds override PRODUCT_BUNDLE_IDENTIFIER in Consumer.debug.xcconfig
+// so dev and prod installs don't collide.
+
+FLUTTER_TARGET=lib/main_consumer.dart
+PRODUCT_BUNDLE_IDENTIFIER=com.banzami.app
+APP_DISPLAY_NAME=Banzami
+APP_FLAVOR=consumer

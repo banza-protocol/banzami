@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
+import '../models/merchant.dart';
 import '../models/payment_link.dart';
 import '../models/qr_code.dart';
 import '../models/transfer.dart';
@@ -177,6 +178,60 @@ class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Merchants
+  // ---------------------------------------------------------------------------
+
+  Future<Merchant> getMerchant(String id) async {
+    final json = await _get('/v1/merchants/$id');
+    return Merchant.fromJson(json);
+  }
+
+  Future<MerchantWallet> getMerchantWallet({String currency = 'AOA'}) async {
+    final json = await _get('/v1/wallets?currency=$currency');
+    return MerchantWallet.fromJson(json);
+  }
+
+  Future<MerchantBalance> getMerchantBalance(String walletId) async {
+    final json = await _get('/v1/wallets/$walletId/balance');
+    return MerchantBalance.fromJson(json);
+  }
+
+  Future<PaymentLink> createPaymentLink({
+    required String merchantId,
+    required String walletId,
+    int? amountMinor,
+    String currency = 'AOA',
+    String? description,
+    DateTime? expiresAt,
+  }) async {
+    final json = await _post('/v1/payment-links', {
+      'merchant_id': merchantId,
+      'wallet_id':   walletId,
+      'currency':    currency,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (description != null) 'description':  description,
+      if (expiresAt   != null) 'expires_at':   expiresAt.toUtc().toIso8601String(),
+    });
+    return PaymentLink.fromJson(json);
+  }
+
+  Future<PaymentLinkPage> listPaymentLinks({
+    required String merchantId,
+    int limit = 20,
+    String? cursor,
+  }) async {
+    var path = '/v1/payment-links?merchant_id=$merchantId&limit=$limit';
+    if (cursor != null) path += '&cursor=$cursor';
+    final json = await _get(path);
+    return PaymentLinkPage.fromJson(json);
+  }
+
+  Future<PaymentLink> cancelPaymentLink(String id) async {
+    final json = await _delete('/v1/payment-links/$id');
+    return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
   // Payment links — public endpoints (no auth required)
   // ---------------------------------------------------------------------------
 
@@ -221,6 +276,19 @@ class BanzamiClient {
     late http.Response resp;
     try {
       resp = await _http.get(
+        Uri.parse('$baseUrl$path'),
+        headers: _headers,
+      );
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    return _decode(resp);
+  }
+
+  Future<Map<String, dynamic>> _delete(String path) async {
+    late http.Response resp;
+    try {
+      resp = await _http.delete(
         Uri.parse('$baseUrl$path'),
         headers: _headers,
       );

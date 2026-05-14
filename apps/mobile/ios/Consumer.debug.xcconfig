@@ -1,0 +1,5 @@
+#include "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug-consumer.xcconfig"
+#include "Flutter/Debug.xcconfig"
+#include "Flutter/Consumer.xcconfig"
+
+PRODUCT_BUNDLE_IDENTIFIER=com.banzami.app.dev

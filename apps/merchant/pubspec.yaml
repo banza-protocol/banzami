@@ -1,0 +1,43 @@
+name: banzami_merchant
+description: Banzami — painel de comerciante para Angola
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.3.0 <4.0.0"
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Banzami SDK — client, models, theme
+  banzami_sdk:
+    path: ../../sdk/flutter
+
+  # Session & security
+  flutter_secure_storage: ^9.2.2
+  local_auth: ^2.3.0
+  crypto: ^3.0.5
+
+  # State management
+  provider: ^6.1.2
+
+  # QR generation
+  qr_flutter: ^4.1.0
+
+  # Sharing
+  share_plus: ^10.0.0
+
+  # Google Fonts (Inter)
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/

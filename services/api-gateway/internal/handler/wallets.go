@@ -57,6 +57,30 @@ func (h *WalletHandler) Create(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, wallet)
 }
 
+// GET /v1/wallets?currency=AOA
+// Returns the wallet for the authenticated merchant and the given currency.
+func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant authentication required")
+		return
+	}
+	currency := r.URL.Query().Get("currency")
+	if currency == "" {
+		currency = "AOA"
+	}
+	wallet, err := h.svc.GetForMerchant(r.Context(), principal.MerchantID, currency)
+	if err != nil {
+		if errors.Is(err, service.ErrWalletNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found for this currency")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to retrieve wallet")
+		return
+	}
+	writeJSON(w, http.StatusOK, wallet)
+}
+
 // GET /v1/wallets/{id}
 func (h *WalletHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

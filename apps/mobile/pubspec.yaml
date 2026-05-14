@@ -26,6 +26,12 @@ dependencies:
   # Deep links (banzami://)
   app_links: ^6.3.3
 
+  # QR generation (merchant flavor)
+  qr_flutter: ^4.1.0
+
+  # Sharing (merchant flavor)
+  share_plus: ^10.0.0
+
   # Google Fonts (Inter) — no font files needed
   google_fonts: ^6.2.1
 

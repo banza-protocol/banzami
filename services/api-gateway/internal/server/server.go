@@ -107,6 +107,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 			r.Route("/wallets", func(r chi.Router) {
 				r.Post("/", wltHandler.Create)
+				r.Get("/", wltHandler.GetForMerchant)
 				r.Get("/{id}", wltHandler.Get)
 				r.Get("/{id}/balance", wltHandler.Balance)
 			})
