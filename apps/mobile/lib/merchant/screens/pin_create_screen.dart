@@ -60,7 +60,8 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
       apiKey:        widget.apiKey        ?? svc.session!.apiKey,
       pin:           _pin,
     );
-    // O app.dart detecta a sessão e navega para MainScreen automaticamente.
+    if (!mounted) return;
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   @override
