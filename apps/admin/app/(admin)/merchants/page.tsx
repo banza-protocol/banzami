@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Copy, Check, ArrowLeft } from 'lucide-react';
+import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Merchant, type MerchantCompliance } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,9 @@ export default function MerchantsPage() {
   const [creditAmount, setCreditAmount] = useState('500');
   const [creditLoading, setCreditLoading] = useState(false);
   const [creditMsg, setCreditMsg]   = useState('');
+
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMsg, setResendMsg]         = useState('');
 
   // Create state
   const [createName, setCreateName]         = useState('');
@@ -138,6 +141,22 @@ export default function MerchantsPage() {
       setCreateError(e instanceof Error ? e.message : 'Erro ao criar comerciante.');
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function resendCredentials(merchantId: string) {
+    const session = getSession();
+    if (!session) return;
+    setResendLoading(true); setResendMsg('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const result = await api.resendCredentials(merchantId);
+      const newKey = result.api_key.secret;
+      setResendMsg(`✓ Email enviado. Nova API Key: ${newKey}`);
+    } catch (e) {
+      setResendMsg(e instanceof Error ? e.message : 'Erro ao reenviar.');
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -271,6 +290,24 @@ export default function MerchantsPage() {
                 </div>
               </div>
 
+              <div className="bg-white rounded-lg shadow-card p-xl">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Credenciais</p>
+                <p className="text-xs text-gray-400 mb-lg">Gera uma nova API Key e envia-a por email para <strong>{merchant.email}</strong>. A chave anterior continua válida até ser revogada.</p>
+                <button
+                  onClick={() => resendCredentials(merchant.id)}
+                  disabled={resendLoading}
+                  className="h-9 px-lg bg-gray-100 text-gray-700 rounded-md text-xs font-medium hover:bg-gray-200 disabled:opacity-60 transition-colors flex items-center gap-xs"
+                >
+                  <RefreshCw size={12} />
+                  {resendLoading ? 'A enviar…' : 'Gerar nova chave e reenviar email'}
+                </button>
+                {resendMsg && (
+                  <p className={`mt-md text-xs font-mono break-all ${resendMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                    {resendMsg}
+                  </p>
+                )}
+              </div>
+
               <div className="bg-white rounded-lg shadow-card p-xl border border-dashed border-warning/40">
                 <p className="text-xs font-medium text-warning uppercase tracking-wide mb-xs">Crédito de Teste</p>
                 <p className="text-xs text-gray-400 mb-lg">Cria uma transacção PAYMENT completa para adicionar saldo à carteira AOA do comerciante. Apenas para desenvolvimento.</p>
@@ -326,11 +363,26 @@ export default function MerchantsPage() {
                 <p className="text-xs font-mono text-gray-600">API Key: {credentials.apiKey}</p>
                 <p className="text-xs font-mono text-gray-600">Merchant ID: {credentials.merchantId}</p>
               </div>
-              <div className="px-xl py-lg">
-                <button onClick={() => setCredentials(null)}
-                  className="h-9 px-lg bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
-                  Criar outro
-                </button>
+              <div className="px-xl py-lg flex flex-col gap-md">
+                <div className="flex gap-md items-center flex-wrap">
+                  <button onClick={() => setCredentials(null)}
+                    className="h-9 px-lg bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 transition-colors">
+                    Criar outro
+                  </button>
+                  <button
+                    onClick={() => resendCredentials(credentials.merchantId)}
+                    disabled={resendLoading}
+                    className="h-9 px-lg bg-gray-100 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-200 disabled:opacity-60 transition-colors flex items-center gap-xs"
+                  >
+                    <Mail size={13} />
+                    {resendLoading ? 'A enviar…' : 'Reenviar email'}
+                  </button>
+                </div>
+                {resendMsg && (
+                  <p className={`text-xs font-mono break-all ${resendMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                    {resendMsg}
+                  </p>
+                )}
               </div>
             </div>
           ) : (

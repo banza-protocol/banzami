@@ -116,6 +116,14 @@ export class AdminApi {
     return this.req(`/admin/v1/merchants/${merchantId}/api-keys`, { method: 'POST', body: JSON.stringify({ name: keyName }) });
   }
 
+  resendCredentials(merchantId: string): Promise<{
+    merchant: Merchant;
+    api_key:  { secret: string; key: { id: string; key_prefix: string } };
+    wallet:   { id: string; currency: string };
+  }> {
+    return this.req(`/admin/v1/merchants/${merchantId}/resend-credentials`, { method: 'POST' });
+  }
+
   // Compliance
   getMerchantCompliance(id: string):  Promise<MerchantCompliance> { return this.req(`/admin/v1/compliance/merchants/${id}`); }
 

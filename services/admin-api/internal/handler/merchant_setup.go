@@ -78,6 +78,46 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// POST /admin/v1/merchants/{id}/resend-credentials
+// Generates a fresh API key and emails it to the merchant.
+// The new key is also returned in the response (shown once, like on creation).
+func (h *MerchantSetupHandler) ResendCredentials(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	merchant, err := h.core.GetMerchant(r.Context(), id)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+
+	apiKey, err := h.core.CreateApiKey(r.Context(), id, "resent")
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+
+	currency := "AOA"
+	wallet, err := h.core.GetWallet(r.Context(), id, currency)
+	if err != nil {
+		wallet = map[string]any{}
+	}
+
+	name, _     := merchant["name"].(string)
+	email, _    := merchant["email"].(string)
+	rawKey, _   := apiKey["secret"].(string)
+	walletID, _ := wallet["id"].(string)
+
+	go func() {
+		h.email.MerchantWelcome(email, name, id, rawKey, walletID, currency)
+	}()
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"merchant": merchant,
+		"api_key":  apiKey,
+		"wallet":   wallet,
+	})
+}
+
 // POST /admin/v1/merchants/{id}/api-keys
 func (h *MerchantSetupHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
