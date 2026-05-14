@@ -118,9 +118,12 @@ done
 # ─── tmux session ─────────────────────────────────────────────────────────────
 tmux kill-session -t "$SESSION" 2>/dev/null || true
 
-# Window 1 — core-api (Rust)
-# Starts first; other Go services are launched only after its health check passes.
-tmux new-session -d -s "$SESSION" -n "core-api" \
+# Window 0 — banzami (main/status window — stays open as a reference)
+tmux new-session -d -s "$SESSION" -n "banzami" \
+  "exec $SHELL"
+
+# Window 1 — core-api (Rust) — starts first; Go services wait for its health check
+tmux new-window -t "$SESSION" -n "core-api" \
   "cd '$REPO_ROOT/core' && cargo run --bin core-api; exec $SHELL"
 
 log "Waiting for core-api (first compile may take ~2 min)..."
@@ -128,6 +131,7 @@ for i in $(seq 1 90); do
   curl -fsS http://localhost:8081/health &>/dev/null && break
   [[ $i -eq 90 ]] && {
     err "core-api did not become healthy. Switch to the 'core-api' window to see errors."
+    tmux select-window -t "$SESSION:core-api"
     tmux attach-session -t "$SESSION"
     exit 1
   }
@@ -159,14 +163,41 @@ tmux new-window -t "$SESSION" -n "admin-app" \
 tmux new-window -t "$SESSION" -n "pay" \
   "cd '$REPO_ROOT/apps/pay' && npm run dev; exec $SHELL"
 
-# Focus on core-api window before attaching
-tmux select-window -t "$SESSION:core-api"
+# Print the status summary into the main window, then leave the cursor there
+tmux send-keys -t "$SESSION:banzami" "clear" Enter
+tmux send-keys -t "$SESSION:banzami" "printf '
+\033[1;32mBanzami — dev session\033[0m
+─────────────────────────────────────────────
+  \033[1mServices\033[0m
+  core-api     →  http://localhost:8081
+  api-gateway  →  http://localhost:8080
+  admin-api    →  http://localhost:8082
+  public-api   →  http://localhost:8083
+
+  \033[1mApps\033[0m
+  dashboard    →  http://localhost:3001
+  admin-app    →  http://localhost:3002
+  pay          →  http://localhost:3003
+
+  \033[1mNavigate\033[0m
+  Ctrl-b 0   this window (status)
+  Ctrl-b 1   core-api
+  Ctrl-b 2   api-gateway
+  Ctrl-b 3   admin-api
+  Ctrl-b 4   public-api
+  Ctrl-b 5   dashboard
+  Ctrl-b 6   admin-app
+  Ctrl-b 7   pay
+  Ctrl-b d   detach   (session keeps running)
+  ./dev.sh stop       kill everything
+─────────────────────────────────────────────
+'" Enter
+
+# Focus on the main status window when attaching
+tmux select-window -t "$SESSION:banzami"
 
 printf "\n"
 log "Session '$SESSION' ready — attaching."
-printf "\n"
-printf "  Windows:       core-api  api-gateway  admin-api  public-api\n"
-printf "                 dashboard  admin-app  pay\n"
 printf "\n"
 printf "  Navigate:      Ctrl-b n   next window\n"
 printf "                 Ctrl-b p   previous window\n"
