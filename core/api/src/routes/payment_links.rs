@@ -143,9 +143,9 @@ pub async fn list(
         None
     };
 
-    let items: Vec<PaymentLinkResponse> = links.into_iter().map(Into::into).collect();
+    let data: Vec<PaymentLinkResponse> = links.into_iter().map(Into::into).collect();
     Ok(Json(serde_json::json!({
-        "items": items,
+        "data": data,
         "next_cursor": next_cursor,
     })))
 }

@@ -45,8 +45,8 @@ type ListPaymentLinksRequest struct {
 }
 
 type PaymentLinkListPage struct {
-	Items      []*PaymentLink `json:"items"`
-	NextCursor *string        `json:"next_cursor"`
+	Items      []*PaymentLink `json:"data"`
+	NextCursor *string        `json:"next_cursor,omitempty"`
 }
 
 // ---------------------------------------------------------------------------
