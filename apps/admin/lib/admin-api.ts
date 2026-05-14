@@ -29,15 +29,13 @@ export interface SettlementList {
 }
 
 export interface Payout {
-  id:           string;
-  merchant_id:  string;
-  wallet_id:    string;
-  amount_minor: number;
-  currency:     string;
-  status:       'PENDING' | 'PROCESSING' | 'SENT' | 'CONFIRMED' | 'FAILED' | 'RETURNED';
-  reference?:   string;
-  created_at:   string;
-  updated_at:   string;
+  id:          string;
+  merchant_id: string;
+  wallet_id:   string;
+  amount:      { amount_minor: number; currency: string };
+  status:      'PENDING' | 'PROCESSING' | 'SENT' | 'CONFIRMED' | 'FAILED' | 'RETURNED';
+  destination: { account_number: string; bank_code: string; account_holder_name: string };
+  created_at:  string;
 }
 
 export interface PayoutList {

@@ -139,7 +139,7 @@ export default function PayoutsPage() {
                     <td className="px-xl py-md font-mono text-xs text-gray-400">{p.id.slice(-12)}</td>
                     <td className="px-xl py-md font-mono text-xs text-gray-400">{p.merchant_id.slice(-8)}</td>
                     <td className="px-xl py-md font-semibold font-mono tabular-nums whitespace-nowrap">
-                      {formatMinor(p.amount_minor, p.currency)}
+                      {formatMinor(p.amount?.amount_minor, p.amount?.currency)}
                     </td>
                     <td className="px-xl py-md"><Badge label={p.status} /></td>
                     <td className="px-xl py-md text-xs text-gray-400 whitespace-nowrap">
