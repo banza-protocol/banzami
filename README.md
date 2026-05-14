@@ -277,7 +277,7 @@ banzami/
 │           └── server/            Chi router and server construction
 │
 ├── apps/                          Frontend applications (Next.js)
-│   ├── dashboard/                 Merchant dashboard (:3001)
+│   ├── dashboard/                 Merchant dashboard (:3010)
 │   ├── admin/                     Internal admin panel (:3002)
 │   ├── pay/                       Consumer pay page — payment links (:3003)
 │   └── docs/                      Developer documentation site
@@ -1058,15 +1058,10 @@ make stack-up
 ### Quick Start
 
 ```bash
-cp .env.example .env
-# Edit .env — fill in: JWT_SECRET, ADMIN_API_KEY, TRANSIT_ACCOUNT_ID, BANK_ACCOUNT_ID
-# Generate secrets: openssl rand -hex 32
-# Generate UUIDs:   uuidgen | tr '[:upper:]' '[:lower:]'
-
 ./dev.sh
 ```
 
-`dev.sh` handles everything in one step: starts PostgreSQL and Redis, applies migrations, installs npm dependencies if missing, then opens a tmux session with one window per service:
+`dev.sh` handles everything automatically: copies `.env.example` if no `.env` exists, auto-generates missing secrets (`JWT_SECRET`, `ADMIN_API_KEY`, `TRANSIT_ACCOUNT_ID`, `BANK_ACCOUNT_ID`), starts PostgreSQL and Redis, applies migrations, installs npm dependencies if missing, then opens a tmux session:
 
 | tmux window  | What runs                        | URL                        |
 |--------------|----------------------------------|----------------------------|
@@ -1074,11 +1069,11 @@ cp .env.example .env
 | `api-gateway`| Go merchant API                  | http://localhost:8080      |
 | `admin-api`  | Go admin API                     | http://localhost:8082      |
 | `public-api` | Go consumer API                  | http://localhost:8083      |
-| `dashboard`  | Next.js merchant dashboard       | http://localhost:3001      |
+| `dashboard`  | Next.js merchant dashboard       | http://localhost:3010      |
 | `admin-app`  | Next.js admin panel              | http://localhost:3002      |
 | `pay`        | Next.js consumer pay page        | http://localhost:3003      |
 
-**tmux navigation:**
+**tmux navigation** (mouse support is enabled — click on panes and window tabs):
 
 | Keys          | Action                    |
 |---------------|---------------------------|
@@ -1087,7 +1082,27 @@ cp .env.example .env
 | `Ctrl-b w`    | Window list (interactive) |
 | `Ctrl-b d`    | Detach (session keeps running) |
 | `tmux attach -t banzami` | Re-attach |
-| `./dev.sh stop` | Kill everything         |
+| `./dev.sh stop` | Kill all services and the tmux session |
+
+### Seed Test Data
+
+After the stack is running, create a test merchant with API key and wallet:
+
+```bash
+./tools/seed.sh
+# or with custom name and email:
+./tools/seed.sh "Farmácia Central" farmacia@banzami.ao
+```
+
+The script prints credentials ready to paste into the dashboard at `http://localhost:3010/login`:
+
+```
+Merchant ID   mch_xxxxxxxx-...
+API Key       bz_live_xxxxxxxx-...   ← shown only once
+Wallet ID     wlt_xxxxxxxx-...
+```
+
+**Admin panel** (`http://localhost:3002/login`) uses the `ADMIN_API_KEY` from `.env`.
 
 ### Manual Setup (without tmux)
 
@@ -1105,7 +1120,7 @@ make admin-api-run  # :8082
 make public-api-run # :8083
 
 # Terminal 5-7 — Next.js apps
-cd apps/dashboard && npm run dev   # :3001
+cd apps/dashboard && npm run dev   # :3010
 cd apps/admin     && npm run dev   # :3002
 cd apps/pay       && npm run dev   # :3003
 ```
