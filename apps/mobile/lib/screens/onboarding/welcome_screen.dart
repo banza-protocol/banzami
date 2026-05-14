@@ -19,15 +19,15 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // Logo mark
-              Container(
-                width:  64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color:        BanzamiColors.white.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(18),
+              // Official logo
+              ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/images/icon_master_1024.png',
+                  width:  72,
+                  height: 72,
+                  fit:    BoxFit.cover,
                 ),
-                child: const Icon(Icons.bolt_rounded, color: BanzamiColors.white, size: 36),
               ),
               const SizedBox(height: 24),
 
@@ -69,7 +69,7 @@ class WelcomeScreen extends StatelessWidget {
 
               const Spacer(flex: 1),
 
-              // CTA
+              // Primary CTA
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -79,29 +79,33 @@ class WelcomeScreen extends StatelessWidget {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BanzamiColors.white,
                     foregroundColor: BanzamiColors.wine,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle: BanzamiTextStyles.headingSm,
+                    padding:         const EdgeInsets.symmetric(vertical: 16),
+                    shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    textStyle:       BanzamiTextStyles.headingSm,
                   ),
                   child: const Text('Criar conta'),
                 ),
               ),
               const SizedBox(height: 12),
+
+              // Secondary CTA
               SizedBox(
                 width: double.infinity,
-                child: TextButton(
+                child: OutlinedButton(
                   onPressed: () => Navigator.of(context).push(
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   ),
-                  style: TextButton.styleFrom(
-                    foregroundColor: BanzamiColors.white.withValues(alpha: 0.85),
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    textStyle: BanzamiTextStyles.bodyMd,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: BanzamiColors.white,
+                    side:            BorderSide(color: BanzamiColors.white.withValues(alpha: 0.5), width: 1.5),
+                    padding:         const EdgeInsets.symmetric(vertical: 16),
+                    shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    textStyle:       BanzamiTextStyles.headingSm,
                   ),
                   child: const Text('Já tenho conta'),
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
             ],
           ),
         ),
