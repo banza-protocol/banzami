@@ -176,6 +176,19 @@ export class AdminApi {
     return this.req(`/admin/v1/payouts/${id}/returned`, { method: 'POST', body: JSON.stringify({ reason }) });
   }
 
+  // Test utilities (dev only)
+  testCredit(merchantId: string, amountMinor: number, currency = 'AOA'): Promise<{
+    transaction: Record<string, unknown>;
+    wallet_id: string;
+    amount_minor: number;
+    currency: string;
+  }> {
+    return this.req(`/admin/v1/merchants/${merchantId}/test-credit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_minor: amountMinor, currency }),
+    });
+  }
+
   // Reconciliation
   runReconciliation(): Promise<Record<string, unknown>> {
     return this.req('/admin/v1/reconciliation/run', { method: 'POST', body: JSON.stringify({}) });

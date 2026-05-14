@@ -186,6 +186,21 @@ func (c *CoreAdminClient) GetWallet(ctx context.Context, merchantID, currency st
 	return out, c.get(ctx, "/internal/v1/wallets?merchant_id="+merchantID+"&currency="+currency, &out)
 }
 
+func (c *CoreAdminClient) CreateTransaction(ctx context.Context, body map[string]any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/transactions", body, &out)
+}
+
+func (c *CoreAdminClient) AuthorizeTransaction(ctx context.Context, txID string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/transactions/"+txID+"/authorize", nil, &out)
+}
+
+func (c *CoreAdminClient) CaptureTransaction(ctx context.Context, txID string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/transactions/"+txID+"/capture", nil, &out)
+}
+
 // ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------

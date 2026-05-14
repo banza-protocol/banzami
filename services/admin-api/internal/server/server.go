@@ -46,6 +46,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 		merchantH       := handler.NewMerchantHandler(core)
 		merchantSetupH  := handler.NewMerchantSetupHandler(core)
 		reconciliationH := handler.NewReconciliationHandler(core)
+		testCreditH     := handler.NewTestCreditHandler(core)
 
 		// Merchants
 		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
@@ -53,6 +54,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 		r.Get("/admin/v1/merchants/{id}",                merchantH.Get)
 		r.Post("/admin/v1/merchants/{id}/api-keys",      merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
+		r.Post("/admin/v1/merchants/{id}/test-credit",   testCreditH.Credit)
 
 		// Compliance
 		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)
