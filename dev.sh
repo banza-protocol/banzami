@@ -34,7 +34,7 @@ if [[ "${1:-}" == "stop" ]]; then
     "go run ./cmd/gateway" \
     "go run ./cmd/admin" \
     "go run ./cmd/public-api" \
-    "next dev --port 3001" \
+    "next dev --port 3010" \
     "next dev --port 3002" \
     "next dev --port 3003"; do
     pkill -f "$pattern" 2>/dev/null && log "Killed: $pattern" || true
@@ -206,7 +206,7 @@ cat > "$STATUS_FILE" << 'EOF'
   public-api   →  http://localhost:8083
 
   Apps (windows 1-3)
-  dashboard    →  http://localhost:3001
+  dashboard    →  http://localhost:3010
   admin-app    →  http://localhost:3002
   pay          →  http://localhost:3003
 
