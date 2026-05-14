@@ -157,6 +157,33 @@ services:
     networks:
       - banzami_net
 
+  # Go public API — consumer-facing (mobile app, pay page).
+  public-api:
+    build:
+      context: ../../services/public-api
+      dockerfile: Dockerfile
+    environment:
+      PUBLIC_API_PORT: "8083"
+      CORE_API_URL:    http://core-api:8081
+      DATABASE_URL:    postgres://banzami:banzami_dev@postgres:5432/banzami_dev
+      JWT_SECRET:      ${JWT_SECRET}
+      LOG_LEVEL:       ${LOG_LEVEL:-info}
+      OTLP_ENDPOINT:   ${OTLP_ENDPOINT:-}
+    ports:
+      - "8083:8083"
+    depends_on:
+      core-api:
+        condition: service_healthy
+    healthcheck:
+      test:     ["CMD", "curl", "-fsS", "http://localhost:8083/health"]
+      interval: 10s
+      timeout:  5s
+      start_period: 15s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
 volumes:
   postgres_data:
   redis_data:

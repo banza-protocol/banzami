@@ -14,6 +14,7 @@
 #   make core-run           # terminal 1 — Rust core-api
 #   make gateway-run        # terminal 2 — Go api-gateway
 #   make admin-api-run      # terminal 3 — Go admin-api
+#   make public-api-run     # terminal 4 — Go public-api (consumer-facing)
 #
 # Full containerised stack:
 #   make sqlx-prepare       # generate .sqlx/ cache (once, then commit)
@@ -25,12 +26,13 @@ ifneq (,$(wildcard .env))
   export
 endif
 
-COMPOSE_INFRA = docker compose -f infra/docker/docker-compose.yml
-COMPOSE_FULL  = docker compose -f infra/docker/docker-compose.full.yml
-DB_MIG        = db/migrations
-CORE_DIR      = core
-GATEWAY_DIR   = services/api-gateway
-ADMIN_DIR     = services/admin-api
+COMPOSE_INFRA  = docker compose -f infra/docker/docker-compose.yml
+COMPOSE_FULL   = docker compose -f infra/docker/docker-compose.full.yml
+DB_MIG         = db/migrations
+CORE_DIR       = core
+GATEWAY_DIR    = services/api-gateway
+ADMIN_DIR      = services/admin-api
+PUBLIC_API_DIR = services/public-api
 
 .DEFAULT_GOAL := help
 
@@ -65,6 +67,11 @@ help:
 	@printf "    make admin-api-build go build ./...\n"
 	@printf "    make admin-api-check go vet ./...\n"
 	@printf "    make admin-api-test  go test ./...\n"
+	@printf "\n  \033[1mGo public-api (:8083)\033[0m\n"
+	@printf "    make public-api-run  Run public-api (requires core-run)\n"
+	@printf "    make public-api-build go build ./...\n"
+	@printf "    make public-api-check go vet ./...\n"
+	@printf "    make public-api-test go test ./...\n"
 	@printf "\n  \033[1mFull containerised stack\033[0m\n"
 	@printf "    make stack-build     Build all Docker images\n"
 	@printf "    make stack-up        Start full stack in containers (runs migrations)\n"
@@ -185,6 +192,21 @@ admin-api-check:
 admin-api-test:
 	cd $(ADMIN_DIR) && go test ./...
 
+# ─── Go public-api ────────────────────────────────────────────────────────────
+.PHONY: public-api-run public-api-build public-api-check public-api-test
+
+public-api-run:
+	cd $(PUBLIC_API_DIR) && go run ./cmd/public-api
+
+public-api-build:
+	cd $(PUBLIC_API_DIR) && go build ./...
+
+public-api-check:
+	cd $(PUBLIC_API_DIR) && go vet ./...
+
+public-api-test:
+	cd $(PUBLIC_API_DIR) && go test ./...
+
 # ─── Full containerised stack ─────────────────────────────────────────────────
 .PHONY: stack-build stack-up stack-down stack-logs
 
@@ -204,11 +226,14 @@ stack-up: _require-database-url _require-sqlx
 	done
 	@printf " ready\n"
 	sqlx migrate run --source $(DB_MIG)
-	$(COMPOSE_FULL) up -d core-api api-gateway admin-api
+	$(COMPOSE_FULL) up -d core-api api-gateway admin-api public-api
 	@printf "\n  Services starting...\n"
 	@printf "  api-gateway  → http://localhost:8080\n"
 	@printf "  admin-api    → http://localhost:8082\n"
+	@printf "  public-api   → http://localhost:8083\n"
 	@printf "  core-api     → http://localhost:8081  (internal)\n"
+	@printf "  Prometheus   → http://localhost:9090\n"
+	@printf "  Grafana      → http://localhost:3000\n"
 	@printf "  PostgreSQL   → localhost:5433\n"
 	@printf "  Redis        → localhost:6379\n\n"
 
@@ -221,8 +246,8 @@ stack-logs:
 # ─── Quality gates ────────────────────────────────────────────────────────────
 .PHONY: check-all test-all
 
-check-all: core-check gateway-check admin-api-check
+check-all: core-check gateway-check admin-api-check public-api-check
 	@printf "\nAll checks passed.\n"
 
-test-all: core-test gateway-test admin-api-test
+test-all: core-test gateway-test admin-api-test public-api-test
 	@printf "\nAll test suites passed.\n"
