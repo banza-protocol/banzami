@@ -4,15 +4,10 @@
 ///   flutter run --dart-define=GATEWAY_URL=https://api.banzami.ao \
 ///               --dart-define=APP_API_KEY=bz_live_...
 abstract class AppConfig {
-  static const String gatewayUrl = String.fromEnvironment(
-    'GATEWAY_URL',
-    defaultValue: 'http://localhost:8080',
-  );
-
-  // Consumer-facing API key.  In production this is a restricted key that
-  // only allows consumer endpoints (no merchant admin operations).
-  static const String apiKey = String.fromEnvironment(
-    'APP_API_KEY',
-    defaultValue: 'bz_dev_consumer_key',
+  /// Public API base URL (consumer-facing service, port 8083).
+  /// Pass via --dart-define=PUBLIC_API_URL=https://api.banzami.ao at build time.
+  static const String publicApiUrl = String.fromEnvironment(
+    'PUBLIC_API_URL',
+    defaultValue: 'http://localhost:8083',
   );
 }

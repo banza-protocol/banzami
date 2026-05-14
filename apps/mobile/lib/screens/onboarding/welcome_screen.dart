@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import 'create_account_screen.dart';
+import 'login_screen.dart';
 
 class WelcomeScreen extends StatelessWidget {
   const WelcomeScreen({super.key});
@@ -85,7 +86,22 @@ class WelcomeScreen extends StatelessWidget {
                   child: const Text('Criar conta'),
                 ),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: BanzamiColors.white.withValues(alpha: 0.85),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    textStyle: BanzamiTextStyles.bodyMd,
+                  ),
+                  child: const Text('Já tenho conta'),
+                ),
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),

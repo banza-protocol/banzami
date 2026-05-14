@@ -18,18 +18,23 @@ class BanzamiApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SessionService()..initialize()),
-        Provider(create: (_) => BanzamiClient(
-          baseUrl: AppConfig.gatewayUrl,
-          apiKey:  AppConfig.apiKey,
+        // ConsumerPublicClient is provided here; the token is injected from
+        // the session after the first build (see _home below).
+        Provider(create: (_) => ConsumerPublicClient(
+          baseUrl: AppConfig.publicApiUrl,
         )),
       ],
       child: Consumer<SessionService>(
         builder: (context, session, _) {
+          // Keep the client's token in sync with the stored session token.
+          if (session.session != null) {
+            context.read<ConsumerPublicClient>().setToken(session.session!.token);
+          }
           return MaterialApp(
-            title:            'Banzami',
+            title:                      'Banzami',
             debugShowCheckedModeBanner: false,
-            theme:            _buildTheme(),
-            home:             _home(session),
+            theme:                      _buildTheme(),
+            home:                       _home(session),
           );
         },
       ),
@@ -46,9 +51,9 @@ class BanzamiApp extends StatelessWidget {
   ThemeData _buildTheme() {
     final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor:   BanzamiColors.wine,
-        primary:     BanzamiColors.wine,
-        brightness:  Brightness.light,
+        seedColor:  BanzamiColors.wine,
+        primary:    BanzamiColors.wine,
+        brightness: Brightness.light,
       ),
       useMaterial3: true,
     );
@@ -56,20 +61,20 @@ class BanzamiApp extends StatelessWidget {
       textTheme: GoogleFonts.interTextTheme(base.textTheme),
       appBarTheme: const AppBarTheme(
         surfaceTintColor: Colors.transparent,
-        elevation: 0,
+        elevation:        0,
       ),
       inputDecorationTheme: InputDecorationTheme(
-        filled:          true,
-        fillColor:       BanzamiColors.gray100,
-        border:          OutlineInputBorder(
+        filled:      true,
+        fillColor:   BanzamiColors.gray100,
+        border:      OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:   BorderSide.none,
         ),
-        focusedBorder:   OutlineInputBorder(
+        focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:   const BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
-        errorBorder:     OutlineInputBorder(
+        errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
         ),

@@ -1,0 +1,215 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
+
+import '../models/consumer.dart';
+import '../models/payment_link.dart';
+import '../models/transfer.dart';
+import '../models/wallet_balance.dart';
+import 'api_exception.dart';
+
+/// Lightweight registration bundle returned by [ConsumerPublicClient.register].
+class ConsumerRegistration {
+  final Consumer consumer;
+  final String walletId;
+  final String token;
+
+  const ConsumerRegistration({
+    required this.consumer,
+    required this.walletId,
+    required this.token,
+  });
+}
+
+/// HTTP client for the Banzami public-api (port 8083).
+///
+/// This is the correct service for consumer-facing operations.
+/// All routes are JWT-scoped — the token is obtained via [register] or
+/// [login] and automatically injected into every subsequent request.
+///
+/// Usage:
+/// ```dart
+/// final client = ConsumerPublicClient(baseUrl: 'http://localhost:8083');
+/// final reg = await client.register(handle: 'joao', pin: '123456');
+/// final balance = await client.getBalance();
+/// ```
+class ConsumerPublicClient {
+  final String baseUrl;
+  String? _token;
+  final http.Client _http;
+  final Uuid _uuid;
+
+  ConsumerPublicClient({
+    required this.baseUrl,
+    http.Client? httpClient,
+  })  : _http = httpClient ?? http.Client(),
+        _uuid = const Uuid();
+
+  void setToken(String token) => _token = token;
+  String? get token => _token;
+
+  // ---------------------------------------------------------------------------
+  // Auth (no token required)
+  // ---------------------------------------------------------------------------
+
+  /// Register a new consumer account.
+  ///
+  /// Creates the consumer on the server, saves the bcrypt-hashed PIN to
+  /// [public_api_credentials], provisions an AOA wallet, and returns a JWT.
+  /// Sets [token] internally so subsequent calls are authenticated.
+  Future<ConsumerRegistration> register({
+    required String handle,
+    String? displayName,
+    required String pin,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/auth/register',
+      body: {
+        'handle': handle,
+        if (displayName != null) 'display_name': displayName,
+        'pin': pin,
+      },
+      auth: false,
+    );
+
+    final consumer = Consumer.fromJson(resp['consumer'] as Map<String, dynamic>);
+    final tok = resp['token'] as String;
+    _token = tok;
+
+    final wallet = await _call(method: 'GET', path: '/v1/me/wallet');
+    return ConsumerRegistration(
+      consumer: consumer,
+      walletId: wallet['id'] as String,
+      token: tok,
+    );
+  }
+
+  /// Exchange handle + PIN for a fresh JWT.
+  ///
+  /// Used both for initial login and for re-authentication after logout.
+  /// Sets [token] internally on success.
+  Future<({Consumer consumer, String walletId, String token})> login({
+    required String handle,
+    required String pin,
+  }) async {
+    final resp = await _call(
+      method: 'POST',
+      path: '/v1/auth/token',
+      body: {'handle': handle, 'pin': pin},
+      auth: false,
+    );
+    final tok = resp['token'] as String;
+    _token = tok;
+
+    final profile = await _call(method: 'GET', path: '/v1/me');
+    final consumer = Consumer.fromJson(profile);
+
+    final wallet = await _call(method: 'GET', path: '/v1/me/wallet');
+    return (consumer: consumer, walletId: wallet['id'] as String, token: tok);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Balance
+  // ---------------------------------------------------------------------------
+
+  Future<WalletBalance> getBalance({String currency = 'AOA'}) async {
+    final json = await _call(method: 'GET', path: '/v1/me/wallet/balance?currency=$currency');
+    return WalletBalance.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transfers
+  // ---------------------------------------------------------------------------
+
+  Future<Transfer> sendByHandle({
+    required String recipientHandle,
+    required int amountMinor,
+    String currency = 'AOA',
+    String? description,
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/transfers',
+      body: {
+        'recipient_handle': recipientHandle,
+        'amount_minor': amountMinor,
+        'currency': currency,
+        if (description != null) 'description': description,
+        'idempotency_key': _uuid.v4(),
+      },
+    );
+    return Transfer.fromJson(json);
+  }
+
+  Future<TransferPage> listTransfers({int limit = 20, String? cursor}) async {
+    var path = '/v1/transfers?limit=$limit';
+    if (cursor != null) path += '&cursor=$cursor';
+    final json = await _call(method: 'GET', path: path);
+    return TransferPage.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment links
+  // ---------------------------------------------------------------------------
+
+  Future<PaymentLink> getPaymentLinkBySlug(String slug) async {
+    final json = await _call(
+      method: 'GET',
+      path: '/v1/payment-links/$slug',
+      auth: false,
+    );
+    return PaymentLink.fromJson(json);
+  }
+
+  /// Pay a payment link.
+  ///
+  /// [amountMinor] is required for open links (no fixed amount).
+  /// For fixed-amount links the server uses its own amount; pass null or 0.
+  Future<PaymentLink> payPaymentLink(String slug, {int? amountMinor}) async {
+    final body = <String, dynamic>{};
+    if (amountMinor != null && amountMinor > 0) body['amount_minor'] = amountMinor;
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/payment-links/$slug/pay',
+      body: body,
+    );
+    return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // HTTP helpers
+  // ---------------------------------------------------------------------------
+
+  Map<String, String> _headers({bool auth = true}) => {
+    'Content-Type': 'application/json',
+    if (auth && _token != null) 'Authorization': 'Bearer $_token',
+  };
+
+  Future<Map<String, dynamic>> _call({
+    required String method,
+    required String path,
+    Map<String, dynamic>? body,
+    bool auth = true,
+  }) async {
+    final uri = Uri.parse('$baseUrl$path');
+    final headers = _headers(auth: auth);
+    late http.Response resp;
+    try {
+      resp = switch (method) {
+        'GET'    => await _http.get(uri, headers: headers),
+        'POST'   => await _http.post(uri, headers: headers,
+                      body: body != null ? jsonEncode(body) : null),
+        'DELETE' => await _http.delete(uri, headers: headers),
+        _        => throw ArgumentError('Unsupported method: $method'),
+      };
+    } catch (e) {
+      if (e is BanzamiNetworkException) rethrow;
+      throw BanzamiNetworkException(e.toString());
+    }
+    final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 200 && resp.statusCode < 300) return decoded;
+    throw BanzamiApiException.fromJson(resp.statusCode, decoded);
+  }
+}

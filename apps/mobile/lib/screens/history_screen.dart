@@ -4,7 +4,6 @@ import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/session_service.dart';
 
-/// Full paginated transfer history for the current consumer.
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
@@ -15,8 +14,8 @@ class HistoryScreen extends StatefulWidget {
 class _HistoryScreenState extends State<HistoryScreen> {
   final List<Transfer> _transfers = [];
   String? _cursor;
-  bool    _loading     = false;
-  bool    _hasMore     = true;
+  bool    _loading  = false;
+  bool    _hasMore  = true;
   String? _error;
 
   static const int _pageSize = 30;
@@ -34,15 +33,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
     setState(() { _loading = true; _error = null; });
     if (refresh) { _transfers.clear(); _cursor = null; _hasMore = true; }
 
-    final svc    = context.read<SessionService>();
-    final client = context.read<BanzamiClient>();
+    final client = context.read<ConsumerPublicClient>();
 
     try {
-      final page = await client.listTransfers(
-        consumerId: svc.session!.consumerId,
-        limit:      _pageSize,
-        cursor:     _cursor,
-      );
+      final page = await client.listTransfers(limit: _pageSize, cursor: _cursor);
       setState(() {
         _transfers.addAll(page.data);
         _cursor  = page.nextCursor;
@@ -65,7 +59,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
         backgroundColor: BanzamiColors.white,
         foregroundColor: BanzamiColors.gray900,
         elevation:       0,
-        title: const Text('Histórico', style: BanzamiTextStyles.headingSm),
+        title:           const Text('Histórico', style: BanzamiTextStyles.headingSm),
         actions: [
           IconButton(
             icon:      const Icon(Icons.refresh_rounded),
@@ -76,7 +70,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: RefreshIndicator(
         color:     BanzamiColors.wine,
         onRefresh: () => _load(refresh: true),
-        child: _buildBody(consumerId),
+        child:     _buildBody(consumerId),
       ),
     );
   }
@@ -102,12 +96,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
 
     return ListView.separated(
-      padding:           const EdgeInsets.symmetric(vertical: 8),
-      itemCount:         _transfers.length + (_hasMore ? 1 : 0),
-      separatorBuilder:  (_, __) => const Divider(height: 1, indent: 72),
+      padding:          const EdgeInsets.symmetric(vertical: 8),
+      itemCount:        _transfers.length + (_hasMore ? 1 : 0),
+      separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
       itemBuilder: (context, i) {
         if (i == _transfers.length) {
-          // Load-more trigger
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(24),

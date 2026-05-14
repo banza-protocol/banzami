@@ -14,6 +14,7 @@ class Session {
   final String  walletId;
   final String  handle;
   final String? displayName;
+  final String  token;
   final bool    biometricsEnabled;
 
   const Session({
@@ -21,14 +22,16 @@ class Session {
     required this.walletId,
     required this.handle,
     this.displayName,
+    required this.token,
     this.biometricsEnabled = false,
   });
 
-  Session copyWith({ bool? biometricsEnabled }) => Session(
+  Session copyWith({ bool? biometricsEnabled, String? token }) => Session(
     consumerId:        consumerId,
     walletId:          walletId,
     handle:            handle,
     displayName:       displayName,
+    token:             token ?? this.token,
     biometricsEnabled: biometricsEnabled ?? this.biometricsEnabled,
   );
 }
@@ -44,12 +47,12 @@ class SessionService extends ChangeNotifier {
   );
   static final _bio = LocalAuthentication();
 
-  // Keys
   static const _kConsumerId  = 'consumer_id';
   static const _kWalletId    = 'wallet_id';
   static const _kHandle      = 'handle';
   static const _kDisplayName = 'display_name';
   static const _kPinHash     = 'pin_hash';
+  static const _kToken       = 'token';
   static const _kBioEnabled  = 'biometrics_enabled';
 
   Session? _session;
@@ -70,14 +73,16 @@ class SessionService extends ChangeNotifier {
     final walletId    = await _store.read(key: _kWalletId);
     final handle      = await _store.read(key: _kHandle);
     final displayName = await _store.read(key: _kDisplayName);
+    final token       = await _store.read(key: _kToken);
     final bioEnabled  = await _store.read(key: _kBioEnabled);
 
-    if (consumerId != null && walletId != null && handle != null) {
+    if (consumerId != null && walletId != null && handle != null && token != null) {
       _session = Session(
         consumerId:        consumerId,
         walletId:          walletId,
         handle:            handle,
         displayName:       displayName,
+        token:             token,
         biometricsEnabled: bioEnabled == 'true',
       );
     }
@@ -86,7 +91,7 @@ class SessionService extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Registration
+  // Registration / login
   // ---------------------------------------------------------------------------
 
   Future<void> createSession({
@@ -95,11 +100,13 @@ class SessionService extends ChangeNotifier {
     required String handle,
     String?         displayName,
     required String pin,
+    required String token,
   }) async {
     await _store.write(key: _kConsumerId,  value: consumerId);
     await _store.write(key: _kWalletId,    value: walletId);
     await _store.write(key: _kHandle,      value: handle);
     await _store.write(key: _kPinHash,     value: _hash(pin));
+    await _store.write(key: _kToken,       value: token);
     if (displayName != null) {
       await _store.write(key: _kDisplayName, value: displayName);
     }
@@ -108,15 +115,28 @@ class SessionService extends ChangeNotifier {
       walletId:    walletId,
       handle:      handle,
       displayName: displayName,
+      token:       token,
     );
     _locked = false;
     notifyListeners();
+  }
+
+  /// Called after a server-side re-login (e.g. expired JWT) to refresh the
+  /// stored token without requiring a full session rebuild.
+  Future<void> updateToken(String token) async {
+    await _store.write(key: _kToken, value: token);
+    if (_session != null) {
+      _session = _session!.copyWith(token: token);
+      notifyListeners();
+    }
   }
 
   // ---------------------------------------------------------------------------
   // Authentication
   // ---------------------------------------------------------------------------
 
+  /// Verifies the PIN locally using the stored hash — used by the lock screen
+  /// so the app can unlock without a network round-trip.
   Future<bool> verifyPin(String pin) async {
     final stored = await _store.read(key: _kPinHash);
     return stored != null && _hash(pin) == stored;
@@ -175,7 +195,7 @@ class SessionService extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // PIN hashing — SHA-256 with app-specific salt
+  // PIN hashing — SHA-256 with app-specific salt (for local lock screen)
   // ---------------------------------------------------------------------------
 
   static String _hash(String pin) {

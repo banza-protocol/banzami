@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../client/banzami_client.dart';
+import '../client/consumer_public_client.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banzami_theme.dart';
@@ -9,24 +9,21 @@ import 'receive_screen.dart';
 import 'scan_screen.dart';
 import 'send_screen.dart';
 
-/// The main payment hub screen.
+/// The main payment hub screen for consumer accounts.
 ///
-/// Hierarchy (per brand spec):
-///   1. Available balance — dominant, immediately visible
-///   2. Scan QR  — primary action
-///   3. Send     — second action
-///   4. Receive  — third action
-///   5. Recent activity — scrollable below the fold
+/// Shows available balance, quick-action buttons (Scan, Send, Receive)
+/// and a list of recent transfers. All data is fetched from the public-api
+/// using the consumer JWT stored in [ConsumerPublicClient].
 class BanzamiHomeScreen extends StatefulWidget {
-  final BanzamiClient client;
+  final ConsumerPublicClient client;
   final String consumerId;
-  final String walletId;
+  final String handle;
 
   const BanzamiHomeScreen({
     super.key,
     required this.client,
     required this.consumerId,
-    required this.walletId,
+    required this.handle,
   });
 
   @override
@@ -52,16 +49,16 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
 
   Future<void> _loadBalance() async {
     try {
-      final bal = await widget.client.getBalance(widget.walletId);
+      final bal = await widget.client.getBalance();
       if (mounted) setState(() { _balance = bal; _loadingBalance = false; });
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() { _error = 'Não foi possível carregar o saldo'; _loadingBalance = false; });
     }
   }
 
   Future<void> _loadTransfers() async {
     try {
-      final page = await widget.client.listTransfers(consumerId: widget.consumerId, limit: 20);
+      final page = await widget.client.listTransfers(limit: 20);
       if (mounted) setState(() { _transfers = page.data; _loadingTransfers = false; });
     } catch (_) {
       if (mounted) setState(() { _loadingTransfers = false; });
@@ -70,26 +67,20 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
 
   void _onScan() => Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => BanzamiScanScreen(
-      client:     widget.client,
-      consumerId: widget.consumerId,
-      onSuccess:  (_) { Navigator.of(context).pop(); _load(); },
+      client:    widget.client,
+      onSuccess: (_) { Navigator.of(context).pop(); _load(); },
     ),
   ));
 
   void _onSend() => Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => BanzamiSendScreen(
-      client:     widget.client,
-      senderId:   widget.consumerId,
-      onSuccess:  (_) { Navigator.of(context).pop(); _load(); },
+      client:    widget.client,
+      onSuccess: (_) { Navigator.of(context).pop(); _load(); },
     ),
   ));
 
   void _onReceive() => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BanzamiReceiveScreen(
-      client:    widget.client,
-      ownerId:   widget.consumerId,
-      walletId:  widget.walletId,
-    ),
+    builder: (_) => BanzamiReceiveScreen(handle: widget.handle),
   ));
 
   @override
@@ -97,17 +88,17 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
       body: RefreshIndicator(
-        color:        BanzamiColors.wine,
-        onRefresh:    _load,
+        color:     BanzamiColors.wine,
+        onRefresh: _load,
         child: CustomScrollView(
           slivers: [
             _BalanceHeader(
-              balance:        _balance,
-              loading:        _loadingBalance,
-              error:          _error,
-              onScan:         _onScan,
-              onSend:         _onSend,
-              onReceive:      _onReceive,
+              balance:   _balance,
+              loading:   _loadingBalance,
+              error:     _error,
+              onScan:    _onScan,
+              onSend:    _onSend,
+              onReceive: _onReceive,
             ),
             const SliverToBoxAdapter(
               child: Padding(
@@ -142,13 +133,10 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
             else
               SliverList(
                 delegate: SliverChildBuilderDelegate(
-                  (context, i) {
-                    final t = _transfers[i];
-                    return BanzamiTransferItem(
-                      transfer:          t,
-                      currentConsumerId: widget.consumerId,
-                    );
-                  },
+                  (context, i) => BanzamiTransferItem(
+                    transfer:          _transfers[i],
+                    currentConsumerId: widget.consumerId,
+                  ),
                   childCount: _transfers.length,
                 ),
               ),
@@ -211,20 +199,12 @@ class _BalanceHeader extends StatelessWidget {
                   ),
                 ),
               )
-            else if (error != null)
-              Text(
-                '— Kz',
-                style: BanzamiTextStyles.displayLg.copyWith(color: BanzamiColors.white),
-              )
             else
               Text(
-                balance?.availableFormatted ?? '0 Kz',
+                balance?.availableFormatted ?? '— Kz',
                 style: BanzamiTextStyles.displayLg.copyWith(color: BanzamiColors.white),
               ),
-
             const SizedBox(height: BanzamiSpacing.xxl),
-
-            // Action buttons row
             Row(
               children: [
                 _ActionButton(
@@ -269,15 +249,15 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bg   = primary ? BanzamiColors.white : BanzamiColors.white.withValues(alpha: 0.15);
-    final fg   = primary ? BanzamiColors.wine  : BanzamiColors.white;
+    final bg = primary ? BanzamiColors.white : BanzamiColors.white.withValues(alpha: 0.15);
+    final fg = primary ? BanzamiColors.wine  : BanzamiColors.white;
 
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          padding:     const EdgeInsets.symmetric(vertical: BanzamiSpacing.md),
-          decoration:  BoxDecoration(
+          padding:    const EdgeInsets.symmetric(vertical: BanzamiSpacing.md),
+          decoration: BoxDecoration(
             color:        bg,
             borderRadius: BanzamiRadius.mdAll,
           ),

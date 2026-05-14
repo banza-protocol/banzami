@@ -6,8 +6,6 @@ import '../services/session_service.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
-/// Root scaffold with bottom navigation.
-/// Tabs: Home (balance + actions) | Histórico | Perfil
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
 
@@ -30,7 +28,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  // Lock when app goes to background, unlock via PIN/biometrics on resume.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
@@ -41,13 +38,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final session = context.read<SessionService>().session!;
-    final client  = context.read<BanzamiClient>();
+    final client  = context.read<ConsumerPublicClient>();
 
     final tabs = [
       BanzamiHomeScreen(
         client:     client,
         consumerId: session.consumerId,
-        walletId:   session.walletId,
+        handle:     session.handle,
       ),
       const HistoryScreen(),
       const ProfileScreen(),
@@ -56,11 +53,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return Scaffold(
       body: IndexedStack(index: _tab, children: tabs),
       bottomNavigationBar: NavigationBar(
-        selectedIndex:    _tab,
+        selectedIndex:         _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor:  BanzamiColors.white,
-        indicatorColor:   BanzamiColors.wine.withValues(alpha: 0.12),
-        labelBehavior:    NavigationDestinationLabelBehavior.alwaysShow,
+        backgroundColor:       BanzamiColors.white,
+        indicatorColor:        BanzamiColors.wine.withValues(alpha: 0.12),
+        labelBehavior:         NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon:         Icon(Icons.home_outlined),

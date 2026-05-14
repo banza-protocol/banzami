@@ -15,6 +15,7 @@ library banzami_sdk;
 
 // Client
 export 'client/banzami_client.dart';
+export 'client/consumer_public_client.dart';
 export 'client/api_exception.dart';
 
 // Models
