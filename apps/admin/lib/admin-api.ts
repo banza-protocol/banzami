@@ -56,6 +56,7 @@ export interface MerchantCompliance {
 export interface Merchant {
   id:         string;
   name:       string;
+  email:      string;
   status:     string;
   created_at: string;
 }

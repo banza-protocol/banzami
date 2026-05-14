@@ -26,11 +26,11 @@ const STATUS_MAP: Record<string, Variant> = {
   RETURNED:       'neutral',
 };
 
-export function Badge({ label }: { label: string }) {
-  const variant = STATUS_MAP[label.toUpperCase()] ?? 'neutral';
+export function Badge({ label }: { label: string | undefined | null }) {
+  const variant = label ? (STATUS_MAP[label.toUpperCase()] ?? 'neutral') : 'neutral';
   return (
     <span className={`inline-flex items-center rounded-full px-md py-micro text-xs font-medium tracking-wide ${styles[variant]}`}>
-      {label}
+      {label ?? '—'}
     </span>
   );
 }
