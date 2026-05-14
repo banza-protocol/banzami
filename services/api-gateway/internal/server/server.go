@@ -41,6 +41,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	// Global middleware — applied to every request
 	// ---------------------------------------------------------------------------
+	r.Use(middleware.CORS)
 	r.Use(chimw.RealIP)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
