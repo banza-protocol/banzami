@@ -104,6 +104,26 @@ export interface WebhookEventPage {
   next_cursor?: string;
 }
 
+export interface PaymentLink {
+  id:           string;
+  slug:         string;
+  merchant_id:  string;
+  wallet_id:    string;
+  amount_minor: number | null;
+  currency:     string;
+  description:  string | null;
+  status:       string;
+  expires_at:   string | null;
+  paid_at:      string | null;
+  created_at:   string;
+  updated_at:   string;
+}
+
+export interface PaymentLinkPage {
+  data:         PaymentLink[];
+  next_cursor?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -236,5 +256,38 @@ export class BanzamiApi {
     if (opts.limit)  p.set('limit',  String(opts.limit));
     if (opts.cursor) p.set('cursor', opts.cursor);
     return this.req<WebhookEventPage>(`/webhooks/events?${p}`);
+  }
+
+  // Payment Links
+  listPaymentLinks(opts: { merchantId: string; limit?: number; cursor?: string }): Promise<PaymentLinkPage> {
+    const p = new URLSearchParams({ merchant_id: opts.merchantId });
+    if (opts.limit)  p.set('limit',  String(opts.limit));
+    if (opts.cursor) p.set('cursor', opts.cursor);
+    return this.req<PaymentLinkPage>(`/payment-links?${p}`);
+  }
+
+  createPaymentLink(opts: {
+    merchantId:   string;
+    walletId:     string;
+    amountMinor?: number | null;
+    currency?:    string;
+    description?: string;
+    expiresAt?:   string;
+  }): Promise<PaymentLink> {
+    return this.req<PaymentLink>('/payment-links', {
+      method: 'POST',
+      body:   JSON.stringify({
+        merchant_id:  opts.merchantId,
+        wallet_id:    opts.walletId,
+        amount_minor: opts.amountMinor ?? null,
+        currency:     opts.currency ?? 'AOA',
+        description:  opts.description ?? null,
+        expires_at:   opts.expiresAt ?? null,
+      }),
+    });
+  }
+
+  cancelPaymentLink(id: string): Promise<PaymentLink> {
+    return this.req<PaymentLink>(`/payment-links/${id}`, { method: 'DELETE' });
   }
 }

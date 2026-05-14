@@ -2,15 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import { getSession } from '@/lib/session';
-import { BanzamiApi, type Transaction } from '@/lib/api';
+import { BanzamiApi, type Transaction, type WalletBalance } from '@/lib/api';
 import { formatMinor } from '@/lib/money';
 import { StatCard } from '@/components/ui/stat-card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
 
+function isToday(dateStr: string): boolean {
+  const d   = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() &&
+         d.getMonth()    === now.getMonth()    &&
+         d.getDate()     === now.getDate();
+}
+
+function isThisMonth(dateStr: string): boolean {
+  const d   = new Date(dateStr);
+  const now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+}
+
+function isCompleted(status: string): boolean {
+  return status === 'COMPLETED' || status === 'CAPTURED' || status === 'PAID';
+}
+
 export default function OverviewPage() {
   const [txs, setTxs]         = useState<Transaction[]>([]);
+  const [balance, setBalance] = useState<WalletBalance | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState('');
 
@@ -18,35 +37,78 @@ export default function OverviewPage() {
     const session = getSession();
     if (!session) return;
     const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
-    api.listTransactions({ limit: 50 })
-      .then(p => setTxs(p.data))
-      .catch(e => setError(e.message))
-      .finally(() => setLoading(false));
+
+    const tasks: Promise<void>[] = [
+      api.listTransactions({ limit: 100 })
+        .then(p => setTxs(p.data))
+        .catch(e => setError(e instanceof Error ? e.message : 'Erro')),
+    ];
+
+    if (session.walletId) {
+      tasks.push(
+        api.getWalletBalance(session.walletId)
+          .then(b => setBalance(b))
+          .catch(() => { /* non-fatal — balance card hidden if unavailable */ }),
+      );
+    }
+
+    Promise.all(tasks).finally(() => setLoading(false));
   }, []);
 
-  const completed  = txs.filter(t => t.status === 'CAPTURED');
-  const totalVol   = completed.reduce((s, t) => s + t.amount_minor, 0);
-  const currency   = txs[0]?.currency ?? 'AOA';
-  const successPct = txs.length ? Math.round((completed.length / txs.length) * 100) : 0;
+  const currency  = txs[0]?.currency ?? balance?.currency ?? 'AOA';
+  const todayTxs  = txs.filter(t => isCompleted(t.status) && isToday(t.created_at));
+  const monthTxs  = txs.filter(t => isCompleted(t.status) && isThisMonth(t.created_at));
+  const todayVol  = todayTxs.reduce((s, t) => s + t.amount_minor, 0);
+  const monthVol  = monthTxs.reduce((s, t) => s + t.amount_minor, 0);
 
   return (
     <div className="flex flex-col gap-xl max-w-5xl mx-auto">
+      {/* Balance card */}
+      <div
+        className="rounded-xl p-xl text-white"
+        style={{ background: 'linear-gradient(135deg, #990011 0%, #6B000B 100%)' }}
+      >
+        <p className="text-xs font-medium text-white/60 uppercase tracking-wide mb-xs">
+          Saldo disponível
+        </p>
+        {loading ? (
+          <div className="h-10 flex items-center">
+            <Spinner className="h-6 w-6 opacity-50" />
+          </div>
+        ) : balance ? (
+          <>
+            <p className="text-4xl font-bold font-mono tabular-nums">
+              {formatMinor(balance.available_minor, balance.currency)}
+            </p>
+            {balance.reserved_minor > 0 && (
+              <p className="mt-sm text-sm text-white/60">
+                {formatMinor(balance.reserved_minor, balance.currency)} reservados
+              </p>
+            )}
+          </>
+        ) : (
+          <p className="text-2xl font-bold text-white/50">—</p>
+        )}
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-lg">
         <StatCard
-          label="Volume (últimas 50)"
-          value={loading ? '…' : formatMinor(totalVol, currency)}
+          label="Receita hoje"
+          value={loading ? '…' : formatMinor(todayVol, currency)}
+          sub={loading ? undefined : `${todayTxs.length} transacção${todayTxs.length !== 1 ? 'ões' : ''}`}
           loading={loading}
         />
         <StatCard
-          label="Transacções"
+          label="Receita este mês"
+          value={loading ? '…' : formatMinor(monthVol, currency)}
+          sub={loading ? undefined : `${monthTxs.length} transacção${monthTxs.length !== 1 ? 'ões' : ''}`}
+          loading={loading}
+        />
+        <StatCard
+          label="Transacções carregadas"
           value={loading ? '…' : String(txs.length)}
-          sub={loading ? undefined : `${completed.length} concluídas`}
-          loading={loading}
-        />
-        <StatCard
-          label="Taxa de Sucesso"
-          value={loading ? '…' : `${successPct}%`}
+          sub={loading ? undefined : 'últimas 100'}
           loading={loading}
         />
       </div>

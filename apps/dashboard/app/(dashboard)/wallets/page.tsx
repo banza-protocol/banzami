@@ -56,7 +56,7 @@ export default function WalletsPage() {
 
   return (
     <div className="flex flex-col gap-xl max-w-lg">
-      <div className="bg-wine rounded-xl p-xl text-white">
+      <div className="rounded-xl p-xl text-white" style={{ background: 'linear-gradient(135deg, #990011 0%, #6B000B 100%)' }}>
         <p className="text-xs font-medium text-white/60 uppercase tracking-wide mb-xs">
           Saldo disponível
         </p>

@@ -3,12 +3,13 @@
 import { usePathname } from 'next/navigation';
 
 const TITLES: Record<string, string> = {
-  '/':             'Visão geral',
-  '/transactions': 'Transacções',
-  '/wallets':      'Carteiras',
-  '/payouts':      'Pagamentos',
-  '/webhooks':     'Webhooks',
-  '/settings':     'Definições',
+  '/':               'Visão geral',
+  '/transactions':   'Transacções',
+  '/wallets':        'Carteiras',
+  '/payouts':        'Pagamentos',
+  '/payment-links':  'Cobranças',
+  '/webhooks':       'Webhooks',
+  '/settings':       'Definições',
 };
 
 export function Topbar({ merchantName }: { merchantName: string }) {

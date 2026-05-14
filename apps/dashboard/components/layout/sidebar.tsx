@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   Wallet,
   Banknote,
+  Link2,
   Webhook,
   Settings,
   LogOut,
@@ -14,12 +15,13 @@ import {
 import { destroySession } from '@/lib/session';
 
 const NAV = [
-  { href: '/',              label: 'Visão geral',    icon: LayoutDashboard },
-  { href: '/transactions',  label: 'Transacções',    icon: ArrowLeftRight  },
-  { href: '/wallets',       label: 'Carteiras',      icon: Wallet          },
-  { href: '/payouts',       label: 'Pagamentos',     icon: Banknote        },
-  { href: '/webhooks',      label: 'Webhooks',       icon: Webhook         },
-  { href: '/settings',      label: 'Definições',     icon: Settings        },
+  { href: '/',               label: 'Visão geral',    icon: LayoutDashboard },
+  { href: '/transactions',   label: 'Transacções',    icon: ArrowLeftRight  },
+  { href: '/wallets',        label: 'Carteiras',      icon: Wallet          },
+  { href: '/payouts',        label: 'Pagamentos',     icon: Banknote        },
+  { href: '/payment-links',  label: 'Cobranças',      icon: Link2           },
+  { href: '/webhooks',       label: 'Webhooks',       icon: Webhook         },
+  { href: '/settings',       label: 'Definições',     icon: Settings        },
 ];
 
 export function Sidebar() {
