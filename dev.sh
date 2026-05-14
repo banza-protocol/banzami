@@ -27,6 +27,14 @@ if [[ "${1:-}" == "stop" ]]; then
   else
     warn "No active session '$SESSION'."
   fi
+  # Kill any service processes still holding the ports (cargo/go survive tmux kill).
+  for port in 8081 8080 8082 8083; do
+    pid=$(lsof -ti:"$port" 2>/dev/null || true)
+    if [[ -n "$pid" ]]; then
+      kill -9 $pid 2>/dev/null || true
+      log "Killed process on port $port (PID $pid)."
+    fi
+  done
   log "Infrastructure (PostgreSQL + Redis) still running. To stop: make dev-down"
   exit 0
 fi
