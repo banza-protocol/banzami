@@ -32,9 +32,20 @@ flutter run -t lib/main_merchant.dart --dart-define=GATEWAY_URL=http://192.168.1
 | Dashboard | Live balance, daily/monthly revenue stats, recent payment links, quick charge button |
 | Histórico | Two-tab view: real transactions + payment links with infinite scroll |
 | Receber | Static merchant QR code with share + fixed-amount charge shortcut |
-| Perfil | Merchant ID copy, API session expiry, biometrics toggle, payout request, logout |
+| Perfil | Merchant ID copy, API session expiry, biometrics toggle, payout request, lock session, remove account |
 | Payout | Bank withdrawal form — amount, Angolan bank (BNA codes), IBAN, holder name |
 | Cobrança | Create fixed-amount payment links with description and expiry |
+
+## Session management
+
+The merchant session is stored in `flutter_secure_storage` (encrypted). Two levels of session control exist:
+
+| Action | Behaviour |
+|---|---|
+| **Terminar sessão** (lock) | Locks the session in memory — credentials and PIN hash stay in storage. PIN screen is shown on next open (single entry). |
+| **Remover conta** (clear) | Deletes all stored credentials. Forces full re-onboarding (Merchant ID + API Key + new PIN). |
+
+This distinction avoids the poor UX of asking the merchant to re-enter their API Key every time they "log out". Logout = lock; remove account = full reset.
 
 ## Notifications
 
@@ -64,10 +75,85 @@ Notification permission is requested on the first poll via `DarwinInitialization
 | `app_links` | Deep link handling (`banzami://`) |
 | `google_fonts` | Inter font |
 
+## Design system
+
+The design language is **Space Cherry + Warm White** — a high-contrast palette rooted in a deep crimson primary and warm neutral backgrounds, designed to feel premium, trustworthy and distinctly African.
+
+### Colour palette
+
+| Token | Hex | Usage |
+|---|---|---|
+| `BanzamiColors.wine` | `#990011` | Primary — buttons, icons, active states |
+| `BanzamiColors.wineDark` | `#6B000B` | Gradient deep end, pressed states |
+| `BanzamiColors.wineLight` | `#B5001A` | Gradient light end, hover |
+| `BanzamiColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
+| `BanzamiColors.white` | `#FFFFFF` | Card / surface background |
+| `BanzamiColors.gray100` | `#F5EEED` | Form fills, chips |
+| `BanzamiColors.gray200` | `#EBE3E2` | Borders, dividers |
+| `BanzamiColors.gray400` | `#9C8483` | Secondary / placeholder text |
+| `BanzamiColors.gray600` | `#534040` | Tertiary text |
+| `BanzamiColors.gray900` | `#1C0D0D` | Primary text (warm black) |
+| `BanzamiColors.success` | `#166534` | Completed transactions |
+| `BanzamiColors.error` | `#DC2626` | Errors, destructive actions |
+| `BanzamiColors.warning` | `#92400E` | Pending / caution states |
+| `BanzamiColors.info` | `#1E3A8A` | Informational states |
+
+All grays are warm-tinted (slight red undertone) to pair harmoniously with the cherry primary.
+
+### Gradients
+
+| Token | Direction | Usage |
+|---|---|---|
+| `BanzamiGradients.wine` | `#990011 → #6B000B` | Balance card headers, key surfaces |
+| `BanzamiGradients.wineLight` | `#990011 → #B5001A` | Secondary gradient surfaces |
+
+### Typography
+
+Font family: **Inter** (applied via `google_fonts`). Monospace: **JetBrains Mono** (amounts, IDs).
+
+| Style | Size / Weight | Usage |
+|---|---|---|
+| `displayXl` | 48 / 700 | Large hero numbers |
+| `displayLg` | 36 / 700 | Section heroes |
+| `headingLg` | 22 / 600 | Screen titles |
+| `headingMd` | 18 / 600 | Section headings, app bar |
+| `headingSm` | 16 / 600 | Card titles |
+| `bodyMd` | 14 / 400 | Body copy |
+| `bodySm` | 12 / 400 | Captions, helper text |
+| `mono` | 14 / 400 | Transaction IDs, codes |
+| `monoLg` | 28 / 600 | Balance amounts |
+
+### ThemeData
+
+`BanzamiTheme.light` is the single source of truth for `ThemeData`. Both merchant and consumer `app.dart` files use:
+
+```dart
+ThemeData _buildTheme() {
+  final base = BanzamiTheme.light;
+  return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
+}
+```
+
+The theme covers: `AppBarTheme`, `ElevatedButtonTheme`, `OutlinedButtonTheme`, `TextButtonTheme`, `InputDecorationTheme`, `CardTheme`, `ChipTheme`, `NavigationBarTheme`, `SnackBarTheme`, `ListTileTheme`, `ProgressIndicatorTheme`.
+
+### Web apps
+
+The same palette is applied to all three web apps via Tailwind CSS:
+
+| App | Config |
+|---|---|
+| `apps/dashboard` | `tailwind.config.ts` → `wine`, `off-white`, warm grays |
+| `apps/admin` | same palette + `info` colour token |
+| `apps/pay` | same palette |
+
+Background: `#FCF6F5` · Text: `#1C0D0D` · Primary: `#990011`
+
+---
+
 ## SDK
 
 The `banzami_sdk` package lives at `../../sdk/flutter` and is referenced via a local path dependency. It exposes:
 
 - `BanzamiClient` — HTTP client with automatic JWT exchange (raw API key → 24 h JWT, renewed 5 min before expiry)
 - All domain models: `MerchantBalance`, `MerchantTransaction`, `PaymentLink`, `QrResponse`, etc.
-- Theme: `BanzamiColors`, `BanzamiTextStyles`, `BanzamiSpacing`
+- Theme: `BanzamiColors`, `BanzamiGradients`, `BanzamiTextStyles`, `BanzamiSpacing`, `BanzamiRadius`, `BanzamiShadows`, `BanzamiTheme`

@@ -171,10 +171,18 @@ class MerchantSessionService extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Logout
+  // Session control
   // ---------------------------------------------------------------------------
 
+  /// Locks the session — credentials stay in storage, PIN screen is shown.
+  /// This is the standard "log out" action for a merchant POS device.
   Future<void> logout() async {
+    _locked = true;
+    notifyListeners();
+  }
+
+  /// Fully wipes all stored data. Use only for "switch account" / "remove account".
+  Future<void> clearAccount() async {
     await _store.deleteAll();
     _session = null;
     _locked  = true;
