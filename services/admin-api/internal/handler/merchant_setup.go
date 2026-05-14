@@ -6,15 +6,17 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
+	"github.com/banzami/banzami/services/admin-api/internal/email"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
 type MerchantSetupHandler struct {
-	core *service.CoreAdminClient
+	core  *service.CoreAdminClient
+	email *email.Sender
 }
 
-func NewMerchantSetupHandler(core *service.CoreAdminClient) *MerchantSetupHandler {
-	return &MerchantSetupHandler{core: core}
+func NewMerchantSetupHandler(core *service.CoreAdminClient, email *email.Sender) *MerchantSetupHandler {
+	return &MerchantSetupHandler{core: core, email: email}
 }
 
 // POST /admin/v1/merchants
@@ -60,6 +62,14 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
+
+	// Send welcome email with credentials in the background so it never
+	// delays or blocks the HTTP response.
+	go func() {
+		rawKey, _ := apiKey["secret"].(string)
+		walletID, _ := wallet["id"].(string)
+		h.email.MerchantWelcome(body.Email, body.Name, merchantID, rawKey, walletID, currency)
+	}()
 
 	writeJSON(w, http.StatusCreated, map[string]any{
 		"merchant": merchant,

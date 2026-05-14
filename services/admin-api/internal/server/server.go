@@ -12,6 +12,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"github.com/banzami/banzami/services/admin-api/internal/config"
+	"github.com/banzami/banzami/services/admin-api/internal/email"
 	"github.com/banzami/banzami/services/admin-api/internal/handler"
 	"github.com/banzami/banzami/services/admin-api/internal/middleware"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -21,7 +22,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -44,7 +45,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 		settlementH     := handler.NewSettlementHandler(core)
 		payoutH         := handler.NewPayoutHandler(core)
 		merchantH       := handler.NewMerchantHandler(core)
-		merchantSetupH  := handler.NewMerchantSetupHandler(core)
+		merchantSetupH  := handler.NewMerchantSetupHandler(core, mailer)
 		reconciliationH := handler.NewReconciliationHandler(core)
 		testCreditH     := handler.NewTestCreditHandler(core)
 

@@ -14,6 +14,14 @@ type Config struct {
 	LogLevel     string
 	LogFormat    string
 	OTLPEndpoint string // optional; tracing is a no-op when empty
+
+	// SMTP — optional; email is skipped when Host is empty.
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+	SMTPFrom     string
+	SMTPFromName string
 }
 
 // Load reads config from environment variables.
@@ -47,6 +55,18 @@ func Load() (*Config, error) {
 		logFormat = "json"
 	}
 
+	smtpPort := 587
+	if raw := os.Getenv("SMTP_PORT"); raw != "" {
+		if p, err := strconv.Atoi(raw); err == nil {
+			smtpPort = p
+		}
+	}
+
+	smtpFromName := os.Getenv("SMTP_FROM_NAME")
+	if smtpFromName == "" {
+		smtpFromName = "Banzami"
+	}
+
 	return &Config{
 		Port:         port,
 		CoreAPIURL:   coreURL,
@@ -54,5 +74,12 @@ func Load() (*Config, error) {
 		LogLevel:     logLevel,
 		LogFormat:    logFormat,
 		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
+
+		SMTPHost:     os.Getenv("SMTP_HOST"),
+		SMTPPort:     smtpPort,
+		SMTPUser:     os.Getenv("SMTP_USER"),
+		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
+		SMTPFrom:     os.Getenv("SMTP_FROM"),
+		SMTPFromName: smtpFromName,
 	}, nil
 }

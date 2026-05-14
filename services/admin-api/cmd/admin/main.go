@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/banzami/banzami/services/admin-api/internal/config"
+	"github.com/banzami/banzami/services/admin-api/internal/email"
 	"github.com/banzami/banzami/services/admin-api/internal/observability"
 	"github.com/banzami/banzami/services/admin-api/internal/server"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -34,8 +35,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
-	srv := server.New(cfg, core)
+	core   := service.NewCoreAdminClient(cfg.CoreAPIURL)
+	mailer := email.NewSender(email.Config{
+		Host:     cfg.SMTPHost,
+		Port:     cfg.SMTPPort,
+		User:     cfg.SMTPUser,
+		Password: cfg.SMTPPassword,
+		From:     cfg.SMTPFrom,
+		FromName: cfg.SMTPFromName,
+	})
+	if !mailer.Enabled() {
+		slog.Warn("SMTP not configured — merchant welcome emails will be skipped")
+	}
+	srv := server.New(cfg, core, mailer)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
