@@ -10,8 +10,10 @@ use axum::{
 };
 use tower_http::trace::TraceLayer;
 
+use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_qr::run_expiry_worker;
 use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
+use banzami_types::Currency;
 use state::AppState;
 
 #[tokio::main]
@@ -44,6 +46,26 @@ async fn main() {
         .connect(&database_url)
         .await
         .expect("failed to connect to PostgreSQL");
+
+    // Ensure the two system ledger accounts exist. These are ASSET accounts
+    // used as the DR/CR counterpart for all wallet movements. The IDs are fixed
+    // in .env so they survive restarts; ON CONFLICT DO NOTHING makes this safe
+    // to call every boot.
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+    ledger.create_account(Account {
+        id:           transit_account_id,
+        account_type: AccountType::Asset,
+        name:         "System — Acquiring Transit".into(),
+        currency:     Currency::AOA,
+        created_at:   chrono::Utc::now(),
+    }).await.expect("failed to ensure transit ledger account");
+    ledger.create_account(Account {
+        id:           bank_account_id,
+        account_type: AccountType::Asset,
+        name:         "System — Bank Settlement".into(),
+        currency:     Currency::AOA,
+        created_at:   chrono::Utc::now(),
+    }).await.expect("failed to ensure bank ledger account");
 
     let state = AppState::new(pool.clone(), transit_account_id, bank_account_id);
 

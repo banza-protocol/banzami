@@ -55,7 +55,8 @@ impl LedgerEngine for PostgresLedgerRepository {
     async fn create_account(&self, account: Account) -> Result<Account, LedgerError> {
         sqlx::query(
             "INSERT INTO ledger_accounts (id, account_type, name, currency, created_at)
-             VALUES ($1, $2, $3, $4, $5)",
+             VALUES ($1, $2, $3, $4, $5)
+             ON CONFLICT (id) DO NOTHING",
         )
         .bind(account.id.as_uuid())
         .bind(account.account_type.as_str())
