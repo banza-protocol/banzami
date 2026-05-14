@@ -44,10 +44,14 @@ func New(cfg *config.Config, core *service.CoreAdminClient) *Server {
 		settlementH     := handler.NewSettlementHandler(core)
 		payoutH         := handler.NewPayoutHandler(core)
 		merchantH       := handler.NewMerchantHandler(core)
+		merchantSetupH  := handler.NewMerchantSetupHandler(core)
 		reconciliationH := handler.NewReconciliationHandler(core)
 
 		// Merchants
-		r.Get("/admin/v1/merchants/{id}", merchantH.Get)
+		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
+		r.Get("/admin/v1/merchants/{id}",                merchantH.Get)
+		r.Post("/admin/v1/merchants/{id}/api-keys",      merchantSetupH.CreateApiKey)
+		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
 
 		// Compliance
 		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)

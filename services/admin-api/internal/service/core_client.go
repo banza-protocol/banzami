@@ -154,6 +154,29 @@ func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[strin
 	return out, c.get(ctx, "/internal/v1/merchants/"+id, &out)
 }
 
+func (c *CoreAdminClient) CreateMerchant(ctx context.Context, name, email string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/merchants",
+		map[string]string{"name": name, "email": email}, &out)
+}
+
+func (c *CoreAdminClient) CreateApiKey(ctx context.Context, merchantID, keyName string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys",
+		map[string]string{"name": keyName}, &out)
+}
+
+func (c *CoreAdminClient) CreateWallet(ctx context.Context, merchantID, currency string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/wallets",
+		map[string]string{"merchant_id": merchantID, "currency": currency}, &out)
+}
+
+func (c *CoreAdminClient) GetWallet(ctx context.Context, merchantID, currency string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/wallets?merchant_id="+merchantID+"&currency="+currency, &out)
+}
+
 // ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------

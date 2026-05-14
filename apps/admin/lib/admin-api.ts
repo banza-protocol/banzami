@@ -96,7 +96,19 @@ export class AdminApi {
   }
 
   // Merchants
-  getMerchant(id: string):            Promise<Merchant>           { return this.req(`/admin/v1/merchants/${id}`); }
+  getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
+
+  createMerchant(name: string, email: string, currency = 'AOA'): Promise<{
+    merchant: Merchant;
+    api_key:  { secret: string; key: { id: string; key_prefix: string } };
+    wallet:   { id: string; currency: string };
+  }> {
+    return this.req('/admin/v1/merchants', { method: 'POST', body: JSON.stringify({ name, email, currency }) });
+  }
+
+  createApiKey(merchantId: string, keyName: string): Promise<{ secret: string; key: { id: string } }> {
+    return this.req(`/admin/v1/merchants/${merchantId}/api-keys`, { method: 'POST', body: JSON.stringify({ name: keyName }) });
+  }
 
   // Compliance
   getMerchantCompliance(id: string):  Promise<MerchantCompliance> { return this.req(`/admin/v1/compliance/merchants/${id}`); }
