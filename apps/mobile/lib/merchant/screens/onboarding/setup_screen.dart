@@ -97,7 +97,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
               const Text('Credenciais da sua conta', style: BanzamiTextStyles.headingSm),
               const SizedBox(height: 8),
               Text(
-                'Encontre estes valores em dashboard.banzami.ao → Definições → API.',
+                'Estas credenciais foram fornecidas pela Banzami quando a sua conta foi criada. Contacte o suporte se não as tiver recebido.',
                 style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
               const SizedBox(height: BanzamiSpacing.xl),
