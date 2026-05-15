@@ -1,5 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 // Top-level handler required by firebase_messaging for background/terminated messages.
@@ -52,16 +53,41 @@ class PushNotificationService {
            settings.authorizationStatus == AuthorizationStatus.provisional;
   }
 
-  // Returns the FCM registration token for this device.
-  // Send this to your server so it can target this specific device.
-  static Future<String?> getToken() => _messaging.getToken();
+  // Returns the FCM registration token, waiting for APNs token first (iOS).
+  // Returns null if APNs is unavailable (simulator, missing entitlement, etc).
+  static Future<String?> getToken() async {
+    final apns = await _getApnsToken();
+    if (apns == null) {
+      debugPrint('FCM: APNs token unavailable — skipping getToken()');
+      return null;
+    }
+    return _messaging.getToken();
+  }
 
   // Subscribe to a topic (e.g. "merchant_<id>" or "consumer_<id>").
-  static Future<void> subscribeToTopic(String topic) =>
-      _messaging.subscribeToTopic(topic);
+  // No-op if APNs token is unavailable.
+  static Future<void> subscribeToTopic(String topic) async {
+    final apns = await _getApnsToken();
+    if (apns == null) {
+      debugPrint('FCM: APNs token unavailable — skipping subscribeToTopic($topic)');
+      return;
+    }
+    await _messaging.subscribeToTopic(topic);
+  }
 
   static Future<void> unsubscribeFromTopic(String topic) =>
       _messaging.unsubscribeFromTopic(topic);
+
+  // iOS registers with APNs asynchronously after permission is granted.
+  // Returns the APNs token once available, or null after 30 s timeout.
+  static Future<String?> _getApnsToken() async {
+    for (var i = 0; i < 30; i++) {
+      final apns = await _messaging.getAPNSToken();
+      if (apns != null) return apns;
+      await Future.delayed(const Duration(seconds: 1));
+    }
+    return null;
+  }
 
   // ---------------------------------------------------------------------------
   // Internal

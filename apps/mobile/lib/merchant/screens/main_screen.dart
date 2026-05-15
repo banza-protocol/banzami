@@ -29,13 +29,17 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
   }
 
-  void _startNotifications() {
+  Future<void> _startNotifications() async {
     final client  = context.read<BanzamiClient>();
     final session = context.read<MerchantSessionService>().session!;
     _notifSvc = PaymentNotificationService(client)..startPolling();
 
-    PushNotificationService.requestPermission();
-    PushNotificationService.subscribeToTopic('merchant_${session.merchantId}');
+    final granted = await PushNotificationService.requestPermission();
+    if (!granted) return;
+
+    await PushNotificationService.subscribeToTopic('merchant_${session.merchantId}');
+    final token = await PushNotificationService.getToken();
+    debugPrint('FCM TOKEN (merchant): $token');
   }
 
   @override

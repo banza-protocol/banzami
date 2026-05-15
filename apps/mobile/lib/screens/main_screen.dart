@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
+import 'package:firebase_messaging/firebase_messaging.dart';
+
 import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
@@ -26,14 +28,23 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
   }
 
-  void _startNotifications() {
+  Future<void> _startNotifications() async {
     final session = context.read<SessionService>().session!;
     final client  = context.read<ConsumerPublicClient>();
     _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
       ..startPolling();
 
-    PushNotificationService.requestPermission();
-    PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
+    final settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true, badge: true, sound: true,
+    );
+    debugPrint('FCM permission status: ${settings.authorizationStatus}');
+
+    final apns = await FirebaseMessaging.instance.getAPNSToken();
+    debugPrint('FCM APNs token (immediate): $apns');
+
+    await PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
+    final token = await PushNotificationService.getToken();
+    debugPrint('FCM TOKEN (consumer): $token');
   }
 
   @override
