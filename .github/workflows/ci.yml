@@ -1,0 +1,165 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  CARGO_TERM_COLOR: always
+  # Shared across all jobs that need a database
+  DATABASE_URL: postgres://banzami:banzami_dev@localhost:5433/banzami_dev
+
+jobs:
+  # ─── Rust core ──────────────────────────────────────────────────────────────
+  rust:
+    name: Rust — build, lint, test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     banzami
+          POSTGRES_PASSWORD: banzami_dev
+          POSTGRES_DB:       banzami_dev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U banzami -d banzami_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            core/target
+          key: rust-${{ runner.os }}-${{ hashFiles('core/Cargo.lock') }}
+          restore-keys: rust-${{ runner.os }}-
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres --locked
+
+      - name: Apply migrations
+        working-directory: core
+        run: sqlx migrate run --source ../db/migrations
+
+      - name: Check formatting
+        working-directory: core
+        run: cargo fmt --all -- --check
+
+      - name: Clippy (deny warnings)
+        working-directory: core
+        run: cargo clippy --workspace --all-targets -- -D warnings
+
+      - name: Run tests (unit + integration)
+        working-directory: core
+        run: cargo test --workspace
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+
+  # ─── Go api-gateway ─────────────────────────────────────────────────────────
+  go-gateway:
+    name: Go api-gateway — vet, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: services/api-gateway/go.mod
+          cache-dependency-path: services/api-gateway/go.sum
+
+      - name: go vet
+        working-directory: services/api-gateway
+        run: go vet ./...
+
+      - name: go test
+        working-directory: services/api-gateway
+        run: go test -race -count=1 ./...
+
+  # ─── Go admin-api ───────────────────────────────────────────────────────────
+  go-admin:
+    name: Go admin-api — vet, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: services/admin-api/go.mod
+          cache-dependency-path: services/admin-api/go.sum
+
+      - name: go vet
+        working-directory: services/admin-api
+        run: go vet ./...
+
+      - name: go test
+        working-directory: services/admin-api
+        run: go test -race -count=1 ./...
+
+  # ─── Go public-api ──────────────────────────────────────────────────────────
+  go-public:
+    name: Go public-api — vet, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: services/public-api/go.mod
+          cache-dependency-path: services/public-api/go.sum
+
+      - name: go vet
+        working-directory: services/public-api
+        run: go vet ./...
+
+      - name: go test
+        working-directory: services/public-api
+        run: go test -race -count=1 ./...
+
+  # ─── TypeScript SDK ─────────────────────────────────────────────────────────
+  typescript:
+    name: TypeScript SDK — typecheck, test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: sdk/typescript/package-lock.json
+
+      - name: Install dependencies
+        working-directory: sdk/typescript
+        run: npm ci
+
+      - name: Type-check
+        working-directory: sdk/typescript
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: sdk/typescript
+        run: npm test

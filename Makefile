@@ -262,5 +262,8 @@ stack-logs:
 check-all: core-check gateway-check admin-api-check public-api-check
 	@printf "\nAll checks passed.\n"
 
-test-all: core-test gateway-test admin-api-test public-api-test
+sdk-test:
+	cd sdk/typescript && npm ci && npm test
+
+test-all: core-test gateway-test admin-api-test public-api-test sdk-test
 	@printf "\nAll test suites passed.\n"
