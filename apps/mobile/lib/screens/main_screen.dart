@@ -76,6 +76,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         handle:     session.handle,
       ),
       const HistoryScreen(),
+      BanzamiReceiveScreen(handle: session.handle),
       const ProfileScreen(),
     ];
 
@@ -97,6 +98,11 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             icon:         Icon(Icons.history_outlined),
             selectedIcon: Icon(Icons.history_rounded, color: BanzamiColors.wine),
             label:        'Histórico',
+          ),
+          NavigationDestination(
+            icon:         Icon(Icons.qr_code_rounded),
+            selectedIcon: Icon(Icons.qr_code_rounded, color: BanzamiColors.wine),
+            label:        'Receber',
           ),
           NavigationDestination(
             icon:         Icon(Icons.person_outline_rounded),
