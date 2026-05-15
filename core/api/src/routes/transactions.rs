@@ -41,6 +41,8 @@ pub struct ListQuery {
     pub before_created_at: Option<chrono::DateTime<chrono::Utc>>,
     /// Keyset cursor: UUID of the last returned transaction (tiebreaker).
     pub before_id:         Option<String>,
+    /// Inclusive lower bound — returns only transactions created at or after this timestamp.
+    pub since_created_at:  Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -201,7 +203,7 @@ pub async fn list(
     // Fetch one extra to determine whether a next page exists.
     let mut txs = state
         .tx_engine
-        .list(merchant_id, limit + 1, q.before_created_at, before_id)
+        .list(merchant_id, limit + 1, q.before_created_at, before_id, q.since_created_at)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 

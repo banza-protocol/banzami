@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -137,10 +138,22 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 		limit = parsed
 	}
 
+	var since *time.Time
+	if raw := r.URL.Query().Get("since"); raw != "" {
+		t, err := time.Parse(time.RFC3339, raw)
+		if err != nil {
+			apierror.Respond(w, r, http.StatusBadRequest, "INVALID_PARAM",
+				"since must be an RFC3339 timestamp (e.g. 2026-05-01T00:00:00Z)")
+			return
+		}
+		since = &t
+	}
+
 	page, err := h.svc.List(r.Context(), service.ListTransactionsRequest{
 		MerchantID: principal.MerchantID,
 		Cursor:     r.URL.Query().Get("cursor"),
 		Limit:      limit,
+		Since:      since,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",

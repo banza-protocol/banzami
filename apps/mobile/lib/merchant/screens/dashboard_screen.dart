@@ -26,6 +26,34 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
+  // Paginates all completed transactions since the start of the current month.
+  // Returns (todayMinor, monthMinor) as a record.
+  Future<(int, int)> _loadStats(BanzamiClient client) async {
+    final now        = DateTime.now().toLocal();
+    final monthStart = DateTime(now.year, now.month, 1).toUtc();
+    int today = 0, month = 0;
+    String? cursor;
+
+    do {
+      final page = await client.listMerchantTransactions(
+        limit: 100,
+        since: monthStart,
+        cursor: cursor,
+      );
+      for (final tx in page.data) {
+        if (!tx.isCompleted) continue;
+        month += tx.amountMinor;
+        final local = tx.createdAt.toLocal();
+        if (local.year == now.year && local.month == now.month && local.day == now.day) {
+          today += tx.amountMinor;
+        }
+      }
+      cursor = page.hasMore ? page.nextCursor : null;
+    } while (cursor != null);
+
+    return (today, month);
+  }
+
   Future<void> _load() async {
     if (_loading) return;
     setState(() { _loading = true; _error = null; });
@@ -43,20 +71,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .then((p) { if (mounted) setState(() => _recent = p.data); })
         .catchError((_) { err ??= 'Não foi possível carregar os dados.'; });
 
-    // Stats — compute today and this month from the 100 most recent transactions.
-    final statsFuture = client.listMerchantTransactions(limit: 100)
-        .then((page) {
-          final now   = DateTime.now();
-          int today = 0, month = 0;
-          for (final tx in page.data) {
-            if (!tx.isCompleted) continue;
-            final local = tx.createdAt.toLocal();
-            if (local.year == now.year && local.month == now.month) {
-              month += tx.amountMinor;
-              if (local.day == now.day) today += tx.amountMinor;
-            }
-          }
-          if (mounted) setState(() { _todayMinor = today; _monthMinor = month; });
+    // Stats — paginate all completed transactions since the start of the current
+    // month so the totals are accurate regardless of transaction volume.
+    final statsFuture = _loadStats(client)
+        .then((result) {
+          if (mounted) setState(() { _todayMinor = result.$1; _monthMinor = result.$2; });
         })
         .catchError((_) {});   // stats are non-critical
 

@@ -26,12 +26,14 @@ pub trait TransactionRepository: Send + Sync {
     ) -> Result<Transaction, TransactionError>;
     /// Keyset-paginated list for a merchant, newest first.
     /// Pass `before_ts` + `before_id` (from the last returned row) to get the next page.
+    /// Pass `since_ts` to restrict results to transactions created at or after that timestamp.
     async fn list_for_merchant(
         &self,
         merchant_id: MerchantId,
         limit: i64,
         before_ts: Option<DateTime<Utc>>,
         before_id: Option<TransactionId>,
+        since_ts: Option<DateTime<Utc>>,
     ) -> Result<Vec<Transaction>, TransactionError>;
 }
 
@@ -171,34 +173,52 @@ impl TransactionRepository for PostgresTransactionRepository {
         limit: i64,
         before_ts: Option<DateTime<Utc>>,
         before_id: Option<TransactionId>,
+        since_ts: Option<DateTime<Utc>>,
     ) -> Result<Vec<Transaction>, TransactionError> {
+        let since_clause = if since_ts.is_some() {
+            " AND created_at >= $5"
+        } else {
+            ""
+        };
+
         let rows = if let (Some(ts), Some(bid)) = (before_ts, before_id) {
-            sqlx::query_as::<_, TransactionRow>(&format!(
+            let q = format!(
                 "{SELECT}
                  WHERE merchant_id = $1
                    AND (created_at < $2 OR (created_at = $2 AND id < $3))
+                   {since_clause}
                  ORDER BY created_at DESC, id DESC
                  LIMIT $4"
-            ))
-            .bind(merchant_id.as_uuid())
-            .bind(ts)
-            .bind(bid.as_uuid())
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(TransactionError::Database)?
+            );
+            let mut qb = sqlx::query_as::<_, TransactionRow>(&q)
+                .bind(merchant_id.as_uuid())
+                .bind(ts)
+                .bind(bid.as_uuid())
+                .bind(limit);
+            if let Some(since) = since_ts {
+                qb = qb.bind(since);
+            }
+            qb.fetch_all(&self.pool).await.map_err(TransactionError::Database)?
         } else {
-            sqlx::query_as::<_, TransactionRow>(&format!(
+            let since_clause_no_cursor = if since_ts.is_some() {
+                " AND created_at >= $3"
+            } else {
+                ""
+            };
+            let q = format!(
                 "{SELECT}
                  WHERE merchant_id = $1
+                   {since_clause_no_cursor}
                  ORDER BY created_at DESC, id DESC
                  LIMIT $2"
-            ))
-            .bind(merchant_id.as_uuid())
-            .bind(limit)
-            .fetch_all(&self.pool)
-            .await
-            .map_err(TransactionError::Database)?
+            );
+            let mut qb = sqlx::query_as::<_, TransactionRow>(&q)
+                .bind(merchant_id.as_uuid())
+                .bind(limit);
+            if let Some(since) = since_ts {
+                qb = qb.bind(since);
+            }
+            qb.fetch_all(&self.pool).await.map_err(TransactionError::Database)?
         };
 
         rows.into_iter().map(tx_from_row).collect()

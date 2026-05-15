@@ -51,8 +51,9 @@ type CreateTransactionRequest struct {
 // ListTransactionsRequest parameterises a paginated transaction listing.
 type ListTransactionsRequest struct {
 	MerchantID string
-	Cursor     string // opaque keyset cursor; empty means first page
-	Limit      int    // 1–100; callers must clamp before passing
+	Cursor     string     // opaque keyset cursor; empty means first page
+	Limit      int        // 1–100; callers must clamp before passing
+	Since      *time.Time // inclusive lower bound on created_at; nil means no lower bound
 }
 
 // TransactionPage is the paginated list response.
@@ -138,6 +139,17 @@ func (s *StubTransactionService) List(_ context.Context, req ListTransactionsReq
 		}
 		return all[i].CreatedAt.After(all[j].CreatedAt)
 	})
+
+	// Apply since filter: exclude transactions older than the lower bound.
+	if req.Since != nil {
+		filtered := all[:0]
+		for _, tx := range all {
+			if !tx.CreatedAt.Before(*req.Since) {
+				filtered = append(filtered, tx)
+			}
+		}
+		all = filtered
+	}
 
 	// Apply cursor filter: skip items that are not older than the cursor position.
 	if req.Cursor != "" {

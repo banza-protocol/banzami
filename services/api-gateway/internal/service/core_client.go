@@ -134,6 +134,10 @@ func (s *CoreApiTransactionService) List(
 	path := fmt.Sprintf("/internal/v1/transactions?merchant_id=%s&limit=%d",
 		req.MerchantID, limit)
 
+	if req.Since != nil {
+		path += "&since_created_at=" + req.Since.UTC().Format(time.RFC3339)
+	}
+
 	if req.Cursor != "" {
 		ts, id, err := decodeCursor(req.Cursor)
 		if err == nil {

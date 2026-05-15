@@ -242,10 +242,12 @@ class BanzamiClient {
   // ---------------------------------------------------------------------------
 
   Future<MerchantTransactionPage> listMerchantTransactions({
-    int     limit  = 20,
-    String? cursor,
+    int       limit  = 20,
+    String?   cursor,
+    DateTime? since,
   }) async {
     var path = '/v1/transactions?limit=$limit';
+    if (since  != null) path += '&since=${Uri.encodeComponent(since.toUtc().toIso8601String())}';
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     final json = await _get(path);
     return MerchantTransactionPage.fromJson(json);

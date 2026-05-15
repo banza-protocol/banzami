@@ -54,12 +54,14 @@ pub trait TransactionEngine: Send + Sync {
 
     /// Keyset-paginated list for a merchant, newest first. Fetch `limit+1` to detect
     /// whether more pages exist; truncate to `limit` before returning to callers.
+    /// Pass `since_ts` to restrict to transactions created at or after that timestamp.
     async fn list(
         &self,
         merchant_id: MerchantId,
         limit: i64,
         before_ts: Option<DateTime<Utc>>,
         before_id: Option<TransactionId>,
+        since_ts: Option<DateTime<Utc>>,
     ) -> Result<Vec<Transaction>, TransactionError>;
 }
 
@@ -225,8 +227,9 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
         limit: i64,
         before_ts: Option<DateTime<Utc>>,
         before_id: Option<TransactionId>,
+        since_ts: Option<DateTime<Utc>>,
     ) -> Result<Vec<Transaction>, TransactionError> {
-        self.repo.list_for_merchant(merchant_id, limit, before_ts, before_id).await
+        self.repo.list_for_merchant(merchant_id, limit, before_ts, before_id, since_ts).await
     }
 }
 
@@ -364,11 +367,13 @@ mod tests {
             limit: i64,
             _before_ts: Option<DateTime<Utc>>,
             _before_id: Option<TransactionId>,
+            since_ts: Option<DateTime<Utc>>,
         ) -> Result<Vec<Transaction>, TransactionError> {
             let rows = self.rows.lock().unwrap();
             Ok(rows
                 .iter()
                 .filter(|tx| tx.merchant_id == merchant_id)
+                .filter(|tx| since_ts.map_or(true, |since| tx.created_at >= since))
                 .take(limit as usize)
                 .cloned()
                 .collect())
