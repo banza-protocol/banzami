@@ -150,30 +150,36 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildPinStep() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      child: Column(
-        children: [
-          const Spacer(flex: 2),
-          const Text('Introduza o PIN', style: BanzamiTextStyles.headingLg),
-          const SizedBox(height: 8),
-          Text(
-            _error ?? '@${_handleCtrl.text.trim().toLowerCase()}',
-            style: BanzamiTextStyles.bodyMd.copyWith(
-              color: _error != null ? BanzamiColors.error : BanzamiColors.gray400,
-            ),
-            textAlign: TextAlign.center,
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 32),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 24),
+              const Text('Introduza o PIN', style: BanzamiTextStyles.headingLg),
+              const SizedBox(height: 8),
+              Text(
+                _error ?? '@${_handleCtrl.text.trim().toLowerCase()}',
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: _error != null ? BanzamiColors.error : BanzamiColors.gray400,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 40),
+              if (_loading)
+                const CircularProgressIndicator(color: BanzamiColors.wine)
+              else
+                PinPad(
+                  onChanged:  (v) => setState(() { _pin = v; _error = null; }),
+                  onComplete: _login,
+                ),
+              const SizedBox(height: 48),
+            ],
           ),
-          const SizedBox(height: 40),
-          if (_loading)
-            const CircularProgressIndicator(color: BanzamiColors.wine)
-          else
-            PinPad(
-              onChanged:  (v) => setState(() { _pin = v; _error = null; }),
-              onComplete: _login,
-            ),
-          const Spacer(flex: 3),
-        ],
+        ),
       ),
     );
   }

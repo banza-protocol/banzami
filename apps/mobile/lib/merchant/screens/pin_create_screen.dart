@@ -75,38 +75,43 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
         automaticallyImplyLeading: !widget.isSetup,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              Text(
-                _confirming ? 'Confirmar PIN' : 'Criar PIN',
-                style: BanzamiTextStyles.headingMd,
-                textAlign: TextAlign.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
+                  Text(
+                    _confirming ? 'Confirmar PIN' : 'Criar PIN',
+                    style: BanzamiTextStyles.headingMd,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error
+                        ? 'Os PINs não coincidem. Tente novamente.'
+                        : _confirming
+                            ? 'Introduza o PIN novamente para confirmar.'
+                            : 'Escolha um PIN de 6 dígitos para proteger o acesso.',
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color: _error ? BanzamiColors.error : BanzamiColors.gray400,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  PinPad(
+                    key:        ValueKey(_padKey),
+                    onChanged:  (v) => setState(() { _pin = v; _error = false; }),
+                    onComplete: _onPinComplete,
+                    disabled:   _saving,
+                  ),
+                  const SizedBox(height: 48),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _error
-                    ? 'Os PINs não coincidem. Tente novamente.'
-                    : _confirming
-                        ? 'Introduza o PIN novamente para confirmar.'
-                        : 'Escolha um PIN de 6 dígitos para proteger o acesso.',
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: _error ? BanzamiColors.error : BanzamiColors.gray400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              PinPad(
-                key:        ValueKey(_padKey),
-                onChanged:  (v) => setState(() { _pin = v; _error = false; }),
-                onComplete: _onPinComplete,
-                disabled:   _saving,
-              ),
-              const Spacer(flex: 1),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

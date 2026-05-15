@@ -61,40 +61,46 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     return Scaffold(
       backgroundColor: BanzamiColors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
-              Text(
-                session?.merchantName ?? 'Banzami',
-                style: BanzamiTextStyles.headingMd,
-                textAlign: TextAlign.center,
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
+                  Text(
+                    session?.merchantName ?? 'Banzami',
+                    style: BanzamiTextStyles.headingMd,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _error ? 'PIN incorrecto. Tente novamente.' : 'Introduza o PIN',
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color: _error ? BanzamiColors.error : BanzamiColors.gray400,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 40),
+                  PinPad(
+                    onChanged:  (v) => setState(() { _pin = v; _error = false; }),
+                    onComplete: _onPinComplete,
+                    disabled:   _checking,
+                  ),
+                  const SizedBox(height: 24),
+                  if (session?.biometricsEnabled == true)
+                    TextButton.icon(
+                      onPressed: _tryBiometrics,
+                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
+                      label: Text('Usar biometria',
+                          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
+                    ),
+                  const SizedBox(height: 24),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _error ? 'PIN incorrecto. Tente novamente.' : 'Introduza o PIN',
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: _error ? BanzamiColors.error : BanzamiColors.gray400,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 40),
-              PinPad(
-                onChanged:  (v) => setState(() { _pin = v; _error = false; }),
-                onComplete: _onPinComplete,
-                disabled:   _checking,
-              ),
-              const Spacer(flex: 1),
-              if (session?.biometricsEnabled == true)
-                TextButton.icon(
-                  onPressed: _tryBiometrics,
-                  icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
-                  label: Text('Usar biometria',
-                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
-                ),
-              const SizedBox(height: 24),
-            ],
+            ),
           ),
         ),
       ),

@@ -150,37 +150,43 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
             : null,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          child: Column(
-            children: [
-              const Spacer(flex: 2),
+        child: LayoutBuilder(
+          builder: (context, constraints) => SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 24),
 
-              Text(_title, style: BanzamiTextStyles.headingLg),
-              const SizedBox(height: 8),
-              Text(
-                _subtitle,
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: (_error || _apiError != null)
-                      ? BanzamiColors.error
-                      : BanzamiColors.gray400,
-                ),
-                textAlign: TextAlign.center,
+                  Text(_title, style: BanzamiTextStyles.headingLg),
+                  const SizedBox(height: 8),
+                  Text(
+                    _subtitle,
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color: (_error || _apiError != null)
+                          ? BanzamiColors.error
+                          : BanzamiColors.gray400,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 40),
+
+                  if (_saving)
+                    const CircularProgressIndicator(color: BanzamiColors.wine)
+                  else
+                    PinPad(
+                      key:        ValueKey(_step),
+                      onChanged:  _onChanged,
+                      onComplete: _onComplete,
+                    ),
+
+                  const SizedBox(height: 48),
+                ],
               ),
-
-              const SizedBox(height: 40),
-
-              if (_saving)
-                const CircularProgressIndicator(color: BanzamiColors.wine)
-              else
-                PinPad(
-                  key:        ValueKey(_step),
-                  onChanged:  _onChanged,
-                  onComplete: _onComplete,
-                ),
-
-              const Spacer(flex: 3),
-            ],
+            ),
           ),
         ),
       ),
