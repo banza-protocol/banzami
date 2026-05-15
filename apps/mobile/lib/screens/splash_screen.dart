@@ -45,13 +45,10 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(28),
-      child: Image.asset(
-        'assets/images/icon_master_1024.png',
-        width:  120,
-        height: 120,
-      ),
+    return Image.asset(
+      'assets/images/splash_logo.png',
+      width:  160,
+      height: 160,
     );
   }
 }
