@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -24,6 +23,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   bool    _loading = false;
   bool    _sharing = false;
   String? _error;
+
+  final _shareButtonKey = GlobalKey();
 
   @override
   void initState() {
@@ -69,21 +70,25 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         ),
       );
 
-      final image    = await painter.toImage(512);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      final bytes    = byteData!.buffer.asUint8List();
+      final byteData = await painter.toImageData(512);
+      if (byteData == null) throw Exception('QR render retornou imagem vazia');
+      final bytes = byteData.buffer.asUint8List();
 
       final file = File('${Directory.systemTemp.path}/qr_${session.merchantId}.png');
       await file.writeAsBytes(bytes);
 
+      final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject: 'QR de pagamento — ${session.merchantName}',
+        subject:              'QR de pagamento — ${session.merchantName}',
+        sharePositionOrigin:  origin,
       );
-    } catch (_) {
+    } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível partilhar o QR.')),
+          SnackBar(content: Text('Erro ao partilhar: $e')),
         );
       }
     } finally {
@@ -190,6 +195,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
+            key:       _shareButtonKey,
             onPressed: _sharing ? null : () => _shareQr(session),
             icon:  _sharing
                 ? const SizedBox(
