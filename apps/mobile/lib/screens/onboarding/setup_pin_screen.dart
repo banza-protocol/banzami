@@ -115,18 +115,20 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
   }
 
   void _showBiometricsPrompt() {
+    // Capture svc before popUntil removes this widget from the tree.
+    final svc = context.read<SessionService>();
     showModalBottomSheet<void>(
       context:       context,
       isDismissible: false,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _BiometricsSheet(
+      builder: (sheetCtx) => _BiometricsSheet(
         onEnable: () async {
-          Navigator.pop(context);
-          await context.read<SessionService>().enableBiometrics();
+          Navigator.pop(sheetCtx);
+          await svc.enableBiometrics();
         },
-        onSkip: () => Navigator.pop(context),
+        onSkip: () => Navigator.pop(sheetCtx),
       ),
     );
   }
