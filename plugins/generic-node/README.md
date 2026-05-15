@@ -24,7 +24,7 @@ npm install @banzami/node
 import { BanzamiClient } from '@banzami/node';
 
 const client = new BanzamiClient({
-  gatewayUrl: 'https://api.banzami.ao',
+  gatewayUrl: 'https://api.banzami.org',
   apiKey:     process.env.BANZAMI_API_KEY!,
 });
 
@@ -38,7 +38,7 @@ const link = await client.createPaymentLink({
 });
 
 // Redirect the customer
-console.log(`https://pay.banzami.co/${link.slug}`);
+console.log(`https://pay.banzami.org/${link.slug}`);
 ```
 
 ---

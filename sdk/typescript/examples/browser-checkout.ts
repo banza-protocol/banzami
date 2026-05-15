@@ -3,7 +3,7 @@
 import { BanzamiClient, formatMinor } from '@banzami/sdk';
 
 const client = new BanzamiClient({
-  baseUrl: 'https://api.banzami.ao',
+  baseUrl: 'https://api.banzami.org',
   apiKey:  '<your-publishable-api-key>',
 });
 
@@ -28,7 +28,7 @@ async function startCheckout(params: {
     currency:    'AOA',
     description: params.description,
   });
-  window.location.href = `https://pay.banzami.ao/${link.slug}`;
+  window.location.href = `https://pay.banzami.org/${link.slug}`;
 }
 
 export { loadBalance, startCheckout };

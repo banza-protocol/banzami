@@ -119,7 +119,7 @@ Create a payment link.
 }
 ```
 
-**Pay URL:** `https://pay.banzami.co/{slug}`
+**Pay URL:** `https://pay.banzami.org/{slug}`
 
 #### GET /v1/payment-links?merchant_id=&limit=&cursor=
 
@@ -436,7 +436,7 @@ Pay a payment link from the consumer's wallet. **JWT required.**
 
 ## Public Endpoints (api-gateway, no auth)
 
-These endpoints are used by the `pay.banzami.co` pay page JavaScript.
+These endpoints are used by the `pay.banzami.org` pay page JavaScript.
 
 #### GET /public/pay/{slug}
 

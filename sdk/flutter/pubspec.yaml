@@ -3,7 +3,7 @@ description: >
   Banzami Flutter SDK — payment widgets, API client, and screens for
   integrating instant P2P transfers and QR payments into Flutter applications.
 version: 0.1.0
-homepage: https://banzami.ao
+homepage: https://banzami.org
 
 environment:
   sdk: ">=3.3.0 <4.0.0"

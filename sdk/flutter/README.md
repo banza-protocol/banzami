@@ -35,7 +35,7 @@ import 'package:banzami_sdk/banzami_sdk.dart';
 ```dart
 final client = BanzamiClient(
   apiKey:  'bz_live_...',
-  baseUrl: 'https://api.banzami.ao',
+  baseUrl: 'https://api.banzami.org',
 );
 
 // Fetch merchant details
@@ -70,7 +70,7 @@ The client transparently exchanges your API key for a short-lived JWT on the fir
 ### Registration and login
 
 ```dart
-final client = ConsumerPublicClient(baseUrl: 'https://api.banzami.ao');
+final client = ConsumerPublicClient(baseUrl: 'https://api.banzami.org');
 
 // New user
 final reg = await client.register(handle: 'joao', pin: '123456');

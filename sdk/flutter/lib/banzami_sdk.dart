@@ -7,7 +7,7 @@
 /// import 'package:banzami_sdk/banzami_sdk.dart';
 ///
 /// final client = BanzamiClient(
-///   baseUrl: 'https://api.banzami.ao',
+///   baseUrl: 'https://api.banzami.org',
 ///   apiKey:  'bz_live_...',
 /// );
 /// ```

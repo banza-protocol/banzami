@@ -24,7 +24,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   });
 
   return NextResponse.json({
-    checkoutUrl: `https://pay.banzami.ao/${link.slug}`,
+    checkoutUrl: `https://pay.banzami.org/${link.slug}`,
     linkId:      link.id,
   });
 }

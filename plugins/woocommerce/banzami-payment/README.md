@@ -23,7 +23,7 @@ Accept payments via the Banzami platform in any WooCommerce store. Customers pay
 | **Enable** | Toggle the gateway on/off at checkout |
 | **Title** | Label shown to customers at checkout (e.g. "Banzami — Pagar com o telemóvel") |
 | **Description** | Short description shown below the title at checkout |
-| **Gateway URL** | Your Banzami API gateway URL (`https://api.banzami.ao` for production) |
+| **Gateway URL** | Your Banzami API gateway URL (`https://api.banzami.org` for production) |
 | **API Key** | Merchant API key from the Banzami dashboard — starts with `bz_live_` |
 | **Webhook Secret** | Signing secret from the Banzami dashboard — used to verify webhook authenticity |
 | **Currency** | `AOA` (Angolan Kwanza) or `USD` |

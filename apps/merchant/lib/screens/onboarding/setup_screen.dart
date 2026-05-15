@@ -5,7 +5,7 @@ import '../../config.dart';
 import '../pin_create_screen.dart';
 
 /// Ecrã de configuração inicial — o comerciante introduz o seu Merchant ID
-/// e API Key (obtidos na dashboard web em dashboard.banzami.ao).
+/// e API Key (obtidos na dashboard web em dashboard.banzami.org).
 class MerchantSetupScreen extends StatefulWidget {
   const MerchantSetupScreen({super.key});
 
@@ -97,7 +97,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
               const Text('Credenciais da sua conta', style: BanzamiTextStyles.headingSm),
               const SizedBox(height: 8),
               Text(
-                'Encontre estes valores em dashboard.banzami.ao → Definições → API.',
+                'Encontre estes valores em dashboard.banzami.org → Definições → API.',
                 style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
               const SizedBox(height: BanzamiSpacing.xl),

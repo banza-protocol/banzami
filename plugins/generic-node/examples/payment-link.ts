@@ -3,7 +3,7 @@
 import { BanzamiClient } from '../src/client';
 
 const client = new BanzamiClient({
-  gatewayUrl: process.env.BANZAMI_GATEWAY_URL ?? 'https://api.banzami.ao',
+  gatewayUrl: process.env.BANZAMI_GATEWAY_URL ?? 'https://api.banzami.org',
   apiKey:     process.env.BANZAMI_API_KEY!,
 });
 
@@ -15,6 +15,6 @@ const link = await client.createPaymentLink({
   description:  `Pedido #${Date.now()}`,
 });
 
-console.log('Checkout URL:', `https://pay.banzami.ao/${link.slug}`);
+console.log('Checkout URL:', `https://pay.banzami.org/${link.slug}`);
 console.log('Link ID:', link.id);
 console.log('Status:', link.status);

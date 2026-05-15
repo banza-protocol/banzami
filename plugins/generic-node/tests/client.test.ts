@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BanzamiClient, BanzamiError } from '../src/client.js';
 
-const BASE = 'https://api.banzami.ao';
+const BASE = 'https://api.banzami.org';
 const KEY  = 'bz_test_key';
 
 function makeClient(): BanzamiClient {

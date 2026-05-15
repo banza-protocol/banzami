@@ -208,7 +208,7 @@ After the PIN is reset, communicate the temporary PIN to the consumer via the ve
 
 ### Via dashboard (preferred)
 
-1. Log in to `admin.banzami.ao`.
+1. Log in to `admin.banzami.org`.
 2. Navigate to Merchants → Select merchant → API Keys.
 3. Click "Revoke" on the compromised key.
 
@@ -223,7 +223,7 @@ curl -X DELETE "http://admin.internal:8082/admin/v1/merchants/{merchant_id}/api-
 
 ```bash
 # Attempt to exchange the revoked key — must return 401
-curl -X POST "https://api.banzami.ao/v1/auth/token" \
+curl -X POST "https://api.banzami.org/v1/auth/token" \
   -H "Content-Type: application/json" \
   -d '{"api_key": "<revoked_key>"}'
 # Expected: 401 KEY_REVOKED

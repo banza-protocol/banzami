@@ -5,7 +5,7 @@ import '../../config.dart';
 import '../pin_create_screen.dart';
 
 /// Ecrã de configuração inicial — o comerciante introduz o seu Merchant ID
-/// e API Key (obtidos na dashboard web em dashboard.banzami.ao).
+/// e API Key (obtidos na dashboard web em dashboard.banzami.org).
 class MerchantSetupScreen extends StatefulWidget {
   const MerchantSetupScreen({super.key});
 

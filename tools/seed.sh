@@ -48,7 +48,7 @@ if [[ "${1:-}" == "--merchant-id" ]]; then
 else
   # ── new merchant ────────────────────────────────────────────────────────────
   NAME="${1:-Loja Teste}"
-  EMAIL="${2:-loja@banzami.ao}"
+  EMAIL="${2:-loja@banzami.org}"
 
   log "Creating merchant: '$NAME' <$EMAIL>..."
   RESP=$(curl -fsS -w '\n%{http_code}' -X POST "$CORE_API/internal/v1/merchants" \

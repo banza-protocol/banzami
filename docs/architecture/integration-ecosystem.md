@@ -41,7 +41,7 @@ The integration layer is therefore not auxiliary tooling. It is the primary inte
                              │
          ┌───────────────────▼──────────────────────┐
          │          PUBLIC REST API + OPENAPI          │
-         │         api.banzami.ao/v1/                 │
+         │         api.banzami.org/v1/                 │
          └──────────────────────────────────────────┘
 ```
 
@@ -125,7 +125,7 @@ The Flutter SDK is not just a network client. It is the **Banzami Mobile Runtime
 
 ```dart
 final client = BanzamiClient(
-  baseUrl: 'https://api.banzami.ao',
+  baseUrl: 'https://api.banzami.org',
   apiKey:  'bz_live_...',
   onRequest:  (method, path, attempt) => logger.debug('$method $path #$attempt'),
   onResponse: (method, path, status, ms) => metrics.record(path, ms),
@@ -175,7 +175,7 @@ The TypeScript SDK is the **primary web developer SDK**. It is the reference for
 import { BanzamiClient } from '@banzami/sdk';
 
 const client = new BanzamiClient({
-  baseUrl:  'https://api.banzami.ao',
+  baseUrl:  'https://api.banzami.org',
   apiKey:   process.env.BANZAMI_API_KEY!,
   hooks: {
     onRequest:  (method, path, attempt) => console.log(`→ ${method} ${path}`),
@@ -301,7 +301,7 @@ The following are on the roadmap but explicitly deferred past v1 stabilization:
 ## Layer 5 — Hosted Checkout
 
 **Location:** `apps/checkout/`  
-**URL:** `https://pay.banzami.co/{slug}`  
+**URL:** `https://pay.banzami.org/{slug}`  
 **Priority:** CRITICAL  
 **Technology:** Next.js 14, App Router, port 3004
 

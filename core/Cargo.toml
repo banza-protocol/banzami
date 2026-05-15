@@ -26,7 +26,7 @@ version    = "0.1.0"
 edition    = "2021"
 license    = "UNLICENSED"
 repository = "https://github.com/banzami/banzami"
-authors    = ["Banzami Engineering <engineering@banzami.ao>"]
+authors    = ["Banzami Engineering <engineering@banzami.org>"]
 
 # ---------------------------------------------------------------------------
 # Shared dependency versions — crates opt-in with { workspace = true }

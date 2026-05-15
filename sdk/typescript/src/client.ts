@@ -28,7 +28,7 @@ export interface BanzamiHooks {
 }
 
 export interface BanzamiClientOptions {
-  /** Base URL of the Banzami API gateway, e.g. https://api.banzami.ao */
+  /** Base URL of the Banzami API gateway, e.g. https://api.banzami.org */
   baseUrl: string;
   /** API key used for Bearer token authentication. */
   apiKey:  string;

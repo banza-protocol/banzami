@@ -1252,7 +1252,7 @@ After the stack is running, create a test merchant with API key and wallet:
 ```bash
 ./tools/seed.sh
 # or with custom name and email:
-./tools/seed.sh "Farmácia Central" farmacia@banzami.ao
+./tools/seed.sh "Farmácia Central" farmacia@banzami.org
 ```
 
 The script prints credentials ready to paste into the dashboard at `http://localhost:3010/login`:
