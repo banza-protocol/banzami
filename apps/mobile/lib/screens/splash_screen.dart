@@ -46,7 +46,7 @@ class _Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/splash_logo.png',
+      'assets/images/banzami_logo.png',
       width:  160,
       height: 160,
     );
