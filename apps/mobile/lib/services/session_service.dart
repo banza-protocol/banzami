@@ -64,6 +64,24 @@ class SessionService extends ChangeNotifier {
   bool     get hasSession  => _session != null;
   bool     get initialized => _initialized;
 
+  /// True when the stored JWT has passed its exp claim.
+  /// Used to skip biometric unlock and force PIN re-entry (which refreshes the token).
+  bool get isTokenExpired {
+    final token = _session?.token;
+    if (token == null) return true;
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      final padded  = base64Url.normalize(parts[1]);
+      final payload = utf8.decode(base64Url.decode(padded));
+      final exp     = (jsonDecode(payload) as Map<String, dynamic>)['exp'] as int?;
+      if (exp == null) return false;
+      return DateTime.now().millisecondsSinceEpoch ~/ 1000 >= exp;
+    } catch (_) {
+      return true;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Lifecycle
   // ---------------------------------------------------------------------------

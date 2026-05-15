@@ -35,6 +35,8 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   Future<void> _tryBiometrics() async {
     final svc = context.read<SessionService>();
     if (svc.session?.biometricsEnabled != true) return;
+    // JWT expired — skip biometrics so _onPinComplete() can refresh the token.
+    if (svc.isTokenExpired) return;
     final ok = await svc.authenticateWithBiometrics();
     if (ok && mounted) svc.unlock();
   }
