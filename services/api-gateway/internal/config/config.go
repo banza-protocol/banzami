@@ -19,6 +19,9 @@ type Config struct {
 	// Deliberately left optional here so the gateway starts for health-check
 	// purposes even before auth is fully wired.
 	JWTSecret string
+	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
+	// When empty, push notifications are silently disabled.
+	FirebaseCredentialsJSON string
 }
 
 func Load() (*Config, error) {
@@ -63,6 +66,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("OTLP_ENDPOINT"); v != "" {
 		cfg.OTLPEndpoint = v
+	}
+	if v := os.Getenv("FIREBASE_CREDENTIALS_JSON"); v != "" {
+		cfg.FirebaseCredentialsJSON = v
 	}
 
 	return cfg, nil

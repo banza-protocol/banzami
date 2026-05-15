@@ -1,8 +1,10 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,16 +12,33 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 type AcquiringHandler struct {
 	svc          service.AcquiringService
 	paymentLinks service.PaymentLinkService
+	fcm          *notify.FCMService
 }
 
-func NewAcquiringHandler(svc service.AcquiringService, pl service.PaymentLinkService) *AcquiringHandler {
-	return &AcquiringHandler{svc: svc, paymentLinks: pl}
+func NewAcquiringHandler(svc service.AcquiringService, pl service.PaymentLinkService, fcm *notify.FCMService) *AcquiringHandler {
+	return &AcquiringHandler{svc: svc, paymentLinks: pl, fcm: fcm}
+}
+
+// notifAmount formats an amount in minor units for a push notification body.
+// e.g. 1500000 AOA → "15.000 Kz"
+func notifAmount(amountMinor int64, currency string) string {
+	whole := amountMinor / 100
+	frac  := amountMinor % 100
+	symbol := currency
+	if currency == "AOA" {
+		symbol = "Kz"
+	}
+	if frac == 0 {
+		return fmt.Sprintf("%d %s", whole, symbol)
+	}
+	return fmt.Sprintf("%d.%02d %s", whole, frac, symbol)
 }
 
 // POST /public/pay/{slug}/pay
@@ -91,10 +110,15 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 	// Mark the payment link as used so it can no longer accept new payments.
 	// This is best-effort: the payment is already confirmed in the acquiring
 	// ledger; reconciliation will catch any inconsistency.
-	if _, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
+	if link, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
 		slog.Error("acquiring: failed to mark payment link used",
 			"payment_link_id", payment.PaymentLinkID,
 			"error", mlErr,
+		)
+	} else {
+		go h.fcm.SendToMerchant(context.Background(), link.MerchantID,
+			"Pagamento recebido",
+			notifAmount(payment.AmountMinor, payment.Currency),
 		)
 	}
 
@@ -133,6 +157,11 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 			"error", mlErr,
 		)
 	}
+
+	go h.fcm.SendToMerchant(context.Background(), link.MerchantID,
+		"Pagamento recebido",
+		notifAmount(payment.AmountMinor, payment.Currency),
+	)
 
 	respond(w, http.StatusOK, payment)
 }

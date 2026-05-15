@@ -14,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/observability"
 	"github.com/banzami/banzami/services/api-gateway/internal/server"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
@@ -43,6 +44,15 @@ func main() {
 		os.Exit(1)
 	}
 	rdb := redis.NewClient(opt)
+
+	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON)
+	if err != nil {
+		slog.Error("fcm init error", "error", err)
+		os.Exit(1)
+	}
+	if fcmSvc == nil {
+		slog.Warn("fcm: FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
+	}
 
 	// Real core-api client — delegates all financial operations to the Rust core.
 	coreClient := service.NewCoreApiClient(cfg.CoreAPIURL)
@@ -78,6 +88,7 @@ func main() {
 		QrSvc:             service.NewCoreApiQrService(coreClient),
 		PaymentLinkSvc:    service.NewCoreApiPaymentLinkService(coreClient),
 		AcquiringSvc:      service.NewCoreApiAcquiringService(coreClient),
+		FCMSvc:            fcmSvc,
 	}
 
 	srv := server.New(cfg, deps)

@@ -14,6 +14,7 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/handler"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
@@ -31,6 +32,7 @@ type Dependencies struct {
 	QrSvc               service.QrService
 	PaymentLinkSvc      service.PaymentLinkService
 	AcquiringSvc        service.AcquiringService
+	FCMSvc              *notify.FCMService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -71,7 +73,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	transferHandler      := handler.NewTransferHandler(deps.TransferSvc)
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
 	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
-	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc)
+	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
