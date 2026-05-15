@@ -91,16 +91,17 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 1. [Architecture Overview](#architecture-overview)
 2. [Repository Layout](#repository-layout)
 3. [Technology Stack](#technology-stack)
-4. [Domain Model](#domain-model)
-5. [Services](#services)
-6. [API Reference](#api-reference)
-7. [Financial Flows](#financial-flows)
-8. [Database Schema](#database-schema)
-9. [Security Model](#security-model)
-10. [Observability](#observability)
-11. [Local Development](#local-development)
-12. [Engineering Principles](#engineering-principles)
-13. [Contributing](#contributing)
+4. [Design System](#design-system)
+5. [Domain Model](#domain-model)
+6. [Services](#services)
+7. [API Reference](#api-reference)
+8. [Financial Flows](#financial-flows)
+9. [Database Schema](#database-schema)
+10. [Security Model](#security-model)
+11. [Observability](#observability)
+12. [Local Development](#local-development)
+13. [Engineering Principles](#engineering-principles)
+14. [Contributing](#contributing)
 
 ---
 
@@ -345,6 +346,52 @@ banzami/
 | Infrastructure       | **Docker + Hetzner/OVH + Cloudflare**             | Cost-effective, reliable European/African hosting  |
 
 Kubernetes is intentionally deferred. The modular monolith approach provides simpler operations until scale demands otherwise.
+
+---
+
+## Design System
+
+Banzami maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
+
+- **Web / TypeScript:** [`sdk/typescript/src/theme/index.ts`](sdk/typescript/src/theme/index.ts)
+- **Mobile / Flutter:** [`sdk/flutter/lib/theme/banzami_theme.dart`](sdk/flutter/lib/theme/banzami_theme.dart)
+- **Tailwind config:** extended in each Next.js app from the shared token values
+
+### Brand Colour Palette
+
+| Token         | Hex       | Role                                          |
+|---------------|-----------|-----------------------------------------------|
+| `wine`        | `#990011` | Space Cherry — primary identity, CTA buttons  |
+| `wineDark`    | `#6B000B` | Gradient deep end / pressed state             |
+| `wineMedium`  | `#B5001A` | Gradient light end / hover state              |
+| `wineRose`    | `#A63A50` | Wine Rose — secondary: badges, tags, accents  |
+| `gold`        | `#C89B3C` | Savanna Gold — accent: highlights, emphasis   |
+| `goldLight`   | `#D4AF5C` | Gold hover / light variant                    |
+| `offWhite`    | `#FCF6F5` | Warm White — main background                  |
+| `gray100`     | `#F5EEED` | Form fills, chips                             |
+| `gray200`     | `#EBE3E2` | Borders, dividers (Flutter only)              |
+| `gray400`     | `#9C8483` | Secondary text                                |
+| `gray700`     | `#534040` | Tertiary text                                 |
+| `gray900`     | `#1A1A1A` | Primary text                                  |
+| `success`     | `#166534` | Success state (Flutter) / `#1A7A4A` (web SDK) |
+| `warning`     | `#92400E` | Warning state                                 |
+| `error`       | `#DC2626` | Error state — distinct from Space Cherry      |
+| `info`        | `#1E3A8A` | Informational state                           |
+
+### Typography
+
+- **Sans:** Inter (primary UI font)
+- **Mono:** JetBrains Mono (amounts, codes, terminal output)
+
+### Spacing Scale
+
+`micro (2px) → xs (4px) → sm (8px) → md (12px) → lg (16px) → xl (24px) → 2xl (32px) → section (48px) → page (64px)`
+
+### Border Radius
+
+`sm (4px) → md (8px) → lg (12px) → xl (16px) → 2xl (24px) → full (9999px)`
+
+See [`docs/brand/audit-2026-05-15.md`](docs/brand/audit-2026-05-15.md) for the full platform branding audit and the correction record.
 
 ---
 
@@ -1238,11 +1285,24 @@ A build-phase script (`ios/switch_firebase_config.sh`) copies the correct plist 
 For full setup instructions (APNs key, Apple Developer Portal, xcconfig structure, AppDelegate configuration):
 → [docs/playbooks/fcm-push-notifications-flutter-ios.md](docs/playbooks/fcm-push-notifications-flutter-ios.md)
 
+**Consumer app navigation (4 tabs):**
+
+| Tab       | Screen                  | Description                               |
+|-----------|-------------------------|-------------------------------------------|
+| Início    | `HomeScreen`            | Balance, quick actions, recent transfers  |
+| Histórico | `TransactionsScreen`    | Full transfer history with filters        |
+| Receber   | `BanzamiReceiveScreen`  | QR code + handle display for receiving    |
+| Perfil    | `ProfileScreen`         | Account settings and security             |
+
 **Merchant app setup flow:**
 1. Merchant enters their API Key + Merchant ID
 2. App verifies credentials against `GET /v1/merchants/{id}` and fetches the wallet via `GET /v1/wallets?currency=AOA`
 3. Merchant creates a 6-digit PIN (stored encrypted with `FlutterSecureStorage`)
 4. Subsequent launches require PIN or biometrics (Face ID / fingerprint)
+
+**Merchant dashboard statistics:**
+
+Daily and monthly revenue figures are computed by paginating all completed transactions since the start of the current month using the `since_created_at` filter (`GET /v1/transactions?since=<ISO8601>`). This ensures accurate totals regardless of transaction volume — the stats are not limited by the page size of a single API call.
 
 ---
 
