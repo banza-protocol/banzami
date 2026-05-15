@@ -14,6 +14,13 @@ use Illuminate\Support\Facades\Facade;
  * @method static array createTransaction(array $params)
  * @method static array getTransaction(string $id)
  * @method static array listTransactions(string $merchantId, int $limit = 20, ?string $cursor = null)
+ * @method static array provisionWallet(array $params)
+ * @method static array getWallet(string $id)
+ * @method static array getWalletBalance(string $id)
+ * @method static array createPayout(array $params)
+ * @method static array listPayouts(string $merchantId, int $limit = 20, ?string $cursor = null)
+ * @method static array getPayout(string $id)
+ * @method static array getMerchant(string $id)
  *
  * @see \Banzami\BanzamiClient
  */

@@ -8,9 +8,18 @@
         "laravel/framework": "^10|^11",
         "banzami/banzami-php": "^0.1"
     },
+    "require-dev": {
+        "orchestra/testbench": "^8|^9",
+        "phpunit/phpunit": "^10"
+    },
     "autoload": {
         "psr-4": {
             "Banzami\\Laravel\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Banzami\\Laravel\\Tests\\": "tests/"
         }
     },
     "extra": {

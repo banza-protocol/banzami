@@ -21,6 +21,8 @@ use Illuminate\Support\Facades\Event;
  *   - \Banzami\Laravel\Events\TransactionCompleted
  *   - \Banzami\Laravel\Events\TransactionFailed
  *   - \Banzami\Laravel\Events\PaymentLinkUsed
+ *   - \Banzami\Laravel\Events\WalletProvisioned
+ *   - \Banzami\Laravel\Events\PayoutRequested
  *
  * Or listen for the raw event type string via:
  *   Event::listen('banzami.webhook', function ($event) { ... });
@@ -60,6 +62,8 @@ class WebhookController extends Controller
             'transaction.completed' => \Banzami\Laravel\Events\TransactionCompleted::class,
             'transaction.failed'    => \Banzami\Laravel\Events\TransactionFailed::class,
             'payment_link.used'     => \Banzami\Laravel\Events\PaymentLinkUsed::class,
+            'wallet.provisioned'    => \Banzami\Laravel\Events\WalletProvisioned::class,
+            'payout.requested'      => \Banzami\Laravel\Events\PayoutRequested::class,
             default                 => null,
         };
     }
