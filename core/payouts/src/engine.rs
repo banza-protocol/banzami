@@ -393,6 +393,9 @@ mod tests {
         async fn list_for_merchant(&self, merchant_id: MerchantId, _: i64) -> Result<Vec<Payout>, PayoutError> {
             Ok(self.payouts.lock().unwrap().iter().filter(|p| p.merchant_id == merchant_id).cloned().collect())
         }
+        async fn list_all(&self, _limit: i64, _status: Option<&str>) -> Result<Vec<Payout>, PayoutError> {
+            Ok(self.payouts.lock().unwrap().clone())
+        }
         async fn update_status(
             &self,
             id: PayoutId,

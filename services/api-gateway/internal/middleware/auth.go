@@ -57,6 +57,13 @@ func GetPrincipal(ctx context.Context) (*Principal, bool) {
 	return p, ok
 }
 
+// ContextWithPrincipal returns a new context carrying the given principal.
+// Used in tests and by internal middleware that need to inject a principal
+// without going through JWT verification (e.g. service-to-service calls).
+func ContextWithPrincipal(ctx context.Context, p *Principal) context.Context {
+	return context.WithValue(ctx, principalKey{}, p)
+}
+
 // RequireScope returns middleware that rejects requests missing the given scope.
 // Must be used inside an Auth-protected route group.
 func RequireScope(scope string) func(http.Handler) http.Handler {

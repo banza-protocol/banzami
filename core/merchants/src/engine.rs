@@ -214,6 +214,19 @@ mod tests {
                 .cloned())
         }
 
+        async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError> {
+            let rows = self.rows.lock().unwrap();
+            Ok(rows
+                .iter()
+                .filter(|m| {
+                    search.map_or(true, |s| {
+                        m.name.contains(s) || m.email.contains(s)
+                    })
+                })
+                .cloned()
+                .collect())
+        }
+
         async fn update_status(
             &self,
             id: MerchantId,

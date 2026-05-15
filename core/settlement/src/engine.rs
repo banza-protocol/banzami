@@ -325,6 +325,21 @@ mod tests {
                 .collect())
         }
 
+        async fn list_all(
+            &self,
+            _limit: i64,
+            status: Option<&str>,
+        ) -> Result<Vec<Settlement>, SettlementError> {
+            let rows = self.rows.lock().unwrap();
+            Ok(rows
+                .iter()
+                .filter(|s| {
+                    status.map_or(true, |st| format!("{:?}", s.status).to_uppercase() == st.to_uppercase())
+                })
+                .cloned()
+                .collect())
+        }
+
         async fn update_status(
             &self,
             id: SettlementId,
