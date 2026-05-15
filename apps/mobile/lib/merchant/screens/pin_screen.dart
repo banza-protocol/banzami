@@ -15,9 +15,10 @@ class MerchantPinScreen extends StatefulWidget {
 
 class _MerchantPinScreenState extends State<MerchantPinScreen>
     with WidgetsBindingObserver {
-  String _pin      = '';
-  bool   _error    = false;
-  bool   _checking = false;
+  String _pin         = '';
+  bool   _error       = false;
+  bool   _checking    = false;
+  int    _padResetKey = 0;
 
   @override
   void initState() {
@@ -50,7 +51,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     if (ok) {
       svc.unlock();
     } else {
-      setState(() { _error = true; _checking = false; _pin = ''; });
+      setState(() { _error = true; _checking = false; _pin = ''; _padResetKey += 1; });
     }
   }
 
@@ -85,9 +86,11 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                   ),
                   const SizedBox(height: 40),
                   PinPad(
-                    onChanged:  (v) => setState(() { _pin = v; _error = false; }),
+                    key:       ValueKey(_padResetKey),
+                    onChanged: (v) => setState(() { _pin = v; _error = false; }),
                     onComplete: _onPinComplete,
-                    disabled:   _checking,
+                    disabled:  _checking,
+                    error:     _error,
                   ),
                   const SizedBox(height: 24),
                   if (session?.biometricsEnabled == true)

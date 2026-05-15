@@ -15,9 +15,10 @@ class PinScreen extends StatefulWidget {
 }
 
 class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
-  String  _pin      = '';
-  bool    _error    = false;
-  bool    _checking = false;
+  String _pin      = '';
+  bool   _error    = false;
+  bool   _checking = false;
+  int    _padResetKey = 0; // incrementing forces PinPad to recreate and clear
 
   @override
   void initState() {
@@ -35,16 +36,13 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   Future<void> _tryBiometrics() async {
     final svc = context.read<SessionService>();
     if (svc.session?.biometricsEnabled != true) return;
-    if (svc.isTokenExpired) return; // locally expired — force PIN
+    if (svc.isTokenExpired) return;
 
-    // Verify the JWT is still accepted by the server. A wrong secret, revoked
-    // token, or account that doesn't exist on this environment all return 401.
-    // Network failures are allowed through so offline users aren't blocked.
     final client = context.read<ConsumerPublicClient>();
     try {
       await client.checkAuth();
     } on BanzamiApiException catch (e) {
-      if (e.statusCode == 401) return; // server rejected JWT — force PIN to refresh
+      if (e.statusCode == 401) return;
     } catch (_) {
       // Network error — allow offline biometric unlock
     }
@@ -63,8 +61,6 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
 
     if (!mounted) return;
     if (ok) {
-      // Refresh the JWT so expired tokens don't cause silent API failures after unlock.
-      // If the server is unreachable we still unlock — the user will see errors per screen.
       try {
         final result = await client.login(
           handle: svc.session!.handle,
@@ -74,7 +70,39 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
       } catch (_) {}
       svc.unlock();
     } else {
-      setState(() { _error = true; _checking = false; _pin = ''; });
+      setState(() {
+        _error        = true;
+        _checking     = false;
+        _pin          = '';
+        _padResetKey += 1;
+      });
+    }
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Remover conta?'),
+        content: const Text(
+          'Vai sair e apagar todos os dados desta conta neste dispositivo. '
+          'Pode entrar novamente quando quiser.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: BanzamiColors.error),
+            child: const Text('Remover'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true && mounted) {
+      await context.read<SessionService>().logout();
     }
   }
 
@@ -113,9 +141,11 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                   const SizedBox(height: 40),
 
                   PinPad(
-                    onChanged:  (v) => setState(() { _pin = v; _error = false; }),
+                    key:       ValueKey(_padResetKey),
+                    onChanged: (v) => setState(() { _pin = v; _error = false; }),
                     onComplete: _onPinComplete,
-                    disabled:   _checking,
+                    disabled:  _checking,
+                    error:     _error,
                   ),
 
                   const SizedBox(height: 24),
@@ -129,6 +159,16 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                         style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine),
                       ),
                     ),
+
+                  const SizedBox(height: 8),
+
+                  TextButton(
+                    onPressed: _confirmLogout,
+                    child: Text(
+                      'Usar outra conta',
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                    ),
+                  ),
 
                   const SizedBox(height: 24),
                 ],

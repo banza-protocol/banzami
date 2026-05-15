@@ -20,14 +20,9 @@ class WelcomeScreen extends StatelessWidget {
               const Spacer(flex: 2),
 
               // Official logo
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.asset(
-                  'assets/images/icon_master_1024.png',
-                  width:  72,
-                  height: 72,
-                  fit:    BoxFit.cover,
-                ),
+              Image.asset(
+                'assets/images/banzami_logo.png',
+                height: 48,
               ),
               const SizedBox(height: 24),
 
