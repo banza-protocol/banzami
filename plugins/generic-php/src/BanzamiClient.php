@@ -28,21 +28,43 @@ class BanzamiClient
     private int    $timeout;
     /** @var callable|null */
     private $httpHandler;
+    private int $maxRetries;
+    private int $retryDelayMs;
+    /**
+     * Observability hooks.
+     *
+     * Keys: 'onRequest', 'onResponse', 'onError'
+     *   onRequest  fn(string $method, string $path, int $attempt): void
+     *   onResponse fn(string $method, string $path, int $status, int $durationMs): void
+     *   onError    fn(string $method, string $path, \Throwable $err, int $attempts): void
+     *
+     * @var array<string, callable>
+     */
+    private array $hooks;
 
     /**
-     * @param callable|null $httpHandler Test seam — never pass this in production.
-     *                                   Signature: fn(string $method, string $url, array $headers, ?string $body): array{status: int, body: string}
+     * @param callable|null          $httpHandler  Test seam — never pass this in production.
+     *                                             Signature: fn(string $method, string $url, array $headers, ?string $body): array{status: int, body: string}
+     * @param int                    $maxRetries   Maximum number of retry attempts after the first (default 3).
+     * @param int                    $retryDelayMs Base delay in milliseconds for exponential backoff (default 500ms).
+     * @param array<string,callable> $hooks        Optional observability hooks.
      */
     public function __construct(
         string $baseUrl,
         string $apiKey,
         int $timeout = 30,
-        ?callable $httpHandler = null
+        ?callable $httpHandler = null,
+        int $maxRetries = 3,
+        int $retryDelayMs = 500,
+        array $hooks = []
     ) {
-        $this->baseUrl     = rtrim($baseUrl, '/');
-        $this->apiKey      = $apiKey;
-        $this->timeout     = $timeout;
-        $this->httpHandler = $httpHandler;
+        $this->baseUrl      = rtrim($baseUrl, '/');
+        $this->apiKey       = $apiKey;
+        $this->timeout      = $timeout;
+        $this->httpHandler  = $httpHandler;
+        $this->maxRetries   = $maxRetries;
+        $this->retryDelayMs = $retryDelayMs;
+        $this->hooks        = $hooks;
     }
 
     // -------------------------------------------------------------------------
@@ -338,6 +360,49 @@ class BanzamiClient
         ?array $body = null,
         bool $authenticated = true
     ): array {
+        // Generate idempotency key once before the first attempt so all retries
+        // of the same logical operation share the key — critical for financial safety.
+        $idempotencyKey = ($method === 'POST') ? $this->generateIdempotencyKey() : null;
+        $lastException  = null;
+
+        for ($attempt = 0; $attempt <= $this->maxRetries; $attempt++) {
+            if ($attempt > 0) {
+                $delayUs = ($this->retryDelayMs * (2 ** ($attempt - 1))) * 1000;
+                usleep($delayUs);
+            }
+            if (isset($this->hooks['onRequest'])) {
+                ($this->hooks['onRequest'])($method, $path, $attempt);
+            }
+            try {
+                $t0     = (int) round(microtime(true) * 1000);
+                $result = $this->executeRequest($method, $path, $body, $authenticated, $idempotencyKey);
+                if (isset($this->hooks['onResponse'])) {
+                    ($this->hooks['onResponse'])($method, $path, 200, (int) round(microtime(true) * 1000) - $t0);
+                }
+                return $result;
+            } catch (BanzamiException $e) {
+                if (!$this->shouldRetry($e->getCode(), $attempt)) {
+                    if (isset($this->hooks['onError'])) {
+                        ($this->hooks['onError'])($method, $path, $e, $attempt + 1);
+                    }
+                    throw $e;
+                }
+                $lastException = $e;
+            }
+        }
+        if (isset($this->hooks['onError'])) {
+            ($this->hooks['onError'])($method, $path, $lastException, $this->maxRetries + 1);
+        }
+        throw $lastException;
+    }
+
+    private function executeRequest(
+        string $method,
+        string $path,
+        ?array $body,
+        bool $authenticated,
+        ?string $idempotencyKey
+    ): array {
         $url  = $this->baseUrl . $path;
         $json = $body !== null ? json_encode($body, JSON_THROW_ON_ERROR) : null;
 
@@ -348,6 +413,10 @@ class BanzamiClient
 
         if ($authenticated) {
             $headers[] = 'Authorization: Bearer ' . $this->apiKey;
+        }
+
+        if ($idempotencyKey !== null) {
+            $headers[] = 'Idempotency-Key: ' . $idempotencyKey;
         }
 
         if ($this->httpHandler !== null) {
@@ -373,7 +442,7 @@ class BanzamiClient
             curl_close($ch);
 
             if ($raw === false) {
-                throw new BanzamiException("cURL error: {$err}");
+                throw new BanzamiException("cURL error: {$err}", 0);
             }
         }
 
@@ -386,5 +455,22 @@ class BanzamiClient
         }
 
         return $data;
+    }
+
+    private function shouldRetry(int $httpCode, int $attempt): bool
+    {
+        if ($attempt >= $this->maxRetries) {
+            return false;
+        }
+        // Retry on network errors (code 0), rate limiting, and transient server errors.
+        // Never retry 4xx client errors (except 429) — they won't resolve on their own.
+        return $httpCode === 0
+            || $httpCode === 429
+            || ($httpCode >= 500 && $httpCode <= 599);
+    }
+
+    private function generateIdempotencyKey(): string
+    {
+        return bin2hex(random_bytes(16));
     }
 }

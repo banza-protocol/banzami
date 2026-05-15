@@ -18,6 +18,12 @@ class BanzamiClientTest extends TestCase
         return new BanzamiClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
     }
 
+    private function makeClientWithHandler(callable $handler): BanzamiClient
+    {
+        // retryDelayMs=0 so retry tests complete instantly
+        return new BanzamiClient('https://api.banzami.ao', 'bz_test', 30, $handler, 3, 0);
+    }
+
     // -------------------------------------------------------------------------
     // Payment Links
     // -------------------------------------------------------------------------
@@ -299,5 +305,90 @@ class BanzamiClientTest extends TestCase
     public function testVerifyWebhookSignatureEmpty(): void
     {
         $this->assertFalse(BanzamiClient::verifyWebhookSignature('body', '', 'secret'));
+    }
+
+    // -------------------------------------------------------------------------
+    // Retry logic
+    // -------------------------------------------------------------------------
+
+    public function test_retries_on_503_and_succeeds(): void
+    {
+        $calls = 0;
+        $handler = function (string $method, string $url, array $headers, ?string $body) use (&$calls): array {
+            $calls++;
+            if ($calls <= 2) {
+                return ['status' => 503, 'body' => json_encode(['error' => ['code' => 'SERVICE_UNAVAILABLE', 'message' => 'Overload']])];
+            }
+            return ['status' => 200, 'body' => json_encode(['id' => 'tx_1'])];
+        };
+        $client = $this->makeClientWithHandler($handler);
+
+        $result = $client->createTransaction(['wallet_id' => 'wal_1', 'amount_minor' => 100, 'currency' => 'AOA']);
+
+        $this->assertSame(3, $calls);
+        $this->assertSame('tx_1', $result['id']);
+    }
+
+    public function test_does_not_retry_on_422(): void
+    {
+        $calls = 0;
+        $handler = function (string $method, string $url, array $headers, ?string $body) use (&$calls): array {
+            $calls++;
+            return ['status' => 422, 'body' => json_encode(['error' => ['code' => 'VALIDATION_ERROR', 'message' => 'Bad input']])];
+        };
+        $client = $this->makeClientWithHandler($handler);
+
+        $this->expectException(BanzamiException::class);
+        $this->expectExceptionCode(422);
+
+        try {
+            $client->createTransaction(['wallet_id' => 'wal_1', 'amount_minor' => 100, 'currency' => 'AOA']);
+        } finally {
+            $this->assertSame(1, $calls);
+        }
+    }
+
+    public function test_same_idempotency_key_on_retries(): void
+    {
+        $capturedKeys = [];
+        $calls        = 0;
+        $handler = function (string $method, string $url, array $headers, ?string $body) use (&$capturedKeys, &$calls): array {
+            $calls++;
+            foreach ($headers as $header) {
+                if (str_starts_with($header, 'Idempotency-Key: ')) {
+                    $capturedKeys[] = substr($header, strlen('Idempotency-Key: '));
+                }
+            }
+            if ($calls <= 2) {
+                return ['status' => 503, 'body' => json_encode(['error' => ['code' => 'SERVICE_UNAVAILABLE', 'message' => 'Overload']])];
+            }
+            return ['status' => 200, 'body' => json_encode(['id' => 'tx_1'])];
+        };
+        $client = $this->makeClientWithHandler($handler);
+
+        $client->createTransaction(['wallet_id' => 'wal_1', 'amount_minor' => 100, 'currency' => 'AOA']);
+
+        $this->assertCount(3, $capturedKeys);
+        // All retry attempts must carry the same idempotency key so the server
+        // can safely deduplicate the operation.
+        $this->assertSame($capturedKeys[0], $capturedKeys[1]);
+        $this->assertSame($capturedKeys[0], $capturedKeys[2]);
+        $this->assertMatchesRegularExpression('/^[0-9a-f]{32}$/', $capturedKeys[0]);
+    }
+
+    public function test_get_request_has_no_idempotency_key(): void
+    {
+        $capturedHeaders = [];
+        $handler = function (string $method, string $url, array $headers, ?string $body) use (&$capturedHeaders): array {
+            $capturedHeaders = $headers;
+            return ['status' => 200, 'body' => json_encode(['id' => 'wal_1', 'available_minor' => 1000, 'currency' => 'AOA'])];
+        };
+        $client = $this->makeClientWithHandler($handler);
+
+        $client->getWalletBalance('wal_1');
+
+        foreach ($capturedHeaders as $header) {
+            $this->assertStringNotContainsString('Idempotency-Key', $header);
+        }
     }
 }
