@@ -43,11 +43,21 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     if (_pin.length < kPinLength || _checking) return;
     setState(() { _checking = true; _error = false; });
 
-    final svc = context.read<SessionService>();
-    final ok  = await svc.verifyPin(_pin);
+    final svc    = context.read<SessionService>();
+    final client = context.read<ConsumerPublicClient>();
+    final ok     = await svc.verifyPin(_pin);
 
     if (!mounted) return;
     if (ok) {
+      // Refresh the JWT so expired tokens don't cause silent API failures after unlock.
+      // If the server is unreachable we still unlock — the user will see errors per screen.
+      try {
+        final result = await client.login(
+          handle: svc.session!.handle,
+          pin:    _pin,
+        );
+        await svc.updateToken(result.token);
+      } catch (_) {}
       svc.unlock();
     } else {
       setState(() { _error = true; _checking = false; _pin = ''; });
