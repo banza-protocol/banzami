@@ -25,7 +25,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const base = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'http://localhost:8080').replace(/\/$/, '');
+    const base = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'https://api.banzami.org').replace(/\/$/, '');
 
     try {
       // Exchange API key for a short-lived JWT
