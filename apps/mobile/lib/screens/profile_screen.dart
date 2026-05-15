@@ -32,14 +32,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _confirmLogout(BuildContext context, SessionService svc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title:   const Text('Terminar sessão?'),
-        content: const Text('A aplicação vai bloquear. Introduza o PIN para voltar a entrar.'),
+        content: const Text('Vai sair da conta neste dispositivo. Pode entrar novamente quando quiser.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Bloquear', style: TextStyle(color: BanzamiColors.error)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sair', style: TextStyle(color: BanzamiColors.error)),
           ),
         ],
       ),
@@ -50,13 +50,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _confirmClearAccount(BuildContext context, SessionService svc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title:   const Text('Remover conta?'),
         content: const Text('Todos os dados guardados serão apagados. Terá de criar conta ou entrar novamente.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
           ),
         ],

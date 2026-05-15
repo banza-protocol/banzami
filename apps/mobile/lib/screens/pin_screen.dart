@@ -82,19 +82,19 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   Future<void> _confirmLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Remover conta?'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Usar outra conta?'),
         content: const Text(
           'Vai sair e apagar todos os dados desta conta neste dispositivo. '
           'Pode entrar novamente quando quiser.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
+            onPressed: () => Navigator.pop(ctx, false),
             child: const Text('Cancelar'),
           ),
           TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             style: TextButton.styleFrom(foregroundColor: BanzamiColors.error),
             child: const Text('Remover'),
           ),
