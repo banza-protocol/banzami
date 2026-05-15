@@ -38,6 +38,9 @@ dependencies:
   # Local notifications (payment alerts via polling)
   flutter_local_notifications: ^18.0.0
 
+  # Native OS-level splash screen
+  flutter_native_splash: ^2.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -50,6 +53,20 @@ flutter_launcher_icons:
   ios: true
   remove_alpha_ios: true
   min_sdk_android: 21
+
+flutter_native_splash:
+  color: "#990011"
+  image: assets/images/icon_master_1024.png
+  android: true
+  ios: true
+  web: false
+  android_gravity: center
+  ios_content_mode: center
+  fullscreen: true
+  android_12:
+    color: "#990011"
+    image: assets/images/icon_master_1024.png
+    icon_background_color: "#990011"
 
 flutter:
   uses-material-design: true

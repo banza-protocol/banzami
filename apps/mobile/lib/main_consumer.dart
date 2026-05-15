@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 import 'app.dart';
 import 'services/transfer_notification_service.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final binding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: binding);
 
   await TransferNotificationService.initialize();
 
@@ -20,5 +22,6 @@ void main() async {
     statusBarBrightness:     Brightness.dark,
   ));
 
+  FlutterNativeSplash.remove();
   runApp(const BanzamiApp());
 }
