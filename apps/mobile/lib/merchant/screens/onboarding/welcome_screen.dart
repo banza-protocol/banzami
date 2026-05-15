@@ -18,14 +18,9 @@ class MerchantWelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.asset(
-                  'assets/images/icon_master_1024.png',
-                  width:  72,
-                  height: 72,
-                  fit:    BoxFit.cover,
-                ),
+              Image.asset(
+                'assets/images/banzami_logo.png',
+                height: 80,
               ),
               const SizedBox(height: 24),
 

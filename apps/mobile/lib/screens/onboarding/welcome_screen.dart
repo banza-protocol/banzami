@@ -22,7 +22,7 @@ class WelcomeScreen extends StatelessWidget {
               // Official logo
               Image.asset(
                 'assets/images/banzami_logo.png',
-                height: 48,
+                height: 80,
               ),
               const SizedBox(height: 24),
 
