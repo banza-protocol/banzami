@@ -1364,13 +1364,21 @@ make stack-up       # start everything (applies migrations automatically)
 ```bash
 cd apps/mobile
 
-# Consumer app
+# Consumer app — local backend
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=http://<local-ip>:8083 --debug
+  --dart-define=PUBLIC_API_URL=http://192.168.1.10:8083 --debug
 
-# Merchant app
+# Consumer app — production backend
+flutter run --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org --debug
+
+# Merchant app — local backend
 flutter run --flavor merchant -t lib/main_merchant.dart \
-  --dart-define=GATEWAY_URL=http://<local-ip>:8080 --debug
+  --dart-define=GATEWAY_URL=http://192.168.1.10:8080 --debug
+
+# Merchant app — production backend
+flutter run --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=https://api.banzami.org --debug
 ```
 
 **Build for release:**
