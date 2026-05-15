@@ -17,7 +17,8 @@ Guia completo de implementação de push notifications com Firebase Cloud Messag
 9. [PushNotificationService — serviço Dart](#9-pushnotificationservice--serviço-dart)
 10. [Integrar no ecrã principal](#10-integrar-no-ecrã-principal)
 11. [Testar end-to-end](#11-testar-end-to-end)
-12. [Erros comuns e soluções](#12-erros-comuns-e-soluções)
+12. [Backend — enviar FCM do servidor Go](#12-backend--enviar-fcm-do-servidor-go)
+13. [Erros comuns e soluções](#13-erros-comuns-e-soluções)
 
 ---
 
@@ -95,16 +96,44 @@ Repetir para cada flavor.
 
 > **Erro comum:** Se o App ID não existir no portal, o Xcode não consegue criar um provisioning profile com a entitlement `aps-environment`, e o APNs token nunca chega — mesmo que tudo o resto esteja correto.
 
-### 4.2 Verificar a entitlement no projeto
+### 4.2 Entitlements por configuração (debug vs release)
 
-O ficheiro `ios/Runner/Runner.entitlements` deve conter:
+O valor `aps-environment` **tem de corresponder ao tipo de certificado** usado na build:
 
+| Build | Certificado | `aps-environment` correto |
+|---|---|---|
+| Debug / `flutter run` | Development | `development` |
+| Release / TestFlight / App Store | Distribution | `production` |
+
+**Usar um único `Runner.entitlements` com `production` em builds debug faz `getAPNSToken()` retornar `null`** — o iOS recusa a ligação ao APNs de produção com certificados de desenvolvimento.
+
+A solução é criar dois ficheiros de entitlements separados:
+
+**`ios/Runner/Runner-Debug.entitlements`** (debug builds):
 ```xml
-<key>aps-environment</key>
-<string>development</string>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>aps-environment</key>
+    <string>development</string>
+</dict>
+</plist>
 ```
 
-Para produção, mudar para `production`. Este ficheiro é partilhado entre todos os flavors (o bundle ID determina qual App ID é usado, não este valor).
+**`ios/Runner/Runner.entitlements`** (release builds):
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>aps-environment</key>
+    <string>production</string>
+</dict>
+</plist>
+```
+
+Cada xcconfig debug aponta para o ficheiro correto via `CODE_SIGN_ENTITLEMENTS` (ver secção 6.4).
 
 ---
 
@@ -197,6 +226,19 @@ Repetir o padrão para `Merchant.*xcconfig` com `com.banzami.merchant`.
 Em Xcode → projeto Runner → Info → Configurations, cada configuração (Debug-consumer, Release-consumer, etc.) deve apontar para o xcconfig correspondente. Verificar no `project.pbxproj` se as referências existem.
 
 > **Erro comum:** Os ficheiros xcconfig estavam a ser criados em `ios/Flutter/` em vez de `ios/`. O `PBXGroup` no `project.pbxproj` que referencia estes ficheiros não tem `path` property — o que significa que o Xcode os procura na raiz de `ios/`, não numa subdirectoria.
+
+### 6.4 Apontar o entitlements correto via xcconfig
+
+Para que cada configuração de build use o ficheiro de entitlements correto (ver secção 4.2), adicionar `CODE_SIGN_ENTITLEMENTS` aos xcconfig de debug de cada flavor:
+
+**`ios/Consumer.debug.xcconfig`** e **`ios/Merchant.debug.xcconfig`:**
+```xcconfig
+CODE_SIGN_ENTITLEMENTS = Runner/Runner-Debug.entitlements
+```
+
+Os xcconfig de release **não precisam** desta linha — o Xcode usa `Runner/Runner.entitlements` por defeito (definido no `project.pbxproj`).
+
+> Esta abordagem evita modificar o `project.pbxproj` directamente e mantém a separação debug/release limpa no controlo de versão.
 
 ---
 
@@ -502,7 +544,130 @@ flutter: FCM TOKEN (consumer): dbHiKih4pUylvuTGncHqm7:APA91b...
 
 ---
 
-## 12. Erros comuns e soluções
+## 12. Backend — enviar FCM do servidor Go
+
+O teste do Firebase Console envia a notificação **directamente do Firebase para o dispositivo** — o backend não está envolvido. Quando um pagamento real é capturado, é o backend que tem de invocar a API FCM.
+
+### 12.1 Porquê o backend precisa de enviar FCM
+
+```
+[Firebase Console "Test"] → Firebase → APNs → dispositivo   ← NÃO envolve o backend
+[Pagamento real]          → EMIS callback → Go gateway
+                                                ↓
+                                        [confirmar pagamento]
+                                                ↓
+                                       [enviar FCM] ← este passo é necessário
+                                                ↓
+                                        Firebase → APNs → dispositivo
+```
+
+### 12.2 Service account Firebase
+
+1. Firebase Console → **Project Settings** → **Service accounts**
+2. Clicar em **"Generate new private key"** → descarregar o ficheiro JSON
+3. **Nunca commitar este ficheiro** — contém credenciais de serviço com acesso total ao projeto Firebase
+4. Minificar o JSON (opcional mas recomendado para env vars): `jq -c . < service-account.json`
+
+### 12.3 Implementação Go — `notify.FCMService`
+
+**`internal/notify/fcm.go`:**
+
+```go
+package notify
+
+import (
+    "context"
+    "fmt"
+    "log/slog"
+
+    firebase "firebase.google.com/go/v4"
+    "firebase.google.com/go/v4/messaging"
+    "google.golang.org/api/option"
+)
+
+type FCMService struct {
+    client *messaging.Client
+}
+
+// NewFCMService inicializa o cliente FCM a partir do JSON do service account.
+// Retorna nil (desabilitado, sem erro) quando credentialsJSON está vazio —
+// o gateway arranca normalmente em dev sem Firebase configurado.
+func NewFCMService(ctx context.Context, credentialsJSON string) (*FCMService, error) {
+    if credentialsJSON == "" {
+        return nil, nil
+    }
+    app, err := firebase.NewApp(ctx, nil, option.WithCredentialsJSON([]byte(credentialsJSON)))
+    if err != nil {
+        return nil, fmt.Errorf("fcm: init firebase app: %w", err)
+    }
+    client, err := app.Messaging(ctx)
+    if err != nil {
+        return nil, fmt.Errorf("fcm: init messaging client: %w", err)
+    }
+    return &FCMService{client: client}, nil
+}
+
+// SendToMerchant publica uma notificação push no tópico FCM "merchant_<merchantID>".
+// Erros são logged mas nunca propagados — push notifications são best-effort
+// e não devem afectar o fluxo de pagamento.
+func (s *FCMService) SendToMerchant(ctx context.Context, merchantID, title, body string) {
+    if s == nil {
+        return
+    }
+    _, err := s.client.Send(ctx, &messaging.Message{
+        Notification: &messaging.Notification{Title: title, Body: body},
+        Android: &messaging.AndroidConfig{Priority: "high"},
+        APNS: &messaging.APNSConfig{
+            Payload: &messaging.APNSPayload{
+                Aps: &messaging.Aps{Sound: "default"},
+            },
+        },
+        Topic: "merchant_" + merchantID,
+    })
+    if err != nil {
+        slog.Error("fcm: merchant notification failed",
+            "merchant_id", merchantID, "error", err)
+    }
+}
+```
+
+### 12.4 Disparar após confirmação de pagamento
+
+No handler que processa o callback do provider de pagamento (ex: EMIS), após o `MarkUsed` do payment link:
+
+```go
+if link, mlErr := h.paymentLinks.MarkUsed(r.Context(), payment.PaymentLinkID); mlErr != nil {
+    slog.Error("acquiring: failed to mark payment link used", ...)
+} else {
+    // Goroutine — não bloqueia a resposta ao provider.
+    // context.Background() porque o request context é cancelado após o handler retornar.
+    go h.fcm.SendToMerchant(context.Background(), link.MerchantID,
+        "Pagamento recebido",
+        notifAmount(payment.AmountMinor, payment.Currency),
+    )
+}
+```
+
+### 12.5 Variável de ambiente
+
+Adicionar ao `docker-compose` ou ao sistema de secrets da infraestrutura:
+
+```yaml
+FIREBASE_CREDENTIALS_JSON: '{"type":"service_account","project_id":"banzami",...}'
+```
+
+> O valor é o JSON do service account numa única linha (minificado). Em produção, usar um gestor de secrets (ex: variável de ambiente segura no servidor, não em ficheiro).
+
+Na VM, adicionar ao ficheiro `.env` ou diretamente ao `docker run`:
+
+```bash
+export FIREBASE_CREDENTIALS_JSON="$(jq -c . < ~/service-account.json)"
+docker compose -f docker-compose.full.yml up -d api-gateway
+```
+
+---
+
+## 13. Erros comuns e soluções
 
 ### `apns-token-not-set` (crash ao subscrever tópico)
 
@@ -542,6 +707,22 @@ Verificar por esta ordem:
 
 ---
 
+### APNs token `null` em builds debug após configurar `aps-environment = production`
+
+**Causa:** O iOS recusa emitir APNs tokens de produção para apps assinadas com certificados de desenvolvimento. Se `Runner.entitlements` tiver `production` e a build for debug (certificado development), `getAPNSToken()` devolve sempre `null`.
+
+**Solução:** Criar `Runner-Debug.entitlements` com `aps-environment = development` e apontar os xcconfigs de debug para ele via `CODE_SIGN_ENTITLEMENTS = Runner/Runner-Debug.entitlements` (ver secções 4.2 e 6.4).
+
+---
+
+### Notificações funcionam no Firebase Console mas não chegam em pagamentos reais
+
+**Causa:** O teste do Firebase Console bypassa o backend — envia directamente Firebase → APNs → dispositivo. Para pagamentos reais, é o backend (Go gateway) que tem de invocar a API FCM após confirmar o pagamento. Se o backend não tiver código FCM, as notificações nunca chegam independentemente da configuração Firebase estar correcta.
+
+**Solução:** Implementar `notify.FCMService` no gateway e chamar `SendToMerchant` após confirmar cada pagamento (ver secção 12).
+
+---
+
 ### Token FCM aparece truncado nos logs
 
 O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do terminal ou usar um campo de texto maior. O token completo é necessário para o Firebase Console — um token incompleto é rejeitado silenciosamente.
@@ -551,17 +732,36 @@ O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do ter
 ## Resumo da ordem de implementação
 
 ```
-1. Firebase Console      → criar app iOS por flavor, descarregar plists
-2. Apple Developer       → registar App IDs com Push Notifications
-3. Apple Developer       → gerar chave APNs .p8
-4. Firebase Console      → carregar chave APNs em Cloud Messaging settings
-5. Flutter pubspec       → adicionar firebase_messaging + flutter_local_notifications
-6. ios/config/           → organizar plists por flavor
-7. ios/*.xcconfig        → criar ficheiros de configuração por flavor
-8. switch_firebase_config.sh → script de cópia do plist correto
-9. AppDelegate.swift     → registerForRemoteNotifications + apnsToken forwarding
-10. Runner.entitlements  → aps-environment = development
-11. PushNotificationService → serviço Dart com polling APNs
-12. MainScreen           → requestPermission + subscribeToTopic + getToken
-13. Teste                → FCM Console com token do dispositivo
+── Flutter / iOS ───────────────────────────────────────────────────────────────
+
+ 1. Firebase Console        → criar app iOS por flavor, descarregar plists
+ 2. Apple Developer         → registar App IDs com Push Notifications
+ 3. Apple Developer         → gerar chave APNs .p8
+ 4. Firebase Console        → carregar chave APNs em Cloud Messaging settings
+ 5. Flutter pubspec         → adicionar firebase_messaging + flutter_local_notifications
+ 6. ios/config/             → organizar plists por flavor
+ 7. ios/*.xcconfig          → criar ficheiros de configuração por flavor
+ 8. ios/*.debug.xcconfig    → CODE_SIGN_ENTITLEMENTS = Runner/Runner-Debug.entitlements
+ 9. Runner-Debug.entitlements → aps-environment = development
+10. Runner.entitlements     → aps-environment = production
+11. switch_firebase_config.sh → script de cópia do plist correto
+12. AppDelegate.swift       → registerForRemoteNotifications + apnsToken forwarding
+13. PushNotificationService → serviço Dart com polling APNs
+14. MainScreen              → requestPermission + subscribeToTopic + getToken
+
+── Backend Go ──────────────────────────────────────────────────────────────────
+
+15. go get firebase.google.com/go/v4
+16. internal/notify/fcm.go  → FCMService com SendToMerchant
+17. config.go               → FirebaseCredentialsJSON (env FIREBASE_CREDENTIALS_JSON)
+18. main.go                 → notify.NewFCMService + injectar em Dependencies
+19. handler/acquiring.go    → SendToMerchant após confirmação de pagamento
+20. docker-compose.full.yml → FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+
+── Produção ────────────────────────────────────────────────────────────────────
+
+21. Firebase Console        → Service accounts → Generate new private key
+22. VM                      → export FIREBASE_CREDENTIALS_JSON="$(jq -c . < sa.json)"
+23. VM                      → redeployar o container banzami_gateway
+24. Teste                   → disparar pagamento real e verificar notificação
 ```
