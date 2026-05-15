@@ -17,6 +17,9 @@ abstract class BanzamiColors {
   static const Color gold      = Color(0xFFC89B3C); // accent — highlights, positive emphasis
   static const Color goldLight = Color(0xFFD4AF5C); // gold hover / light variant
 
+  // Brand Black
+  static const Color black    = Color(0xFF1A1A1A); // brand black — high-contrast surfaces, dark mode base
+
   // Neutrals — warm-tinted to pair with cherry
   static const Color white    = Color(0xFFFFFFFF);
   static const Color offWhite = Color(0xFFFCF6F5); // Warm White — main background
@@ -25,7 +28,7 @@ abstract class BanzamiColors {
   static const Color gray400  = Color(0xFF9C8483); // secondary text
   static const Color gray600  = Color(0xFF534040); // tertiary text
   static const Color gray700  = Color(0xFF534040); // alias → gray600
-  static const Color gray900  = Color(0xFF1A1A1A); // primary text
+  static const Color gray900  = black;              // primary text
 
   // Semantic
   static const Color success   = Color(0xFF166534);

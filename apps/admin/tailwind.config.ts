@@ -15,6 +15,7 @@ const config: Config = {
           DEFAULT: '#C89B3C',
           light:   '#D4AF5C',
         },
+        black:      '#1A1A1A',
         'off-white': '#FCF6F5',
         gray: {
           100: '#F5EEED',
