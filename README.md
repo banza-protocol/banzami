@@ -1387,8 +1387,14 @@ flutter run --flavor merchant -t lib/main_merchant.dart \
 cd apps/mobile
 
 # iOS IPA (requires Xcode and Apple Developer account)
-flutter build ipa --flavor consumer -t lib/main_consumer.dart
-flutter build ipa --flavor merchant -t lib/main_merchant.dart
+flutter build ipa --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org \
+  --export-options-plist=ios/ExportOptions.plist
+
+flutter build ipa --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=https://api.banzami.org \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --export-options-plist=ios/ExportOptions.plist
 
 # Android APK
 flutter build apk --flavor consumer -t lib/main_consumer.dart
