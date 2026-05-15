@@ -93,58 +93,77 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
         elevation:       0,
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
-          child: Column(
-            children: [
-              const Spacer(),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            // Scale QR to fit small screens. Fixed overhead inside the column:
+            // container-padding(32) + handle-subtitle(~24) + TextButton(~40) +
+            // SizedBox-lg(16) + SizedBox-xl(24) + button(~52) + SizedBox-lg(16) = 204
+            // Plus outer Padding top+bottom: 32  → total reserved = 236
+            final qrSize =
+                (constraints.maxHeight - 236).clamp(120.0, 240.0);
 
-              BanzamiQrDisplay(
-                payload:     _qrPayload,
-                amountLabel: (_amountSet && _amountMinor > 0)
-                    ? formatMinor(_amountMinor, 'AOA')
-                    : null,
-                subtitle: '@${widget.handle}',
-              ),
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: Padding(
+                  padding: const EdgeInsets.all(BanzamiSpacing.xl),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      BanzamiQrDisplay(
+                        payload:     _qrPayload,
+                        amountLabel: (_amountSet && _amountMinor > 0)
+                            ? formatMinor(_amountMinor, 'AOA')
+                            : null,
+                        subtitle: '@${widget.handle}',
+                        size:     qrSize,
+                      ),
 
-              const SizedBox(height: BanzamiSpacing.lg),
+                      const SizedBox(height: BanzamiSpacing.lg),
 
-              TextButton.icon(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: '@${widget.handle}'));
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Handle copiado')),
-                    );
-                  }
-                },
-                icon:  const Icon(Icons.copy_rounded, size: 16, color: BanzamiColors.gray400),
-                label: Text(
-                  '@${widget.handle}',
-                  style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
-                ),
-              ),
+                      TextButton.icon(
+                        onPressed: () async {
+                          await Clipboard.setData(
+                              ClipboardData(text: '@${widget.handle}'));
+                          if (context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Handle copiado')),
+                            );
+                          }
+                        },
+                        icon:  const Icon(Icons.copy_rounded, size: 16,
+                            color: BanzamiColors.gray400),
+                        label: Text(
+                          '@${widget.handle}',
+                          style: BanzamiTextStyles.bodyMd
+                              .copyWith(color: BanzamiColors.gray400),
+                        ),
+                      ),
 
-              const Spacer(),
+                      const SizedBox(height: BanzamiSpacing.xl),
 
-              if (_amountSet)
-                Row(children: [
-                  Expanded(
-                    child: BanzamiButton.secondary(
-                      label:     'Remover montante',
-                      onPressed: _clearAmount,
-                    ),
+                      if (_amountSet)
+                        Row(children: [
+                          Expanded(
+                            child: BanzamiButton.secondary(
+                              label:     'Remover montante',
+                              onPressed: _clearAmount,
+                            ),
+                          ),
+                        ])
+                      else
+                        BanzamiButton.secondary(
+                          label:     'Definir montante fixo',
+                          onPressed: _showAmountSheet,
+                        ),
+
+                      const SizedBox(height: BanzamiSpacing.lg),
+                    ],
                   ),
-                ])
-              else
-                BanzamiButton.secondary(
-                  label:     'Definir montante fixo',
-                  onPressed: _showAmountSheet,
                 ),
-
-              const SizedBox(height: BanzamiSpacing.lg),
-            ],
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
