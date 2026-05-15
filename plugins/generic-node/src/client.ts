@@ -10,9 +10,11 @@ export class BanzamiError extends Error {
     this.name = 'BanzamiError';
   }
 
-  get isNotFound():     boolean { return this.status === 404; }
-  get isUnauthorized(): boolean { return this.status === 401; }
-  get isConflict():     boolean { return this.status === 409; }
+  get isNotFound():          boolean { return this.status === 404; }
+  get isUnauthorized():      boolean { return this.status === 401; }
+  get isConflict():          boolean { return this.status === 409; }
+  get isForbidden():         boolean { return this.status === 403; }
+  get isInsufficientFunds(): boolean { return this.code === 'INSUFFICIENT_FUNDS'; }
 }
 
 export interface BanzamiClientConfig {
@@ -58,6 +60,43 @@ export interface Transaction {
 export interface Page<T> {
   items:       T[];
   next_cursor: string | null;
+}
+
+export interface Wallet {
+  id:          string;
+  merchant_id: string;
+  currency:    string;
+  status:      string;
+  created_at:  string;
+}
+
+export interface WalletBalance {
+  wallet_id:       string;
+  available_minor: number;
+  reserved_minor:  number;
+  total_minor:     number;
+  currency:        string;
+}
+
+export interface Payout {
+  id:                       string;
+  merchant_id:              string;
+  wallet_id:                string;
+  amount_minor:             number;
+  currency:                 string;
+  status:                   string;
+  destination_bank_account: string;
+  idempotency_key:          string;
+  created_at:               string;
+  updated_at:               string;
+}
+
+export interface Merchant {
+  id:         string;
+  name:       string;
+  email:      string;
+  status:     string;
+  created_at: string;
 }
 
 /**
@@ -148,6 +187,62 @@ export class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Wallets
+  // ---------------------------------------------------------------------------
+
+  async provisionWallet(params: { merchant_id: string; currency: string }): Promise<Wallet> {
+    return this.post<Wallet>('/v1/wallets', params);
+  }
+
+  async getWallet(id: string): Promise<Wallet> {
+    return this.get<Wallet>(`/v1/wallets/${id}`);
+  }
+
+  async getWalletBalance(id: string): Promise<WalletBalance> {
+    return this.get<WalletBalance>(`/v1/wallets/${id}/balance`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payouts
+  // ---------------------------------------------------------------------------
+
+  async createPayout(params: {
+    wallet_id:                string;
+    amount_minor:             number;
+    currency:                 string;
+    destination_bank_account: string;
+    idempotency_key?:         string;
+  }): Promise<Payout> {
+    return this.post<Payout>('/v1/payouts', params);
+  }
+
+  async listPayouts(merchantId: string, limit = 20, cursor?: string): Promise<Page<Payout>> {
+    const qs = new URLSearchParams({ merchant_id: merchantId, limit: String(limit) });
+    if (cursor) qs.set('cursor', cursor);
+    return this.get<Page<Payout>>(`/v1/payouts?${qs}`);
+  }
+
+  async getPayout(id: string): Promise<Payout> {
+    return this.get<Payout>(`/v1/payouts/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Merchants
+  // ---------------------------------------------------------------------------
+
+  async getMerchant(id: string): Promise<Merchant> {
+    return this.get<Merchant>(`/v1/merchants/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Public (unauthenticated)
+  // ---------------------------------------------------------------------------
+
+  async resolvePaymentLink(slug: string): Promise<PaymentLink> {
+    return this.request<PaymentLink>('GET', `/v1/public/pay/${slug}`, undefined, false);
+  }
+
+  // ---------------------------------------------------------------------------
   // Webhook signature verification
   // ---------------------------------------------------------------------------
 
@@ -202,19 +297,28 @@ export class BanzamiClient {
     return this.request<T>('GET', path);
   }
 
-  private async request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  private async request<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    authenticated = true,
+  ): Promise<T> {
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), this.timeout);
+
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      'Accept':       'application/json',
+    };
+    if (authenticated) {
+      headers['Authorization'] = `Bearer ${this.key}`;
+    }
 
     let res: Response;
     try {
       res = await fetch(this.base + path, {
         method,
-        headers: {
-          'Authorization': `Bearer ${this.key}`,
-          'Content-Type':  'application/json',
-          'Accept':        'application/json',
-        },
+        headers,
         body:   body != null ? JSON.stringify(body) : undefined,
         signal: controller.signal,
       });

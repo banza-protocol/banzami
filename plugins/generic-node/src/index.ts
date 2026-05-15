@@ -5,6 +5,10 @@ export type {
   CreatePaymentLinkParams,
   Transaction,
   Page,
+  Wallet,
+  WalletBalance,
+  Payout,
+  Merchant,
 } from './client.js';
 export { parseWebhook } from './webhook.js';
 export type { WebhookEvent } from './webhook.js';

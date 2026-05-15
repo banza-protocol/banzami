@@ -7,7 +7,10 @@
     "declaration": true,
     "outDir": "./dist",
     "noEmit": true,
-    "lib": ["ES2020"]
+    "lib": ["ES2020"],
+    "types": ["node"],
+    "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src", "tests"],
+  "exclude": ["node_modules"]
 }
