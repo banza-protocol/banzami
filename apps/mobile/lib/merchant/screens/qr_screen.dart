@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -21,8 +20,6 @@ class MerchantQrScreen extends StatefulWidget {
 }
 
 class _MerchantQrScreenState extends State<MerchantQrScreen> {
-  final _qrKey = GlobalKey();
-
   String? _qrPayload;
   bool    _loading = false;
   bool    _sharing = false;
@@ -59,9 +56,20 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     if (_sharing) return;
     setState(() => _sharing = true);
     try {
-      final boundary = _qrKey.currentContext!.findRenderObject()!
-          as RenderRepaintBoundary;
-      final image    = await boundary.toImage(pixelRatio: 3.0);
+      final painter = QrPainter(
+        data:            _qrPayload!,
+        version:         QrVersions.auto,
+        eyeStyle:        const QrEyeStyle(
+          eyeShape: QrEyeShape.square,
+          color:    BanzamiColors.wine,
+        ),
+        dataModuleStyle: const QrDataModuleStyle(
+          dataModuleShape: QrDataModuleShape.square,
+          color:           BanzamiColors.gray900,
+        ),
+      );
+
+      final image    = await painter.toImage(512);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       final bytes    = byteData!.buffer.asUint8List();
 
@@ -136,10 +144,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         ),
         const SizedBox(height: BanzamiSpacing.xl),
 
-        // QR card — wrapped in RepaintBoundary to capture as image for sharing
-        RepaintBoundary(
-          key: _qrKey,
-          child: Container(
+        Container(
             padding:    const EdgeInsets.all(BanzamiSpacing.xl),
             decoration: BoxDecoration(
               color:        BanzamiColors.white,
@@ -179,7 +184,6 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
               ),
             ]),
           ),
-        ),
 
         const SizedBox(height: BanzamiSpacing.xl),
 
