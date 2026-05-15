@@ -38,7 +38,7 @@ export function Sidebar() {
       {/* Logo */}
       <div className="px-xl py-xl border-b border-wine-medium">
         <span className="text-white font-bold text-lg tracking-tight">Banzami</span>
-        <span className="ml-sm text-xs text-white/50 font-medium uppercase tracking-widest">Dashboard</span>
+        <span className="ml-sm text-xs text-white/50 font-medium uppercase tracking-widest">Business</span>
       </div>
 
       {/* Nav */}
