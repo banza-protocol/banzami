@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -19,10 +21,11 @@ class MerchantQrScreen extends StatefulWidget {
 }
 
 class _MerchantQrScreenState extends State<MerchantQrScreen> {
-  String? _qrPayload;
-  bool    _loading = false;
-  bool    _sharing = false;
-  String? _error;
+  String?   _qrPayload;
+  bool      _loading = false;
+  bool      _sharing = false;
+  String?   _error;
+  ui.Image? _logoImage;
 
   final _shareButtonKey = GlobalKey();
 
@@ -30,6 +33,18 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   void initState() {
     super.initState();
     _loadQr();
+    _loadLogo();
+  }
+
+  Future<void> _loadLogo() async {
+    final data  = await rootBundle.load('assets/images/banzami_icon_1024.png');
+    final codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth:  160,
+      targetHeight: 160,
+    );
+    final frame = await codec.getNextFrame();
+    if (mounted) setState(() => _logoImage = frame.image);
   }
 
   Future<void> _loadQr() async {
@@ -58,8 +73,9 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     setState(() => _sharing = true);
     try {
       final painter = QrPainter(
-        data:            _qrPayload!,
-        version:         QrVersions.auto,
+        data:                 _qrPayload!,
+        version:              QrVersions.auto,
+        errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle:        const QrEyeStyle(
           eyeShape: QrEyeShape.square,
           color:    BanzamiColors.wine,
@@ -68,6 +84,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
           dataModuleShape: QrDataModuleShape.square,
           color:           BanzamiColors.gray900,
         ),
+        embeddedImage:      _logoImage,
+        embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(80, 80)),
       );
 
       final byteData = await painter.toImageData(512);
@@ -77,13 +95,13 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       final file = File('${Directory.systemTemp.path}/qr_${session.merchantId}.png');
       await file.writeAsBytes(bytes);
 
-      final box = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:              'QR de pagamento — ${session.merchantName}',
-        sharePositionOrigin:  origin,
+        subject:             'QR de pagamento — ${session.merchantName}',
+        sharePositionOrigin: origin,
       );
     } catch (e) {
       if (mounted) {
@@ -164,9 +182,10 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
             ),
             child: Column(children: [
               QrImageView(
-                data:            _qrPayload!,
-                version:         QrVersions.auto,
-                size:            240,
+                data:                 _qrPayload!,
+                version:              QrVersions.auto,
+                size:                 240,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
                 eyeStyle:        const QrEyeStyle(
                   eyeShape: QrEyeShape.square,
                   color:    BanzamiColors.wine,
@@ -175,6 +194,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                   dataModuleShape: QrDataModuleShape.square,
                   color:           BanzamiColors.gray900,
                 ),
+                embeddedImage:      const AssetImage('assets/images/banzami_icon_1024.png'),
+                embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(48, 48)),
               ),
               const SizedBox(height: BanzamiSpacing.lg),
               Text(

@@ -21,12 +21,17 @@ class BanzamiQrDisplay extends StatelessWidget {
   /// Size of the QR code in logical pixels. Default: 240.
   final double size;
 
+  /// Optional logo to embed at the centre of the QR.
+  /// When set, error correction is forced to H so the QR remains scannable.
+  final ImageProvider? embeddedImage;
+
   const BanzamiQrDisplay({
     super.key,
     required this.payload,
     this.amountLabel,
     this.subtitle,
     this.size = 240,
+    this.embeddedImage,
   });
 
   /// Convenience constructor for dynamic QR with an amount in minor units.
@@ -37,13 +42,15 @@ class BanzamiQrDisplay extends StatelessWidget {
     required String currency,
     String? reference,
     double size = 240,
+    ImageProvider? embeddedImage,
   }) {
     return BanzamiQrDisplay(
-      key:         key,
-      payload:     payload,
-      amountLabel: formatMinor(amountMinor, currency),
-      subtitle:    reference,
-      size:        size,
+      key:           key,
+      payload:       payload,
+      amountLabel:   formatMinor(amountMinor, currency),
+      subtitle:      reference,
+      size:          size,
+      embeddedImage: embeddedImage,
     );
   }
 
@@ -61,9 +68,12 @@ class BanzamiQrDisplay extends StatelessWidget {
             boxShadow:    BanzamiShadows.card,
           ),
           child: QrImageView(
-            data:            payload,
-            version:         QrVersions.auto,
-            size:            size,
+            data:                 payload,
+            version:              QrVersions.auto,
+            size:                 size,
+            errorCorrectionLevel: embeddedImage != null
+                ? QrErrorCorrectLevel.H
+                : QrErrorCorrectLevel.M,
             eyeStyle:        const QrEyeStyle(
               eyeShape: QrEyeShape.square,
               color:    BanzamiColors.wine,
@@ -72,7 +82,10 @@ class BanzamiQrDisplay extends StatelessWidget {
               dataModuleShape: QrDataModuleShape.square,
               color:           BanzamiColors.gray900,
             ),
-            embeddedImage: null,
+            embeddedImage:      embeddedImage,
+            embeddedImageStyle: embeddedImage != null
+                ? QrEmbeddedImageStyle(size: Size(size * 0.2, size * 0.2))
+                : null,
             backgroundColor: BanzamiColors.white,
           ),
         ),

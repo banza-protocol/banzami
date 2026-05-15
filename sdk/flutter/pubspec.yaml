@@ -31,6 +31,9 @@ dependencies:
   # Deep link / URL launching (used by CheckoutScreen to open the Banzami app)
   url_launcher: ^6.3.0
 
+  # Share files / images (used by BanzamiReceiveScreen QR share)
+  share_plus: ^10.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

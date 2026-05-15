@@ -76,7 +76,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         handle:     session.handle,
       ),
       const HistoryScreen(),
-      BanzamiReceiveScreen(handle: session.handle),
+      BanzamiReceiveScreen(
+        handle:        session.handle,
+        logoAssetPath: 'assets/images/banzami_icon_1024.png',
+      ),
       const ProfileScreen(),
     ];
 
