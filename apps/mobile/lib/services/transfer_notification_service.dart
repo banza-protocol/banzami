@@ -3,7 +3,10 @@ import 'dart:async';
 import 'package:banzami_sdk/banzami_sdk.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'push_notification_service.dart';
+
 /// Polls for new incoming transfers and fires local notifications.
+/// Used as a foreground fallback — real push notifications arrive via FCM.
 ///
 /// Start with [startPolling] when the consumer session is active.
 /// Stop with [stopPolling] on logout or app background.
@@ -14,23 +17,11 @@ class TransferNotificationService {
   TransferNotificationService(this._client, {required String consumerId})
       : _consumerId = consumerId;
 
-  // Shares the same plugin instance initialised in main_consumer.dart.
+  // Delegates initialisation to PushNotificationService (single plugin instance).
   static final _plugin = FlutterLocalNotificationsPlugin();
-  static bool _initialized = false;
 
-  static Future<void> initialize() async {
-    if (_initialized) return;
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const darwin = DarwinInitializationSettings(
-      requestAlertPermission: true,
-      requestBadgePermission: true,
-      requestSoundPermission: true,
-    );
-    await _plugin.initialize(
-      const InitializationSettings(android: android, iOS: darwin, macOS: darwin),
-    );
-    _initialized = true;
-  }
+  static Future<void> initialize() =>
+      PushNotificationService.initialize();
 
   Timer?  _timer;
   String? _latestSeenId;

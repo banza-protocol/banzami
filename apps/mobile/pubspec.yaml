@@ -35,7 +35,11 @@ dependencies:
   # Google Fonts (Inter) — no font files needed
   google_fonts: ^6.2.1
 
-  # Local notifications (payment alerts via polling)
+  # Firebase — core + push notifications
+  firebase_core: ^3.8.0
+  firebase_messaging: ^15.1.4
+
+  # Local notifications (foreground display + polling fallback)
   flutter_local_notifications: ^18.0.0
 
   # Native OS-level splash screen
