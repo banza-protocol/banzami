@@ -180,6 +180,10 @@ export class BanzamiApi {
     return this.req<Wallet>(`/wallets/${id}`);
   }
 
+  getMerchantWallet(currency = 'AOA'): Promise<Wallet> {
+    return this.req<Wallet>(`/wallets?currency=${currency}`);
+  }
+
   getWalletBalance(id: string): Promise<WalletBalance> {
     return this.req<WalletBalance>(`/wallets/${id}/balance`);
   }

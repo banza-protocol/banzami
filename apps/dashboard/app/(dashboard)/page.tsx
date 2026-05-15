@@ -44,13 +44,11 @@ export default function OverviewPage() {
         .catch(e => setError(e instanceof Error ? e.message : 'Erro')),
     ];
 
-    if (session.walletId) {
-      tasks.push(
-        api.getWalletBalance(session.walletId)
-          .then(b => setBalance(b))
-          .catch(() => { /* non-fatal — balance card hidden if unavailable */ }),
-      );
-    }
+    const loadBalance = session.walletId
+      ? api.getWalletBalance(session.walletId)
+      : api.getMerchantWallet().then(w => api.getWalletBalance(w.id));
+
+    tasks.push(loadBalance.then(b => setBalance(b)).catch(() => {}));
 
     Promise.all(tasks).finally(() => setLoading(false));
   }, []);

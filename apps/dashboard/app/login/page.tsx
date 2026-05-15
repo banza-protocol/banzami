@@ -47,8 +47,8 @@ export default function LoginPage() {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (walletRes.ok) {
-          const wallets = await walletRes.json() as { data?: { id: string }[] };
-          walletId = wallets.data?.[0]?.id;
+          const wallet = await walletRes.json() as { id: string };
+          walletId = wallet.id;
         }
       } catch {
         // Non-fatal — proceed without wallet ID
