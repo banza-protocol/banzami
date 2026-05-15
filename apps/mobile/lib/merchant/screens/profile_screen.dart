@@ -39,17 +39,14 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
   Future<void> _confirmLogout(BuildContext context, MerchantSessionService svc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title:   const Text('Terminar sessão?'),
-        content: const Text('A aplicação vai bloquear. Introduza o PIN para voltar a entrar.'),
+        content: const Text('O ecrã vai bloquear. Introduza o PIN para voltar a entrar.'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Bloquear', style: TextStyle(color: BanzamiColors.error)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sair', style: TextStyle(color: BanzamiColors.error)),
           ),
         ],
       ),
@@ -60,16 +57,13 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
   Future<void> _confirmClearAccount(BuildContext context, MerchantSessionService svc) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title:   const Text('Remover conta?'),
         content: const Text('Todas as credenciais guardadas serão apagadas. Terá de reconfigurar a aplicação para voltar a usar.'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
+            onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
           ),
         ],

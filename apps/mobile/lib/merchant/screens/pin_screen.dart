@@ -55,6 +55,25 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     }
   }
 
+  Future<void> _confirmSwitchAccount() async {
+    final svc = context.read<MerchantSessionService>();
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title:   const Text('Usar outra conta?'),
+        content: const Text('A conta actual será removida. Pode reconectar quando quiser.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) await svc.clearAccount();
+  }
+
   @override
   Widget build(BuildContext context) {
     final session = context.read<MerchantSessionService>().session;
@@ -100,6 +119,12 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                       label: Text('Usar biometria',
                           style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
                     ),
+                  const SizedBox(height: 8),
+                  TextButton(
+                    onPressed: _confirmSwitchAccount,
+                    child: Text('Usar outra conta',
+                        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+                  ),
                   const SizedBox(height: 24),
                 ],
               ),
