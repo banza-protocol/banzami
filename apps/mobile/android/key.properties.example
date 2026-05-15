@@ -1,0 +1,22 @@
+# Android release signing configuration.
+#
+# Copy this file to android/key.properties (gitignored) and fill in the values.
+# Alternatively, set the equivalent environment variables in CI:
+#   storeFile    → STORE_FILE
+#   storePassword → STORE_PASSWORD
+#   keyAlias     → KEY_ALIAS
+#   keyPassword  → KEY_PASSWORD
+#
+# Generate the keystore (first time only):
+#   keytool -genkey -v \
+#     -keystore banzami-release.jks \
+#     -alias banzami \
+#     -keyalg RSA -keysize 2048 \
+#     -validity 10000
+#
+# Store the .jks file securely (password manager / CI secrets) — never commit it.
+
+storeFile=/path/to/banzami-release.jks
+storePassword=YOUR_STORE_PASSWORD
+keyAlias=banzami
+keyPassword=YOUR_KEY_PASSWORD

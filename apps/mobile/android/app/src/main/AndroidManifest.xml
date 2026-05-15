@@ -1,4 +1,22 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Network access required for all API calls -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Camera — QR code scanning via mobile_scanner -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Biometric authentication — local_auth -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
+    <uses-permission android:name="android.permission.USE_FINGERPRINT" />
+    <!-- Vibration — flutter_local_notifications -->
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- Push notifications boot receiver — flutter_local_notifications scheduled -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- POST_NOTIFICATIONS required on Android 13+ for push notifications -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Camera is used for QR scanning; not required on devices without one -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+
     <application
         android:label="Banzami"
         android:name="${applicationName}"

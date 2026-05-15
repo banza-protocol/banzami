@@ -1,9 +1,27 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("kotlin-android")
     id("dev.flutter.flutter-gradle-plugin")
     id("com.google.gms.google-services")
 }
+
+// Load release signing credentials from key.properties (gitignored) or environment variables.
+// key.properties structure:
+//   storeFile=/absolute/path/to/banzami-release.jks
+//   storePassword=...
+//   keyAlias=banzami
+//   keyPassword=...
+val keystorePropertiesFile = rootProject.file("key.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(FileInputStream(keystorePropertiesFile))
+}
+
+fun keystoreProp(name: String): String =
+    keystoreProperties.getProperty(name) ?: System.getenv(name) ?: ""
 
 android {
     namespace = "com.banzami.app"
@@ -17,6 +35,18 @@ android {
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
+    }
+
+    signingConfigs {
+        create("release") {
+            val storeFilePath = keystoreProp("storeFile")
+            if (storeFilePath.isNotEmpty()) {
+                storeFile = file(storeFilePath)
+            }
+            storePassword = keystoreProp("storePassword")
+            keyAlias     = keystoreProp("keyAlias")
+            keyPassword  = keystoreProp("keyPassword")
+        }
     }
 
     defaultConfig {
@@ -46,7 +76,7 @@ android {
 
     buildTypes {
         release {
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }
