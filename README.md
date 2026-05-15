@@ -92,16 +92,17 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 2. [Repository Layout](#repository-layout)
 3. [Technology Stack](#technology-stack)
 4. [Design System](#design-system)
-5. [Domain Model](#domain-model)
-6. [Services](#services)
-7. [API Reference](#api-reference)
-8. [Financial Flows](#financial-flows)
-9. [Database Schema](#database-schema)
-10. [Security Model](#security-model)
-11. [Observability](#observability)
-12. [Local Development](#local-development)
-13. [Engineering Principles](#engineering-principles)
-14. [Contributing](#contributing)
+5. [Integration Ecosystem](#integration-ecosystem)
+6. [Domain Model](#domain-model)
+7. [Services](#services)
+8. [API Reference](#api-reference)
+9. [Financial Flows](#financial-flows)
+10. [Database Schema](#database-schema)
+11. [Security Model](#security-model)
+12. [Observability](#observability)
+13. [Local Development](#local-development)
+14. [Engineering Principles](#engineering-principles)
+15. [Contributing](#contributing)
 
 ---
 
@@ -115,6 +116,7 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 │                                                                           │
 │  Merchant Apps   Admin Dashboard   Mobile Apps (Flutter)    Plugins       │
 │  (REST API)      (Next.js :3002)   consumer + merchant      (WooComm.)    │
+│  Python SDK      TypeScript SDK    Hosted Checkout (:3004)               │
 └──────┬───────────────┬─────────────────────┬──────────────────┬──────────┘
        │               │ (internal only)      │                  │
        │           ┌───▼──────────────────┐   │                  │
@@ -281,6 +283,7 @@ banzami/
 │   ├── dashboard/                 Merchant dashboard (Next.js, :3010)
 │   ├── admin/                     Internal admin panel (Next.js, :3002)
 │   ├── pay/                       Consumer pay page — payment links (Next.js, :3003)
+│   ├── checkout/                  Hosted checkout — QR-first payment UX (Next.js, :3004)
 │   ├── mobile/                    Flutter multi-flavor mobile app
 │   │   ├── lib/main_consumer.dart Consumer entry point (Banzami app)
 │   │   ├── lib/main_merchant.dart Merchant entry point (Banzami Comerciante)
@@ -291,17 +294,39 @@ banzami/
 │   └── docs/                      Developer documentation site
 │
 ├── sdk/
-│   ├── flutter/                   Flutter SDK — shared by consumer and merchant flavors
-│   │   ├── lib/client/            BanzamiClient (HTTP, auth, all API calls)
-│   │   ├── lib/models/            Shared models (Merchant, PaymentLink, …)
-│   │   └── lib/screens/           Reusable UI (checkout, etc.)
-│   └── typescript/                TypeScript/Node.js SDK
+│   ├── flutter/                   Flutter SDK — mobile runtime (iOS + Android)
+│   │   ├── lib/client/            BanzamiClient (HTTP, auth, retry, idempotency, hooks)
+│   │   ├── lib/models/            Typed response models
+│   │   ├── test/                  Unit + integration tests (MockClient)
+│   │   └── CHANGELOG.md
+│   ├── typescript/                TypeScript SDK — Node.js, Next.js, browser
+│   │   ├── src/client.ts          BanzamiClient (ESM + CJS, retry, hooks, idempotency)
+│   │   ├── src/types.ts           Pydantic-style response type definitions
+│   │   ├── examples/              next-api-route, node-webhook, browser-checkout
+│   │   └── CHANGELOG.md
+│   └── python/                    Python SDK — async-first (Django, FastAPI, Flask)
+│       ├── banzami/               Package root
+│       │   ├── client.py          BanzamiClient + BanzamiHooks
+│       │   ├── resources/         transactions, qr_payments, transfers, payouts, …
+│       │   ├── models/            Pydantic v2 response models
+│       │   ├── exceptions.py      Clean exception hierarchy
+│       │   └── signature.py       HMAC-SHA256 webhook verification
+│       ├── examples/              fastapi, django, flask, qr_checkout, webhook_handler
+│       ├── tests/                 58 tests, 88% coverage
+│       └── CHANGELOG.md
 │
 ├── plugins/
-│   ├── woocommerce/               WooCommerce payment plugin
-│   ├── generic-php/               Generic PHP integration
-│   ├── generic-laravel/           Laravel integration
-│   └── generic-node/              Node.js integration
+│   ├── woocommerce/               WooCommerce payment gateway plugin
+│   ├── generic-php/               PHP adapter (no external dependencies)
+│   │   ├── src/BanzamiClient.php  Full API surface + retry + hooks
+│   │   ├── examples/              payment-link, webhook-handler, wallet-and-payout
+│   │   └── CHANGELOG.md
+│   ├── generic-laravel/           Laravel service provider + facades
+│   │   └── CHANGELOG.md
+│   └── generic-node/              Node.js adapter
+│       ├── src/client.ts          BanzamiClient + BanzamiHooks
+│       ├── examples/              payment-link, webhook-express, wallet-payout
+│       └── CHANGELOG.md
 │
 ├── db/
 │   └── migrations/                Global PostgreSQL migrations (0001–0015)
@@ -313,7 +338,7 @@ banzami/
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
-│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-010)
+│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-011)
 │   ├── domains/                   Per-domain technical documentation
 │   ├── security/                  Security model and threat analysis
 │   ├── runbooks/                  Operational runbooks
@@ -392,6 +417,76 @@ Banzami maintains a unified design system shared across all web and mobile surfa
 `sm (4px) → md (8px) → lg (12px) → xl (16px) → 2xl (24px) → full (9999px)`
 
 See [`docs/brand/audit-2026-05-15.md`](docs/brand/audit-2026-05-15.md) for the full platform branding audit and the correction record.
+
+---
+
+## Integration Ecosystem
+
+> The integration layer is not built on top of Banzami — it **is** Banzami from the merchant's and developer's perspective.
+
+Every SDK, plugin, and checkout interface is production infrastructure, held to the same engineering standards as the Rust ledger. See [ADR-011](docs/adr/ADR-011-integration-ecosystem-strategy.md) and the [Integration Ecosystem Strategy](docs/architecture/integration-ecosystem.md) for the full rationale.
+
+### Integration Pyramid
+
+```
+                          ┌──────────────────────┐
+                          │   Flutter Widgets &   │
+                          │   Hosted Checkout     │  ← consumer UX
+                          └──────────┬───────────┘
+                                     │
+                     ┌───────────────┴───────────────┐
+                     │   WooCommerce Plugin           │  ← commerce
+                     └───────────────┬───────────────┘
+                                     │
+              ┌──────────────────────┴──────────────────────┐
+              │  TypeScript SDK  ·  Python SDK  ·  PHP SDK  │  ← developers
+              └──────────────────────┬──────────────────────┘
+                                     │
+                     ┌───────────────┴───────────────┐
+                     │  Node Adapter  ·  PHP Adapter  │  ← server runtimes
+                     └───────────────┬───────────────┘
+                                     │
+                          ┌──────────┴───────────┐
+                          │    REST API + OpenAPI  │  ← foundation
+                          └──────────────────────┘
+```
+
+### v1 Ecosystem Components
+
+| Layer | Component | Location | Priority | Notes |
+|-------|-----------|----------|----------|-------|
+| Mobile SDK | Flutter SDK | [`sdk/flutter/`](sdk/flutter/) | **CRITICAL** | Runtime for consumers + merchants; full widget library |
+| Web/Backend SDK | TypeScript SDK | [`sdk/typescript/`](sdk/typescript/) | **CRITICAL** | ESM + CJS; SSR-safe; Node.js, Next.js, browser |
+| Python SDK | Python SDK | [`sdk/python/`](sdk/python/) | **HIGH** | async-first (httpx + pydantic v2 + tenacity); Django, FastAPI, Flask |
+| Commerce plugin | WooCommerce | [`plugins/woocommerce/`](plugins/woocommerce/) | **CRITICAL** | WordPress/WooCommerce gateway plugin |
+| Server adapters | generic-node, generic-php | [`plugins/`](plugins/) | HIGH | Thin adapters for Node.js and PHP without framework dependencies |
+| Hosted checkout | Checkout app | [`apps/checkout/`](apps/checkout/) | **CRITICAL** | QR-first payment UX for links shared over WhatsApp / social |
+| API layer | REST API + OpenAPI | [`docs/api/`](docs/api/) | **CRITICAL** | OpenAPI spec, versioned endpoints, full schema documentation |
+
+### SDK Engineering Standards
+
+All SDKs implement the same baseline contract:
+
+| Requirement | Behaviour |
+|-------------|-----------|
+| Retry policy | Exponential backoff — 500ms base, 3× max retries; retry only on `429`, `502`, `503`, `504` |
+| Idempotency | Key generated **once** before first attempt, reused across all retries |
+| Exception hierarchy | Clean typed errors — no raw HTTP errors leak to callers |
+| Typed models | All responses are typed (Pydantic v2 / TS interfaces / Dart classes) |
+| Webhook verification | HMAC-SHA256 with constant-time comparison |
+| Observability hooks | `onRequest` / `onResponse` / `onError` callbacks — zero overhead when unused |
+
+### QR Capability Matrix
+
+| Integration point | Static QR | Dynamic QR | Scan & Pay | Generate & Display |
+|------------------|-----------|------------|------------|-------------------|
+| Flutter SDK | ✓ | ✓ | ✓ (camera) | ✓ (widget) |
+| Hosted Checkout | ✓ | ✓ | — | ✓ |
+| TypeScript SDK | ✓ | ✓ | — | via API |
+| Python SDK | ✓ | ✓ | — | via API |
+| WooCommerce | ✓ | ✓ | — | ✓ (checkout page) |
+
+QR is the primary payment modality for Angola's market — it works offline, requires no card infrastructure, and collapses the payment flow to scan → confirm.
 
 ---
 
@@ -1137,6 +1232,7 @@ make stack-up
 | `dashboard`  | Next.js merchant dashboard       | http://localhost:3010      |
 | `admin-app`  | Next.js admin panel              | http://localhost:3002      |
 | `pay`        | Next.js consumer pay page        | http://localhost:3003      |
+| `checkout`   | Next.js hosted checkout          | http://localhost:3004      |
 
 **tmux navigation** (mouse support is enabled — click on panes and window tabs):
 
@@ -1200,10 +1296,11 @@ make gateway-run    # :8080
 make admin-api-run  # :8082
 make public-api-run # :8083
 
-# Terminal 5-7 — Next.js apps
+# Terminal 5-8 — Next.js apps
 cd apps/dashboard && npm run dev   # :3010
 cd apps/admin     && npm run dev   # :3002
 cd apps/pay       && npm run dev   # :3003
+cd apps/checkout  && npm run dev   # :3004
 ```
 
 ### Full Docker Stack (optional, for staging-like environment)
@@ -1323,6 +1420,11 @@ cd services/public-api   && go test ./...
 
 # TypeScript SDK
 cd sdk/typescript && npm test
+
+# Python SDK (requires virtualenv)
+cd sdk/python && .venv/bin/pytest tests/ -v
+# or with coverage:
+cd sdk/python && .venv/bin/pytest tests/ --cov=banzami --cov-report=term-missing
 ```
 
 ### Continuous Integration
