@@ -35,7 +35,17 @@ class PushNotificationService {
 
     // Foreground messages: show a local notification so the user sees them
     // even when the app is open.
-    FirebaseMessaging.onMessage.listen((msg) => _showLocal(msg));
+    FirebaseMessaging.onMessage.listen((msg) {
+      debugPrint('FCM onMessage: ${msg.notification?.title} / ${msg.notification?.body}');
+      _showLocal(msg);
+    });
+
+    // iOS foreground notification presentation.
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
 
     _initialized = true;
   }
