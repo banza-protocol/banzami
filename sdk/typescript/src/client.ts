@@ -13,6 +13,7 @@ import type {
   Merchant,
   ApiKey,
   NewApiKey,
+  PaymentLink,
   WebhookEndpoint,
   WebhookEvent,
 } from './types.js';
@@ -209,6 +210,27 @@ export class BanzamiClient {
   // Transactions (merchant-facing)
   // ---------------------------------------------------------------------------
 
+  createTransaction(params: {
+    idempotencyKey:   string;
+    amountMinor:      number;
+    currency?:        string;
+    description?:     string;
+    walletId?:        string;
+    transactionType?: string;
+  }): Promise<Transaction> {
+    return this.request<Transaction>('/transactions', {
+      method: 'POST',
+      body:   JSON.stringify({
+        idempotency_key:  params.idempotencyKey,
+        amount_minor:     params.amountMinor,
+        currency:         params.currency ?? 'AOA',
+        description:      params.description ?? null,
+        wallet_id:        params.walletId ?? null,
+        transaction_type: params.transactionType ?? 'payment',
+      }),
+    });
+  }
+
   listTransactions(params: {
     limit?:  number;
     cursor?: string;
@@ -273,6 +295,57 @@ export class BanzamiClient {
 
   revokeApiKey(merchantId: string, keyId: string): Promise<void> {
     return this.request<void>(`/merchants/${merchantId}/api-keys/${keyId}`, { method: 'DELETE' });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment links
+  // ---------------------------------------------------------------------------
+
+  createPaymentLink(params: {
+    merchantId:   string;
+    walletId:     string;
+    currency?:    string;
+    amountMinor?: number;
+    description?: string;
+    expiresAt?:   Date;
+  }): Promise<PaymentLink> {
+    return this.request<PaymentLink>('/payment-links', {
+      method: 'POST',
+      body:   JSON.stringify({
+        merchant_id:  params.merchantId,
+        wallet_id:    params.walletId,
+        currency:     params.currency ?? 'AOA',
+        amount_minor: params.amountMinor ?? null,
+        description:  params.description ?? null,
+        expires_at:   params.expiresAt?.toISOString() ?? null,
+      }),
+    });
+  }
+
+  listPaymentLinks(params: {
+    merchantId: string;
+    limit?:     number;
+    cursor?:    string;
+  }): Promise<Page<PaymentLink>> {
+    return this.request<Page<PaymentLink>>(
+      `/payment-links${this.qs({ merchant_id: params.merchantId, limit: params.limit, cursor: params.cursor })}`,
+    );
+  }
+
+  getPaymentLink(id: string): Promise<PaymentLink> {
+    return this.request<PaymentLink>(`/payment-links/${id}`);
+  }
+
+  cancelPaymentLink(id: string): Promise<PaymentLink> {
+    return this.request<PaymentLink>(`/payment-links/${id}`, { method: 'DELETE' });
+  }
+
+  getPublicPaymentLink(slug: string): Promise<PaymentLink> {
+    return this.request<PaymentLink>(`/public/pay/${slug}`);
+  }
+
+  getPaymentLinkStatus(slug: string): Promise<{ paid: boolean }> {
+    return this.request<{ paid: boolean }>(`/public/pay/${slug}/status`);
   }
 
   // ---------------------------------------------------------------------------

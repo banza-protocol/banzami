@@ -30,6 +30,8 @@ export type {
   MerchantStatus,
   ApiKey,
   NewApiKey,
+  PaymentLink,
+  PaymentLinkStatus,
   WebhookEndpoint,
   WebhookEndpointStatus,
   WebhookEvent,

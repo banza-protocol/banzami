@@ -171,6 +171,27 @@ export interface NewApiKey extends ApiKey {
 }
 
 // ---------------------------------------------------------------------------
+// Payment links
+// ---------------------------------------------------------------------------
+
+export type PaymentLinkStatus = 'ACTIVE' | 'USED' | 'CANCELLED' | 'EXPIRED';
+
+export interface PaymentLink {
+  id:           string;
+  slug:         string;
+  merchant_id:  string;
+  wallet_id:    string;
+  amount_minor?: number;
+  currency:     string;
+  description?: string;
+  status:       PaymentLinkStatus;
+  expires_at?:  string;
+  paid_at?:     string;
+  created_at:   string;
+  updated_at:   string;
+}
+
+// ---------------------------------------------------------------------------
 // Webhooks
 // ---------------------------------------------------------------------------
 
