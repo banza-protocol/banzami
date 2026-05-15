@@ -106,6 +106,49 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 
 ---
 
+## Production
+
+The platform is live on an IONOS dedicated server (`212.227.93.136`) behind Cloudflare.
+
+### Public URLs
+
+| URL | Service | Description |
+|-----|---------|-------------|
+| `https://api.banzami.org` | API Gateway | Merchant REST API — authenticated with JWT |
+| `https://consumer.banzami.org` | Public API | Consumer mobile API — authenticated with PIN + JWT |
+| `https://pay.banzami.org` | API Gateway | Payment links and QR payment resolution |
+| `https://admin.banzami.org` | Admin Frontend | Internal operations portal (Next.js) |
+| `https://merchant.banzami.org` | Merchant Frontend | Merchant dashboard portal (Next.js) |
+
+### Production Stack
+
+All services run as Docker containers managed by Docker Compose under `/srv/banzami/`:
+
+| Container | Image | Port | Role |
+|-----------|-------|------|------|
+| `banzami_postgres` | postgres:16-alpine | internal | Primary database |
+| `banzami_redis` | redis:7-alpine | internal | Cache, rate limiting, idempotency |
+| `banzami_core` | banzami-core-api | 8081 (internal) | Rust financial core |
+| `banzami_gateway` | banzami-api-gateway | 8080 | Merchant API gateway |
+| `banzami_public` | banzami-public-api | 8083 | Consumer public API |
+| `banzami_admin` | banzami-admin-api | 8082 | Admin operations API |
+| `banzami_admin_frontend` | banzami-admin-frontend | 3002 | Admin portal (Next.js) |
+| `banzami_dashboard_frontend` | banzami-dashboard-frontend | 3001 | Merchant portal (Next.js) |
+
+nginx (shared with the existing `mondrive` project on the same VM) terminates TLS with Let's Encrypt certificates and reverse-proxies to each container by name on the `mondrive_default` Docker network.
+
+### SSL
+
+Certificates issued by Let's Encrypt via certbot (webroot challenge). Covers all 5 production subdomains. Renewal is automatic.
+
+```
+/etc/letsencrypt/live/api.banzami.org/fullchain.pem
+/etc/letsencrypt/live/api.banzami.org/privkey.pem
+Expires: 2026-08-13
+```
+
+---
+
 ## Architecture Overview
 
 ### System Topology
@@ -114,9 +157,9 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 ┌──────────────────────────────────────────────────────────────────────────┐
 │                            External Clients                               │
 │                                                                           │
-│  Merchant Apps   Admin Dashboard   Mobile Apps (Flutter)    Plugins       │
-│  (REST API)      (Next.js :3002)   consumer + merchant      (WooComm.)    │
-│  Python SDK      TypeScript SDK    Hosted Checkout (:3004)               │
+│  Merchant Apps   Admin Dashboard        Mobile Apps (Flutter)   Plugins   │
+│  (REST API)      admin.banzami.org       consumer + merchant    (WooComm.)│
+│  Python SDK      merchant.banzami.org   Hosted Checkout (:3004)           │
 └──────┬───────────────┬─────────────────────┬──────────────────┬──────────┘
        │               │ (internal only)      │                  │
        │           ┌───▼──────────────────┐   │                  │
@@ -368,7 +411,7 @@ banzami/
 | Database access      | **sqlx 0.7** (Rust), **pgx** (Go, planned)        | Compile-time query validation (sqlx)               |
 | Auth tokens          | **JWT (HS256)** via golang-jwt/jwt                | Stateless, expiry-enforced merchant sessions       |
 | Observability        | **OpenTelemetry + Prometheus + Grafana**           | Full tracing, metrics, dashboards                  |
-| Infrastructure       | **Docker + Hetzner/OVH + Cloudflare**             | Cost-effective, reliable European/African hosting  |
+| Infrastructure       | **Docker + IONOS + Cloudflare**                   | Cost-effective, reliable European/African hosting  |
 
 Kubernetes is intentionally deferred. The modular monolith approach provides simpler operations until scale demands otherwise.
 
@@ -1263,7 +1306,7 @@ API Key       bz_live_xxxxxxxx-...   ← shown only once
 Wallet ID     wlt_xxxxxxxx-...
 ```
 
-**Admin panel** (`http://localhost:3002/login`) uses the `ADMIN_API_KEY` from `.env`.
+**Admin panel** (`http://localhost:3002/login` locally, `https://admin.banzami.org` in production) uses the `ADMIN_API_KEY` from `.env`.
 
 ### Test Bank Account (for Payouts)
 
