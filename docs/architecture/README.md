@@ -12,6 +12,7 @@ Banzami is a **modular monolith** deployed as a set of coordinated processes. Th
 Internet
   │
   ├─ pay.banzami.co          → apps/pay/          (Next.js 14, port 3003)
+  ├─ pay.banzami.co/{slug}   → apps/checkout/     (Next.js 14, port 3004)  ← hosted checkout
   ├─ dashboard.banzami.co    → apps/dashboard/    (Next.js 14, port 3000)
   │
   ├─ api.banzami.ao          → api-gateway        (Go, port 8080)  ← merchants
@@ -203,7 +204,9 @@ api-gateway       → Redis (rate limiting, idempotency)
 admin-api         → core-api (loopback HTTP)
 core-api          → PostgreSQL (all financial data)
 sdk/flutter       → public-api, api-gateway
-sdk/checkout-web  → api-gateway
+sdk/typescript    → api-gateway
+sdk/python        → api-gateway
+apps/checkout     → api-gateway (public endpoints)
 plugins/*         → api-gateway
 ```
 
@@ -232,12 +235,14 @@ plugins/*         → api-gateway
     /qr           ← QR code domain
     /types        ← Shared types (IDs, Money, Currency)
   /sdk
-    /flutter      ← Flutter SDK
-    /checkout-web ← Vanilla TypeScript checkout widget
+    /flutter      ← Flutter SDK (mobile runtime — iOS + Android)
+    /typescript   ← TypeScript SDK (Node.js, Next.js, browser — ESM + CJS)
+    /python       ← Python SDK (async, pydantic v2, Django/FastAPI/Flask)
   /plugins
-    /generic-node    ← Node.js server-side SDK
-    /generic-php     ← PHP SDK (no dependencies)
-    /generic-laravel ← Laravel service provider
+    /generic-node    ← Node.js server-side adapter
+    /generic-php     ← PHP adapter (no external dependencies)
+    /generic-laravel ← Laravel service provider + facades
+    /woocommerce     ← WooCommerce payment gateway plugin
   /db
     /migrations   ← Sequential SQL migration files
   /infra
