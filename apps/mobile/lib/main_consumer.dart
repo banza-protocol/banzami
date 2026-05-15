@@ -31,6 +31,5 @@ void main() async {
     statusBarBrightness:     Brightness.dark,
   ));
 
-  FlutterNativeSplash.remove();
   runApp(const BanzamiApp());
 }

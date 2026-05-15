@@ -66,7 +66,6 @@ flutter_native_splash:
   web: false
   android_gravity: center
   ios_content_mode: center
-  fullscreen: true
   android_12:
     color: "#990011"
     image: assets/images/banzami_splash.png
