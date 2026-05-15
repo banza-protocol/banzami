@@ -59,9 +59,12 @@ class _BanzamiAppState extends State<BanzamiApp> {
       ],
       child: Consumer<SessionService>(
         builder: (context, session, _) {
+          final client = context.read<ConsumerPublicClient>();
           if (session.session != null) {
-            context.read<ConsumerPublicClient>().setToken(session.session!.token);
+            client.setToken(session.session!.token);
           }
+          // Auto-logout on 401: clears session and returns to WelcomeScreen.
+          client.onUnauthorized = () => context.read<SessionService>().logout();
           return MaterialApp(
             title:                      'Banzami',
             debugShowCheckedModeBanner: false,

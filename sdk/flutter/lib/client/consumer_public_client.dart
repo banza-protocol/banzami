@@ -40,6 +40,10 @@ class ConsumerPublicClient {
   final http.Client _http;
   final Uuid _uuid;
 
+  /// Called whenever the server returns 401. Register this in the app layer
+  /// to trigger logout and redirect to the welcome screen automatically.
+  void Function()? onUnauthorized;
+
   ConsumerPublicClient({
     required this.baseUrl,
     http.Client? httpClient,
@@ -214,6 +218,8 @@ class ConsumerPublicClient {
     }
     final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
     if (resp.statusCode >= 200 && resp.statusCode < 300) return decoded;
-    throw BanzamiApiException.fromJson(resp.statusCode, decoded);
+    final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
+    if (resp.statusCode == 401) onUnauthorized?.call();
+    throw exception;
   }
 }
