@@ -18,33 +18,64 @@ import type {
   WebhookEvent,
 } from './types.js';
 
+export interface BanzamiHooks {
+  /** Called before every HTTP attempt, including retries. */
+  onRequest?:  (method: string, path: string, attempt: number) => void;
+  /** Called after every successful HTTP response. */
+  onResponse?: (method: string, path: string, status: number, durationMs: number) => void;
+  /** Called once after all retry attempts are exhausted. */
+  onError?:    (method: string, path: string, error: Error, attempts: number) => void;
+}
+
 export interface BanzamiClientOptions {
   /** Base URL of the Banzami API gateway, e.g. https://api.banzami.ao */
   baseUrl: string;
   /** API key used for Bearer token authentication. */
   apiKey:  string;
+  /** Maximum number of retry attempts after the initial request. Default: 3. */
+  maxRetries?: number;
+  /** Base delay in milliseconds for exponential backoff. Default: 500. */
+  retryDelay?: number;
+  /** Optional hooks for logging, tracing, and monitoring. */
+  hooks?: BanzamiHooks;
 }
 
 export class BanzamiClient {
-  private readonly base:   string;
-  private readonly apiKey: string;
+  private readonly base:       string;
+  private readonly apiKey:     string;
+  private readonly maxRetries: number;
+  private readonly retryDelay: number;
+  private readonly hooks:      BanzamiHooks;
 
-  constructor({ baseUrl, apiKey }: BanzamiClientOptions) {
-    this.base   = baseUrl.replace(/\/$/, '');
-    this.apiKey = apiKey;
+  constructor({ baseUrl, apiKey, maxRetries = 3, retryDelay = 500, hooks = {} }: BanzamiClientOptions) {
+    this.base       = baseUrl.replace(/\/$/, '');
+    this.apiKey     = apiKey;
+    this.maxRetries = maxRetries;
+    this.retryDelay = retryDelay;
+    this.hooks      = hooks;
   }
 
   // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
 
-  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+  private async executeOnce<T>(path: string, init?: RequestInit, idempotencyKey?: string, attempt = 0): Promise<T> {
+    const extraHeaders: Record<string, string> = {};
+    if (idempotencyKey !== undefined) {
+      extraHeaders['Idempotency-Key'] = idempotencyKey;
+    }
+
+    const method = (init?.method ?? 'GET').toUpperCase();
+    this.hooks.onRequest?.(method, path, attempt);
+    const t0 = Date.now();
+
     const response = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {
         'Content-Type':  'application/json',
         'Authorization': `Bearer ${this.apiKey}`,
         ...(init?.headers ?? {}),
+        ...extraHeaders,
       },
     });
 
@@ -59,8 +90,40 @@ export class BanzamiClient {
       throw new BanzamiApiError(response.status, code, message);
     }
 
+    this.hooks.onResponse?.(method, path, response.status, Date.now() - t0);
+
     if (response.status === 204) return undefined as T;
     return response.json() as Promise<T>;
+  }
+
+  private shouldRetry(status: number, attempt: number): boolean {
+    if (attempt >= this.maxRetries) return false;
+    return status === 429 || status === 502 || status === 503 || status === 504;
+  }
+
+  private async request<T>(path: string, init?: RequestInit): Promise<T> {
+    const method         = (init?.method ?? 'GET').toUpperCase();
+    const isPost         = method === 'POST';
+    const idempotencyKey = isPost ? crypto.randomUUID() : undefined;
+    let lastErr: BanzamiApiError | undefined;
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise<void>(r => setTimeout(r, this.retryDelay * 2 ** (attempt - 1)));
+      }
+      try {
+        return await this.executeOnce<T>(path, init, idempotencyKey, attempt);
+      } catch (err) {
+        if (err instanceof BanzamiApiError && this.shouldRetry(err.status, attempt)) {
+          lastErr = err;
+          continue;
+        }
+        this.hooks.onError?.(method, path, err instanceof Error ? err : new Error(String(err)), attempt + 1);
+        throw err;
+      }
+    }
+    this.hooks.onError?.(method, path, lastErr!, this.maxRetries + 1);
+    throw lastErr!;
   }
 
   private qs(params: Record<string, string | number | undefined>): string {

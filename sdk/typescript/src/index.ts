@@ -1,5 +1,5 @@
-export { BanzamiClient }            from './client.js';
-export type { BanzamiClientOptions } from './client.js';
+export { BanzamiClient }                        from './client.js';
+export type { BanzamiClientOptions, BanzamiHooks } from './client.js';
 
 export { BanzamiApiError } from './errors.js';
 

@@ -190,3 +190,58 @@ describe('getPaymentLinkStatus', () => {
     expect(lastFetchCall().url).toBe('https://api.test.ao/v1/public/pay/abc123/status');
   });
 });
+
+// ---------------------------------------------------------------------------
+// Retry logic
+// ---------------------------------------------------------------------------
+
+describe('retry', () => {
+  it('retries on 503 and succeeds on third attempt', async () => {
+    const tx = { id: 'tx-1', merchant_id: 'm-1', amount_minor: 5000, currency: 'AOA', status: 'PENDING', created_at: '', updated_at: '' };
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
+      callCount++;
+      if (callCount <= 2) {
+        return Promise.resolve(new Response(JSON.stringify({ code: 'OVERLOAD', message: 'overload' }), { status: 503, headers: { 'Content-Type': 'application/json' } }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }));
+
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    const result = await retryClient.createTransaction({ idempotencyKey: 'ik-retry', amountMinor: 5000 });
+    expect(result.id).toBe('tx-1');
+    expect(callCount).toBe(3);
+  });
+
+  it('does not retry on 422', async () => {
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
+      callCount++;
+      return Promise.resolve(new Response(JSON.stringify({ code: 'INVALID_AMOUNT', message: 'bad amount' }), { status: 422, headers: { 'Content-Type': 'application/json' } }));
+    }));
+
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    await expect(retryClient.createTransaction({ idempotencyKey: 'ik-no-retry', amountMinor: -1 })).rejects.toBeInstanceOf(BanzamiApiError);
+    expect(callCount).toBe(1);
+  });
+
+  it('uses the same idempotency key on all retries', async () => {
+    const tx = { id: 'tx-2', merchant_id: 'm-1', amount_minor: 1000, currency: 'AOA', status: 'PENDING', created_at: '', updated_at: '' };
+    const capturedKeys: string[] = [];
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+      callCount++;
+      const headers = init.headers as Record<string, string>;
+      if (headers['Idempotency-Key']) capturedKeys.push(headers['Idempotency-Key']);
+      if (callCount <= 2) {
+        return Promise.resolve(new Response(JSON.stringify({ code: 'OVERLOAD', message: 'overload' }), { status: 503, headers: { 'Content-Type': 'application/json' } }));
+      }
+      return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    }));
+
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    await retryClient.createTransaction({ idempotencyKey: 'ik-idempotent', amountMinor: 1000 });
+    expect(capturedKeys.length).toBe(3);
+    expect(capturedKeys.every(k => k === capturedKeys[0])).toBe(true);
+  });
+});
