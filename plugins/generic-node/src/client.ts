@@ -1,4 +1,4 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 
 export class BanzamiError extends Error {
   constructor(
@@ -17,10 +17,22 @@ export class BanzamiError extends Error {
   get isInsufficientFunds(): boolean { return this.code === 'INSUFFICIENT_FUNDS'; }
 }
 
+export interface BanzamiHooks {
+  /** Called before every HTTP attempt, including retries. */
+  onRequest?:  (method: string, path: string, attempt: number) => void;
+  /** Called after every successful HTTP response. */
+  onResponse?: (method: string, path: string, status: number, durationMs: number) => void;
+  /** Called once after all retry attempts are exhausted or a non-retryable error occurs. */
+  onError?:    (method: string, path: string, error: Error, attempts: number) => void;
+}
+
 export interface BanzamiClientConfig {
-  gatewayUrl: string;
-  apiKey:     string;
-  timeout?:   number; // ms, default 30000
+  gatewayUrl:   string;
+  apiKey:       string;
+  timeout?:     number; // ms, default 30000
+  maxRetries?:  number; // default 3
+  retryDelay?:  number; // base delay ms, doubles each retry, default 500
+  hooks?:       BanzamiHooks;
 }
 
 export interface PaymentLink {
@@ -122,14 +134,20 @@ export interface Merchant {
  * ```
  */
 export class BanzamiClient {
-  private readonly base: string;
-  private readonly key:  string;
-  private readonly timeout: number;
+  private readonly base:       string;
+  private readonly key:        string;
+  private readonly timeout:    number;
+  private readonly maxRetries: number;
+  private readonly retryDelay: number;
+  private readonly hooks:      BanzamiHooks;
 
   constructor(cfg: BanzamiClientConfig) {
-    this.base    = cfg.gatewayUrl.replace(/\/$/, '');
-    this.key     = cfg.apiKey;
-    this.timeout = cfg.timeout ?? 30_000;
+    this.base       = cfg.gatewayUrl.replace(/\/$/, '');
+    this.key        = cfg.apiKey;
+    this.timeout    = cfg.timeout    ?? 30_000;
+    this.maxRetries = cfg.maxRetries ?? 3;
+    this.retryDelay = cfg.retryDelay ?? 500;
+    this.hooks      = cfg.hooks      ?? {};
   }
 
   // ---------------------------------------------------------------------------
@@ -303,6 +321,40 @@ export class BanzamiClient {
     body?: unknown,
     authenticated = true,
   ): Promise<T> {
+    // Generate the idempotency key once before the first attempt so all retries
+    // of the same logical operation share the key — critical for financial safety.
+    const idempotencyKey = method === 'POST' ? randomUUID() : undefined;
+    let lastError: BanzamiError | undefined;
+
+    for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
+      if (attempt > 0) {
+        await new Promise(r => setTimeout(r, this.retryDelay * 2 ** (attempt - 1)));
+      }
+      this.hooks.onRequest?.(method, path, attempt);
+      try {
+        const t0  = Date.now();
+        const res = await this.executeRequest<T>(method, path, body, authenticated, idempotencyKey);
+        this.hooks.onResponse?.(method, path, 200, Date.now() - t0);
+        return res;
+      } catch (err) {
+        if (!(err instanceof BanzamiError) || !this.shouldRetry(err.status, attempt)) {
+          this.hooks.onError?.(method, path, err instanceof Error ? err : new Error(String(err)), attempt + 1);
+          throw err;
+        }
+        lastError = err;
+      }
+    }
+    this.hooks.onError?.(method, path, lastError!, this.maxRetries + 1);
+    throw lastError!;
+  }
+
+  private async executeRequest<T>(
+    method: string,
+    path: string,
+    body: unknown,
+    authenticated: boolean,
+    idempotencyKey: string | undefined,
+  ): Promise<T> {
     const controller = new AbortController();
     const tid = setTimeout(() => controller.abort(), this.timeout);
 
@@ -312,6 +364,9 @@ export class BanzamiClient {
     };
     if (authenticated) {
       headers['Authorization'] = `Bearer ${this.key}`;
+    }
+    if (idempotencyKey !== undefined) {
+      headers['Idempotency-Key'] = idempotencyKey;
     }
 
     let res: Response;
@@ -333,5 +388,12 @@ export class BanzamiClient {
       throw new BanzamiError(msg, code, res.status);
     }
     return data as T;
+  }
+
+  private shouldRetry(status: number, attempt: number): boolean {
+    if (attempt >= this.maxRetries) return false;
+    // Retry on rate limiting and transient server errors.
+    // Never retry 4xx client errors (except 429) — they won't resolve on their own.
+    return status === 429 || status === 502 || status === 503 || status === 504;
   }
 }

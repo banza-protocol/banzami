@@ -8,6 +8,11 @@ function makeClient(): BanzamiClient {
   return new BanzamiClient({ gatewayUrl: BASE, apiKey: KEY });
 }
 
+// retryDelay=0 so retry tests complete instantly in CI
+function makeRetryClient(): BanzamiClient {
+  return new BanzamiClient({ gatewayUrl: BASE, apiKey: KEY, retryDelay: 0 });
+}
+
 function mockFetch(status: number, body: unknown): void {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
     ok:   status < 400,
@@ -312,5 +317,80 @@ describe('BanzamiClient.toMinorUnits', () => {
 
   it('multiplies by 100 for USD', () => {
     expect(BanzamiClient.toMinorUnits(9.99, 'USD')).toBe(999);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Retry logic
+// ---------------------------------------------------------------------------
+
+describe('retry logic', () => {
+  it('retries on 503 and succeeds on third attempt', async () => {
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      callCount++;
+      if (callCount <= 2) {
+        return { ok: false, status: 503, json: async () => ({ error: { code: 'SERVICE_UNAVAILABLE', message: 'Overload' } }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ id: 'tx_1' }) };
+    }));
+
+    const client = makeRetryClient();
+    const result = await client.createTransaction({ wallet_id: 'w_1', amount_minor: 100, currency: 'AOA' });
+
+    expect(callCount).toBe(3);
+    expect((result as any).id).toBe('tx_1');
+  });
+
+  it('does not retry on 422', async () => {
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn(async () => {
+      callCount++;
+      return { ok: false, status: 422, json: async () => ({ error: { code: 'VALIDATION_ERROR', message: 'Bad input' } }) };
+    }));
+
+    const client = makeRetryClient();
+    await expect(
+      client.createTransaction({ wallet_id: 'w_1', amount_minor: 100, currency: 'AOA' }),
+    ).rejects.toBeInstanceOf(BanzamiError);
+
+    expect(callCount).toBe(1);
+  });
+
+  it('uses same idempotency key on all retry attempts', async () => {
+    const capturedKeys: string[] = [];
+    let callCount = 0;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      callCount++;
+      const key = (init?.headers as Record<string, string>)?.['Idempotency-Key'];
+      if (key) capturedKeys.push(key);
+      if (callCount <= 2) {
+        return { ok: false, status: 503, json: async () => ({ error: { code: 'E', message: 'M' } }) };
+      }
+      return { ok: true, status: 200, json: async () => ({ id: 'tx_1' }) };
+    }));
+
+    const client = makeRetryClient();
+    await client.createTransaction({ wallet_id: 'w_1', amount_minor: 100, currency: 'AOA' });
+
+    expect(capturedKeys).toHaveLength(3);
+    // All retry attempts must carry the same idempotency key so the server
+    // can safely deduplicate the operation.
+    expect(capturedKeys[0]).toBe(capturedKeys[1]);
+    expect(capturedKeys[0]).toBe(capturedKeys[2]);
+    expect(capturedKeys[0]).toMatch(
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/,
+    );
+  });
+
+  it('GET requests have no Idempotency-Key header', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo, init?: RequestInit) => {
+      const key = (init?.headers as Record<string, string>)?.['Idempotency-Key'];
+      expect(key).toBeUndefined();
+      return { ok: true, status: 200, json: async () => ({ wallet_id: 'wal_1', available_minor: 1000, reserved_minor: 0, total_minor: 1000, currency: 'AOA' }) };
+    }));
+
+    const client = makeClient();
+    await client.getWalletBalance('wal_1');
   });
 });
