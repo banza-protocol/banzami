@@ -705,6 +705,13 @@ Internal HTTP server binding all Rust domain crates. Only reachable from localho
 | POST   | `/v1/merchants/{id}/api-keys`   | Create an API key                     |
 | GET    | `/v1/merchants/{id}/api-keys`   | List API keys                         |
 | DELETE | `/v1/merchants/{id}/api-keys/{keyID}` | Revoke an API key             |
+| POST   | `/v1/payment-links`             | Create a payment link                 |
+| GET    | `/v1/payment-links`             | List payment links (`?merchant_id=`)  |
+| GET    | `/v1/payment-links/{id}`        | Get payment link                      |
+| DELETE | `/v1/payment-links/{id}`        | Cancel a payment link                 |
+| POST   | `/v1/payment-links/{id}/mark-used` | Mark payment link as used          |
+| GET    | `/v1/public/pay/{slug}`         | Resolve link by slug (no auth)        |
+| GET    | `/v1/public/pay/{slug}/status`  | Check if link is paid (no auth)       |
 
 Observability:
 - `GET /health` — liveness probe
@@ -1224,7 +1231,7 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 ### Run Tests
 
 ```bash
-# All test suites
+# All test suites (Rust + Go + TypeScript SDK)
 make test-all
 
 # Rust only (integration tests require DATABASE_URL)
@@ -1235,7 +1242,24 @@ DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
 cd services/api-gateway  && go test ./...
 cd services/admin-api    && go test ./...
 cd services/public-api   && go test ./...
+
+# TypeScript SDK
+cd sdk/typescript && npm test
 ```
+
+### Continuous Integration
+
+GitHub Actions runs on every push and pull request to `main`:
+
+| Job              | What it checks                                                 |
+|------------------|----------------------------------------------------------------|
+| `rust`           | `cargo fmt`, `cargo clippy -D warnings`, `cargo test`         |
+| `go-gateway`     | `go vet`, `go test -race`                                      |
+| `go-admin`       | `go vet`, `go test -race`                                      |
+| `go-public`      | `go vet`, `go test -race`                                      |
+| `typescript`     | `tsc --noEmit` (typecheck), `vitest run`                       |
+
+The Rust job spins up a PostgreSQL 16 service container so `#[sqlx::test]` integration tests run against a real database. See [`.github/workflows/ci.yml`](.github/workflows/ci.yml).
 
 ### Useful Make Targets
 
@@ -1253,7 +1277,7 @@ cd services/public-api   && go test ./...
 | `make stack-up`      | Full stack: infra + migrations + all services      |
 | `make stack-down`    | Tear down the full stack                           |
 | `make stack-logs`    | Tail all service logs                              |
-| `make test-all`      | Run all test suites (Rust + Go)                    |
+| `make test-all`      | Run all test suites (Rust + Go + TypeScript SDK)   |
 | `make check-all`     | Run all linters and type-checkers                  |
 | `make sqlx-prepare`  | Regenerate `.sqlx/` offline query cache            |
 

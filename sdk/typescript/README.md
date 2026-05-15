@@ -135,6 +135,19 @@ if (parsed.is_dynamic && parsed.qr_code_id) {
 
 ## Merchant operations
 
+### Create a transaction
+
+```typescript
+const tx = await client.createTransaction({
+  idempotencyKey: 'order-12345',
+  amountMinor:    25_000,        // 25 000 Kz
+  currency:       'AOA',
+  description:    'Encomenda #12345',
+  walletId:       'wlt_...',
+});
+console.log(tx.status); // "PENDING"
+```
+
 ### List transactions with pagination
 
 ```typescript
@@ -164,6 +177,61 @@ console.log(`Reserved:  ${formatMinor(balance.reserved_minor,  balance.currency)
 ```typescript
 const payout = await client.createPayout('wlt_...', 100_000); // 100 000 Kz
 console.log(payout.status); // "PENDING"
+```
+
+---
+
+## Payment links
+
+Payment links are shareable URLs for informal commerce — the merchant shares a link and the consumer pays without needing to be present.
+
+### Create and share a link
+
+```typescript
+// Fixed-amount link (expires in 24 h)
+const link = await client.createPaymentLink({
+  merchantId:  'mch_...',
+  walletId:    'wlt_...',
+  amountMinor: 15_000,
+  description: 'Cabrito assado',
+  expiresAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
+});
+
+console.log(link.slug);    // e.g. "abc123"
+console.log(link.status);  // "ACTIVE"
+// Share: https://pay.banzami.ao/abc123
+```
+
+### Open link (consumer sets amount)
+
+```typescript
+const link = await client.createPaymentLink({
+  merchantId:  'mch_...',
+  walletId:    'wlt_...',
+  // no amountMinor → consumer enters the amount
+});
+```
+
+### List and manage links
+
+```typescript
+const page = await client.listPaymentLinks({ merchantId: 'mch_...', limit: 20 });
+for (const link of page.data) {
+  console.log(link.slug, link.status, link.amount_minor);
+}
+
+// Cancel a link
+await client.cancelPaymentLink(link.id);
+```
+
+### Resolve a link on the pay page (no auth required)
+
+```typescript
+const link = await client.getPublicPaymentLink('abc123');
+if (link.status !== 'ACTIVE') throw new Error('Link is no longer active');
+
+// Poll for payment confirmation
+const { paid } = await client.getPaymentLinkStatus('abc123');
 ```
 
 ---
@@ -236,5 +304,24 @@ export default {
 | `HANDLE_TAKEN`        | Handle is already registered             |
 | `WALLET_NOT_FOUND`    | Wallet ID does not exist                 |
 | `WALLET_NOT_ACTIVE`   | Wallet is suspended or closed            |
+| `LINK_NOT_ACTIVE`     | Payment link is already used, cancelled, or expired |
 
 All errors are instances of `BanzamiApiError` with `.status` (HTTP) and `.code` (domain) properties.
+
+---
+
+## Development
+
+```bash
+# Build
+npm run build
+
+# Type-check only (no emit)
+npm run typecheck
+
+# Tests (vitest)
+npm test
+
+# Tests in watch mode
+npm run test:watch
+```
