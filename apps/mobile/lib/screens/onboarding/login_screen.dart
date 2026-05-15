@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } on BanzamiApiException catch (e) {
       setState(() {
         _error   = e.code == 'INVALID_CREDENTIALS'
-            ? 'Handle ou PIN incorrecto.'
+            ? '@banza ou PIN incorrecto.'
             : e.message;
         _loading = false;
         _pin     = '';
@@ -102,17 +102,17 @@ class _LoginScreenState extends State<LoginScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: BanzamiSpacing.md),
-            const Text('O seu @handle', style: BanzamiTextStyles.headingMd),
+            const Text('O seu @banza', style: BanzamiTextStyles.headingMd),
             const SizedBox(height: BanzamiSpacing.xs),
             Text(
-              'Introduza o handle que escolheu quando criou a conta.',
+              'É o nome único que usa para receber pagamentos.',
               style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             ),
             const SizedBox(height: BanzamiSpacing.xl),
             TextFormField(
               controller:      _handleCtrl,
               decoration:      const InputDecoration(
-                labelText:  'Handle',
+                labelText:  '@banza',
                 prefixText: '@',
                 hintText:   'joaosilva',
               ),
@@ -122,7 +122,7 @@ class _LoginScreenState extends State<LoginScreen> {
               onFieldSubmitted: (_) => _continueToPin(),
               validator: (v) {
                 final val = v?.trim() ?? '';
-                if (val.isEmpty) return 'O handle é obrigatório';
+                if (val.isEmpty) return 'O @banza é obrigatório';
                 return null;
               },
             ),

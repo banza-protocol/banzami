@@ -57,10 +57,10 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: BanzamiSpacing.md),
-                const Text('Escolha o seu @handle', style: BanzamiTextStyles.headingMd),
+                const Text('Escolha o seu @banza', style: BanzamiTextStyles.headingMd),
                 const SizedBox(height: BanzamiSpacing.xs),
                 Text(
-                  'O handle é o seu endereço de pagamento. As pessoas vão enviá-lo dinheiro usando @handle.',
+                  'É o nome único que as pessoas usam para lhe enviar pagamentos.',
                   style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
                 ),
                 const SizedBox(height: BanzamiSpacing.xl),
@@ -68,7 +68,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 TextFormField(
                   controller:      _handleCtrl,
                   decoration:      const InputDecoration(
-                    labelText:  'Handle',
+                    labelText:  '@banza',
                     prefixText: '@',
                     hintText:   'joaosilva',
                   ),
@@ -77,7 +77,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   autocorrect:     false,
                   validator: (v) {
                     final val = v?.trim() ?? '';
-                    if (val.isEmpty) return 'O handle é obrigatório';
+                    if (val.isEmpty) return 'O @banza é obrigatório';
                     if (val.length < 3) return 'Mínimo 3 caracteres';
                     if (val.length > 30) return 'Máximo 30 caracteres';
                     if (!RegExp(r'^[a-z0-9_]+$').hasMatch(val)) {

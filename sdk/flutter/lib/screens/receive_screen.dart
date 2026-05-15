@@ -127,7 +127,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                               ClipboardData(text: '@${widget.handle}'));
                           if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Handle copiado')),
+                              const SnackBar(content: Text('@banza copiado')),
                             );
                           }
                         },

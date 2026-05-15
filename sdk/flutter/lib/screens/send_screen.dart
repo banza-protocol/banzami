@@ -45,7 +45,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   Future<void> _send() async {
     final handle = _handleCtrl.text.trim().replaceAll('@', '').toLowerCase();
     if (handle.isEmpty) {
-      setState(() => _handleError = 'Introduza um @handle');
+      setState(() => _handleError = 'Introduza um @banza');
       return;
     }
     if (_amountMinor <= 0) {
@@ -64,7 +64,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     } on BanzamiApiException catch (e) {
       setState(() => _sendError = switch (e.code) {
         'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente',
-        'RECIPIENT_NOT_FOUND' => 'Handle não encontrado',
+        'RECIPIENT_NOT_FOUND' => '@banza não encontrado',
         'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa',
         _                     => e.message,
       });
@@ -96,7 +96,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               TextField(
                 controller:      _handleCtrl,
                 decoration: InputDecoration(
-                  hintText:  'handle do destinatário',
+                  hintText:  '@banza do destinatário',
                   prefixText: '@',
                   errorText: _handleError,
                 ),

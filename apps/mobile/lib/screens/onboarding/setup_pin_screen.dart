@@ -96,7 +96,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     } on BanzamiApiException catch (e) {
       setState(() {
         _apiError   = e.code == 'HANDLE_TAKEN'
-            ? 'Este @handle já está em uso. Volte atrás e escolha outro.'
+            ? 'Este @banza já está em uso. Volte atrás e escolha outro.'
             : e.message;
         _saving     = false;
         _step       = _Step.enter;

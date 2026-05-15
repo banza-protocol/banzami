@@ -119,7 +119,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 await Clipboard.setData(ClipboardData(text: '@${session.handle}'));
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Handle copiado')),
+                    const SnackBar(content: Text('@banza copiado')),
                   );
                 }
               },

@@ -49,7 +49,7 @@ class WelcomeScreen extends StatelessWidget {
               // Features list
               ...[
                 (Icons.qr_code_scanner_rounded, 'Pague por QR em qualquer loja'),
-                (Icons.send_rounded,            'Envie para qualquer @handle'),
+                (Icons.send_rounded,            'Envie para qualquer @banza'),
                 (Icons.account_balance_rounded, 'Multicaixa Express integrado'),
               ].map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
