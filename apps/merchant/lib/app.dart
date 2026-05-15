@@ -34,7 +34,7 @@ class BanzamiMerchantApp extends StatelessWidget {
       child: Consumer<MerchantSessionService>(
         builder: (context, session, _) {
           return MaterialApp(
-            title:                      'Banzami Comerciante',
+            title:                      'Banzami Business',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             home:                       _home(session),

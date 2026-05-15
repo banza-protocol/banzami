@@ -68,7 +68,7 @@ class _Logo extends StatelessWidget {
         ),
         const SizedBox(height: 6),
         Text(
-          'Painel de comerciante',
+          'Painel de negócio',
           style: BanzamiTextStyles.bodyMd.copyWith(
             color: BanzamiColors.white.withValues(alpha: 0.7),
           ),

@@ -97,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Olá, ${session.merchantName}',
               style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.white)),
-          Text('Painel de comerciante',
+          Text('Painel de negócio',
               style: BanzamiTextStyles.bodySm.copyWith(
                   color: BanzamiColors.white.withValues(alpha: 0.75))),
         ]),

@@ -141,7 +141,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
           ]),
 
           const SizedBox(height: 32),
-          Center(child: Text('Banzami Comerciante v1.0',
+          Center(child: Text('Banzami Business v1.0',
               style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400))),
           const SizedBox(height: 16),
         ],

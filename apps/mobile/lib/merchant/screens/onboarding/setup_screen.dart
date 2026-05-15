@@ -43,7 +43,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
       final merchant = await client.getMerchant(merchantId);
 
       if (!merchant.isActive) {
-        setState(() { _error = 'Esta conta de comerciante está suspensa ou encerrada.'; });
+        setState(() { _error = 'Esta conta de negócio está suspensa ou encerrada.'; });
         return;
       }
 
