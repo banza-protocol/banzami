@@ -21,7 +21,7 @@ $timeout_secs = $timeout_mins * 60;
 
 <div id="banzami-payment-page" style="max-width:480px;margin:2rem auto;text-align:center;font-family:system-ui,sans-serif;">
 
-    <div style="background:#6D071A;color:#fff;border-radius:12px;padding:2rem;margin-bottom:1.5rem;">
+    <div style="background:#990011;color:#fff;border-radius:12px;padding:2rem;margin-bottom:1.5rem;">
         <p style="margin:0 0 .25rem;font-size:.75rem;opacity:.7;letter-spacing:.05em;text-transform:uppercase;">Valor a pagar</p>
         <p style="margin:0;font-size:2.5rem;font-weight:700;font-variant-numeric:tabular-nums;"><?php echo esc_html( $currency_display ); ?></p>
         <p style="margin:.5rem 0 0;font-size:.8rem;opacity:.6;">Pedido #<?php echo esc_html( $order->get_order_number() ); ?></p>
@@ -40,7 +40,7 @@ $timeout_secs = $timeout_mins * 60;
         <?php endif; ?>
 
         <a href="<?php echo esc_url( $deep_link ); ?>"
-           style="display:inline-block;background:#6D071A;color:#fff;border-radius:8px;padding:.75rem 2rem;text-decoration:none;font-weight:600;font-size:.9rem;margin-bottom:1rem;">
+           style="display:inline-block;background:#990011;color:#fff;border-radius:8px;padding:.75rem 2rem;text-decoration:none;font-weight:600;font-size:.9rem;margin-bottom:1rem;">
             Abrir app Banzami
         </a>
 
@@ -77,7 +77,7 @@ $timeout_secs = $timeout_mins * 60;
                 text:          deepLink,
                 width:         200,
                 height:        200,
-                colorDark:     '#6D071A',
+                colorDark:     '#990011',
                 colorLight:    '#ffffff',
                 correctLevel:  QRCode.CorrectLevel.M,
             });

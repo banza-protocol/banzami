@@ -3,8 +3,7 @@ export default function Home() {
     <main className="flex min-h-screen items-center justify-center p-8 text-center">
       <div>
         <div
-          className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full"
-          style={{ background: '#6D071A' }}
+          className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-wine"
         >
           <span className="text-2xl font-bold text-white">B</span>
         </div>

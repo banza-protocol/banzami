@@ -6,21 +6,17 @@
 
 export const colors = {
   // Primary wine palette
-  wine: '#6D071A',
-  wineDark: '#4B0911',
-  wineMedium: '#8E1026',
-
-  // Accent copper
-  copper: '#C56A2D',
-  copperLight: '#D4834A',
+  wine: '#990011',
+  wineDark: '#6B000B',
+  wineMedium: '#B5001A',
 
   // Neutrals
   white: '#FFFFFF',
-  offWhite: '#F6F4F1',
-  gray100: '#F0EDEA',
-  gray400: '#9E9A96',
-  gray700: '#4A4744',
-  gray900: '#1A1816',
+  offWhite: '#FCF6F5',
+  gray100: '#F5EEED',
+  gray400: '#9C8483',
+  gray700: '#534040',
+  gray900: '#1A1A1A',
 
   // Semantic
   success: '#1A7A4A',
@@ -98,10 +94,6 @@ export const tailwindTokens = {
       dark:    colors.wineDark,
       medium:  colors.wineMedium,
     },
-    copper: {
-      DEFAULT: colors.copper,
-      light:   colors.copperLight,
-    },
     gray: {
       100: colors.gray100,
       400: colors.gray400,
@@ -163,8 +155,6 @@ export const cssVariables = `
   --color-wine: ${colors.wine};
   --color-wine-dark: ${colors.wineDark};
   --color-wine-medium: ${colors.wineMedium};
-  --color-copper: ${colors.copper};
-  --color-copper-light: ${colors.copperLight};
   --color-white: ${colors.white};
   --color-off-white: ${colors.offWhite};
   --color-gray-100: ${colors.gray100};

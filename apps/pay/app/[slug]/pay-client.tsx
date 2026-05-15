@@ -46,7 +46,7 @@ export default function PayClient({
         text:         deepLink,
         width:        180,
         height:       180,
-        colorDark:    '#6D071A',
+        colorDark:    '#990011',
         colorLight:   '#ffffff',
         correctLevel: w.QRCode.CorrectLevel.M,
       });
@@ -123,7 +123,7 @@ export default function PayClient({
         <div className="w-full max-w-sm space-y-4">
 
           {/* Header */}
-          <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#6D071A' }}>
+          <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
             <p className="text-xs uppercase tracking-widest opacity-70">
               {description ?? 'Valor a pagar'}
             </p>
@@ -185,7 +185,7 @@ export default function PayClient({
       <div className="w-full max-w-sm space-y-4">
 
         {/* Amount / header */}
-        <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#6D071A' }}>
+        <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
           <p className="text-xs uppercase tracking-widest opacity-70">
             {description ?? 'Valor a pagar'}
           </p>
@@ -209,7 +209,7 @@ export default function PayClient({
             onClick={handlePayWithMulticaixa}
             disabled={step.type === 'loading' || expired}
             className="w-full rounded-xl py-3.5 text-center font-semibold text-white text-sm disabled:opacity-50 transition"
-            style={{ background: '#6D071A' }}
+            style={{ background: '#990011' }}
           >
             {step.type === 'loading' ? 'A preparar…' : 'Pagar com Multicaixa Express'}
           </button>
@@ -255,7 +255,7 @@ export default function PayClient({
 function InstructionStep({ n, label }: { n: number; label: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: '#6D071A' }}>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: '#990011' }}>
         {n}
       </span>
       <p className="text-sm text-gray-600 pt-0.5">{label}</p>
