@@ -26,12 +26,23 @@ class BanzamiClient
     private string $baseUrl;
     private string $apiKey;
     private int    $timeout;
+    /** @var callable|null */
+    private $httpHandler;
 
-    public function __construct(string $baseUrl, string $apiKey, int $timeout = 30)
-    {
-        $this->baseUrl = rtrim($baseUrl, '/');
-        $this->apiKey  = $apiKey;
-        $this->timeout = $timeout;
+    /**
+     * @param callable|null $httpHandler Test seam — never pass this in production.
+     *                                   Signature: fn(string $method, string $url, array $headers, ?string $body): array{status: int, body: string}
+     */
+    public function __construct(
+        string $baseUrl,
+        string $apiKey,
+        int $timeout = 30,
+        ?callable $httpHandler = null
+    ) {
+        $this->baseUrl     = rtrim($baseUrl, '/');
+        $this->apiKey      = $apiKey;
+        $this->timeout     = $timeout;
+        $this->httpHandler = $httpHandler;
     }
 
     // -------------------------------------------------------------------------
@@ -140,6 +151,120 @@ class BanzamiClient
     }
 
     // -------------------------------------------------------------------------
+    // Wallets
+    // -------------------------------------------------------------------------
+
+    /**
+     * Provision a new wallet for a merchant.
+     *
+     * @param array{
+     *   merchant_id: string,
+     *   currency: string,
+     * } $params
+     * @throws BanzamiException
+     */
+    public function provisionWallet(array $params): array
+    {
+        return $this->post('/v1/wallets', $params);
+    }
+
+    /**
+     * Get a wallet by ID.
+     *
+     * @throws BanzamiException
+     */
+    public function getWallet(string $id): array
+    {
+        return $this->get("/v1/wallets/{$id}");
+    }
+
+    /**
+     * Get the current balance for a wallet.
+     *
+     * @throws BanzamiException
+     */
+    public function getWalletBalance(string $id): array
+    {
+        return $this->get("/v1/wallets/{$id}/balance");
+    }
+
+    // -------------------------------------------------------------------------
+    // Payouts
+    // -------------------------------------------------------------------------
+
+    /**
+     * Create a payout from a wallet to a bank account.
+     *
+     * @param array{
+     *   wallet_id: string,
+     *   amount_minor: int,
+     *   currency: string,
+     *   destination_bank_account: string,
+     *   idempotency_key?: string,
+     * } $params
+     * @throws BanzamiException
+     */
+    public function createPayout(array $params): array
+    {
+        return $this->post('/v1/payouts', $params);
+    }
+
+    /**
+     * List payouts for a merchant.
+     *
+     * @return array{items: array, next_cursor: ?string}
+     * @throws BanzamiException
+     */
+    public function listPayouts(string $merchantId, int $limit = 20, ?string $cursor = null): array
+    {
+        $query = http_build_query(array_filter([
+            'merchant_id' => $merchantId,
+            'limit'       => $limit,
+            'cursor'      => $cursor,
+        ]));
+        return $this->get("/v1/payouts?{$query}");
+    }
+
+    /**
+     * Get a payout by ID.
+     *
+     * @throws BanzamiException
+     */
+    public function getPayout(string $id): array
+    {
+        return $this->get("/v1/payouts/{$id}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Merchants
+    // -------------------------------------------------------------------------
+
+    /**
+     * Get a merchant by ID.
+     *
+     * @throws BanzamiException
+     */
+    public function getMerchant(string $id): array
+    {
+        return $this->get("/v1/merchants/{$id}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Public (unauthenticated) endpoints
+    // -------------------------------------------------------------------------
+
+    /**
+     * Resolve a payment link by its public slug.
+     * Does not send an Authorization header — safe to call from a public checkout page.
+     *
+     * @throws BanzamiException
+     */
+    public function resolvePaymentLink(string $slug): array
+    {
+        return $this->request('GET', "/v1/public/pay/{$slug}", null, false);
+    }
+
+    // -------------------------------------------------------------------------
     // Webhooks
     // -------------------------------------------------------------------------
 
@@ -207,36 +332,49 @@ class BanzamiClient
         return $this->request('GET', $path);
     }
 
-    private function request(string $method, string $path, ?array $body = null): array
-    {
+    protected function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        bool $authenticated = true
+    ): array {
         $url  = $this->baseUrl . $path;
         $json = $body !== null ? json_encode($body, JSON_THROW_ON_ERROR) : null;
 
         $headers = [
-            'Authorization: Bearer ' . $this->apiKey,
             'Accept: application/json',
             'Content-Type: application/json',
         ];
 
-        $ch = curl_init($url);
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => $this->timeout,
-            CURLOPT_HTTPHEADER     => $headers,
-            CURLOPT_CUSTOMREQUEST  => $method,
-        ]);
-
-        if ($json !== null) {
-            curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+        if ($authenticated) {
+            $headers[] = 'Authorization: Bearer ' . $this->apiKey;
         }
 
-        $raw  = curl_exec($ch);
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $err  = curl_error($ch);
-        curl_close($ch);
+        if ($this->httpHandler !== null) {
+            $result = ($this->httpHandler)($method, $url, $headers, $json);
+            $code   = $result['status'];
+            $raw    = $result['body'];
+        } else {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => $this->timeout,
+                CURLOPT_HTTPHEADER     => $headers,
+                CURLOPT_CUSTOMREQUEST  => $method,
+            ]);
 
-        if ($raw === false) {
-            throw new BanzamiException("cURL error: {$err}");
+            if ($json !== null) {
+                curl_setopt($ch, CURLOPT_POSTFIELDS, $json);
+            }
+
+            $raw  = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $err  = curl_error($ch);
+            curl_close($ch);
+
+            if ($raw === false) {
+                throw new BanzamiException("cURL error: {$err}");
+            }
         }
 
         $data = json_decode((string) $raw, true, 512, JSON_THROW_ON_ERROR);
