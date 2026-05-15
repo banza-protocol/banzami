@@ -23,11 +23,26 @@ import 'api_exception.dart';
 ///   apiKey:  'bz_live_...',
 /// );
 /// ```
+/// Called before every HTTP attempt, including retries.
+typedef OnRequestHook = void Function(String method, String path, int attempt);
+
+/// Called after every successful HTTP response.
+typedef OnResponseHook = void Function(String method, String path, int status, int durationMs);
+
+/// Called once after all retry attempts are exhausted or a non-retryable error occurs.
+typedef OnErrorHook = void Function(String method, String path, Object error, int attempts);
+
 class BanzamiClient {
   final String baseUrl;
   final String apiKey;
   final http.Client _http;
   final Uuid _uuid;
+  final int maxRetries;
+  final Duration retryDelay;
+
+  final OnRequestHook?  onRequest;
+  final OnResponseHook? onResponse;
+  final OnErrorHook?    onError;
 
   String?   _jwt;
   DateTime? _jwtExpiry;
@@ -39,6 +54,11 @@ class BanzamiClient {
     required this.baseUrl,
     required this.apiKey,
     http.Client? httpClient,
+    this.maxRetries = 3,
+    this.retryDelay = const Duration(milliseconds: 500),
+    this.onRequest,
+    this.onResponse,
+    this.onError,
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
@@ -75,7 +95,7 @@ class BanzamiClient {
     required String consumerId,
     String currency = 'AOA',
   }) async {
-    return _post('/v1/consumer-wallets', {
+    return _postWithRetry('/v1/consumer-wallets', {
       'consumer_id': consumerId,
       'currency':    currency,
     });
@@ -105,14 +125,14 @@ class BanzamiClient {
     String? description,
     String? idempotencyKey,
   }) async {
-    final json = await _post('/v1/transfers', {
+    final json = await _postWithRetry('/v1/transfers', {
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
       'sender_id':       senderId,
       'recipient_id':    recipientId,
       'amount_minor':    amountMinor,
       'currency':        currency,
       if (description != null) 'description': description,
-    });
+    }, idempotencyKey: idempotencyKey);
     return Transfer.fromJson(json);
   }
 
@@ -210,7 +230,7 @@ class BanzamiClient {
     String? description,
     DateTime? expiresAt,
   }) async {
-    final json = await _post('/v1/payment-links', {
+    final json = await _postWithRetry('/v1/payment-links', {
       'merchant_id': merchantId,
       'wallet_id':   walletId,
       'currency':    currency,
@@ -266,7 +286,7 @@ class BanzamiClient {
     String?         idempotencyKey,
     String          currency = 'AOA',
   }) async {
-    return _post('/v1/payouts', {
+    return _postWithRetry('/v1/payouts', {
       'idempotency_key':     idempotencyKey ?? _uuid.v4(),
       'wallet_id':           walletId,
       'amount_minor':        amountMinor,
@@ -274,7 +294,7 @@ class BanzamiClient {
       'bank_account_number': bankAccountNumber,
       'bank_code':           bankCode,
       'account_holder_name': accountHolderName,
-    });
+    }, idempotencyKey: idempotencyKey);
   }
 
   // ---------------------------------------------------------------------------
@@ -350,6 +370,8 @@ class BanzamiClient {
   }
 
   Future<Map<String, dynamic>> _get(String path) async {
+    onRequest?.call('GET', path, 0);
+    final t0 = DateTime.now().millisecondsSinceEpoch;
     late http.Response resp;
     try {
       resp = await _http.get(
@@ -357,12 +379,17 @@ class BanzamiClient {
         headers: await _headers,
       );
     } catch (e) {
+      onError?.call('GET', path, e, 1);
       throw BanzamiNetworkException(e.toString());
     }
-    return _decode(resp);
+    final result = _decode(resp);
+    onResponse?.call('GET', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    return result;
   }
 
   Future<Map<String, dynamic>> _delete(String path) async {
+    onRequest?.call('DELETE', path, 0);
+    final t0 = DateTime.now().millisecondsSinceEpoch;
     late http.Response resp;
     try {
       resp = await _http.delete(
@@ -370,23 +397,80 @@ class BanzamiClient {
         headers: await _headers,
       );
     } catch (e) {
+      onError?.call('DELETE', path, e, 1);
       throw BanzamiNetworkException(e.toString());
     }
-    return _decode(resp);
+    final result = _decode(resp);
+    onResponse?.call('DELETE', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    return result;
   }
 
-  Future<Map<String, dynamic>> _post(String path, Map<String, dynamic>? body) async {
+  Future<Map<String, dynamic>> _post(
+    String path,
+    Map<String, dynamic>? body, {
+    String? idempotencyKey,
+  }) async {
+    onRequest?.call('POST', path, 0);
+    final t0 = DateTime.now().millisecondsSinceEpoch;
     late http.Response resp;
     try {
+      final headers = await _headers;
+      if (idempotencyKey != null) {
+        headers['Idempotency-Key'] = idempotencyKey;
+      }
       resp = await _http.post(
         Uri.parse('$baseUrl$path'),
-        headers: await _headers,
+        headers: headers,
         body:    body != null ? jsonEncode(body) : null,
       );
     } catch (e) {
+      onError?.call('POST', path, e, 1);
       throw BanzamiNetworkException(e.toString());
     }
-    return _decode(resp);
+    final result = _decode(resp);
+    onResponse?.call('POST', path, resp.statusCode, DateTime.now().millisecondsSinceEpoch - t0);
+    return result;
+  }
+
+  Future<Map<String, dynamic>> _postWithRetry(
+    String path,
+    Map<String, dynamic>? body, {
+    String? idempotencyKey,
+  }) {
+    final key = idempotencyKey ?? _uuid.v4();
+    return _withRetry(() => _post(path, body, idempotencyKey: key), 'POST', path);
+  }
+
+  Future<T> _withRetry<T>(Future<T> Function() operation, String method, String path) async {
+    Object? lastError;
+    for (var attempt = 0; attempt <= maxRetries; attempt++) {
+      if (attempt > 0) {
+        await Future<void>.delayed(retryDelay * (1 << (attempt - 1)));
+      }
+      try {
+        return await operation();
+      } catch (e) {
+        if (_shouldRetry(e, attempt)) {
+          lastError = e;
+          continue;
+        }
+        onError?.call(method, path, e, attempt + 1);
+        rethrow;
+      }
+    }
+    onError?.call(method, path, lastError!, maxRetries + 1);
+    throw lastError!;
+  }
+
+  bool _shouldRetry(Object error, int attempt) {
+    if (attempt >= maxRetries) return false;
+    if (error is BanzamiApiException) {
+      return error.statusCode == 429 ||
+             error.statusCode == 502 ||
+             error.statusCode == 503 ||
+             error.statusCode == 504;
+    }
+    return error is Exception;
   }
 
   Map<String, dynamic> _decode(http.Response resp) {
