@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
+import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
 import 'history_screen.dart';
@@ -30,6 +31,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final client  = context.read<ConsumerPublicClient>();
     _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
       ..startPolling();
+
+    PushNotificationService.requestPermission();
+    PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
   }
 
   @override

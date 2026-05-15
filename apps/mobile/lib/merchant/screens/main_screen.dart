@@ -4,6 +4,7 @@ import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/merchant_session_service.dart';
 import '../services/payment_notification_service.dart';
+import '../../services/push_notification_service.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
@@ -29,8 +30,12 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   }
 
   void _startNotifications() {
-    final client = context.read<BanzamiClient>();
+    final client  = context.read<BanzamiClient>();
+    final session = context.read<MerchantSessionService>().session!;
     _notifSvc = PaymentNotificationService(client)..startPolling();
+
+    PushNotificationService.requestPermission();
+    PushNotificationService.subscribeToTopic('merchant_${session.merchantId}');
   }
 
   @override
