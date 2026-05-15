@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
 
@@ -88,6 +87,6 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
   ThemeData _buildTheme() {
     final base = BanzamiTheme.light;
-    return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
+    return base.copyWith(textTheme: base.textTheme.apply(fontFamily: 'Inter'));
   }
 }

@@ -1,4 +1,8 @@
+import 'dart:io';
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
@@ -17,8 +21,11 @@ class MerchantQrScreen extends StatefulWidget {
 }
 
 class _MerchantQrScreenState extends State<MerchantQrScreen> {
+  final _qrKey = GlobalKey();
+
   String? _qrPayload;
   bool    _loading = false;
+  bool    _sharing = false;
   String? _error;
 
   @override
@@ -45,6 +52,34 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       if (mounted) setState(() => _error = 'Não foi possível gerar o QR.');
     } finally {
       if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _shareQr(MerchantSession session) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final boundary = _qrKey.currentContext!.findRenderObject()!
+          as RenderRepaintBoundary;
+      final image    = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      final bytes    = byteData!.buffer.asUint8List();
+
+      final file = File('${Directory.systemTemp.path}/qr_${session.merchantId}.png');
+      await file.writeAsBytes(bytes);
+
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'image/png')],
+        subject: 'QR de pagamento — ${session.merchantName}',
+      );
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível partilhar o QR.')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
@@ -94,7 +129,6 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(children: [
-        // Instrução
         Text(
           'Mostre este QR ao cliente para receber pagamentos.',
           style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
@@ -102,59 +136,63 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         ),
         const SizedBox(height: BanzamiSpacing.xl),
 
-        // QR card
-        Container(
-          padding:    const EdgeInsets.all(BanzamiSpacing.xl),
-          decoration: BoxDecoration(
-            color:        BanzamiColors.white,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color:      BanzamiColors.gray400.withValues(alpha: 0.18),
-                blurRadius: 20,
-                offset:     const Offset(0, 4),
+        // QR card — wrapped in RepaintBoundary to capture as image for sharing
+        RepaintBoundary(
+          key: _qrKey,
+          child: Container(
+            padding:    const EdgeInsets.all(BanzamiSpacing.xl),
+            decoration: BoxDecoration(
+              color:        BanzamiColors.white,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color:      BanzamiColors.gray400.withValues(alpha: 0.18),
+                  blurRadius: 20,
+                  offset:     const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(children: [
+              QrImageView(
+                data:            _qrPayload!,
+                version:         QrVersions.auto,
+                size:            240,
+                eyeStyle:        const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color:    BanzamiColors.wine,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color:           BanzamiColors.gray900,
+                ),
               ),
-            ],
+              const SizedBox(height: BanzamiSpacing.lg),
+              Text(
+                session.merchantName,
+                style: BanzamiTextStyles.headingSm,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Qualquer valor · AOA',
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+              ),
+            ]),
           ),
-          child: Column(children: [
-            QrImageView(
-              data:            _qrPayload!,
-              version:         QrVersions.auto,
-              size:            240,
-              eyeStyle:        const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color:    BanzamiColors.wine,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color:           BanzamiColors.gray900,
-              ),
-            ),
-            const SizedBox(height: BanzamiSpacing.lg),
-            Text(
-              session.merchantName,
-              style: BanzamiTextStyles.headingSm,
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'Qualquer valor · AOA',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-            ),
-          ]),
         ),
 
         const SizedBox(height: BanzamiSpacing.xl),
 
-        // Partilhar QR
         SizedBox(
           width: double.infinity,
           child: ElevatedButton.icon(
-            onPressed: () => Share.share(
-              _qrPayload!,
-              subject: 'QR de pagamento — ${session.merchantName}',
-            ),
-            icon:  const Icon(Icons.share_rounded),
+            onPressed: _sharing ? null : () => _shareQr(session),
+            icon:  _sharing
+                ? const SizedBox(
+                    width: 18, height: 18,
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2, color: BanzamiColors.white))
+                : const Icon(Icons.share_rounded),
             label: const Text('Partilhar QR'),
             style: ElevatedButton.styleFrom(
               backgroundColor: BanzamiColors.wine,
@@ -167,7 +205,6 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         ),
         const SizedBox(height: BanzamiSpacing.md),
 
-        // Cobrança com valor fixo
         SizedBox(
           width: double.infinity,
           child: OutlinedButton.icon(

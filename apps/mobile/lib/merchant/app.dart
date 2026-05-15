@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
 
@@ -54,7 +53,7 @@ class BanzamiMerchantApp extends StatelessWidget {
   ThemeData _buildTheme() {
     final base = BanzamiTheme.light;
     return base.copyWith(
-      textTheme: GoogleFonts.interTextTheme(base.textTheme),
+      textTheme: base.textTheme.apply(fontFamily: 'Inter'),
     );
   }
 }
