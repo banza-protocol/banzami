@@ -13,6 +13,11 @@ const config: Config = {
           DEFAULT: '#990011',
           dark:    '#6B000B',
           medium:  '#B5001A',
+          rose:    '#A63A50',
+        },
+        gold: {
+          DEFAULT: '#C89B3C',
+          light:   '#D4AF5C',
         },
         'off-white': '#FCF6F5',
         gray: {
@@ -21,7 +26,7 @@ const config: Config = {
           400: '#9C8483',
           600: '#534040',
           700: '#534040',
-          900: '#1C0D0D',
+          900: '#1A1A1A',
         },
         success: {
           DEFAULT: '#166534',

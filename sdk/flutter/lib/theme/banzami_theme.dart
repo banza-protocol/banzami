@@ -10,6 +10,13 @@ abstract class BanzamiColors {
   static const Color wineDark  = Color(0xFF6B000B); // gradient deep / pressed
   static const Color wineLight = Color(0xFFB5001A); // gradient end / hover
 
+  // Secondary — Wine Rose
+  static const Color wineRose  = Color(0xFFA63A50); // secondary — badges, tags, accents
+
+  // Accent — Savanna Gold
+  static const Color gold      = Color(0xFFC89B3C); // accent — highlights, positive emphasis
+  static const Color goldLight = Color(0xFFD4AF5C); // gold hover / light variant
+
   // Neutrals — warm-tinted to pair with cherry
   static const Color white    = Color(0xFFFFFFFF);
   static const Color offWhite = Color(0xFFFCF6F5); // Warm White — main background
@@ -18,7 +25,7 @@ abstract class BanzamiColors {
   static const Color gray400  = Color(0xFF9C8483); // secondary text
   static const Color gray600  = Color(0xFF534040); // tertiary text
   static const Color gray700  = Color(0xFF534040); // alias → gray600
-  static const Color gray900  = Color(0xFF1C0D0D); // primary text (warm black)
+  static const Color gray900  = Color(0xFF1A1A1A); // primary text
 
   // Semantic
   static const Color success   = Color(0xFF166534);

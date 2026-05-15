@@ -10,6 +10,13 @@ export const colors = {
   wineDark: '#6B000B',
   wineMedium: '#B5001A',
 
+  // Secondary
+  wineRose: '#A63A50',
+
+  // Accent — Savanna Gold
+  gold: '#C89B3C',
+  goldLight: '#D4AF5C',
+
   // Neutrals
   white: '#FFFFFF',
   offWhite: '#FCF6F5',
@@ -93,6 +100,11 @@ export const tailwindTokens = {
       DEFAULT: colors.wine,
       dark:    colors.wineDark,
       medium:  colors.wineMedium,
+      rose:    colors.wineRose,
+    },
+    gold: {
+      DEFAULT: colors.gold,
+      light:   colors.goldLight,
     },
     gray: {
       100: colors.gray100,
@@ -155,6 +167,9 @@ export const cssVariables = `
   --color-wine: ${colors.wine};
   --color-wine-dark: ${colors.wineDark};
   --color-wine-medium: ${colors.wineMedium};
+  --color-wine-rose: ${colors.wineRose};
+  --color-gold: ${colors.gold};
+  --color-gold-light: ${colors.goldLight};
   --color-white: ${colors.white};
   --color-off-white: ${colors.offWhite};
   --color-gray-100: ${colors.gray100};
