@@ -16,19 +16,15 @@ export default function WalletsPage() {
 
   async function load() {
     const session = getSession();
-    if (!session?.walletId) {
-      setError('Nenhum ID de carteira configurado. Actualize as definições de sessão.');
-      setLoading(false);
-      return;
-    }
+    if (!session) { setLoading(false); return; }
     const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
     setLoading(true);
     setError('');
     try {
-      const [w, b] = await Promise.all([
-        api.getWallet(session.walletId),
-        api.getWalletBalance(session.walletId),
-      ]);
+      const w = session.walletId
+        ? await api.getWallet(session.walletId)
+        : await api.getMerchantWallet();
+      const b = await api.getWalletBalance(w.id);
       setWallet(w);
       setBalance(b);
     } catch (e) {
