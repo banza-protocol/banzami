@@ -1178,10 +1178,12 @@ make stack-up       # start everything (applies migrations automatically)
 cd apps/mobile
 
 # Consumer app
-flutter run --flavor consumer -t lib/main_consumer.dart
+flutter run --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=http://<local-ip>:8083 --debug
 
 # Merchant app
-flutter run --flavor merchant -t lib/main_merchant.dart
+flutter run --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=http://<local-ip>:8080 --debug
 ```
 
 **Build for release:**
@@ -1204,10 +1206,10 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 
 **Bundle identifiers:**
 
-| Flavor   | iOS Bundle ID          | Android Application ID   | Display Name         |
-|----------|------------------------|--------------------------|----------------------|
-| consumer | `com.banzami.app`      | `com.banzami.app`        | Banzami              |
-| merchant | `com.banzami.merchant` | `com.banzami.merchant`   | Banzami Comerciante  |
+| Flavor   | iOS Bundle ID            | Android Application ID   | Display Name         |
+|----------|--------------------------|--------------------------|----------------------|
+| consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banzami              |
+| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banzami Comerciante  |
 
 **iOS schemes** are at `apps/mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/`:
 - `consumer.xcscheme` — Debug-consumer / Release-consumer configurations
@@ -1215,10 +1217,26 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 
 **Required `--dart-define` variables** (set in CI or passed at build time):
 
-| Variable           | Description                          |
-|--------------------|--------------------------------------|
-| `GATEWAY_URL`      | Banzami API Gateway base URL         |
-| `PAY_BASE_URL`     | Banzami pay page base URL            |
+| Variable           | Flavor(s)          | Description                          |
+|--------------------|--------------------|--------------------------------------|
+| `PUBLIC_API_URL`   | consumer           | Banzami Public API base URL          |
+| `GATEWAY_URL`      | merchant           | Banzami API Gateway base URL         |
+| `PAY_BASE_URL`     | consumer, merchant | Banzami pay page base URL            |
+
+**Push notifications (FCM):**
+
+Both flavors use Firebase Cloud Messaging for push notifications. Each flavor has its own Firebase app and `GoogleService-Info.plist` stored at:
+
+```
+apps/mobile/ios/config/
+  consumer/GoogleService-Info.plist
+  merchant/GoogleService-Info.plist
+```
+
+A build-phase script (`ios/switch_firebase_config.sh`) copies the correct plist into the bundle at build time based on `PRODUCT_BUNDLE_IDENTIFIER`.
+
+For full setup instructions (APNs key, Apple Developer Portal, xcconfig structure, AppDelegate configuration):
+→ [docs/playbooks/fcm-push-notifications-flutter-ios.md](docs/playbooks/fcm-push-notifications-flutter-ios.md)
 
 **Merchant app setup flow:**
 1. Merchant enters their API Key + Merchant ID
