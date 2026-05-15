@@ -114,6 +114,10 @@ class ConsumerPublicClient {
   // Balance
   // ---------------------------------------------------------------------------
 
+  /// Lightweight authenticated ping — used to verify the stored JWT is still
+  /// accepted by the server before allowing biometric unlock.
+  Future<void> checkAuth() => _call(method: 'GET', path: '/v1/me');
+
   Future<WalletBalance> getBalance({String currency = 'AOA'}) async {
     final json = await _call(method: 'GET', path: '/v1/me/wallet/balance?currency=$currency');
     return WalletBalance.fromJson(json);
