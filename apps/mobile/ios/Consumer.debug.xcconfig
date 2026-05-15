@@ -4,3 +4,4 @@ PRODUCT_BUNDLE_IDENTIFIER = com.banzami.consumer
 FLUTTER_TARGET = lib/main_consumer.dart
 APP_FLAVOR = consumer
 APP_DISPLAY_NAME = Banzami
+CODE_SIGN_ENTITLEMENTS = Runner/Runner-Debug.entitlements
