@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         // applicationId is overridden per flavor below — safe fallback.
-        applicationId = "com.banzami.app"
+        applicationId = "com.banzami.consumer"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -34,7 +34,7 @@ android {
     productFlavors {
         create("consumer") {
             dimension = "app"
-            applicationId = "com.banzami.app"
+            applicationId = "com.banzami.consumer"
             resValue("string", "app_name", "Banzami")
         }
         create("merchant") {
