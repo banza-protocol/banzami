@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, payment_link_id, provider, external_ref, status,\n                      amount_minor, currency, instructions,\n                      confirmed_at, failed_at, failure_reason, expires_at, created_at\n               FROM acquiring_payments WHERE external_ref = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "payment_link_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "provider",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "external_ref",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "instructions",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 8,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "failed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 10,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 11,
+        "name": "expires_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "125bb9b7c4ec3e7ca4a4e2b0138ef6f20c2f5875ded3ef49e9249f6664643af1"
+}

@@ -1,0 +1,26 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO settlements (\n                id, merchant_id, wallet_id, currency, status,\n                gross_amount_minor, fee_amount_minor, net_amount_minor,\n                transaction_count, period_start, period_end,\n                created_at, updated_at\n            )\n            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8",
+        "Int8",
+        "Int8",
+        "Int4",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "cdfc2de148c2dfb96819dd2f38094f2a57385d217ec49ac54eb1e693e7b0fc8f"
+}

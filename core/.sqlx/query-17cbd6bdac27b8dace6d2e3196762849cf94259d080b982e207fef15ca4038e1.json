@@ -1,0 +1,118 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM payouts ORDER BY created_at DESC LIMIT $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "wallet_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "idempotency_key",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "status",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount_minor",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Bpchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "bank_account_number",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "bank_code",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "account_holder_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 10,
+        "name": "ledger_posting_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "failure_reason",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 12,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 13,
+        "name": "sent_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 14,
+        "name": "confirmed_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 15,
+        "name": "returned_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 16,
+        "name": "failed_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      false,
+      true,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "17cbd6bdac27b8dace6d2e3196762849cf94259d080b982e207fef15ca4038e1"
+}
