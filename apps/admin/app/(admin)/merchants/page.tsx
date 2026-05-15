@@ -359,7 +359,7 @@ export default function MerchantsPage() {
               </div>
               <div className="px-xl py-lg border-t border-gray-100">
                 <p className="text-xs text-gray-400 mb-sm">Dashboard do comerciante:</p>
-                <p className="text-xs font-mono text-gray-600">Gateway URL: http://localhost:8080</p>
+                <p className="text-xs font-mono text-gray-600">Gateway URL: https://api.banzami.org</p>
                 <p className="text-xs font-mono text-gray-600">API Key: {credentials.apiKey}</p>
                 <p className="text-xs font-mono text-gray-600">Merchant ID: {credentials.merchantId}</p>
               </div>
