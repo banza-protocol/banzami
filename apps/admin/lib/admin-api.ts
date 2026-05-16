@@ -208,31 +208,6 @@ export class AdminApi {
   }
   getConsumer(id: string): Promise<Consumer> { return this.req(`/admin/v1/consumers/${id}`); }
 
-  testCreditConsumer(consumerId: string, amountMinor: number, currency = 'AOA'): Promise<{
-    consumer_id:  string;
-    currency:     string;
-    amount_minor: number;
-    new_balance:  number;
-  }> {
-    return this.req(`/admin/v1/consumers/${consumerId}/test-credit`, {
-      method: 'POST',
-      body: JSON.stringify({ amount_minor: amountMinor, currency }),
-    });
-  }
-
-  // Test utilities (dev only)
-  testCredit(merchantId: string, amountMinor: number, currency = 'AOA'): Promise<{
-    transaction: Record<string, unknown>;
-    wallet_id: string;
-    amount_minor: number;
-    currency: string;
-  }> {
-    return this.req(`/admin/v1/merchants/${merchantId}/test-credit`, {
-      method: 'POST',
-      body: JSON.stringify({ amount_minor: amountMinor, currency }),
-    });
-  }
-
   // Reconciliation
   runReconciliation(): Promise<Record<string, unknown>> {
     return this.req('/admin/v1/reconciliation/run', { method: 'POST', body: JSON.stringify({}) });

@@ -66,10 +66,6 @@ export default function MerchantsPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError]     = useState('');
   const [action, setAction]         = useState<Action | null>(null);
-  const [creditAmount, setCreditAmount] = useState('500');
-  const [creditLoading, setCreditLoading] = useState(false);
-  const [creditMsg, setCreditMsg]   = useState('');
-
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg]         = useState('');
 
@@ -157,23 +153,6 @@ export default function MerchantsPage() {
       setResendMsg(e instanceof Error ? e.message : 'Erro ao reenviar.');
     } finally {
       setResendLoading(false);
-    }
-  }
-
-  async function applyTestCredit() {
-    const session = getSession();
-    if (!session || !merchant) return;
-    const kz = Math.round(parseFloat(creditAmount));
-    if (!kz || kz <= 0) { setCreditMsg('Montante inválido.'); return; }
-    setCreditLoading(true); setCreditMsg('');
-    try {
-      const api = new AdminApi(session.apiUrl, session.adminKey);
-      await api.testCredit(merchant.id, kz * 100); // convert Kz → minor units
-      setCreditMsg(`✓ ${kz.toLocaleString('pt-AO')} Kz creditados com sucesso.`);
-    } catch (e) {
-      setCreditMsg(e instanceof Error ? e.message : 'Erro ao creditar.');
-    } finally {
-      setCreditLoading(false);
     }
   }
 
@@ -308,34 +287,6 @@ export default function MerchantsPage() {
                 )}
               </div>
 
-              <div className="bg-white rounded-lg shadow-card p-xl border border-dashed border-warning/40">
-                <p className="text-xs font-medium text-warning uppercase tracking-wide mb-xs">Crédito de Teste</p>
-                <p className="text-xs text-gray-400 mb-lg">Cria uma transacção PAYMENT completa para adicionar saldo à carteira AOA do comerciante. Apenas para desenvolvimento.</p>
-                <div className="flex gap-md items-center">
-                  <div className="flex items-center gap-xs flex-1">
-                    <input
-                      type="number"
-                      min="1"
-                      value={creditAmount}
-                      onChange={e => setCreditAmount(e.target.value)}
-                      className="w-32 h-9 bg-gray-50 border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-warning/30"
-                    />
-                    <span className="text-sm text-gray-400">Kz</span>
-                  </div>
-                  <button
-                    onClick={applyTestCredit}
-                    disabled={creditLoading}
-                    className="h-9 px-lg bg-warning/10 text-warning rounded-md text-xs font-medium hover:bg-warning/20 disabled:opacity-60 transition-colors whitespace-nowrap"
-                  >
-                    {creditLoading ? 'A creditar…' : 'Usar dados de teste'}
-                  </button>
-                </div>
-                {creditMsg && (
-                  <p className={`mt-md text-xs ${creditMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
-                    {creditMsg}
-                  </p>
-                )}
-              </div>
             </div>
           )}
         </>
