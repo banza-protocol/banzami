@@ -20,9 +20,15 @@ func CORS(next http.Handler) http.Handler {
 }
 
 var allowedOrigins = map[string]bool{
-	"http://localhost:3010": true, // dashboard
-	"http://localhost:3002": true, // admin-app
-	"http://localhost:3003": true, // pay
+	// Local development
+	"http://localhost:3010": true,
+	"http://localhost:3002": true,
+	"http://localhost:3003": true,
+	"http://localhost:3004": true,
+	// Production
+	"https://pay.banzami.org":      true,
+	"https://admin.banzami.org":    true,
+	"https://business.banzami.org": true,
 }
 
 func isAllowedOrigin(origin string) bool {

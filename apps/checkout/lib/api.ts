@@ -28,8 +28,10 @@ export async function getPaymentLink(slug: string): Promise<PaymentLink | null> 
   return res.json();
 }
 
+// Polling is always called from a client component; use the Next.js API route
+// so the fetch happens server-side and avoids any browser CORS restrictions.
 export async function getPaymentLinkStatus(slug: string): Promise<{ paid: boolean }> {
-  const res = await fetch(`${API_URL}/public/pay/${encodeURIComponent(slug)}/status`, {
+  const res = await fetch(`/api/pay/${encodeURIComponent(slug)}/status`, {
     cache: 'no-store',
   });
   if (!res.ok) throw new Error(`API error ${res.status}`);
