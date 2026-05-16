@@ -192,10 +192,10 @@ func (c *CoreAdminClient) CreateMerchant(ctx context.Context, name, email string
 		map[string]string{"name": name, "email": email}, &out)
 }
 
-func (c *CoreAdminClient) CreateApiKey(ctx context.Context, merchantID, keyName string) (map[string]any, error) {
+func (c *CoreAdminClient) CreateApiKey(ctx context.Context, merchantID, keyName, environment string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/merchants/"+merchantID+"/api-keys",
-		map[string]string{"name": keyName}, &out)
+		map[string]string{"name": keyName, "environment": environment}, &out)
 }
 
 func (c *CoreAdminClient) CreateWallet(ctx context.Context, merchantID, currency string) (map[string]any, error) {
