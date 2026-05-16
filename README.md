@@ -96,13 +96,14 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 6. [Domain Model](#domain-model)
 7. [Services](#services)
 8. [API Reference](#api-reference)
-9. [Financial Flows](#financial-flows)
-10. [Database Schema](#database-schema)
-11. [Security Model](#security-model)
-12. [Observability](#observability)
-13. [Local Development](#local-development)
-14. [Engineering Principles](#engineering-principles)
-15. [Contributing](#contributing)
+9. [Sandbox](#sandbox)
+10. [Financial Flows](#financial-flows)
+11. [Database Schema](#database-schema)
+12. [Security Model](#security-model)
+13. [Observability](#observability)
+14. [Local Development](#local-development)
+15. [Engineering Principles](#engineering-principles)
+16. [Contributing](#contributing)
 
 ---
 
@@ -112,6 +113,8 @@ The platform is live on an IONOS VPS (`217.160.9.248`, Ubuntu 24.04, 4 vCores / 
 
 ### Public URLs
 
+**Live (production)**
+
 | URL | Service | Description |
 |-----|---------|-------------|
 | `https://api.banzami.org` | API Gateway | Merchant REST API — authenticated with JWT |
@@ -119,6 +122,15 @@ The platform is live on an IONOS VPS (`217.160.9.248`, Ubuntu 24.04, 4 vCores / 
 | `https://pay.banzami.org` | Checkout Frontend | Hosted payment links and QR checkout (Next.js) |
 | `https://admin.banzami.org` | Admin Frontend | Internal operations portal (Next.js) |
 | `https://business.banzami.org` | Business Dashboard | Merchant self-service dashboard (Next.js) |
+
+**Sandbox (test environment)**
+
+| URL | Service | Description |
+|-----|---------|-------------|
+| `https://sandbox-api.banzami.org` | API Gateway (sandbox) | Same API surface — virtual money, no real transactions |
+| `https://sandbox-dashboard.banzami.org` | Business Dashboard (sandbox) | Merchant dashboard for test integrations |
+
+Sandbox and live data never mix. A `bz_test_` key is rejected by the live gateway; a `bz_live_` key is rejected by the sandbox. See the [Sandbox](#sandbox) section for full details.
 
 ### Production Stack
 
@@ -368,7 +380,7 @@ banzami/
 │       └── CHANGELOG.md
 │
 ├── db/
-│   └── migrations/                Global PostgreSQL migrations (0001–0015)
+│   └── migrations/                Global PostgreSQL migrations (0001–0018)
 │
 ├── infra/
 │   ├── docker/                    Docker Compose for local development
@@ -380,6 +392,7 @@ banzami/
 │   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-011)
 │   ├── domains/                   Per-domain technical documentation
 │   ├── security/                  Security model and threat analysis
+│   ├── sandbox/                   Sandbox developer guide (test cards, utilities, env setup)
 │   ├── runbooks/                  Operational runbooks
 │   ├── playbooks/                 Incident playbooks
 │   └── api/                       API reference documentation
@@ -894,6 +907,17 @@ Internal HTTP server binding all Rust domain crates. Only reachable from localho
 | GET    | `/v1/public/pay/{slug}`         | Resolve link by slug (no auth)        |
 | GET    | `/v1/public/pay/{slug}/status`  | Check if link is paid (no auth)       |
 
+**Sandbox utilities** (JWT required; token must carry `environment = SANDBOX`)
+
+| Method | Path                            | Description                                           |
+|--------|---------------------------------|-------------------------------------------------------|
+| GET    | `/v1/sandbox/status`            | Confirm sandbox mode and active environment           |
+| GET    | `/v1/sandbox/instruments`       | List test cards and mobile numbers with their outcomes|
+| POST   | `/v1/sandbox/fund`              | Credit sandbox wallet with virtual AOA (max 100M/call)|
+| POST   | `/v1/sandbox/simulate/payment`  | Inject a synthetic transaction for a given scenario   |
+
+Valid simulation scenarios: `success`, `insufficient_funds`, `fraud_blocked`, `expired_card`, `auth_challenge`.
+
 Observability:
 - `GET /health` — liveness probe
 - `GET /readyz` — readiness probe (checks core-api connectivity)
@@ -957,6 +981,89 @@ Observability:
 ### Internal Routes (core-api, loopback only)
 
 The same operations are available at `/internal/v1/*` on port 8081. These are the routes the Go services actually call. They are never proxied to the public internet.
+
+---
+
+## Sandbox
+
+Banzami operates two fully isolated environments. Sandbox is a complete replica of the production stack — same API surface, same state machines, same webhook retry logic — but no real money ever moves.
+
+### Environment isolation
+
+| | Sandbox | Live |
+|---|---|---|
+| API key prefix | `bz_test_…` | `bz_live_…` |
+| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
+| Dashboard | `https://sandbox-dashboard.banzami.org` | `https://business.banzami.org` |
+| Money | Virtual AOA — no real funds | Real Angolan Kwanza |
+| Database | Physically separate | Physically separate |
+| Redis | Physically separate | Physically separate |
+| Webhooks | Sandbox-only delivery | Live-only delivery |
+
+The environment is cryptographically encoded in both the key prefix and the JWT `environment` claim. Cross-environment requests are rejected at the middleware layer with `403 SANDBOX_ONLY` or `403 LIVE_ONLY`.
+
+### API key format
+
+```
+bz_live_<random>   →  LIVE environment  (real money)
+bz_test_<random>   →  SANDBOX environment  (virtual money)
+```
+
+Create a sandbox key by passing `"environment": "SANDBOX"` to `POST /v1/merchants/{id}/api-keys`. Exchange it for a JWT via `POST /v1/auth/token`. All JWTs carry a signed `environment` claim — forging or swapping the claim invalidates the signature.
+
+### Test cards
+
+| Card number | Scenario | Final status |
+|---|---|---|
+| `4242 4242 4242 4242` | success | `CAPTURED` |
+| `4000 0000 0000 9995` | insufficient_funds | `FAILED` |
+| `4100 0000 0000 0019` | fraud_blocked | `FAILED` |
+| `4000 0000 0000 0069` | expired_card | `FAILED` |
+| `4000 0027 6000 3184` | auth_challenge | `PENDING` (3DS) |
+
+Use expiry `12/30` and CVV `123` for all test cards.
+
+### Dashboard sandbox mode
+
+When a merchant logs in to the dashboard with a `bz_test_` key, an amber banner appears at the top of every page:
+
+```
+⚠ MODO DE TESTES — SANDBOX — nenhum pagamento real é processado
+```
+
+The banner is driven by the `environment` field stored in the session at login time. No sandbox data is ever shown on a live session and vice-versa.
+
+### SDK usage
+
+**TypeScript**
+
+```typescript
+import { BanzamiClient } from '@banzami/sdk';
+
+const sandbox = new BanzamiClient({ apiKey: 'bz_test_…', environment: 'sandbox' });
+const live    = new BanzamiClient({ apiKey: 'bz_live_…', environment: 'live' });
+
+sandbox.isSandbox;    // true
+sandbox.isProduction; // false
+```
+
+The SDK automatically routes to the correct base URL and handles JWT exchange and renewal internally.
+
+**Flutter**
+
+```dart
+import 'package:banzami_sdk/banzami_sdk.dart';
+
+final client = BanzamiClient(
+  apiKey:      'bz_test_…',
+  environment: BanzamiEnvironment.sandbox,
+);
+
+client.isSandbox;    // true
+client.isProduction; // false
+```
+
+For the complete sandbox developer guide — test mobile numbers, wallet funding, simulated payouts, webhook testing, QR testing, idempotency testing, and the going-to-production checklist — see [docs/sandbox/README.md](docs/sandbox/README.md).
 
 ---
 
@@ -1126,7 +1233,7 @@ Admin triggers reconciliation:
 
 All schema changes are managed as numbered migrations in `db/migrations/`. Migrations must be applied in sequence before running `cargo check` (sqlx validates queries at compile time).
 
-| Migration | Domain              | Key Tables                                           |
+| Migration | Domain              | Key Tables / Changes                                 |
 |-----------|---------------------|------------------------------------------------------|
 | `0001`    | Ledger              | `ledger_accounts`, `ledger_postings`, `ledger_entries` |
 | `0002`    | Wallets             | `wallets`, `wallet_events`                           |
@@ -1143,6 +1250,9 @@ All schema changes are managed as numbered migrations in `db/migrations/`. Migra
 | `0013`    | QR Codes            | `qr_codes`                                           |
 | `0014`    | Payment Links       | `payment_links`                                      |
 | `0015`    | Public API Auth     | `public_api_credentials`                             |
+| `0016`    | Acquiring           | `acquiring_payments`, `acquiring_callbacks`          |
+| `0017`    | Transfers (fix)     | Drop `transfers.recipient_id` FK — allows merchant wallet recipients |
+| `0018`    | Environment isolation | `environment TEXT CHECK ('LIVE','SANDBOX')` added to `api_keys`, `transactions`, `webhook_endpoints`, `qr_codes`, `payment_links`, `payouts`, `transfers` |
 
 ### Financial Precision
 
@@ -1192,6 +1302,19 @@ Layer 4: Core API (core-api)
 - Only the SHA-256 hash is stored in PostgreSQL
 - The plaintext key is returned once at creation and never stored
 - Keys are per-merchant, per-scope, revocable individually
+- The key prefix encodes the environment — `bz_live_` for live, `bz_test_` for sandbox
+- The prefix is part of the raw key material before hashing, so a key cannot be reused across environments
+- The environment is also embedded as a signed claim in the JWT; a token with `environment = SANDBOX` is rejected by all live routes and vice-versa
+
+### Environment Isolation
+
+| Guarantee | Mechanism |
+|---|---|
+| `bz_test_` key rejected in live | Middleware validates key prefix against JWT environment claim |
+| `bz_live_` key rejected in sandbox | Same middleware — `403 LIVE_ONLY` returned |
+| Sandbox data never appears in live | `environment` column + `CHECK` constraint on 7 tables; separate DB in production |
+| Sandbox webhooks stay in sandbox | Webhook delivery filtered by `environment` at dispatch time |
+| Sandbox payouts never hit banking rails | Rust payout engine checks `environment` before calling acquirer |
 
 ### Idempotency
 
@@ -1298,9 +1421,11 @@ The script prints credentials ready to paste into the dashboard at `http://local
 
 ```
 Merchant ID   mch_xxxxxxxx-...
-API Key       bz_live_xxxxxxxx-...   ← shown only once
+API Key       bz_live_xxxxxxxx-...   ← shown only once (use bz_test_ key for sandbox testing)
 Wallet ID     wlt_xxxxxxxx-...
 ```
+
+To create a sandbox API key for local integration testing, pass `"environment": "SANDBOX"` to `POST /v1/merchants/{id}/api-keys`. The returned `bz_test_` key routes to the sandbox stack and shows the amber banner in the dashboard.
 
 **Admin panel** (`http://localhost:3002/login` locally, `https://admin.banzami.org` in production) uses the `ADMIN_API_KEY` from `.env`.
 
@@ -1325,7 +1450,8 @@ Payouts require available balance. Use the Admin panel (`http://localhost:3002`)
 ```bash
 # Terminal 0 — infrastructure
 make dev-up        # PostgreSQL :5433, Redis :6379
-make db-migrate    # apply all 15 migrations
+#                  # Sandbox: postgres-sandbox :5434, redis-sandbox :6380 (docker compose)
+make db-migrate    # apply all 18 migrations
 
 # Terminal 1 — Rust financial core (start first)
 make core-run      # :8081
@@ -1500,7 +1626,7 @@ The Rust job spins up a PostgreSQL 16 service container so `#[sqlx::test]` integ
 |----------------------|----------------------------------------------------|
 | `make dev-up`        | Start PostgreSQL and Redis                         |
 | `make dev-down`      | Stop infrastructure                                |
-| `make db-migrate`    | Apply all pending migrations                       |
+| `make db-migrate`    | Apply all pending migrations (currently 0001–0018) |
 | `make db-reset`      | Drop, recreate, and re-migrate dev database        |
 | `make core-run`      | Run the Rust core-api (:8081)                      |
 | `make gateway-run`   | Run the Go api-gateway (:8080)                     |

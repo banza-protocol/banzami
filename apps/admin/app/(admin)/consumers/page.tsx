@@ -14,10 +14,6 @@ export default function ConsumersPage() {
   const [error, setError]         = useState('');
 
   const [consumer, setConsumer]       = useState<Consumer | null>(null);
-  const [creditAmount, setCreditAmount] = useState('500');
-  const [creditLoading, setCreditLoading] = useState(false);
-  const [creditMsg, setCreditMsg]     = useState('');
-
   const loadConsumers = useCallback(async (q?: string) => {
     const session = getSession();
     if (!session) return;
@@ -38,24 +34,6 @@ export default function ConsumersPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     loadConsumers(search.trim() || undefined);
-  }
-
-  async function applyTestCredit() {
-    const session = getSession();
-    if (!session || !consumer) return;
-    const kz = Math.round(parseFloat(creditAmount));
-    if (!kz || kz <= 0) { setCreditMsg('Montante inválido.'); return; }
-    setCreditLoading(true); setCreditMsg('');
-    try {
-      const api = new AdminApi(session.apiUrl, session.adminKey);
-      const res = await api.testCreditConsumer(consumer.id, kz * 100);
-      const newBalanceKz = (res.new_balance / 100).toLocaleString('pt-AO');
-      setCreditMsg(`✓ ${kz.toLocaleString('pt-AO')} Kz creditados. Saldo actual: ${newBalanceKz} Kz`);
-    } catch (e) {
-      setCreditMsg(e instanceof Error ? e.message : 'Erro ao creditar.');
-    } finally {
-      setCreditLoading(false);
-    }
   }
 
   return (
@@ -87,7 +65,7 @@ export default function ConsumersPage() {
           {consumers.length > 0 && (
             <div className="bg-white rounded-lg shadow-card overflow-hidden divide-y divide-gray-100">
               {consumers.map(c => (
-                <button key={c.id} onClick={() => { setConsumer(c); setCreditMsg(''); }}
+                <button key={c.id} onClick={() => setConsumer(c)}
                   className="w-full flex items-center justify-between px-xl py-lg hover:bg-gray-50 transition-colors text-left">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
@@ -107,7 +85,7 @@ export default function ConsumersPage() {
       {/* ── Detail ───────────────────────────────────────────────────────── */}
       {consumer && (
         <>
-          <button onClick={() => { setConsumer(null); setCreditMsg(''); }}
+          <button onClick={() => setConsumer(null)}
             className="flex items-center gap-sm text-sm text-gray-400 hover:text-gray-900 transition-colors self-start">
             <ArrowLeft size={14} /> Voltar à lista
           </button>
@@ -124,36 +102,6 @@ export default function ConsumersPage() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-card p-xl border border-dashed border-warning/40">
-            <p className="text-xs font-medium text-warning uppercase tracking-wide mb-xs">Crédito de Teste</p>
-            <p className="text-xs text-gray-400 mb-lg">
-              Injeta saldo directamente na carteira AOA do consumidor via ledger. Apenas para desenvolvimento.
-            </p>
-            <div className="flex gap-md items-center">
-              <div className="flex items-center gap-xs flex-1">
-                <input
-                  type="number"
-                  min="1"
-                  value={creditAmount}
-                  onChange={e => setCreditAmount(e.target.value)}
-                  className="w-32 h-9 bg-gray-50 border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-warning/30"
-                />
-                <span className="text-sm text-gray-400">Kz</span>
-              </div>
-              <button
-                onClick={applyTestCredit}
-                disabled={creditLoading}
-                className="h-9 px-lg bg-warning/10 text-warning rounded-md text-xs font-medium hover:bg-warning/20 disabled:opacity-60 transition-colors whitespace-nowrap"
-              >
-                {creditLoading ? 'A creditar…' : 'Usar dados de teste'}
-              </button>
-            </div>
-            {creditMsg && (
-              <p className={`mt-md text-xs ${creditMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
-                {creditMsg}
-              </p>
-            )}
-          </div>
         </>
       )}
     </div>

@@ -47,7 +47,6 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		merchantH       := handler.NewMerchantHandler(core)
 		merchantSetupH  := handler.NewMerchantSetupHandler(core, mailer)
 		reconciliationH := handler.NewReconciliationHandler(core)
-		testCreditH     := handler.NewTestCreditHandler(core)
 		consumerH       := handler.NewConsumerHandler(core)
 
 		// Merchants
@@ -57,12 +56,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/merchants/{id}/api-keys",           merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
 		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
-		r.Post("/admin/v1/merchants/{id}/test-credit",   testCreditH.Credit)
 
 		// Consumers
 		r.Get("/admin/v1/consumers",                     consumerH.List)
 		r.Get("/admin/v1/consumers/{id}",                consumerH.Get)
-		r.Post("/admin/v1/consumers/{id}/test-credit",   consumerH.TestCredit)
 
 		// Compliance
 		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)

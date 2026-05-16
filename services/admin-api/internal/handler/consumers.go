@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -51,37 +50,3 @@ func (h *ConsumerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-// POST /admin/v1/consumers/{id}/test-credit
-// Body: { "amount_minor": 50000000, "currency": "AOA" }
-func (h *ConsumerHandler) TestCredit(w http.ResponseWriter, r *http.Request) {
-	consumerID := chi.URLParam(r, "id")
-
-	var body struct {
-		AmountMinor int64  `json:"amount_minor"`
-		Currency    string `json:"currency"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.AmountMinor <= 0 {
-		writeJSON(w, http.StatusBadRequest, map[string]any{
-			"error": map[string]any{"code": "INVALID_BODY", "message": "amount_minor must be a positive integer"},
-		})
-		return
-	}
-	if body.Currency == "" {
-		body.Currency = "AOA"
-	}
-
-	result, err := h.core.TestCreditConsumer(r.Context(), consumerID, body.AmountMinor, body.Currency)
-	if err != nil {
-		if errors.Is(err, service.ErrNotFound) {
-			writeJSON(w, http.StatusNotFound, map[string]any{
-				"error": map[string]any{"code": "WALLET_NOT_FOUND", "message": "no active wallet for consumer"},
-			})
-			return
-		}
-		writeJSON(w, http.StatusInternalServerError, map[string]any{
-			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
-		})
-		return
-	}
-	writeJSON(w, http.StatusOK, result)
-}
