@@ -159,95 +159,86 @@ Certificates are mounted read-only into the nginx container. No certbot or autom
 ### System Topology
 
 ```
-┌──────────────────────────────────────────────────────────────────────────┐
-│                            External Clients                               │
-│                                                                           │
-│  Merchant Apps   Admin Dashboard        Mobile Apps (Flutter)   Plugins   │
-│  (REST API)      admin.banzami.org       consumer + merchant    (WooComm.)│
-│  Python SDK      merchant.banzami.org   Hosted Checkout (:3004)           │
-└──────┬───────────────┬─────────────────────┬──────────────────┬──────────┘
-       │               │ (internal only)      │                  │
-       │           ┌───▼──────────────────┐   │                  │
-       │           │  Go Admin API  :8082  │   │                  │
-       │           │  X-Admin-Key auth     │   │                  │
-       │           │  Compliance lifecycle │   │                  │
-       │           │  Settlement mgmt      │   │                  │
-       │           │  Payout operations    │   │                  │
-       │           │  Reconciliation       │   │                  │
-       │           └───────────┬───────────┘   │                  │
-       │                       │               │                  │
-       ▼                       │               ▼                  │
-┌──────────────────┐           │  ┌────────────────────────────┐  │
-│ Cloudflare       │           │  │  Go Public API  :8083      │  │
-│ WAF / CDN        │           │  │  Consumer-facing (mobile)  │  │
-└────────┬─────────┘           │  │  PIN + JWT auth            │  │
-         │                     │  │  P2P transfers             │  │
-         ▼                     │  │  Consumer wallets          │  │
-┌──────────────────────────────┴──┴────────────────────────────┴──┐
-│               HTTP /internal/v1/*  (loopback, never internet)    │
-│                                                                   │
-│                    Go API Gateway  :8080                          │
-│                                                                   │
-│   JWT Bearer auth  │  Redis rate limiting (1,000 req/min)        │
-│   Redis idempotency keys  │  Request tracing  │  Panic recovery  │
-│                                                                   │
-│   POST /v1/auth/token          — API key → JWT exchange          │
-│   POST /v1/transactions        — initiate payment                │
-│   POST /v1/wallets             — provision wallet                │
-│   POST /v1/payouts             — request payout                  │
-│   POST /v1/webhooks/endpoints  — register webhook                │
-│   POST /v1/merchants           — register merchant               │
-└───────────────────────────────────┬──────────────────────────────┘
-                                    │ HTTP /internal/v1/*
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                               External Clients                                │
+│                                                                               │
+│   Merchant SDKs       Mobile App (Flutter)        Browser / QR scanner        │
+│   Plugins             consumer + merchant          pay / admin / business      │
+└────────────────────────────────────┬─────────────────────────────────────────┘
+                                     │  HTTPS
+                                     ▼
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                          Cloudflare  (proxy / WAF)                            │
+│                                                                               │
+│   DDoS protection  │  WAF rules  │  Bot management  │  SSL/TLS Full strict   │
+│   Origin Certificate validation   │  CF-Connecting-IP header injection        │
+│                                                                               │
+│   *.banzami.org  →  217.160.9.248 (IONOS VPS)  — proxied, orange cloud       │
+└───────────────────────────────────┬──────────────────────────────────────────┘
+                                    │  HTTPS  (Cloudflare Origin Certificate)
                                     ▼
-┌──────────────────────────────────────────────────────────────────┐
-│                    Rust Core API  :8081                           │
-│                                                                   │
-│  The single financial authority. Go services orchestrate.        │
-│  Go NEVER writes financial data directly to PostgreSQL.          │
-│                                                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
-│  │banzami-ledger│  │banzami-walls│  │banzami-transactions│      │
-│  │ Double-entry │  │ Reserve     │  │ Authorize          │      │
-│  │ Immutable    │  │ Release     │  │ Capture            │      │
-│  │ Balanced     │  │ Settle      │  │ Reverse / Fail     │      │
-│  └──────────────┘  └─────────────┘  └────────────────────┘      │
-│                                                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
-│  │banzami-settle│  │banzami-pouts│  │banzami-reconcil.   │      │
-│  │ Batch netting│  │ Lifecycle   │  │ Statement match    │      │
-│  │ Acquirer sub.│  │ Ledger DR/CR│  │ Discrepancy rpt    │      │
-│  └──────────────┘  └─────────────┘  └────────────────────┘      │
-│                                                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
-│  │banzami-comply│  │banzami-risk │  │banzami-routing     │      │
-│  │ KYB / KYC   │  │ Tx scoring  │  │ Acquirer selection │      │
-│  │ AML flagging │  │             │  │                    │      │
-│  └──────────────┘  └─────────────┘  └────────────────────┘      │
-│                                                                   │
-│  ┌──────────────┐  ┌─────────────┐  ┌────────────────────┐      │
-│  │banzami-cnsmr │  │banzami-trans│  │banzami-qr          │      │
-│  │ Consumer     │  │ P2P instant │  │ Static + dynamic   │      │
-│  │ wallets      │  │ transfers   │  │ QR payment codes   │      │
-│  └──────────────┘  └─────────────┘  └────────────────────┘      │
-│                                                                   │
-│  ┌──────────────┐  ┌─────────────┐                               │
-│  │banzami-links │  │banzami-ident│                               │
-│  │ Payment links│  │ Consumer ID │                               │
-│  │ Shareable URL│  │ Handle reg. │                               │
-│  └──────────────┘  └─────────────┘                               │
-└───────────────────────────────┬──────────────────────────────────┘
-                                 │
-                 ┌───────────────┴───────────────┐
-                 ▼                               ▼
-┌────────────────────────────┐   ┌───────────────────────────────┐
-│  PostgreSQL  (primary DB)  │   │           Redis               │
-│                            │   │                               │
-│  15 migration files        │   │  Rate limiting (sliding win.) │
-│  Immutable ledger entries  │   │  Idempotency key store        │
-│  Double-entry accounting   │   │  Session management           │
-│  All financial state       │   │  Distributed coordination     │
-└────────────────────────────┘   └───────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                     nginx  :80 / :443  (Docker container)                     │
+│                     TLS termination  ·  virtual host routing                  │
+│                                                                               │
+│  api.banzami.org      →  api-gateway:8080   (CORS: admin + business origins)  │
+│  consumer.banzami.org →  public-api:8083                                      │
+│  admin.banzami.org    →  admin-frontend:3002  +  /api/ → admin-api:8082       │
+│  business.banzami.org →  dashboard-frontend:3001                              │
+│  pay.banzami.org      →  checkout-frontend:3003                               │
+└──┬──────────────┬──────────────┬──────────────┬──────────────┬───────────────┘
+   │              │              │              │              │
+   ▼              ▼              ▼              ▼              ▼
+┌──────┐  ┌────────────┐  ┌──────────┐  ┌──────────┐  ┌────────────┐
+│Admin │  │ API Gateway│  │Public API│  │ Admin    │  │ Checkout   │
+│Front │  │ Go  :8080  │  │ Go :8083 │  │ Frontend │  │ Frontend   │
+│:3002 │  │            │  │          │  │ :3002    │  │ Next :3003 │
+│Next  │  │JWT auth    │  │PIN+JWT   │  │ Next.js  │  │ SSR pay    │
+└──────┘  │Rate limit  │  │P2P xfer  │  └──────────┘  │ links      │
+          │Idempotency │  │Consumer  │                 └────────────┘
+          │Webhooks    │  │wallets   │
+          └─────┬──────┘  └────┬─────┘
+                │              │
+                │   ┌──────────┘
+                │   │          ┌─────────────────────────┐
+                ▼   ▼          │   Admin API  Go  :8082   │
+┌──────────────────────────┐   │   X-Admin-Key auth       │
+│   Rust Core API  :8081   │◄──│   Settlements / Payouts  │
+│                          │   │   Reconciliation         │
+│  Single financial auth.  │   └─────────────────────────┘
+│  Go NEVER writes to DB   │
+│                          │
+│  ledger  (double-entry)  │
+│  wallets  (reserve/rel.) │
+│  transactions  (FSM)     │
+│  settlement  (netting)   │
+│  payouts  (lifecycle)    │
+│  reconciliation          │
+│  compliance  (KYB/AML)   │
+│  risk  (scoring)         │
+│  routing  (acquirer sel.)│
+│  transfers  (P2P)        │
+│  payment-links           │
+│  qr  (static/dynamic)    │
+│  identity  (handles)     │
+│  consumer-wallets        │
+└───────────┬──────────────┘
+            │
+    ┌───────┴────────┐
+    ▼                ▼
+┌──────────────┐  ┌──────────────────────────────┐
+│  PostgreSQL  │  │            Redis              │
+│  :5432       │  │            :6379              │
+│              │  │                              │
+│  Single SoT  │  │  Rate limiting (sliding win) │
+│  Immutable   │  │  Idempotency keys            │
+│  ledger      │  │  Session store               │
+│  All fin.    │  │  Distributed locking         │
+│  state       │  │  Password-protected          │
+└──────────────┘  └──────────────────────────────┘
+
+All containers run on the banzami_net Docker bridge network.
+Only nginx is reachable from outside (ports 80/443 on the host).
 ```
 
 ### Go ↔ Rust Boundary
