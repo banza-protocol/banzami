@@ -3,6 +3,7 @@ package middleware
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -33,16 +34,32 @@ func Auth(cfg *config.Config) func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			raw, err := extractBearer(r)
 			if err != nil {
+				slog.WarnContext(r.Context(), "auth.missing_token",
+					"ip", r.RemoteAddr,
+					"path", r.URL.Path,
+					"user_agent", r.Header.Get("User-Agent"),
+				)
 				apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", err.Error())
 				return
 			}
 
 			principal, err := verifyJWT(raw, cfg.JWTSecret)
 			if err != nil {
+				slog.WarnContext(r.Context(), "auth.invalid_token",
+					"ip", r.RemoteAddr,
+					"path", r.URL.Path,
+					"reason", err.Error(),
+				)
 				apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_TOKEN",
 					"token is invalid or expired")
 				return
 			}
+
+			slog.DebugContext(r.Context(), "auth.ok",
+				"merchant_id", principal.MerchantID,
+				"customer_id", principal.CustomerID,
+				"path", r.URL.Path,
+			)
 
 			ctx := context.WithValue(r.Context(), principalKey{}, principal)
 			next.ServeHTTP(w, r.WithContext(ctx))

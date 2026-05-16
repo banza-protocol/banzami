@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -38,10 +39,18 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 	merchant, err := h.merchantSvc.VerifyApiKey(r.Context(), body.ApiKey)
 	if err != nil {
 		if errors.Is(err, service.ErrKeyRevoked) {
+			slog.WarnContext(r.Context(), "auth.token.key_revoked",
+				"ip", r.RemoteAddr,
+				"user_agent", r.Header.Get("User-Agent"),
+			)
 			apierror.Respond(w, r, http.StatusUnauthorized, "KEY_REVOKED", "API key has been revoked")
 			return
 		}
 		// ErrInvalidApiKey and anything else → same 401 (no key enumeration)
+		slog.WarnContext(r.Context(), "auth.token.invalid_key",
+			"ip", r.RemoteAddr,
+			"user_agent", r.Header.Get("User-Agent"),
+		)
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "invalid API key")
 		return
 	}
@@ -56,6 +65,12 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to issue token")
 		return
 	}
+
+	slog.InfoContext(r.Context(), "auth.token.issued",
+		"merchant_id", merchant.ID,
+		"ip", r.RemoteAddr,
+		"expires_at", expiresAt,
+	)
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token":      token,
