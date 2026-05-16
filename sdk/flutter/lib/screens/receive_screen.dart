@@ -249,15 +249,10 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton.icon(
-                          key:       _shareButtonKey,
-                          onPressed: _sharing ? null : _shareQr,
-                          icon: _sharing
-                              ? const SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: BanzamiColors.white))
-                              : const Icon(Icons.share_rounded),
-                          label: const Text('Partilhar QR'),
+                          key:      _shareLinkButtonKey,
+                          onPressed: _shareLink,
+                          icon:  const Icon(Icons.link_rounded),
+                          label: const Text('Partilhar link'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: BanzamiColors.wine,
                             foregroundColor: BanzamiColors.white,
@@ -274,10 +269,15 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
-                          key:      _shareLinkButtonKey,
-                          onPressed: _shareLink,
-                          icon:  const Icon(Icons.link_rounded),
-                          label: const Text('Partilhar link'),
+                          key:       _shareButtonKey,
+                          onPressed: _sharing ? null : _shareQr,
+                          icon: _sharing
+                              ? const SizedBox(
+                                  width: 18, height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2, color: BanzamiColors.wine))
+                              : const Icon(Icons.share_rounded),
+                          label: const Text('Partilhar QR'),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: BanzamiColors.wine,
                             side:    const BorderSide(color: BanzamiColors.wine),
