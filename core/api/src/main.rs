@@ -152,17 +152,18 @@ async fn main() {
         .route("/internal/v1/reconciliation/runs/:id",  get(routes::reconciliation::get_report))
 
         // Consumers (identity)
-        .route("/internal/v1/consumers",                   post(routes::consumers::create))
+        .route("/internal/v1/consumers",                   get(routes::consumers::list).post(routes::consumers::create))
         .route("/internal/v1/consumers/:id",               get(routes::consumers::get))
         .route("/internal/v1/consumers/:id/suspend",       post(routes::consumers::suspend))
         .route("/internal/v1/consumers/:id/close",         post(routes::consumers::close))
         .route("/internal/v1/consumers/handle/:handle",    get(routes::consumers::get_by_handle))
 
         // Consumer wallets
-        .route("/internal/v1/consumer-wallets",            post(routes::consumer_wallets::create))
-        .route("/internal/v1/consumer-wallets",            get(routes::consumer_wallets::get_for_consumer))
-        .route("/internal/v1/consumer-wallets/:id",        get(routes::consumer_wallets::get))
-        .route("/internal/v1/consumer-wallets/:id/balance", get(routes::consumer_wallets::balance))
+        .route("/internal/v1/consumer-wallets",                   post(routes::consumer_wallets::create))
+        .route("/internal/v1/consumer-wallets",                   get(routes::consumer_wallets::get_for_consumer))
+        .route("/internal/v1/consumer-wallets/test-credit",       post(routes::consumer_wallets::test_credit))
+        .route("/internal/v1/consumer-wallets/:id",               get(routes::consumer_wallets::get))
+        .route("/internal/v1/consumer-wallets/:id/balance",       get(routes::consumer_wallets::balance))
 
         // Transfers
         .route("/internal/v1/transfers",        post(routes::transfers::send))

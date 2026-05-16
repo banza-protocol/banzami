@@ -1,16 +1,16 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use banzami_identity::{CreateConsumerRequest, IdentityEngine, IdentityError};
 
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 // ---------------------------------------------------------------------------
-// Request bodies
+// Request / query types
 // ---------------------------------------------------------------------------
 
 #[derive(Deserialize)]
@@ -19,9 +19,71 @@ pub struct CreateConsumerBody {
     pub display_name: Option<String>,
 }
 
+#[derive(Deserialize)]
+pub struct ListConsumersQuery {
+    pub handle: Option<String>,
+    pub limit:  Option<i64>,
+}
+
+#[derive(Serialize)]
+pub struct ConsumerListItem {
+    pub id:           String,
+    pub handle:       String,
+    pub display_name: Option<String>,
+    pub status:       String,
+    pub created_at:   String,
+}
+
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
+
+pub async fn list(
+    State(state): State<AppState>,
+    Query(q): Query<ListConsumersQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let limit = q.limit.unwrap_or(100).min(500);
+
+    let rows: Vec<(uuid::Uuid, String, Option<String>, String, chrono::DateTime<chrono::Utc>)> =
+        if let Some(handle) = &q.handle {
+            sqlx::query_as(
+                "SELECT id, handle, display_name, status, created_at
+                 FROM consumers
+                 WHERE handle ILIKE $1
+                 ORDER BY created_at DESC
+                 LIMIT $2",
+            )
+            .bind(format!("%{handle}%"))
+            .bind(limit)
+            .fetch_all(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+        } else {
+            sqlx::query_as(
+                "SELECT id, handle, display_name, status, created_at
+                 FROM consumers
+                 ORDER BY created_at DESC
+                 LIMIT $1",
+            )
+            .bind(limit)
+            .fetch_all(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+        };
+
+    let items: Vec<ConsumerListItem> = rows
+        .into_iter()
+        .map(|(id, handle, display_name, status, created_at)| ConsumerListItem {
+            id:           id.to_string(),
+            handle,
+            display_name,
+            status,
+            created_at:   created_at.to_rfc3339(),
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({ "data": items })))
+}
 
 pub async fn create(
     State(state): State<AppState>,
