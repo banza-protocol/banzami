@@ -1,3 +1,4 @@
+import 'package:banzami_sdk/banzami_sdk.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -5,6 +6,8 @@ import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  final pinnedClient = await PinnedHttpClient.create();
 
   // Lock orientation to portrait — standard for payment apps.
   await SystemChrome.setPreferredOrientations([
@@ -18,5 +21,5 @@ void main() async {
     statusBarBrightness:       Brightness.dark,
   ));
 
-  runApp(const BanzamiApp());
+  runApp(BanzamiApp(pinnedClient: pinnedClient));
 }

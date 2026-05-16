@@ -1,3 +1,4 @@
+import 'package:banzami_sdk/banzami_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,10 @@ void main() async {
   await PushNotificationService.initialize();
   await TransferNotificationService.initialize();
 
+  // Create the TLS-pinned HTTP client before the widget tree runs.
+  // Trusts only the Cloudflare Origin RSA Root CA; rejects all other issuers.
+  final pinnedClient = await PinnedHttpClient.create();
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -25,5 +30,5 @@ void main() async {
     statusBarBrightness:     Brightness.dark,
   ));
 
-  runApp(const BanzamiApp());
+  runApp(BanzamiApp(pinnedClient: pinnedClient));
 }
