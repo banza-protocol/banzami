@@ -80,22 +80,22 @@ export function QrDisplay({
       )}
 
       <div className="flex gap-sm">
-        {showDownload && (
-          <button
-            onClick={handleDownload}
-            className="flex items-center gap-sm h-9 px-lg bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
-          >
-            <Download size={15} />
-            Baixar QR
-          </button>
-        )}
         {showCopy && (
           <button
             onClick={handleCopy}
+            className="flex items-center gap-sm h-9 px-lg bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? 'Copiado' : 'Copiar link'}
+          </button>
+        )}
+        {showDownload && (
+          <button
+            onClick={handleDownload}
             className="flex items-center gap-sm h-9 px-lg border border-gray-200 text-gray-700 rounded-md text-sm font-medium hover:bg-gray-100 transition-colors"
           >
-            {copied ? <Check size={15} className="text-success" /> : <Copy size={15} />}
-            {copied ? 'Copiado' : 'Copiar link'}
+            <Download size={15} />
+            Baixar QR
           </button>
         )}
       </div>
