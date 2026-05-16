@@ -1,4 +1,7 @@
 services:
+  # ---------------------------------------------------------------------------
+  # LIVE (production-equivalent) services
+  # ---------------------------------------------------------------------------
   postgres:
     image: postgres:16-alpine
     environment:
@@ -31,6 +34,46 @@ services:
       retries:  10
     restart: unless-stopped
 
+  # ---------------------------------------------------------------------------
+  # SANDBOX services — completely isolated from the live stack above.
+  # Sandbox data NEVER touches the live database or live Redis.
+  # Use bz_test_ API keys to reach these services.
+  # ---------------------------------------------------------------------------
+  postgres-sandbox:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER:     banzami
+      POSTGRES_PASSWORD: banzami_sandbox
+      POSTGRES_DB:       banzami_sandbox
+    ports:
+      # Host port 5434 — distinct from live (5433) to prevent accidental cross-connection.
+      - "5434:5432"
+    volumes:
+      - postgres_sandbox_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U banzami -d banzami_sandbox"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    restart: unless-stopped
+
+  redis-sandbox:
+    image: redis:7-alpine
+    ports:
+      # Host port 6380 — distinct from live (6379).
+      - "6380:6379"
+    volumes:
+      - redis_sandbox_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+    healthcheck:
+      test:     ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout:  3s
+      retries:  10
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   redis_data:
+  postgres_sandbox_data:
+  redis_sandbox_data:
