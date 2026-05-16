@@ -25,6 +25,7 @@ RUN addgroup -S banzami && adduser -S banzami -G banzami
 
 COPY --from=builder --chown=banzami:banzami /app/.next/standalone ./
 COPY --from=builder --chown=banzami:banzami /app/.next/static ./.next/static
+COPY --from=builder --chown=banzami:banzami /app/public ./public
 
 USER banzami
 
