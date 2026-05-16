@@ -13,6 +13,7 @@ use tower_http::trace::TraceLayer;
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_qr::run_expiry_worker;
 use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
+use banzami_reconciliation::run_balance_checker;
 use banzami_settlement::run_settlement_scheduler;
 use banzami_types::Currency;
 use state::AppState;
@@ -88,9 +89,19 @@ async fn main() {
         .and_then(|s| s.parse::<u64>().ok())
         .unwrap_or(86_400);
     tokio::spawn(run_settlement_scheduler(
-        pool,
+        pool.clone(),
         Duration::from_secs(settlement_interval_secs),
     ));
+
+    // Spawn the ledger balance consistency checker.
+    // Runs hourly by default; override with BALANCE_CHECKER_INTERVAL_SECS.
+    // Logs errors for any invariant violations (unbalanced postings, negative
+    // consumer balances, orphaned completed transfers).
+    let balance_check_secs = env::var("BALANCE_CHECKER_INTERVAL_SECS")
+        .ok()
+        .and_then(|s| s.parse::<u64>().ok())
+        .unwrap_or(3_600);
+    tokio::spawn(run_balance_checker(pool, Duration::from_secs(balance_check_secs)));
 
     let app = Router::new()
         // Health
