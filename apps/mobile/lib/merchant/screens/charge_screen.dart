@@ -194,9 +194,10 @@ class _ChargeScreenState extends State<ChargeScreen> {
             ],
           ),
           child: QrImageView(
-            data:            _payUrl,
-            version:         QrVersions.auto,
-            size:            220,
+            data:                 _payUrl,
+            version:              QrVersions.auto,
+            size:                 220,
+            errorCorrectionLevel: QrErrorCorrectLevel.H,
             eyeStyle:        const QrEyeStyle(
               eyeShape: QrEyeShape.square,
               color:    BanzamiColors.wine,
@@ -205,6 +206,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
               dataModuleShape: QrDataModuleShape.square,
               color:           BanzamiColors.gray900,
             ),
+            embeddedImage:      const AssetImage('assets/images/banzami_icon_1024.png'),
+            embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),
 

@@ -18,10 +18,11 @@ export default function QrDisplay({ qrDataUrl }: QrDisplayProps) {
           height={220}
           className="block"
         />
-        {/* Center overlay: white circle with wine "B" */}
+        {/* Center overlay: Banzami logo */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-card ring-2 ring-white">
-            <span className="font-sans text-xl font-bold leading-none text-wine">B</span>
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-card ring-2 ring-white">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/banzami-icon.png" alt="Banzami" width={36} height={36} className="rounded-full" />
           </div>
         </div>
       </div>
