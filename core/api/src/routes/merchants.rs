@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use banzami_merchants::{CreateMerchantRequest, MerchantEngine, MerchantError};
+use banzami_merchants::{ApiKeyEnvironment, CreateMerchantRequest, MerchantEngine, MerchantError};
 use banzami_types::{ApiKeyId, MerchantId};
 
 use crate::{error::{ApiError, ApiResult}, state::AppState};
@@ -27,9 +27,10 @@ pub struct VerifyApiKeyBody {
 
 #[derive(Serialize)]
 pub struct VerifyApiKeyResponse {
-    pub merchant_id: String,
-    pub merchant_name: String,
+    pub merchant_id:     String,
+    pub merchant_name:   String,
     pub merchant_status: String,
+    pub environment:     String, // "LIVE" | "SANDBOX"
 }
 
 // ---------------------------------------------------------------------------
@@ -103,7 +104,7 @@ pub async fn verify_api_key(
         return Err(ApiError::bad_request("raw_key is required"));
     }
 
-    let (_key, merchant) = state
+    let (key, merchant) = state
         .merchant
         .verify_api_key(&body.raw_key)
         .await
@@ -121,6 +122,7 @@ pub async fn verify_api_key(
         merchant_id:     merchant.id.to_string(),
         merchant_name:   merchant.name,
         merchant_status: merchant.status.as_str().to_owned(),
+        environment:     key.environment.as_str().to_owned(),
     }))
 }
 
@@ -146,7 +148,9 @@ pub async fn suspend_merchant(
 
 #[derive(Deserialize)]
 pub struct CreateApiKeyBody {
-    pub name: String,
+    pub name:        String,
+    /// "LIVE" or "SANDBOX" — defaults to "LIVE" if omitted.
+    pub environment: Option<String>,
 }
 
 pub async fn create_api_key(
@@ -162,9 +166,14 @@ pub async fn create_api_key(
         return Err(ApiError::bad_request("name is required"));
     }
 
+    let environment = match body.environment.as_deref() {
+        Some("SANDBOX") => ApiKeyEnvironment::Sandbox,
+        _               => ApiKeyEnvironment::Live,
+    };
+
     let key_secret = state
         .merchant
-        .create_api_key(merchant_id, body.name)
+        .create_api_key(merchant_id, body.name, environment)
         .await
         .map_err(|e| match e {
             MerchantError::NotFound(_)  => ApiError::not_found("merchant not found"),
