@@ -75,6 +75,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
 	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
 	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
+	sandboxHandler       := handler.NewSandboxHandler(deps.TransactionSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -161,6 +162,15 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", paymentLinkHandler.Get)
 				r.Delete("/{id}", paymentLinkHandler.Cancel)
 				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
+			})
+
+			// Sandbox utilities — only functional with bz_test_ keys.
+			// Every handler in this group enforces SANDBOX environment internally.
+			r.Route("/sandbox", func(r chi.Router) {
+				r.Get("/status", sandboxHandler.Status)
+				r.Get("/instruments", sandboxHandler.ListInstruments)
+				r.Post("/fund", sandboxHandler.FundWallet)
+				r.Post("/simulate/payment", sandboxHandler.SimulatePayment)
 			})
 		})
 	})

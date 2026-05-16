@@ -30,6 +30,26 @@ const (
 	MerchantStatusClosed    MerchantStatus = "CLOSED"
 )
 
+// ApiKeyEnvironment identifies whether an API key grants access to the live
+// payment system or to the fully-isolated sandbox.
+// LIVE keys carry the prefix "bz_live_"; SANDBOX keys carry "bz_test_".
+// These two environments MUST NEVER share financial data.
+type ApiKeyEnvironment string
+
+const (
+	ApiKeyEnvironmentLive    ApiKeyEnvironment = "LIVE"
+	ApiKeyEnvironmentSandbox ApiKeyEnvironment = "SANDBOX"
+)
+
+// keySecretPrefix returns the secret prefix for the given environment.
+// The prefix is part of the raw key and therefore cryptographically bound to it.
+func (e ApiKeyEnvironment) keySecretPrefix() string {
+	if e == ApiKeyEnvironmentSandbox {
+		return "bz_test_"
+	}
+	return "bz_live_"
+}
+
 type MerchantRecord struct {
 	ID        string         `json:"id"`
 	Name      string         `json:"name"`
@@ -40,13 +60,14 @@ type MerchantRecord struct {
 }
 
 type ApiKeyRecord struct {
-	ID          string    `json:"id"`
-	MerchantID  string    `json:"merchant_id"`
-	Name        string    `json:"name"`
-	KeyPrefix   string    `json:"key_prefix"`
-	CreatedAt   time.Time `json:"created_at"`
-	LastUsedAt  *time.Time `json:"last_used_at,omitempty"`
-	RevokedAt   *time.Time `json:"revoked_at,omitempty"`
+	ID          string            `json:"id"`
+	MerchantID  string            `json:"merchant_id"`
+	Name        string            `json:"name"`
+	KeyPrefix   string            `json:"key_prefix"`
+	Environment ApiKeyEnvironment `json:"environment"`
+	CreatedAt   time.Time         `json:"created_at"`
+	LastUsedAt  *time.Time        `json:"last_used_at,omitempty"`
+	RevokedAt   *time.Time        `json:"revoked_at,omitempty"`
 }
 
 // ApiKeyWithSecret is returned only at key creation; the secret cannot be recovered later.
@@ -73,14 +94,16 @@ type MerchantService interface {
 	Get(ctx context.Context, id string) (*MerchantRecord, error)
 	Suspend(ctx context.Context, id string) (*MerchantRecord, error)
 
-	// CreateApiKey issues a new key. The raw secret in ApiKeyWithSecret is shown once.
-	CreateApiKey(ctx context.Context, merchantID, name string) (*ApiKeyWithSecret, error)
+	// CreateApiKey issues a new API key for the given environment.
+	// The raw secret in ApiKeyWithSecret is shown once and cannot be recovered.
+	CreateApiKey(ctx context.Context, merchantID, name string, env ApiKeyEnvironment) (*ApiKeyWithSecret, error)
 	ListApiKeys(ctx context.Context, merchantID string) ([]*ApiKeyRecord, error)
 	RevokeApiKey(ctx context.Context, merchantID, keyID string) error
 
-	// VerifyApiKey validates a raw API key and returns the owning merchant.
+	// VerifyApiKey validates a raw API key and returns the owning merchant plus
+	// the environment the key grants access to.
 	// Returns ErrInvalidApiKey for unknown keys and ErrKeyRevoked for revoked ones.
-	VerifyApiKey(ctx context.Context, rawKey string) (*MerchantRecord, error)
+	VerifyApiKey(ctx context.Context, rawKey string) (*MerchantRecord, ApiKeyEnvironment, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -88,15 +111,16 @@ type MerchantService interface {
 // ---------------------------------------------------------------------------
 
 type StubMerchantService struct {
-	mu       sync.RWMutex
+	mu        sync.RWMutex
 	merchants map[string]*MerchantRecord
 	apiKeys   map[string]*apiKeyInternal // keyed by id
 }
 
-// apiKeyInternal holds the hash alongside the public record for verification.
+// apiKeyInternal holds the hash and environment alongside the public record.
 type apiKeyInternal struct {
-	record  ApiKeyRecord
-	keyHash string
+	record      ApiKeyRecord
+	keyHash     string
+	environment ApiKeyEnvironment
 }
 
 func NewStubMerchantService() *StubMerchantService {
@@ -155,7 +179,7 @@ func (s *StubMerchantService) Suspend(_ context.Context, id string) (*MerchantRe
 	return &cp, nil
 }
 
-func (s *StubMerchantService) CreateApiKey(_ context.Context, merchantID, name string) (*ApiKeyWithSecret, error) {
+func (s *StubMerchantService) CreateApiKey(_ context.Context, merchantID, name string, env ApiKeyEnvironment) (*ApiKeyWithSecret, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
@@ -167,21 +191,24 @@ func (s *StubMerchantService) CreateApiKey(_ context.Context, merchantID, name s
 		return nil, ErrMerchantInactive
 	}
 
-	// Generate: bz_live_<uuid1><uuid2> — 256 bits of entropy from OS CSPRNG.
+	// Generate: <prefix><uuid1><uuid2> — 256 bits of entropy from OS CSPRNG.
+	// The prefix ("bz_live_" or "bz_test_") is part of the raw key and is
+	// therefore cryptographically bound to the environment.
 	a := uuid.NewString()
 	b := uuid.NewString()
-	raw    := fmt.Sprintf("bz_live_%s%s", removeHyphens(a), removeHyphens(b))
-	prefix := raw[8:16]
+	raw    := fmt.Sprintf("%s%s%s", env.keySecretPrefix(), removeHyphens(a), removeHyphens(b))
+	prefix := raw[len(env.keySecretPrefix()) : len(env.keySecretPrefix())+8]
 	hash   := hashKey(raw)
 
 	rec := ApiKeyRecord{
-		ID:         uuid.NewString(),
-		MerchantID: merchantID,
-		Name:       name,
-		KeyPrefix:  prefix,
-		CreatedAt:  time.Now().UTC(),
+		ID:          uuid.NewString(),
+		MerchantID:  merchantID,
+		Name:        name,
+		KeyPrefix:   prefix,
+		Environment: env,
+		CreatedAt:   time.Now().UTC(),
 	}
-	s.apiKeys[rec.ID] = &apiKeyInternal{record: rec, keyHash: hash}
+	s.apiKeys[rec.ID] = &apiKeyInternal{record: rec, keyHash: hash, environment: env}
 
 	return &ApiKeyWithSecret{ApiKeyRecord: rec, Secret: raw}, nil
 }
@@ -200,7 +227,7 @@ func (s *StubMerchantService) ListApiKeys(_ context.Context, merchantID string) 
 	return keys, nil
 }
 
-func (s *StubMerchantService) VerifyApiKey(_ context.Context, rawKey string) (*MerchantRecord, error) {
+func (s *StubMerchantService) VerifyApiKey(_ context.Context, rawKey string) (*MerchantRecord, ApiKeyEnvironment, error) {
 	h := hashKey(rawKey)
 
 	s.mu.RLock()
@@ -209,17 +236,17 @@ func (s *StubMerchantService) VerifyApiKey(_ context.Context, rawKey string) (*M
 	for _, k := range s.apiKeys {
 		if k.keyHash == h {
 			if k.record.RevokedAt != nil {
-				return nil, ErrKeyRevoked
+				return nil, "", ErrKeyRevoked
 			}
 			m, ok := s.merchants[k.record.MerchantID]
 			if !ok {
-				return nil, ErrMerchantNotFound
+				return nil, "", ErrMerchantNotFound
 			}
 			cp := *m
-			return &cp, nil
+			return &cp, k.environment, nil
 		}
 	}
-	return nil, ErrInvalidApiKey
+	return nil, "", ErrInvalidApiKey
 }
 
 func (s *StubMerchantService) RevokeApiKey(_ context.Context, merchantID, keyID string) error {

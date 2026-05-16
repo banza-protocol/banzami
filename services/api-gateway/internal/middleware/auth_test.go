@@ -59,7 +59,7 @@ func TestAuth_InvalidToken_Returns401(t *testing.T) {
 }
 
 func TestAuth_ValidMerchantToken_PassesThrough(t *testing.T) {
-	token, _, err := middleware.NewMerchantToken(testSecret, "merchant-001", []string{"*"}, time.Hour)
+	token, _, err := middleware.NewMerchantToken(testSecret, "merchant-001", []string{"*"}, "LIVE", time.Hour)
 	if err != nil {
 		t.Fatalf("NewMerchantToken: %v", err)
 	}
@@ -88,7 +88,7 @@ func TestAuth_ValidMerchantToken_PassesThrough(t *testing.T) {
 }
 
 func TestAuth_WrongSecret_Returns401(t *testing.T) {
-	token, _, err := middleware.NewMerchantToken("different-secret-xyz-at-least-32-chars", "merchant-001", []string{"*"}, time.Hour)
+	token, _, err := middleware.NewMerchantToken("different-secret-xyz-at-least-32-chars", "merchant-001", []string{"*"}, "LIVE", time.Hour)
 	if err != nil {
 		t.Fatalf("NewMerchantToken: %v", err)
 	}

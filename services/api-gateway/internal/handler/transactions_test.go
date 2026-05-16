@@ -25,13 +25,14 @@ type mockTxSvc struct {
 	createFn func(ctx context.Context, req service.CreateTransactionRequest) (*service.Transaction, error)
 	getFn    func(ctx context.Context, merchantID, id string) (*service.Transaction, error)
 	listFn   func(ctx context.Context, req service.ListTransactionsRequest) (*service.TransactionPage, error)
+	// getFn ignores environment for test simplicity
 }
 
 func (m *mockTxSvc) Create(ctx context.Context, req service.CreateTransactionRequest) (*service.Transaction, error) {
 	return m.createFn(ctx, req)
 }
 
-func (m *mockTxSvc) Get(ctx context.Context, merchantID, id string) (*service.Transaction, error) {
+func (m *mockTxSvc) Get(ctx context.Context, merchantID, id, environment string) (*service.Transaction, error) {
 	return m.getFn(ctx, merchantID, id)
 }
 

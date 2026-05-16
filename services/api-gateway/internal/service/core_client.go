@@ -82,6 +82,7 @@ func (r *coreTransactionResp) toTransaction() *Transaction {
 		MerchantID:     r.MerchantID,
 		IdempotencyKey: r.IdempotencyKey,
 		Description:    desc,
+		Environment:    "LIVE", // CoreApi always operates on live data
 		CreatedAt:      r.CreatedAt,
 	}
 }
@@ -111,6 +112,7 @@ func (s *CoreApiTransactionService) Get(
 	ctx context.Context,
 	_ string, // merchantID validated in the handler
 	id string,
+	_ string, // environment enforced by the core via JWT — passed for interface compatibility
 ) (*Transaction, error) {
 	var resp coreTransactionResp
 	if err := s.client.get(ctx, "/internal/v1/transactions/"+id, &resp); err != nil {
@@ -309,24 +311,30 @@ func (r *coreMerchantResp) toMerchantRecord() *MerchantRecord {
 
 // coreApiKeyResp matches the Rust ApiKey struct serialization.
 type coreApiKeyResp struct {
-	ID         string     `json:"id"`
-	MerchantID string     `json:"merchant_id"`
-	Name       string     `json:"name"`
-	KeyPrefix  string     `json:"key_prefix"`
-	CreatedAt  time.Time  `json:"created_at"`
-	LastUsedAt *time.Time `json:"last_used_at"`
-	RevokedAt  *time.Time `json:"revoked_at"`
+	ID          string     `json:"id"`
+	MerchantID  string     `json:"merchant_id"`
+	Name        string     `json:"name"`
+	KeyPrefix   string     `json:"key_prefix"`
+	Environment string     `json:"environment"` // "LIVE" | "SANDBOX"
+	CreatedAt   time.Time  `json:"created_at"`
+	LastUsedAt  *time.Time `json:"last_used_at"`
+	RevokedAt   *time.Time `json:"revoked_at"`
 }
 
 func (r *coreApiKeyResp) toApiKeyRecord() *ApiKeyRecord {
+	env := ApiKeyEnvironmentLive
+	if r.Environment == "SANDBOX" {
+		env = ApiKeyEnvironmentSandbox
+	}
 	return &ApiKeyRecord{
-		ID:         r.ID,
-		MerchantID: r.MerchantID,
-		Name:       r.Name,
-		KeyPrefix:  r.KeyPrefix,
-		CreatedAt:  r.CreatedAt,
-		LastUsedAt: r.LastUsedAt,
-		RevokedAt:  r.RevokedAt,
+		ID:          r.ID,
+		MerchantID:  r.MerchantID,
+		Name:        r.Name,
+		KeyPrefix:   r.KeyPrefix,
+		Environment: env,
+		CreatedAt:   r.CreatedAt,
+		LastUsedAt:  r.LastUsedAt,
+		RevokedAt:   r.RevokedAt,
 	}
 }
 
@@ -361,8 +369,8 @@ func (s *CoreApiMerchantService) Suspend(ctx context.Context, id string) (*Merch
 	return resp.toMerchantRecord(), nil
 }
 
-func (s *CoreApiMerchantService) CreateApiKey(ctx context.Context, merchantID, name string) (*ApiKeyWithSecret, error) {
-	body := map[string]string{"name": name}
+func (s *CoreApiMerchantService) CreateApiKey(ctx context.Context, merchantID, name string, env ApiKeyEnvironment) (*ApiKeyWithSecret, error) {
+	body := map[string]string{"name": name, "environment": string(env)}
 	var resp struct {
 		Key    coreApiKeyResp `json:"key"`
 		Secret string         `json:"secret"`
@@ -403,24 +411,29 @@ func (s *CoreApiMerchantService) RevokeApiKey(ctx context.Context, merchantID, k
 	return nil
 }
 
-func (s *CoreApiMerchantService) VerifyApiKey(ctx context.Context, rawKey string) (*MerchantRecord, error) {
+func (s *CoreApiMerchantService) VerifyApiKey(ctx context.Context, rawKey string) (*MerchantRecord, ApiKeyEnvironment, error) {
 	body := map[string]string{"raw_key": rawKey}
 	var resp struct {
 		MerchantID     string `json:"merchant_id"`
 		MerchantName   string `json:"merchant_name"`
 		MerchantStatus string `json:"merchant_status"`
+		Environment    string `json:"environment"` // "LIVE" | "SANDBOX"
 	}
 	if err := s.client.post(ctx, "/internal/v1/auth/verify-key", body, &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
-			return nil, ErrInvalidApiKey
+			return nil, "", ErrInvalidApiKey
 		}
-		return nil, ErrInvalidApiKey
+		return nil, "", ErrInvalidApiKey
+	}
+	env := ApiKeyEnvironmentLive
+	if resp.Environment == "SANDBOX" {
+		env = ApiKeyEnvironmentSandbox
 	}
 	return &MerchantRecord{
 		ID:     resp.MerchantID,
 		Name:   resp.MerchantName,
 		Status: MerchantStatus(resp.MerchantStatus),
-	}, nil
+	}, env, nil
 }
 
 // ---------------------------------------------------------------------------
