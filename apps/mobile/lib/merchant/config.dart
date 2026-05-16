@@ -6,7 +6,7 @@
 abstract final class AppConfig {
   static const String gatewayUrl = String.fromEnvironment(
     'GATEWAY_URL',
-    defaultValue: 'http://localhost:8080',
+    defaultValue: 'https://api.banzami.org',
   );
 
   static const String payBaseUrl = String.fromEnvironment(

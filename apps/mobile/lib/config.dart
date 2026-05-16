@@ -8,6 +8,6 @@ abstract class AppConfig {
   /// Pass via --dart-define=PUBLIC_API_URL=https://api.banzami.org at build time.
   static const String publicApiUrl = String.fromEnvironment(
     'PUBLIC_API_URL',
-    defaultValue: 'http://localhost:8083',
+    defaultValue: 'https://consumer.banzami.org',
   );
 }
