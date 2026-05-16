@@ -8,6 +8,7 @@ import { formatMinor } from '@/lib/money';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
+import { QrDisplay } from '@/components/ui/qr-display';
 
 const PAY_BASE = process.env.NEXT_PUBLIC_PAY_URL ?? 'https://pay.banzami.org';
 const STATUSES = ['', 'ACTIVE', 'USED', 'EXPIRED', 'CANCELLED'] as const;
@@ -140,6 +141,7 @@ export default function PaymentLinksPage() {
           onCreated={() => { setShowModal(false); setRows([]); load(undefined); }}
         />
       )}
+
     </div>
   );
 }
@@ -204,13 +206,10 @@ function CreateLinkModal({
   onClose:   () => void;
   onCreated: () => void;
 }) {
-  const [form, setForm] = useState({
-    amount:      '',
-    description: '',
-    expiresAt:   '',
-  });
-  const [error, setError]     = useState('');
-  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ amount: '', description: '', expiresAt: '' });
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
+  const [created, setCreated]   = useState<PaymentLink | null>(null);
 
   function set(k: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -238,14 +237,15 @@ function CreateLinkModal({
     setLoading(true);
     setError('');
     try {
-      const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
-      await api.createPaymentLink({
+      const api  = new BanzamiApi(session.gatewayUrl, session.apiKey);
+      const link = await api.createPaymentLink({
         merchantId:  session.merchantId,
         walletId:    session.walletId,
         amountMinor,
         description: form.description.trim() || undefined,
         expiresAt:   form.expiresAt || undefined,
       });
+      setCreated(link);
       onCreated();
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
@@ -254,71 +254,126 @@ function CreateLinkModal({
     }
   }
 
+  function resetForm() {
+    setCreated(null);
+    setForm({ amount: '', description: '', expiresAt: '' });
+    setError('');
+  }
+
   const inputCls = 'h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors';
+  const url      = created ? linkUrl(created.slug) : '';
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-xl">
       <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-xl">
-        <div className="flex items-center justify-between mb-xl">
-          <h2 className="text-base font-semibold text-gray-900">Nova Cobrança</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
-            <X size={18} />
-          </button>
-        </div>
 
-        <form onSubmit={submit} className="flex flex-col gap-lg">
-          <Field label="Montante (Kz) — deixe em branco para valor livre">
-            <input
-              type="number"
-              min="1"
-              step="1"
-              value={form.amount}
-              onChange={set('amount')}
-              className={inputCls}
-              placeholder="ex: 5000"
-            />
-          </Field>
+        {/* ── Result view with QR ── */}
+        {created ? (
+          <>
+            <div className="flex items-center justify-between mb-xl">
+              <h2 className="text-base font-semibold text-gray-900">Cobrança criada</h2>
+              <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+                <X size={18} />
+              </button>
+            </div>
 
-          <Field label="Descrição (opcional)">
-            <input
-              type="text"
-              value={form.description}
-              onChange={set('description')}
-              className={inputCls}
-              placeholder="ex: Jantar para 2"
-            />
-          </Field>
+            <div className="flex flex-col items-center gap-lg">
+              <QrDisplay
+                data={url}
+                size={220}
+                label={created.amount_minor != null ? formatMinor(created.amount_minor, created.currency) : undefined}
+                sublabel={created.description ?? undefined}
+                downloadName={`qr-cobranca-${created.slug}`}
+                showCopy
+                copyValue={url}
+              />
 
-          <Field label="Expira em (opcional)">
-            <input
-              type="datetime-local"
-              value={form.expiresAt}
-              onChange={set('expiresAt')}
-              className={inputCls}
-            />
-          </Field>
+              <div className="w-full bg-gray-100 rounded-md px-lg py-sm font-mono text-xs text-gray-700 break-all select-all">
+                {url}
+              </div>
 
-          {error && (
-            <p className="text-sm text-error bg-error-bg rounded-md px-md py-sm">{error}</p>
-          )}
+              <div className="flex gap-md w-full">
+                <button
+                  onClick={resetForm}
+                  className="flex-1 h-10 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                >
+                  Nova cobrança
+                </button>
+                <button
+                  onClick={onClose}
+                  className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          </>
+        ) : (
 
-          <div className="flex gap-md">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 h-10 border border-gray-100 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors"
-            >
-              {loading ? 'A criar…' : 'Criar cobrança'}
+        /* ── Creation form ── */
+        <>
+          <div className="flex items-center justify-between mb-xl">
+            <h2 className="text-base font-semibold text-gray-900">Nova Cobrança</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+              <X size={18} />
             </button>
           </div>
-        </form>
+
+          <form onSubmit={submit} className="flex flex-col gap-lg">
+            <Field label="Montante (Kz) — deixe em branco para valor livre">
+              <input
+                type="number"
+                min="1"
+                step="1"
+                value={form.amount}
+                onChange={set('amount')}
+                className={inputCls}
+                placeholder="ex: 5000"
+              />
+            </Field>
+
+            <Field label="Descrição (opcional)">
+              <input
+                type="text"
+                value={form.description}
+                onChange={set('description')}
+                className={inputCls}
+                placeholder="ex: Jantar para 2"
+              />
+            </Field>
+
+            <Field label="Expira em (opcional)">
+              <input
+                type="datetime-local"
+                value={form.expiresAt}
+                onChange={set('expiresAt')}
+                className={inputCls}
+              />
+            </Field>
+
+            {error && (
+              <p className="text-sm text-error bg-error-bg rounded-md px-md py-sm">{error}</p>
+            )}
+
+            <div className="flex gap-md">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 h-10 border border-gray-100 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors"
+              >
+                {loading ? 'A criar…' : 'Criar cobrança'}
+              </button>
+            </div>
+          </form>
+        </>
+        )}
       </div>
     </div>
   );

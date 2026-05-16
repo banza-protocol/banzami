@@ -8,6 +8,7 @@ import {
   Wallet,
   Banknote,
   Link2,
+  QrCode,
   Webhook,
   Settings,
   LogOut,
@@ -20,6 +21,7 @@ const NAV = [
   { href: '/wallets',        label: 'Carteiras',      icon: Wallet          },
   { href: '/payouts',        label: 'Pagamentos',     icon: Banknote        },
   { href: '/payment-links',  label: 'Cobranças',      icon: Link2           },
+  { href: '/receive',        label: 'Receber (QR)',   icon: QrCode          },
   { href: '/webhooks',       label: 'Webhooks',       icon: Webhook         },
   { href: '/settings',       label: 'Definições',     icon: Settings        },
 ];

@@ -124,6 +124,21 @@ export interface PaymentLinkPage {
   next_cursor?: string;
 }
 
+export interface QrResponse {
+  qr_code: {
+    id:           string;
+    owner_id:     string;
+    owner_type:   string;
+    qr_type:      string;
+    currency:     string;
+    amount_minor: number | null;
+    status:       string;
+    expires_at:   string | null;
+    created_at:   string;
+  };
+  payload: string;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -293,5 +308,17 @@ export class BanzamiApi {
 
   cancelPaymentLink(id: string): Promise<PaymentLink> {
     return this.req<PaymentLink>(`/payment-links/${id}`, { method: 'DELETE' });
+  }
+
+  // QR codes
+  createStaticQr(opts: { ownerId: string; ownerType: 'MERCHANT' | 'CONSUMER'; currency?: string }): Promise<QrResponse> {
+    return this.req<QrResponse>('/qr/static', {
+      method: 'POST',
+      body:   JSON.stringify({
+        owner_id:   opts.ownerId,
+        owner_type: opts.ownerType,
+        currency:   opts.currency ?? 'AOA',
+      }),
+    });
   }
 }
