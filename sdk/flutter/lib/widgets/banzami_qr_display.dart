@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
@@ -6,10 +8,11 @@ import '../utils/money_format.dart';
 
 /// Displays a scannable QR code for a Banzami payment payload.
 ///
-/// For static QR: shows the raw payload string.
-/// For dynamic QR: shows payload + pre-set amount label.
-class BanzamiQrDisplay extends StatelessWidget {
-  /// The Base64url-encoded payload string produced by QrEngine.encode().
+/// Loads [embeddedImage] once via [ImageStream] and renders it with
+/// [QrPainter] + [CustomPaint] to avoid the repeated-load bug in
+/// QrImageView's internal FutureBuilder.
+class BanzamiQrDisplay extends StatefulWidget {
+  /// The payload string to encode in the QR.
   final String payload;
 
   /// Optional label shown below the QR (e.g. "500 Kz").
@@ -34,7 +37,6 @@ class BanzamiQrDisplay extends StatelessWidget {
     this.embeddedImage,
   });
 
-  /// Convenience constructor for dynamic QR with an amount in minor units.
   factory BanzamiQrDisplay.dynamic({
     Key? key,
     required String payload,
@@ -55,51 +57,99 @@ class BanzamiQrDisplay extends StatelessWidget {
   }
 
   @override
+  State<BanzamiQrDisplay> createState() => _BanzamiQrDisplayState();
+}
+
+class _BanzamiQrDisplayState extends State<BanzamiQrDisplay> {
+  ui.Image?           _loadedImage;
+  ImageStream?        _stream;
+  ImageStreamListener? _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachStream(widget.embeddedImage);
+  }
+
+  @override
+  void didUpdateWidget(BanzamiQrDisplay old) {
+    super.didUpdateWidget(old);
+    if (widget.embeddedImage != old.embeddedImage) {
+      _detachStream();
+      _attachStream(widget.embeddedImage);
+    }
+  }
+
+  @override
+  void dispose() {
+    _detachStream();
+    super.dispose();
+  }
+
+  void _attachStream(ImageProvider? provider) {
+    if (provider == null) return;
+    _listener = ImageStreamListener((info, _) {
+      if (mounted) setState(() => _loadedImage = info.image);
+    });
+    _stream = provider.resolve(ImageConfiguration.empty);
+    _stream!.addListener(_listener!);
+  }
+
+  void _detachStream() {
+    if (_stream != null && _listener != null) {
+      _stream!.removeListener(_listener!);
+    }
+    _stream   = null;
+    _listener = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding:     const EdgeInsets.all(BanzamiSpacing.xl),
-          decoration:  BoxDecoration(
+          padding:    const EdgeInsets.all(BanzamiSpacing.xl),
+          decoration: BoxDecoration(
             color:        BanzamiColors.white,
             borderRadius: BanzamiRadius.lgAll,
             border:       Border.all(color: BanzamiColors.gray100),
             boxShadow:    BanzamiShadows.card,
           ),
-          child: QrImageView(
-            data:                 payload,
-            version:              QrVersions.auto,
-            size:                 size,
-            errorCorrectionLevel: embeddedImage != null
-                ? QrErrorCorrectLevel.H
-                : QrErrorCorrectLevel.M,
-            eyeStyle:        const QrEyeStyle(
-              eyeShape: QrEyeShape.square,
-              color:    BanzamiColors.wine,
+          child: CustomPaint(
+            size: Size(widget.size, widget.size),
+            painter: QrPainter(
+              data:                 widget.payload,
+              version:              QrVersions.auto,
+              errorCorrectionLevel: widget.embeddedImage != null
+                  ? QrErrorCorrectLevel.H
+                  : QrErrorCorrectLevel.M,
+              eyeStyle:        const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color:    BanzamiColors.wine,
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color:           BanzamiColors.gray900,
+              ),
+              embeddedImage:      _loadedImage,
+              embeddedImageStyle: _loadedImage != null
+                  ? QrEmbeddedImageStyle(size: Size(widget.size * 0.2, widget.size * 0.2))
+                  : null,
             ),
-            dataModuleStyle: const QrDataModuleStyle(
-              dataModuleShape: QrDataModuleShape.square,
-              color:           BanzamiColors.gray900,
-            ),
-            embeddedImage:      embeddedImage,
-            embeddedImageStyle: embeddedImage != null
-                ? QrEmbeddedImageStyle(size: Size(size * 0.2, size * 0.2))
-                : null,
-            backgroundColor: BanzamiColors.white,
           ),
         ),
-        if (amountLabel != null) ...[
+        if (widget.amountLabel != null) ...[
           const SizedBox(height: BanzamiSpacing.lg),
           Text(
-            amountLabel!,
+            widget.amountLabel!,
             style: BanzamiTextStyles.monoLg.copyWith(color: BanzamiColors.gray900),
           ),
         ],
-        if (subtitle != null) ...[
+        if (widget.subtitle != null) ...[
           const SizedBox(height: BanzamiSpacing.xs),
           Text(
-            subtitle!,
+            widget.subtitle!,
             style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
           ),
         ],
