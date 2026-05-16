@@ -34,6 +34,7 @@ type Transaction struct {
 	MerchantID     string    `json:"merchant_id"`
 	IdempotencyKey string    `json:"idempotency_key"`
 	Description    string    `json:"description,omitempty"`
+	Environment    string    `json:"environment"` // "LIVE" | "SANDBOX"
 	CreatedAt      time.Time `json:"created_at"`
 }
 
@@ -46,14 +47,16 @@ type CreateTransactionRequest struct {
 	Description     string
 	MerchantID      string // populated from the authenticated principal, not the request body
 	WalletID        string // optional; core derives from merchant context if empty
+	Environment     string // "LIVE" | "SANDBOX" — populated from the authenticated principal
 }
 
 // ListTransactionsRequest parameterises a paginated transaction listing.
 type ListTransactionsRequest struct {
-	MerchantID string
-	Cursor     string     // opaque keyset cursor; empty means first page
-	Limit      int        // 1–100; callers must clamp before passing
-	Since      *time.Time // inclusive lower bound on created_at; nil means no lower bound
+	MerchantID  string
+	Environment string     // "LIVE" | "SANDBOX" — only return records for this environment
+	Cursor      string     // opaque keyset cursor; empty means first page
+	Limit       int        // 1–100; callers must clamp before passing
+	Since       *time.Time // inclusive lower bound on created_at; nil means no lower bound
 }
 
 // TransactionPage is the paginated list response.
@@ -69,9 +72,14 @@ type TransactionPage struct {
 //  2. Run risk assessment
 //  3. Post a double-entry ledger entry via banzami-ledger
 //  4. Route the payment to the appropriate acquirer via banzami-routing
+//
+// All operations are scoped to the environment embedded in the request.
+// LIVE and SANDBOX transactions are stored and returned independently.
 type TransactionService interface {
 	Create(ctx context.Context, req CreateTransactionRequest) (*Transaction, error)
-	Get(ctx context.Context, merchantID, id string) (*Transaction, error)
+	// Get fetches a single transaction. environment must match the record's
+	// environment — a SANDBOX principal cannot read LIVE records and vice-versa.
+	Get(ctx context.Context, merchantID, id, environment string) (*Transaction, error)
 	List(ctx context.Context, req ListTransactionsRequest) (*TransactionPage, error)
 }
 
@@ -93,6 +101,10 @@ func NewStubTransactionService() *StubTransactionService {
 }
 
 func (s *StubTransactionService) Create(_ context.Context, req CreateTransactionRequest) (*Transaction, error) {
+	env := req.Environment
+	if env == "" {
+		env = "LIVE"
+	}
 	tx := &Transaction{
 		ID:             uuid.NewString(),
 		Status:         "PENDING",
@@ -101,6 +113,7 @@ func (s *StubTransactionService) Create(_ context.Context, req CreateTransaction
 		MerchantID:     req.MerchantID,
 		IdempotencyKey: req.IdempotencyKey,
 		Description:    req.Description,
+		Environment:    env,
 		CreatedAt:      time.Now().UTC(),
 	}
 	s.mu.Lock()
@@ -109,11 +122,11 @@ func (s *StubTransactionService) Create(_ context.Context, req CreateTransaction
 	return tx, nil
 }
 
-func (s *StubTransactionService) Get(_ context.Context, merchantID, id string) (*Transaction, error) {
+func (s *StubTransactionService) Get(_ context.Context, merchantID, id, environment string) (*Transaction, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for _, tx := range s.rows {
-		if tx.ID == id && tx.MerchantID == merchantID {
+		if tx.ID == id && tx.MerchantID == merchantID && tx.Environment == environment {
 			cp := *tx
 			return &cp, nil
 		}
@@ -123,10 +136,10 @@ func (s *StubTransactionService) Get(_ context.Context, merchantID, id string) (
 
 func (s *StubTransactionService) List(_ context.Context, req ListTransactionsRequest) (*TransactionPage, error) {
 	s.mu.RLock()
-	// Collect all transactions for this merchant, sort newest-first.
+	// Collect all transactions for this merchant in the requested environment.
 	var all []*Transaction
 	for _, tx := range s.rows {
-		if tx.MerchantID == req.MerchantID {
+		if tx.MerchantID == req.MerchantID && tx.Environment == req.Environment {
 			cp := *tx
 			all = append(all, &cp)
 		}

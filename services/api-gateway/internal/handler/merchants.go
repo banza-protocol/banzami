@@ -79,11 +79,19 @@ func (h *MerchantHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 }
 
 // POST /v1/merchants/{id}/api-keys
+//
+// Request body:
+//
+//	{"name": "My integration key", "environment": "LIVE"}
+//
+// environment defaults to "LIVE". Use "SANDBOX" to create a test key
+// (bz_test_ prefix) that only works against the sandbox data universe.
 func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 	merchantID := chi.URLParam(r, "id")
 
 	var body struct {
-		Name string `json:"name"`
+		Name        string `json:"name"`
+		Environment string `json:"environment"` // "LIVE" | "SANDBOX"; defaults to "LIVE"
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_REQUEST", "request body is not valid JSON")
@@ -94,7 +102,19 @@ func (h *MerchantHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.svc.CreateApiKey(r.Context(), merchantID, body.Name)
+	env := service.ApiKeyEnvironmentLive
+	switch body.Environment {
+	case "", "LIVE":
+		env = service.ApiKeyEnvironmentLive
+	case "SANDBOX":
+		env = service.ApiKeyEnvironmentSandbox
+	default:
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR",
+			`environment must be "LIVE" or "SANDBOX"`)
+		return
+	}
+
+	result, err := h.svc.CreateApiKey(r.Context(), merchantID, body.Name, env)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrMerchantNotFound):

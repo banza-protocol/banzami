@@ -36,7 +36,7 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	merchant, err := h.merchantSvc.VerifyApiKey(r.Context(), body.ApiKey)
+	merchant, env, err := h.merchantSvc.VerifyApiKey(r.Context(), body.ApiKey)
 	if err != nil {
 		if errors.Is(err, service.ErrKeyRevoked) {
 			slog.WarnContext(r.Context(), "auth.token.key_revoked",
@@ -59,6 +59,7 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 		h.cfg.JWTSecret,
 		merchant.ID,
 		[]string{"*"},
+		string(env),
 		tokenTTL,
 	)
 	if err != nil {
@@ -68,13 +69,15 @@ func (h *AuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 
 	slog.InfoContext(r.Context(), "auth.token.issued",
 		"merchant_id", merchant.ID,
+		"environment", string(env),
 		"ip", r.RemoteAddr,
 		"expires_at", expiresAt,
 	)
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"token":      token,
-		"expires_at": expiresAt,
-		"token_type": "Bearer",
+		"token":       token,
+		"expires_at":  expiresAt,
+		"token_type":  "Bearer",
+		"environment": string(env),
 	})
 }

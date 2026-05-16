@@ -22,6 +22,10 @@ type Principal struct {
 	// Scopes controls what the principal is allowed to do.
 	// Use "*" to grant full access (admin/internal tokens only).
 	Scopes []string
+	// Environment is "LIVE" or "SANDBOX" — derived from the API key used to
+	// obtain this token. All data access is scoped to this environment;
+	// cross-environment operations are rejected at the handler layer.
+	Environment string
 }
 
 type principalKey struct{}
@@ -106,12 +110,15 @@ func RequireScope(scope string) func(http.Handler) http.Handler {
 
 // NewMerchantToken mints a signed JWT for the given merchant. The returned
 // string is the expiry time in RFC3339, suitable for inclusion in the response.
-func NewMerchantToken(secret, merchantID string, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {
+// environment must be "LIVE" or "SANDBOX" and is embedded as a claim so that
+// every downstream handler knows which data universe the caller may access.
+func NewMerchantToken(secret, merchantID string, scopes []string, environment string, ttl time.Duration) (token, expiresAt string, err error) {
 	now := time.Now()
 	exp := now.Add(ttl)
 	claims := &jwtClaims{
-		MerchantID: merchantID,
-		Scopes:     scopes,
+		MerchantID:  merchantID,
+		Scopes:      scopes,
+		Environment: environment,
 		RegisteredClaims: jwt.RegisteredClaims{
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(exp),
@@ -130,9 +137,10 @@ func NewMerchantToken(secret, merchantID string, scopes []string, ttl time.Durat
 // ---------------------------------------------------------------------------
 
 type jwtClaims struct {
-	MerchantID string   `json:"merchant_id,omitempty"`
-	CustomerID string   `json:"customer_id,omitempty"`
-	Scopes     []string `json:"scopes"`
+	MerchantID  string   `json:"merchant_id,omitempty"`
+	CustomerID  string   `json:"customer_id,omitempty"`
+	Scopes      []string `json:"scopes"`
+	Environment string   `json:"environment,omitempty"` // "LIVE" | "SANDBOX"
 	jwt.RegisteredClaims
 }
 
@@ -171,8 +179,9 @@ func verifyJWT(tokenStr, secret string) (*Principal, error) {
 	}
 
 	return &Principal{
-		MerchantID: c.MerchantID,
-		CustomerID: c.CustomerID,
-		Scopes:     c.Scopes,
+		MerchantID:  c.MerchantID,
+		CustomerID:  c.CustomerID,
+		Scopes:      c.Scopes,
+		Environment: c.Environment,
 	}, nil
 }

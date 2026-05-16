@@ -79,6 +79,7 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Description:     body.Description,
 		MerchantID:      principal.MerchantID,
 		WalletID:        body.WalletID,
+		Environment:     principal.Environment,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
@@ -99,7 +100,7 @@ func (h *TransactionHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 
 	id := chi.URLParam(r, "id")
-	tx, err := h.svc.Get(r.Context(), principal.MerchantID, id)
+	tx, err := h.svc.Get(r.Context(), principal.MerchantID, id, principal.Environment)
 	if err != nil {
 		if errors.Is(err, service.ErrTransactionNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND",
@@ -150,10 +151,11 @@ func (h *TransactionHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, err := h.svc.List(r.Context(), service.ListTransactionsRequest{
-		MerchantID: principal.MerchantID,
-		Cursor:     r.URL.Query().Get("cursor"),
-		Limit:      limit,
-		Since:      since,
+		MerchantID:  principal.MerchantID,
+		Environment: principal.Environment,
+		Cursor:      r.URL.Query().Get("cursor"),
+		Limit:       limit,
+		Since:       since,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
