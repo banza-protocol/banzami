@@ -40,11 +40,20 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     super.dispose();
   }
 
+  // Only accept payloads that look like Banzami payment links (deep-link or
+  // web URL form). Size-limit prevents crash from pathologically large QR data.
+  static bool _isValidPayload(String value) {
+    if (value.length > 512) return false;
+    return value.startsWith('banzami://pay/') ||
+           value.startsWith('https://pay.banzami.org/');
+  }
+
   void _onDetect(BarcodeCapture capture) {
     if (_scanned) return;
     final barcode = capture.barcodes.firstOrNull;
     final value   = barcode?.rawValue;
     if (value == null || value.isEmpty) return;
+    if (!_isValidPayload(value)) return;
 
     _scanned = true;
     widget.onDetected(value);
