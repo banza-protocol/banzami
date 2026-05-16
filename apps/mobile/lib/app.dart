@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
 
@@ -17,7 +18,9 @@ import 'screens/onboarding/welcome_screen.dart';
 final _navigatorKey = GlobalKey<NavigatorState>();
 
 class BanzamiApp extends StatefulWidget {
-  const BanzamiApp({super.key});
+  final Client pinnedClient;
+
+  const BanzamiApp({super.key, required this.pinnedClient});
 
   @override
   State<BanzamiApp> createState() => _BanzamiAppState();
@@ -59,7 +62,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => SessionService()..initialize()),
-        Provider(create: (_) => ConsumerPublicClient(baseUrl: AppConfig.publicApiUrl)),
+        Provider(create: (_) => ConsumerPublicClient(
+          baseUrl:    AppConfig.publicApiUrl,
+          httpClient: widget.pinnedClient,
+        )),
       ],
       child: Consumer<SessionService>(
         builder: (context, session, _) {

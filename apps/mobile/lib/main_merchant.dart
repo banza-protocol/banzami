@@ -1,3 +1,4 @@
+import 'package:banzami_sdk/banzami_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,8 @@ void main() async {
   await PushNotificationService.initialize();
   await PaymentNotificationService.initialize();
 
+  final pinnedClient = await PinnedHttpClient.create();
+
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
@@ -26,5 +29,5 @@ void main() async {
   ));
 
   FlutterNativeSplash.remove();
-  runApp(const BanzamiMerchantApp());
+  runApp(BanzamiMerchantApp(pinnedClient: pinnedClient));
 }
