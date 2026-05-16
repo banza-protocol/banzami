@@ -65,7 +65,7 @@ async fn check_posting_balance(pool: &PgPool) -> Result<(), sqlx::Error> {
                 WHEN 'CREDIT' THEN -e.amount_minor
                 ELSE 0
             END
-        ) AS net
+        )::bigint AS net
         FROM ledger_postings p
         JOIN ledger_entries e ON e.posting_id = p.id
         GROUP BY p.id
@@ -113,7 +113,7 @@ async fn check_no_negative_consumer_balances(pool: &PgPool) -> Result<(), sqlx::
                     WHEN 'DEBIT'  THEN -le.amount_minor
                     ELSE 0
                 END
-            ), 0) AS balance
+            )::bigint, 0) AS balance
         FROM consumer_wallets cw
         LEFT JOIN ledger_entries le ON le.account_id = cw.available_account_id
         WHERE cw.status = 'ACTIVE'
