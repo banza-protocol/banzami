@@ -1,8 +1,10 @@
 export interface Session {
-  apiKey:     string;
-  merchantId: string;
-  walletId?:  string;
-  gatewayUrl: string;
+  apiKey:      string;
+  merchantId:  string;
+  walletId?:   string;
+  gatewayUrl:  string;
+  /** 'live' for production keys (bz_live_…); 'sandbox' for test keys (bz_test_…). */
+  environment: 'live' | 'sandbox';
 }
 
 const KEY = 'banzami_session';
