@@ -225,6 +225,30 @@ func (c *CoreAdminClient) CaptureTransaction(ctx context.Context, txID string) (
 }
 
 // ---------------------------------------------------------------------------
+// Consumers
+// ---------------------------------------------------------------------------
+
+func (c *CoreAdminClient) ListConsumers(ctx context.Context, handle string) (map[string]any, error) {
+	path := "/internal/v1/consumers"
+	if handle != "" {
+		path += "?handle=" + handle
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetConsumer(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/consumers/"+id, &out)
+}
+
+func (c *CoreAdminClient) TestCreditConsumer(ctx context.Context, consumerID string, amountMinor int64, currency string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/consumer-wallets/test-credit",
+		map[string]any{"consumer_id": consumerID, "amount_minor": amountMinor, "currency": currency}, &out)
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 
