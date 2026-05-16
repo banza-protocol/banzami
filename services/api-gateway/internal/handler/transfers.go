@@ -1,23 +1,28 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 type TransferHandler struct {
 	svc service.TransferService
+	fcm *notify.FCMService
 }
 
-func NewTransferHandler(svc service.TransferService) *TransferHandler {
-	return &TransferHandler{svc: svc}
+func NewTransferHandler(svc service.TransferService, fcm *notify.FCMService) *TransferHandler {
+	return &TransferHandler{svc: svc, fcm: fcm}
 }
 
 // POST /v1/transfers
@@ -79,7 +84,45 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	go h.notifyRecipient(transfer)
+
 	respond(w, http.StatusCreated, transfer)
+}
+
+// notifyRecipient sends a best-effort FCM push to the transfer recipient.
+// Runs in a goroutine so it never delays the HTTP response.
+func (h *TransferHandler) notifyRecipient(t *service.Transfer) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	body := fmt.Sprintf("Recebeu %s", formatTransferAmount(t.Amount.AmountMinor, t.Amount.Currency))
+	if t.Description != nil && *t.Description != "" {
+		body = fmt.Sprintf("%s — %s", body, *t.Description)
+	}
+	h.fcm.SendToConsumer(ctx, t.RecipientID, "Banzami", body)
+}
+
+// formatTransferAmount formats a minor-unit amount for push notification text.
+// Uses pt_PT style (dot thousands separator) for AOA.
+func formatTransferAmount(minor int64, currency string) string {
+	whole := minor / 100
+	if currency == "AOA" {
+		return fmt.Sprintf("%s Kz", insertThousandsSep(whole))
+	}
+	frac := minor % 100
+	return fmt.Sprintf("%s.%02d %s", insertThousandsSep(whole), frac, currency)
+}
+
+func insertThousandsSep(n int64) string {
+	s := fmt.Sprintf("%d", n)
+	out := make([]byte, 0, len(s)+len(s)/3)
+	for i, c := range []byte(s) {
+		if i > 0 && (len(s)-i)%3 == 0 {
+			out = append(out, '.')
+		}
+		out = append(out, c)
+	}
+	return string(out)
 }
 
 // GET /v1/transfers/{id}

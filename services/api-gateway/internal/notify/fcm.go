@@ -35,6 +35,37 @@ func NewFCMService(ctx context.Context, credentialsJSON string) (*FCMService, er
 	return &FCMService{client: client}, nil
 }
 
+// SendToConsumer publishes a push notification to the FCM topic
+// "consumer_<consumerID>", which the consumer app subscribes to on login.
+//
+// Errors are logged but never propagated — push notifications are best-effort.
+func (s *FCMService) SendToConsumer(ctx context.Context, consumerID, title, body string) {
+	if s == nil {
+		return
+	}
+	_, err := s.client.Send(ctx, &messaging.Message{
+		Notification: &messaging.Notification{
+			Title: title,
+			Body:  body,
+		},
+		Android: &messaging.AndroidConfig{
+			Priority: "high",
+		},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{
+				Aps: &messaging.Aps{Sound: "default"},
+			},
+		},
+		Topic: "consumer_" + consumerID,
+	})
+	if err != nil {
+		slog.Error("fcm: consumer notification failed",
+			"consumer_id", consumerID,
+			"error", err,
+		)
+	}
+}
+
 // SendToMerchant publishes a push notification to the FCM topic
 // "merchant_<merchantID>", which all devices signed in as that merchant
 // subscribe to on app launch.
