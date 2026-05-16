@@ -145,13 +145,15 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
 
         // Derive sender's available balance from ledger entries.
         // LIABILITY account: balance = -(sum of signed_minor_units) = sum(credits) - sum(debits).
+        // SUM(BIGINT) returns NUMERIC in PostgreSQL; cast back to BIGINT so sqlx
+        // can decode it as i64 without a type mismatch error.
         let raw_balance: i64 = sqlx::query_scalar(
             "SELECT COALESCE(
                  SUM(CASE entry_type
                      WHEN 'DEBIT'  THEN -amount_minor
                      WHEN 'CREDIT' THEN  amount_minor
                      END),
-                 0)
+                 0)::BIGINT
              FROM ledger_entries
              WHERE account_id = $1",
         )
