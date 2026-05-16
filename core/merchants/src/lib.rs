@@ -3,7 +3,7 @@ pub mod engine;
 pub mod merchant;
 pub mod repository;
 
-pub use api_key::{ApiKey, ApiKeySecret};
+pub use api_key::{ApiKey, ApiKeyEnvironment, ApiKeySecret};
 pub use engine::{MerchantEngine, PostgresMerchantEngine};
 pub use merchant::{CreateMerchantRequest, Merchant, MerchantStatus};
 pub use repository::{

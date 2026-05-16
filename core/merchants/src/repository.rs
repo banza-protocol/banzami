@@ -5,7 +5,7 @@ use uuid::Uuid;
 use banzami_types::{ApiKeyId, MerchantId};
 
 use crate::{
-    api_key::ApiKey,
+    api_key::{ApiKey, ApiKeyEnvironment},
     merchant::{Merchant, MerchantStatus},
     MerchantError,
 };
@@ -58,6 +58,7 @@ struct ApiKeyRow {
     name:         String,
     key_prefix:   String,
     key_hash:     String,
+    environment:  String,
     created_at:   DateTime<Utc>,
     last_used_at: Option<DateTime<Utc>>,
     revoked_at:   Option<DateTime<Utc>>,
@@ -91,7 +92,7 @@ const MERCHANT_SELECT: &str =
     "SELECT id, name, email, status, created_at, updated_at FROM merchants";
 
 const API_KEY_SELECT: &str =
-    "SELECT id, merchant_id, name, key_prefix, key_hash, created_at, last_used_at, revoked_at
+    "SELECT id, merchant_id, name, key_prefix, key_hash, environment, created_at, last_used_at, revoked_at
      FROM api_keys";
 
 impl MerchantRepository for PostgresMerchantRepository {
@@ -187,20 +188,27 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
     async fn create(&self, k: ApiKey) -> Result<ApiKey, MerchantError> {
         sqlx::query(
             "INSERT INTO api_keys
-             (id, merchant_id, name, key_prefix, key_hash, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6)",
+             (id, merchant_id, name, key_prefix, key_hash, environment, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
         .bind(k.id.as_uuid())
         .bind(k.merchant_id.as_uuid())
         .bind(&k.name)
         .bind(&k.key_prefix)
         .bind(&k.key_hash)
+        .bind(k.environment.as_str())
         .bind(k.created_at)
         .execute(&self.pool)
         .await
         .map_err(MerchantError::Database)?;
 
-        tracing::info!(key_id = %k.id, merchant_id = %k.merchant_id, prefix = %k.key_prefix, "API key created");
+        tracing::info!(
+            key_id      = %k.id,
+            merchant_id = %k.merchant_id,
+            prefix      = %k.key_prefix,
+            environment = %k.environment.as_str(),
+            "API key created"
+        );
         Ok(k)
     }
 
@@ -291,11 +299,16 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
 }
 
 fn api_key_from_row(row: ApiKeyRow) -> Result<ApiKey, MerchantError> {
+    let environment = match row.environment.as_str() {
+        "SANDBOX" => ApiKeyEnvironment::Sandbox,
+        _         => ApiKeyEnvironment::Live,
+    };
     Ok(ApiKey {
         id:           ApiKeyId::from_uuid(row.id),
         merchant_id:  MerchantId::from_uuid(row.merchant_id),
         name:         row.name,
         key_prefix:   row.key_prefix,
+        environment,
         key_hash:     row.key_hash,
         created_at:   row.created_at,
         last_used_at: row.last_used_at,

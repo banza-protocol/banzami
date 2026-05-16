@@ -3,7 +3,7 @@ use chrono::Utc;
 use banzami_types::{ApiKeyId, MerchantId};
 
 use crate::{
-    api_key::{generate_raw_key, hash_key, key_prefix, ApiKey, ApiKeySecret},
+    api_key::{generate_raw_key, hash_key, key_prefix, ApiKey, ApiKeyEnvironment, ApiKeySecret},
     merchant::{CreateMerchantRequest, Merchant, MerchantStatus},
     repository::{ApiKeyRepository, MerchantRepository},
     MerchantError,
@@ -26,6 +26,7 @@ pub trait MerchantEngine: Send + Sync {
         &self,
         merchant_id: MerchantId,
         name: String,
+        environment: ApiKeyEnvironment,
     ) -> Result<ApiKeySecret, MerchantError>;
 
     async fn list_api_keys(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
@@ -89,14 +90,14 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
         &self,
         merchant_id: MerchantId,
         name: String,
+        environment: ApiKeyEnvironment,
     ) -> Result<ApiKeySecret, MerchantError> {
-        // Reject if the merchant doesn't exist or is inactive.
         let merchant = self.merchant_repo.get(merchant_id).await?;
         if !merchant.is_active() {
             return Err(MerchantError::NotActive(merchant_id));
         }
 
-        let raw    = generate_raw_key();
+        let raw    = generate_raw_key(environment);
         let prefix = key_prefix(&raw);
         let hash   = hash_key(&raw);
         let now    = Utc::now();
@@ -106,6 +107,7 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
             merchant_id,
             name,
             key_prefix:   prefix,
+            environment,
             key_hash:     hash,
             created_at:   now,
             last_used_at: None,
@@ -378,12 +380,13 @@ mod tests {
         let m = create_acme(&engine).await;
 
         let result = engine
-            .create_api_key(m.id, "test key".into())
+            .create_api_key(m.id, "test key".into(), ApiKeyEnvironment::Live)
             .await
             .unwrap();
 
         assert!(result.secret.starts_with("bz_live_"));
         assert_eq!(result.key.merchant_id, m.id);
+        assert_eq!(result.key.environment, ApiKeyEnvironment::Live);
         assert!(result.key.is_active());
         // Prefix is the first 8 chars after "bz_live_"
         assert_eq!(&result.secret[8..16], result.key.key_prefix);
@@ -395,10 +398,11 @@ mod tests {
     async fn verify_valid_key_returns_key_and_merchant() {
         let engine = make_engine();
         let m = create_acme(&engine).await;
-        let issued = engine.create_api_key(m.id, "ci key".into()).await.unwrap();
+        let issued = engine.create_api_key(m.id, "ci key".into(), ApiKeyEnvironment::Live).await.unwrap();
 
         let (key, merchant) = engine.verify_api_key(&issued.secret).await.unwrap();
         assert_eq!(key.id, issued.key.id);
+        assert_eq!(key.environment, ApiKeyEnvironment::Live);
         assert_eq!(merchant.id, m.id);
     }
 
@@ -413,7 +417,7 @@ mod tests {
     async fn verify_revoked_key_returns_error() {
         let engine = make_engine();
         let m = create_acme(&engine).await;
-        let issued = engine.create_api_key(m.id, "temp key".into()).await.unwrap();
+        let issued = engine.create_api_key(m.id, "temp key".into(), ApiKeyEnvironment::Live).await.unwrap();
 
         engine.revoke_api_key(issued.key.id).await.unwrap();
 
@@ -427,7 +431,7 @@ mod tests {
         let m = create_acme(&engine).await;
         engine.suspend(m.id).await.unwrap();
 
-        let result = engine.create_api_key(m.id, "blocked key".into()).await;
+        let result = engine.create_api_key(m.id, "blocked key".into(), ApiKeyEnvironment::Live).await;
         assert!(matches!(result, Err(MerchantError::NotActive(_))));
     }
 }
