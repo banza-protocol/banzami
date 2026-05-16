@@ -9,6 +9,7 @@ import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
+import 'receive_hub_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -77,9 +78,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         logoAssetPath: 'assets/images/banzami_icon_1024.png',
       ),
       const HistoryScreen(),
-      BanzamiReceiveScreen(
-        handle:        session.handle,
-        logoAssetPath: 'assets/images/banzami_icon_1024.png',
+      ReceiveHubScreen(
+        onViewAll: () => setState(() => _tab = 1),
       ),
       const ProfileScreen(),
     ];
