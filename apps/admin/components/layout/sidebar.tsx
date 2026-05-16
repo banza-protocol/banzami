@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building2, Layers, Banknote, RefreshCw, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Layers, Banknote, RefreshCw, LogOut } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 
 const NAV = [
   { href: '/',               label: 'Visão geral',  icon: LayoutDashboard },
   { href: '/merchants',      label: 'Comerciantes', icon: Building2       },
+  { href: '/consumers',      label: 'Consumidores', icon: Users           },
   { href: '/settlements',    label: 'Liquidações',  icon: Layers          },
   { href: '/payouts',        label: 'Pagamentos',   icon: Banknote        },
   { href: '/reconciliation', label: 'Reconciliação',icon: RefreshCw       },

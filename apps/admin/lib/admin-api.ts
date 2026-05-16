@@ -62,6 +62,14 @@ export interface Merchant {
   created_at: string;
 }
 
+export interface Consumer {
+  id:           string;
+  handle:       string;
+  display_name: string | null;
+  status:       string;
+  created_at:   string;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -191,6 +199,25 @@ export class AdminApi {
   }
   markPayoutReturned(id: string, reason: string): Promise<Payout> {
     return this.req(`/admin/v1/payouts/${id}/returned`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  // Consumers
+  listConsumers(handle?: string): Promise<{ data: Consumer[] }> {
+    const q = handle ? `?handle=${encodeURIComponent(handle)}` : '';
+    return this.req(`/admin/v1/consumers${q}`);
+  }
+  getConsumer(id: string): Promise<Consumer> { return this.req(`/admin/v1/consumers/${id}`); }
+
+  testCreditConsumer(consumerId: string, amountMinor: number, currency = 'AOA'): Promise<{
+    consumer_id:  string;
+    currency:     string;
+    amount_minor: number;
+    new_balance:  number;
+  }> {
+    return this.req(`/admin/v1/consumers/${consumerId}/test-credit`, {
+      method: 'POST',
+      body: JSON.stringify({ amount_minor: amountMinor, currency }),
+    });
   }
 
   // Test utilities (dev only)
