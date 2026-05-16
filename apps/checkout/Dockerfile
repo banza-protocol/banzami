@@ -9,6 +9,8 @@ RUN npm ci
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+ARG NEXT_PUBLIC_PAY_API_URL=https://api.banzami.org
+ENV NEXT_PUBLIC_PAY_API_URL=$NEXT_PUBLIC_PAY_API_URL
 RUN npm run build
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
