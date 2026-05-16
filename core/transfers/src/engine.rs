@@ -106,22 +106,42 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         }
 
         // Fetch recipient's available_account_id (no lock needed — we're only crediting).
-        let recipient_available_acct: uuid::Uuid = sqlx::query_scalar(
-            "SELECT available_account_id
-             FROM consumer_wallets
-             WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'
-             ORDER BY created_at ASC
-             LIMIT 1",
-        )
-        .bind(req.recipient_id.as_uuid())
-        .bind(req.currency.code())
-        .fetch_optional(&mut *db_tx)
-        .await
-        .map_err(TransferError::Database)?
-        .ok_or_else(|| TransferError::WalletNotFound {
-            consumer_id: req.recipient_id,
-            currency:    req.currency,
-        })?;
+        // Try consumer_wallets first (P2P transfers); fall back to merchant wallets
+        // (payment link payments where recipient_id is the merchant wallet UUID).
+        let recipient_available_acct: uuid::Uuid = {
+            let consumer_acct: Option<uuid::Uuid> = sqlx::query_scalar(
+                "SELECT available_account_id
+                 FROM consumer_wallets
+                 WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'
+                 ORDER BY created_at ASC
+                 LIMIT 1",
+            )
+            .bind(req.recipient_id.as_uuid())
+            .bind(req.currency.code())
+            .fetch_optional(&mut *db_tx)
+            .await
+            .map_err(TransferError::Database)?;
+
+            if let Some(acct) = consumer_acct {
+                acct
+            } else {
+                // Recipient is a merchant wallet — look up by wallet UUID directly.
+                sqlx::query_scalar(
+                    "SELECT available_account_id
+                     FROM wallets
+                     WHERE id = $1 AND currency = $2 AND status = 'ACTIVE'",
+                )
+                .bind(req.recipient_id.as_uuid())
+                .bind(req.currency.code())
+                .fetch_optional(&mut *db_tx)
+                .await
+                .map_err(TransferError::Database)?
+                .ok_or_else(|| TransferError::WalletNotFound {
+                    consumer_id: req.recipient_id,
+                    currency:    req.currency,
+                })?
+            }
+        };
 
         // Derive sender's available balance from ledger entries.
         // LIABILITY account: balance = -(sum of signed_minor_units) = sum(credits) - sum(debits).

@@ -94,9 +94,13 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Execute: debit consumer wallet → credit merchant wallet, then mark link used.
+	// SenderID must be the consumer's UUID (not the wallet UUID) — the transfer engine
+	// resolves the wallet internally via consumer_id. RecipientID is the merchant's
+	// wallet UUID; the engine falls back to the `wallets` table when the recipient is
+	// not found in consumer_wallets.
 	_, err = h.core.SendTransfer(r.Context(), service.SendTransferRequest{
 		IdempotencyKey: "pl-pay-" + link.ID,
-		SenderID:       senderWallet.ID,
+		SenderID:       consumer.ID,
 		RecipientID:    link.WalletID,
 		AmountMinor:    *amountMinor,
 		Currency:       link.Currency,

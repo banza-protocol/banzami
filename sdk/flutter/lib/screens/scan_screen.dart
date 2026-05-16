@@ -146,8 +146,9 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool cameraActive = _step == _ScanStep.scanning || _step == _ScanStep.resolving;
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: cameraActive ? Colors.black : BanzamiColors.offWhite,
       body: switch (_step) {
         _ScanStep.scanning  => BanzamiQrScanner(
             onDetected: _onScanned,
@@ -172,83 +173,110 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         : p is _LinkPayload && p.link.amountMinor != null
             ? formatMinor(p.link.amountMinor!, p.link.currency)
             : null;
-    final String title = p is _HandlePayload ? 'Enviar para @${p.handle}' : 'Pagar link';
+    final String title    = p is _HandlePayload ? 'Enviar para @${p.handle}' : 'Pagar link';
     final String? subtitle = p is _LinkPayload ? p.link.description : null;
 
     return SafeArea(
-      child: Padding(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(BanzamiSpacing.xl),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SizedBox(height: BanzamiSpacing.xl),
+
+            // Header card
             Container(
-              width:       double.infinity,
-              padding:     const EdgeInsets.all(BanzamiSpacing.xl),
-              decoration:  const BoxDecoration(
-                color:        BanzamiColors.white,
+              padding:    const EdgeInsets.symmetric(
+                horizontal: BanzamiSpacing.xl,
+                vertical:   BanzamiSpacing.xxl,
+              ),
+              decoration: const BoxDecoration(
+                gradient:     BanzamiGradients.wine,
                 borderRadius: BanzamiRadius.xlAll,
               ),
-              child: Column(
-                children: [
-                  Icon(
-                    p is _HandlePayload
-                        ? Icons.person_rounded
-                        : Icons.link_rounded,
-                    size:  48,
-                    color: BanzamiColors.wine,
+              child: Column(children: [
+                Icon(
+                  p is _HandlePayload ? Icons.person_rounded : Icons.link_rounded,
+                  size:  40,
+                  color: BanzamiColors.white,
+                ),
+                const SizedBox(height: BanzamiSpacing.md),
+                Text(
+                  title,
+                  style:     BanzamiTextStyles.headingMd.copyWith(color: BanzamiColors.white),
+                  textAlign: TextAlign.center,
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: BanzamiSpacing.xs),
+                  Text(
+                    subtitle,
+                    style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white.withValues(alpha: 0.75)),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: BanzamiSpacing.md),
-                  Text(title, style: BanzamiTextStyles.headingMd, textAlign: TextAlign.center),
-                  if (subtitle != null) ...[
-                    const SizedBox(height: BanzamiSpacing.xs),
-                    Text(subtitle,
-                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                  const SizedBox(height: BanzamiSpacing.lg),
-                  if (fixedLabel != null)
-                    Text(
-                      fixedLabel,
-                      style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.wine),
-                    )
-                  else if (needsAmount) ...[
-                    const Text('Montante', style: BanzamiTextStyles.headingSm),
-                    const SizedBox(height: BanzamiSpacing.sm),
-                    BanzamiAmountInput(
-                      onChanged: (v) => setState(() => _enteredAmount = v),
-                    ),
-                  ],
-
-                  if (_error != null) ...[
-                    const SizedBox(height: BanzamiSpacing.md),
-                    Text(
-                      _error!,
-                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.error),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-
-                  const SizedBox(height: BanzamiSpacing.xl),
-                  Row(children: [
-                    Expanded(
-                      child: BanzamiButton.secondary(
-                        label:     'Cancelar',
-                        onPressed: _rescan,
-                      ),
-                    ),
-                    const SizedBox(width: BanzamiSpacing.md),
-                    Expanded(
-                      child: BanzamiButton(
-                        label:     'Confirmar',
-                        isLoading: _processing,
-                        onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
-                      ),
-                    ),
-                  ]),
                 ],
-              ),
+                if (fixedLabel != null) ...[
+                  const SizedBox(height: BanzamiSpacing.lg),
+                  Text(
+                    fixedLabel,
+                    style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.white),
+                  ),
+                ],
+              ]),
             ),
+
+            const SizedBox(height: BanzamiSpacing.xl),
+
+            // Amount input for open links/transfers
+            if (needsAmount) ...[
+              Container(
+                padding:    const EdgeInsets.all(BanzamiSpacing.xl),
+                decoration: const BoxDecoration(
+                  color:        BanzamiColors.white,
+                  borderRadius: BanzamiRadius.lgAll,
+                  boxShadow:    BanzamiShadows.card,
+                ),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Montante', style: BanzamiTextStyles.headingSm),
+                  const SizedBox(height: BanzamiSpacing.md),
+                  BanzamiAmountInput(onChanged: (v) => setState(() => _enteredAmount = v)),
+                ]),
+              ),
+              const SizedBox(height: BanzamiSpacing.xl),
+            ],
+
+            // Error banner
+            if (_error != null) ...[
+              Container(
+                padding:    const EdgeInsets.all(BanzamiSpacing.md),
+                decoration: const BoxDecoration(
+                  color:        BanzamiColors.errorBg,
+                  borderRadius: BanzamiRadius.mdAll,
+                ),
+                child: Text(
+                  _error!,
+                  style:     BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+              const SizedBox(height: BanzamiSpacing.lg),
+            ],
+
+            Row(children: [
+              Expanded(
+                child: BanzamiButton.secondary(
+                  label:     'Cancelar',
+                  onPressed: _rescan,
+                ),
+              ),
+              const SizedBox(width: BanzamiSpacing.md),
+              Expanded(
+                child: BanzamiButton(
+                  label:     'Confirmar',
+                  isLoading: _processing,
+                  onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
+                ),
+              ),
+            ]),
           ],
         ),
       ),
@@ -263,14 +291,27 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 56),
-              const SizedBox(height: BanzamiSpacing.lg),
-              Text(
-                _error ?? 'Código QR inválido',
-                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white),
-                textAlign: TextAlign.center,
+              Container(
+                width: 72, height: 72,
+                decoration: const BoxDecoration(
+                  color:        BanzamiColors.errorBg,
+                  borderRadius: BanzamiRadius.fullAll,
+                ),
+                child: const Icon(Icons.qr_code_scanner_rounded, color: BanzamiColors.error, size: 36),
               ),
               const SizedBox(height: BanzamiSpacing.xl),
+              Text(
+                _error ?? 'Código QR inválido',
+                style:     BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: BanzamiSpacing.sm),
+              Text(
+                'Verifique o código e tente novamente.',
+                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: BanzamiSpacing.xxl),
               BanzamiButton(
                 label:     'Tentar novamente',
                 onPressed: _rescan,
