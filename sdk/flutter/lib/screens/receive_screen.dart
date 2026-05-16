@@ -114,6 +114,19 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     });
   }
 
+  String get _shareUrl {
+    final base = 'https://pay.banzami.org/u/${widget.handle}';
+    if (_amountSet && _amountMinor > 0) return '$base?amount=$_amountMinor';
+    return base;
+  }
+
+  Future<void> _shareLink() async {
+    await Share.share(
+      _shareUrl,
+      subject: 'Pagar @${widget.handle} via Banzami',
+    );
+  }
+
   Future<void> _shareQr() async {
     if (_sharing) return;
     setState(() => _sharing = true);
@@ -238,6 +251,25 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                             foregroundColor: BanzamiColors.white,
                             padding:   const EdgeInsets.symmetric(vertical: 14),
                             shape:     RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14)),
+                            textStyle: BanzamiTextStyles.headingSm,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: BanzamiSpacing.sm),
+
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _shareLink,
+                          icon:  const Icon(Icons.link_rounded),
+                          label: const Text('Partilhar link'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: BanzamiColors.wine,
+                            side:    const BorderSide(color: BanzamiColors.wine),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape:   RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
                             textStyle: BanzamiTextStyles.headingSm,
                           ),
