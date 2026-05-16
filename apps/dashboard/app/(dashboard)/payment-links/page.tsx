@@ -226,7 +226,7 @@ function CreateLinkModal({
     }
 
     const amountMinor = form.amount.trim()
-      ? Math.round(parseFloat(form.amount))
+      ? Math.round(parseFloat(form.amount) * 100)
       : null;
 
     if (amountMinor !== null && (isNaN(amountMinor) || amountMinor <= 0)) {

@@ -1,8 +1,9 @@
 export function formatAmount(amountMinor: number, currency: string): string {
+  const major = amountMinor / 100;
   if (currency.toUpperCase() === 'AOA') {
-    return `${amountMinor.toLocaleString('pt-AO')} Kz`;
+    return `${major.toLocaleString('pt-AO', { minimumFractionDigits: 0, maximumFractionDigits: 2 })} Kz`;
   }
-  return new Intl.NumberFormat('pt-AO', { style: 'currency', currency }).format(amountMinor / 100);
+  return new Intl.NumberFormat('pt-AO', { style: 'currency', currency }).format(major);
 }
 
 export function formatCountdown(ms: number): string {
