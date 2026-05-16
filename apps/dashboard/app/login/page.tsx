@@ -55,10 +55,11 @@ export default function LoginPage() {
       }
 
       saveSession({
-        apiKey:     token,
-        merchantId: form.merchantId.trim(),
+        apiKey:      token,
+        merchantId:  form.merchantId.trim(),
         walletId,
-        gatewayUrl: base,
+        gatewayUrl:  base,
+        environment: form.apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
       });
       router.replace('/');
     } catch (err) {
@@ -99,7 +100,7 @@ export default function LoginPage() {
               value={form.apiKey}
               onChange={set('apiKey')}
               className={inputCls}
-              placeholder="bz_live_…"
+              placeholder="bz_live_… ou bz_test_…"
               autoComplete="current-password"
               required
             />
