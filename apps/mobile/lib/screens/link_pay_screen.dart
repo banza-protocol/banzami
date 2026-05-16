@@ -44,10 +44,16 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 
     setState(() { _processing = true; _error = null; });
     try {
-      final client = context.read<ConsumerPublicClient>();
-      final amount = link.amountMinor ?? (_enteredAmount > 0 ? _enteredAmount : null);
-      await client.payPaymentLink(link.slug, amountMinor: amount);
-      if (mounted) setState(() { _paid = true; _processing = false; });
+      final client  = context.read<ConsumerPublicClient>();
+      final amount  = link.amountMinor ?? (_enteredAmount > 0 ? _enteredAmount : null);
+      final updated = await client.payPaymentLink(link.slug, amountMinor: amount);
+      // Merge merchant_name from the pre-loaded link since payPaymentLink
+      // returns the updated status but may drop enriched fields on older servers.
+      if (mounted) setState(() {
+        _link = updated;
+        _paid = true;
+        _processing = false;
+      });
     } on BanzamiApiException catch (e) {
       setState(() {
         _error = switch (e.code) {
@@ -101,7 +107,7 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
       ));
     }
 
-    if (_paid) return _SuccessView(onClose: () => Navigator.of(context).pop());
+    if (_paid) return _SuccessView(link: _link!, onClose: () => Navigator.of(context).pop());
 
     final link = _link!;
 
@@ -188,26 +194,31 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 }
 
 class _SuccessView extends StatelessWidget {
-  final VoidCallback onClose;
-  const _SuccessView({required this.onClose});
+  final PaymentLink   link;
+  final VoidCallback  onClose;
+  const _SuccessView({required this.link, required this.onClose});
 
   @override
   Widget build(BuildContext context) {
+    final amountLabel   = formatMinor(link.amountMinor ?? 0, link.currency);
+    final merchantLabel = link.merchantName ?? link.description ?? link.slug;
+
     return Center(child: Padding(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
-          width: 72, height: 72,
+          width: 80, height: 80,
           decoration: const BoxDecoration(
             color:        BanzamiColors.successBg,
             borderRadius: BanzamiRadius.fullAll,
           ),
-          child: const Icon(Icons.check_rounded, color: BanzamiColors.success, size: 36),
+          child: const Icon(Icons.check_rounded, color: BanzamiColors.success, size: 40),
         ),
         const SizedBox(height: BanzamiSpacing.xl),
-        const Text('Pagamento confirmado!', style: BanzamiTextStyles.headingLg),
-        const SizedBox(height: BanzamiSpacing.sm),
-        Text('O pagamento foi processado com sucesso.',
+        Text(amountLabel,
+            style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.gray900)),
+        const SizedBox(height: BanzamiSpacing.xs),
+        Text('Pagamento enviado para $merchantLabel',
             style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             textAlign: TextAlign.center),
         const SizedBox(height: BanzamiSpacing.xxl),
