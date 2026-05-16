@@ -30,7 +30,11 @@ class ConsumerRegistration {
 ///
 /// Usage:
 /// ```dart
-/// final client = ConsumerPublicClient(baseUrl: 'http://localhost:8083');
+/// final client = ConsumerPublicClient(
+///   baseUrl:   'http://localhost:8083',
+///   onRequest: (method, path, attempt) => logger.info('$method $path (#$attempt)'),
+///   onError:   (method, path, err, attempts) => logger.error('$method $path failed after $attempts'),
+/// );
 /// final reg = await client.register(handle: 'joao', pin: '123456');
 /// final balance = await client.getBalance();
 /// ```
@@ -40,6 +44,15 @@ class ConsumerPublicClient {
   final http.Client _http;
   final Uuid _uuid;
 
+  /// Called before every HTTP request (including retries).
+  final void Function(String method, String path)? onRequest;
+
+  /// Called after every successful HTTP response.
+  final void Function(String method, String path, int statusCode, int durationMs)? onResponse;
+
+  /// Called when a request fails (network error or API error).
+  final void Function(String method, String path, Object error)? onError;
+
   /// Called whenever the server returns 401. Register this in the app layer
   /// to trigger logout and redirect to the welcome screen automatically.
   void Function()? onUnauthorized;
@@ -47,6 +60,9 @@ class ConsumerPublicClient {
   ConsumerPublicClient({
     required this.baseUrl,
     http.Client? httpClient,
+    this.onRequest,
+    this.onResponse,
+    this.onError,
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
@@ -201,8 +217,12 @@ class ConsumerPublicClient {
     Map<String, dynamic>? body,
     bool auth = true,
   }) async {
-    final uri = Uri.parse('$baseUrl$path');
+    final uri     = Uri.parse('$baseUrl$path');
     final headers = _headers(auth: auth);
+    final start   = DateTime.now();
+
+    onRequest?.call(method, path);
+
     late http.Response resp;
     try {
       resp = switch (method) {
@@ -213,12 +233,22 @@ class ConsumerPublicClient {
         _        => throw ArgumentError('Unsupported method: $method'),
       };
     } catch (e) {
+      final err = e is BanzamiNetworkException ? e : BanzamiNetworkException(e.toString());
+      onError?.call(method, path, err);
       if (e is BanzamiNetworkException) rethrow;
-      throw BanzamiNetworkException(e.toString());
+      throw err;
     }
-    final decoded = jsonDecode(resp.body) as Map<String, dynamic>;
-    if (resp.statusCode >= 200 && resp.statusCode < 300) return decoded;
+
+    final durationMs = DateTime.now().difference(start).inMilliseconds;
+    final decoded    = jsonDecode(resp.body) as Map<String, dynamic>;
+
+    if (resp.statusCode >= 200 && resp.statusCode < 300) {
+      onResponse?.call(method, path, resp.statusCode, durationMs);
+      return decoded;
+    }
+
     final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
+    onError?.call(method, path, exception);
     if (resp.statusCode == 401) onUnauthorized?.call();
     throw exception;
   }
