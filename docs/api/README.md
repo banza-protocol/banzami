@@ -143,6 +143,133 @@ Mark a link as used (called internally after a successful payment). Returns the 
 
 ---
 
+### Webhooks
+
+Banzami notifies your server for every significant payment event. Register an endpoint once; we sign every delivery with HMAC-SHA256 so you can verify origin.
+
+#### POST /v1/webhooks/endpoints
+
+Register a webhook endpoint.
+
+**Request:**
+```json
+{
+  "url":    "https://yourserver.com/banzami/webhook",
+  "secret": "your-32-char-signing-secret",
+  "events": ["transaction.captured", "payout.sent"]
+}
+```
+`events`: array of event types to subscribe to. Pass `["*"]` to receive all events.
+
+**Response 201:**
+```json
+{
+  "id":         "uuid",
+  "url":        "https://yourserver.com/banzami/webhook",
+  "events":     ["transaction.captured", "payout.sent"],
+  "active":     true,
+  "created_at": "2026-05-13T09:00:00Z"
+}
+```
+
+#### GET /v1/webhooks/endpoints
+
+List all registered endpoints for the authenticated merchant.
+
+#### GET /v1/webhooks/endpoints/{id}
+
+Get a single endpoint.
+
+#### DELETE /v1/webhooks/endpoints/{id}
+
+Deactivate an endpoint (soft-delete; keeps delivery history).
+
+#### GET /v1/webhooks/events?limit=&cursor=
+
+List recent webhook events (attempts, delivery status).
+
+#### GET /v1/webhooks/events/{id}/deliveries
+
+List all delivery attempts for a specific event.
+
+**Webhook payload shape:**
+```json
+{
+  "id":         "uuid",
+  "type":       "transaction.captured",
+  "created_at": "2026-05-13T09:05:00Z",
+  "data": { ... }
+}
+```
+
+**Signature verification:**
+
+Each delivery includes an `X-Banzami-Signature` header:
+```
+X-Banzami-Signature: sha256=<hmac-hex>
+```
+Compute `HMAC-SHA256(secret, raw_body)` and compare in constant time.
+
+**Event types:**
+
+| Event | Fired when |
+|-------|-----------|
+| `transaction.captured` | A payment transaction reaches CAPTURED status |
+| `transaction.reversed` | A transaction is reversed |
+| `settlement.confirmed` | A settlement batch is confirmed by the bank |
+| `payout.sent` | A payout is dispatched |
+| `payout.confirmed` | A payout is confirmed received |
+| `payout.failed` | A payout fails after all retries |
+| `payment_link.used` | A payment link is paid |
+
+---
+
+### Payouts
+
+Request a payout of settled funds to your registered bank account.
+
+#### POST /v1/payouts
+
+Initiate a payout.
+
+**Request:**
+```json
+{
+  "merchant_id": "uuid",
+  "wallet_id":   "uuid",
+  "amount_minor": 500000,
+  "currency":    "AOA",
+  "description": "Weekly payout — W20"
+}
+```
+
+**Response 201:**
+```json
+{
+  "id":           "uuid",
+  "merchant_id":  "uuid",
+  "wallet_id":    "uuid",
+  "amount_minor": 500000,
+  "currency":     "AOA",
+  "status":       "PENDING",
+  "description":  "Weekly payout — W20",
+  "created_at":   "2026-05-13T09:00:00Z",
+  "updated_at":   "2026-05-13T09:00:00Z"
+}
+```
+
+**Payout statuses:** `PENDING → PROCESSING → SENT → CONFIRMED` (or `FAILED` / `RETURNED`).
+
+#### GET /v1/payouts?merchant_id=&limit=&cursor=
+
+List payouts.
+
+#### GET /v1/payouts/{id}
+
+Get a single payout.
+
+---
+
 ### Transactions
 
 #### POST /v1/transactions
@@ -472,3 +599,38 @@ Returns `true` when `status == "USED"`.
 | `INVALID_BODY` | 400 | Request body is not valid JSON |
 | `RATE_LIMITED` | 429 | Too many requests |
 | `INTERNAL_ERROR` | 500 | Unexpected server error |
+
+---
+
+## Rate Limiting
+
+All authenticated routes are rate-limited per API key using a sliding-window counter backed by Redis.
+
+| Route group | Limit |
+|-------------|-------|
+| Default | 120 requests / minute |
+| `POST /v1/transfers` | 30 requests / minute |
+| `POST /v1/auth/token` | 10 requests / minute |
+
+When the limit is exceeded the API returns `429 RATE_LIMITED`. The response includes:
+
+```
+Retry-After: 15
+X-RateLimit-Limit: 120
+X-RateLimit-Remaining: 0
+X-RateLimit-Reset: 1715598120
+```
+
+---
+
+## Idempotency
+
+All mutating endpoints (`POST`, `PATCH`) support idempotency via the `X-Idempotency-Key` header.
+
+```
+X-Idempotency-Key: <client-generated-uuid>
+```
+
+If the same key is sent twice within 24 hours, the second request returns the original response without re-executing. Use this to safely retry after network errors.
+
+Financial endpoints (`/v1/transfers`, `/v1/transactions`) also accept `idempotency_key` in the request body as an alternative.
