@@ -13,6 +13,16 @@ import { QrDisplay } from '@/components/ui/qr-display';
 const PAY_BASE = process.env.NEXT_PUBLIC_PAY_URL ?? 'https://pay.banzami.org';
 const STATUSES = ['', 'ACTIVE', 'USED', 'EXPIRED', 'CANCELLED'] as const;
 
+// Converts a user-typed Kz string to minor units (centimos).
+// Returns null for invalid, non-positive, or unreasonably large values.
+function parseKzToMinor(raw: string): number | null {
+  const normalised = raw.replace(',', '.');
+  if ((normalised.match(/\./g) ?? []).length > 1) return null; // multiple separators
+  const value = parseFloat(normalised);
+  if (isNaN(value) || value <= 0 || value > 10_000_000) return null;
+  return Math.round(value * 100);
+}
+
 function linkUrl(slug: string) { return `${PAY_BASE}/${slug}`; }
 
 export default function PaymentLinksPage() {
@@ -225,12 +235,14 @@ function CreateLinkModal({
       return;
     }
 
+    // Convert Kz (major units) → centimos (minor units).
+    // Reject values that can't be cleanly parsed as a positive Kz amount.
     const amountMinor = form.amount.trim()
-      ? Math.round(parseFloat(form.amount) * 100)
+      ? parseKzToMinor(form.amount.trim())
       : null;
 
-    if (amountMinor !== null && (isNaN(amountMinor) || amountMinor <= 0)) {
-      setError('Montante inválido.');
+    if (amountMinor === null && form.amount.trim() !== '') {
+      setError('Montante inválido. Introduza o valor em Kz (ex: 250).');
       return;
     }
 
@@ -320,15 +332,14 @@ function CreateLinkModal({
           </div>
 
           <form onSubmit={submit} className="flex flex-col gap-lg">
-            <Field label="Montante (Kz) — deixe em branco para valor livre">
+            <Field label="Montante em Kz — deixe em branco para valor livre">
               <input
-                type="number"
-                min="1"
-                step="1"
+                type="text"
+                inputMode="decimal"
                 value={form.amount}
                 onChange={set('amount')}
                 className={inputCls}
-                placeholder="ex: 5000"
+                placeholder="ex: 250"
               />
             </Field>
 

@@ -9,6 +9,7 @@ RUN npm ci
 COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
+# Baked into client bundles at build time (for any client-side reads)
 ARG NEXT_PUBLIC_PAY_API_URL=https://api.banzami.org
 ENV NEXT_PUBLIC_PAY_API_URL=$NEXT_PUBLIC_PAY_API_URL
 RUN npm run build
@@ -22,6 +23,9 @@ ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3003
 ENV HOSTNAME=0.0.0.0
+# Server-side API URL — use PAY_API_URL (not NEXT_PUBLIC_) so docker-compose
+# runtime env vars cannot accidentally override it with a consumer-facing URL.
+ENV PAY_API_URL=https://api.banzami.org
 
 RUN addgroup -S banzami && adduser -S banzami -G banzami
 

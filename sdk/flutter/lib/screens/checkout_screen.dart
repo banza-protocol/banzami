@@ -30,12 +30,17 @@ class CheckoutScreen extends StatefulWidget {
     required this.slug,
     this.onSuccess,
     this.onCancel,
+    this.logoAssetPath,
   });
 
   final BanzamiClient client;
   final String slug;
   final void Function(PaymentLink link)? onSuccess;
   final VoidCallback? onCancel;
+
+  /// Optional asset path for the logo embedded at the centre of the QR code.
+  /// e.g. `'assets/images/banzami_icon_1024.png'`
+  final String? logoAssetPath;
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -148,7 +153,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return _InvalidState(status: link.status);
     }
 
-    return _ActivePayment(link: link, onOpenApp: _openApp);
+    return _ActivePayment(link: link, onOpenApp: _openApp, logoAssetPath: widget.logoAssetPath);
   }
 }
 
@@ -157,9 +162,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 // ---------------------------------------------------------------------------
 
 class _ActivePayment extends StatelessWidget {
-  const _ActivePayment({ required this.link, required this.onOpenApp });
+  const _ActivePayment({ required this.link, required this.onOpenApp, this.logoAssetPath });
   final PaymentLink link;
   final VoidCallback onOpenApp;
+  final String? logoAssetPath;
 
   @override
   Widget build(BuildContext context) {
@@ -206,14 +212,24 @@ class _ActivePayment extends StatelessWidget {
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
             QrImageView(
-              data:            deepLink,
-              version:         QrVersions.auto,
-              size:            200,
-              eyeStyle:        const QrEyeStyle(eyeShape: QrEyeShape.square,
-                                               color: BanzamiColors.wine),
+              data:                 deepLink,
+              version:              QrVersions.auto,
+              size:                 200,
+              errorCorrectionLevel: QrErrorCorrectLevel.H,
+              eyeStyle:        const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color:    BanzamiColors.wine,
+              ),
               dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color: BanzamiColors.wine),
+                dataModuleShape: QrDataModuleShape.square,
+                color:           BanzamiColors.gray900,
+              ),
+              embeddedImage: logoAssetPath != null
+                  ? AssetImage(logoAssetPath!)
+                  : null,
+              embeddedImageStyle: logoAssetPath != null
+                  ? const QrEmbeddedImageStyle(size: Size(40, 40))
+                  : null,
             ),
             const SizedBox(height: 16),
             SizedBox(

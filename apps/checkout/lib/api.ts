@@ -1,4 +1,8 @@
-const API_URL = process.env.NEXT_PUBLIC_PAY_API_URL ?? 'https://api.banzami.org';
+// PAY_API_URL: server-side gateway URL (non-NEXT_PUBLIC_ so docker-compose can't
+// accidentally override it with a consumer-facing URL).
+// Client bundles fall through to the hardcoded default (process.env.PAY_API_URL
+// is replaced with `undefined` in browser bundles by Next.js).
+const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.org';
 
 export interface PaymentLink {
   id:           string;

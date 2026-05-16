@@ -32,6 +32,21 @@ class _ChargeScreenState extends State<ChargeScreen> {
     super.dispose();
   }
 
+  // Converts a user-typed Kz string (e.g. "250" or "250,50") to minor units
+  // (cêntimos). Accepts comma or period as decimal separator but NOT as
+  // thousands separator — "2.500" is rejected to avoid 1000× mistakes.
+  // Returns null if the input is invalid.
+  static int? _parseKzToMinor(String raw) {
+    // Normalise decimal separator, then reject anything with > 1 separator
+    final normalised = raw.replaceAll(',', '.');
+    if (normalised.split('.').length > 2) return null;    // multiple separators
+    final value = double.tryParse(normalised);
+    if (value == null || value <= 0) return null;
+    const int maxKz = 10000000; // 10 million Kz sanity cap
+    if (value > maxKz) return null;
+    return (value * 100).round();
+  }
+
   Future<void> _create() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() { _creating = true; _error = null; });
@@ -39,10 +54,12 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
 
-    final raw = _amountCtrl.text.trim().replaceAll(',', '.');
+    // Parse Kz input → minor units (centimos). Reject comma/period as
+    // thousands separator — only accept a single decimal part.
+    final raw = _amountCtrl.text.trim();
     final int? amountMinor = raw.isEmpty
         ? null
-        : (double.tryParse(raw) != null ? (double.parse(raw) * 100).round() : null);
+        : _parseKzToMinor(raw);
 
     try {
       final link = await client.createPaymentLink(
@@ -97,14 +114,16 @@ class _ChargeScreenState extends State<ChargeScreen> {
             keyboardType: const TextInputType.numberWithOptions(decimal: true),
             inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
             decoration: const InputDecoration(
-              labelText:  'Valor (Kz)',
+              labelText:  'Valor em Kz (ex: 250)',
               hintText:   'Deixe em branco para valor livre',
               prefixIcon: Icon(Icons.payments_outlined),
+              suffixText: 'Kz',
             ),
             validator: (v) {
               if (v == null || v.trim().isEmpty) return null;
-              final parsed = double.tryParse(v.trim().replaceAll(',', '.'));
-              if (parsed == null || parsed <= 0) return 'Valor inválido';
+              if (_parseKzToMinor(v.trim()) == null) {
+                return 'Valor inválido. Insira o montante em Kz (ex: 250)';
+              }
               return null;
             },
           ),
