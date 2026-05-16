@@ -29,7 +29,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   @override
   void initState() {
     super.initState();
-    _linkSub = AppLinks().uriLinkStream.listen(_handleLink);
+    final appLinks = AppLinks();
+    // Cold start: app launched by tapping the deep link
+    appLinks.getInitialLink().then((uri) { if (uri != null) _handleLink(uri); });
+    // Warm start: app already running when link is opened
+    _linkSub = appLinks.uriLinkStream.listen(_handleLink);
   }
 
   @override

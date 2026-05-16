@@ -89,5 +89,16 @@
 		</array>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
 		<false/>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>banzami</string>
+				</array>
+				<key>CFBundleURLName</key>
+				<string>org.banzami.app</string>
+			</dict>
+		</array>
 	</dict>
 </plist>
