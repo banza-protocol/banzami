@@ -74,7 +74,7 @@ export default function LoginPage() {
         {/* Header */}
         <div>
           <p className="text-xs font-semibold text-wine uppercase tracking-widest mb-xs">Banzami</p>
-          <h1 className="text-xl font-bold text-gray-900">Acesso ao Dashboard</h1>
+          <h1 className="text-xl font-bold text-gray-900">Acesso ao Business</h1>
           <p className="text-sm text-gray-400 mt-xs">
             Introduza as credenciais fornecidas pela Banzami.
           </p>
