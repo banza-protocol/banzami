@@ -52,7 +52,7 @@ android {
     defaultConfig {
         // applicationId is overridden per flavor below — safe fallback.
         applicationId = "com.banzami.consumer"
-        minSdk = flutter.minSdkVersion
+        minSdk = 24 // Android 7.0 — drops TLS 1.0/1.1-only devices, enforces modern cipher suites
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
