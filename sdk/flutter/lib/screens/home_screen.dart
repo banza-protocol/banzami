@@ -18,12 +18,14 @@ class BanzamiHomeScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final String consumerId;
   final String handle;
+  final String? logoAssetPath;
 
   const BanzamiHomeScreen({
     super.key,
     required this.client,
     required this.consumerId,
     required this.handle,
+    this.logoAssetPath,
   });
 
   @override
@@ -80,7 +82,10 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   ));
 
   void _onReceive() => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BanzamiReceiveScreen(handle: widget.handle),
+    builder: (_) => BanzamiReceiveScreen(
+      handle:        widget.handle,
+      logoAssetPath: widget.logoAssetPath,
+    ),
   ));
 
   @override

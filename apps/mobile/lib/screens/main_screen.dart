@@ -71,9 +71,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     final tabs = [
       BanzamiHomeScreen(
-        client:     client,
-        consumerId: session.consumerId,
-        handle:     session.handle,
+        client:        client,
+        consumerId:    session.consumerId,
+        handle:        session.handle,
+        logoAssetPath: 'assets/images/banzami_icon_1024.png',
       ),
       const HistoryScreen(),
       BanzamiReceiveScreen(
