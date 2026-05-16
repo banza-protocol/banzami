@@ -66,7 +66,9 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente',
         'RECIPIENT_NOT_FOUND' => '@banza não encontrado',
         'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa',
-        _                     => e.message,
+        'SELF_TRANSFER'       => 'Não pode enviar para si mesmo',
+        'INVALID_AMOUNT'      => 'Montante inválido',
+        _                     => 'Erro de envio. Tente novamente.',
       });
     } catch (_) {
       setState(() => _sendError = 'Erro de ligação. Tente novamente.');

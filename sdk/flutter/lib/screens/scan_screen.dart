@@ -93,8 +93,14 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         if (mounted) setState(() { _payload = _LinkPayload(link); _step = _ScanStep.confirm; });
         return;
       }
-    } catch (e) {
-      // Not a valid payment link URL — fall through to error.
+    } on BanzamiApiException catch (e) {
+      final msg = e.isNotFound
+          ? 'Link de pagamento não encontrado'
+          : 'Não foi possível verificar o QR. Tente novamente.';
+      if (mounted) setState(() { _error = msg; _step = _ScanStep.error; });
+      return;
+    } catch (_) {
+      // Not a parseable URL — fall through to generic error.
     }
 
     if (mounted) setState(() { _error = 'Código QR não reconhecido'; _step = _ScanStep.error; });
@@ -125,7 +131,15 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         widget.onSuccess(updated);
       }
     } on BanzamiApiException catch (e) {
-      setState(() => _error = e.isInsufficientFunds ? 'Saldo insuficiente' : e.message);
+      setState(() => _error = switch (e.code) {
+        'INSUFFICIENT_FUNDS' => 'Saldo insuficiente',
+        'LINK_NOT_ACTIVE'    => 'Link de pagamento já não está disponível',
+        'NO_WALLET'          => 'Não tem carteira activa para esta moeda',
+        'WALLET_NOT_FOUND'   => 'Destino sem carteira activa',
+        'NOT_FOUND'          => 'Link de pagamento não encontrado',
+        'SELF_TRANSFER'      => 'Não pode pagar o seu próprio link',
+        _                    => 'Erro de pagamento. Tente novamente.',
+      });
     } catch (_) {
       setState(() => _error = 'Pagamento falhou. Tente novamente.');
     } finally {
