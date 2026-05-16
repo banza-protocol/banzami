@@ -1,5 +1,6 @@
 import { BanzamiApiError } from './errors.js';
 import type {
+  BanzamiEnvironment,
   Consumer,
   ConsumerWallet,
   WalletBalance,
@@ -18,6 +19,11 @@ import type {
   WebhookEvent,
 } from './types.js';
 
+const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
+  live:    'https://api.banzami.org',
+  sandbox: 'https://sandbox-api.banzami.org',
+};
+
 export interface BanzamiHooks {
   /** Called before every HTTP attempt, including retries. */
   onRequest?:  (method: string, path: string, attempt: number) => void;
@@ -28,10 +34,14 @@ export interface BanzamiHooks {
 }
 
 export interface BanzamiClientOptions {
-  /** Base URL of the Banzami API gateway, e.g. https://api.banzami.org */
-  baseUrl: string;
-  /** API key used for Bearer token authentication. */
-  apiKey:  string;
+  /** API key for this client. Prefix determines environment:
+   *  - `bz_live_…` → live (production money)
+   *  - `bz_test_…` → sandbox (virtual funds) */
+  apiKey:      string;
+  /** Which data universe to operate in. Defaults to 'live'. */
+  environment?: BanzamiEnvironment;
+  /** Override the API base URL. Defaults to the canonical URL for the chosen environment. */
+  baseUrl?:    string;
   /** Maximum number of retry attempts after the initial request. Default: 3. */
   maxRetries?: number;
   /** Base delay in milliseconds for exponential backoff. Default: 500. */
@@ -41,18 +51,63 @@ export interface BanzamiClientOptions {
 }
 
 export class BanzamiClient {
-  private readonly base:       string;
-  private readonly apiKey:     string;
-  private readonly maxRetries: number;
-  private readonly retryDelay: number;
-  private readonly hooks:      BanzamiHooks;
+  private readonly base:        string;
+  private readonly apiKey:      string;
+  readonly environment:         BanzamiEnvironment;
+  private readonly maxRetries:  number;
+  private readonly retryDelay:  number;
+  private readonly hooks:       BanzamiHooks;
 
-  constructor({ baseUrl, apiKey, maxRetries = 3, retryDelay = 500, hooks = {} }: BanzamiClientOptions) {
-    this.base       = baseUrl.replace(/\/$/, '');
-    this.apiKey     = apiKey;
-    this.maxRetries = maxRetries;
-    this.retryDelay = retryDelay;
-    this.hooks      = hooks;
+  private jwt:       string | null = null;
+  private jwtExpiry: Date   | null = null;
+
+  get isSandbox():    boolean { return this.environment === 'sandbox'; }
+  get isProduction(): boolean { return this.environment === 'live'; }
+
+  constructor({
+    apiKey,
+    environment = 'live',
+    baseUrl,
+    maxRetries = 3,
+    retryDelay = 500,
+    hooks = {},
+  }: BanzamiClientOptions) {
+    this.apiKey      = apiKey;
+    this.environment = environment;
+    this.base        = (baseUrl ?? DEFAULT_BASE_URLS[environment]).replace(/\/$/, '');
+    this.maxRetries  = maxRetries;
+    this.retryDelay  = retryDelay;
+    this.hooks       = hooks;
+  }
+
+  // ---------------------------------------------------------------------------
+  // JWT management — exchange the raw API key for a short-lived Bearer token.
+  // Cached transparently; renewed 5 minutes before expiry.
+  // ---------------------------------------------------------------------------
+
+  private async ensureJwt(): Promise<void> {
+    const bufferMs = 5 * 60 * 1000;
+    if (this.jwt && this.jwtExpiry && Date.now() < this.jwtExpiry.getTime() - bufferMs) {
+      return;
+    }
+    const res = await fetch(`${this.base}/v1/auth/token`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ api_key: this.apiKey }),
+    });
+    if (!res.ok) {
+      let code = 'AUTH_FAILED';
+      let msg  = 'API key exchange failed';
+      try {
+        const body = await res.json() as { code?: string; message?: string };
+        code = body.code    ?? code;
+        msg  = body.message ?? msg;
+      } catch { /* non-JSON body */ }
+      throw new BanzamiApiError(res.status, code, msg);
+    }
+    const data = await res.json() as { token: string; expires_at: string };
+    this.jwt       = data.token;
+    this.jwtExpiry = new Date(data.expires_at);
   }
 
   // ---------------------------------------------------------------------------
@@ -60,6 +115,8 @@ export class BanzamiClient {
   // ---------------------------------------------------------------------------
 
   private async executeOnce<T>(path: string, init?: RequestInit, idempotencyKey?: string, attempt = 0): Promise<T> {
+    await this.ensureJwt();
+
     const extraHeaders: Record<string, string> = {};
     if (idempotencyKey !== undefined) {
       extraHeaders['Idempotency-Key'] = idempotencyKey;
@@ -73,7 +130,7 @@ export class BanzamiClient {
       ...init,
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': `Bearer ${this.jwt}`,
         ...(init?.headers ?? {}),
         ...extraHeaders,
       },
