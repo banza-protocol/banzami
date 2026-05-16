@@ -36,6 +36,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   ui.Image? _logoUiImage;
 
   final _shareButtonKey = GlobalKey();
+  final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
     if (_amountSet && _amountMinor > 0) {
@@ -121,10 +122,21 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   }
 
   Future<void> _shareLink() async {
-    await Share.share(
-      _shareUrl,
-      subject: 'Pagar @${widget.handle} via Banzami',
-    );
+    try {
+      final box    = _shareLinkButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      await Share.share(
+        _shareUrl,
+        subject:             'Pagar @${widget.handle} via Banzami',
+        sharePositionOrigin: origin,
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao partilhar: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _shareQr() async {
@@ -262,6 +274,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                       SizedBox(
                         width: double.infinity,
                         child: OutlinedButton.icon(
+                          key:      _shareLinkButtonKey,
                           onPressed: _shareLink,
                           icon:  const Icon(Icons.link_rounded),
                           label: const Text('Partilhar link'),
