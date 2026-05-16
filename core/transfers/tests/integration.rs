@@ -403,3 +403,158 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
 
     Ok(())
 }
+
+// ---------------------------------------------------------------------------
+// Financial invariants — zero-sum and double-entry correctness
+// ---------------------------------------------------------------------------
+
+/// Core double-entry invariant: when a transfer completes, the recipient's
+/// balance must increase by exactly the same amount that the sender's balance
+/// decreases.  Money must never be created or destroyed.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
+    let sender    = make_consumer_with_balance(&pool, 80_000).await;
+    let recipient = make_consumer_with_balance(&pool, 20_000).await;
+
+    let eng = engine(pool.clone());
+    eng.send(banzami_transfers::transfer::SendTransferRequest {
+        idempotency_key: "t-zerosum-01".into(),
+        sender_id:       sender,
+        recipient_id:    recipient,
+        amount_minor:    30_000,
+        currency:        Currency::AOA,
+        description:     None,
+    })
+    .await
+    .unwrap();
+
+    let ledger_balance = |consumer_id: Uuid| {
+        let pool = pool.clone();
+        async move {
+            sqlx::query_scalar::<_, i64>(
+                "SELECT COALESCE(SUM(CASE entry_type
+                     WHEN 'DEBIT'  THEN -amount_minor
+                     WHEN 'CREDIT' THEN  amount_minor
+                     END), 0)
+                 FROM ledger_entries le
+                 JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
+                 WHERE cw.consumer_id = $1",
+            )
+            .bind(consumer_id)
+            .fetch_one(&pool)
+            .await
+            .unwrap()
+        }
+    };
+
+    let sender_balance    = ledger_balance(sender.as_uuid()).await;
+    let recipient_balance = ledger_balance(recipient.as_uuid()).await;
+
+    assert_eq!(sender_balance,    50_000, "sender:    80k − 30k = 50k");
+    assert_eq!(recipient_balance, 50_000, "recipient: 20k + 30k = 50k");
+
+    // Global zero-sum: total funds in the system are unchanged.
+    assert_eq!(
+        sender_balance + recipient_balance,
+        100_000,
+        "total funds must be conserved (no money created or destroyed)"
+    );
+
+    Ok(())
+}
+
+/// Recipient balance must increase after receiving a transfer, even when the
+/// recipient had zero funds before.  Verifies the credit side of the ledger
+/// posting is correctly attributed to the recipient's wallet.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Result<()> {
+    let sender    = make_consumer_with_balance(&pool, 100_000).await;
+    let recipient = make_consumer_with_balance(&pool, 0).await;
+
+    let eng = engine(pool.clone());
+    eng.send(banzami_transfers::transfer::SendTransferRequest {
+        idempotency_key: "t-recv-01".into(),
+        sender_id:       sender,
+        recipient_id:    recipient,
+        amount_minor:    45_000,
+        currency:        Currency::AOA,
+        description:     None,
+    })
+    .await
+    .unwrap();
+
+    let balance: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE entry_type
+             WHEN 'DEBIT'  THEN -amount_minor
+             WHEN 'CREDIT' THEN  amount_minor
+             END), 0)
+         FROM ledger_entries le
+         JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
+         WHERE cw.consumer_id = $1",
+    )
+    .bind(recipient.as_uuid())
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    assert_eq!(balance, 45_000, "recipient must receive exactly 45 000 minor units");
+
+    Ok(())
+}
+
+/// After a chain of transfers A→B and B→C, the global ledger balance equals
+/// the original funding.  Verifies invariants hold across multiple postings.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
+    let alice = make_consumer_with_balance(&pool, 100_000).await;
+    let bob   = make_consumer_with_balance(&pool, 0).await;
+    let carol = make_consumer_with_balance(&pool, 0).await;
+
+    let eng = engine(pool.clone());
+
+    // Alice → Bob: 60 000
+    eng.send(banzami_transfers::transfer::SendTransferRequest {
+        idempotency_key: "t-chain-ab".into(),
+        sender_id:       alice,
+        recipient_id:    bob,
+        amount_minor:    60_000,
+        currency:        Currency::AOA,
+        description:     None,
+    })
+    .await
+    .unwrap();
+
+    // Bob → Carol: 40 000 (Bob received 60k, pays on 40k)
+    eng.send(banzami_transfers::transfer::SendTransferRequest {
+        idempotency_key: "t-chain-bc".into(),
+        sender_id:       bob,
+        recipient_id:    carol,
+        amount_minor:    40_000,
+        currency:        Currency::AOA,
+        description:     None,
+    })
+    .await
+    .unwrap();
+
+    let total_in_system: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE entry_type
+             WHEN 'DEBIT'  THEN -amount_minor
+             WHEN 'CREDIT' THEN  amount_minor
+             END), 0)
+         FROM ledger_entries le
+         JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
+         WHERE cw.consumer_id = ANY($1)",
+    )
+    .bind(&[alice.as_uuid(), bob.as_uuid(), carol.as_uuid()])
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+
+    // alice=40k + bob=20k + carol=40k = 100k (original funding)
+    assert_eq!(
+        total_in_system, 100_000,
+        "total funds across all consumers must equal original funding"
+    );
+
+    Ok(())
+}
