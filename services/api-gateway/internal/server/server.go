@@ -50,7 +50,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Use(middleware.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(60 * time.Second))
-	r.Use(middleware.RouteSpan) // enriches the otelhttp span with chi route pattern
+	r.Use(middleware.RouteSpan)        // enriches the otelhttp span with chi route pattern
+	r.Use(chimw.RequestSize(4 << 20)) // 4 MB global cap — blocks oversized payloads before handlers
 
 	// ---------------------------------------------------------------------------
 	// Observability endpoints — no auth, no rate limit, no tracing noise
