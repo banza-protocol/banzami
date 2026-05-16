@@ -81,8 +81,8 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		amountMinor = &body.AmountMinor
 	}
 
-	// Resolve consumer wallet for this currency.
-	senderWallet, err := h.core.GetWalletForConsumer(r.Context(), consumer.ID, link.Currency)
+	// Verify the consumer has a wallet for this currency before attempting the transfer.
+	_, err = h.core.GetWalletForConsumer(r.Context(), consumer.ID, link.Currency)
 	if err != nil {
 		if errors.Is(err, service.ErrConsumerWalletNotFound) {
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "NO_WALLET",
