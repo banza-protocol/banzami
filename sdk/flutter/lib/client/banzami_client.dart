@@ -10,31 +10,36 @@ import '../models/qr_code.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
+import 'banzami_environment.dart';
 
 /// HTTP client for the Banzami Go api-gateway.
 ///
 /// All financial operations are delegated to the gateway, which in turn
 /// calls the Rust core-api. This client mirrors the gateway's REST surface.
 ///
-/// Usage:
+/// Usage — production:
 /// ```dart
 /// final client = BanzamiClient(
-///   baseUrl: 'https://api.banzami.org',
-///   apiKey:  'bz_live_...',
+///   apiKey:      'bz_live_...',
+///   environment: BanzamiEnvironment.production,
 /// );
 /// ```
-/// Called before every HTTP attempt, including retries.
-typedef OnRequestHook = void Function(String method, String path, int attempt);
-
-/// Called after every successful HTTP response.
+///
+/// Usage — sandbox / integration testing:
+/// ```dart
+/// final client = BanzamiClient(
+///   apiKey:      'bz_test_...',
+///   environment: BanzamiEnvironment.sandbox,
+/// );
+/// ```
+typedef OnRequestHook  = void Function(String method, String path, int attempt);
 typedef OnResponseHook = void Function(String method, String path, int status, int durationMs);
-
-/// Called once after all retry attempts are exhausted or a non-retryable error occurs.
-typedef OnErrorHook = void Function(String method, String path, Object error, int attempts);
+typedef OnErrorHook    = void Function(String method, String path, Object error, int attempts);
 
 class BanzamiClient {
-  final String baseUrl;
   final String apiKey;
+  final BanzamiEnvironment environment;
+  final String baseUrl;
   final http.Client _http;
   final Uuid _uuid;
   final int maxRetries;
@@ -50,16 +55,21 @@ class BanzamiClient {
   /// When the current session token expires. Null until the first API call.
   DateTime? get sessionExpiresAt => _jwtExpiry;
 
+  bool get isSandbox    => environment.isSandbox;
+  bool get isProduction => environment.isLive;
+
   BanzamiClient({
-    required this.baseUrl,
     required this.apiKey,
+    this.environment = BanzamiEnvironment.production,
+    String? baseUrl,
     http.Client? httpClient,
     this.maxRetries = 3,
     this.retryDelay = const Duration(milliseconds: 500),
     this.onRequest,
     this.onResponse,
     this.onError,
-  })  : _http = httpClient ?? http.Client(),
+  })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl).replaceAll(RegExp(r'/$'), ''),
+        _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
   // ---------------------------------------------------------------------------

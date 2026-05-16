@@ -6,6 +6,7 @@ export { BanzamiApiError } from './errors.js';
 export { formatMinor, addMinor, subtractMinor } from './money.js';
 
 export type {
+  BanzamiEnvironment,
   Page,
   Consumer,
   ConsumerStatus,

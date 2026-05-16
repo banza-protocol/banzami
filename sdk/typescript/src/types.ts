@@ -1,4 +1,13 @@
 // ---------------------------------------------------------------------------
+// Environment
+// ---------------------------------------------------------------------------
+
+/** Selects the data universe for all API operations.
+ *  'live' uses real money; 'sandbox' uses virtual, simulated funds.
+ *  LIVE and SANDBOX data are completely isolated — they never mix. */
+export type BanzamiEnvironment = 'live' | 'sandbox';
+
+// ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------
 
@@ -78,6 +87,7 @@ export interface Transaction {
   amount_minor: number;
   currency:     string;
   status:       TransactionStatus;
+  environment:  'LIVE' | 'SANDBOX';
   reference?:   string;
   description?: string;
   created_at:   string;
@@ -162,6 +172,7 @@ export interface ApiKey {
   id:            string;
   prefix:        string;
   label?:        string;
+  environment:   'LIVE' | 'SANDBOX';
   created_at:    string;
   last_used_at?: string;
 }

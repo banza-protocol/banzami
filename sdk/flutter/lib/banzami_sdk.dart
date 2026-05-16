@@ -6,15 +6,23 @@
 /// ```dart
 /// import 'package:banzami_sdk/banzami_sdk.dart';
 ///
+/// // Production
 /// final client = BanzamiClient(
-///   baseUrl: 'https://api.banzami.org',
-///   apiKey:  'bz_live_...',
+///   apiKey:      'bz_live_...',
+///   environment: BanzamiEnvironment.production,
+/// );
+///
+/// // Sandbox (integration testing)
+/// final client = BanzamiClient(
+///   apiKey:      'bz_test_...',
+///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
 library banzami_sdk;
 
 // Client
 export 'client/banzami_client.dart';
+export 'client/banzami_environment.dart';
 export 'client/consumer_public_client.dart';
 export 'client/pinned_http_client.dart';
 export 'client/api_exception.dart';
