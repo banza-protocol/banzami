@@ -137,8 +137,8 @@ export default function PaymentLinksPage() {
 
       {showModal && (
         <CreateLinkModal
-          onClose={() => setShowModal(false)}
-          onCreated={() => { setShowModal(false); setRows([]); load(undefined); }}
+          onClose={() => { setShowModal(false); setRows([]); load(undefined); }}
+          onCreated={() => { setRows([]); load(undefined); }}
         />
       )}
 
