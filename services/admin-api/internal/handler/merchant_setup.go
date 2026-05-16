@@ -57,7 +57,11 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	apiKey, err := h.core.CreateApiKey(r.Context(), merchantID, "default")
+	keyEnv := "LIVE"
+	if body.Sandbox {
+		keyEnv = "SANDBOX"
+	}
+	apiKey, err := h.core.CreateApiKey(r.Context(), merchantID, "default", keyEnv)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
@@ -99,7 +103,7 @@ func (h *MerchantSetupHandler) ResendCredentials(w http.ResponseWriter, r *http.
 		return
 	}
 
-	apiKey, err := h.core.CreateApiKey(r.Context(), id, "resent")
+	apiKey, err := h.core.CreateApiKey(r.Context(), id, "resent", "LIVE")
 	if err != nil {
 		handleCoreErr(w, err)
 		return
@@ -130,13 +134,17 @@ func (h *MerchantSetupHandler) ResendCredentials(w http.ResponseWriter, r *http.
 func (h *MerchantSetupHandler) CreateApiKey(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	var body struct {
-		Name string `json:"name"`
+		Name        string `json:"name"`
+		Environment string `json:"environment"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
 		body.Name = "admin-generated"
 	}
+	if body.Environment != "SANDBOX" {
+		body.Environment = "LIVE"
+	}
 
-	result, err := h.core.CreateApiKey(r.Context(), id, body.Name)
+	result, err := h.core.CreateApiKey(r.Context(), id, body.Name, body.Environment)
 	if err != nil {
 		handleCoreErr(w, err)
 		return
