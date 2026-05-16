@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Xcode export options (generated during build)
+ios/ExportOptions.*.plist
+
 # Symbolication related
 app.*.symbols
 
