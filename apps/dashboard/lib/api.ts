@@ -306,6 +306,10 @@ export class BanzamiApi {
     });
   }
 
+  getPaymentLink(id: string): Promise<PaymentLink> {
+    return this.req<PaymentLink>(`/payment-links/${id}`);
+  }
+
   cancelPaymentLink(id: string): Promise<PaymentLink> {
     return this.req<PaymentLink>(`/payment-links/${id}`, { method: 'DELETE' });
   }

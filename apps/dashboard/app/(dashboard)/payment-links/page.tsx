@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Plus, Copy, Check, X, Ban } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { BanzamiApi, type PaymentLink } from '@/lib/api';
@@ -220,6 +220,27 @@ function CreateLinkModal({
   const [error, setError]       = useState('');
   const [loading, setLoading]   = useState(false);
   const [created, setCreated]   = useState<PaymentLink | null>(null);
+  const [paid, setPaid]         = useState(false);
+  const pollRef                 = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Poll for payment when link is displayed
+  useEffect(() => {
+    if (!created || paid) return;
+    const session = getSession();
+    if (!session) return;
+    const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
+    pollRef.current = setInterval(async () => {
+      try {
+        const link = await api.getPaymentLink(created.id);
+        if (link.status === 'USED') {
+          clearInterval(pollRef.current!);
+          setCreated(link);
+          setPaid(true);
+        }
+      } catch { /* ignore transient errors */ }
+    }, 3000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [created?.id, paid]);
 
   function set(k: keyof typeof form) {
     return (e: React.ChangeEvent<HTMLInputElement>) =>
@@ -267,7 +288,9 @@ function CreateLinkModal({
   }
 
   function resetForm() {
+    if (pollRef.current) clearInterval(pollRef.current);
     setCreated(null);
+    setPaid(false);
     setForm({ amount: '', description: '', expiresAt: '' });
     setError('');
   }
@@ -283,12 +306,42 @@ function CreateLinkModal({
         {created ? (
           <>
             <div className="flex items-center justify-between mb-xl">
-              <h2 className="text-base font-semibold text-gray-900">Cobrança criada</h2>
+              <h2 className="text-base font-semibold text-gray-900">
+                {paid ? 'Pagamento recebido' : 'Cobrança criada'}
+              </h2>
               <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
                 <X size={18} />
               </button>
             </div>
 
+            {/* ── Paid confirmation ── */}
+            {paid ? (
+              <div className="flex flex-col items-center gap-lg py-xl">
+                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-green-50">
+                  <Check size={40} className="text-green-500" />
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-gray-900">
+                    {created.amount_minor != null ? formatMinor(created.amount_minor, created.currency) : ''}
+                  </p>
+                  <p className="text-sm text-gray-400 mt-xs">Pagamento confirmado</p>
+                </div>
+                <div className="flex gap-md w-full">
+                  <button
+                    onClick={resetForm}
+                    className="flex-1 h-10 border border-gray-200 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    Nova cobrança
+                  </button>
+                  <button
+                    onClick={onClose}
+                    className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+                  >
+                    Fechar
+                  </button>
+                </div>
+              </div>
+            ) : (
             <div className="flex flex-col items-center gap-lg">
               <QrDisplay
                 data={url}
@@ -319,6 +372,7 @@ function CreateLinkModal({
                 </button>
               </div>
             </div>
+            )}
           </>
         ) : (
 
