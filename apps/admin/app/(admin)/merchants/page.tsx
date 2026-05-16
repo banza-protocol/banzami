@@ -73,6 +73,7 @@ export default function MerchantsPage() {
   const [createName, setCreateName]         = useState('');
   const [createEmail, setCreateEmail]       = useState('');
   const [createCurrency, setCreateCurrency] = useState('AOA');
+  const [createSandbox, setCreateSandbox]   = useState(false);
   const [creating, setCreating]             = useState(false);
   const [createError, setCreateError]       = useState('');
   const [credentials, setCredentials]       = useState<CreatedCredentials | null>(null);
@@ -83,7 +84,7 @@ export default function MerchantsPage() {
     setListLoading(true); setListError('');
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
-      const res = await api.listMerchants(q);
+      const res  = await api.listMerchants(q);
       setMerchants(res.data ?? []);
     } catch (e) {
       setListError(e instanceof Error ? e.message : 'Erro ao carregar.');
@@ -124,7 +125,7 @@ export default function MerchantsPage() {
     setCreating(true); setCreateError(''); setCredentials(null);
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
-      const result = await api.createMerchant(createName.trim(), createEmail.trim(), createCurrency);
+      const result = await api.createMerchant(createName.trim(), createEmail.trim(), createCurrency, createSandbox);
       setCredentials({
         merchantId:   result.merchant.id,
         merchantName: result.merchant.name,
@@ -361,6 +362,19 @@ export default function MerchantsPage() {
                   <option value="EUR">EUR — Euro</option>
                 </select>
               </div>
+
+              <label className="flex items-center gap-md cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={createSandbox}
+                  onChange={e => setCreateSandbox(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-gray-900 focus:ring-gray-900/20"
+                />
+                <div>
+                  <p className="text-sm font-medium text-gray-900">Conta sandbox</p>
+                  <p className="text-xs text-gray-400">KYB e AML aprovados automaticamente — apenas para testes.</p>
+                </div>
+              </label>
 
               {createError && <p className="text-sm text-error bg-error-bg rounded-lg px-lg py-md">{createError}</p>}
 
