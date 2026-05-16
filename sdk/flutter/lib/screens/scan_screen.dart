@@ -10,7 +10,7 @@ import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_button.dart';
 import '../widgets/banzami_qr_scanner.dart';
 
-enum _ScanStep { scanning, resolving, confirm, error }
+enum _ScanStep { scanning, resolving, confirm, error, success }
 
 /// QR payload types resolved from a scanned code.
 sealed class _Payload {}
@@ -52,6 +52,7 @@ class BanzamiScanScreen extends StatefulWidget {
 class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   _ScanStep _step     = _ScanStep.scanning;
   _Payload? _payload;
+  dynamic   _result;
   String?   _error;
   bool      _processing = false;
   int       _enteredAmount = 0;
@@ -121,14 +122,14 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           amountMinor:     amount,
           currency:        p.currency,
         );
-        widget.onSuccess(transfer);
+        if (mounted) setState(() { _result = transfer; _step = _ScanStep.success; });
       } else if (p is _LinkPayload) {
         final amount = p.link.amountMinor ?? _enteredAmount;
         final updated = await widget.client.payPaymentLink(
           p.link.slug,
           amountMinor: amount > 0 ? amount : null,
         );
-        widget.onSuccess(updated);
+        if (mounted) setState(() { _result = updated; _step = _ScanStep.success; });
       }
     } on BanzamiApiException catch (e) {
       setState(() => _error = switch (e.code) {
@@ -148,9 +149,10 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   }
 
   void _rescan() => setState(() {
-    _step         = _ScanStep.scanning;
-    _payload      = null;
-    _error        = null;
+    _step          = _ScanStep.scanning;
+    _payload       = null;
+    _result        = null;
+    _error         = null;
     _enteredAmount = 0;
   });
 
@@ -173,6 +175,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           ),
         _ScanStep.confirm   => _buildConfirm(),
         _ScanStep.error     => _buildError(),
+        _ScanStep.success   => _buildSuccess(),
       },
     );
   }
@@ -329,6 +332,62 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
               BanzamiButton(
                 label:     'Tentar novamente',
                 onPressed: _rescan,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSuccess() {
+    final p = _payload;
+    final String amountLabel;
+    final String subtitle;
+
+    if (p is _HandlePayload) {
+      final amount = p.amountMinor ?? _enteredAmount;
+      amountLabel = formatMinor(amount, p.currency);
+      subtitle    = '@${p.handle}';
+    } else if (p is _LinkPayload) {
+      final amount = p.link.amountMinor ?? _enteredAmount;
+      amountLabel = formatMinor(amount, p.link.currency);
+      subtitle    = p.link.description ?? p.link.slug;
+    } else {
+      amountLabel = '';
+      subtitle    = '';
+    }
+
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80, height: 80,
+                decoration: const BoxDecoration(
+                  color:        BanzamiColors.successBg,
+                  borderRadius: BanzamiRadius.fullAll,
+                ),
+                child: const Icon(Icons.check_rounded, color: BanzamiColors.success, size: 40),
+              ),
+              const SizedBox(height: BanzamiSpacing.xl),
+              Text(
+                amountLabel,
+                style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.gray900),
+              ),
+              const SizedBox(height: BanzamiSpacing.xs),
+              Text(
+                'Pagamento enviado para $subtitle',
+                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: BanzamiSpacing.xxl),
+              BanzamiButton(
+                label:     'Fechar',
+                onPressed: () => widget.onSuccess(_result),
               ),
             ],
           ),

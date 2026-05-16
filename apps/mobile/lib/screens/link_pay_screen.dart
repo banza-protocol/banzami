@@ -50,7 +50,14 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
       if (mounted) setState(() { _paid = true; _processing = false; });
     } on BanzamiApiException catch (e) {
       setState(() {
-        _error      = e.isInsufficientFunds ? 'Saldo insuficiente.' : e.message;
+        _error = switch (e.code) {
+          'INSUFFICIENT_FUNDS' => 'Saldo insuficiente.',
+          'LINK_NOT_ACTIVE'    => 'Link de pagamento já não está disponível.',
+          'SELF_TRANSFER'      => 'Não pode pagar o seu próprio link.',
+          'WALLET_NOT_FOUND'   => 'Carteira de destino não encontrada.',
+          'NO_WALLET'          => 'Não tem carteira activa para esta moeda.',
+          _                    => 'Pagamento falhou. Tente novamente.',
+        };
         _processing = false;
       });
     } catch (_) {
