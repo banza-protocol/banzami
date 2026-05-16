@@ -46,12 +46,13 @@ export interface PayoutList {
 }
 
 export interface MerchantCompliance {
-  merchant_id:        string;
-  compliance_status:  'PENDING_REVIEW' | 'APPROVED' | 'REJECTED' | 'SUSPENDED' | 'FLAGGED_AML';
-  notes?:             string;
-  reviewed_at?:       string;
-  created_at:         string;
-  updated_at:         string;
+  merchant_id:  string;
+  kyb_status:   'PENDING' | 'APPROVED' | 'REJECTED' | 'UNDER_REVIEW' | 'SUSPENDED';
+  aml_status:   'PENDING' | 'APPROVED' | 'REJECTED' | 'UNDER_REVIEW' | 'SUSPENDED';
+  notes?:       string;
+  reviewed_at?: string;
+  created_at:   string;
+  updated_at:   string;
 }
 
 export interface Merchant {
