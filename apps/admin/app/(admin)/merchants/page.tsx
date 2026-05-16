@@ -247,7 +247,8 @@ export default function MerchantsPage() {
                 <div className="divide-y divide-gray-100">
                   <Row label="Email"      value={merchant.email} />
                   <Row label="Estado"     value={<Badge label={merchant.status} />} />
-                  <Row label="Compliance" value={<Badge label={compliance.compliance_status} />} />
+                  <Row label="KYB" value={<Badge label={compliance.kyb_status} />} />
+                  <Row label="AML" value={<Badge label={compliance.aml_status} />} />
                   {compliance.notes && <Row label="Notas" value={<span className="text-sm text-gray-700 max-w-xs text-right">{compliance.notes}</span>} />}
                   {compliance.reviewed_at && (
                     <Row label="Revisto em" value={new Date(compliance.reviewed_at).toLocaleString('pt-AO', { dateStyle: 'medium', timeStyle: 'short' })} />
