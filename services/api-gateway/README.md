@@ -71,12 +71,26 @@ Applied globally (every request):
 3. `Logger` — structured log after response: method, path, status, duration, request_id
 4. `Recoverer` — converts panics to 500 without crashing the process
 5. `Timeout` — 60-second global deadline
+6. `CORS` — sets `Access-Control-Allow-*` headers for allowed origins (see below)
 
 Planned (not yet active — see commented-out lines in `server.go`):
 
-6. `Auth` — JWT Bearer token verification
-7. `RateLimit` — sliding-window rate limiter backed by Redis
-8. `Idempotency` — deduplication for POST/PATCH using Redis
+7. `Auth` — JWT Bearer token verification
+8. `RateLimit` — sliding-window rate limiter backed by Redis
+9. `Idempotency` — deduplication for POST/PATCH using Redis
+
+## CORS architecture
+
+CORS is handled at two layers. An origin must appear in exactly one layer — never both (duplicate `Access-Control-Allow-Origin` headers cause browsers to reject the request).
+
+| Origin | Layer |
+|--------|-------|
+| `https://admin.banzami.org` | nginx (`/srv/banzami/nginx/banzami.conf`) |
+| `https://business.banzami.org` | nginx |
+| `https://pay.banzami.org` | Go middleware (`internal/middleware/cors.go`) |
+| `http://localhost:3010/3002/3003/3004` | Go middleware (local dev only) |
+
+When adding a new production frontend, choose one layer and add it there only.
 
 ## Dependencies
 

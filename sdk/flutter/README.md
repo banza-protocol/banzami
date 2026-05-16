@@ -445,6 +445,18 @@ try {
 }
 ```
 
+> **Localisation rule**: `e.message` is the raw English string returned by the API. Never display it to end users. Always derive user-facing text from `e.code`:
+>
+> ```dart
+> } on BanzamiApiException catch (e) {
+>   final msg = switch (e.code) {
+>     'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente',
+>     'RECIPIENT_NOT_FOUND' => '@banza não encontrado',
+>     _                     => 'Erro. Tente novamente.',
+>   };
+> }
+> ```
+
 ---
 
 ## Running tests
