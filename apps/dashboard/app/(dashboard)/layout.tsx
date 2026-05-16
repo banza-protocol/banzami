@@ -1,18 +1,31 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSession, type Session } from '@/lib/session';
+import { destroySession, getSession, type Session } from '@/lib/session';
 import { BanzamiApi } from '@/lib/api';
 import { Sidebar } from '@/components/layout/sidebar';
 import { Topbar } from '@/components/layout/topbar';
 import { Spinner } from '@/components/ui/spinner';
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router                      = useRouter();
   const [session, setSession]       = useState<Session | null>(null);
   const [merchantName, setMerchantName] = useState<string>('');
   const [ready, setReady]           = useState(false);
+  const idleTimer                   = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const logout = useCallback(() => {
+    destroySession();
+    router.replace('/login');
+  }, [router]);
+
+  const resetIdleTimer = useCallback(() => {
+    if (idleTimer.current) clearTimeout(idleTimer.current);
+    idleTimer.current = setTimeout(logout, IDLE_TIMEOUT_MS);
+  }, [logout]);
 
   useEffect(() => {
     const s = getSession();
@@ -28,6 +41,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       .then(m => setMerchantName(m.name))
       .catch(() => { /* fall back to empty — topbar shows ID */ });
   }, [router]);
+
+  // Idle timeout — reset on any user interaction
+  useEffect(() => {
+    if (!ready) return;
+    const events = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
+    events.forEach(e => window.addEventListener(e, resetIdleTimer, { passive: true }));
+    resetIdleTimer();
+    return () => {
+      events.forEach(e => window.removeEventListener(e, resetIdleTimer));
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+    };
+  }, [ready, resetIdleTimer]);
 
   if (!ready) {
     return (
