@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,6 +13,14 @@ import (
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
+// paymentLinkView is the public response shape — PaymentLink fields plus
+// merchant_name resolved from the merchants table so consumers see the store
+// name rather than a UUID.
+type paymentLinkView struct {
+	*service.PaymentLink
+	MerchantName *string `json:"merchant_name"`
+}
+
 // PaymentLinkHandler handles consumer-facing payment link operations.
 type PaymentLinkHandler struct {
 	core *service.CorePublicClient
@@ -19,6 +28,16 @@ type PaymentLinkHandler struct {
 
 func NewPaymentLinkHandler(core *service.CorePublicClient) *PaymentLinkHandler {
 	return &PaymentLinkHandler{core: core}
+}
+
+// withMerchantName enriches a PaymentLink with the merchant's display name.
+// Errors are non-fatal — merchant_name will be nil rather than failing the call.
+func (h *PaymentLinkHandler) withMerchantName(ctx context.Context, link *service.PaymentLink) *paymentLinkView {
+	view := &paymentLinkView{PaymentLink: link}
+	if m, err := h.core.GetMerchant(ctx, link.MerchantID); err == nil {
+		view.MerchantName = &m.Name
+	}
+	return view
 }
 
 // GET /v1/payment-links/{slug}
@@ -36,7 +55,7 @@ func (h *PaymentLinkHandler) GetBySlug(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, http.StatusOK, link)
+	respond(w, http.StatusOK, h.withMerchantName(r.Context(), link))
 }
 
 // POST /v1/payment-links/{slug}/pay
@@ -131,9 +150,9 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	final := link
 	if updated != nil {
-		respond(w, http.StatusOK, updated)
-	} else {
-		respond(w, http.StatusOK, link)
+		final = updated
 	}
+	respond(w, http.StatusOK, h.withMerchantName(r.Context(), final))
 }

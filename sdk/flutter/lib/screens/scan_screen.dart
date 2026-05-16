@@ -352,7 +352,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     } else if (p is _LinkPayload) {
       final amount = p.link.amountMinor ?? _enteredAmount;
       amountLabel = formatMinor(amount, p.link.currency);
-      subtitle    = p.link.description ?? p.link.slug;
+      subtitle    = p.link.merchantName ?? p.link.description ?? p.link.slug;
     } else {
       amountLabel = '';
       subtitle    = '';

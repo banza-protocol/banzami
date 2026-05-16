@@ -284,6 +284,23 @@ func (c *CorePublicClient) ListTransfers(ctx context.Context, consumerID string,
 }
 
 // ---------------------------------------------------------------------------
+// Merchant lookup (read-only; used to enrich payment link responses)
+// ---------------------------------------------------------------------------
+
+type MerchantRecord struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+}
+
+func (c *CorePublicClient) GetMerchant(ctx context.Context, id string) (*MerchantRecord, error) {
+	var out MerchantRecord
+	if err := c.get(ctx, "/internal/v1/merchants/"+id, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ---------------------------------------------------------------------------
 // Payment link operations
 // ---------------------------------------------------------------------------
 

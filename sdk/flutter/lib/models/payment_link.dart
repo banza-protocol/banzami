@@ -2,6 +2,7 @@ class PaymentLink {
   final String id;
   final String slug;
   final String merchantId;
+  final String? merchantName;
   final String walletId;
   final int? amountMinor;
   final String currency;
@@ -16,6 +17,7 @@ class PaymentLink {
     required this.id,
     required this.slug,
     required this.merchantId,
+    this.merchantName,
     required this.walletId,
     this.amountMinor,
     required this.currency,
@@ -28,15 +30,16 @@ class PaymentLink {
   });
 
   factory PaymentLink.fromJson(Map<String, dynamic> json) => PaymentLink(
-        id:          json['id'] as String,
-        slug:        json['slug'] as String,
-        merchantId:  json['merchant_id'] as String,
-        walletId:    json['wallet_id'] as String,
-        amountMinor: json['amount_minor'] as int?,
-        currency:    json['currency'] as String,
-        description: json['description'] as String?,
-        status:      PaymentLinkStatus.fromString(json['status'] as String),
-        expiresAt:   json['expires_at'] != null
+        id:           json['id'] as String,
+        slug:         json['slug'] as String,
+        merchantId:   json['merchant_id'] as String,
+        merchantName: json['merchant_name'] as String?,
+        walletId:     json['wallet_id'] as String,
+        amountMinor:  json['amount_minor'] as int?,
+        currency:     json['currency'] as String,
+        description:  json['description'] as String?,
+        status:       PaymentLinkStatus.fromString(json['status'] as String),
+        expiresAt:    json['expires_at'] != null
             ? DateTime.parse(json['expires_at'] as String)
             : null,
         paidAt: json['paid_at'] != null
