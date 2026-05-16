@@ -18,11 +18,11 @@ export default function QrDisplay({ qrDataUrl }: QrDisplayProps) {
           height={220}
           className="block"
         />
-        {/* Center overlay: Banzami logo */}
+        {/* Center overlay: Banzami logo — white square background, no rounding */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white shadow-card ring-2 ring-white">
+          <div className="flex h-11 w-11 items-center justify-center bg-white p-1">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/banzami-icon.png" alt="Banzami" width={36} height={36} className="rounded-full" />
+            <img src="/banzami-icon.png" alt="Banzami" width={36} height={36} />
           </div>
         </div>
       </div>
