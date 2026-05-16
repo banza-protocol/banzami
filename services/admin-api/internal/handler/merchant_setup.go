@@ -25,6 +25,7 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Name     string `json:"name"`
 		Email    string `json:"email"`
 		Currency string `json:"currency"`
+		Sandbox  bool   `json:"sandbox"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -46,6 +47,15 @@ func (h *MerchantSetupHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	merchantID, _ := merchant["id"].(string)
+
+	// In sandbox mode, auto-approve KYB and AML so the merchant can
+	// process test transactions immediately without manual review.
+	if body.Sandbox {
+		if _, err := h.core.ApproveMerchant(r.Context(), merchantID); err != nil {
+			handleCoreErr(w, err)
+			return
+		}
+	}
 
 	apiKey, err := h.core.CreateApiKey(r.Context(), merchantID, "default")
 	if err != nil {

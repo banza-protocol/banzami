@@ -113,12 +113,12 @@ export class AdminApi {
   }
   getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
 
-  createMerchant(name: string, email: string, currency = 'AOA'): Promise<{
+  createMerchant(name: string, email: string, currency = 'AOA', sandbox = false): Promise<{
     merchant: Merchant;
     api_key:  { secret: string; key: { id: string; key_prefix: string } };
     wallet:   { id: string; currency: string };
   }> {
-    return this.req('/admin/v1/merchants', { method: 'POST', body: JSON.stringify({ name, email, currency }) });
+    return this.req('/admin/v1/merchants', { method: 'POST', body: JSON.stringify({ name, email, currency, sandbox }) });
   }
 
   createApiKey(merchantId: string, keyName: string): Promise<{ secret: string; key: { id: string } }> {
