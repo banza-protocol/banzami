@@ -147,6 +147,171 @@ Future engineers must understand the system quickly.
 
 ---
 
+## 2.6 Instant Payments as a Core Architectural Principle
+
+Banzami is designed as:
+
+* realtime payment infrastructure,
+* realtime money movement infrastructure,
+* QR-first payment infrastructure,
+* instant-transfer-first infrastructure.
+
+Instant payments are NOT an optional feature.
+
+They are a foundational product characteristic.
+
+### Core Philosophy
+
+By default, ALL Banzami payment experiences must feel instant.
+
+The user experience target is:
+
+```text
+scan → confirm → paid immediately
+```
+
+Users must never experience:
+
+* banking slowness,
+* delayed confirmations,
+* settlement uncertainty,
+* manual processing friction.
+
+### Default Payment Experience
+
+Target flow:
+
+```text
+Customer scans QR
+        ↓
+Payment confirmation screen
+        ↓
+Transaction authorized
+        ↓
+Ledger updated
+        ↓
+Merchant wallet updated
+        ↓
+Webhook dispatched
+        ↓
+Merchant sees payment instantly
+        ↓
+Customer receives success confirmation
+```
+
+Target perceived latency:
+
+* under 2 seconds — ideal,
+* under 5 seconds — acceptable.
+
+### Payment Critical Path
+
+The critical path must remain minimal:
+
+```text
+auth → risk → compliance → ledger posting → wallet update → response
+```
+
+Everything else is async:
+
+* retries,
+* reconciliation,
+* analytics,
+* notifications,
+* reporting.
+
+Queues are NEVER used for core payment confirmation.
+
+### Mandatory Engineering Rules
+
+**1. Ledger writes remain synchronous and atomic.**
+Financial correctness is NEVER sacrificed for speed.
+
+**2. Wallet balances update immediately** after:
+authorization, capture, transfer, payout reservation, reversal.
+No delayed balance refreshes. No eventual consistency for balances.
+Wallet state is strongly consistent.
+
+**3. Webhook delivery begins immediately** after successful transaction commit.
+Delivery must be tracked, retried, and idempotent.
+
+**4. Realtime infrastructure is mandatory:**
+WebSocket or SSE for dashboard updates, QR status, and transaction events.
+Redis pub/sub for lightweight event dispatch.
+
+### Architectural Requirements
+
+The architecture must prioritize:
+
+* low latency,
+* deterministic processing,
+* fast state transitions,
+* minimal network hops,
+* minimal blocking operations.
+
+PostgreSQL optimizations required:
+
+* indexed transaction and wallet lookups,
+* short transactions,
+* minimal lock contention,
+* no blocking analytical queries in the payment path.
+
+### Observability Requirements
+
+Track and alert on:
+
+* authorization latency,
+* capture latency,
+* QR payment end-to-end latency,
+* webhook dispatch latency,
+* transfer latency,
+* DB transaction duration.
+
+Realtime latency monitoring is mandatory.
+
+### Failure Handling
+
+Instant payments must remain correct, auditable, and deterministic.
+
+If a transaction cannot be safely completed instantly:
+
+* fail clearly,
+* retry safely,
+* preserve all invariants.
+
+Never create:
+
+* ghost payments,
+* ambiguous transaction states,
+* duplicate ledger writes,
+* eventual balance uncertainty.
+
+### The Distinction
+
+INSTANT USER EXPERIENCE does NOT mean:
+
+* bypassing ledger integrity,
+* bypassing settlement,
+* weak consistency,
+* unsafe architecture.
+
+The architecture remains:
+
+* strongly consistent,
+* double-entry based,
+* fully auditable,
+* financially correct.
+
+The speed comes from excellent engineering, optimized flows, and disciplined architecture.
+
+### Product Philosophy
+
+> **"Money moves at internet speed."**
+
+Banzami is building realtime African payment infrastructure with banking-grade engineering.
+
+---
+
 # 3. Official Technology Stack
 
 ---
