@@ -108,7 +108,7 @@ The focus is not on reinventing banking, but on making modern financial infrastr
 
 ## Production
 
-The platform is live on an IONOS dedicated server (`212.227.93.136`) behind Cloudflare.
+The platform is live on an IONOS VPS (`217.160.9.248`, Ubuntu 24.04, 4 vCores / 4 GB / 120 GB NVMe) behind Cloudflare.
 
 ### Public URLs
 
@@ -116,36 +116,41 @@ The platform is live on an IONOS dedicated server (`212.227.93.136`) behind Clou
 |-----|---------|-------------|
 | `https://api.banzami.org` | API Gateway | Merchant REST API — authenticated with JWT |
 | `https://consumer.banzami.org` | Public API | Consumer mobile API — authenticated with PIN + JWT |
-| `https://pay.banzami.org` | API Gateway | Payment links and QR payment resolution |
+| `https://pay.banzami.org` | Checkout Frontend | Hosted payment links and QR checkout (Next.js) |
 | `https://admin.banzami.org` | Admin Frontend | Internal operations portal (Next.js) |
-| `https://merchant.banzami.org` | Merchant Frontend | Merchant dashboard portal (Next.js) |
+| `https://business.banzami.org` | Business Dashboard | Merchant self-service dashboard (Next.js) |
 
 ### Production Stack
 
-All services run as Docker containers managed by Docker Compose under `/srv/banzami/`:
+All services run as Docker containers managed by Docker Compose under `/srv/banzami/`.
+Only nginx is exposed to the internet (ports 80/443). All other services communicate internally on the `banzami_net` bridge network.
 
-| Container | Image | Port | Role |
-|-----------|-------|------|------|
-| `banzami_postgres` | postgres:16-alpine | internal | Primary database |
-| `banzami_redis` | redis:7-alpine | internal | Cache, rate limiting, idempotency |
-| `banzami_core` | banzami-core-api | 8081 (internal) | Rust financial core |
-| `banzami_gateway` | banzami-api-gateway | 8080 | Merchant API gateway |
-| `banzami_public` | banzami-public-api | 8083 | Consumer public API |
-| `banzami_admin` | banzami-admin-api | 8082 | Admin operations API |
-| `banzami_admin_frontend` | banzami-admin-frontend | 3002 | Admin portal (Next.js) |
-| `banzami_dashboard_frontend` | banzami-dashboard-frontend | 3001 | Merchant portal (Next.js) |
+| Container | Image | Internal Port | Role |
+|-----------|-------|---------------|------|
+| `banzami-nginx-1` | nginx:1.27-alpine | 80, 443 (host) | TLS termination and reverse proxy |
+| `banzami-postgres-1` | postgres:16-alpine | 5432 | Primary database |
+| `banzami-redis-1` | redis:7-alpine | 6379 | Cache, rate limiting, idempotency |
+| `banzami-core-api-1` | banzami/core-api | 8081 | Rust financial core |
+| `banzami-api-gateway-1` | banzami/api-gateway | 8080 | Merchant API gateway |
+| `banzami-public-api-1` | banzami/public-api | 8083 | Consumer public API |
+| `banzami-admin-api-1` | banzami/admin-api | 8082 | Admin operations API |
+| `banzami-admin-frontend-1` | banzami/admin-frontend | 3002 | Admin portal (Next.js) |
+| `banzami-dashboard-frontend-1` | banzami/dashboard-frontend | 3001 | Business dashboard (Next.js) |
+| `banzami-checkout-frontend-1` | banzami/checkout-frontend | 3003 | Hosted checkout (Next.js) |
 
-nginx (shared with the existing `mondrive` project on the same VM) terminates TLS with Let's Encrypt certificates and reverse-proxies to each container by name on the `mondrive_default` Docker network.
+Source code is built directly on the server under `/srv/banzami/src/`. Each service has its own Dockerfile.
 
 ### SSL
 
-Certificates issued by Let's Encrypt via certbot (webroot challenge). Covers all 5 production subdomains. Renewal is automatic.
+Cloudflare Origin Certificate (RSA 2048, wildcard `*.banzami.org` + `banzami.org`).
+Valid until May 2041. Cloudflare SSL/TLS mode: **Full (strict)**.
 
 ```
-/etc/letsencrypt/live/api.banzami.org/fullchain.pem
-/etc/letsencrypt/live/api.banzami.org/privkey.pem
-Expires: 2026-08-13
+/srv/banzami/nginx/certs/banzami.pem   # Cloudflare Origin Certificate
+/srv/banzami/nginx/certs/banzami.key   # Private key (chmod 600)
 ```
+
+Certificates are mounted read-only into the nginx container. No certbot or automatic renewal needed — the Cloudflare Origin CA certificate is valid for 15 years.
 
 ---
 
