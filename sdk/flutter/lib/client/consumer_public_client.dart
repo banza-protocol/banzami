@@ -1,6 +1,9 @@
 import 'dart:convert';
+import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/io_client.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
@@ -63,8 +66,20 @@ class ConsumerPublicClient {
     this.onRequest,
     this.onResponse,
     this.onError,
-  })  : _http = httpClient ?? http.Client(),
+  })  : _http = httpClient ?? _defaultHttpClient(),
         _uuid = const Uuid();
+
+  // In debug builds, bypass SSL to work around the Cloudflare Origin CA
+  // not being trusted by Dart's BoringSSL. Remove once the server has a
+  // proper Let's Encrypt cert served with the full chain.
+  static http.Client _defaultHttpClient() {
+    if (kDebugMode) {
+      final inner = HttpClient()
+        ..badCertificateCallback = (cert, host, port) => true;
+      return IOClient(inner);
+    }
+    return http.Client();
+  }
 
   void setToken(String token) => _token = token;
   String? get token => _token;
