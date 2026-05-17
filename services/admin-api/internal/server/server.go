@@ -53,7 +53,8 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
 		r.Get("/admin/v1/merchants",                     merchantH.List)
 		r.Get("/admin/v1/merchants/{id}",                merchantH.Get)
-		r.Post("/admin/v1/merchants/{id}/api-keys",           merchantSetupH.CreateApiKey)
+			r.Delete("/admin/v1/merchants/{id}",             merchantH.Delete)
+			r.Post("/admin/v1/merchants/{id}/api-keys",           merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
 		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
 

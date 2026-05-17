@@ -112,6 +112,7 @@ export class AdminApi {
     return this.req(`/admin/v1/merchants${q}`);
   }
   getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
+  deleteMerchant(id: string): Promise<void>   { return this.req(`/admin/v1/merchants/${id}`, { method: 'DELETE' }); }
 
   createMerchant(name: string, email: string, currency = 'AOA', sandbox = false): Promise<{
     merchant: Merchant;

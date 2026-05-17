@@ -126,6 +126,26 @@ pub async fn verify_api_key(
     }))
 }
 
+pub async fn delete_merchant(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<StatusCode> {
+    let merchant_id: MerchantId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
+
+    state
+        .merchant
+        .delete(merchant_id)
+        .await
+        .map_err(|e| match e {
+            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+            other => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn suspend_merchant(
     State(state): State<AppState>,
     Path(id): Path<String>,

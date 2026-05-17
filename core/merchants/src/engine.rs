@@ -32,6 +32,8 @@ pub trait MerchantEngine: Send + Sync {
     async fn list_api_keys(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
     async fn revoke_api_key(&self, key_id: ApiKeyId) -> Result<ApiKey, MerchantError>;
 
+    async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
+
     /// Verifies a raw API key and returns the associated key record and merchant.
     /// Records `last_used_at` as a side-effect.
     async fn verify_api_key(&self, raw_key: &str) -> Result<(ApiKey, Merchant), MerchantError>;
@@ -74,6 +76,10 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
 
     async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError> {
         self.merchant_repo.list(search).await
+    }
+
+    async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {
+        self.merchant_repo.delete(id).await
     }
 
     async fn suspend(&self, id: MerchantId) -> Result<Merchant, MerchantError> {
@@ -227,6 +233,13 @@ mod tests {
                 })
                 .cloned()
                 .collect())
+        }
+
+        async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {
+            let mut rows = self.rows.lock().unwrap();
+            let pos = rows.iter().position(|r| r.id == id).ok_or(MerchantError::NotFound(id))?;
+            rows.remove(pos);
+            Ok(())
         }
 
         async fn update_status(
