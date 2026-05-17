@@ -10,6 +10,7 @@ import StatusBadge from '@/components/status-badge';
 
 interface Props {
   slug:          string;
+  merchantName:  string;
   amountDisplay: string | null;
   description:   string | null;
   deepLink:      string;
@@ -23,6 +24,7 @@ const POLL_INTERVAL = 3000;
 
 export default function CheckoutClient({
   slug,
+  merchantName,
   amountDisplay,
   description,
   deepLink,
@@ -135,8 +137,8 @@ export default function CheckoutClient({
         {/* Wine header card */}
         <div className="rounded-2xl bg-wine-gradient px-6 py-7 shadow-elevated">
           <div className="mb-1 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-widest text-white/50">
-              Banzami
+            <span className="text-xs font-semibold uppercase tracking-widest text-white/70">
+              {merchantName}
             </span>
             <span className="flex items-center gap-1.5 text-xs text-white/60">
               <span className="h-1.5 w-1.5 rounded-full bg-gold animate-pulse-dot" />

@@ -86,6 +86,7 @@ export default async function CheckoutPage({ params }: Props) {
   return (
     <CheckoutClient
       slug={link.slug}
+      merchantName={link.merchant_name}
       amountDisplay={amountDisplay}
       description={link.description}
       deepLink={deepLink}

@@ -5,18 +5,19 @@
 const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.org';
 
 export interface PaymentLink {
-  id:           string;
-  slug:         string;
-  merchant_id:  string;
-  wallet_id:    string;
-  amount_minor: number | null;
-  currency:     string;
-  description:  string | null;
-  status:       'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
-  expires_at:   string | null;
-  paid_at:      string | null;
-  created_at:   string;
-  updated_at:   string;
+  id:            string;
+  slug:          string;
+  merchant_id:   string;
+  merchant_name: string;
+  wallet_id:     string;
+  amount_minor:  number | null;
+  currency:      string;
+  description:   string | null;
+  status:        'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  expires_at:    string | null;
+  paid_at:       string | null;
+  created_at:    string;
+  updated_at:    string;
 }
 
 export async function getPaymentLink(slug: string): Promise<PaymentLink | null> {
