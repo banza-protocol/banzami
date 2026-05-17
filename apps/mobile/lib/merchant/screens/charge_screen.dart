@@ -22,6 +22,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
   final _descCtrl    = TextEditingController();
 
   bool         _creating = false;
+  bool         _sharing  = false;
   String?      _error;
   PaymentLink? _link;
 
@@ -77,6 +78,25 @@ class _ChargeScreenState extends State<ChargeScreen> {
       setState(() => _error = 'Não foi possível criar a cobrança.');
     } finally {
       if (mounted) setState(() => _creating = false);
+    }
+  }
+
+  Future<void> _shareLink(PaymentLink link) async {
+    if (_sharing) return;
+    setState(() => _sharing = true);
+    try {
+      final subject = link.amountMinor != null
+          ? 'Pagamento Banzami — ${formatMinor(link.amountMinor!, link.currency)}'
+          : 'Pagamento Banzami';
+      await Share.share(_payUrl, subject: subject);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao partilhar: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _sharing = false);
     }
   }
 
@@ -265,8 +285,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
           width: double.infinity,
           child: BanzamiButton(
             label:     'Partilhar link',
-            onPressed: () => Share.share(_payUrl,
-                subject: 'Pagamento Banzami${link.amountMinor != null ? ' — ${formatMinor(link.amountMinor!, link.currency)}' : ''}'),
+            isLoading: _sharing,
+            onPressed: _sharing ? null : () => _shareLink(link),
           ),
         ),
         const SizedBox(height: BanzamiSpacing.md),
