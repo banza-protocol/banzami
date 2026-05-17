@@ -61,6 +61,30 @@ The `FOREGROUND_SERVICE` and `RECEIVE_BOOT_COMPLETED` permissions are declared i
 
 Notification permission is requested on the first poll via `DarwinInitializationSettings`.
 
+## Crash Reporting
+
+Firebase Crashlytics is enabled in both flavours for production builds. Collection is disabled in debug mode (`kDebugMode`).
+
+Setup in each `main_*.dart`:
+```dart
+FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+PlatformDispatcher.instance.onError = (error, stack) {
+  FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+  return true;
+};
+await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+```
+
+iOS requires the Crashlytics dSYM upload script in the Xcode Build Phase (Run Script after Compile Sources):
+```
+"${PODS_ROOT}/FirebaseCrashlytics/run"
+```
+Input files: `${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}` and `$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)`.
+
+## Handle Availability
+
+The consumer **Criar conta** screen checks handle availability before navigating to PIN setup. If the `@banza` handle is already taken, an inline error is shown on the field and the user remains on the screen. The check uses `ConsumerPublicClient.handleExists()` against the public API. A network failure is treated as non-blocking (navigates to PIN; the server enforces uniqueness on registration).
+
 ## Dependencies
 
 | Package | Purpose |
@@ -74,6 +98,9 @@ Notification permission is requested on the first poll via `DarwinInitialization
 | `flutter_local_notifications` | Payment alert notifications |
 | `app_links` | Deep link handling (`banzami://`) |
 | `google_fonts` | Inter font |
+| `firebase_core` | Firebase app initialisation |
+| `firebase_crashlytics` | Production crash reporting |
+| `firebase_messaging` | FCM push notifications |
 
 ## Design system
 
