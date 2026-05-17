@@ -185,6 +185,36 @@ services:
     networks:
       - banzami_net
 
+  # Next.js pay page — public payment link checkout (pay.banzami.org).
+  pay-frontend:
+    build:
+      context: ../../apps/pay
+      dockerfile: Dockerfile
+    environment:
+      NEXT_PUBLIC_GATEWAY_URL: https://api.banzami.org
+    ports:
+      - "3002:3002"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # Next.js checkout app — embedded checkout experience.
+  checkout-frontend:
+    build:
+      context: ../../apps/checkout
+      dockerfile: Dockerfile
+    environment:
+      PAY_API_URL: http://api-gateway:8080
+    ports:
+      - "3003:3003"
+    depends_on:
+      - api-gateway
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
 volumes:
   postgres_data:
   redis_data:

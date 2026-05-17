@@ -14,6 +14,7 @@
 #   public-api         Go public REST API
 #   admin-frontend     Next.js admin panel
 #   dashboard-frontend Next.js merchant dashboard
+#   pay-frontend       Next.js pay page (pay.banzami.org)
 #   checkout-frontend  Next.js checkout page
 
 set -euo pipefail
@@ -24,7 +25,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend checkout-frontend)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -156,6 +157,11 @@ deploy_dashboard_frontend() {
   _deploy_frontend "dashboard" "dashboard-frontend" "banzami/dashboard-frontend:latest" "banzami-dashboard-frontend-1"
 }
 
+deploy_pay_frontend() {
+  step "pay-frontend" "Next.js pay page (pay.banzami.org)"
+  _deploy_frontend "pay" "pay-frontend" "banzami/pay-frontend:latest" "banzami-pay-frontend-1"
+}
+
 deploy_checkout_frontend() {
   step "checkout-frontend" "Next.js checkout page"
   _deploy_frontend "checkout" "checkout-frontend" "banzami/checkout-frontend:latest" "banzami-checkout-frontend-1"
@@ -230,6 +236,7 @@ for svc in "${SERVICES[@]}"; do
     public-api)         deploy_public_api ;;
     admin-frontend)     deploy_admin_frontend ;;
     dashboard-frontend) deploy_dashboard_frontend ;;
+    pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
   esac
 done
