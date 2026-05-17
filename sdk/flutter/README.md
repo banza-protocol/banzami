@@ -70,7 +70,17 @@ The client transparently exchanges your API key for a short-lived JWT on the fir
 ### Registration and login
 
 ```dart
-final client = ConsumerPublicClient(baseUrl: 'https://api.banzami.org');
+// Production
+final client = ConsumerPublicClient(
+  baseUrl:     'https://api.banzami.org',
+  environment: BanzamiEnvironment.production,
+);
+
+// Sandbox (test environment)
+final client = ConsumerPublicClient(
+  baseUrl:     'https://sandbox-api.banzami.org',
+  environment: BanzamiEnvironment.sandbox,
+);
 
 // New user
 final reg = await client.register(handle: 'joao', pin: '123456');
@@ -105,6 +115,16 @@ final balance = await client.getBalance();
 print(balance.availableFormatted); // "10.000 Kz"
 ```
 
+### Sandbox fund (test environments only)
+
+```dart
+final result = await client.sandboxFund(amountMinor: 5000000); // 50 000 Kz
+print(result.creditedMinor); // 5000000
+print(result.newBalance);    // 5000000
+```
+
+Throws `BanzamiApiException` with code `SANDBOX_ONLY` if called against a production public-api instance.
+
 ---
 
 ## Pre-built screens
@@ -138,9 +158,37 @@ Navigator.push(
 
 ---
 
+### `BanzamiHomeScreen`
+
+Main payment hub for a logged-in consumer. Shows available balance, Scan / Send / Receive quick-action buttons, and a scrollable list of recent transfers. Supports pull-to-refresh. In sandbox mode, renders an amber fund panel below the balance card.
+
+```dart
+Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (_) => BanzamiHomeScreen(
+      client:      consumerClient,
+      consumerId:  session.consumer.id,
+      handle:      session.consumer.handle,
+      environment: BanzamiEnvironment.sandbox, // omit for production
+    ),
+  ),
+);
+```
+
+| Parameter     | Type                    | Required | Description                                              |
+|---------------|-------------------------|----------|----------------------------------------------------------|
+| `client`      | `ConsumerPublicClient`  | yes      | Authenticated consumer client                            |
+| `consumerId`  | `String`                | yes      | Used to determine debit/credit direction in transfer list|
+| `handle`      | `String`                | yes      | Consumer's own handle — excluded from send autocomplete  |
+| `logoAssetPath` | `String?`             | no       | Asset path for the QR code logo on the receive screen    |
+| `environment` | `BanzamiEnvironment`    | no       | Default: `production`. Set `sandbox` to show fund panel  |
+
+---
+
 ### `BanzamiSendScreen`
 
-P2P transfer flow. The user enters a recipient `@handle`, an amount, and an optional description. Calls `ConsumerPublicClient.sendByHandle` and returns the resulting `Transfer` via `onSuccess`.
+P2P transfer flow. The user enters a recipient `@handle`, an amount, and an optional description. Suggestions appear after 2 characters and are fetched from `GET /v1/consumers/search`. Handle existence is validated on blur and blocked at send time if unregistered.
 
 ```dart
 Navigator.push(
@@ -148,6 +196,7 @@ Navigator.push(
   MaterialPageRoute(
     builder: (_) => BanzamiSendScreen(
       client:    consumerClient,  // ConsumerPublicClient
+      ownHandle: 'joao',          // excluded from autocomplete results
       onSuccess: (transfer) {
         // transfer.id, transfer.amountFormatted, etc.
         Navigator.pop(context);
@@ -157,10 +206,11 @@ Navigator.push(
 );
 ```
 
-| Parameter   | Type                         | Required | Description                        |
-|-------------|------------------------------|----------|------------------------------------|
-| `client`    | `ConsumerPublicClient`       | yes      | Authenticated consumer client      |
-| `onSuccess` | `void Function(Transfer)`    | yes      | Called with the completed transfer |
+| Parameter   | Type                         | Required | Description                                            |
+|-------------|------------------------------|----------|--------------------------------------------------------|
+| `client`    | `ConsumerPublicClient`       | yes      | Authenticated consumer client                          |
+| `onSuccess` | `void Function(Transfer)`    | yes      | Called with the completed transfer                     |
+| `ownHandle` | `String?`                    | no       | Logged-in consumer's handle — filtered from suggestions|
 
 ---
 
@@ -470,18 +520,20 @@ flutter test
 
 ## Models reference
 
-| Model                    | Source                      | Description                              |
-|--------------------------|-----------------------------|------------------------------------------|
-| `Consumer`               | `models/consumer.dart`      | Banzami consumer account                 |
-| `Merchant`               | `models/merchant.dart`      | Merchant account                         |
-| `MerchantBalance`        | `models/merchant.dart`      | Wallet balance for a merchant            |
-| `MerchantTransaction`    | `models/merchant.dart`      | Single merchant transaction              |
-| `MerchantTransactionPage`| `models/merchant.dart`      | Paginated transaction list               |
-| `WalletBalance`          | `models/wallet_balance.dart`| Consumer wallet balance                  |
-| `Transfer`               | `models/transfer.dart`      | P2P transfer                             |
-| `TransferPage`           | `models/transfer.dart`      | Paginated transfer list                  |
-| `PaymentLink`            | `models/payment_link.dart`  | Merchant payment link                    |
-| `PaymentLinkPage`        | `models/payment_link.dart`  | Paginated payment link list              |
-| `QrCode`                 | `models/qr_code.dart`       | QR code record                           |
-| `QrResponse`             | `models/qr_code.dart`       | QR code + encoded payload                |
-| `ParsedQr`               | `models/qr_code.dart`       | Decoded QR payload fields                |
+| Model                    | Source                             | Description                              |
+|--------------------------|------------------------------------|------------------------------------------|
+| `Consumer`               | `models/consumer.dart`             | Banzami consumer account                 |
+| `ConsumerSuggestion`     | `models/consumer_suggestion.dart`  | Lightweight handle autocomplete result   |
+| `Merchant`               | `models/merchant.dart`             | Merchant account                         |
+| `MerchantBalance`        | `models/merchant.dart`             | Wallet balance for a merchant            |
+| `MerchantTransaction`    | `models/merchant.dart`             | Single merchant transaction              |
+| `MerchantTransactionPage`| `models/merchant.dart`             | Paginated transaction list               |
+| `WalletBalance`          | `models/wallet_balance.dart`       | Consumer wallet balance                  |
+| `Transfer`               | `models/transfer.dart`             | P2P transfer                             |
+| `TransferPage`           | `models/transfer.dart`             | Paginated transfer list                  |
+| `PaymentLink`            | `models/payment_link.dart`         | Merchant payment link                    |
+| `PaymentLinkPage`        | `models/payment_link.dart`         | Paginated payment link list              |
+| `QrCode`                 | `models/qr_code.dart`              | QR code record                           |
+| `QrResponse`             | `models/qr_code.dart`              | QR code + encoded payload                |
+| `ParsedQr`               | `models/qr_code.dart`              | Decoded QR payload fields                |
+| `SandboxFundResult`      | `client/consumer_public_client.dart`| Result of `sandboxFund()` — credited and new balance |

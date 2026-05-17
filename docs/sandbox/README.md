@@ -116,11 +116,13 @@ Authorization: Bearer <token>
 
 ## Sandbox Utilities
 
-### Fund a Wallet
+### Fund a Merchant Wallet
 
 Credit the sandbox merchant wallet with virtual AOA (maximum 100,000,000 AOA per call).
 
 The credit is applied as a direct ledger entry in the financial core — the same double-entry infrastructure used by production payments. The balance update is immediate, persistent, and reflected in all downstream operations (QR payments, transfers, payouts). No real funds are moved.
+
+**API (api-gateway, port 8080):**
 
 ```http
 POST /v1/sandbox/fund
@@ -141,18 +143,61 @@ Content-Type: application/json
   "wallet_id":      "uuid",
   "currency":       "AOA",
   "credited_minor": 5000000,
-  "new_balance": {
-    "available_minor": 5000000,
-    "reserved_minor":  0,
-    "currency":        "AOA"
-  },
+  "new_balance":    5000000,
   "note": "Sandbox wallet credited via ledger. Virtual balance — no real funds moved."
 }
 ```
 
-### Fund a Wallet from the Dashboard
+**Dashboard:** In the merchant dashboard (`/wallets`), sandbox sessions display an amber **"Adicionar fundos de teste"** panel with four preset amounts: 5.000 AOA, 10.000 AOA, 50.000 AOA, 100.000 AOA. Clicking a preset calls `POST /v1/sandbox/fund` and refreshes the balance display automatically. The panel is only visible when the session is authenticated with a `bz_test_…` key.
 
-In the merchant dashboard (`/wallets`), sandbox sessions display an amber **"Adicionar fundos de teste"** panel with four preset amounts: 5.000 AOA, 10.000 AOA, 50.000 AOA, 100.000 AOA. Clicking a preset calls `POST /v1/sandbox/fund` and refreshes the balance display automatically. The panel is only visible when the session is authenticated with a `bz_test_…` key.
+---
+
+### Fund a Consumer Wallet
+
+Credit the sandbox consumer wallet with virtual AOA directly from the mobile SDK. Maximum 100,000,000 AOA per call.
+
+**API (public-api, port 8083 — requires consumer JWT):**
+
+```http
+POST /v1/sandbox/fund
+Authorization: Bearer <consumer-jwt>
+Content-Type: application/json
+
+{
+  "amount_minor": 5000000,
+  "currency":     "AOA"
+}
+```
+
+**Response:**
+
+```json
+{
+  "funded":         true,
+  "currency":       "AOA",
+  "credited_minor": 5000000,
+  "new_balance":    5000000,
+  "note": "Sandbox wallet credited. Virtual balance — no real funds moved."
+}
+```
+
+Returns `403 SANDBOX_ONLY` if the public-api instance is not running with `ENVIRONMENT=SANDBOX`.
+
+**Flutter SDK:**
+
+```dart
+final client = ConsumerPublicClient(
+  baseUrl:     'https://sandbox-api.banzami.org',
+  environment: BanzamiEnvironment.sandbox,
+);
+
+await client.login(handle: 'joao', pin: '123456');
+
+final result = await client.sandboxFund(amountMinor: 5000000); // 50 000 Kz
+print(result.newBalance); // 5000000
+```
+
+**In-app panel:** When `BanzamiHomeScreen` is initialised with `environment: BanzamiEnvironment.sandbox`, a yellow **"Modo Sandbox — adicionar fundos"** panel appears below the balance card with four presets: 10.000 Kz, 50.000 Kz, 200.000 Kz, 1.000.000 Kz. Tapping a preset calls `sandboxFund()` and refreshes the balance automatically.
 
 ### Simulate a Payment
 
