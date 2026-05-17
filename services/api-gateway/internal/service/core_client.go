@@ -276,6 +276,33 @@ func (s *CoreApiWalletService) GetForMerchant(ctx context.Context, merchantID, c
 	return resp.toWalletRecord(), nil
 }
 
+func (s *CoreApiWalletService) SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error) {
+	body := map[string]any{
+		"amount_minor": amountMinor,
+		"currency":     currency,
+	}
+	var resp struct {
+		WalletID    string `json:"wallet_id"`
+		Currency    string `json:"currency"`
+		AmountMinor int64  `json:"amount_minor"`
+		NewBalance  int64  `json:"new_balance"`
+	}
+	if err := s.client.post(ctx, "/internal/v1/wallets/"+walletID+"/sandbox-credit", body, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrWalletNotFound
+		}
+		return nil, err
+	}
+	return &WalletBalance{
+		WalletID:       walletID,
+		Currency:       resp.Currency,
+		AvailableMinor: resp.NewBalance,
+		ReservedMinor:  0,
+		TotalMinor:     resp.NewBalance,
+		ComputedAt:     time.Now().UTC(),
+	}, nil
+}
+
 // ---------------------------------------------------------------------------
 // CoreApiMerchantService — implements MerchantService via the Rust core
 // ---------------------------------------------------------------------------

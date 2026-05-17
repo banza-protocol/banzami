@@ -50,6 +50,9 @@ type WalletService interface {
 	Get(ctx context.Context, id string) (*WalletRecord, error)
 	Balance(ctx context.Context, id string) (*WalletBalance, error)
 	GetForMerchant(ctx context.Context, merchantID, currency string) (*WalletRecord, error)
+	// SandboxFund credits a sandbox wallet's available balance directly via the
+	// ledger engine. Only callable in SANDBOX environments — enforced by callers.
+	SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -57,8 +60,9 @@ type WalletService interface {
 // ---------------------------------------------------------------------------
 
 type StubWalletService struct {
-	mu      sync.RWMutex
-	wallets map[string]*WalletRecord // keyed by id
+	mu             sync.RWMutex
+	wallets        map[string]*WalletRecord // keyed by id
+	sandboxCredits map[string]int64         // cumulative sandbox credits keyed by wallet id
 }
 
 func NewStubWalletService() *StubWalletService {
@@ -134,4 +138,32 @@ func (s *StubWalletService) GetForMerchant(_ context.Context, merchantID, curren
 		}
 	}
 	return nil, ErrWalletNotFound
+}
+
+func (s *StubWalletService) SandboxFund(_ context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	w, ok := s.wallets[walletID]
+	if !ok {
+		return nil, ErrWalletNotFound
+	}
+	if currency == "" {
+		currency = "AOA"
+	}
+	// Stub: track the credited amount so Balance() reflects it.
+	if s.sandboxCredits == nil {
+		s.sandboxCredits = make(map[string]int64)
+	}
+	s.sandboxCredits[walletID] += amountMinor
+	total := s.sandboxCredits[walletID]
+
+	return &WalletBalance{
+		WalletID:       w.ID,
+		Currency:       currency,
+		AvailableMinor: total,
+		ReservedMinor:  0,
+		TotalMinor:     total,
+		ComputedAt:     time.Now().UTC(),
+	}, nil
 }

@@ -16,10 +16,11 @@ import (
 // principal. Live API keys receive 403 SANDBOX_ONLY on all routes here.
 type SandboxHandler struct {
 	transactionSvc service.TransactionService
+	walletSvc      service.WalletService
 }
 
-func NewSandboxHandler(txSvc service.TransactionService) *SandboxHandler {
-	return &SandboxHandler{transactionSvc: txSvc}
+func NewSandboxHandler(txSvc service.TransactionService, walletSvc service.WalletService) *SandboxHandler {
+	return &SandboxHandler{transactionSvc: txSvc, walletSvc: walletSvc}
 }
 
 // requireSandbox returns false and writes a 403 when the caller is not in the
@@ -195,8 +196,9 @@ func (h *SandboxHandler) SimulatePayment(w http.ResponseWriter, r *http.Request)
 // POST /v1/sandbox/fund
 // ---------------------------------------------------------------------------
 
-// FundWallet credits the sandbox merchant wallet with virtual balance.
-// This allows developers to test payment flows without seeding real funds.
+// FundWallet credits the sandbox merchant wallet with virtual balance via the
+// ledger engine. This ensures that wallet balances and payment flows work
+// identically to production ("fake money, real flows").
 //
 // Request body:
 //
@@ -234,27 +236,29 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 		body.Currency = "AOA"
 	}
 
-	// Record the top-up as a TOPUP transaction so the ledger stays consistent.
-	idempKey := fmt.Sprintf("sandbox-fund-%s-%d", p.MerchantID, time.Now().UnixNano())
-	tx, err := h.transactionSvc.Create(r.Context(), service.CreateTransactionRequest{
-		IdempotencyKey:  idempKey,
-		TransactionType: "TOPUP",
-		AmountMinor:     body.AmountMinor,
-		Currency:        body.Currency,
-		Description:     "[SANDBOX] Wallet top-up",
-		MerchantID:      p.MerchantID,
-		Environment:     "SANDBOX",
-	})
+	// Resolve the merchant's wallet for the requested currency.
+	wallet, err := h.walletSvc.GetForMerchant(r.Context(), p.MerchantID, body.Currency)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusNotFound, "WALLET_NOT_FOUND",
+			"no active wallet for this merchant in "+body.Currency)
+		return
+	}
+
+	// Credit the wallet's available ledger account directly (ledger-backed,
+	// persisted, immediately reflected in balance queries).
+	balance, err := h.walletSvc.SandboxFund(r.Context(), wallet.ID, body.AmountMinor, body.Currency)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
-	tx.Status = "CAPTURED"
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"funded":      true,
-		"transaction": tx,
-		"note":        "Sandbox wallet credited. This is virtual balance — no real funds were moved.",
+		"funded":          true,
+		"wallet_id":       wallet.ID,
+		"currency":        body.Currency,
+		"credited_minor":  body.AmountMinor,
+		"new_balance":     balance,
+		"note":            "Sandbox wallet credited via ledger. Virtual balance — no real funds moved.",
 	})
 }
 

@@ -3,9 +3,9 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
-use banzami_types::{Currency, MerchantId, WalletId};
+use banzami_types::{Currency, LedgerEntryId, LedgerPostingId, MerchantId, WalletId};
 use banzami_wallets::{CreateWalletRequest, WalletEngine, WalletError};
 
 use crate::{error::{ApiError, ApiResult}, state::AppState};
@@ -74,6 +74,121 @@ pub async fn balance(
         })?;
 
     Ok(Json(serde_json::to_value(&bal).unwrap()))
+}
+
+// ---------------------------------------------------------------------------
+// Sandbox
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct SandboxCreditBody {
+    pub amount_minor: i64,
+    pub currency:     Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct SandboxCreditResponse {
+    pub wallet_id:    String,
+    pub currency:     String,
+    pub amount_minor: i64,
+    pub new_balance:  i64,
+}
+
+/// POST /internal/v1/wallets/:id/sandbox-credit
+///
+/// Injects synthetic funds directly into a merchant wallet's available ledger
+/// account. For sandbox/test environments only — called exclusively by the
+/// api-gateway sandbox handler which enforces SANDBOX principal check.
+pub async fn sandbox_credit(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<SandboxCreditBody>,
+) -> ApiResult<Json<SandboxCreditResponse>> {
+    if body.amount_minor <= 0 {
+        return Err(ApiError::bad_request("amount_minor must be positive"));
+    }
+    const MAX_MINOR: i64 = 10_000_000_000; // 100,000,000 AOA
+    if body.amount_minor > MAX_MINOR {
+        return Err(ApiError::bad_request(
+            "sandbox top-up capped at 100,000,000 AOA per request",
+        ));
+    }
+
+    let wallet_id: WalletId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
+
+    let currency_code = body.currency.as_deref().unwrap_or("AOA");
+
+    let available_account_id: uuid::Uuid = sqlx::query_scalar(
+        "SELECT available_account_id
+         FROM wallets
+         WHERE id = $1 AND status = 'ACTIVE'",
+    )
+    .bind(wallet_id.as_uuid())
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
+
+    let posting_id = LedgerPostingId::new();
+    let now        = chrono::Utc::now();
+
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, $2, $3, $4)",
+    )
+    .bind(posting_id.as_uuid())
+    .bind("[SANDBOX] Merchant wallet top-up")
+    .bind(format!("sandbox-credit-{}-{}", wallet_id, uuid::Uuid::new_v4()))
+    .bind(now)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    sqlx::query(
+        "INSERT INTO ledger_entries
+         (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+    )
+    .bind(LedgerEntryId::new().as_uuid())
+    .bind(posting_id.as_uuid())
+    .bind(available_account_id)
+    .bind(body.amount_minor)
+    .bind(currency_code)
+    .bind(now)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let new_balance: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(
+             SUM(CASE entry_type
+                 WHEN 'DEBIT'  THEN -amount_minor
+                 WHEN 'CREDIT' THEN  amount_minor
+                 END),
+             0)::BIGINT
+         FROM ledger_entries
+         WHERE account_id = $1",
+    )
+    .bind(available_account_id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    tracing::info!(
+        wallet_id    = %wallet_id,
+        amount_minor = body.amount_minor,
+        currency     = currency_code,
+        "sandbox credit applied to merchant wallet"
+    );
+
+    Ok(Json(SandboxCreditResponse {
+        wallet_id:    wallet_id.to_string(),
+        currency:     currency_code.to_owned(),
+        amount_minor: body.amount_minor,
+        new_balance,
+    }))
 }
 
 /// GET /internal/v1/wallets?merchant_id=&currency=
