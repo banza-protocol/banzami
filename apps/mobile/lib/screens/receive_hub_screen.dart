@@ -44,7 +44,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load('assets/images/banzami_icon_1024.png');
+    final data  = await rootBundle.load('assets/images/banzami_icon.png');
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth: 160, targetHeight: 160,
@@ -241,7 +241,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               : null,
                           subtitle:      '@$handle',
                           size:          160,
-                          embeddedImage: const AssetImage('assets/images/banzami_icon_1024.png'),
+                          embeddedImage: const AssetImage('assets/images/banzami_icon.png'),
                         ),
                       ),
                       TextButton.icon(

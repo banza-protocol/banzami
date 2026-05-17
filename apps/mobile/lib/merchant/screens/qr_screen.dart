@@ -37,7 +37,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load('assets/images/banzami_icon_1024.png');
+    final data  = await rootBundle.load('assets/images/banzami_icon.png');
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth:  160,
@@ -194,7 +194,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                   dataModuleShape: QrDataModuleShape.square,
                   color:           BanzamiColors.gray900,
                 ),
-                embeddedImage:      const AssetImage('assets/images/banzami_icon_1024.png'),
+                embeddedImage:      const AssetImage('assets/images/banzami_icon.png'),
                 embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(48, 48)),
               ),
               const SizedBox(height: BanzamiSpacing.lg),
