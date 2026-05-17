@@ -52,10 +52,10 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       setState(() { _step = _LoginStep.pin; _loading = false; });
-    } catch (_) {
+    } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
+        _error   = 'Erro: ${e.runtimeType} — $e';
         _loading = false;
       });
     }
