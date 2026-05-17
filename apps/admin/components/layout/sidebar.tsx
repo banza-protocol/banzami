@@ -19,7 +19,7 @@ export function Sidebar() {
   const router   = useRouter();
 
   return (
-    <aside className="w-64 min-h-screen bg-gray-900 flex flex-col shrink-0">
+    <aside className="w-64 bg-gray-900 flex flex-col shrink-0">
       <div className="px-xl py-xl border-b border-white/10">
         <span className="text-white font-bold text-lg tracking-tight">Banzami</span>
         <span className="ml-sm text-xs text-white/40 font-medium uppercase tracking-widest">Admin</span>
