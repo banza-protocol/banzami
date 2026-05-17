@@ -38,8 +38,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     if (!granted) return;
 
     await PushNotificationService.subscribeToTopic('merchant_${session.merchantId}');
-    final token = await PushNotificationService.getToken();
-    debugPrint('FCM TOKEN (merchant): $token');
+    await PushNotificationService.getToken();
   }
 
   @override

@@ -26,25 +26,12 @@
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
-		<key>NSAppTransportSecurity</key>
-		<dict>
-			<key>NSAllowsLocalNetworking</key>
-			<true/>
-			<key>NSExceptionDomains</key>
-			<dict>
-				<key>localhost</key>
-				<dict>
-					<key>NSExceptionAllowsInsecureHTTPLoads</key>
-					<true/>
-					<key>NSIncludesSubdomains</key>
-					<false/>
-				</dict>
-			</dict>
-		</dict>
 		<key>NSCameraUsageDescription</key>
 		<string>A câmara é usada para ler códigos QR de pagamento.</string>
 		<key>NSFaceIDUsageDescription</key>
 		<string>Use o Face ID para entrar na Banzami de forma segura.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>A biblioteca de fotos é usada para guardar e partilhar códigos QR de pagamento.</string>
 		<key>UIApplicationSceneManifest</key>
 		<dict>
 			<key>UIApplicationSupportsMultipleScenes</key>

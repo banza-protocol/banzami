@@ -35,17 +35,14 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
       ..startPolling();
 
-    final settings = await FirebaseMessaging.instance.requestPermission(
+    await FirebaseMessaging.instance.requestPermission(
       alert: true, badge: true, sound: true,
     );
-    debugPrint('FCM permission status: ${settings.authorizationStatus}');
 
-    final apns = await FirebaseMessaging.instance.getAPNSToken();
-    debugPrint('FCM APNs token (immediate): $apns');
+    await FirebaseMessaging.instance.getAPNSToken();
 
     await PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
-    final token = await PushNotificationService.getToken();
-    debugPrint('FCM TOKEN (consumer): $token');
+    await PushNotificationService.getToken();
   }
 
   @override
