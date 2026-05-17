@@ -131,7 +131,7 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
   <style>
     body { margin:0; padding:0; background:#f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .wrap { max-width:560px; margin:40px auto; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 2px 12px rgba(0,0,0,.08); }
-    .header { background:#6B0F1A; padding:36px 40px; }
+    .header { background:#4A0005; padding:36px 40px; }
     .header img { display:block; width:56px; height:56px; border-radius:12px; margin-bottom:16px; }
     .header h1 { margin:0; color:#fff; font-size:24px; font-weight:700; }
     .header p  { margin:8px 0 0; color:rgba(255,255,255,.75); font-size:14px; }

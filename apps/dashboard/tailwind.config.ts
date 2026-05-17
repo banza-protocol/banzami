@@ -10,9 +10,9 @@ const config: Config = {
     extend: {
       colors: {
         wine: {
-          DEFAULT: '#990011',
-          dark:    '#6B000B',
-          medium:  '#B5001A',
+          DEFAULT: '#B30012',
+          dark:    '#4A0005',
+          medium:  '#8E000D',
           rose:    '#A63A50',
         },
         gold: {
@@ -20,10 +20,10 @@ const config: Config = {
           light:   '#D4AF5C',
         },
         black:      '#1A1A1A',
-        'off-white': '#FCF6F5',
+        'off-white': '#F5F3F1',
         gray: {
           100: '#F5EEED',
-          200: '#EBE3E2',
+          200: '#E7E2DE',
           400: '#9C8483',
           600: '#534040',
           700: '#534040',
@@ -75,7 +75,7 @@ const config: Config = {
         page:    '64px',
       },
       backgroundImage: {
-        'wine-gradient': 'linear-gradient(135deg, #990011 0%, #6B000B 100%)',
+        'wine-gradient': 'linear-gradient(135deg, #B30012 0%, #4A0005 100%)',
       },
     },
   },
