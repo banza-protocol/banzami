@@ -187,6 +187,12 @@ class ConsumerPublicClient {
   /// accepted by the server before allowing biometric unlock.
   Future<void> checkAuth() => _call(method: 'GET', path: '/v1/me');
 
+  /// Fetch the authenticated consumer's current profile from the server.
+  Future<Consumer> getProfile() async {
+    final json = await _call(method: 'GET', path: '/v1/me');
+    return Consumer.fromJson(json);
+  }
+
   Future<WalletBalance> getBalance({String currency = 'AOA'}) async {
     final json = await _call(method: 'GET', path: '/v1/me/wallet/balance?currency=$currency');
     return WalletBalance.fromJson(json);
