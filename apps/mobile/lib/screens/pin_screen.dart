@@ -15,10 +15,13 @@ class PinScreen extends StatefulWidget {
 }
 
 class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
-  String _pin      = '';
-  bool   _error    = false;
-  bool   _checking = false;
-  int    _padResetKey = 0; // incrementing forces PinPad to recreate and clear
+  String _pin         = '';
+  bool   _error       = false;
+  bool   _checking    = false;
+  int    _padResetKey = 0;
+
+  int       _failedAttempts = 0;
+  DateTime? _lockoutUntil;
 
   @override
   void initState() {
@@ -51,8 +54,24 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     if (ok && mounted) svc.unlock();
   }
 
+  bool get _isLockedOut {
+    final until = _lockoutUntil;
+    return until != null && DateTime.now().isBefore(until);
+  }
+
   Future<void> _onPinComplete() async {
     if (_pin.length < kPinLength || _checking) return;
+
+    if (_isLockedOut) {
+      final secs = _lockoutUntil!.difference(DateTime.now()).inSeconds + 1;
+      setState(() { _error = true; _pin = ''; _padResetKey += 1; });
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text('Demasiadas tentativas. Tente novamente em $secs segundos.'),
+        duration: const Duration(seconds: 3),
+      ));
+      return;
+    }
+
     setState(() { _checking = true; _error = false; });
 
     final svc    = context.read<SessionService>();
@@ -61,6 +80,8 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
 
     if (!mounted) return;
     if (ok) {
+      _failedAttempts = 0;
+      _lockoutUntil   = null;
       try {
         final result = await client.login(
           handle: svc.session!.handle,
@@ -70,6 +91,10 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
       } catch (_) {}
       svc.unlock();
     } else {
+      _failedAttempts += 1;
+      if (_failedAttempts >= 5) {
+        _lockoutUntil = DateTime.now().add(const Duration(seconds: 30));
+      }
       setState(() {
         _error        = true;
         _checking     = false;
@@ -131,7 +156,11 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                     ),
                   const SizedBox(height: 8),
                   Text(
-                    _error ? 'PIN incorrecto. Tente novamente.' : 'Introduza o PIN',
+                    _isLockedOut
+                        ? 'Conta bloqueada temporariamente.'
+                        : _error
+                            ? 'PIN incorrecto. Tente novamente.'
+                            : 'Introduza o PIN',
                     style: BanzamiTextStyles.bodyMd.copyWith(
                       color: _error ? BanzamiColors.error : BanzamiColors.gray400,
                     ),

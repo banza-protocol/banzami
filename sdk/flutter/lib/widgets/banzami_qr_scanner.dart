@@ -59,13 +59,51 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     widget.onDetected(value);
   }
 
+  Widget _buildPermissionDenied(BuildContext context) {
+    return Container(
+      color: Colors.black,
+      child: SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.camera_alt_outlined, color: Colors.white54, size: 64),
+                const SizedBox(height: 24),
+                const Text(
+                  'Câmara não autorizada',
+                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w600),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Para ler códigos QR, autorize o acesso à câmara nas Definições do seu iPhone.',
+                  style: TextStyle(color: Colors.white60, fontSize: 15),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 32),
+                if (widget.onCancel != null)
+                  TextButton(
+                    onPressed: widget.onCancel,
+                    child: const Text('Voltar', style: TextStyle(color: Colors.white70, fontSize: 16)),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: [
         MobileScanner(
-          controller: _controller,
-          onDetect:   _onDetect,
+          controller:   _controller,
+          onDetect:     _onDetect,
+          errorBuilder: (context, error, child) => _buildPermissionDenied(context),
         ),
 
         // Viewfinder overlay

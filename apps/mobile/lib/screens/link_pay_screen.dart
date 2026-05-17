@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:uuid/uuid.dart';
 
 /// Opened when the app receives a deep link: banzami://pay/link/{slug}
 ///
@@ -21,6 +22,8 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
   bool   _paid       = false;
   String? _error;
   int    _enteredAmount = 0;
+  // Generated once per screen instance so retries reuse the same key.
+  final String _idempotencyKey = const Uuid().v4();
 
   @override
   void initState() {
@@ -46,7 +49,11 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
     try {
       final client  = context.read<ConsumerPublicClient>();
       final amount  = link.amountMinor ?? (_enteredAmount > 0 ? _enteredAmount : null);
-      final updated = await client.payPaymentLink(link.slug, amountMinor: amount);
+      final updated = await client.payPaymentLink(
+        link.slug,
+        amountMinor:     amount,
+        idempotencyKey:  _idempotencyKey,
+      );
       // Merge merchant_name from the pre-loaded link since payPaymentLink
       // returns the updated status but may drop enriched fields on older servers.
       if (mounted) setState(() {
