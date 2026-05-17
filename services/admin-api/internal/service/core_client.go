@@ -250,6 +250,18 @@ func (c *CoreAdminClient) GetConsumer(ctx context.Context, id string) (map[strin
 	return out, c.get(ctx, "/internal/v1/consumers/"+id, &out)
 }
 
+// SetConsumerBadge assigns or removes a verification badge on a consumer.
+// badge must be "CONSUMER", "MERCHANT", or "" to clear.
+func (c *CoreAdminClient) SetConsumerBadge(ctx context.Context, id, badge string) (map[string]any, error) {
+	var badgeVal any
+	if badge != "" {
+		badgeVal = badge
+	}
+	var out map[string]any
+	return out, c.patch(ctx, "/internal/v1/consumers/"+id+"/badge",
+		map[string]any{"badge": badgeVal}, &out)
+}
+
 // ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
@@ -267,6 +279,26 @@ func (c *CoreAdminClient) post(ctx context.Context, path string, body any, out a
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bodyReader)
+	if err != nil {
+		return fmt.Errorf("core-api request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	return c.do(req, out)
+}
+
+func (c *CoreAdminClient) patch(ctx context.Context, path string, body any, out any) error {
+	var bodyReader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return fmt.Errorf("core-api marshal: %w", err)
+		}
+		bodyReader = bytes.NewReader(data)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPatch, c.baseURL+path, bodyReader)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
 	}

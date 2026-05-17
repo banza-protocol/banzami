@@ -9,13 +9,37 @@ import 'package:local_auth/local_auth.dart';
 // Session model
 // ---------------------------------------------------------------------------
 
+/// Admin-assigned verification badge type.
+/// Matches the `verification_badge` field returned by the core API.
+enum VerificationBadgeType {
+  consumer, // gold — verified individual
+  merchant, // blue — verified business / merchant account
+}
+
+VerificationBadgeType? _parseBadge(String? raw) {
+  switch (raw) {
+    case 'CONSUMER': return VerificationBadgeType.consumer;
+    case 'MERCHANT': return VerificationBadgeType.merchant;
+    default:         return null;
+  }
+}
+
+String? _badgeToString(VerificationBadgeType? badge) {
+  switch (badge) {
+    case VerificationBadgeType.consumer: return 'CONSUMER';
+    case VerificationBadgeType.merchant: return 'MERCHANT';
+    case null:                           return null;
+  }
+}
+
 class Session {
-  final String  consumerId;
-  final String  walletId;
-  final String  handle;
-  final String? displayName;
-  final String  token;
-  final bool    biometricsEnabled;
+  final String               consumerId;
+  final String               walletId;
+  final String               handle;
+  final String?              displayName;
+  final String               token;
+  final bool                 biometricsEnabled;
+  final VerificationBadgeType? verificationBadge;
 
   const Session({
     required this.consumerId,
@@ -23,16 +47,23 @@ class Session {
     required this.handle,
     this.displayName,
     required this.token,
-    this.biometricsEnabled = false,
+    this.biometricsEnabled  = false,
+    this.verificationBadge,
   });
 
-  Session copyWith({ bool? biometricsEnabled, String? token }) => Session(
+  Session copyWith({
+    bool?                  biometricsEnabled,
+    String?                token,
+    VerificationBadgeType? verificationBadge,
+    bool                   clearBadge = false,
+  }) => Session(
     consumerId:        consumerId,
     walletId:          walletId,
     handle:            handle,
     displayName:       displayName,
     token:             token ?? this.token,
     biometricsEnabled: biometricsEnabled ?? this.biometricsEnabled,
+    verificationBadge: clearBadge ? null : (verificationBadge ?? this.verificationBadge),
   );
 }
 
@@ -47,13 +78,14 @@ class SessionService extends ChangeNotifier {
   );
   static final _bio = LocalAuthentication();
 
-  static const _kConsumerId  = 'consumer_id';
-  static const _kWalletId    = 'wallet_id';
-  static const _kHandle      = 'handle';
-  static const _kDisplayName = 'display_name';
-  static const _kPinHash     = 'pin_hash';
-  static const _kToken       = 'token';
-  static const _kBioEnabled  = 'biometrics_enabled';
+  static const _kConsumerId         = 'consumer_id';
+  static const _kWalletId           = 'wallet_id';
+  static const _kHandle             = 'handle';
+  static const _kDisplayName        = 'display_name';
+  static const _kPinHash            = 'pin_hash';
+  static const _kToken              = 'token';
+  static const _kBioEnabled         = 'biometrics_enabled';
+  static const _kVerificationBadge  = 'verification_badge';
 
   Session? _session;
   bool     _locked      = true;
@@ -93,6 +125,7 @@ class SessionService extends ChangeNotifier {
     final displayName = await _store.read(key: _kDisplayName);
     final token       = await _store.read(key: _kToken);
     final bioEnabled  = await _store.read(key: _kBioEnabled);
+    final badgeRaw    = await _store.read(key: _kVerificationBadge);
 
     if (consumerId != null && walletId != null && handle != null && token != null) {
       _session = Session(
@@ -102,6 +135,7 @@ class SessionService extends ChangeNotifier {
         displayName:       displayName,
         token:             token,
         biometricsEnabled: bioEnabled == 'true',
+        verificationBadge: _parseBadge(badgeRaw),
       );
     }
     _initialized = true;
@@ -116,9 +150,10 @@ class SessionService extends ChangeNotifier {
     required String consumerId,
     required String walletId,
     required String handle,
-    String?         displayName,
-    required String pin,
-    required String token,
+    String?                displayName,
+    required String        pin,
+    required String        token,
+    VerificationBadgeType? verificationBadge,
   }) async {
     await _store.write(key: _kConsumerId,  value: consumerId);
     await _store.write(key: _kWalletId,    value: walletId);
@@ -128,15 +163,37 @@ class SessionService extends ChangeNotifier {
     if (displayName != null) {
       await _store.write(key: _kDisplayName, value: displayName);
     }
+    final badgeStr = _badgeToString(verificationBadge);
+    if (badgeStr != null) {
+      await _store.write(key: _kVerificationBadge, value: badgeStr);
+    }
     _session = Session(
-      consumerId:  consumerId,
-      walletId:    walletId,
-      handle:      handle,
-      displayName: displayName,
-      token:       token,
+      consumerId:        consumerId,
+      walletId:          walletId,
+      handle:            handle,
+      displayName:       displayName,
+      token:             token,
+      verificationBadge: verificationBadge,
     );
     _locked = false;
     notifyListeners();
+  }
+
+  /// Called when the app refreshes the consumer profile from the server,
+  /// so the badge stays current without requiring a full re-login.
+  Future<void> updateVerificationBadge(VerificationBadgeType? badge) async {
+    final badgeStr = _badgeToString(badge);
+    if (badgeStr != null) {
+      await _store.write(key: _kVerificationBadge, value: badgeStr);
+    } else {
+      await _store.delete(key: _kVerificationBadge);
+    }
+    if (_session != null) {
+      _session = badge != null
+          ? _session!.copyWith(verificationBadge: badge)
+          : _session!.copyWith(clearBadge: true);
+      notifyListeners();
+    }
   }
 
   /// Called after a server-side re-login (e.g. expired JWT) to refresh the

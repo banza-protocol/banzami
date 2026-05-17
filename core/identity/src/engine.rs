@@ -5,7 +5,7 @@ use banzami_types::ConsumerId;
 use crate::{
     identity::{
         normalize_handle, validate_handle, ConsumerIdentity, ConsumerStatus,
-        CreateConsumerRequest,
+        CreateConsumerRequest, VerificationBadge,
     },
     repository::IdentityRepository,
     IdentityError,
@@ -23,6 +23,11 @@ pub trait IdentityEngine: Send + Sync {
     async fn get_by_handle(&self, handle: &str) -> Result<ConsumerIdentity, IdentityError>;
     async fn suspend(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError>;
     async fn close(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError>;
+    async fn set_badge(
+        &self,
+        id:    ConsumerId,
+        badge: Option<VerificationBadge>,
+    ) -> Result<ConsumerIdentity, IdentityError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -49,12 +54,13 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
 
         let now = Utc::now();
         let identity = ConsumerIdentity {
-            id:           ConsumerId::new(),
+            id:                 ConsumerId::new(),
             handle,
-            display_name: req.display_name,
-            status:       ConsumerStatus::Active,
-            created_at:   now,
-            updated_at:   now,
+            display_name:       req.display_name,
+            status:             ConsumerStatus::Active,
+            verification_badge: None,
+            created_at:         now,
+            updated_at:         now,
         };
 
         self.repo.create(identity).await
@@ -82,6 +88,14 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
 
     async fn close(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError> {
         self.repo.update_status(id, ConsumerStatus::Closed).await
+    }
+
+    async fn set_badge(
+        &self,
+        id:    ConsumerId,
+        badge: Option<VerificationBadge>,
+    ) -> Result<ConsumerIdentity, IdentityError> {
+        self.repo.set_badge(id, badge).await
     }
 }
 
@@ -153,6 +167,20 @@ mod tests {
                 .find(|i| i.id == id)
                 .ok_or(IdentityError::NotFound(id))?;
             identity.status = status;
+            Ok(identity.clone())
+        }
+
+        async fn set_badge(
+            &self,
+            id:    ConsumerId,
+            badge: Option<VerificationBadge>,
+        ) -> Result<ConsumerIdentity, IdentityError> {
+            let mut store = self.identities.lock().unwrap();
+            let identity = store
+                .iter_mut()
+                .find(|i| i.id == id)
+                .ok_or(IdentityError::NotFound(id))?;
+            identity.verification_badge = badge;
             Ok(identity.clone())
         }
     }

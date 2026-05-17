@@ -63,12 +63,15 @@ export interface Merchant {
   created_at: string;
 }
 
+export type VerificationBadge = 'CONSUMER' | 'MERCHANT';
+
 export interface Consumer {
-  id:           string;
-  handle:       string;
-  display_name: string | null;
-  status:       string;
-  created_at:   string;
+  id:                  string;
+  handle:              string;
+  display_name:        string | null;
+  status:              string;
+  verification_badge:  VerificationBadge | null;
+  created_at:          string;
 }
 
 // ---------------------------------------------------------------------------
@@ -209,6 +212,12 @@ export class AdminApi {
     return this.req(`/admin/v1/consumers${q}`);
   }
   getConsumer(id: string): Promise<Consumer> { return this.req(`/admin/v1/consumers/${id}`); }
+  setConsumerBadge(id: string, badge: VerificationBadge | null): Promise<Consumer> {
+    return this.req(`/admin/v1/consumers/${id}/badge`, {
+      method: 'PATCH',
+      body:   JSON.stringify({ badge }),
+    });
+  }
 
   // Reconciliation
   runReconciliation(): Promise<Record<string, unknown>> {

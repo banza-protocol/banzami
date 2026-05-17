@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, ArrowLeft } from 'lucide-react';
+import { Search, ArrowLeft, ShieldCheck, ShieldOff } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { AdminApi, type Consumer } from '@/lib/admin-api';
+import { AdminApi, type Consumer, type VerificationBadge } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 
@@ -13,7 +13,9 @@ export default function ConsumersPage() {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
-  const [consumer, setConsumer]       = useState<Consumer | null>(null);
+  const [consumer, setConsumer]   = useState<Consumer | null>(null);
+  const [badgeSaving, setBadgeSaving] = useState(false);
+  const [badgeError,  setBadgeError]  = useState('');
   const loadConsumers = useCallback(async (q?: string) => {
     const session = getSession();
     if (!session) return;
@@ -34,6 +36,22 @@ export default function ConsumersPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     loadConsumers(search.trim() || undefined);
+  }
+
+  async function handleSetBadge(badge: VerificationBadge | null) {
+    if (!consumer) return;
+    const session = getSession();
+    if (!session) return;
+    setBadgeSaving(true); setBadgeError('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const updated = await api.setConsumerBadge(consumer.id, badge);
+      setConsumer(updated);
+    } catch (e) {
+      setBadgeError(e instanceof Error ? e.message : 'Erro ao actualizar badge.');
+    } finally {
+      setBadgeSaving(false);
+    }
   }
 
   return (
@@ -99,7 +117,60 @@ export default function ConsumersPage() {
             <div className="divide-y divide-gray-100">
               <Row label="Estado"    value={<Badge label={consumer.status} />} />
               <Row label="Criado em" value={new Date(consumer.created_at).toLocaleString('pt-AO', { dateStyle: 'medium', timeStyle: 'short' })} />
+              <Row label="Badge de verificação" value={
+                consumer.verification_badge
+                  ? <Badge label={consumer.verification_badge} />
+                  : <span className="text-gray-400 text-xs">Nenhum</span>
+              } />
             </div>
+          </div>
+
+          {/* Badge control */}
+          <div className="bg-white rounded-lg shadow-card overflow-hidden">
+            <div className="px-xl py-lg border-b border-gray-100">
+              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-sm">
+                <ShieldCheck size={15} className="text-gray-400" />
+                Atribuir badge de verificação
+              </h3>
+              <p className="text-xs text-gray-400 mt-xs">
+                O badge aparece no perfil do utilizador na app mobile.
+              </p>
+            </div>
+            <div className="px-xl py-lg flex flex-wrap gap-sm">
+              <button
+                disabled={badgeSaving}
+                onClick={() => handleSetBadge('CONSUMER')}
+                className={`px-lg py-sm text-sm font-medium rounded-md border transition-colors disabled:opacity-50 ${
+                  consumer.verification_badge === 'CONSUMER'
+                    ? 'bg-amber-50 border-amber-400 text-amber-800'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Consumidor (gold)
+              </button>
+              <button
+                disabled={badgeSaving}
+                onClick={() => handleSetBadge('MERCHANT')}
+                className={`px-lg py-sm text-sm font-medium rounded-md border transition-colors disabled:opacity-50 ${
+                  consumer.verification_badge === 'MERCHANT'
+                    ? 'bg-blue-50 border-blue-400 text-blue-800'
+                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                }`}
+              >
+                Comerciante (azul)
+              </button>
+              <button
+                disabled={badgeSaving || consumer.verification_badge === null}
+                onClick={() => handleSetBadge(null)}
+                className="px-lg py-sm text-sm font-medium rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center gap-xs"
+              >
+                <ShieldOff size={13} /> Remover badge
+              </button>
+              {badgeSaving && <Spinner className="h-4 w-4 self-center" />}
+            </div>
+            {badgeError && (
+              <p className="px-xl pb-lg text-xs text-error">{badgeError}</p>
+            )}
           </div>
 
         </>

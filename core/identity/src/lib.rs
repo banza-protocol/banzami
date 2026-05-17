@@ -4,7 +4,8 @@ pub mod repository;
 
 pub use engine::{IdentityEngine, PostgresIdentityEngine};
 pub use identity::{
-    normalize_handle, validate_handle, ConsumerIdentity, ConsumerStatus, CreateConsumerRequest,
+    normalize_handle, validate_handle,
+    ConsumerIdentity, ConsumerStatus, CreateConsumerRequest, VerificationBadge,
 };
 pub use repository::{IdentityRepository, PostgresIdentityRepository};
 

@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 use banzami_types::ConsumerId;
 
-use crate::{ConsumerIdentity, ConsumerStatus, IdentityError};
+use crate::{ConsumerIdentity, ConsumerStatus, IdentityError, VerificationBadge};
 
 #[allow(async_fn_in_trait)]
 pub trait IdentityRepository: Send + Sync {
@@ -16,6 +16,11 @@ pub trait IdentityRepository: Send + Sync {
         id:     ConsumerId,
         status: ConsumerStatus,
     ) -> Result<ConsumerIdentity, IdentityError>;
+    async fn set_badge(
+        &self,
+        id:    ConsumerId,
+        badge: Option<VerificationBadge>,
+    ) -> Result<ConsumerIdentity, IdentityError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -24,12 +29,13 @@ pub trait IdentityRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct IdentityRow {
-    id:           Uuid,
-    handle:       String,
-    display_name: Option<String>,
-    status:       String,
-    created_at:   DateTime<Utc>,
-    updated_at:   DateTime<Utc>,
+    id:                 Uuid,
+    handle:             String,
+    display_name:       Option<String>,
+    status:             String,
+    verification_badge: Option<String>,
+    created_at:         DateTime<Utc>,
+    updated_at:         DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -47,7 +53,7 @@ impl PostgresIdentityRepository {
 }
 
 const SELECT: &str =
-    "SELECT id, handle, display_name, status, created_at, updated_at
+    "SELECT id, handle, display_name, status, verification_badge, created_at, updated_at
      FROM consumers";
 
 impl IdentityRepository for PostgresIdentityRepository {
@@ -124,6 +130,25 @@ impl IdentityRepository for PostgresIdentityRepository {
 
         self.get(id).await
     }
+
+    async fn set_badge(
+        &self,
+        id:    ConsumerId,
+        badge: Option<VerificationBadge>,
+    ) -> Result<ConsumerIdentity, IdentityError> {
+        let now = Utc::now();
+        sqlx::query(
+            "UPDATE consumers SET verification_badge = $1, updated_at = $2 WHERE id = $3",
+        )
+        .bind(badge.map(|b| b.as_str()))
+        .bind(now)
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(IdentityError::Database)?;
+
+        self.get(id).await
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -134,12 +159,17 @@ fn identity_from_row(row: IdentityRow) -> Result<ConsumerIdentity, IdentityError
     let status = ConsumerStatus::try_from_str(&row.status)
         .ok_or_else(|| IdentityError::UnknownStatus(row.status))?;
 
+    let verification_badge = row.verification_badge
+        .as_deref()
+        .and_then(VerificationBadge::try_from_str);
+
     Ok(ConsumerIdentity {
-        id:           ConsumerId::from_uuid(row.id),
-        handle:       row.handle,
-        display_name: row.display_name,
+        id:                 ConsumerId::from_uuid(row.id),
+        handle:             row.handle,
+        display_name:       row.display_name,
         status,
-        created_at:   row.created_at,
-        updated_at:   row.updated_at,
+        verification_badge,
+        created_at:         row.created_at,
+        updated_at:         row.updated_at,
     })
 }
