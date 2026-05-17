@@ -4,13 +4,11 @@ Source of truth for the **App Review Information → Notes** field and the
 **TestFlight → What to Test** field for each submission.
 Update here first so future submissions stay consistent.
 
-Banzami uses handle + PIN authentication. A dedicated review account is
-provisioned in the sandbox environment — no PIN reset needed; use the
-credentials below exactly as provided.
-
 ---
 
 ## Banzami (Consumer app)
+
+Usa autenticação por **@banza handle + PIN**.
 
 ### App Store Review Notes
 
@@ -71,21 +69,24 @@ Obrigado por fazeres parte do beta Banzami!
 
 ## Banzami Business (Merchant app)
 
+Usa autenticação por **Merchant ID + API Key** (diferente da app consumer).
+
 ### App Store Review Notes
 
 ```
-The app uses handle + PIN authentication.
+The app uses Merchant ID + API Key authentication.
 A dedicated sandbox merchant account has been provisioned for App Review.
 
-Review account:
-  Handle:  review-merchant
-  PIN:     123456
+Review credentials:
+  Merchant ID:  b7f088ce-ca5e-4810-8624-d503da4d83dc
+  API Key:      bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2
 
 Instructions:
 1. Open the app
-2. Tap "Entrar" (Log in)
-3. Enter the handle:  review-merchant
-4. Enter the PIN:     123456
+2. Tap "Configurar" (Set up)
+3. Enter the Merchant ID above
+4. Enter the API Key above
+5. Tap "Continuar"
 
 The review account has full access to:
 * Merchant wallet balance and transaction history
@@ -106,7 +107,7 @@ Important:
 Bem-vindo ao beta da Banzami Business!
 
 O que testar:
-1. Registo e login como comerciante
+1. Configurar a conta com Merchant ID e API Key
 2. Gerar QR code para receber pagamento
 3. Receber um pagamento em tempo real
 4. Criar e partilhar um link de pagamento
@@ -137,7 +138,9 @@ Obrigado por fazeres parte do beta Banzami Business!
 2. Selecciona a app (`Banzami` ou `Banzami Business`)
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
-5. Em **Demo Account**: preenche Username com o handle e Password com o PIN
+5. Para o **Demo Account**:
+   - Consumer: Username = `review`, Password = `123456`
+   - Business: Username = Merchant ID, Password = API Key
 6. Grava → submete o build para revisão
 
 ### TestFlight — What to Test
@@ -152,20 +155,31 @@ Obrigado por fazeres parte do beta Banzami Business!
 
 ## Contas de revisão sandbox
 
-As contas abaixo são provisionadas no ambiente sandbox da Banzami.
-Não as eliminar — são necessárias para futuras submissões.
+As contas abaixo estão provisionadas no ambiente sandbox.
+**Não eliminar** — são necessárias para futuras submissões.
 
-| Handle            | PIN    | App                   | Ambiente |
-|-------------------|--------|-----------------------|----------|
-| review            | 123456 | Banzami (consumer)    | sandbox  |
-| review-merchant   | 123456 | Banzami Business      | sandbox  |
+### Consumer (Banzami)
+
+| Campo    | Valor     |
+|----------|-----------|
+| Handle   | review    |
+| PIN      | 123456    |
+| Consumer ID | 64080866-4c92-4358-ad20-2233a8db8428 |
+
+### Merchant (Banzami Business)
+
+| Campo       | Valor                                                                     |
+|-------------|---------------------------------------------------------------------------|
+| Merchant ID | b7f088ce-ca5e-4810-8624-d503da4d83dc                                      |
+| API Key     | bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2 |
+| Ambiente    | SANDBOX                                                                   |
 
 ---
 
 ## Registo de submissões
 
-| Data       | Build     | Apps                              | Estado              |
-|------------|-----------|-----------------------------------|---------------------|
-|            |           |                                   |                     |
+| Data | Build | Apps | Estado |
+|------|-------|------|--------|
+|      |       |      |        |
 
 Adicionar uma linha a cada submissão.
