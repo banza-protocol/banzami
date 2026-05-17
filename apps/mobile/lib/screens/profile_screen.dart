@@ -174,15 +174,11 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1C0A0E), Color(0xFF3D0B1A)],
-          begin:  Alignment.topLeft,
-          end:    Alignment.bottomRight,
-        ),
+        gradient:     BanzamiGradients.wine,
         borderRadius: BanzamiRadius.xlAll,
         boxShadow: [
           BoxShadow(
-            color:      const Color(0xFF1C0A0E).withValues(alpha: 0.30),
+            color:      BanzamiColors.wineDark.withValues(alpha: 0.30),
             blurRadius: 24,
             offset:     const Offset(0, 8),
           ),
