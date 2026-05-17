@@ -40,26 +40,35 @@ export default function LoginPage() {
       }
       const { token } = await tokenRes.json() as { token: string };
 
-      // Fetch wallet ID automatically (optional — dashboard works without it)
-      let walletId: string | undefined;
-      try {
-        const walletRes = await fetch(`${base}/v1/wallets?currency=AOA`, {
+      // Fetch merchant name and wallet ID in parallel (both optional — non-fatal)
+      let walletId:    string | undefined;
+      let merchantName = form.merchantId.trim();
+      await Promise.allSettled([
+        fetch(`${base}/v1/merchants/${form.merchantId.trim()}`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        if (walletRes.ok) {
-          const wallet = await walletRes.json() as { id: string };
-          walletId = wallet.id;
-        }
-      } catch {
-        // Non-fatal — proceed without wallet ID
-      }
+        }).then(async r => {
+          if (r.ok) {
+            const m = await r.json() as { name: string };
+            merchantName = m.name;
+          }
+        }),
+        fetch(`${base}/v1/wallets?currency=AOA`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }).then(async r => {
+          if (r.ok) {
+            const w = await r.json() as { id: string };
+            walletId = w.id;
+          }
+        }),
+      ]);
 
       saveSession({
-        apiKey:      token,
-        merchantId:  form.merchantId.trim(),
+        apiKey:       token,
+        merchantId:   form.merchantId.trim(),
+        merchantName,
         walletId,
-        gatewayUrl:  base,
-        environment: form.apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
+        gatewayUrl:   base,
+        environment:  form.apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
       });
       router.replace('/');
     } catch (err) {
