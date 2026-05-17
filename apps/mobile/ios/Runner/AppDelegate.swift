@@ -32,7 +32,9 @@ import UIKit
     _ application: UIApplication,
     didFailToRegisterForRemoteNotificationsWithError error: Error
   ) {
+    #if DEBUG
     print("APNs registration failed: \(error)")
+    #endif
     super.application(application, didFailToRegisterForRemoteNotificationsWithError: error)
   }
 }
