@@ -77,6 +77,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   void _onSend() => Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => BanzamiSendScreen(
       client:    widget.client,
+      ownHandle: widget.handle,
       onSuccess: (_) { Navigator.of(context).pop(); _load(); },
     ),
   ));

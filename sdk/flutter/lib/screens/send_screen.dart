@@ -17,11 +17,14 @@ import '../widgets/banzami_button.dart';
 class BanzamiSendScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final void Function(Transfer transfer) onSuccess;
+  /// The authenticated user's own handle — excluded from autocomplete results.
+  final String? ownHandle;
 
   const BanzamiSendScreen({
     super.key,
     required this.client,
     required this.onSuccess,
+    this.ownHandle,
   });
 
   @override
@@ -75,7 +78,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     _debounce = Timer(const Duration(milliseconds: 300), () async {
       if (!mounted) return;
       setState(() => _searching = true);
-      final results = await widget.client.searchHandles(q);
+      var results = await widget.client.searchHandles(q);
+      if (widget.ownHandle != null) {
+        results = results.where((s) => s.handle != widget.ownHandle).toList();
+      }
       if (!mounted) return;
       setState(() { _suggestions = results; _searching = false; });
     });
