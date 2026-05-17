@@ -47,6 +47,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	meH          := handler.NewMeHandler(deps.CoreClient)
 	transferH    := handler.NewTransferHandler(deps.CoreClient)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
+	sandboxH     := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
@@ -76,6 +77,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 		// Payment link payment
 		r.Post("/v1/payment-links/{slug}/pay", paymentLinkH.Pay)
+
+		// Sandbox utilities — 403 when not in SANDBOX environment
+		r.Post("/v1/sandbox/fund", sandboxH.FundWallet)
 	})
 
 	traced := otelhttp.NewHandler(r, "public-api")

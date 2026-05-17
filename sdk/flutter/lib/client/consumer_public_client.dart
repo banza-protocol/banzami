@@ -9,6 +9,20 @@ import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
+import 'banzami_environment.dart';
+
+/// Result of a sandbox wallet top-up via [ConsumerPublicClient.sandboxFund].
+class SandboxFundResult {
+  final int    creditedMinor;
+  final int    newBalance;
+  final String currency;
+
+  const SandboxFundResult({
+    required this.creditedMinor,
+    required this.newBalance,
+    required this.currency,
+  });
+}
 
 /// Lightweight registration bundle returned by [ConsumerPublicClient.register].
 class ConsumerRegistration {
@@ -41,6 +55,7 @@ class ConsumerRegistration {
 /// ```
 class ConsumerPublicClient {
   final String baseUrl;
+  final BanzamiEnvironment environment;
   String? _token;
   final http.Client _http;
   final Uuid _uuid;
@@ -60,6 +75,7 @@ class ConsumerPublicClient {
 
   ConsumerPublicClient({
     required this.baseUrl,
+    this.environment = BanzamiEnvironment.production,
     http.Client? httpClient,
     this.onRequest,
     this.onResponse,
@@ -240,6 +256,30 @@ class ConsumerPublicClient {
       body: body,
     );
     return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Sandbox utilities
+  // ---------------------------------------------------------------------------
+
+  /// Credits the authenticated consumer's sandbox wallet with virtual funds.
+  ///
+  /// Only works when [environment] is [BanzamiEnvironment.sandbox].
+  /// Throws [BanzamiApiException] with code `SANDBOX_ONLY` if called in production.
+  Future<SandboxFundResult> sandboxFund({
+    required int amountMinor,
+    String currency = 'AOA',
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/sandbox/fund',
+      body: {'amount_minor': amountMinor, 'currency': currency},
+    );
+    return SandboxFundResult(
+      creditedMinor: json['credited_minor'] as int,
+      newBalance:    json['new_balance']    as int,
+      currency:      json['currency']       as String,
+    );
   }
 
   // ---------------------------------------------------------------------------
