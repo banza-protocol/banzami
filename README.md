@@ -378,7 +378,7 @@ banzami/
 │   ├── checkout/                  Hosted checkout — QR-first payment UX (Next.js, :3004)
 │   ├── mobile/                    Flutter multi-flavor mobile app
 │   │   ├── lib/main_consumer.dart Consumer entry point (Banzami app)
-│   │   ├── lib/main_merchant.dart Merchant entry point (Banzami Comerciante)
+│   │   ├── lib/main_merchant.dart Merchant entry point (Banzami Business)
 │   │   ├── lib/merchant/          Merchant screens and session service
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
@@ -1557,7 +1557,7 @@ make stack-up       # start everything (applies migrations automatically)
 
 ### Mobile Apps (Flutter)
 
-`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banzami) and **merchant** (Banzami Comerciante) — built and published to the App Store and Play Store separately.
+`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banzami) and **merchant** (Banzami Business) — built and published to the App Store and Play Store separately.
 
 **Run in development:**
 
@@ -1610,7 +1610,7 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 | Flavor   | iOS Bundle ID            | Android Application ID   | Display Name         |
 |----------|--------------------------|--------------------------|----------------------|
 | consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banzami              |
-| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banzami Comerciante  |
+| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banzami Business  |
 
 **iOS schemes** are at `apps/mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/`:
 - `consumer.xcscheme` — Debug-consumer / Release-consumer configurations
