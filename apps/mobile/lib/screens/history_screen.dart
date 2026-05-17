@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import '../services/session_service.dart';
+
+enum _HistoryFilter { all, received, sent }
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -13,12 +16,13 @@ class HistoryScreen extends StatefulWidget {
 
 class _HistoryScreenState extends State<HistoryScreen> {
   final List<Transfer> _transfers = [];
-  String? _cursor;
-  bool    _loading  = false;
-  bool    _hasMore  = true;
-  String? _error;
+  String?        _cursor;
+  bool           _loading  = false;
+  bool           _hasMore  = true;
+  String?        _error;
+  _HistoryFilter _filter   = _HistoryFilter.all;
 
-  static const int _pageSize = 30;
+  static const int _pageSize = 50;
 
   @override
   void initState() {
@@ -49,6 +53,44 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
+  List<Transfer> _filtered(String consumerId) {
+    return switch (_filter) {
+      _HistoryFilter.received => _transfers.where((t) => t.recipientId == consumerId).toList(),
+      _HistoryFilter.sent     => _transfers.where((t) => t.senderId    == consumerId).toList(),
+      _HistoryFilter.all      => List.of(_transfers),
+    };
+  }
+
+  // Returns a list of [String] (date headers) and [Transfer] (items) in order.
+  List<dynamic> _grouped(List<Transfer> transfers) {
+    final now       = DateTime.now();
+    final today     = DateUtils.dateOnly(now);
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    final items = <dynamic>[];
+    String? lastKey;
+
+    for (final t in transfers) {
+      final date = DateUtils.dateOnly(t.createdAt);
+      final String key;
+      if (date == today) {
+        key = 'Hoje';
+      } else if (date == yesterday) {
+        key = 'Ontem';
+      } else {
+        key = DateFormat('d MMM yyyy', 'pt_PT').format(date);
+      }
+
+      if (key != lastKey) {
+        items.add(key);
+        lastKey = key;
+      }
+      items.add(t);
+    }
+
+    return items;
+  }
+
   @override
   Widget build(BuildContext context) {
     final consumerId = context.read<SessionService>().session!.consumerId;
@@ -56,21 +98,49 @@ class _HistoryScreenState extends State<HistoryScreen> {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title:           const Text('Histórico', style: BanzamiTextStyles.headingSm),
-        actions: [
-          IconButton(
-            icon:      const Icon(Icons.refresh_rounded),
-            onPressed: () => _load(refresh: true),
-          ),
-        ],
+        backgroundColor:        BanzamiColors.offWhite,
+        foregroundColor:        BanzamiColors.gray900,
+        elevation:              0,
+        scrolledUnderElevation: 0,
+        title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
       ),
       body: RefreshIndicator(
         color:     BanzamiColors.wine,
         onRefresh: () => _load(refresh: true),
-        child:     _buildBody(consumerId),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Filter tabs
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                BanzamiSpacing.lg, 0, BanzamiSpacing.lg, BanzamiSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  _FilterPill(
+                    label:    'Todas',
+                    selected: _filter == _HistoryFilter.all,
+                    onTap:    () => setState(() => _filter = _HistoryFilter.all),
+                  ),
+                  const SizedBox(width: BanzamiSpacing.sm),
+                  _FilterPill(
+                    label:    'Recebidas',
+                    selected: _filter == _HistoryFilter.received,
+                    onTap:    () => setState(() => _filter = _HistoryFilter.received),
+                  ),
+                  const SizedBox(width: BanzamiSpacing.sm),
+                  _FilterPill(
+                    label:    'Enviadas',
+                    selected: _filter == _HistoryFilter.sent,
+                    onTap:    () => setState(() => _filter = _HistoryFilter.sent),
+                  ),
+                ],
+              ),
+            ),
+
+            Expanded(child: _buildBody(consumerId)),
+          ],
+        ),
       ),
     );
   }
@@ -79,39 +149,162 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (_loading && _transfers.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
     }
+
     if (_error != null && _transfers.isEmpty) {
-      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-        const SizedBox(height: 12),
-        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-        const SizedBox(height: 16),
-        TextButton(onPressed: _load, child: const Text('Tentar novamente')),
-      ]));
-    }
-    if (_transfers.isEmpty) {
-      return Center(child: Text(
-        'Nenhuma transacção ainda.',
-        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
-      ));
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+          const SizedBox(height: BanzamiSpacing.md),
+          Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+          const SizedBox(height: BanzamiSpacing.lg),
+          TextButton(onPressed: _load, child: const Text('Tentar novamente')),
+        ]),
+      );
     }
 
-    return ListView.separated(
-      padding:          const EdgeInsets.symmetric(vertical: 8),
-      itemCount:        _transfers.length + (_hasMore ? 1 : 0),
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 72),
+    final filtered = _filtered(consumerId);
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 64, height: 64,
+            decoration: const BoxDecoration(
+              color: BanzamiColors.gray200,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              size:  28,
+              color: BanzamiColors.gray400,
+            ),
+          ),
+          const SizedBox(height: BanzamiSpacing.md),
+          Text(
+            _filter == _HistoryFilter.all
+                ? 'Nenhuma transacção ainda'
+                : _filter == _HistoryFilter.received
+                    ? 'Nenhum pagamento recebido'
+                    : 'Nenhum pagamento enviado',
+            style: BanzamiTextStyles.headingSm,
+          ),
+          const SizedBox(height: BanzamiSpacing.xs),
+          Text(
+            'As suas actividades aparecerão aqui',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          ),
+        ]),
+      );
+    }
+
+    final grouped = _grouped(filtered);
+
+    return ListView.builder(
+      padding:   const EdgeInsets.fromLTRB(
+        BanzamiSpacing.lg, 0, BanzamiSpacing.lg, BanzamiSpacing.page,
+      ),
+      itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
-        if (i == _transfers.length) {
+        // Load more sentinel
+        if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
           );
         }
-        return BanzamiTransferItem(
-          transfer:          _transfers[i],
-          currentConsumerId: consumerId,
+
+        final item = grouped[i];
+
+        // Date header
+        if (item is String) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+              BanzamiSpacing.xs, BanzamiSpacing.lg, BanzamiSpacing.xs, BanzamiSpacing.sm,
+            ),
+            child: Text(
+              item,
+              style: BanzamiTextStyles.label.copyWith(
+                color:         BanzamiColors.gray400,
+                letterSpacing: 0.4,
+              ),
+            ),
+          );
+        }
+
+        final transfer = item as Transfer;
+
+        // Determine card borders (round top/bottom of first/last in each group)
+        final prev = i > 0 ? grouped[i - 1] : null;
+        final next = i < grouped.length - 1 ? grouped[i + 1] : null;
+
+        final isFirst = prev == null || prev is String;
+        final isLast  = next == null || next is String;
+
+        final topRadius    = isFirst ? BanzamiRadius.xl : 0.0;
+        final bottomRadius = isLast  ? BanzamiRadius.xl : 0.0;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: BanzamiColors.white,
+            borderRadius: BorderRadius.vertical(
+              top:    Radius.circular(topRadius),
+              bottom: Radius.circular(bottomRadius),
+            ),
+            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              BanzamiTransferItem(
+                transfer:          transfer,
+                currentConsumerId: consumerId,
+              ),
+              if (!isLast)
+                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
+            ],
+          ),
         );
       },
+    );
+  }
+}
+
+// =============================================================================
+// Filter pill
+// =============================================================================
+
+class _FilterPill extends StatelessWidget {
+  final String       label;
+  final bool         selected;
+  final VoidCallback onTap;
+
+  const _FilterPill({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve:    Curves.easeInOut,
+        padding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color:        selected ? BanzamiColors.wine : BanzamiColors.white,
+          borderRadius: BanzamiRadius.fullAll,
+          boxShadow:    selected ? BanzamiShadows.none : BanzamiShadows.card,
+        ),
+        child: Text(
+          label,
+          style: BanzamiTextStyles.label.copyWith(
+            color: selected ? BanzamiColors.white : BanzamiColors.gray600,
+          ),
+        ),
+      ),
     );
   }
 }

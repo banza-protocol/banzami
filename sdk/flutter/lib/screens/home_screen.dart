@@ -12,14 +12,15 @@ import 'send_screen.dart';
 
 /// The main payment hub screen for consumer accounts.
 ///
-/// Shows available balance, quick-action buttons (Scan, Send, Receive)
-/// and a list of recent transfers. All data is fetched from the public-api
-/// using the consumer JWT stored in [ConsumerPublicClient].
+/// Shows a personalised greeting, available balance with visibility toggle,
+/// quick-action buttons (Scan, Send, Receive) and a list of recent transfers.
 class BanzamiHomeScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final String consumerId;
   final String handle;
+  final String? displayName;
   final String? logoAssetPath;
+  final VoidCallback? onNotifications;
   final BanzamiEnvironment environment;
 
   const BanzamiHomeScreen({
@@ -27,7 +28,9 @@ class BanzamiHomeScreen extends StatefulWidget {
     required this.client,
     required this.consumerId,
     required this.handle,
+    this.displayName,
     this.logoAssetPath,
+    this.onNotifications,
     this.environment = BanzamiEnvironment.production,
   });
 
@@ -37,10 +40,11 @@ class BanzamiHomeScreen extends StatefulWidget {
 
 class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   WalletBalance? _balance;
-  List<Transfer> _transfers = [];
-  bool _loadingBalance   = true;
-  bool _loadingTransfers = true;
-  String? _error;
+  List<Transfer> _transfers     = [];
+  bool           _loadingBalance   = true;
+  bool           _loadingTransfers = true;
+  bool           _balanceVisible   = true;
+  String?        _error;
 
   @override
   void initState() {
@@ -102,13 +106,19 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
         child: CustomScrollView(
           slivers: [
             _BalanceHeader(
-              balance:   _balance,
-              loading:   _loadingBalance,
-              error:     _error,
-              onScan:    _onScan,
-              onSend:    _onSend,
-              onReceive: _onReceive,
+              balance:         _balance,
+              loading:         _loadingBalance,
+              error:           _error,
+              handle:          widget.handle,
+              displayName:     widget.displayName,
+              balanceVisible:  _balanceVisible,
+              onToggleBalance: () => setState(() => _balanceVisible = !_balanceVisible),
+              onNotifications: widget.onNotifications,
+              onScan:          _onScan,
+              onSend:          _onSend,
+              onReceive:       _onReceive,
             ),
+
             if (widget.environment.isSandbox)
               SliverToBoxAdapter(
                 child: _SandboxFundPanel(
@@ -116,6 +126,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                   onFunded: _load,
                 ),
               ),
+
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -125,6 +136,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                 child: Text('Actividade recente', style: BanzamiTextStyles.headingSm),
               ),
             ),
+
             if (_loadingTransfers)
               const SliverToBoxAdapter(
                 child: Center(
@@ -135,27 +147,42 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                 ),
               )
             else if (_transfers.isEmpty)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(BanzamiSpacing.xl),
-                  child: Center(
-                    child: Text(
-                      'Nenhuma transacção ainda',
-                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
-                    ),
-                  ),
-                ),
-              )
+              SliverToBoxAdapter(child: _EmptyActivity())
             else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, i) => BanzamiTransferItem(
-                    transfer:          _transfers[i],
-                    currentConsumerId: widget.consumerId,
+              SliverPadding(
+                padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.lg),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, i) {
+                      final isFirst = i == 0;
+                      final isLast  = i == _transfers.length - 1;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: BanzamiColors.white,
+                          borderRadius: BorderRadius.vertical(
+                            top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+                            bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
+                          ),
+                          boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            BanzamiTransferItem(
+                              transfer:          _transfers[i],
+                              currentConsumerId: widget.consumerId,
+                            ),
+                            if (!isLast)
+                              const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
+                          ],
+                        ),
+                      );
+                    },
+                    childCount: _transfers.length,
                   ),
-                  childCount: _transfers.length,
                 ),
               ),
+
             const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.page)),
           ],
         ),
@@ -164,18 +191,32 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   }
 }
 
+// =============================================================================
+// Balance header
+// =============================================================================
+
 class _BalanceHeader extends StatelessWidget {
   final WalletBalance? balance;
-  final bool loading;
-  final String? error;
-  final VoidCallback onScan;
-  final VoidCallback onSend;
-  final VoidCallback onReceive;
+  final bool           loading;
+  final String?        error;
+  final String         handle;
+  final String?        displayName;
+  final bool           balanceVisible;
+  final VoidCallback   onToggleBalance;
+  final VoidCallback?  onNotifications;
+  final VoidCallback   onScan;
+  final VoidCallback   onSend;
+  final VoidCallback   onReceive;
 
   const _BalanceHeader({
     required this.balance,
     required this.loading,
     required this.error,
+    required this.handle,
+    required this.displayName,
+    required this.balanceVisible,
+    required this.onToggleBalance,
+    required this.onNotifications,
     required this.onScan,
     required this.onSend,
     required this.onReceive,
@@ -183,25 +224,83 @@ class _BalanceHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final firstName = displayName?.split(' ').first ?? '@$handle';
+
     return SliverToBoxAdapter(
       child: Container(
         decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
         padding: EdgeInsets.fromLTRB(
           BanzamiSpacing.xl,
-          MediaQuery.of(context).padding.top + BanzamiSpacing.xl,
+          MediaQuery.of(context).padding.top + BanzamiSpacing.lg,
           BanzamiSpacing.xl,
           BanzamiSpacing.xxl,
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Saldo disponível',
-              style: BanzamiTextStyles.bodyMd.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.7),
-              ),
+            // Greeting row
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Olá, $firstName',
+                    style: BanzamiTextStyles.headingMd.copyWith(
+                      color:      BanzamiColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                GestureDetector(
+                  onTap: onNotifications,
+                  child: Container(
+                    width:  38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color:  BanzamiColors.white.withValues(alpha: 0.15),
+                      shape:  BoxShape.circle,
+                      border: Border.all(
+                        color: BanzamiColors.white.withValues(alpha: 0.20),
+                        width: 1,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_none_rounded,
+                      color: BanzamiColors.white,
+                      size:  20,
+                    ),
+                  ),
+                ),
+              ],
             ),
+
+            const SizedBox(height: BanzamiSpacing.lg),
+
+            // Balance label + toggle
+            Row(
+              children: [
+                Text(
+                  'Saldo disponível',
+                  style: BanzamiTextStyles.bodySm.copyWith(
+                    color: BanzamiColors.white.withValues(alpha: 0.65),
+                  ),
+                ),
+                const SizedBox(width: BanzamiSpacing.xs),
+                GestureDetector(
+                  onTap: onToggleBalance,
+                  child: Icon(
+                    balanceVisible
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: BanzamiColors.white.withValues(alpha: 0.55),
+                    size:  16,
+                  ),
+                ),
+              ],
+            ),
+
             const SizedBox(height: BanzamiSpacing.xs),
+
+            // Balance amount
             if (loading)
               const SizedBox(
                 height: 48,
@@ -216,11 +315,22 @@ class _BalanceHeader extends StatelessWidget {
                 ),
               )
             else
-              Text(
-                balance?.availableFormatted ?? '— Kz',
-                style: BanzamiTextStyles.displayLg.copyWith(color: BanzamiColors.white),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                child: Text(
+                  balanceVisible
+                      ? (balance?.availableFormatted ?? '— Kz')
+                      : '• • • • •',
+                  key:   ValueKey(balanceVisible),
+                  style: BanzamiTextStyles.displayLg.copyWith(
+                    color: BanzamiColors.white,
+                  ),
+                ),
               ),
-            const SizedBox(height: BanzamiSpacing.xxl),
+
+            const SizedBox(height: BanzamiSpacing.xl),
+
+            // Quick actions
             Row(
               children: [
                 _ActionButton(
@@ -251,10 +361,10 @@ class _BalanceHeader extends StatelessWidget {
 }
 
 class _ActionButton extends StatelessWidget {
-  final IconData icon;
-  final String label;
+  final IconData     icon;
+  final String       label;
   final VoidCallback onTap;
-  final bool primary;
+  final bool         primary;
 
   const _ActionButton({
     required this.icon,
@@ -275,7 +385,7 @@ class _ActionButton extends StatelessWidget {
           padding:    const EdgeInsets.symmetric(vertical: BanzamiSpacing.md),
           decoration: BoxDecoration(
             color:        bg,
-            borderRadius: BanzamiRadius.mdAll,
+            borderRadius: BanzamiRadius.lgAll,
           ),
           child: Column(
             children: [
@@ -290,13 +400,62 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Empty state
+// =============================================================================
+
+class _EmptyActivity extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        BanzamiSpacing.xl, BanzamiSpacing.xxl,
+        BanzamiSpacing.xl, BanzamiSpacing.xl,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width:  64,
+            height: 64,
+            decoration: const BoxDecoration(
+              color:  BanzamiColors.gray200,
+              shape:  BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.receipt_long_outlined,
+              size:  28,
+              color: BanzamiColors.gray400,
+            ),
+          ),
+          const SizedBox(height: BanzamiSpacing.md),
+          Text(
+            'Nenhuma transacção ainda',
+            style: BanzamiTextStyles.headingSm.copyWith(
+              color: BanzamiColors.gray900,
+            ),
+          ),
+          const SizedBox(height: BanzamiSpacing.xs),
+          Text(
+            'As suas actividades aparecerão aqui',
+            style: BanzamiTextStyles.bodySm.copyWith(
+              color: BanzamiColors.gray400,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
 // Sandbox fund panel
-// ---------------------------------------------------------------------------
+// =============================================================================
 
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
-  final VoidCallback onFunded;
+  final VoidCallback         onFunded;
 
   const _SandboxFundPanel({required this.client, required this.onFunded});
 
@@ -360,9 +519,9 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
           ]),
           const SizedBox(height: BanzamiSpacing.md),
           Wrap(
-            spacing: BanzamiSpacing.sm,
+            spacing:    BanzamiSpacing.sm,
             runSpacing: BanzamiSpacing.sm,
-            children: _presets.map((p) {
+            children:   _presets.map((p) {
               return OutlinedButton(
                 onPressed: _loading ? null : () => _fund(p.minor),
                 style: OutlinedButton.styleFrom(
@@ -372,13 +531,16 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                     horizontal: BanzamiSpacing.md,
                     vertical:   BanzamiSpacing.xs,
                   ),
-                  textStyle: BanzamiTextStyles.bodySm,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  textStyle:      BanzamiTextStyles.bodySm,
+                  tapTargetSize:  MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: _loading
                     ? const SizedBox(
                         width: 12, height: 12,
-                        child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF92400E)),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color:       Color(0xFF92400E),
+                        ),
                       )
                     : Text(p.label),
               );
