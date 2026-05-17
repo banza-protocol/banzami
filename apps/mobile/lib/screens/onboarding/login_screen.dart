@@ -72,13 +72,18 @@ class _LoginScreenState extends State<LoginScreen> {
     try {
       final result = await client.login(handle: handle, pin: _pin);
 
+      final badgeStr = result.consumer.verificationBadge;
+      final badge = badgeStr == 'CONSUMER' ? VerificationBadgeType.consumer
+                  : badgeStr == 'MERCHANT' ? VerificationBadgeType.merchant
+                  : null;
       await svc.createSession(
-        consumerId:  result.consumer.id,
-        walletId:    result.walletId,
-        handle:      handle,
-        displayName: result.consumer.displayName,
-        pin:         _pin,
-        token:       result.token,
+        consumerId:         result.consumer.id,
+        walletId:           result.walletId,
+        handle:             handle,
+        displayName:        result.consumer.displayName,
+        pin:                _pin,
+        token:              result.token,
+        verificationBadge:  badge,
       );
       if (!mounted) return;
       Navigator.of(context).popUntil((route) => route.isFirst);

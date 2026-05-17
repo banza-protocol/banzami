@@ -3,6 +3,7 @@ class Consumer {
   final String handle;
   final String? displayName;
   final String status;
+  final String? verificationBadge;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -11,6 +12,7 @@ class Consumer {
     required this.handle,
     this.displayName,
     required this.status,
+    this.verificationBadge,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -22,12 +24,13 @@ class Consumer {
 
   factory Consumer.fromJson(Map<String, dynamic> json) {
     return Consumer(
-      id:          json['id'] as String,
-      handle:      json['handle'] as String,
-      displayName: json['display_name'] as String?,
-      status:      json['status'] as String,
-      createdAt:   DateTime.parse(json['created_at'] as String),
-      updatedAt:   DateTime.parse(json['updated_at'] as String),
+      id:                json['id']                 as String,
+      handle:            json['handle']             as String,
+      displayName:       json['display_name']       as String?,
+      status:            json['status']             as String,
+      verificationBadge: json['verification_badge'] as String?,
+      createdAt:         DateTime.parse(json['created_at'] as String),
+      updatedAt:         DateTime.parse(json['updated_at'] as String),
     );
   }
 
