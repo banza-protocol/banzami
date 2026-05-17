@@ -16,8 +16,8 @@
 		97C146FC1CF9000F007C117D /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FA1CF9000F007C117D /* Main.storyboard */; };
 		97C146FE1CF9000F007C117D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FD1CF9000F007C117D /* Assets.xcassets */; };
 		97C147011CF9000F007C117D /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 97C146FF1CF9000F007C117D /* LaunchScreen.storyboard */; };
-		F856C296593BF2740E312582 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D09D69AC97D9326C0540D1F /* Pods_Runner.framework */; };
 		BZ1PRIVACY0000000000AA01 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = BZ1PRIVACY0000000000AA00 /* PrivacyInfo.xcprivacy */; };
+		F856C296593BF2740E312582 /* Pods_Runner.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 7D09D69AC97D9326C0540D1F /* Pods_Runner.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -80,6 +80,7 @@
 		9891925849F04CD6A55733B2 /* Pods-Runner.debug-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-merchant.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-merchant.xcconfig"; sourceTree = "<group>"; };
 		AF57971C685D474D8C03A92E /* Consumer.profile.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Consumer.profile.xcconfig; sourceTree = "<group>"; };
 		BC612168F27047A9AF6D347D /* Pods-RunnerTests.release-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-merchant.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-merchant.xcconfig"; sourceTree = "<group>"; };
+		BZ1PRIVACY0000000000AA00 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CE60C2E8971A41B5ACC490EC /* Pods-RunnerTests.debug-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-merchant.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-merchant.xcconfig"; sourceTree = "<group>"; };
 		CFF7B4BF78A023EF5C6CFCBD /* Pods_RunnerTests.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_RunnerTests.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		E126025465D6453D9CA450C6 /* Pods-Runner.release-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.release-merchant.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.release-merchant.xcconfig"; sourceTree = "<group>"; };
@@ -87,7 +88,6 @@
 		F3AC684669336EE8FB304C3B /* Pods-Runner.profile.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile.xcconfig"; sourceTree = "<group>"; };
 		F4227F82F6BF4C6FA26C0DB7 /* Pods-Runner.profile-consumer.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.profile-consumer.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.profile-consumer.xcconfig"; sourceTree = "<group>"; };
 		F6FEF2F3407448FA935D7F5D /* Pods-RunnerTests.debug-consumer.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-consumer.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-consumer.xcconfig"; sourceTree = "<group>"; };
-		BZ1PRIVACY0000000000AA00 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -244,6 +244,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				3DDB5CA07774DD90EA789475 /* [CP] Embed Pods Frameworks */,
 				AA39CDB9D0F4A882F210CCBB /* [CP] Copy Pods Resources */,
+				E50C1E802FB9FC66003A3DE2 /* ShellScript */,
 			);
 			buildRules = (
 			);
@@ -424,6 +425,25 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		E50C1E802FB9FC66003A3DE2 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}",
+				"$(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)",
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n\"${PODS_ROOT}/FirebaseCrashlytics/run\"\n";
 		};
 		E5BD6F4A2FB6F3FB002611BA /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
