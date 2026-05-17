@@ -10,8 +10,8 @@
 A wallet is the financial container for a merchant. Every merchant has at least one wallet per currency they operate in. The wallet tracks how much money Banzami owes the merchant at any given moment.
 
 Wallet balances are maintained in two layers:
-1. **Denormalised balance columns** (`available_balance`, `reserved_balance`) on the `wallets` table — fast reads for balance checks.
-2. **Ledger entries** — the source of truth; always consistent with the balance columns.
+1. **Ledger entries** — the authoritative source of truth; all balance changes flow through immutable ledger postings.
+2. **Balance query** — derived at read time by summing ledger entries for the wallet's accounts; no mutable balance column is stored separately.
 
 ---
 
@@ -111,5 +111,6 @@ This value must always equal `available_balance + reserved_balance` on the `wall
 
 ## Security Assumptions
 
-- Balance columns are updated inside the same PostgreSQL transaction as the ledger posting. They cannot diverge due to a partial write.
-- The `WalletEngine` is the only entry point for balance changes. No direct SQL updates to balance columns happen outside this domain.
+- Balance is always derived from ledger entries inside a single PostgreSQL transaction. There is no separate balance column that could diverge from the ledger.
+- The `WalletEngine` is the only entry point for balance changes. Sandbox credits (test_credit / sandbox_credit endpoints) bypass the PostingBuilder double-entry enforcement to insert a single CREDIT entry directly, which is the accepted pattern for injecting virtual balance in isolated test environments.
+- Every sandbox credit is tagged `environment = SANDBOX` at the database level. A `CHECK` constraint prevents sandbox entries from appearing in live balance queries.

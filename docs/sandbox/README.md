@@ -118,7 +118,9 @@ Authorization: Bearer <token>
 
 ### Fund a Wallet
 
-Credit the sandbox merchant wallet with virtual AOA (maximum 100,000,000 AOA per call):
+Credit the sandbox merchant wallet with virtual AOA (maximum 100,000,000 AOA per call).
+
+The credit is applied as a direct ledger entry in the financial core — the same double-entry infrastructure used by production payments. The balance update is immediate, persistent, and reflected in all downstream operations (QR payments, transfers, payouts). No real funds are moved.
 
 ```http
 POST /v1/sandbox/fund
@@ -135,11 +137,22 @@ Content-Type: application/json
 
 ```json
 {
-  "funded":      true,
-  "transaction": { "id": "…", "status": "CAPTURED", "environment": "SANDBOX", … },
-  "note":        "Sandbox wallet credited. This is virtual balance — no real funds were moved."
+  "funded":         true,
+  "wallet_id":      "uuid",
+  "currency":       "AOA",
+  "credited_minor": 5000000,
+  "new_balance": {
+    "available_minor": 5000000,
+    "reserved_minor":  0,
+    "currency":        "AOA"
+  },
+  "note": "Sandbox wallet credited via ledger. Virtual balance — no real funds moved."
 }
 ```
+
+### Fund a Wallet from the Dashboard
+
+In the merchant dashboard (`/wallets`), sandbox sessions display an amber **"Adicionar fundos de teste"** panel with four preset amounts: 5.000 AOA, 10.000 AOA, 50.000 AOA, 100.000 AOA. Clicking a preset calls `POST /v1/sandbox/fund` and refreshes the balance display automatically. The panel is only visible when the session is authenticated with a `bz_test_…` key.
 
 ### Simulate a Payment
 

@@ -355,6 +355,81 @@ Decode a QR payload string into structured data.
 
 ---
 
+### Sandbox Utilities
+
+These endpoints are only available to callers authenticated with a `bz_test_…` key. Live keys receive `403 SANDBOX_ONLY`.
+
+#### GET /v1/sandbox/status
+
+Confirm the caller is in sandbox mode.
+
+**Response 200:**
+```json
+{
+  "environment": "SANDBOX",
+  "merchant_id": "uuid",
+  "message":     "You are operating in sandbox mode. All financial operations are simulated."
+}
+```
+
+#### GET /v1/sandbox/instruments
+
+List test payment instruments and the deterministic scenario each one triggers.
+
+#### POST /v1/sandbox/fund
+
+Credit the sandbox merchant wallet via the ledger engine. Maximum 100,000,000 AOA per call.
+
+**Request:**
+```json
+{ "amount_minor": 5000000, "currency": "AOA" }
+```
+
+**Response 200:**
+```json
+{
+  "funded":         true,
+  "wallet_id":      "uuid",
+  "currency":       "AOA",
+  "credited_minor": 5000000,
+  "new_balance": {
+    "available_minor": 5000000,
+    "reserved_minor":  0,
+    "currency":        "AOA"
+  },
+  "note": "Sandbox wallet credited via ledger. Virtual balance — no real funds moved."
+}
+```
+
+The balance update is immediate, persistent, and reflected in all downstream operations (QR payments, transfers, payouts).
+
+#### POST /v1/sandbox/simulate/payment
+
+Inject a synthetic payment transaction.
+
+**Request:**
+```json
+{
+  "amount_minor": 50000,
+  "currency":     "AOA",
+  "description":  "Order #12345",
+  "scenario":     "success"
+}
+```
+
+Valid scenarios: `success`, `insufficient_funds`, `fraud_blocked`, `expired_card`, `auth_challenge`.
+
+**Response 201:**
+```json
+{
+  "transaction": { "id": "uuid", "status": "CAPTURED", … },
+  "scenario":    "success",
+  "note":        "Simulated sandbox transaction. No real money was moved."
+}
+```
+
+---
+
 ## Consumer API (public-api, port 8083)
 
 ### Authentication
