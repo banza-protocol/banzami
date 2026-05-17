@@ -454,12 +454,13 @@ Create a consumer account and receive a JWT.
 ```json
 {
   "consumer": {
-    "id":           "uuid",
-    "handle":       "joao_silva",
-    "display_name": "João Silva",
-    "status":       "ACTIVE",
-    "created_at":   "2026-05-13T09:00:00Z",
-    "updated_at":   "2026-05-13T09:00:00Z"
+    "id":                 "uuid",
+    "handle":             "joao_silva",
+    "display_name":       "João Silva",
+    "status":             "ACTIVE",
+    "verification_badge": null,
+    "created_at":         "2026-05-13T09:00:00Z",
+    "updated_at":         "2026-05-13T09:00:00Z"
   },
   "token":      "eyJ...",
   "expires_at": "2026-05-14T09:00:00Z",
@@ -503,14 +504,17 @@ Get the authenticated consumer's profile.
 **Response 200:**
 ```json
 {
-  "id":           "uuid",
-  "handle":       "joao_silva",
-  "display_name": "João Silva",
-  "status":       "ACTIVE",
-  "created_at":   "2026-05-13T09:00:00Z",
-  "updated_at":   "2026-05-13T09:00:00Z"
+  "id":                 "uuid",
+  "handle":             "joao_silva",
+  "display_name":       "João Silva",
+  "status":             "ACTIVE",
+  "verification_badge": "CONSUMER",
+  "created_at":         "2026-05-13T09:00:00Z",
+  "updated_at":         "2026-05-13T09:00:00Z"
 }
 ```
+
+`verification_badge`: `"CONSUMER"` (gold pill in app), `"MERCHANT"` (blue pill), or `null` if no badge has been assigned by an admin.
 
 #### GET /v1/me/wallet?currency=AOA
 
@@ -714,6 +718,59 @@ Lightweight status poll for the pay page.
 { "paid": false }
 ```
 Returns `true` when `status == "USED"`.
+
+---
+
+## Admin API (admin-api, port 8082)
+
+Internal operator endpoints. Authenticated via `X-Admin-Key` header (static key configured at deploy time). Never exposed publicly.
+
+### Consumers
+
+#### GET /admin/v1/consumers?handle=
+
+List consumers. Optional `handle` query param filters by partial match.
+
+**Response 200:**
+```json
+{
+  "data": [
+    {
+      "id":                 "uuid",
+      "handle":             "joao_silva",
+      "display_name":       "João Silva",
+      "status":             "ACTIVE",
+      "verification_badge": null,
+      "created_at":         "2026-05-13T09:00:00Z"
+    }
+  ]
+}
+```
+
+#### GET /admin/v1/consumers/{id}
+
+Get a consumer by UUID.
+
+#### PATCH /admin/v1/consumers/{id}/badge
+
+Assign or remove the verification badge shown on the consumer's profile screen.
+
+**Request:**
+```json
+{ "badge": "CONSUMER" }
+```
+
+| Value | Display |
+|-------|---------|
+| `"CONSUMER"` | Gold "Verificado" pill — verified individual |
+| `"MERCHANT"` | Blue "Comerciante" pill — verified business |
+| `null` | No badge (remove existing) |
+
+**Response 200:** Updated consumer object.
+
+**Errors:**
+- `404 NOT_FOUND` — consumer does not exist.
+- `400 BAD_REQUEST` — unknown badge type.
 
 ---
 
