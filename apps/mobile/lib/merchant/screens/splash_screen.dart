@@ -46,7 +46,7 @@ class _Logo extends StatelessWidget {
   Widget build(BuildContext context) {
     return Image.asset(
       'assets/images/banzami_splash.png',
-      width: 100,
+      width: 80,
     );
   }
 }
