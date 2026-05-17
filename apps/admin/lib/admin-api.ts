@@ -60,6 +60,7 @@ export interface Merchant {
   name:       string;
   email:      string;
   status:     string;
+  verified:   boolean;
   created_at: string;
 }
 
@@ -116,6 +117,9 @@ export class AdminApi {
   }
   getMerchant(id: string): Promise<Merchant> { return this.req(`/admin/v1/merchants/${id}`); }
   deleteMerchant(id: string): Promise<void>   { return this.req(`/admin/v1/merchants/${id}`, { method: 'DELETE' }); }
+  setMerchantVerified(id: string, verified: boolean): Promise<Merchant> {
+    return this.req(`/admin/v1/merchants/${id}/verified`, { method: 'PATCH', body: JSON.stringify({ verified }) });
+  }
 
   createMerchant(name: string, email: string, currency = 'AOA', sandbox = false): Promise<{
     merchant: Merchant;

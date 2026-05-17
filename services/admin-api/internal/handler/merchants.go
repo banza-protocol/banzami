@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -32,6 +33,24 @@ func (h *MerchantHandler) List(w http.ResponseWriter, r *http.Request) {
 func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	result, err := h.core.GetMerchant(r.Context(), id)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
+// SetVerified handles PATCH /admin/v1/merchants/{id}/verified.
+func (h *MerchantHandler) SetVerified(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body struct {
+		Verified bool `json:"verified"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	result, err := h.core.SetMerchantVerified(r.Context(), id, body.Verified)
 	if err != nil {
 		handleCoreErr(w, err)
 		return

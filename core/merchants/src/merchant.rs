@@ -37,6 +37,7 @@ pub struct Merchant {
     pub name:       String,
     pub email:      String,
     pub status:     MerchantStatus,
+    pub verified:   bool,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

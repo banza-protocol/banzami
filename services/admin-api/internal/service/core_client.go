@@ -186,6 +186,12 @@ func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[strin
 	return out, c.get(ctx, "/internal/v1/merchants/"+id, &out)
 }
 
+func (c *CoreAdminClient) SetMerchantVerified(ctx context.Context, id string, verified bool) (map[string]any, error) {
+	var out map[string]any
+	return out, c.patch(ctx, "/internal/v1/merchants/"+id+"/verified",
+		map[string]any{"verified": verified}, &out)
+}
+
 func (c *CoreAdminClient) DeleteMerchant(ctx context.Context, id string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+id, nil)
 	if err != nil {
