@@ -110,7 +110,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       if (exists) {
         setState(() { _handleConfirmed = true; _validatingHandle = false; });
       } else {
-        setState(() { _handleError = '@$handle não está registado na Banzami'; _validatingHandle = false; });
+        setState(() { _handleError = '@$handle não está registado no Banzami'; _validatingHandle = false; });
       }
     } catch (_) {
       if (mounted) setState(() => _validatingHandle = false);
