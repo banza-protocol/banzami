@@ -39,9 +39,10 @@ dependencies:
   # Google Fonts (Inter) — font files bundled in assets/fonts/
   google_fonts: ^6.2.1
 
-  # Firebase — core + push notifications
+  # Firebase — core + push notifications + crash reporting
   firebase_core: ^3.8.0
   firebase_messaging: ^15.1.4
+  firebase_crashlytics: ^4.3.0
 
   # Local notifications (foreground display + polling fallback)
   flutter_local_notifications: ^18.0.0
