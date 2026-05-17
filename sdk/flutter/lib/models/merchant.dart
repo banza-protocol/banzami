@@ -3,6 +3,7 @@ class Merchant {
   final String name;
   final String email;
   final String status;
+  final bool   verified;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -11,6 +12,7 @@ class Merchant {
     required this.name,
     required this.email,
     required this.status,
+    this.verified  = false,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -22,6 +24,7 @@ class Merchant {
         name:      json['name']      as String,
         email:     json['email']     as String,
         status:    json['status']    as String,
+        verified:  json['verified']  as bool? ?? false,
         createdAt: DateTime.parse(json['created_at'] as String),
         updatedAt: DateTime.parse(json['updated_at'] as String),
       );

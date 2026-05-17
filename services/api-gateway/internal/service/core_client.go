@@ -321,6 +321,7 @@ type coreMerchantResp struct {
 	Name      string    `json:"name"`
 	Email     string    `json:"email"`
 	Status    string    `json:"status"`
+	Verified  bool      `json:"verified"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -331,6 +332,7 @@ func (r *coreMerchantResp) toMerchantRecord() *MerchantRecord {
 		Name:      r.Name,
 		Email:     r.Email,
 		Status:    MerchantStatus(r.Status),
+		Verified:  r.Verified,
 		CreatedAt: r.CreatedAt,
 		UpdatedAt: r.UpdatedAt,
 	}

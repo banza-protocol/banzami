@@ -59,6 +59,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
             merchantEmail: merchant.email,
             walletId:      wallet.id,
             apiKey:        apiKey,
+            verified:      merchant.verified,
           ),
         ),
       );
