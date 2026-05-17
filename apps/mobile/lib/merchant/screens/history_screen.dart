@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
@@ -33,16 +34,25 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title:  const Text('Histórico', style: BanzamiTextStyles.headingSm),
+        backgroundColor:        BanzamiColors.white,
+        foregroundColor:        BanzamiColors.gray900,
+        elevation:              0,
+        scrolledUnderElevation: 0,
+        title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
         bottom: TabBar(
-          controller:       _tabs,
-          labelColor:       BanzamiColors.wine,
+          controller:          _tabs,
+          labelColor:          BanzamiColors.wine,
           unselectedLabelColor: BanzamiColors.gray400,
-          indicatorColor:   BanzamiColors.wine,
-          indicatorWeight:  2,
+          indicatorColor:      BanzamiColors.wine,
+          indicatorWeight:     2,
+          labelStyle:          BanzamiTextStyles.label.copyWith(
+            fontSize:   14,
+            fontWeight: FontWeight.w600,
+          ),
+          unselectedLabelStyle: BanzamiTextStyles.label.copyWith(
+            fontSize:   14,
+            fontWeight: FontWeight.w500,
+          ),
           tabs: const [
             Tab(text: 'Transacções'),
             Tab(text: 'Cobranças'),
@@ -60,9 +70,46 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
   }
 }
 
-// ---------------------------------------------------------------------------
-// Transacções reais
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Shared date-grouping helpers
+// =============================================================================
+
+String _dateHeader(DateTime dt) {
+  final now       = DateTime.now();
+  final today     = DateUtils.dateOnly(now);
+  final yesterday = today.subtract(const Duration(days: 1));
+  final date      = DateUtils.dateOnly(dt);
+
+  if (date == today)     return 'Hoje';
+  if (date == yesterday) return 'Ontem';
+  return DateFormat('d MMM yyyy', 'pt_PT').format(date);
+}
+
+Widget _emptyState({required IconData icon, required String label}) {
+  return Center(
+    child: Column(mainAxisSize: MainAxisSize.min, children: [
+      Container(
+        width: 64, height: 64,
+        decoration: const BoxDecoration(
+          color: BanzamiColors.gray200,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 28, color: BanzamiColors.gray400),
+      ),
+      const SizedBox(height: BanzamiSpacing.md),
+      Text(label, style: BanzamiTextStyles.headingSm),
+      const SizedBox(height: BanzamiSpacing.xs),
+      Text(
+        'As suas actividades aparecerão aqui',
+        style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+      ),
+    ]),
+  );
+}
+
+// =============================================================================
+// Transactions tab
+// =============================================================================
 
 class _TransactionsTab extends StatefulWidget {
   const _TransactionsTab();
@@ -98,10 +145,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
 
     final client = context.read<BanzamiClient>();
     try {
-      final page = await client.listMerchantTransactions(
-        limit:  30,
-        cursor: _cursor,
-      );
+      final page = await client.listMerchantTransactions(limit: 30, cursor: _cursor);
       setState(() {
         _txs.addAll(page.data);
         _cursor  = page.nextCursor;
@@ -112,6 +156,17 @@ class _TransactionsTabState extends State<_TransactionsTab>
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  List<dynamic> _grouped() {
+    final items = <dynamic>[];
+    String? lastKey;
+    for (final tx in _txs) {
+      final key = _dateHeader(tx.createdAt.toLocal());
+      if (key != lastKey) { items.add(key); lastKey = key; }
+      items.add(tx);
+    }
+    return items;
   }
 
   @override
@@ -131,33 +186,76 @@ class _TransactionsTabState extends State<_TransactionsTab>
     if (_error != null && _txs.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-        const SizedBox(height: 12),
+        const SizedBox(height: BanzamiSpacing.md),
         Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-        const SizedBox(height: 16),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]));
     }
     if (_txs.isEmpty) {
-      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.receipt_long_outlined, color: BanzamiColors.gray400.withValues(alpha: 0.5), size: 56),
-        const SizedBox(height: 16),
-        Text('Nenhuma transacção ainda.',
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-      ]));
+      return _emptyState(
+        icon:  Icons.receipt_long_outlined,
+        label: 'Nenhuma transacção ainda',
+      );
     }
-    return ListView.separated(
-      padding:          const EdgeInsets.symmetric(vertical: 8),
-      itemCount:        _txs.length + (_hasMore ? 1 : 0),
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
-      itemBuilder: (ctx, i) {
-        if (i == _txs.length) {
+
+    final grouped = _grouped();
+
+    return ListView.builder(
+      padding:   const EdgeInsets.fromLTRB(
+        BanzamiSpacing.lg, BanzamiSpacing.md, BanzamiSpacing.lg, BanzamiSpacing.page,
+      ),
+      itemCount: grouped.length + (_hasMore ? 1 : 0),
+      itemBuilder: (context, i) {
+        if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
           );
         }
-        return _TransactionTile(tx: _txs[i]);
+
+        final item = grouped[i];
+
+        if (item is String) {
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(
+              BanzamiSpacing.xs, BanzamiSpacing.lg, BanzamiSpacing.xs, BanzamiSpacing.sm,
+            ),
+            child: Text(
+              item,
+              style: BanzamiTextStyles.label.copyWith(
+                color:         BanzamiColors.gray400,
+                letterSpacing: 0.4,
+              ),
+            ),
+          );
+        }
+
+        final tx      = item as MerchantTransaction;
+        final prev    = i > 0 ? grouped[i - 1] : null;
+        final next    = i < grouped.length - 1 ? grouped[i + 1] : null;
+        final isFirst = prev == null || prev is String;
+        final isLast  = next == null || next is String;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: BanzamiColors.white,
+            borderRadius: BorderRadius.vertical(
+              top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+              bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
+            ),
+            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _TransactionTile(tx: tx),
+              if (!isLast)
+                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
+            ],
+          ),
+        );
       },
     );
   }
@@ -169,50 +267,87 @@ class _TransactionTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (color, icon) = switch (tx.status.toUpperCase()) {
-      'COMPLETED' || 'PAID' => (BanzamiColors.success, Icons.check_circle_rounded),
-      'PENDING'             => (BanzamiColors.wine,    Icons.hourglass_top_rounded),
-      'FAILED'              => (BanzamiColors.error,   Icons.cancel_rounded),
-      _                     => (BanzamiColors.gray400, Icons.help_outline_rounded),
+    final statusUp = tx.status.toUpperCase();
+    final (icon, iconColor, label, amountColor, sign) = switch (statusUp) {
+      'COMPLETED' || 'PAID' => (
+        Icons.arrow_downward_rounded,
+        BanzamiColors.success,
+        tx.description ?? 'Pagamento recebido',
+        BanzamiColors.success,
+        '+',
+      ),
+      'CANCELLED' => (
+        Icons.arrow_upward_rounded,
+        BanzamiColors.error,
+        tx.description ?? 'Cancelamento',
+        BanzamiColors.error,
+        '−',
+      ),
+      'FAILED' => (
+        Icons.close_rounded,
+        BanzamiColors.error,
+        tx.description ?? 'Falhado',
+        BanzamiColors.error,
+        '−',
+      ),
+      _ => (
+        Icons.access_time_rounded,
+        BanzamiColors.wine,
+        tx.description ?? 'Pendente',
+        BanzamiColors.gray900,
+        '',
+      ),
     };
 
-    final local = tx.createdAt.toLocal();
-    String pad(int n) => n.toString().padLeft(2, '0');
-    final dateStr =
-        '${local.day}/${pad(local.month)}/${local.year} ${pad(local.hour)}:${pad(local.minute)}';
+    final local   = tx.createdAt.toLocal();
+    final timeStr = '${local.hour.toString().padLeft(2, '0')}:${local.minute.toString().padLeft(2, '0')}';
 
-    return ListTile(
-      tileColor: BanzamiColors.white,
-      leading: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color:        color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
+      ),
+      child: Row(children: [
+        Container(
+          width:  40,
+          height: 40,
+          decoration: BoxDecoration(
+            color:        iconColor.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.mdAll,
+          ),
+          child: Icon(icon, color: iconColor, size: 20),
         ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(
-        tx.description ?? 'Pagamento recebido',
-        style:    BanzamiTextStyles.bodyMd,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-      ),
-      subtitle: Text(dateStr,
-          style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-      trailing: Text(
-        formatMinor(tx.amountMinor, tx.currency),
-        style: BanzamiTextStyles.bodyMd.copyWith(
-          color:      color,
-          fontWeight: FontWeight.w600,
+        const SizedBox(width: BanzamiSpacing.md),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              label,
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              timeStr,
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            ),
+          ]),
         ),
-      ),
+        Text(
+          '$sign${formatMinor(tx.amountMinor, tx.currency)}',
+          style: BanzamiTextStyles.mono.copyWith(
+            color:      amountColor,
+            fontWeight: FontWeight.w600,
+            fontSize:   15,
+          ),
+        ),
+      ]),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Cobranças (payment links) — tab original
-// ---------------------------------------------------------------------------
+// =============================================================================
+// Payment links tab
+// =============================================================================
 
 class _PaymentLinksTab extends StatefulWidget {
   const _PaymentLinksTab();
@@ -283,33 +418,54 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
     if (_error != null && _links.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-        const SizedBox(height: 12),
+        const SizedBox(height: BanzamiSpacing.md),
         Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-        const SizedBox(height: 16),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]));
     }
     if (_links.isEmpty) {
-      return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Icon(Icons.link_off_rounded, color: BanzamiColors.gray400.withValues(alpha: 0.5), size: 56),
-        const SizedBox(height: 16),
-        Text('Nenhuma cobrança ainda.',
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-      ]));
+      return _emptyState(
+        icon:  Icons.receipt_outlined,
+        label: 'Nenhuma cobrança ainda',
+      );
     }
-    return ListView.separated(
-      padding:          const EdgeInsets.symmetric(vertical: 8),
-      itemCount:        _links.length + (_hasMore ? 1 : 0),
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 16),
-      itemBuilder: (ctx, i) {
+
+    return ListView.builder(
+      padding:   const EdgeInsets.fromLTRB(
+        BanzamiSpacing.lg, BanzamiSpacing.md, BanzamiSpacing.lg, BanzamiSpacing.page,
+      ),
+      itemCount: _links.length + (_hasMore ? 1 : 0),
+      itemBuilder: (context, i) {
         if (i == _links.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(24),
+            padding: EdgeInsets.all(BanzamiSpacing.xl),
             child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
           );
         }
-        return _PaymentLinkTile(link: _links[i]);
+
+        final isFirst = i == 0;
+        final isLast  = i == _links.length - 1;
+
+        return Container(
+          decoration: BoxDecoration(
+            color: BanzamiColors.white,
+            borderRadius: BorderRadius.vertical(
+              top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+              bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
+            ),
+            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _PaymentLinkTile(link: _links[i]),
+              if (!isLast)
+                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
+            ],
+          ),
+        );
       },
     );
   }
@@ -328,32 +484,50 @@ class _PaymentLinkTile extends StatelessWidget {
       PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado', Icons.cancel_rounded),
     };
 
-    return ListTile(
-      tileColor: BanzamiColors.white,
-      leading: Container(
-        width: 40, height: 40,
-        decoration: BoxDecoration(
-          color:        color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(10),
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
+      ),
+      child: Row(children: [
+        Container(
+          width:  40,
+          height: 40,
+          decoration: BoxDecoration(
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.mdAll,
+          ),
+          child: Icon(icon, color: color, size: 20),
         ),
-        child: Icon(icon, color: color, size: 20),
-      ),
-      title: Text(link.description ?? 'Cobrança',
-          style: BanzamiTextStyles.bodyMd, maxLines: 1, overflow: TextOverflow.ellipsis),
-      subtitle: Text(
-        link.amountMinor != null
-            ? formatMinor(link.amountMinor!, link.currency)
-            : 'Valor livre',
-        style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-      ),
-      trailing: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(
-          color:        color.withValues(alpha: 0.12),
-          borderRadius: BorderRadius.circular(20),
+        const SizedBox(width: BanzamiSpacing.md),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              link.description ?? 'Cobrança',
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              link.amountMinor != null
+                  ? formatMinor(link.amountMinor!, link.currency)
+                  : 'Valor livre',
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            ),
+          ]),
         ),
-        child: Text(label, style: BanzamiTextStyles.label.copyWith(color: color)),
-      ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
+          decoration: BoxDecoration(
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.fullAll,
+          ),
+          child: Text(
+            label,
+            style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11),
+          ),
+        ),
+      ]),
     );
   }
 }
