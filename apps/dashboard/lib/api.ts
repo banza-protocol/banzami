@@ -325,4 +325,12 @@ export class BanzamiApi {
       }),
     });
   }
+
+  // Sandbox
+  sandboxFund(amountMinor: number, currency = 'AOA'): Promise<{ funded: boolean; new_balance: WalletBalance; credited_minor: number }> {
+    return this.req('/sandbox/fund', {
+      method: 'POST',
+      body:   JSON.stringify({ amount_minor: amountMinor, currency }),
+    });
+  }
 }

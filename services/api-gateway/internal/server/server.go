@@ -75,7 +75,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
 	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
 	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
-	sandboxHandler       := handler.NewSandboxHandler(deps.TransactionSvc)
+	sandboxHandler       := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)

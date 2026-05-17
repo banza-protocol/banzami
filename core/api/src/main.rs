@@ -118,10 +118,11 @@ async fn main() {
         .route("/internal/v1/auth/verify-key",                post(routes::merchants::verify_api_key))
 
         // Wallets
-        .route("/internal/v1/wallets",             post(routes::wallets::create))
-        .route("/internal/v1/wallets",             get(routes::wallets::get_for_merchant))
-        .route("/internal/v1/wallets/:id",         get(routes::wallets::get))
-        .route("/internal/v1/wallets/:id/balance", get(routes::wallets::balance))
+        .route("/internal/v1/wallets",                    post(routes::wallets::create))
+        .route("/internal/v1/wallets",                    get(routes::wallets::get_for_merchant))
+        .route("/internal/v1/wallets/:id",                get(routes::wallets::get))
+        .route("/internal/v1/wallets/:id/balance",        get(routes::wallets::balance))
+        .route("/internal/v1/wallets/:id/sandbox-credit", post(routes::wallets::sandbox_credit))
 
         // Transactions
         .route("/internal/v1/transactions",                  post(routes::transactions::create))
