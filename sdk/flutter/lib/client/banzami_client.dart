@@ -375,6 +375,7 @@ class BanzamiClient {
     await _ensureJwt();
     return {
       'Content-Type':  'application/json',
+      'User-Agent':    'Banzami/1.0 (mobile)',
       'Authorization': 'Bearer $_jwt',
     };
   }

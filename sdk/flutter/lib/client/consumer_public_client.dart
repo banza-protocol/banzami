@@ -220,6 +220,7 @@ class ConsumerPublicClient {
 
   Map<String, String> _headers({bool auth = true}) => {
     'Content-Type': 'application/json',
+    'User-Agent': 'Banzami/1.0 (mobile)',
     if (auth && _token != null) 'Authorization': 'Bearer $_token',
   };
 
