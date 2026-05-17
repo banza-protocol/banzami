@@ -319,6 +319,23 @@ func (c *CorePublicClient) ListTransfers(ctx context.Context, consumerID string,
 	}, nil
 }
 
+// SandboxCreditConsumer injects virtual funds into a consumer's available ledger account.
+// Only callable when the service is deployed in SANDBOX environment.
+func (c *CorePublicClient) SandboxCreditConsumer(ctx context.Context, consumerID string, amountMinor int64, currency string) (int64, error) {
+	body := map[string]any{
+		"consumer_id":  consumerID,
+		"amount_minor": amountMinor,
+		"currency":     currency,
+	}
+	var resp struct {
+		NewBalance int64 `json:"new_balance"`
+	}
+	if err := c.post(ctx, "/internal/v1/consumer-wallets/test-credit", body, &resp); err != nil {
+		return 0, err
+	}
+	return resp.NewBalance, nil
+}
+
 // ---------------------------------------------------------------------------
 // Merchant lookup (read-only; used to enrich payment link responses)
 // ---------------------------------------------------------------------------

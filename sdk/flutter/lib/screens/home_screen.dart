@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../client/banzami_environment.dart';
 import '../client/consumer_public_client.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
@@ -19,6 +20,7 @@ class BanzamiHomeScreen extends StatefulWidget {
   final String consumerId;
   final String handle;
   final String? logoAssetPath;
+  final BanzamiEnvironment environment;
 
   const BanzamiHomeScreen({
     super.key,
@@ -26,6 +28,7 @@ class BanzamiHomeScreen extends StatefulWidget {
     required this.consumerId,
     required this.handle,
     this.logoAssetPath,
+    this.environment = BanzamiEnvironment.production,
   });
 
   @override
@@ -106,6 +109,13 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
               onSend:    _onSend,
               onReceive: _onReceive,
             ),
+            if (widget.environment.isSandbox)
+              SliverToBoxAdapter(
+                child: _SandboxFundPanel(
+                  client:   widget.client,
+                  onFunded: _load,
+                ),
+              ),
             const SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -275,6 +285,114 @@ class _ActionButton extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Sandbox fund panel
+// ---------------------------------------------------------------------------
+
+class _SandboxFundPanel extends StatefulWidget {
+  final ConsumerPublicClient client;
+  final VoidCallback onFunded;
+
+  const _SandboxFundPanel({required this.client, required this.onFunded});
+
+  @override
+  State<_SandboxFundPanel> createState() => _SandboxFundPanelState();
+}
+
+class _SandboxFundPanelState extends State<_SandboxFundPanel> {
+  bool    _loading = false;
+  String? _error;
+  String? _success;
+
+  static const _presets = [
+    (label: '10 000 Kz',    minor: 1000000),
+    (label: '50 000 Kz',    minor: 5000000),
+    (label: '200 000 Kz',   minor: 20000000),
+    (label: '1 000 000 Kz', minor: 100000000),
+  ];
+
+  Future<void> _fund(int amountMinor) async {
+    setState(() { _loading = true; _error = null; _success = null; });
+    try {
+      final result = await widget.client.sandboxFund(amountMinor: amountMinor);
+      if (!mounted) return;
+      setState(() {
+        _success = 'Adicionados ${result.creditedMinor ~/ 100} Kz (saldo: ${result.newBalance ~/ 100} Kz)';
+      });
+      widget.onFunded();
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Erro ao adicionar fundos');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin:  const EdgeInsets.fromLTRB(
+        BanzamiSpacing.lg, BanzamiSpacing.lg, BanzamiSpacing.lg, 0,
+      ),
+      padding: const EdgeInsets.all(BanzamiSpacing.lg),
+      decoration: BoxDecoration(
+        color:        const Color(0xFFFEF3C7),
+        borderRadius: BorderRadius.circular(BanzamiRadius.md),
+        border:       Border.all(color: const Color(0xFFF59E0B)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.science_rounded, size: 16, color: Color(0xFF92400E)),
+            const SizedBox(width: BanzamiSpacing.xs),
+            Text(
+              'Modo Sandbox — adicionar fundos',
+              style: BanzamiTextStyles.bodySm.copyWith(
+                color:      const Color(0xFF92400E),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ]),
+          const SizedBox(height: BanzamiSpacing.md),
+          Wrap(
+            spacing: BanzamiSpacing.sm,
+            runSpacing: BanzamiSpacing.sm,
+            children: _presets.map((p) {
+              return OutlinedButton(
+                onPressed: _loading ? null : () => _fund(p.minor),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF92400E),
+                  side: const BorderSide(color: Color(0xFFF59E0B)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: BanzamiSpacing.md,
+                    vertical:   BanzamiSpacing.xs,
+                  ),
+                  textStyle: BanzamiTextStyles.bodySm,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: _loading
+                    ? const SizedBox(
+                        width: 12, height: 12,
+                        child: CircularProgressIndicator(strokeWidth: 1.5, color: Color(0xFF92400E)),
+                      )
+                    : Text(p.label),
+              );
+            }).toList(),
+          ),
+          if (_success != null) ...[
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text(_success!, style: BanzamiTextStyles.bodySm.copyWith(color: const Color(0xFF166534))),
+          ],
+          if (_error != null) ...[
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
+          ],
+        ],
       ),
     );
   }

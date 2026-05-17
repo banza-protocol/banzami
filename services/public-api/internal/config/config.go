@@ -15,6 +15,7 @@ type Config struct {
 	LogLevel     string
 	LogFormat    string
 	OTLPEndpoint string // optional; tracing is a no-op when empty
+	Environment  string // "PRODUCTION" or "SANDBOX"
 }
 
 // Load reads config from environment variables.
@@ -52,6 +53,11 @@ func Load() (*Config, error) {
 		logFormat = "json"
 	}
 
+	env := os.Getenv("ENVIRONMENT")
+	if env == "" {
+		env = "PRODUCTION"
+	}
+
 	return &Config{
 		Port:         port,
 		CoreAPIURL:   coreURL,
@@ -60,5 +66,6 @@ func Load() (*Config, error) {
 		LogLevel:     logLevel,
 		LogFormat:    logFormat,
 		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
+		Environment:  env,
 	}, nil
 }
