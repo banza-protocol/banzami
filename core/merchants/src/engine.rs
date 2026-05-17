@@ -32,6 +32,8 @@ pub trait MerchantEngine: Send + Sync {
     async fn list_api_keys(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
     async fn revoke_api_key(&self, key_id: ApiKeyId) -> Result<ApiKey, MerchantError>;
 
+    async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError>;
+
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 
     /// Verifies a raw API key and returns the associated key record and merchant.
@@ -64,6 +66,7 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
             name:       req.name,
             email:      req.email,
             status:     MerchantStatus::Active,
+            verified:   false,
             created_at: now,
             updated_at: now,
         };
@@ -76,6 +79,10 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
 
     async fn list(&self, search: Option<&str>) -> Result<Vec<Merchant>, MerchantError> {
         self.merchant_repo.list(search).await
+    }
+
+    async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError> {
+        self.merchant_repo.set_verified(id, verified).await
     }
 
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {

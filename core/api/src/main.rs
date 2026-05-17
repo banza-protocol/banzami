@@ -115,6 +115,7 @@ async fn main() {
         .route("/internal/v1/merchants/:id/api-keys",         post(routes::merchants::create_api_key))
         .route("/internal/v1/merchants/:id/api-keys",         get(routes::merchants::list_api_keys))
         .route("/internal/v1/merchants/:id/api-keys/:key_id", axum::routing::delete(routes::merchants::revoke_api_key))
+        .route("/internal/v1/merchants/:id/verified",         axum::routing::patch(routes::merchants::set_verified))
         .route("/internal/v1/auth/verify-key",                post(routes::merchants::verify_api_key))
 
         // Wallets

@@ -106,6 +106,10 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                 Text(session.merchantEmail,
                     style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                     overflow: TextOverflow.ellipsis),
+                if (session.verified) ...[
+                  const SizedBox(height: 4),
+                  const _VerificationBadge(),
+                ],
               ])),
             ]),
           ),
@@ -221,6 +225,30 @@ class _Section extends StatelessWidget {
     return Container(
       color: BanzamiColors.white,
       child: Column(children: children),
+    );
+  }
+}
+
+class _VerificationBadge extends StatelessWidget {
+  const _VerificationBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1D4ED8).withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.verified_rounded, size: 12, color: Color(0xFF1D4ED8)),
+          SizedBox(width: 4),
+          Text('Verificado',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF1D4ED8))),
+        ],
+      ),
     );
   }
 }

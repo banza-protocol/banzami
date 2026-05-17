@@ -26,6 +26,12 @@ pub trait MerchantRepository: Send + Sync {
         status: MerchantStatus,
     ) -> Result<Merchant, MerchantError>;
 
+    async fn set_verified(
+        &self,
+        id:       MerchantId,
+        verified: bool,
+    ) -> Result<Merchant, MerchantError>;
+
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 }
 
@@ -49,6 +55,7 @@ struct MerchantRow {
     name:       String,
     email:      String,
     status:     String,
+    verified:   bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -91,7 +98,7 @@ impl PostgresApiKeyRepository {
 }
 
 const MERCHANT_SELECT: &str =
-    "SELECT id, name, email, status, created_at, updated_at FROM merchants";
+    "SELECT id, name, email, status, verified, created_at, updated_at FROM merchants";
 
 const API_KEY_SELECT: &str =
     "SELECT id, merchant_id, name, key_prefix, key_hash, environment, created_at, last_used_at, revoked_at
@@ -176,6 +183,25 @@ impl MerchantRepository for PostgresMerchantRepository {
             "UPDATE merchants SET status = $1, updated_at = $2 WHERE id = $3",
         )
         .bind(status.as_str())
+        .bind(now)
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(MerchantError::Database)?;
+
+        self.get(id).await
+    }
+
+    async fn set_verified(
+        &self,
+        id:       MerchantId,
+        verified: bool,
+    ) -> Result<Merchant, MerchantError> {
+        let now = chrono::Utc::now();
+        sqlx::query(
+            "UPDATE merchants SET verified = $1, updated_at = $2 WHERE id = $3",
+        )
+        .bind(verified)
         .bind(now)
         .bind(id.as_uuid())
         .execute(&self.pool)
@@ -334,6 +360,7 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
         name:       row.name,
         email:      row.email,
         status,
+        verified:   row.verified,
         created_at: row.created_at,
         updated_at: row.updated_at,
     })

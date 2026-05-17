@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw, Trash2 } from 'lucide-react';
+import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw, Trash2, ShieldCheck, ShieldOff } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Merchant, type MerchantCompliance } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
@@ -69,6 +69,8 @@ export default function MerchantsPage() {
   const [action, setAction]         = useState<Action | null>(null);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMsg, setResendMsg]         = useState('');
+  const [verifiedSaving, setVerifiedSaving] = useState(false);
+  const [verifiedError, setVerifiedError]   = useState('');
 
   // Create state
   const [createName, setCreateName]         = useState('');
@@ -139,6 +141,21 @@ export default function MerchantsPage() {
       setCreateError(e instanceof Error ? e.message : 'Erro ao criar comerciante.');
     } finally {
       setCreating(false);
+    }
+  }
+
+  async function handleSetVerified(verified: boolean) {
+    const session = getSession();
+    if (!session || !merchant) return;
+    setVerifiedSaving(true); setVerifiedError('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const updated = await api.setMerchantVerified(merchant.id, verified);
+      setMerchant(updated);
+    } catch (e) {
+      setVerifiedError(e instanceof Error ? e.message : 'Erro ao atualizar verificação.');
+    } finally {
+      setVerifiedSaving(false);
     }
   }
 
@@ -281,6 +298,38 @@ export default function MerchantsPage() {
                     );
                   }))}
                 </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-card p-xl">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Verificação</p>
+                <div className="flex items-center gap-md mb-lg">
+                  {merchant.verified ? (
+                    <span className="flex items-center gap-xs text-sm font-medium text-blue-700">
+                      <ShieldCheck size={16} />Verificado
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-xs text-sm text-gray-400">
+                      <ShieldOff size={16} />Não verificado
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-md flex-wrap">
+                  <button
+                    onClick={() => handleSetVerified(true)}
+                    disabled={verifiedSaving || merchant.verified}
+                    className="h-9 px-lg rounded-md text-xs font-medium transition-colors bg-blue-50 text-blue-700 hover:bg-blue-100 disabled:opacity-50 flex items-center gap-xs"
+                  >
+                    <ShieldCheck size={13} />Verificar
+                  </button>
+                  <button
+                    onClick={() => handleSetVerified(false)}
+                    disabled={verifiedSaving || !merchant.verified}
+                    className="h-9 px-lg rounded-md text-xs font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 flex items-center gap-xs"
+                  >
+                    <ShieldOff size={13} />Remover verificação
+                  </button>
+                </div>
+                {verifiedError && <p className="mt-md text-xs text-error">{verifiedError}</p>}
               </div>
 
               <div className="bg-white rounded-lg shadow-card p-xl border border-red-100">

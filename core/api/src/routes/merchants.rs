@@ -240,3 +240,32 @@ pub async fn revoke_api_key(
 
     Ok(Json(serde_json::to_value(&key).unwrap()))
 }
+
+/// PATCH /internal/v1/merchants/:id/verified
+///
+/// Sets or clears the merchant verification flag.
+/// Body: `{"verified": true | false}`
+pub async fn set_verified(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let merchant_id: MerchantId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
+
+    let verified = body.get("verified")
+        .and_then(|v| v.as_bool())
+        .ok_or_else(|| ApiError::bad_request("'verified' must be a boolean"))?;
+
+    let merchant = state
+        .merchant
+        .set_verified(merchant_id, verified)
+        .await
+        .map_err(|e| match e {
+            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+            other                      => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok(Json(serde_json::to_value(&merchant).unwrap()))
+}

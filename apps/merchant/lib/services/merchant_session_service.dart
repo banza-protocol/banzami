@@ -16,6 +16,7 @@ class MerchantSession {
   final String walletId;
   final String apiKey;
   final bool   biometricsEnabled;
+  final bool   verified;
 
   const MerchantSession({
     required this.merchantId,
@@ -24,15 +25,17 @@ class MerchantSession {
     required this.walletId,
     required this.apiKey,
     this.biometricsEnabled = false,
+    this.verified          = false,
   });
 
-  MerchantSession copyWith({bool? biometricsEnabled}) => MerchantSession(
+  MerchantSession copyWith({bool? biometricsEnabled, bool? verified}) => MerchantSession(
         merchantId:        merchantId,
         merchantName:      merchantName,
         merchantEmail:     merchantEmail,
         walletId:          walletId,
         apiKey:            apiKey,
         biometricsEnabled: biometricsEnabled ?? this.biometricsEnabled,
+        verified:          verified          ?? this.verified,
       );
 }
 
@@ -54,6 +57,7 @@ class MerchantSessionService extends ChangeNotifier {
   static const _kApiKey        = 'merchant_api_key';
   static const _kPinHash       = 'merchant_pin_hash';
   static const _kBioEnabled    = 'merchant_bio_enabled';
+  static const _kVerified      = 'merchant_verified';
 
   MerchantSession? _session;
   bool             _locked      = true;
@@ -75,6 +79,7 @@ class MerchantSessionService extends ChangeNotifier {
     final walletId      = await _store.read(key: _kWalletId);
     final apiKey        = await _store.read(key: _kApiKey);
     final bioEnabled    = await _store.read(key: _kBioEnabled);
+    final verified      = await _store.read(key: _kVerified);
 
     if (merchantId != null && merchantName != null &&
         merchantEmail != null && walletId != null && apiKey != null) {
@@ -85,6 +90,7 @@ class MerchantSessionService extends ChangeNotifier {
         walletId:          walletId,
         apiKey:            apiKey,
         biometricsEnabled: bioEnabled == 'true',
+        verified:          verified   == 'true',
       );
     }
     _initialized = true;
@@ -109,6 +115,7 @@ class MerchantSessionService extends ChangeNotifier {
     await _store.write(key: _kWalletId,      value: walletId);
     await _store.write(key: _kApiKey,        value: apiKey);
     await _store.write(key: _kPinHash,       value: _hash(pin));
+    await _store.write(key: _kVerified,      value: 'false');
     _session = MerchantSession(
       merchantId:    merchantId,
       merchantName:  merchantName,
