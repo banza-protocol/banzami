@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
-use banzami_identity::{CreateConsumerRequest, IdentityEngine, IdentityError};
+use banzami_identity::{CreateConsumerRequest, IdentityEngine, IdentityError, VerificationBadge};
 
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
@@ -17,6 +17,12 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 pub struct CreateConsumerBody {
     pub handle:       String,
     pub display_name: Option<String>,
+}
+
+#[derive(Deserialize)]
+pub struct SetBadgeBody {
+    /// `"CONSUMER"`, `"MERCHANT"`, or `null` to remove.
+    pub badge: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -176,6 +182,40 @@ pub async fn close(
     let identity = state
         .identity
         .close(consumer_id)
+        .await
+        .map_err(|e| match e {
+            IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
+            other                      => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok(Json(serde_json::to_value(&identity).unwrap()))
+}
+
+/// PATCH /internal/v1/consumers/:id/badge
+///
+/// Assigns or removes the admin verification badge.
+/// Body: `{"badge": "CONSUMER" | "MERCHANT" | null}`
+pub async fn set_badge(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<SetBadgeBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let consumer_id = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid consumer id"))?;
+
+    let badge = match body.badge.as_deref() {
+        None             => None,
+        Some("CONSUMER") => Some(VerificationBadge::Consumer),
+        Some("MERCHANT") => Some(VerificationBadge::Merchant),
+        Some(other) => return Err(ApiError::bad_request(
+            &format!("unknown badge type '{other}'; expected CONSUMER, MERCHANT, or null"),
+        )),
+    };
+
+    let identity = state
+        .identity
+        .set_badge(consumer_id, badge)
         .await
         .map_err(|e| match e {
             IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),

@@ -167,6 +167,7 @@ async fn main() {
         // Consumers (identity)
         .route("/internal/v1/consumers",                   get(routes::consumers::list).post(routes::consumers::create))
         .route("/internal/v1/consumers/:id",               get(routes::consumers::get))
+        .route("/internal/v1/consumers/:id/badge",         axum::routing::patch(routes::consumers::set_badge))
         .route("/internal/v1/consumers/:id/suspend",       post(routes::consumers::suspend))
         .route("/internal/v1/consumers/:id/close",         post(routes::consumers::close))
         .route("/internal/v1/consumers/handle/:handle",    get(routes::consumers::get_by_handle))

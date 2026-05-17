@@ -217,28 +217,32 @@ class _ProfileHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: BanzamiSpacing.md),
-              const _VerificationBadge(),
+              if (session.verificationBadge != null) ...[
+                const SizedBox(width: BanzamiSpacing.md),
+                _VerificationBadge(type: session.verificationBadge!),
+              ],
             ],
           ),
 
-          const SizedBox(height: BanzamiSpacing.md),
-
-          // Trust microcopy
-          Row(children: [
-            Icon(
-              Icons.shield_outlined,
-              size:  13,
-              color: BanzamiColors.white.withValues(alpha: 0.35),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Identidade financeira verificada',
-              style: BanzamiTextStyles.bodySm.copyWith(
+          if (session.verificationBadge != null) ...[
+            const SizedBox(height: BanzamiSpacing.md),
+            Row(children: [
+              Icon(
+                Icons.shield_outlined,
+                size:  13,
                 color: BanzamiColors.white.withValues(alpha: 0.35),
               ),
-            ),
-          ]),
+              const SizedBox(width: 6),
+              Text(
+                session.verificationBadge == VerificationBadgeType.merchant
+                    ? 'Conta de comerciante verificada'
+                    : 'Identidade financeira verificada',
+                style: BanzamiTextStyles.bodySm.copyWith(
+                  color: BanzamiColors.white.withValues(alpha: 0.35),
+                ),
+              ),
+            ]),
+          ],
         ],
       ),
     );
@@ -286,29 +290,36 @@ class _Avatar extends StatelessWidget {
 }
 
 class _VerificationBadge extends StatelessWidget {
-  const _VerificationBadge();
+  final VerificationBadgeType type;
+  const _VerificationBadge({required this.type});
 
   @override
   Widget build(BuildContext context) {
+    final isMerchant = type == VerificationBadgeType.merchant;
+    final fg     = isMerchant ? const Color(0xFF1D4ED8) : BanzamiColors.gold;
+    final bg     = fg.withValues(alpha: 0.10);
+    final border = fg.withValues(alpha: 0.25);
+    final label  = isMerchant ? 'Comerciante' : 'Verificado';
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.md,
         vertical:   5,
       ),
       decoration: BoxDecoration(
-        color:        BanzamiColors.gold.withValues(alpha: 0.12),
+        color:        bg,
         borderRadius: BanzamiRadius.fullAll,
-        border:       Border.all(color: BanzamiColors.gold.withValues(alpha: 0.25)),
+        border:       Border.all(color: border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.verified_rounded, size: 12, color: BanzamiColors.gold),
+          Icon(Icons.verified_rounded, size: 12, color: fg),
           const SizedBox(width: 4),
           Text(
-            'Verificado',
+            label,
             style: BanzamiTextStyles.label.copyWith(
-              color:    BanzamiColors.gold,
+              color:    fg,
               fontSize: 11,
             ),
           ),

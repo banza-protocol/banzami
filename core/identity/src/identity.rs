@@ -36,6 +36,36 @@ impl ConsumerStatus {
     }
 }
 
+/// Admin-assigned trust badge displayed on the consumer's profile.
+///
+/// `CONSUMER` renders as a gold "Verificado" pill.
+/// `MERCHANT` renders as a blue "Comerciante" pill.
+/// Absence (NULL in DB) means no badge is shown.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum VerificationBadge {
+    Consumer,
+    Merchant,
+}
+
+impl VerificationBadge {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            VerificationBadge::Consumer => "CONSUMER",
+            VerificationBadge::Merchant => "MERCHANT",
+        }
+    }
+
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "CONSUMER" => Some(VerificationBadge::Consumer),
+            "MERCHANT" => Some(VerificationBadge::Merchant),
+            _          => None,
+        }
+    }
+}
+
 /// A registered consumer with a unique human-readable handle.
 ///
 /// Handles are the public-facing identities — consumers never see raw UUIDs.
@@ -43,12 +73,13 @@ impl ConsumerStatus {
 #[derive(Debug, Clone)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct ConsumerIdentity {
-    pub id:           ConsumerId,
-    pub handle:       String,
-    pub display_name: Option<String>,
-    pub status:       ConsumerStatus,
-    pub created_at:   DateTime<Utc>,
-    pub updated_at:   DateTime<Utc>,
+    pub id:                  ConsumerId,
+    pub handle:              String,
+    pub display_name:        Option<String>,
+    pub status:              ConsumerStatus,
+    pub verification_badge:  Option<VerificationBadge>,
+    pub created_at:          DateTime<Utc>,
+    pub updated_at:          DateTime<Utc>,
 }
 
 pub struct CreateConsumerRequest {
