@@ -199,11 +199,21 @@ class _ChargeScreenState extends State<ChargeScreen> {
   // ---------------------------------------------------------------------------
 
   Widget _buildResult() {
-    final link = _link!;
+    final link    = _link!;
+    final session = context.read<MerchantSessionService>().session!;
     return SingleChildScrollView(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(children: [
         const SizedBox(height: BanzamiSpacing.lg),
+
+        Text(
+          session.merchantName,
+          style: BanzamiTextStyles.label.copyWith(
+            color:          BanzamiColors.gray400,
+            letterSpacing:  0.5,
+          ),
+        ),
+        const SizedBox(height: BanzamiSpacing.xs),
 
         if (link.amountMinor != null)
           Text(
