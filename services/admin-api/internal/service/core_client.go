@@ -186,6 +186,14 @@ func (c *CoreAdminClient) GetMerchant(ctx context.Context, id string) (map[strin
 	return out, c.get(ctx, "/internal/v1/merchants/"+id, &out)
 }
 
+func (c *CoreAdminClient) DeleteMerchant(ctx context.Context, id string) error {
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+id, nil)
+	if err != nil {
+		return fmt.Errorf("core-api request: %w", err)
+	}
+	return c.do(req, nil)
+}
+
 func (c *CoreAdminClient) CreateMerchant(ctx context.Context, name, email string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/merchants",

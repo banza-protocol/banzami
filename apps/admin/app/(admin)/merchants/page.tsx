@@ -1,20 +1,21 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw } from 'lucide-react';
+import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw, Trash2 } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Merchant, type MerchantCompliance } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 
-type Action = 'approve' | 'reject' | 'suspend' | 'flag_aml';
+type Action = 'approve' | 'reject' | 'suspend' | 'flag_aml' | 'delete';
 
 const ACTION_CONFIG: Record<Action, { label: string; danger: boolean; confirmLabel: string; desc: string }> = {
   approve:  { label: 'Aprovar',       danger: false, confirmLabel: 'Aprovar comerciante',   desc: 'Aprovação KYC — o comerciante passará a APPROVED.' },
   reject:   { label: 'Rejeitar',      danger: true,  confirmLabel: 'Rejeitar comerciante',  desc: 'Rejeição KYC — introduza o motivo nas notas.' },
   suspend:  { label: 'Suspender',     danger: true,  confirmLabel: 'Suspender comerciante', desc: 'Suspender acesso — introduza o motivo nas notas.' },
   flag_aml: { label: 'Sinalizar AML', danger: true,  confirmLabel: 'Sinalizar AML',         desc: 'Sinaliza suspeita de branqueamento — introduza as notas.' },
+  delete:   { label: 'Apagar',        danger: true,  confirmLabel: 'Apagar definitivamente', desc: 'Apaga o comerciante e todas as suas chaves API. Irreversível.' },
 };
 
 interface CreatedCredentials {
@@ -161,6 +162,14 @@ export default function MerchantsPage() {
     const session = getSession();
     if (!session || !action || !merchant) return;
     const api = new AdminApi(session.apiUrl, session.adminKey);
+    if (action === 'delete') {
+      await api.deleteMerchant(merchant.id);
+      setMerchant(null);
+      setCompliance(null);
+      setAction(null);
+      loadMerchants();
+      return;
+    }
     let result: MerchantCompliance;
     switch (action) {
       case 'approve':  result = await api.approveMerchant(merchant.id); break;
@@ -260,15 +269,30 @@ export default function MerchantsPage() {
               <div className="bg-white rounded-lg shadow-card p-xl">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Acções de Compliance</p>
                 <div className="grid grid-cols-2 gap-md">
-                  {(Object.entries(ACTION_CONFIG) as [Action, typeof ACTION_CONFIG[Action]][]).map(([key, cfg]) => (
-                    <button key={key} onClick={() => setAction(key)}
-                      className={`h-9 rounded-md text-xs font-medium transition-colors ${
-                        cfg.danger ? 'bg-error-bg text-error hover:bg-red-100' : 'bg-success-bg text-success hover:bg-green-100'
-                      }`}>
-                      {cfg.label}
-                    </button>
-                  ))}
+                  {((['approve', 'reject', 'suspend', 'flag_aml'] as Action[]).map(key => {
+                    const cfg = ACTION_CONFIG[key];
+                    return (
+                      <button key={key} onClick={() => setAction(key)}
+                        className={`h-9 rounded-md text-xs font-medium transition-colors ${
+                          cfg.danger ? 'bg-error-bg text-error hover:bg-red-100' : 'bg-success-bg text-success hover:bg-green-100'
+                        }`}>
+                        {cfg.label}
+                      </button>
+                    );
+                  }))}
                 </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow-card p-xl border border-red-100">
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Zona de Perigo</p>
+                <p className="text-xs text-gray-400 mb-lg">Apaga o comerciante, todas as chaves API e o registo de compliance. Só é possível se não existirem dados financeiros associados.</p>
+                <button
+                  onClick={() => setAction('delete')}
+                  className="h-9 px-lg bg-error-bg text-error rounded-md text-xs font-medium hover:bg-red-100 transition-colors flex items-center gap-xs"
+                >
+                  <Trash2 size={12} />
+                  Apagar Comerciante
+                </button>
               </div>
 
               <div className="bg-white rounded-lg shadow-card p-xl">

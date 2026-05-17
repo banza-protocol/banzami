@@ -25,6 +25,8 @@ pub trait MerchantRepository: Send + Sync {
         id: MerchantId,
         status: MerchantStatus,
     ) -> Result<Merchant, MerchantError>;
+
+    async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 }
 
 #[allow(async_fn_in_trait)]
@@ -181,6 +183,45 @@ impl MerchantRepository for PostgresMerchantRepository {
         .map_err(MerchantError::Database)?;
 
         self.get(id).await
+    }
+
+    async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {
+        let mut tx = self.pool.begin().await.map_err(MerchantError::Database)?;
+
+        // Verify the merchant exists before cascading deletes.
+        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM merchants WHERE id = $1)")
+            .bind(id.as_uuid())
+            .fetch_one(&mut *tx)
+            .await
+            .map_err(MerchantError::Database)?;
+
+        if !exists {
+            return Err(MerchantError::NotFound(id));
+        }
+
+        // Delete child records in dependency order.
+        sqlx::query("DELETE FROM api_keys WHERE merchant_id = $1")
+            .bind(id.as_uuid())
+            .execute(&mut *tx)
+            .await
+            .map_err(MerchantError::Database)?;
+
+        sqlx::query("DELETE FROM merchant_compliance WHERE merchant_id = $1")
+            .bind(id.as_uuid())
+            .execute(&mut *tx)
+            .await
+            .map_err(MerchantError::Database)?;
+
+        sqlx::query("DELETE FROM merchants WHERE id = $1")
+            .bind(id.as_uuid())
+            .execute(&mut *tx)
+            .await
+            .map_err(MerchantError::Database)?;
+
+        tx.commit().await.map_err(MerchantError::Database)?;
+
+        tracing::info!(merchant_id = %id, "merchant deleted");
+        Ok(())
     }
 }
 

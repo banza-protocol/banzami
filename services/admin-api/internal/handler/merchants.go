@@ -38,3 +38,13 @@ func (h *MerchantHandler) Get(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, result)
 }
+
+// Delete handles DELETE /admin/v1/merchants/{id}.
+func (h *MerchantHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if err := h.core.DeleteMerchant(r.Context(), id); err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
