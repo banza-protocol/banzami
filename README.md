@@ -152,6 +152,44 @@ Only nginx is exposed to the internet (ports 80/443). All other services communi
 
 Source code is built directly on the server under `/srv/banzami/src/`. Each service has its own Dockerfile.
 
+### Deploying to Production
+
+Use `deploy.sh` at the repo root — it syncs source files, builds the Docker image on the server, and recreates the container:
+
+```bash
+# Deploy a single service
+./deploy.sh core-api
+./deploy.sh admin-api
+./deploy.sh admin-frontend
+
+# Deploy multiple services
+./deploy.sh admin-api admin-frontend
+
+# Deploy everything
+./deploy.sh
+
+# Force a full rebuild (bypass Docker layer cache — useful when Rust caches stale layers)
+./deploy.sh --no-cache core-api
+```
+
+The script:
+1. `rsync`s the relevant source directory to the server (excluding `node_modules/`, `target/`, `.next/`)
+2. Runs `docker build` on the server (with layer cache by default)
+3. Recreates the container via `docker compose up -d`
+4. Waits for the health check to pass before returning
+
+Build directories on the server:
+
+| Service | Build context on server |
+|---------|------------------------|
+| `core-api` | `/srv/banzami/src/core/` |
+| `admin-api` | `/srv/banzami/admin-api-build/` |
+| `api-gateway` | `/srv/banzami/api-gateway-build/` |
+| `public-api` | `/srv/banzami/public-api-build/` |
+| `admin-frontend` | `/srv/banzami/src/apps/admin/` |
+| `dashboard-frontend` | `/srv/banzami/src/apps/dashboard/` |
+| `checkout-frontend` | `/srv/banzami/src/apps/checkout/` |
+
 ### SSL
 
 Cloudflare Origin Certificate (RSA 2048, wildcard `*.banzami.org` + `banzami.org`).
@@ -625,8 +663,10 @@ Each transition validates business rules (sufficient balance, correct currency, 
 Merchant registration, status management, and API key lifecycle.
 
 - SHA-256 hashed API keys stored; plaintext never persisted after creation.
-- Multiple API keys per merchant; per-key scopes.
+- Multiple API keys per merchant, each with an `environment` field (`LIVE` / `SANDBOX`).
+- Key prefix encodes environment: `bz_live_…` for live, `bz_test_…` for sandbox.
 - Status: `Active`, `Suspended`.
+- Admin-initiated sandbox creation auto-approves KYB and AML, issues a `bz_test_` key, and sends a welcome email with credentials.
 
 ---
 
@@ -672,7 +712,14 @@ Ledger entries at key transitions:
 ---
 
 #### `banzami-reconciliation`
-External bank statement matching against internal settlement records.
+External bank statement matching against internal settlement records, plus a periodic ledger balance consistency checker (`run_balance_checker`) that runs as a background Tokio task in core-api.
+
+The balance checker enforces three invariants on every tick (default: hourly):
+1. **Posting balance** — every ledger posting has debits == credits (double-entry).
+2. **No negative consumer balances** — no consumer wallet may have a negative available balance.
+3. **Transfer-posting linkage** — every `COMPLETED` transfer references a ledger posting.
+
+Violations are logged as errors but never kill the process — the checker is observability-only.
 
 ```
 Match logic (greedy, by amount + currency):
@@ -806,14 +853,20 @@ Internal-only service for compliance operations, settlement management, and reco
 **Authentication:** `X-Admin-Key: <key>` header.
 
 **Configuration (environment variables):**
-| Variable              | Default                   | Description                   |
-|-----------------------|---------------------------|-------------------------------|
-| `ADMIN_API_PORT`      | `8082`                    | Listen port                   |
-| `CORE_API_URL`        | `http://127.0.0.1:8081`   | Rust core-api base URL        |
-| `ADMIN_API_KEY`       | required                  | Shared secret for admin auth  |
-| `OTLP_ENDPOINT`       | optional                  | OTLP HTTP endpoint            |
-| `LOG_LEVEL`           | `info`                    | Log verbosity                 |
-| `LOG_FORMAT`          | `json`                    | `json` / `pretty`             |
+| Variable              | Default                   | Description                              |
+|-----------------------|---------------------------|------------------------------------------|
+| `ADMIN_API_PORT`      | `8082`                    | Listen port                              |
+| `CORE_API_URL`        | `http://127.0.0.1:8081`   | Rust core-api base URL                   |
+| `ADMIN_API_KEY`       | required                  | Shared secret for admin auth             |
+| `SMTP_HOST`           | optional                  | SMTP server hostname (email disabled if empty) |
+| `SMTP_PORT`           | `587`                     | SMTP port (`465` for SSL, `587` for STARTTLS) |
+| `SMTP_USER`           | optional                  | SMTP username                            |
+| `SMTP_PASSWORD`       | optional                  | SMTP password                            |
+| `SMTP_FROM`           | `noreply@banzami.org`     | Sender address                           |
+| `SMTP_FROM_NAME`      | `Banzami`                 | Sender display name                      |
+| `OTLP_ENDPOINT`       | optional                  | OTLP HTTP endpoint                       |
+| `LOG_LEVEL`           | `info`                    | Log verbosity                            |
+| `LOG_FORMAT`          | `json`                    | `json` / `pretty`                        |
 
 ---
 
@@ -862,12 +915,16 @@ Consumer-facing service. This is what the mobile app (Flutter SDK) calls directl
 Internal HTTP server binding all Rust domain crates. Only reachable from localhost. Uses Axum with `TraceLayer` for structured request tracing.
 
 **Configuration (environment variables):**
-| Variable              | Default  | Description                              |
-|-----------------------|----------|------------------------------------------|
-| `DATABASE_URL`        | required | PostgreSQL connection string             |
-| `CORE_API_PORT`       | `8081`   | Listen port                              |
-| `TRANSIT_ACCOUNT_ID`  | auto-gen | Ledger account ID for in-flight funds    |
-| `BANK_ACCOUNT_ID`     | auto-gen | Ledger account ID for bank funds         |
+| Variable                        | Default   | Description                                            |
+|---------------------------------|-----------|--------------------------------------------------------|
+| `DATABASE_URL`                  | required  | PostgreSQL connection string                           |
+| `CORE_API_PORT`                 | `8081`    | Listen port                                            |
+| `TRANSIT_ACCOUNT_ID`            | auto-gen  | Ledger account ID for in-flight funds                  |
+| `BANK_ACCOUNT_ID`               | auto-gen  | Ledger account ID for bank funds                       |
+| `RUST_LOG`                      | `warn`    | Log filter (e.g. `core_api=info,warn`)                 |
+| `QR_EXPIRY_INTERVAL_SECS`       | `60`      | How often the QR expiry background worker runs         |
+| `SETTLEMENT_SCHEDULER_INTERVAL_SECS` | `86400` | Settlement batch scheduler interval (default: daily) |
+| `BALANCE_CHECKER_INTERVAL_SECS` | `3600`   | Ledger invariant checker interval (default: hourly)    |
 
 ---
 
@@ -939,20 +996,22 @@ Observability:
 
 **Settlements**
 
-| Method | Path                                    | Description                        |
-|--------|-----------------------------------------|------------------------------------|
-| POST   | `/admin/v1/settlements`                 | Create settlement batch            |
-| GET    | `/admin/v1/settlements?merchant_id=`    | List settlements for merchant      |
-| GET    | `/admin/v1/settlements/{id}`            | Get settlement                     |
-| POST   | `/admin/v1/settlements/{id}/submit`     | Submit to acquirer                 |
-| POST   | `/admin/v1/settlements/{id}/confirm`    | Confirm (posts ledger DR/CR)       |
-| POST   | `/admin/v1/settlements/{id}/fail`       | Mark failed (requires `reason`)    |
+| Method | Path                                    | Description                                    |
+|--------|-----------------------------------------|------------------------------------------------|
+| POST   | `/admin/v1/settlements`                 | Create settlement batch                        |
+| GET    | `/admin/v1/settlements?merchant_id=`    | List settlements for a specific merchant       |
+| GET    | `/admin/v1/settlements/all`             | List all settlements (optional `?status=`)     |
+| GET    | `/admin/v1/settlements/{id}`            | Get settlement                                 |
+| POST   | `/admin/v1/settlements/{id}/submit`     | Submit to acquirer                             |
+| POST   | `/admin/v1/settlements/{id}/confirm`    | Confirm (posts ledger DR/CR)                   |
+| POST   | `/admin/v1/settlements/{id}/fail`       | Mark failed (requires `reason`)                |
 
 **Payouts**
 
 | Method | Path                                    | Description                        |
 |--------|-----------------------------------------|------------------------------------|
-| GET    | `/admin/v1/payouts?merchant_id=`        | List payouts for merchant          |
+| GET    | `/admin/v1/payouts?merchant_id=`        | List payouts for a specific merchant |
+| GET    | `/admin/v1/payouts/all`                 | List all payouts (optional `?status=`) |
 | GET    | `/admin/v1/payouts/{id}`                | Get payout                         |
 | POST   | `/admin/v1/payouts/{id}/process`        | Process — posts ledger DR/CR       |
 | POST   | `/admin/v1/payouts/{id}/sent`           | Mark as sent to bank               |
@@ -968,9 +1027,22 @@ Observability:
 
 **Merchants**
 
-| Method | Path                         | Description            |
-|--------|------------------------------|------------------------|
-| GET    | `/admin/v1/merchants/{id}`   | Get merchant details   |
+| Method | Path                                              | Description                                         |
+|--------|---------------------------------------------------|-----------------------------------------------------|
+| POST   | `/admin/v1/merchants`                             | Create merchant, auto-issue key and wallet; sends welcome email |
+| GET    | `/admin/v1/merchants`                             | List all merchants (optional `?search=` filter)     |
+| GET    | `/admin/v1/merchants/{id}`                        | Get merchant details                                |
+| DELETE | `/admin/v1/merchants/{id}`                        | Delete merchant and cascade (API keys, compliance). Fails if financial data exists. |
+| POST   | `/admin/v1/merchants/{id}/api-keys`               | Create additional API key (`name`, `environment`)   |
+| POST   | `/admin/v1/merchants/{id}/resend-credentials`     | Re-issue API key and email credentials to merchant  |
+| POST   | `/admin/v1/merchants/{id}/wallets`                | Create wallet for a currency                        |
+
+**Consumers**
+
+| Method | Path                       | Description              |
+|--------|----------------------------|--------------------------|
+| GET    | `/admin/v1/consumers`      | List consumers (optional `?handle=` filter) |
+| GET    | `/admin/v1/consumers/{id}` | Get consumer details     |
 
 Observability:
 - `GET /health` — liveness probe
