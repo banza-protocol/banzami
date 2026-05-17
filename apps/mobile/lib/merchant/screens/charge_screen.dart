@@ -17,9 +17,10 @@ class ChargeScreen extends StatefulWidget {
 }
 
 class _ChargeScreenState extends State<ChargeScreen> {
-  final _formKey     = GlobalKey<FormState>();
-  final _amountCtrl  = TextEditingController();
-  final _descCtrl    = TextEditingController();
+  final _formKey        = GlobalKey<FormState>();
+  final _shareButtonKey = GlobalKey();
+  final _amountCtrl     = TextEditingController();
+  final _descCtrl       = TextEditingController();
 
   bool         _creating = false;
   bool         _sharing  = false;
@@ -88,7 +89,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
       final subject = link.amountMinor != null
           ? 'Pagamento Banzami — ${formatMinor(link.amountMinor!, link.currency)}'
           : 'Pagamento Banzami';
-      await Share.share(_payUrl, subject: subject);
+      final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+      await Share.share(_payUrl, subject: subject, sharePositionOrigin: origin);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -284,6 +287,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
         SizedBox(
           width: double.infinity,
           child: BanzamiButton(
+            key:       _shareButtonKey,
             label:     'Partilhar link',
             isLoading: _sharing,
             onPressed: _sharing ? null : () => _shareLink(link),
