@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 import 'setup_pin_screen.dart';
 
 /// Step 1 of onboarding: choose a @handle and optional display name.
 ///
-/// No API call is made here. The account is created in [SetupPinScreen]
-/// once the PIN is confirmed, so we have all three required fields at once
-/// (handle, display_name, pin) for the single POST /v1/auth/register call.
+/// Checks handle availability before navigating to [SetupPinScreen] so the
+/// user gets immediate feedback instead of failing after the full PIN flow.
+/// [SetupPinScreen] still handles HANDLE_TAKEN as a safety net.
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -20,6 +21,9 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   final _nameCtrl   = TextEditingController();
   final _formKey    = GlobalKey<FormState>();
 
+  bool    _checking    = false;
+  String? _handleError;
+
   @override
   void dispose() {
     _handleCtrl.dispose();
@@ -27,11 +31,28 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     super.dispose();
   }
 
-  void _continue() {
+  Future<void> _continue() async {
+    setState(() => _handleError = null);
     if (!_formKey.currentState!.validate()) return;
 
     final handle = _handleCtrl.text.trim().toLowerCase();
     final name   = _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim();
+
+    setState(() => _checking = true);
+    try {
+      final taken = await context.read<ConsumerPublicClient>().handleExists(handle);
+      if (!mounted) return;
+      if (taken) {
+        setState(() { _handleError = 'Este @banza já está em uso.'; _checking = false; });
+        _formKey.currentState!.validate();
+        return;
+      }
+    } catch (_) {
+      // Network error — let SetupPinScreen handle it at registration time
+    }
+
+    if (!mounted) return;
+    setState(() => _checking = false);
 
     Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => SetupPinScreen(handle: handle, displayName: name),
@@ -75,6 +96,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   keyboardType:    TextInputType.visiblePassword,
                   textInputAction: TextInputAction.next,
                   autocorrect:     false,
+                  onChanged:       (_) => setState(() => _handleError = null),
                   validator: (v) {
                     final val = v?.trim() ?? '';
                     if (val.isEmpty) return 'O @banza é obrigatório';
@@ -83,6 +105,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     if (!RegExp(r'^[a-z0-9_]+$').hasMatch(val)) {
                       return 'Apenas letras minúsculas, números e _';
                     }
+                    if (_handleError != null) return _handleError;
                     return null;
                   },
                 ),
@@ -104,7 +127,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: _continue,
+                    onPressed: _checking ? null : _continue,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: BanzamiColors.wine,
                       foregroundColor: BanzamiColors.white,
@@ -114,7 +137,16 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                       ),
                       textStyle: BanzamiTextStyles.headingSm,
                     ),
-                    child: const Text('Continuar'),
+                    child: _checking
+                        ? const SizedBox(
+                            width:  20,
+                            height: 20,
+                            child:  CircularProgressIndicator(
+                              color:       BanzamiColors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : const Text('Continuar'),
                   ),
                 ),
               ],
