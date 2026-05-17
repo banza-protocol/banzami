@@ -43,7 +43,9 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   String? _sendError;
 
   List<ConsumerSuggestion> _suggestions = [];
-  bool    _searching = false;
+  bool    _searching        = false;
+  bool    _validatingHandle = false;
+  bool    _handleConfirmed  = false; // true once handle is known to exist
   Timer?  _debounce;
 
   @override
@@ -52,6 +54,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     _handleFocus.addListener(() {
       if (!_handleFocus.hasFocus) {
         setState(() => _suggestions = []);
+        _validateHandleOnBlur();
       }
     });
   }
@@ -66,7 +69,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   }
 
   void _onHandleChanged(String value) {
-    setState(() { _handleError = null; _sendError = null; });
+    setState(() { _handleError = null; _sendError = null; _handleConfirmed = false; });
 
     _debounce?.cancel();
     final q = value.trim().replaceAll('@', '');
@@ -90,7 +93,26 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   void _selectSuggestion(ConsumerSuggestion s) {
     _handleCtrl.text = s.handle;
     _handleFocus.unfocus();
-    setState(() { _suggestions = []; _handleError = null; });
+    setState(() { _suggestions = []; _handleError = null; _handleConfirmed = true; });
+  }
+
+  Future<void> _validateHandleOnBlur() async {
+    if (_handleConfirmed) return;
+    final handle = _handleCtrl.text.trim().replaceAll('@', '').toLowerCase();
+    if (handle.isEmpty) return;
+
+    setState(() { _validatingHandle = true; _handleError = null; });
+    try {
+      final exists = await widget.client.handleExists(handle);
+      if (!mounted) return;
+      if (exists) {
+        setState(() { _handleConfirmed = true; _validatingHandle = false; });
+      } else {
+        setState(() { _handleError = '@$handle não está registado na Banzami'; _validatingHandle = false; });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _validatingHandle = false);
+    }
   }
 
   Future<void> _send() async {
@@ -98,6 +120,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     if (handle.isEmpty) {
       setState(() => _handleError = 'Introduza um @banza');
       return;
+    }
+    if (!_handleConfirmed) {
+      await _validateHandleOnBlur();
+      if (!_handleConfirmed) return;
     }
     if (_amountMinor <= 0) {
       setState(() => _amountError = 'Introduza um montante válido');
@@ -153,7 +179,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                   hintText:  'banza do destinatário',
                   prefixText: '@',
                   errorText: _handleError,
-                  suffixIcon: _searching
+                  suffixIcon: (_searching || _validatingHandle)
                       ? const Padding(
                           padding: EdgeInsets.all(12),
                           child: SizedBox(
@@ -161,7 +187,9 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                         )
-                      : null,
+                      : _handleConfirmed
+                          ? const Icon(Icons.check_circle, color: Color(0xFF166534), size: 20)
+                          : null,
                 ),
                 autocorrect:     false,
                 textInputAction: TextInputAction.next,
