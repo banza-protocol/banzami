@@ -1,18 +1,19 @@
 const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'http://localhost:8080';
 
 export interface PaymentLink {
-  id:           string;
-  slug:         string;
-  merchant_id:  string;
-  wallet_id:    string;
-  amount_minor: number | null;
-  currency:     string;
-  description:  string | null;
-  status:       'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
-  expires_at:   string | null;
-  paid_at:      string | null;
-  created_at:   string;
-  updated_at:   string;
+  id:            string;
+  slug:          string;
+  merchant_id:   string;
+  merchant_name: string;
+  wallet_id:     string;
+  amount_minor:  number | null;
+  currency:      string;
+  description:   string | null;
+  status:        'ACTIVE' | 'USED' | 'EXPIRED' | 'CANCELLED';
+  expires_at:    string | null;
+  paid_at:       string | null;
+  created_at:    string;
+  updated_at:    string;
 }
 
 export interface PaymentInstructions {

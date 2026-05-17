@@ -73,7 +73,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	consumerWltHandler   := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler      := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc)
 	qrHandler            := handler.NewQrHandler(deps.QrSvc)
-	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc)
+	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc)
 	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 	sandboxHandler       := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 

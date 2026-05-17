@@ -53,6 +53,7 @@ export default async function PayPage({ params }: Props) {
   return (
     <PayClient
       slug={link.slug}
+      merchantName={link.merchant_name}
       amountDisplay={amountDisplay}
       amountMinor={link.amount_minor}
       currency={link.currency}
