@@ -190,7 +190,11 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         : p is _LinkPayload && p.link.amountMinor != null
             ? formatMinor(p.link.amountMinor!, p.link.currency)
             : null;
-    final String title    = p is _HandlePayload ? 'Enviar para @${p.handle}' : 'Pagar link';
+    final String title = p is _HandlePayload
+        ? 'Enviar para @${p.handle}'
+        : (p is _LinkPayload && p.link.merchantName != null)
+            ? p.link.merchantName!
+            : 'Pagar link';
     final String? subtitle = p is _LinkPayload ? p.link.description : null;
 
     return SafeArea(
