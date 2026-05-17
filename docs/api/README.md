@@ -636,6 +636,67 @@ Pay a payment link from the consumer's wallet. **JWT required.**
 
 ---
 
+### Consumer Search
+
+#### GET /v1/consumers/search?q=
+
+Search for active consumers by handle prefix. **No authentication required.** Used for autocomplete in the send screen. Returns up to 5 results.
+
+**Query params:**
+- `q` — minimum 2 characters; case-insensitive substring match on handle.
+
+**Response 200:**
+```json
+{
+  "data": [
+    { "handle": "joao_silva", "display_name": "João Silva" },
+    { "handle": "joao_coffee", "display_name": null }
+  ]
+}
+```
+
+#### GET /v1/consumers/{handle}
+
+Check whether a handle is registered. **No authentication required.** Used for handle existence validation before sending.
+
+**Response 200:** Consumer object.  
+**Response 404:** Handle not found.
+
+---
+
+### Sandbox Utilities (public-api)
+
+These endpoints are only available when the public-api instance is deployed with `ENVIRONMENT=SANDBOX`. They return `403 SANDBOX_ONLY` in production.
+
+#### POST /v1/sandbox/fund
+
+Credit the authenticated consumer's sandbox wallet with virtual funds. Maximum 100,000,000 AOA per call.
+
+**Request:**
+```json
+{
+  "amount_minor": 5000000,
+  "currency":     "AOA"
+}
+```
+
+**Response 200:**
+```json
+{
+  "funded":         true,
+  "currency":       "AOA",
+  "credited_minor": 5000000,
+  "new_balance":    5000000,
+  "note":           "Sandbox wallet credited. Virtual balance — no real funds moved."
+}
+```
+
+**Errors:**
+- `403 SANDBOX_ONLY` — service is not running in SANDBOX environment.
+- `400 VALIDATION_ERROR` — `amount_minor` is zero, negative, or exceeds the cap.
+
+---
+
 ## Public Endpoints (api-gateway, no auth)
 
 These endpoints are used by the `pay.banzami.org` pay page JavaScript.
@@ -664,6 +725,7 @@ Returns `true` when `status == "USED"`.
 | `INVALID_TOKEN` | 401 | JWT expired, malformed, or wrong key |
 | `INVALID_CREDENTIALS` | 401 | Wrong handle or PIN |
 | `FORBIDDEN` | 403 | Valid token but missing required scope |
+| `SANDBOX_ONLY` | 403 | Endpoint only available in SANDBOX environment |
 | `NOT_FOUND` | 404 | Resource does not exist |
 | `HANDLE_TAKEN` | 409 | Consumer handle already registered |
 | `LINK_NOT_ACTIVE` | 422 | Payment link is not in ACTIVE state |
