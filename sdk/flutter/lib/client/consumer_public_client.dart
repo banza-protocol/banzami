@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
+import '../models/consumer_suggestion.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
@@ -128,6 +129,26 @@ class ConsumerPublicClient {
 
     final wallet = await _call(method: 'GET', path: '/v1/me/wallet');
     return (consumer: consumer, walletId: wallet['id'] as String, token: tok);
+  }
+
+  /// Returns up to 5 active consumers whose handle contains [prefix].
+  /// Returns an empty list on network error or if [prefix] is shorter than 2 chars.
+  Future<List<ConsumerSuggestion>> searchHandles(String prefix) async {
+    final q = prefix.trim().toLowerCase().replaceAll('@', '');
+    if (q.length < 2) return [];
+    try {
+      final json = await _call(
+        method: 'GET',
+        path: '/v1/consumers/search?q=${Uri.encodeQueryComponent(q)}',
+        auth: false,
+      );
+      final data = json['data'] as List<dynamic>? ?? [];
+      return data
+          .map((e) => ConsumerSuggestion.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
   }
 
   /// Check if a handle is registered. Returns true if found, false if not.

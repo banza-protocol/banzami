@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
+import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../widgets/banzami_amount_input.dart';
@@ -9,8 +12,8 @@ import '../widgets/banzami_button.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
 ///
-/// Uses [ConsumerPublicClient.sendByHandle] which resolves the recipient
-/// on the server side; no separate handle-lookup step is needed.
+/// Autocomplete suggestions appear after 2+ chars are typed and dismiss
+/// when a suggestion is tapped or the field loses focus.
 class BanzamiSendScreen extends StatefulWidget {
   final ConsumerPublicClient client;
   final void Function(Transfer transfer) onSuccess;
@@ -28,18 +31,60 @@ class BanzamiSendScreen extends StatefulWidget {
 class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   final _handleCtrl = TextEditingController();
   final _descCtrl   = TextEditingController();
+  final _handleFocus = FocusNode();
 
-  int     _amountMinor = 0;
-  bool    _sending     = false;
+  int     _amountMinor  = 0;
+  bool    _sending      = false;
   String? _handleError;
   String? _amountError;
   String? _sendError;
 
+  List<ConsumerSuggestion> _suggestions = [];
+  bool    _searching = false;
+  Timer?  _debounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _handleFocus.addListener(() {
+      if (!_handleFocus.hasFocus) {
+        setState(() => _suggestions = []);
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _debounce?.cancel();
     _handleCtrl.dispose();
     _descCtrl.dispose();
+    _handleFocus.dispose();
     super.dispose();
+  }
+
+  void _onHandleChanged(String value) {
+    setState(() { _handleError = null; _sendError = null; });
+
+    _debounce?.cancel();
+    final q = value.trim().replaceAll('@', '');
+    if (q.length < 2) {
+      setState(() => _suggestions = []);
+      return;
+    }
+
+    _debounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      setState(() => _searching = true);
+      final results = await widget.client.searchHandles(q);
+      if (!mounted) return;
+      setState(() { _suggestions = results; _searching = false; });
+    });
+  }
+
+  void _selectSuggestion(ConsumerSuggestion s) {
+    _handleCtrl.text = s.handle;
+    _handleFocus.unfocus();
+    setState(() { _suggestions = []; _handleError = null; });
   }
 
   Future<void> _send() async {
@@ -97,15 +142,31 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               const SizedBox(height: BanzamiSpacing.sm),
               TextField(
                 controller:      _handleCtrl,
+                focusNode:       _handleFocus,
                 decoration: InputDecoration(
                   hintText:  '@banza do destinatário',
                   prefixText: '@',
                   errorText: _handleError,
+                  suffixIcon: _searching
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 16, height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
                 ),
                 autocorrect:     false,
                 textInputAction: TextInputAction.next,
-                onChanged: (_) => setState(() { _handleError = null; _sendError = null; }),
+                onChanged:       _onHandleChanged,
               ),
+
+              if (_suggestions.isNotEmpty)
+                _SuggestionList(
+                  suggestions: _suggestions,
+                  onTap:       _selectSuggestion,
+                ),
 
               const SizedBox(height: BanzamiSpacing.xl),
               const Text('Quanto?', style: BanzamiTextStyles.headingSm),
@@ -142,6 +203,74 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _SuggestionList extends StatelessWidget {
+  final List<ConsumerSuggestion> suggestions;
+  final void Function(ConsumerSuggestion) onTap;
+
+  const _SuggestionList({required this.suggestions, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: BanzamiSpacing.xs),
+      decoration: BoxDecoration(
+        color:        BanzamiColors.white,
+        borderRadius: BorderRadius.circular(BanzamiRadius.md),
+        border:       Border.all(color: BanzamiColors.gray200),
+        boxShadow: [
+          BoxShadow(
+            color:      Colors.black.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset:     const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: suggestions.map((s) {
+          return InkWell(
+            onTap:        () => onTap(s),
+            borderRadius: BorderRadius.circular(BanzamiRadius.md),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: BanzamiSpacing.lg,
+                vertical:   BanzamiSpacing.md,
+              ),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius:          18,
+                    backgroundColor: BanzamiColors.gray100,
+                    child: Text(
+                      s.handle[0].toUpperCase(),
+                      style: BanzamiTextStyles.bodySm.copyWith(
+                        color:      BanzamiColors.wine,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: BanzamiSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('@${s.handle}',
+                            style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                        if (s.displayName != null)
+                          Text(s.displayName!,
+                              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }

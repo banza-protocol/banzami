@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -153,6 +155,40 @@ func (c *CorePublicClient) GetConsumerByHandle(ctx context.Context, handle strin
 		return nil, err
 	}
 	return &out, nil
+}
+
+// ConsumerSuggestion is a minimal public view of a consumer for handle autocomplete.
+type ConsumerSuggestion struct {
+	Handle      string  `json:"handle"`
+	DisplayName *string `json:"display_name"`
+}
+
+// SearchConsumers returns up to [limit] active consumers whose handle contains [q].
+// Results are filtered to ACTIVE status only.
+func (c *CorePublicClient) SearchConsumers(ctx context.Context, q string, limit int) ([]ConsumerSuggestion, error) {
+	p := url.Values{}
+	p.Set("handle", q)
+	p.Set("limit", strconv.Itoa(limit))
+
+	var resp struct {
+		Data []struct {
+			Handle      string  `json:"handle"`
+			DisplayName *string `json:"display_name"`
+			Status      string  `json:"status"`
+		} `json:"data"`
+	}
+	if err := c.get(ctx, "/internal/v1/consumers?"+p.Encode(), &resp); err != nil {
+		return nil, err
+	}
+
+	out := make([]ConsumerSuggestion, 0, len(resp.Data))
+	for _, r := range resp.Data {
+		if r.Status != "ACTIVE" {
+			continue
+		}
+		out = append(out, ConsumerSuggestion{Handle: r.Handle, DisplayName: r.DisplayName})
+	}
+	return out, nil
 }
 
 // ---------------------------------------------------------------------------
