@@ -6,9 +6,9 @@ import 'package:flutter/material.dart';
 
 abstract class BanzamiColors {
   // Primary — Space Cherry
-  static const Color wine      = Color(0xFF990011); // primary identity
-  static const Color wineDark  = Color(0xFF6B000B); // gradient deep / pressed
-  static const Color wineLight = Color(0xFFB5001A); // gradient end / hover
+  static const Color wine      = Color(0xFFB30012); // primary identity
+  static const Color wineDark  = Color(0xFF4A0005); // gradient deep / pressed
+  static const Color wineLight = Color(0xFF8E000D); // gradient end / hover
 
   // Secondary — Wine Rose
   static const Color wineRose  = Color(0xFFA63A50); // secondary — badges, tags, accents
@@ -22,9 +22,9 @@ abstract class BanzamiColors {
 
   // Neutrals — warm-tinted to pair with cherry
   static const Color white    = Color(0xFFFFFFFF);
-  static const Color offWhite = Color(0xFFFCF6F5); // Warm White — main background
+  static const Color offWhite = Color(0xFFF5F3F1); // Warm White — main background
   static const Color gray100  = Color(0xFFF5EEED); // form fills, chips
-  static const Color gray200  = Color(0xFFEBE3E2); // borders, dividers
+  static const Color gray200  = Color(0xFFE7E2DE); // borders, dividers
   static const Color gray400  = Color(0xFF9C8483); // secondary text
   static const Color gray600  = Color(0xFF534040); // tertiary text
   static const Color gray700  = Color(0xFF534040); // alias → gray600
@@ -50,14 +50,14 @@ abstract class BanzamiColors {
 abstract class BanzamiGradients {
   /// Primary cherry gradient — balance card, key headers.
   static const LinearGradient wine = LinearGradient(
-    colors: [Color(0xFF990011), Color(0xFF6B000B)],
+    colors: [Color(0xFFB30012), Color(0xFF4A0005)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
   );
 
   /// Cherry to lighter — secondary surfaces.
   static const LinearGradient wineLight = LinearGradient(
-    colors: [Color(0xFF990011), Color(0xFFB5001A)],
+    colors: [Color(0xFFB30012), Color(0xFF8E000D)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
   );

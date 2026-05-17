@@ -6,9 +6,9 @@
 
 export const colors = {
   // Primary wine palette
-  wine: '#990011',
-  wineDark: '#6B000B',
-  wineMedium: '#B5001A',
+  wine: '#B30012',
+  wineDark: '#4A0005',
+  wineMedium: '#8E000D',
 
   // Secondary
   wineRose: '#A63A50',
@@ -19,7 +19,7 @@ export const colors = {
 
   // Neutrals
   white: '#FFFFFF',
-  offWhite: '#FCF6F5',
+  offWhite: '#F5F3F1',
   gray100: '#F5EEED',
   gray400: '#9C8483',
   gray700: '#534040',
