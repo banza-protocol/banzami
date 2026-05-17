@@ -176,8 +176,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                 controller:      _handleCtrl,
                 focusNode:       _handleFocus,
                 decoration: InputDecoration(
-                  hintText:  'banza do destinatário',
-                  prefixText: '@',
+                  hintText:  '@banza do destinatário',
                   errorText: _handleError,
                   suffixIcon: (_searching || _validatingHandle)
                       ? const Padding(
