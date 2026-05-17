@@ -39,7 +39,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             _ProfileHeader(session: session),
 
-            const SizedBox(height: BanzamiSpacing.md),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             _PaymentAddressCard(
               handle: session.handle,
@@ -47,11 +47,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onCopy: _copyHandle,
             ),
 
-            const SizedBox(height: BanzamiSpacing.md),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             const _TrustStatusChips(),
 
-            const SizedBox(height: BanzamiSpacing.md),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             FutureBuilder<bool>(
               future: _canUseBio,
@@ -63,7 +63,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     busy:              _bioBusy,
                     onToggle:          (v) => _toggleBio(svc, v),
                   ),
-                  const SizedBox(height: BanzamiSpacing.md),
+                  const SizedBox(height: BanzamiSpacing.sm),
                 ]);
               },
             ),
@@ -341,7 +341,10 @@ class _PaymentAddressCard extends StatelessWidget {
         borderRadius: BanzamiRadius.xlAll,
         boxShadow:    BanzamiShadows.card,
       ),
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -352,7 +355,7 @@ class _PaymentAddressCard extends StatelessWidget {
             Text('Endereço de pagamento', style: BanzamiTextStyles.headingSm),
           ]),
 
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.sm),
 
           // Handle pill — tap to copy
           GestureDetector(
@@ -360,8 +363,8 @@ class _PaymentAddressCard extends StatelessWidget {
             child: Container(
               width:   double.infinity,
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.lg,
-                vertical:   BanzamiSpacing.md,
+                horizontal: BanzamiSpacing.md,
+                vertical:   BanzamiSpacing.sm,
               ),
               decoration: const BoxDecoration(
                 color:        BanzamiColors.gray100,
@@ -444,7 +447,7 @@ class _TrustChip extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(
           horizontal: BanzamiSpacing.sm,
-          vertical:   BanzamiSpacing.md,
+          vertical:   BanzamiSpacing.sm,
         ),
         decoration: const BoxDecoration(
           color:        BanzamiColors.white,
@@ -452,8 +455,8 @@ class _TrustChip extends StatelessWidget {
           boxShadow:    BanzamiShadows.card,
         ),
         child: Column(children: [
-          Icon(icon, size: 18, color: BanzamiColors.wine.withValues(alpha: 0.75)),
-          const SizedBox(height: 5),
+          Icon(icon, size: 16, color: BanzamiColors.wine.withValues(alpha: 0.75)),
+          const SizedBox(height: 3),
           Text(
             label,
             style: BanzamiTextStyles.label.copyWith(
@@ -491,13 +494,16 @@ class _SecuritySection extends StatelessWidget {
         borderRadius: BanzamiRadius.xlAll,
         boxShadow:    BanzamiShadows.card,
       ),
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('Segurança', style: BanzamiTextStyles.headingSm),
 
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.sm),
 
           Row(children: [
             const _IconBox(icon: Icons.fingerprint_rounded),
@@ -618,8 +624,8 @@ class _ActionTile extends StatelessWidget {
             highlightColor: color.withValues(alpha: 0.03),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.xl,
-                vertical:   BanzamiSpacing.lg,
+                horizontal: BanzamiSpacing.lg,
+                vertical:   BanzamiSpacing.md,
               ),
               child: Row(children: [
                 _IconBox(icon: icon, color: color),
