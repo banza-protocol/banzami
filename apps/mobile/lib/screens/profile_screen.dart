@@ -184,41 +184,45 @@ class _ProfileHeader extends StatelessWidget {
           ),
         ],
       ),
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzamiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Top row: avatar + verification badge
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Avatar — gold ring + dark inner circle
               _Avatar(initial: initial),
-              const Spacer(),
+              const SizedBox(width: BanzamiSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      name,
+                      style: BanzamiTextStyles.headingSm.copyWith(
+                        color:      BanzamiColors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    if (session.displayName != null) ...[
+                      const SizedBox(height: 1),
+                      Text(
+                        '@${session.handle}',
+                        style: BanzamiTextStyles.bodySm.copyWith(
+                          color: BanzamiColors.white.withValues(alpha: 0.50),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: BanzamiSpacing.md),
               const _VerificationBadge(),
             ],
           ),
 
-          const SizedBox(height: BanzamiSpacing.lg),
-
-          // Full name
-          Text(
-            name,
-            style: BanzamiTextStyles.headingLg.copyWith(color: BanzamiColors.white),
-          ),
-
-          // @handle (only if displayName is set)
-          if (session.displayName != null) ...[
-            const SizedBox(height: 2),
-            Text(
-              '@${session.handle}',
-              style: BanzamiTextStyles.bodyMd.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.45),
-              ),
-            ),
-          ],
-
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.md),
 
           // Trust microcopy
           Row(children: [
@@ -248,8 +252,8 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width:  72,
-      height: 72,
+      width:  52,
+      height: 52,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         gradient: LinearGradient(
@@ -263,14 +267,14 @@ class _Avatar extends StatelessWidget {
         child: Container(
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFF2A0D16),
+            color: BanzamiColors.wineDark,
           ),
           child: Center(
             child: Text(
               initial,
               style: BanzamiTextStyles.headingLg.copyWith(
                 color:      BanzamiColors.gold,
-                fontSize:   26,
+                fontSize:   20,
                 fontWeight: FontWeight.w700,
               ),
             ),
