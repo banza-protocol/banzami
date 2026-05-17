@@ -108,6 +108,7 @@ class MerchantSessionService extends ChangeNotifier {
     required String walletId,
     required String apiKey,
     required String pin,
+    bool verified = false,
   }) async {
     await _store.write(key: _kMerchantId,    value: merchantId);
     await _store.write(key: _kMerchantName,  value: merchantName);
@@ -115,13 +116,14 @@ class MerchantSessionService extends ChangeNotifier {
     await _store.write(key: _kWalletId,      value: walletId);
     await _store.write(key: _kApiKey,        value: apiKey);
     await _store.write(key: _kPinHash,       value: _hash(pin));
-    await _store.write(key: _kVerified,      value: 'false');
+    await _store.write(key: _kVerified,      value: verified ? 'true' : 'false');
     _session = MerchantSession(
       merchantId:    merchantId,
       merchantName:  merchantName,
       merchantEmail: merchantEmail,
       walletId:      walletId,
       apiKey:        apiKey,
+      verified:      verified,
     );
     _locked = false;
     notifyListeners();

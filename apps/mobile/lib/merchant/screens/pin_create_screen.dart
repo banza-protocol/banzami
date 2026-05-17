@@ -14,6 +14,7 @@ class PinCreateScreen extends StatefulWidget {
   final String? merchantEmail;
   final String? walletId;
   final String? apiKey;
+  final bool    verified;
 
   const PinCreateScreen({
     super.key,
@@ -23,6 +24,7 @@ class PinCreateScreen extends StatefulWidget {
     this.merchantEmail,
     this.walletId,
     this.apiKey,
+    this.verified = false,
   });
 
   @override
@@ -58,6 +60,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
       merchantEmail: widget.merchantEmail ?? svc.session!.merchantEmail,
       walletId:      widget.walletId      ?? svc.session!.walletId,
       apiKey:        widget.apiKey        ?? svc.session!.apiKey,
+      verified:      widget.verified,
       pin:           _pin,
     );
     if (!mounted) return;
