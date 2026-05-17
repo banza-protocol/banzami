@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, FlaskConical } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { BanzamiApi, type Wallet, type WalletBalance } from '@/lib/api';
+import { BanzamiApi, BanzamiApiError, type Wallet, type WalletBalance } from '@/lib/api';
 import { formatMinor } from '@/lib/money';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
@@ -31,7 +31,11 @@ function SandboxFundPanel({ onFunded }: { onFunded: () => void }) {
       setLast(`+${formatMinor(res.credited_minor, 'AOA')} adicionados`);
       onFunded();
     } catch (e) {
-      setErr(e instanceof Error ? e.message : 'Erro ao adicionar fundos');
+      if (e instanceof BanzamiApiError && e.status === 403) {
+        setErr('Sessão desactualizada — saia e entre novamente com a sua chave bz_test_ para activar o modo sandbox.');
+      } else {
+        setErr(e instanceof Error ? e.message : 'Erro ao adicionar fundos');
+      }
     } finally {
       setFunding(false);
     }
