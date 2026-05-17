@@ -1,8 +1,12 @@
+import 'dart:io';
+
 import 'package:banzami_sdk/banzami_sdk.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:http/io_client.dart';
 import 'merchant/app.dart';
 import 'merchant/services/payment_notification_service.dart';
 import 'services/push_notification_service.dart';
@@ -15,7 +19,9 @@ void main() async {
   await PushNotificationService.initialize();
   await PaymentNotificationService.initialize();
 
-  final pinnedClient = await PinnedHttpClient.create();
+  final pinnedClient = kDebugMode
+      ? IOClient(HttpClient()..badCertificateCallback = (_, __, ___) => true)
+      : await PinnedHttpClient.create();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
