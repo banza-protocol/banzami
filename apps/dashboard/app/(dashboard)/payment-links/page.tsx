@@ -222,6 +222,7 @@ function CreateLinkModal({
   const [created, setCreated]   = useState<PaymentLink | null>(null);
   const [paid, setPaid]         = useState(false);
   const pollRef                 = useRef<ReturnType<typeof setInterval> | null>(null);
+  const merchantName            = getSession()?.merchantName ?? null;
 
   // Poll for payment when link is displayed
   useEffect(() => {
@@ -343,6 +344,11 @@ function CreateLinkModal({
               </div>
             ) : (
             <div className="flex flex-col items-center gap-lg">
+              {merchantName && (
+                <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">
+                  {merchantName}
+                </p>
+              )}
               <QrDisplay
                 data={url}
                 size={220}
