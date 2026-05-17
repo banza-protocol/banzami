@@ -10,13 +10,33 @@ import (
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
-// ConsumerHandler exposes public consumer lookups.
+// ConsumerHandler exposes public consumer lookups and handle search.
 type ConsumerHandler struct {
 	creds *service.CredentialStore
+	core  *service.CorePublicClient
 }
 
-func NewConsumerHandler(creds *service.CredentialStore) *ConsumerHandler {
-	return &ConsumerHandler{creds: creds}
+func NewConsumerHandler(creds *service.CredentialStore, core *service.CorePublicClient) *ConsumerHandler {
+	return &ConsumerHandler{creds: creds, core: core}
+}
+
+// GET /v1/consumers/search?q=prefix
+// Returns up to 5 active handles matching the query (case-insensitive substring).
+// No authentication required — only handle and display_name are returned.
+func (h *ConsumerHandler) Search(w http.ResponseWriter, r *http.Request) {
+	q := strings.ToLower(strings.TrimSpace(r.URL.Query().Get("q")))
+	if len(q) < 2 {
+		respond(w, http.StatusOK, map[string]any{"data": []any{}})
+		return
+	}
+
+	suggestions, err := h.core.SearchConsumers(r.Context(), q, 5)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "search failed")
+		return
+	}
+
+	respond(w, http.StatusOK, map[string]any{"data": suggestions})
 }
 
 // GET /v1/consumers/{handle}
