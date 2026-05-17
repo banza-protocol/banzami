@@ -22,7 +22,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final svc     = context.watch<SessionService>();
     final session = svc.session!;
 
-    // Lazy-init once; never recreated on rebuild.
     _canUseBio ??= svc.canUseBiometrics();
 
     return Scaffold(
@@ -49,10 +48,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             const SizedBox(height: BanzamiSpacing.sm),
 
-            const _TrustStatusChips(),
-
-            const SizedBox(height: BanzamiSpacing.sm),
-
             FutureBuilder<bool>(
               future: _canUseBio,
               builder: (_, snap) {
@@ -62,15 +57,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     biometricsEnabled: session.biometricsEnabled,
                     busy:              _bioBusy,
                     onToggle:          (v) => _toggleBio(svc, v),
+                    onPinTap:          _showPinComingSoon,
                   ),
                   const SizedBox(height: BanzamiSpacing.sm),
                 ]);
               },
             ),
 
-            _AccountActions(
-              onLogout:       () => _confirmLogout(svc),
-              onClearAccount: () => _confirmClearAccount(svc),
+            // "Conta" section label
+            Padding(
+              padding: const EdgeInsets.only(
+                left: BanzamiSpacing.xs,
+                bottom: BanzamiSpacing.sm,
+              ),
+              child: Text(
+                'Conta',
+                style: BanzamiTextStyles.label.copyWith(
+                  color:         BanzamiColors.gray400,
+                  letterSpacing: 0.4,
+                ),
+              ),
+            ),
+
+            _ActionTile(
+              icon:    Icons.logout_rounded,
+              label:   'Terminar sessão',
+              color:   BanzamiColors.wine,
+              onTap:   () => _confirmLogout(svc),
+            ),
+
+            const SizedBox(height: BanzamiSpacing.sm),
+
+            _ActionTile(
+              icon:     Icons.delete_outline_rounded,
+              label:    'Remover conta',
+              sublabel: 'Apaga todos os dados guardados',
+              color:    BanzamiColors.gray400,
+              onTap:    () => _confirmClearAccount(svc),
             ),
 
             const SizedBox(height: BanzamiSpacing.xxl),
@@ -113,6 +136,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
     } finally {
       if (mounted) setState(() => _bioBusy = false);
     }
+  }
+
+  void _showPinComingSoon() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Gestão de PIN em breve'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   Future<void> _confirmLogout(SessionService svc) async {
@@ -188,7 +220,6 @@ class _ProfileHeader extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top row: avatar + verification badge
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -259,7 +290,7 @@ class _Avatar extends StatelessWidget {
       width:  52,
       height: 52,
       decoration: const BoxDecoration(
-        shape: BoxShape.circle,
+        shape:    BoxShape.circle,
         gradient: LinearGradient(
           colors: [BanzamiColors.gold, BanzamiColors.goldLight],
           begin:  Alignment.topLeft,
@@ -359,7 +390,6 @@ class _PaymentAddressCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section label
           const Row(children: [
             _IconBox(icon: Icons.alternate_email_rounded),
             SizedBox(width: BanzamiSpacing.md),
@@ -368,7 +398,6 @@ class _PaymentAddressCard extends StatelessWidget {
 
           const SizedBox(height: BanzamiSpacing.sm),
 
-          // Handle pill — tap to copy
           GestureDetector(
             onTap: onCopy,
             child: Container(
@@ -428,73 +457,20 @@ class _PaymentAddressCard extends StatelessWidget {
 }
 
 // =============================================================================
-// 3. Trust status chips
-// =============================================================================
-
-class _TrustStatusChips extends StatelessWidget {
-  const _TrustStatusChips();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Row(children: [
-      _TrustChip(icon: Icons.lock_outline_rounded,    label: 'Protegida'),
-      SizedBox(width: BanzamiSpacing.sm),
-      _TrustChip(icon: Icons.security_rounded,        label: 'Encriptada'),
-      SizedBox(width: BanzamiSpacing.sm),
-      _TrustChip(icon: Icons.verified_user_outlined,  label: 'Segura'),
-    ]);
-  }
-}
-
-class _TrustChip extends StatelessWidget {
-  final IconData icon;
-  final String   label;
-
-  const _TrustChip({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: BanzamiSpacing.sm,
-          vertical:   BanzamiSpacing.sm,
-        ),
-        decoration: const BoxDecoration(
-          color:        BanzamiColors.white,
-          borderRadius: BanzamiRadius.lgAll,
-          boxShadow:    BanzamiShadows.card,
-        ),
-        child: Column(children: [
-          Icon(icon, size: 16, color: BanzamiColors.wine.withValues(alpha: 0.75)),
-          const SizedBox(height: 3),
-          Text(
-            label,
-            style: BanzamiTextStyles.label.copyWith(
-              fontSize: 10,
-              color:    BanzamiColors.gray600,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-// =============================================================================
-// 4. Security section
+// 3. Security section — biometrics + PIN row
 // =============================================================================
 
 class _SecuritySection extends StatelessWidget {
   final bool             biometricsEnabled;
   final bool             busy;
   final void Function(bool) onToggle;
+  final VoidCallback     onPinTap;
 
   const _SecuritySection({
     required this.biometricsEnabled,
     required this.busy,
     required this.onToggle,
+    required this.onPinTap,
   });
 
   @override
@@ -516,6 +492,7 @@ class _SecuritySection extends StatelessWidget {
 
           const SizedBox(height: BanzamiSpacing.sm),
 
+          // Biometrics row
           Row(children: [
             const _IconBox(icon: Icons.fingerprint_rounded),
             const SizedBox(width: BanzamiSpacing.md),
@@ -525,15 +502,11 @@ class _SecuritySection extends StatelessWidget {
                 children: [
                   Text(
                     'Biometria',
-                    style: BanzamiTextStyles.bodyMd.copyWith(
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
                   ),
                   Text(
                     'Face ID / impressão digital',
-                    style: BanzamiTextStyles.bodySm.copyWith(
-                      color: BanzamiColors.gray400,
-                    ),
+                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                   ),
                 ],
               ),
@@ -549,8 +522,8 @@ class _SecuritySection extends StatelessWidget {
               )
             else
               Switch(
-                value:           biometricsEnabled,
-                onChanged:       onToggle,
+                value:            biometricsEnabled,
+                onChanged:        onToggle,
                 activeThumbColor: BanzamiColors.wine,
                 trackColor: WidgetStateProperty.resolveWith((states) =>
                   states.contains(WidgetState.selected)
@@ -562,6 +535,33 @@ class _SecuritySection extends StatelessWidget {
                       : BanzamiColors.white),
               ),
           ]),
+
+          const Divider(height: BanzamiSpacing.xl, color: BanzamiColors.gray200),
+
+          // PIN row
+          GestureDetector(
+            onTap: onPinTap,
+            child: Row(children: [
+              const _IconBox(icon: Icons.lock_outline_rounded),
+              const SizedBox(width: BanzamiSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PIN & Segurança',
+                      style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+                    ),
+                    Text(
+                      'Gerir o PIN e outras definições',
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, size: 20, color: BanzamiColors.gray400),
+            ]),
+          ),
         ],
       ),
     );
@@ -569,38 +569,8 @@ class _SecuritySection extends StatelessWidget {
 }
 
 // =============================================================================
-// 5. Account actions
+// 4. Action tile
 // =============================================================================
-
-class _AccountActions extends StatelessWidget {
-  final VoidCallback onLogout;
-  final VoidCallback onClearAccount;
-
-  const _AccountActions({
-    required this.onLogout,
-    required this.onClearAccount,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(children: [
-      _ActionTile(
-        icon:    Icons.logout_rounded,
-        label:   'Terminar sessão',
-        color:   BanzamiColors.wine,
-        onTap:   onLogout,
-      ),
-      const SizedBox(height: BanzamiSpacing.sm),
-      _ActionTile(
-        icon:     Icons.delete_outline_rounded,
-        label:    'Remover conta',
-        sublabel: 'Apaga todos os dados guardados',
-        color:    BanzamiColors.gray400,
-        onTap:    onClearAccount,
-      ),
-    ]);
-  }
-}
 
 class _ActionTile extends StatelessWidget {
   final IconData     icon;
@@ -680,7 +650,6 @@ class _ActionTile extends StatelessWidget {
 // Shared helpers
 // =============================================================================
 
-/// Rounded icon box used throughout the profile screen.
 class _IconBox extends StatelessWidget {
   final IconData icon;
   final Color    color;
