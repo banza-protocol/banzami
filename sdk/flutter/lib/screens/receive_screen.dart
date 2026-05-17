@@ -16,7 +16,7 @@ class BanzamiReceiveScreen extends StatefulWidget {
   final String handle;
 
   /// Asset path of the logo to embed at the centre of the QR and include in
-  /// the shared PNG. e.g. `'assets/images/banzami_icon_1024.png'`.
+  /// the shared PNG. e.g. `'assets/images/banzami_icon.png'`.
   final String? logoAssetPath;
 
   const BanzamiReceiveScreen({

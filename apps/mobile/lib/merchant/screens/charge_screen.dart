@@ -225,7 +225,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               dataModuleShape: QrDataModuleShape.square,
               color:           BanzamiColors.gray900,
             ),
-            embeddedImage:      const AssetImage('assets/images/banzami_icon_1024.png'),
+            embeddedImage:      const AssetImage('assets/images/banzami_icon.png'),
             embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),

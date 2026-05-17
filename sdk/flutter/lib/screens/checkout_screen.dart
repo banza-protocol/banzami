@@ -39,7 +39,7 @@ class CheckoutScreen extends StatefulWidget {
   final VoidCallback? onCancel;
 
   /// Optional asset path for the logo embedded at the centre of the QR code.
-  /// e.g. `'assets/images/banzami_icon_1024.png'`
+  /// e.g. `'assets/images/banzami_icon.png'`
   final String? logoAssetPath;
 
   @override
