@@ -26,7 +26,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WidgetsBinding.instance.addPostFrameCallback((_) => _startNotifications());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startNotifications();
+      _refreshProfile();
+    });
   }
 
   Future<void> _startNotifications() async {
@@ -43,6 +46,21 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     await PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
     await PushNotificationService.getToken();
+  }
+
+  Future<void> _refreshProfile() async {
+    try {
+      final client  = context.read<ConsumerPublicClient>();
+      final svc     = context.read<SessionService>();
+      final profile = await client.getProfile();
+      final badgeStr = profile.verificationBadge;
+      final badge = badgeStr == 'CONSUMER' ? VerificationBadgeType.consumer
+                  : badgeStr == 'MERCHANT' ? VerificationBadgeType.merchant
+                  : null;
+      await svc.updateVerificationBadge(badge);
+    } catch (_) {
+      // Non-fatal — badge stays as stored.
+    }
   }
 
   @override
