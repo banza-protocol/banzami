@@ -5,6 +5,7 @@ import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
 
 interface Props {
   slug:          string;
+  merchantName:  string;
   amountDisplay: string | null;
   amountMinor:   number | null;
   currency:      string;
@@ -24,6 +25,7 @@ const POLL_INTERVAL = 3000;
 
 export default function PayClient({
   slug,
+  merchantName,
   amountDisplay,
   amountMinor,
   currency,
@@ -124,13 +126,16 @@ export default function PayClient({
 
           {/* Header */}
           <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
-            <p className="text-xs uppercase tracking-widest opacity-70">
-              {description ?? 'Valor a pagar'}
+            <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
+              {merchantName}
             </p>
+            {description && (
+              <p className="mt-0.5 text-xs opacity-60">{description}</p>
+            )}
             {amountDisplay ? (
-              <p className="mt-1 text-4xl font-bold tabular-nums">{amountDisplay}</p>
+              <p className="mt-2 text-4xl font-bold tabular-nums">{amountDisplay}</p>
             ) : (
-              <p className="mt-1 text-lg font-semibold opacity-80">Valor livre</p>
+              <p className="mt-2 text-lg font-semibold opacity-80">Valor livre</p>
             )}
           </div>
 
@@ -186,13 +191,16 @@ export default function PayClient({
 
         {/* Amount / header */}
         <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
-          <p className="text-xs uppercase tracking-widest opacity-70">
-            {description ?? 'Valor a pagar'}
+          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
+            {merchantName}
           </p>
+          {description && (
+            <p className="mt-0.5 text-xs opacity-60">{description}</p>
+          )}
           {amountDisplay ? (
-            <p className="mt-1 text-4xl font-bold tabular-nums">{amountDisplay}</p>
+            <p className="mt-2 text-4xl font-bold tabular-nums">{amountDisplay}</p>
           ) : (
-            <p className="mt-1 text-lg font-semibold opacity-80">Valor livre</p>
+            <p className="mt-2 text-lg font-semibold opacity-80">Valor livre</p>
           )}
         </div>
 

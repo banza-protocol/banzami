@@ -14,11 +14,12 @@ import (
 )
 
 type PaymentLinkHandler struct {
-	svc service.PaymentLinkService
+	svc         service.PaymentLinkService
+	merchantSvc service.MerchantService
 }
 
-func NewPaymentLinkHandler(svc service.PaymentLinkService) *PaymentLinkHandler {
-	return &PaymentLinkHandler{svc: svc}
+func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.MerchantService) *PaymentLinkHandler {
+	return &PaymentLinkHandler{svc: svc, merchantSvc: merchantSvc}
 }
 
 // POST /v1/payment-links
@@ -148,6 +149,14 @@ func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
 // Public endpoints — no authentication required
 // ---------------------------------------------------------------------------
 
+// publicPaymentLink is the response shape for GET /public/pay/{slug}.
+// It extends PaymentLink with the merchant name so the checkout page can
+// show "Paying: <Merchant Name>" without a separate API call.
+type publicPaymentLink struct {
+	*service.PaymentLink
+	MerchantName string `json:"merchant_name"`
+}
+
 // GET /public/pay/{slug}
 func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 	slug := chi.URLParam(r, "slug")
@@ -160,7 +169,14 @@ func (h *PaymentLinkHandler) GetPublic(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch payment link")
 		return
 	}
-	respond(w, http.StatusOK, link)
+
+	merchant, err := h.merchantSvc.Get(r.Context(), link.MerchantID)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch merchant")
+		return
+	}
+
+	respond(w, http.StatusOK, publicPaymentLink{PaymentLink: link, MerchantName: merchant.Name})
 }
 
 // GET /public/pay/{slug}/status
