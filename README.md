@@ -161,9 +161,11 @@ Use `deploy.sh` at the repo root — it syncs source files, builds the Docker im
 ./deploy.sh core-api
 ./deploy.sh admin-api
 ./deploy.sh admin-frontend
+./deploy.sh pay-frontend
+./deploy.sh checkout-frontend
 
 # Deploy multiple services
-./deploy.sh admin-api admin-frontend
+./deploy.sh api-gateway pay-frontend checkout-frontend
 
 # Deploy everything
 ./deploy.sh
@@ -188,6 +190,7 @@ Build directories on the server:
 | `public-api` | `/srv/banzami/public-api-build/` |
 | `admin-frontend` | `/srv/banzami/src/apps/admin/` |
 | `dashboard-frontend` | `/srv/banzami/src/apps/dashboard/` |
+| `pay-frontend` | `/srv/banzami/src/apps/pay/` |
 | `checkout-frontend` | `/srv/banzami/src/apps/checkout/` |
 
 ### SSL
@@ -961,7 +964,7 @@ Internal HTTP server binding all Rust domain crates. Only reachable from localho
 | GET    | `/v1/payment-links/{id}`        | Get payment link                      |
 | DELETE | `/v1/payment-links/{id}`        | Cancel a payment link                 |
 | POST   | `/v1/payment-links/{id}/mark-used` | Mark payment link as used          |
-| GET    | `/v1/public/pay/{slug}`         | Resolve link by slug (no auth)        |
+| GET    | `/v1/public/pay/{slug}`         | Resolve link by slug — includes `merchant_name` (no auth) |
 | GET    | `/v1/public/pay/{slug}/status`  | Check if link is paid (no auth)       |
 
 **Sandbox utilities** (JWT required; token must carry `environment = SANDBOX`)
@@ -1325,6 +1328,9 @@ All schema changes are managed as numbered migrations in `db/migrations/`. Migra
 | `0016`    | Acquiring           | `acquiring_payments`, `acquiring_callbacks`          |
 | `0017`    | Transfers (fix)     | Drop `transfers.recipient_id` FK — allows merchant wallet recipients |
 | `0018`    | Environment isolation | `environment TEXT CHECK ('LIVE','SANDBOX')` added to `api_keys`, `transactions`, `webhook_endpoints`, `qr_codes`, `payment_links`, `payouts`, `transfers` |
+| `0019`    | Consumer verification | `verification_badge TEXT CHECK ('CONSUMER','MERCHANT')` added to `consumers` |
+| `0020`    | Seed data           | Seed `verification_badge` for initial consumer accounts |
+| `0021`    | Merchant verification | `verified BOOLEAN NOT NULL DEFAULT false` added to `merchants` |
 
 ### Financial Precision
 
@@ -1698,7 +1704,7 @@ The Rust job spins up a PostgreSQL 16 service container so `#[sqlx::test]` integ
 |----------------------|----------------------------------------------------|
 | `make dev-up`        | Start PostgreSQL and Redis                         |
 | `make dev-down`      | Stop infrastructure                                |
-| `make db-migrate`    | Apply all pending migrations (currently 0001–0018) |
+| `make db-migrate`    | Apply all pending migrations (currently 0001–0021) |
 | `make db-reset`      | Drop, recreate, and re-migrate dev database        |
 | `make core-run`      | Run the Rust core-api (:8081)                      |
 | `make gateway-run`   | Run the Go api-gateway (:8080)                     |
