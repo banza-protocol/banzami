@@ -55,7 +55,7 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _error   = 'Erro: ${e.runtimeType} — $e';
+        _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
         _loading = false;
       });
     }
