@@ -57,6 +57,19 @@ func (s *CredentialStore) Save(ctx context.Context, consumerID, handle, rawPin s
 	return nil
 }
 
+// Exists reports whether a handle is registered.
+func (s *CredentialStore) Exists(ctx context.Context, handle string) (bool, error) {
+	var found bool
+	err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM public_api_credentials WHERE handle = $1)`,
+		handle,
+	).Scan(&found)
+	if err != nil {
+		return false, fmt.Errorf("credential exists: %w", err)
+	}
+	return found, nil
+}
+
 // Verify checks handle+PIN and returns the consumer ID on success.
 // Returns ErrInvalidCredentials on mismatch.
 func (s *CredentialStore) Verify(ctx context.Context, handle, rawPin string) (string, error) {

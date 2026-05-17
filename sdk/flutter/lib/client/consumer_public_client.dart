@@ -130,6 +130,18 @@ class ConsumerPublicClient {
     return (consumer: consumer, walletId: wallet['id'] as String, token: tok);
   }
 
+  /// Check if a handle is registered. Returns true if found, false if not.
+  /// Throws [BanzamiNetworkException] on network failure.
+  Future<bool> handleExists(String handle) async {
+    try {
+      await _call(method: 'GET', path: '/v1/consumers/$handle', auth: false);
+      return true;
+    } on BanzamiApiException catch (e) {
+      if (e.isNotFound) return false;
+      rethrow;
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // Balance
   // ---------------------------------------------------------------------------

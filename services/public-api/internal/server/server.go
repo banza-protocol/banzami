@@ -43,6 +43,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
 	authH        := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
+	consumerH    := handler.NewConsumerHandler(deps.CredStore)
 	meH          := handler.NewMeHandler(deps.CoreClient)
 	transferH    := handler.NewTransferHandler(deps.CoreClient)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
@@ -50,6 +51,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
 	r.Post("/v1/auth/token",    authH.Token)
+
+	// Public consumer handle lookup — no JWT required
+	r.Get("/v1/consumers/{handle}", consumerH.Lookup)
 
 	// Public payment link lookup — no JWT required
 	r.Get("/v1/payment-links/{slug}", paymentLinkH.GetBySlug)

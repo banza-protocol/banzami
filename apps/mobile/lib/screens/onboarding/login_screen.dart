@@ -34,9 +34,31 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _continueToPin() {
+  Future<void> _continueToPin() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _step = _LoginStep.pin; _error = null; });
+    setState(() { _loading = true; _error = null; });
+
+    final handle = _handleCtrl.text.trim().toLowerCase();
+    final client = context.read<ConsumerPublicClient>();
+
+    try {
+      final exists = await client.handleExists(handle);
+      if (!mounted) return;
+      if (!exists) {
+        setState(() {
+          _error   = '@$handle não está registado.';
+          _loading = false;
+        });
+        return;
+      }
+      setState(() { _step = _LoginStep.pin; _loading = false; });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
+        _loading = false;
+      });
+    }
   }
 
   Future<void> _login() async {
@@ -109,6 +131,13 @@ class _LoginScreenState extends State<LoginScreen> {
               style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             ),
             const SizedBox(height: BanzamiSpacing.xl),
+            if (_error != null) ...[
+              Text(
+                _error!,
+                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.error),
+              ),
+              const SizedBox(height: BanzamiSpacing.sm),
+            ],
             TextFormField(
               controller:      _handleCtrl,
               decoration:      const InputDecoration(
@@ -130,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: _continueToPin,
+                onPressed: _loading ? null : _continueToPin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: BanzamiColors.wine,
                   foregroundColor: BanzamiColors.white,
