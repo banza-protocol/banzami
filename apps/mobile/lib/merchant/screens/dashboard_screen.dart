@@ -15,9 +15,9 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   MerchantBalance? _balance;
   List<PaymentLink> _recent = [];
-  int  _todayMinor  = 0;
-  int  _monthMinor  = 0;
-  bool _loading     = false;
+  int     _todayMinor  = 0;
+  int     _monthMinor  = 0;
+  bool    _loading     = false;
   String? _error;
 
   @override
@@ -26,8 +26,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
-  // Paginates all completed transactions since the start of the current month.
-  // Returns (todayMinor, monthMinor) as a record.
   Future<(int, int)> _loadStats(BanzamiClient client) async {
     final now        = DateTime.now().toLocal();
     final monthStart = DateTime(now.year, now.month, 1).toUtc();
@@ -36,8 +34,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     do {
       final page = await client.listMerchantTransactions(
-        limit: 100,
-        since: monthStart,
+        limit:  100,
+        since:  monthStart,
         cursor: cursor,
       );
       for (final tx in page.data) {
@@ -60,24 +58,22 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
-
     String? err;
 
     final balanceFuture = client.getMerchantBalance(session.walletId)
         .then((b) { if (mounted) setState(() => _balance = b); })
         .catchError((_) { err = 'Não foi possível carregar o saldo.'; });
 
-    final linksFuture = client.listPaymentLinks(merchantId: session.merchantId, limit: 5)
+    final linksFuture = client
+        .listPaymentLinks(merchantId: session.merchantId, limit: 5)
         .then((p) { if (mounted) setState(() => _recent = p.data); })
         .catchError((_) { err ??= 'Não foi possível carregar os dados.'; });
 
-    // Stats — paginate all completed transactions since the start of the current
-    // month so the totals are accurate regardless of transaction volume.
     final statsFuture = _loadStats(client)
-        .then((result) {
-          if (mounted) setState(() { _todayMinor = result.$1; _monthMinor = result.$2; });
+        .then((r) {
+          if (mounted) setState(() { _todayMinor = r.$1; _monthMinor = r.$2; });
         })
-        .catchError((_) {});   // stats are non-critical
+        .catchError((_) {});
 
     await Future.wait([balanceFuture, linksFuture, statsFuture]);
 
@@ -90,24 +86,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        backgroundColor: BanzamiColors.wine,
-        foregroundColor: BanzamiColors.white,
-        elevation:       0,
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Olá, ${session.merchantName}',
-              style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.white)),
-          Text('Painel de negócio',
-              style: BanzamiTextStyles.bodySm.copyWith(
-                  color: BanzamiColors.white.withValues(alpha: 0.75))),
-        ]),
-        actions: [
-          IconButton(
-            icon:      const Icon(Icons.refresh_rounded),
-            onPressed: _load,
-          ),
-        ],
-      ),
       body: RefreshIndicator(
         color:     BanzamiColors.wine,
         onRefresh: _load,
@@ -115,7 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
             : _error != null && _balance == null
                 ? _buildError()
-                : _buildBody(),
+                : _buildContent(session),
       ),
     );
   }
@@ -124,92 +102,273 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-        const SizedBox(height: 12),
+        const SizedBox(height: BanzamiSpacing.md),
         Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-        const SizedBox(height: 16),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildContent(MerchantSession session) {
     final currency = _balance?.currency ?? 'AOA';
-    return ListView(
-      padding: const EdgeInsets.all(BanzamiSpacing.lg),
-      children: [
-        _BalanceCard(balance: _balance),
-        const SizedBox(height: BanzamiSpacing.md),
+    return CustomScrollView(
+      slivers: [
+        // Gradient header
+        SliverToBoxAdapter(
+          child: _DashboardHeader(
+            session:  session,
+            balance:  _balance,
+            onRefresh: _load,
+          ),
+        ),
 
-        // Stats row
-        Row(children: [
-          Expanded(child: _StatCard(
-            label: 'Hoje',
-            value: formatMinor(_todayMinor, currency),
-            icon:  Icons.today_rounded,
-          )),
-          const SizedBox(width: BanzamiSpacing.md),
-          Expanded(child: _StatCard(
-            label: 'Este mês',
-            value: formatMinor(_monthMinor, currency),
-            icon:  Icons.calendar_month_rounded,
-          )),
-        ]),
-        const SizedBox(height: BanzamiSpacing.lg),
+        // Stats + CTA + recent
+        SliverPadding(
+          padding: const EdgeInsets.all(BanzamiSpacing.lg),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              // Stat cards row
+              Row(children: [
+                Expanded(child: _StatCard(
+                  icon:  Icons.today_rounded,
+                  label: 'Hoje',
+                  value: formatMinor(_todayMinor, currency),
+                )),
+                const SizedBox(width: BanzamiSpacing.md),
+                Expanded(child: _StatCard(
+                  icon:  Icons.calendar_month_rounded,
+                  label: 'Este mês',
+                  value: formatMinor(_monthMinor, currency),
+                )),
+              ]),
 
-        _QuickChargeButton(onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ChargeScreen()),
-        ).then((_) => _load())),
-        const SizedBox(height: BanzamiSpacing.xl),
-        if (_recent.isNotEmpty) ...[
-          const Text('Cobranças recentes', style: BanzamiTextStyles.headingSm),
-          const SizedBox(height: BanzamiSpacing.md),
-          ..._recent.map((l) => _LinkTile(link: l)),
-        ],
+              const SizedBox(height: BanzamiSpacing.lg),
+
+              // CTA
+              _NewChargeButton(onTap: () => Navigator.of(context)
+                  .push(MaterialPageRoute(builder: (_) => const ChargeScreen()))
+                  .then((_) => _load())),
+
+              // Recent charges
+              if (_recent.isNotEmpty) ...[
+                const SizedBox(height: BanzamiSpacing.xl),
+                const Padding(
+                  padding: EdgeInsets.only(
+                    left: BanzamiSpacing.xs, bottom: BanzamiSpacing.sm,
+                  ),
+                  child: Text(
+                    'Cobranças recentes',
+                    style: BanzamiTextStyles.headingSm,
+                  ),
+                ),
+                ..._recent.asMap().entries.map((e) {
+                  final i      = e.key;
+                  final link   = e.value;
+                  final isFirst = i == 0;
+                  final isLast  = i == _recent.length - 1;
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: BanzamiColors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+                        bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
+                      ),
+                      boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _LinkTile(link: link),
+                        if (!isLast)
+                          const Divider(height: 1, indent: 64, color: BanzamiColors.gray200),
+                      ],
+                    ),
+                  );
+                }),
+              ],
+
+              const SizedBox(height: BanzamiSpacing.page),
+            ]),
+          ),
+        ),
       ],
     );
   }
 }
 
-class _BalanceCard extends StatelessWidget {
+// =============================================================================
+// Gradient header
+// =============================================================================
+
+class _DashboardHeader extends StatelessWidget {
+  final MerchantSession  session;
   final MerchantBalance? balance;
-  const _BalanceCard({this.balance});
+  final VoidCallback     onRefresh;
+
+  const _DashboardHeader({
+    required this.session,
+    required this.balance,
+    required this.onRefresh,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final firstName = session.merchantName.split(' ').first;
+
+    return Container(
+      decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
+      padding: EdgeInsets.fromLTRB(
+        BanzamiSpacing.xl,
+        MediaQuery.of(context).padding.top + BanzamiSpacing.lg,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xxl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Greeting + refresh
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Olá, $firstName',
+                      style: BanzamiTextStyles.headingMd.copyWith(
+                        color:      BanzamiColors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Painel de negócio',
+                      style: BanzamiTextStyles.bodySm.copyWith(
+                        color: BanzamiColors.white.withValues(alpha: 0.65),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: onRefresh,
+                child: Container(
+                  width:  38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color:  BanzamiColors.white.withValues(alpha: 0.15),
+                    shape:  BoxShape.circle,
+                    border: Border.all(
+                      color: BanzamiColors.white.withValues(alpha: 0.20),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.refresh_rounded,
+                    color: BanzamiColors.white,
+                    size:  20,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: BanzamiSpacing.xl),
+
+          // Balance
+          Text(
+            'Saldo disponível',
+            style: BanzamiTextStyles.bodySm.copyWith(
+              color: BanzamiColors.white.withValues(alpha: 0.65),
+            ),
+          ),
+          const SizedBox(height: BanzamiSpacing.xs),
+          Text(
+            balance != null
+                ? formatMinor(balance!.availableMinor, balance!.currency)
+                : '— Kz',
+            style: BanzamiTextStyles.displayLg.copyWith(
+              color:      BanzamiColors.white,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+
+          if (balance != null && balance!.reservedMinor > 0) ...[
+            const SizedBox(height: BanzamiSpacing.xs),
+            Text(
+              'Reservado: ${formatMinor(balance!.reservedMinor, balance!.currency)}',
+              style: BanzamiTextStyles.bodySm.copyWith(
+                color: BanzamiColors.white.withValues(alpha: 0.50),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Stat card
+// =============================================================================
+
+class _StatCard extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   value;
+
+  const _StatCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
-      decoration: BoxDecoration(
-        gradient: BanzamiGradients.wine,
-        borderRadius: BorderRadius.circular(20),
+      padding: const EdgeInsets.all(BanzamiSpacing.md),
+      decoration: const BoxDecoration(
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text('Saldo disponível',
-            style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.8))),
-        const SizedBox(height: 8),
-        Text(
-          balance != null
-              ? formatMinor(balance!.availableMinor, balance!.currency)
-              : '— Kz',
-          style: BanzamiTextStyles.displayLg.copyWith(
-              color: BanzamiColors.white, fontWeight: FontWeight.w700),
-        ),
-        if (balance?.reservedMinor != null && balance!.reservedMinor > 0) ...[
-          const SizedBox(height: 4),
-          Text(
-            'Reservado: ${formatMinor(balance!.reservedMinor, balance!.currency)}',
-            style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.65)),
+        Row(children: [
+          Container(
+            width:  28,
+            height: 28,
+            decoration: BoxDecoration(
+              color:        BanzamiColors.wine.withValues(alpha: 0.08),
+              borderRadius: BanzamiRadius.smAll,
+            ),
+            child: Icon(icon, color: BanzamiColors.wine, size: 15),
           ),
-        ],
+          const SizedBox(width: BanzamiSpacing.sm),
+          Text(
+            label,
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          ),
+        ]),
+        const SizedBox(height: BanzamiSpacing.sm),
+        Text(
+          value,
+          style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
       ]),
     );
   }
 }
 
-class _QuickChargeButton extends StatelessWidget {
+// =============================================================================
+// CTA button
+// =============================================================================
+
+class _NewChargeButton extends StatelessWidget {
   final VoidCallback onTap;
-  const _QuickChargeButton({required this.onTap});
+  const _NewChargeButton({required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -222,45 +381,19 @@ class _QuickChargeButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: BanzamiColors.wine,
           foregroundColor: BanzamiColors.white,
-          padding:    const EdgeInsets.symmetric(vertical: 16),
-          shape:      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle:  BanzamiTextStyles.headingSm,
+          padding:   const EdgeInsets.symmetric(vertical: 16),
+          shape:     const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
+          textStyle: BanzamiTextStyles.headingSm,
+          elevation: 0,
         ),
       ),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  const _StatCard({required this.label, required this.value, required this.icon});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(BanzamiSpacing.md),
-      decoration: BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Row(children: [
-          Icon(icon, color: BanzamiColors.wine, size: 18),
-          const SizedBox(width: 6),
-          Text(label,
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-        ]),
-        const SizedBox(height: 6),
-        Text(value,
-            style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis),
-      ]),
-    );
-  }
-}
+// =============================================================================
+// Recent charge tile
+// =============================================================================
 
 class _LinkTile extends StatelessWidget {
   final PaymentLink link;
@@ -268,58 +401,52 @@ class _LinkTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (link.status) {
-      PaymentLinkStatus.active    => BanzamiColors.success,
-      PaymentLinkStatus.used      => BanzamiColors.wine,
-      PaymentLinkStatus.expired   => BanzamiColors.gray400,
-      PaymentLinkStatus.cancelled => BanzamiColors.error,
-    };
-    final label = switch (link.status) {
-      PaymentLinkStatus.active    => 'Activo',
-      PaymentLinkStatus.used      => 'Pago',
-      PaymentLinkStatus.expired   => 'Expirado',
-      PaymentLinkStatus.cancelled => 'Cancelado',
+    final (color, label) = switch (link.status) {
+      PaymentLinkStatus.active    => (BanzamiColors.success, 'Activo'),
+      PaymentLinkStatus.used      => (BanzamiColors.wine,    'Pago'),
+      PaymentLinkStatus.expired   => (BanzamiColors.gray400, 'Expirado'),
+      PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado'),
     };
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: BanzamiSpacing.sm),
-      padding: const EdgeInsets.all(BanzamiSpacing.md),
-      decoration: BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BorderRadius.circular(12),
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(children: [
         Container(
-          width: 40, height: 40,
+          width:  40,
+          height: 40,
           decoration: BoxDecoration(
-            color:        color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(10),
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.mdAll,
           ),
-          child: Icon(Icons.link_rounded, color: color, size: 20),
+          child: Icon(Icons.receipt_outlined, color: color, size: 20),
         ),
         const SizedBox(width: BanzamiSpacing.md),
-        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text(
-            link.description ?? 'Cobrança',
-            style: BanzamiTextStyles.bodyMd,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          Text(
-            link.amountMinor != null
-                ? formatMinor(link.amountMinor!, link.currency)
-                : 'Valor livre',
-            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-          ),
-        ])),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(
+              link.description ?? 'Cobrança',
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            Text(
+              link.amountMinor != null
+                  ? formatMinor(link.amountMinor!, link.currency)
+                  : 'Valor livre',
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            ),
+          ]),
+        ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
           decoration: BoxDecoration(
-            color:        color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            color:        color.withValues(alpha: 0.10),
+            borderRadius: BanzamiRadius.fullAll,
           ),
-          child: Text(label,
-              style: BanzamiTextStyles.label.copyWith(color: color)),
+          child: Text(label, style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11)),
         ),
       ]),
     );
