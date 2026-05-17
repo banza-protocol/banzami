@@ -42,6 +42,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   String? _amountError;
   String? _sendError;
 
+  bool    _handleFocused    = false;
   List<ConsumerSuggestion> _suggestions = [];
   bool    _searching        = false;
   bool    _validatingHandle = false;
@@ -52,6 +53,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   void initState() {
     super.initState();
     _handleFocus.addListener(() {
+      setState(() => _handleFocused = _handleFocus.hasFocus);
       if (!_handleFocus.hasFocus) {
         setState(() => _suggestions = []);
         _validateHandleOnBlur();
@@ -176,7 +178,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                 controller:      _handleCtrl,
                 focusNode:       _handleFocus,
                 decoration: InputDecoration(
-                  hintText:  '@banza do destinatário',
+                  prefixText: '@',
+                  hintText:  _handleFocused ? 'banza do destinatário' : '@banza do destinatário',
                   errorText: _handleError,
                   suffixIcon: (_searching || _validatingHandle)
                       ? const Padding(
