@@ -203,8 +203,15 @@ class ConsumerPublicClient {
   ///
   /// [amountMinor] is required for open links (no fixed amount).
   /// For fixed-amount links the server uses its own amount; pass null or 0.
-  Future<PaymentLink> payPaymentLink(String slug, {int? amountMinor}) async {
-    final body = <String, dynamic>{};
+  /// [idempotencyKey] prevents duplicate charges if the request is retried.
+  Future<PaymentLink> payPaymentLink(
+    String slug, {
+    int? amountMinor,
+    String? idempotencyKey,
+  }) async {
+    final body = <String, dynamic>{
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+    };
     if (amountMinor != null && amountMinor > 0) body['amount_minor'] = amountMinor;
     final json = await _call(
       method: 'POST',
