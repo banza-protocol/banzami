@@ -1,4 +1,5 @@
 import { BanzamiApiError } from './errors.js';
+import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
   Consumer,
@@ -37,17 +38,23 @@ export interface BanzamiClientOptions {
   /** API key for this client. Prefix determines environment:
    *  - `bz_live_…` → live (production money)
    *  - `bz_test_…` → sandbox (virtual funds) */
-  apiKey:      string;
+  apiKey:         string;
   /** Which data universe to operate in. Defaults to 'live'. */
-  environment?: BanzamiEnvironment;
+  environment?:   BanzamiEnvironment;
   /** Override the API base URL. Defaults to the canonical URL for the chosen environment. */
-  baseUrl?:    string;
+  baseUrl?:       string;
   /** Maximum number of retry attempts after the initial request. Default: 3. */
-  maxRetries?: number;
+  maxRetries?:    number;
   /** Base delay in milliseconds for exponential backoff. Default: 500. */
-  retryDelay?: number;
+  retryDelay?:    number;
   /** Optional hooks for logging, tracing, and monitoring. */
-  hooks?: BanzamiHooks;
+  hooks?:         BanzamiHooks;
+  /**
+   * Webhook secret for this client (obtained when registering a webhook endpoint).
+   * Required to call `banzami.webhooks.constructEvent()`.
+   * Never expose this value in browser or client-side code.
+   */
+  webhookSecret?: string;
 }
 
 export class BanzamiClient {
@@ -57,6 +64,12 @@ export class BanzamiClient {
   private readonly maxRetries:  number;
   private readonly retryDelay:  number;
   private readonly hooks:       BanzamiHooks;
+
+  /**
+   * Webhook verification and test-helper methods.
+   * Requires `webhookSecret` in the constructor options to call `constructEvent()`.
+   */
+  readonly webhooks: WebhooksClient;
 
   private jwt:       string | null = null;
   private jwtExpiry: Date   | null = null;
@@ -71,6 +84,7 @@ export class BanzamiClient {
     maxRetries = 3,
     retryDelay = 500,
     hooks = {},
+    webhookSecret,
   }: BanzamiClientOptions) {
     this.apiKey      = apiKey;
     this.environment = environment;
@@ -78,6 +92,7 @@ export class BanzamiClient {
     this.maxRetries  = maxRetries;
     this.retryDelay  = retryDelay;
     this.hooks       = hooks;
+    this.webhooks    = new WebhooksClient(webhookSecret);
   }
 
   // ---------------------------------------------------------------------------
