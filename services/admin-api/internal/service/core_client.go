@@ -358,6 +358,39 @@ func (c *CoreAdminClient) SetConsumerBadge(ctx context.Context, id, badge string
 }
 
 // ---------------------------------------------------------------------------
+// Disputes
+// ---------------------------------------------------------------------------
+
+func (c *CoreAdminClient) ListDisputes(ctx context.Context, merchantID, consumerID, status string, limit int) (map[string]any, error) {
+	path := fmt.Sprintf("/internal/v1/disputes?limit=%d", limit)
+	if merchantID != "" {
+		path += "&merchant_id=" + merchantID
+	}
+	if consumerID != "" {
+		path += "&consumer_id=" + consumerID
+	}
+	if status != "" {
+		path += "&status=" + status
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetDispute(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/disputes/"+id, &out)
+}
+
+func (c *CoreAdminClient) ResolveDispute(ctx context.Context, id, outcome, notes, resolvedBy string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/disputes/"+id+"/resolve", map[string]any{
+		"outcome":          outcome,
+		"resolution_notes": notes,
+		"resolved_by":      resolvedBy,
+	}, &out)
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 
