@@ -179,7 +179,7 @@ export default function ConsumersPage() {
                 <textarea
                   value={suspendNotes}
                   onChange={e => setSuspendNotes(e.target.value)}
-                  placeholder="Motivo da suspensão (opcional)"
+                  placeholder="Motivo ou observações…"
                   rows={3}
                   className="w-full text-sm border border-gray-200 rounded-md px-lg py-sm resize-none outline-none focus:ring-2 focus:ring-gray-900/20"
                 />
@@ -196,7 +196,7 @@ export default function ConsumersPage() {
                   </button>
                   <button
                     onClick={handleSuspend}
-                    disabled={suspending}
+                    disabled={suspending || !suspendNotes.trim()}
                     className="px-lg py-sm text-sm font-medium rounded-md bg-error text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-sm"
                   >
                     {suspending && <Spinner className="h-3 w-3" />}

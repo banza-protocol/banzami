@@ -59,6 +59,12 @@ func (h *ConsumerHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 		Notes string `json:"notes"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
+	if body.Notes == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": map[string]any{"code": "MISSING_FIELD", "message": "notes is required"},
+		})
+		return
+	}
 
 	result, err := h.core.SuspendConsumer(r.Context(), id, body.Notes)
 	if err != nil {
