@@ -216,8 +216,11 @@ export class AdminApi {
     return this.req(`/admin/v1/consumers${q}`);
   }
   getConsumer(id: string): Promise<Consumer> { return this.req(`/admin/v1/consumers/${id}`); }
-  suspendConsumer(id: string): Promise<Consumer> {
-    return this.req(`/admin/v1/consumers/${id}/suspend`, { method: 'POST' });
+  suspendConsumer(id: string, notes: string): Promise<Consumer> {
+    return this.req(`/admin/v1/consumers/${id}/suspend`, {
+      method: 'POST',
+      body:   JSON.stringify({ notes: notes || null }),
+    });
   }
   setConsumerBadge(id: string, badge: VerificationBadge | null): Promise<Consumer> {
     return this.req(`/admin/v1/consumers/${id}/badge`, {

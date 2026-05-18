@@ -20,6 +20,11 @@ pub struct CreateConsumerBody {
 }
 
 #[derive(Deserialize)]
+pub struct SuspendConsumerBody {
+    pub notes: Option<String>,
+}
+
+#[derive(Deserialize)]
 pub struct SetBadgeBody {
     /// `"CONSUMER"`, `"MERCHANT"`, or `null` to remove.
     pub badge: Option<String>,
@@ -150,14 +155,17 @@ pub async fn get_by_handle(
 pub async fn suspend(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    body: Option<Json<SuspendConsumerBody>>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let consumer_id = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid consumer id"))?;
 
+    let notes = body.and_then(|b| b.notes.clone());
+
     let identity = state
         .identity
-        .suspend(consumer_id)
+        .suspend(consumer_id, notes)
         .await
         .map_err(|e| match e {
             IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
