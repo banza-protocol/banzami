@@ -1,0 +1,249 @@
+# Doa × Banzami — Integration Architecture
+
+---
+
+## System Boundaries
+
+The Doa integration sits entirely within the **merchant application** tier. Doa is the merchant. Banzami is the payment infrastructure. The boundary between them is the Banzami API.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│  MERCHANT APPLICATION (Doa)                                          │
+│                                                                       │
+│  ┌─────────────────────┐   ┌──────────────────────────────────────┐ │
+│  │  Frontend           │   │  Backend (Next.js Server / API Routes)│ │
+│  │  (React, browser)   │   │                                      │ │
+│  │                     │   │  BanzamiProvider.initiate()          │ │
+│  │  BanzamiPanel       │   │  → POST /v1/payment-links            │ │
+│  │  QR display         │   │                                      │ │
+│  │  Polling loop       │   │  banzami-status route                │ │
+│  │  Sandbox badge      │   │  → GET  /v1/payment-links/{id}       │ │
+│  │                     │   │                                      │ │
+│  │                     │   │  /api/webhooks/banzami               │ │
+│  └─────────────────────┘   │  → HMAC verify + applyPaymentEvent() │ │
+│                             └──────────────────────────────────────┘ │
+└──────────────────────────────────────┬──────────────────────────────┘
+                                       │  Bearer bz_live_/bz_test_
+                          ─────────────┼──────────────────────────
+                          BANZAMI API  │
+                                       ▼
+                          ┌────────────────────────┐
+                          │  api.banzami.org        │
+                          │                         │
+                          │  POST /v1/payment-links │
+                          │  GET  /v1/payment-links │
+                          │        /{id}            │
+                          └────────────┬────────────┘
+                                       │
+                          ┌────────────▼────────────┐
+                          │  Banzami Core (Rust)     │
+                          │                         │
+                          │  Payment link FSM       │
+                          │  ACTIVE → USED          │
+                          │  Ledger write on USED   │
+                          │  Webhook dispatch       │
+                          └─────────────────────────┘
+```
+
+---
+
+## Frontend Responsibilities
+
+The Doa frontend (React, browser) owns:
+
+- Rendering the `BanzamiPanel` component when the donor selects Banzami
+- Generating the QR image client-side from the pay URL
+- Running the polling loop (calls `/api/donations/banzami-status` every 3 s)
+- Displaying the sandbox badge when `provider.sandbox = true`
+- Showing confirmation animation and triggering redirect on success
+
+The frontend never calls Banzami's API directly. All Banzami API calls go through Doa's Next.js API routes.
+
+### Why client-side QR generation?
+
+The QR image (~6 kB data URL) is only needed when the donor reaches the Banzami stage. Generating it server-side would require either passing the data URL through the page props (wasting SSR time on a conditional flow) or a separate API call. Dynamic import of the `qrcode` library (~50 kB) defers that cost entirely — it downloads only when the donor actually reaches the QR panel.
+
+---
+
+## Backend Responsibilities
+
+The Doa backend (Next.js API routes) owns:
+
+- **Initiation**: Creating payment links via `POST /v1/payment-links`
+- **Status**: Proxying link status checks to Banzami
+- **Webhooks**: Receiving, verifying, and processing push events from Banzami
+- **Persistence**: Writing immutable events to `donation_events`
+- **Receipt delivery**: Generating and delivering PDF receipts
+- **Cache invalidation**: Revalidating the campaign page after confirmation
+
+The backend holds all Banzami credentials. They never reach the browser.
+
+---
+
+## Payment State Flow
+
+Doa maintains payment state in an **append-only event log** (`donation_events`). State is derived from events — there is no mutable `status` column that gets updated.
+
+```
+donation_intent created
+       │
+       ▼
+[event: payment_initiated]
+  payload: { provider: 'banzami', provider_ref: 'lnk_...', initiate: {...} }
+       │
+       ▼
+Donor pays in Banzami app
+       │
+       ├── Poll path: banzami-status detects USED
+       │         ─OR─
+       └── Webhook path: Banzami pushes payment_link.paid
+       │
+       ▼
+[event: payment_confirmed]
+  payload: { provider_ref: 'lnk_...', amount: '150000', currency: 'AOA', paid_at: '...' }
+       │
+       ▼
+[receipt generated and delivered]
+[campaign page revalidated]
+```
+
+**Deduplication key**: `(intent_id, event_type, provider_ref)`. If both the poll path and the webhook path fire simultaneously, the second write is a no-op.
+
+---
+
+## Environment Isolation Architecture
+
+Doa detects the environment from the API key prefix:
+
+```typescript
+const IS_SANDBOX = API_KEY.startsWith('bz_test_');
+
+class BanzamiProvider implements PaymentProvider {
+  readonly sandbox      = IS_SANDBOX;
+  readonly display_name = IS_SANDBOX ? 'Banzami (Sandbox)' : 'Banzami';
+  readonly available    = !!(GATEWAY_URL && API_KEY && MERCHANT_ID && WALLET_ID);
+}
+```
+
+This detection happens at module initialization time. The `sandbox` field is propagated from:
+
+```
+BanzamiProvider.sandbox
+    → listPublicMethods() → PaymentMethodMeta.sandbox
+    → DonateFlow props.methods[].sandbox
+    → submitMethod() → setBanzamiSandbox(true)
+    → BanzamiPanel isSandbox={true}
+    → "SANDBOX" badge rendered
+```
+
+The badge is purely informational — it does not change any API behavior. The API key prefix is the actual gate.
+
+---
+
+## API Client Architecture
+
+Doa does not use the Banzami TypeScript SDK. It makes direct `fetch()` calls from two server-only files:
+
+```
+lib/payments/providers/banzami.ts    ← initiation (POST /v1/payment-links)
+app/api/donations/banzami-status/    ← status check (GET /v1/payment-links/{id})
+```
+
+Both files use `import 'server-only'` (Next.js compiler directive) to enforce that credentials never reach the browser. The module boundary is enforced at build time — importing either file from a `'use client'` component causes a build error.
+
+### Why not the TypeScript SDK?
+
+The SDK provides retry, idempotency, and type safety. For Doa's narrow usage pattern (two endpoints, server-only calls, no need for retry at the SDK layer since API routes have their own error handling), the direct fetch approach is simpler and more transparent. A production SDK integration would be appropriate for applications with broader Banzami API surface coverage.
+
+---
+
+## Webhook Boundary
+
+```
+                         Internet
+                            │
+               Banzami-Signature: t=...,v1=...
+                            │
+                            ▼
+               POST /api/webhooks/banzami
+                            │
+                    ┌───────┴────────┐
+                    │ Verify HMAC    │ ← WEBHOOK_SECRET in env
+                    │ Check replay   │ ← |now - t| ≤ 300 s
+                    └───────┬────────┘
+                            │ 401 on failure
+                            ▼
+                    ┌───────┴────────┐
+                    │ Parse JSON     │
+                    │ Check type     │ ← unknown types → 200 + ignored
+                    └───────┬────────┘
+                            │
+                            ▼
+                    ┌───────┴────────────────────┐
+                    │ Resolve intent_id           │
+                    │ via JSONB lookup in         │
+                    │ donation_events             │
+                    └───────┬────────────────────┘
+                            │ 200 + ignored if not found
+                            ▼
+                    ┌───────┴────────┐
+                    │ applyPayment   │ ← idempotent
+                    │ Event()        │
+                    └───────┬────────┘
+                            │ 500 on DB error → Banzami retries
+                            ▼
+                    ┌───────┴────────┐
+                    │ Receipt        │ ← async, non-blocking
+                    │ Cache inval.   │
+                    └───────┬────────┘
+                            │
+                            ▼
+                       200 OK
+```
+
+---
+
+## QR Payment Orchestration
+
+```
+BanzamiProvider.initiate()
+    │
+    └─► POST /v1/payment-links
+        { merchant_id, wallet_id, amount_minor, currency, description }
+        ↓
+        { id: 'lnk_...', slug: 'abc123', status: 'ACTIVE', ... }
+        ↓
+        payUrl = BANZAMI_PAY_BASE_URL + '/' + slug
+        provider_ref = id
+
+BanzamiPanel mounts:
+    │
+    ├─► Dynamic import('qrcode') → generate QR from payUrl
+    │
+    └─► setInterval(3000ms):
+            GET /api/donations/banzami-status?intent_id=X&link_id=Y
+                │
+                └─► GET /v1/payment-links/{Y}
+                    status = ACTIVE → { confirmed: false }
+                    status = USED   → applyPaymentEvent()
+                                   → { confirmed: true }
+
+On confirmed:
+    clearInterval()
+    show success animation (1.2 s)
+    redirect to /obrigado
+```
+
+---
+
+## Idempotency Architecture
+
+Three independent idempotency layers protect the payment lifecycle:
+
+| Layer | Key | Mechanism |
+|-------|-----|-----------|
+| Payment link creation | `banzami:{intent_id}` | Checked in `donation_events` before calling API — replay returns existing initiate result |
+| Confirmation recording | `(intent_id, payment_confirmed, provider_ref)` | Dedup query in `applyPaymentEvent()` — second call returns `{ deduped: true }` |
+| Receipt delivery | `intent_id` | Idempotency key passed to `generateAndDeliverReceipt()` — no duplicate emails/SMS |
+
+The polling loop and webhook path both hit the same dedup layer. The first write records the event; all subsequent writes are no-ops.

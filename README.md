@@ -583,6 +583,26 @@ QR is the primary payment modality for Angola's market — it works offline, req
 
 ---
 
+### Official Example Integrations
+
+Reference implementations that demonstrate correct, production-grade Banzami merchant integration. These serve as canonical guides for specific integration patterns.
+
+| Integration | Platform | Patterns Demonstrated |
+|-------------|----------|----------------------|
+| [Doa](docs/integrations/doa/README.md) | Next.js donation platform | QR payments, HMAC webhooks, sandbox detection, idempotency, poll + push convergence |
+
+**Doa** (`doadoa.app`) is the canonical reference for:
+- Merchant-presented QR payment flows
+- Banzami webhook integration with HMAC-SHA256 signature verification
+- Sandbox mode detection and developer UX (`bz_test_` prefix → SANDBOX badge)
+- Three-layer idempotency (initiation → confirmation → receipt)
+- Next.js `server-only` credential isolation
+- Poll-and-webhook dual-path payment confirmation
+
+Full documentation: [`docs/integrations/doa/`](docs/integrations/doa/)
+
+---
+
 ## Domain Model
 
 ### Rust Crates
