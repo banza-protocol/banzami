@@ -1,0 +1,122 @@
+{
+  "_comment": "Golden test vectors for Banzami webhook signature verification. All SDKs MUST produce identical results for each vector. Generated from the canonical Go implementation (services/api-gateway/internal/webhook/signer.go).",
+  "_spec": "docs/standards/webhook-signature-spec.md",
+  "_algorithm": "HMAC-SHA256(key=secret, msg='{timestamp}.{raw_body}')",
+  "_header_format": "Banzami-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>",
+  "_tolerance_seconds": 300,
+
+  "shared_secret": "whsec_test_secret_for_vectors_32by",
+
+  "vectors": [
+    {
+      "id": "V-001",
+      "description": "Valid payment_link.paid event",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000000,v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "valid"
+    },
+    {
+      "id": "V-002",
+      "description": "Valid transaction.completed event",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"transaction.completed\",\"id\":\"evt_test_002\"}",
+      "expected_header": "t=1716000000,v1=c842b30a62f170d72cdca2562dad2740952748abd86404c20b9df6879cade325",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "valid"
+    },
+    {
+      "id": "V-003",
+      "description": "Expired timestamp — 400 seconds old (outside 300s tolerance)",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000000,v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000400,
+      "expected_result": "replay_rejected"
+    },
+    {
+      "id": "V-004",
+      "description": "Future timestamp — 400 seconds ahead (outside 300s tolerance)",
+      "timestamp": 1716000400,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000400,v1=placeholder",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "replay_rejected"
+    },
+    {
+      "id": "V-005",
+      "description": "Exactly at tolerance boundary — 300 seconds old — must pass",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000000,v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000300,
+      "expected_result": "valid"
+    },
+    {
+      "id": "V-006",
+      "description": "Tampered body — correct signature but body was modified",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001_TAMPERED\"}",
+      "expected_header": "t=1716000000,v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "signature_mismatch"
+    },
+    {
+      "id": "V-007",
+      "description": "Wrong secret",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000000,v1=42179b51a6308325cb9db627deedca9e97e289bd8ae58d285128469eb9acaf86",
+      "comment": "Header is valid for secret='wrong_secret', not the shared_secret",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "signature_mismatch"
+    },
+    {
+      "id": "V-008",
+      "description": "Legacy format (old wrong format) — sha256= prefix, no timestamp",
+      "timestamp": null,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "sha256=somedigest",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "malformed_header"
+    },
+    {
+      "id": "V-009",
+      "description": "Missing t= field",
+      "timestamp": null,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "v1=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "malformed_header"
+    },
+    {
+      "id": "V-010",
+      "description": "Missing v1= field",
+      "timestamp": 1716000000,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "t=1716000000",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "malformed_header"
+    },
+    {
+      "id": "V-011",
+      "description": "Empty header",
+      "timestamp": null,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "malformed_header"
+    },
+    {
+      "id": "V-012",
+      "description": "Wrong X-Banzami-Signature header name — wrong field, not Banzami-Signature",
+      "comment": "SDKs that look up 'x-banzami-signature' instead of 'banzami-signature' will silently fail",
+      "timestamp": null,
+      "raw_body": "{\"type\":\"payment_link.paid\",\"id\":\"evt_test_001\"}",
+      "expected_header": "sha256=c5b81e18bf170f081781f860811ee5567618e251b8b6002a90f4ac12c109dbcb",
+      "current_timestamp_for_test": 1716000000,
+      "expected_result": "malformed_header"
+    }
+  ]
+}
