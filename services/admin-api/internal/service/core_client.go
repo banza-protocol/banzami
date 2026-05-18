@@ -155,6 +155,80 @@ func (c *CoreAdminClient) MarkPayoutReturned(ctx context.Context, id string) (ma
 }
 
 // ---------------------------------------------------------------------------
+// Risk / freeze / audit log
+// ---------------------------------------------------------------------------
+
+func (c *CoreAdminClient) FreezeAccount(ctx context.Context, entityType, entityID, reason, frozenBy string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/admin/freeze", map[string]any{
+		"entity_type": entityType,
+		"entity_id":   entityID,
+		"reason":      reason,
+		"frozen_by":   frozenBy,
+	}, &out)
+}
+
+func (c *CoreAdminClient) UnfreezeAccount(ctx context.Context, entityType, entityID, reason, liftedBy string) (map[string]any, error) {
+	var out map[string]any
+	req, err := http.NewRequestWithContext(ctx, http.MethodDelete,
+		c.baseURL+"/internal/v1/admin/freeze/"+entityType+"/"+entityID, nil)
+	if err != nil {
+		return nil, fmt.Errorf("core-api request: %w", err)
+	}
+	data, _ := json.Marshal(map[string]string{"reason": reason, "lifted_by": liftedBy})
+	req.Body = io.NopCloser(bytes.NewReader(data))
+	req.Header.Set("Content-Type", "application/json")
+	return out, c.do(req, &out)
+}
+
+func (c *CoreAdminClient) ListRiskFlags(ctx context.Context, resolved bool) ([]map[string]any, error) {
+	path := "/internal/v1/admin/risk-flags"
+	if resolved {
+		path += "?resolved=true"
+	}
+	var out []map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) QueryAuditLog(ctx context.Context, subject, actor, action string, limit int) ([]map[string]any, error) {
+	path := fmt.Sprintf("/internal/v1/admin/audit-log?limit=%d", limit)
+	if subject != "" {
+		path += "&subject=" + subject
+	}
+	if actor != "" {
+		path += "&actor=" + actor
+	}
+	if action != "" {
+		path += "&action=" + action
+	}
+	var out []map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+// ---------------------------------------------------------------------------
+// Acquiring reconciliation
+// ---------------------------------------------------------------------------
+
+func (c *CoreAdminClient) RunAcquiringReconciliation(ctx context.Context, date string) (map[string]any, error) {
+	path := "/internal/v1/admin/acquiring-recon"
+	if date != "" {
+		path += "?date=" + date
+	}
+	var out map[string]any
+	return out, c.post(ctx, path, nil, &out)
+}
+
+func (c *CoreAdminClient) ListAcquiringReconciliationRuns(ctx context.Context) ([]map[string]any, error) {
+	var out []map[string]any
+	return out, c.get(ctx, "/internal/v1/admin/acquiring-recon", &out)
+}
+
+func (c *CoreAdminClient) GetAcquiringReconciliationRun(ctx context.Context, runID string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/admin/acquiring-recon/"+runID, &out)
+}
+
+// ---------------------------------------------------------------------------
 // Reconciliation
 // ---------------------------------------------------------------------------
 
