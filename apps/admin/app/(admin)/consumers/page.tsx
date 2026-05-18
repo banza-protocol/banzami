@@ -106,7 +106,13 @@ export default function ConsumersPage() {
           {consumers.length > 0 && (
             <div className="bg-white rounded-lg shadow-card overflow-hidden divide-y divide-gray-100">
               {consumers.map(c => (
-                <button key={c.id} onClick={() => setConsumer(c)}
+                <button key={c.id} onClick={async () => {
+                  const session = getSession();
+                  if (!session) return;
+                  const api = new AdminApi(session.apiUrl, session.adminKey);
+                  const full = await api.getConsumer(c.id);
+                  setConsumer(full);
+                }}
                   className="w-full flex items-center justify-between px-xl py-lg hover:bg-gray-50 transition-colors text-left">
                   <div>
                     <p className="text-sm font-medium text-gray-900">
