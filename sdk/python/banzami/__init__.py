@@ -42,8 +42,10 @@ from .models import (
     WalletBalance,
     WebhookEndpoint,
     WebhookEvent,
+    WebhookEventType,
 )
 from .pagination import Page, auto_paginate
+from .signature import generate_test_signature
 from .utils import format_minor, new_idempotency_key, to_minor
 
 __version__ = "0.1.0"
@@ -84,6 +86,9 @@ __all__ = [
     "NewApiKey",
     "WebhookEndpoint",
     "WebhookEvent",
+    "WebhookEventType",
+    # Test helpers
+    "generate_test_signature",
     # Pagination
     "Page",
     "auto_paginate",
