@@ -5,19 +5,40 @@ interface Props {
   variant?: 'info' | 'warning' | 'rule' | 'quote'
 }
 
-export function Callout({ children, variant = 'quote' }: Props) {
-  const styles: Record<string, string> = {
-    info:    'border-banzami-400 bg-banzami-50 text-banzami-900',
-    warning: 'border-amber-400 bg-amber-50 text-amber-900',
-    rule:    'border-angola-red bg-red-50 text-slate-900',
-    quote:   'border-banzami-400 bg-gradient-to-br from-banzami-50 to-white text-banzami-900',
-  }
+const variants = {
+  quote: {
+    wrapper: 'border-bz-primary bg-bz-primary-light',
+    bar:     'bg-bz-primary',
+    text:    'text-bz-primary',
+  },
+  info: {
+    wrapper: 'border-bz-gold/50 bg-bz-gold-light',
+    bar:     'bg-bz-gold',
+    text:    'text-amber-800',
+  },
+  warning: {
+    wrapper: 'border-amber-300 bg-amber-50',
+    bar:     'bg-amber-400',
+    text:    'text-amber-900',
+  },
+  rule: {
+    wrapper: 'border-bz-primary bg-bz-primary text-white',
+    bar:     'bg-white/30',
+    text:    'text-white',
+  },
+}
 
+export function Callout({ children, variant = 'quote' }: Props) {
+  const v = variants[variant]
   return (
-    <blockquote
-      className={`not-prose my-6 rounded-r-xl border-l-4 px-6 py-4 text-base font-medium leading-relaxed shadow-sm ${styles[variant]}`}
+    <div
+      className={`not-prose relative my-6 overflow-hidden rounded-2xl border px-6 py-5 shadow-card ${v.wrapper}`}
     >
-      {children}
-    </blockquote>
+      {/* Left accent bar */}
+      <div className={`absolute left-0 inset-y-0 w-1 ${v.bar}`} />
+      <div className={`text-base font-medium leading-relaxed ${v.text}`}>
+        {children}
+      </div>
+    </div>
   )
 }
