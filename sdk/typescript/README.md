@@ -1,9 +1,14 @@
 # @banzami/sdk
 
-Official JavaScript/TypeScript SDK for the Banzami payment platform.
+Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Requires Node.js ≥ 18 (native `fetch`) or a browser environment.  
-All monetary values use **integer minor units** — no floating-point arithmetic.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@handle transfers** — not card forms or IBAN strings.
+
+All monetary values use **integer minor units** in AOA (Kwanza). No floating-point arithmetic.
+
+Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
+
+> See [ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md) and [ADR-014](../../docs/adr/ADR-014-angola-national-mission.md) for platform identity and market positioning.
 
 ---
 
@@ -232,6 +237,65 @@ if (link.status !== 'ACTIVE') throw new Error('Link is no longer active');
 
 // Poll for payment confirmation
 const { paid } = await client.getPaymentLinkStatus('abc123');
+```
+
+---
+
+## Refunds
+
+```typescript
+// Initiate a refund on a completed transaction
+const refund = await client.createRefund({
+  transactionId: 'txn_...',
+  amountMinor:   2500,        // partial refund — 2 500 Kz
+  reason:        'Produto devolvido',
+});
+console.log(refund.status); // "PENDING"
+
+// Full list with pagination
+const page = await client.listRefunds({ transactionId: 'txn_...', limit: 20 });
+```
+
+---
+
+## Disputes
+
+```typescript
+// Consumer opens a dispute on a transaction
+const dispute = await client.openDispute({
+  transactionId: 'txn_...',
+  reason:        'Serviço não prestado conforme acordado',
+});
+console.log(dispute.status); // "OPEN"
+
+// Merchant lists open disputes
+const page = await client.listDisputes({ status: 'OPEN', limit: 20 });
+```
+
+---
+
+## Payment requests
+
+Payment requests allow a merchant to send a payment demand to a specific consumer, who can pay or decline.
+
+```typescript
+// Merchant sends a payment request to a consumer
+const request = await client.createPaymentRequest({
+  merchantId:  'mch_...',
+  consumerId:  'cns_...',
+  amountMinor: 15_000,        // 15 000 Kz
+  description: 'Encomenda #87 — entrega domiciliária',
+  expiresAt:   new Date(Date.now() + 24 * 60 * 60 * 1000),
+});
+
+// Consumer pays the request
+await client.payPaymentRequest(request.id, 'cns_wallet_id');
+
+// Consumer declines
+await client.declinePaymentRequest(request.id);
+
+// Merchant cancels before consumer acts
+await client.cancelPaymentRequest(request.id);
 ```
 
 ---
