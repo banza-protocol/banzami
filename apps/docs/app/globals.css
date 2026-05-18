@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  ::selection {
+    background: theme('colors.banzami.200');
+    color: theme('colors.banzami.900');
+  }
+}
+
+@layer components {
+  .prose pre {
+    @apply rounded-xl;
+  }
+
+  /* ASCII diagrams inside prose stay readable */
+  .prose .architecture-diagram {
+    @apply font-mono text-sm;
+  }
+}
