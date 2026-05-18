@@ -69,12 +69,25 @@ The platform is designed for gradual evolution, operational simplicity, and cont
 
 ## Mission
 
-To provide modern, reliable, and accessible financial infrastructure that enables African businesses to build and operate digital financial products with confidence.
+To modernize and revolutionize digital payments in Angola — making digital Kwanza payments so simple, fast, and integrated that physical cash and manual bank transfer confirmations become the exception rather than the norm.
+
+---
+
+## National Objectives
+
+**1. First QR-native instant payment network in Angola**
+
+A cantina owner prints a QR. A customer scans it. Payment is instant. No confirmation waiting. No WhatsApp screenshot. No bank transfer reference. This is the target.
+
+**2. First Angola-native SDK payment infrastructure**
+
+Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates Banzami in hours and accepts instant Kwanza payments natively.
 
 ---
 
 ## Core Values
 
+* Angola first — serve one market exceptionally before expanding
 * Financial correctness over hype
 * Reliability over unnecessary complexity
 * Operational maturity over premature scale patterns
@@ -85,9 +98,15 @@ To provide modern, reliable, and accessible financial infrastructure that enable
 
 ## Product Vision
 
-Banzami aims to become a foundational infrastructure layer for digital commerce and financial operations across African markets.
+Banzami is building the digital payment layer for Angola.
 
-The focus is not on reinventing banking, but on making modern financial infrastructure more accessible, interoperable, and operationally reliable.
+The vision: `SCAN → CONFIRM → PAID INSTANTLY` — eliminating cash dependency, manual transfer confirmations, and WhatsApp proof-of-payment flows from Angolan commerce.
+
+Reference models: Pix (Brazil), UPI (India), M-Pesa (East Africa). Not Stripe, not PayPal, not card-first checkout.
+
+The long-term objective is a national network effect: merchants adopt QR, consumers adopt the wallet, developers integrate the SDK, and digital Kwanza becomes the default payment experience.
+
+See [ADR-014](docs/adr/ADR-014-angola-national-mission.md) for the full national mission decision record.
 
 ---
 

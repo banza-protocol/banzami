@@ -6,7 +6,127 @@
 
 # 1. Mission
 
-Banzami is a modern financial infrastructure platform designed to become the foundational payment layer for Angola and, eventually, broader African markets.
+## 1.1 Primary National Mission
+
+Banzami exists to:
+
+**Modernize and revolutionize digital payments in Angola.**
+
+Banzami is NOT trying to become:
+
+* a generic African fintech,
+* a continental super-app,
+* or a broad "Africa payments" platform.
+
+Banzami is focused FIRST on Angola.
+
+Everything is optimized for:
+
+* Angolan consumers,
+* Angolan merchants,
+* Angolan commerce,
+* Angolan mobile usage,
+* Angolan payment realities,
+* the Angolan Kwanza ecosystem.
+
+## 1.2 Core National Objective
+
+Banzami aims to become:
+
+1. **The first true QR-native instant payment network in Angola.**
+2. **The first Angola-native SDK payment infrastructure** — enabling applications, ecommerce platforms, and mobile apps to accept instant online payments in Kwanza directly inside their products.
+
+## 1.3 The Transformation Banzami Enables
+
+### Taxi apps
+Today many Angolan taxi apps rely on cash, manual transfer confirmation, or payment outside the app. Banzami enables European-style in-app payments: ride completed → instant settlement → no cash, no manual confirmation, no external proof.
+
+### Small merchants and cantinas
+Any business should be able to print a QR, receive instant Kwanza payments, and manage a business wallet — with no expensive terminal infrastructure.
+
+### Ecommerce and mobile apps
+Banzami must become the standard SDK payment layer for Angola: ecommerce sites, delivery apps, marketplaces, schools, creators, taxi apps, donation platforms — all integrating Banzami SDKs and receiving instant Kwanza payments.
+
+### Creator and donation economy
+Apps like DOA: receive donations instantly, generate QR codes, receive wallet settlement, operate entirely in Kwanza.
+
+### Person-to-person payments
+Consumers transfer instantly, request money, pay via QR, pay via @handle — without cash.
+
+## 1.4 Eliminating Angolan Payment Friction
+
+Banzami aims to eliminate:
+
+* manual payments,
+* cash dependency,
+* manual bank transfer confirmations,
+* WhatsApp proof-of-payment flows,
+* fragmented payment experiences.
+
+The target future state:
+
+```text
+SCAN  →  CONFIRM  →  PAID INSTANTLY
+```
+
+## 1.5 Official Positioning
+
+CORRECT descriptions of Banzami:
+
+* Angola's instant payment network
+* QR-native payment ecosystem
+* Instant Kwanza payment infrastructure
+* Wallet-native payment platform
+* Mobile-first payment network
+* Angola-native SDK payment infrastructure
+
+INCORRECT descriptions of Banzami:
+
+* Pan-African super-app (premature — Angola first)
+* Stripe for Africa (wrong model — wallet-native, not card-centric)
+* Generic African fintech (not the identity)
+* Crypto payment platform (not the product)
+* Traditional banking app (not the experience)
+
+## 1.6 The Role of EMIS
+
+EMIS is NOT the product layer.
+
+EMIS is one of the infrastructure rails — one integration among several, enabling access to real Angolan payment infrastructure.
+
+Banzami provides the UX layer, wallet layer, QR layer, SDK layer, merchant layer, developer platform, and payment network on top of those rails.
+
+## 1.7 Bank Relationship Philosophy
+
+Banks are not competitors. Banzami is an interoperability and simplification layer.
+
+* Banks and EMIS provide: banking rails, settlement access, regulatory integration.
+* Banzami provides: instant UX, QR commerce, SDK infrastructure, developer integration, merchant tooling, mobile payment experiences, wallet-native payments.
+
+## 1.8 Long-Term Objective
+
+Make digital Kwanza payments so simple, fast, and integrated that:
+
+* physical cash usage decreases,
+* manual transfer confirmations disappear,
+* QR payments become the normal expectation,
+* and Angolan applications integrate payments natively as a first-class feature.
+
+## 1.9 Growth Strategy
+
+The network grows through:
+
+* merchants (QR adoption),
+* consumers (wallet usage),
+* SDK integrations (developer ecosystem),
+* ecommerce and mobile apps,
+* instant wallet settlement creating retention.
+
+See [ADR-014](docs/adr/ADR-014-angola-national-mission.md) for full context and rationale.
+
+---
+
+## 1.10 Engineering Mission
 
 The platform is engineered with:
 
@@ -19,7 +139,7 @@ The platform is engineered with:
 
 Banzami is NOT a simple startup product.
 
-It is a national-scale fintech infrastructure project.
+It is national-scale financial infrastructure for Angola.
 
 Every engineering decision must prioritize:
 
