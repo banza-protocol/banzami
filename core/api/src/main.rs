@@ -234,6 +234,30 @@ async fn main() {
         .route("/internal/v1/consumer-deposits/callback",     post(routes::consumer_deposits::callback))
         .route("/internal/v1/consumer-deposits/test-confirm", post(routes::consumer_deposits::test_confirm))
 
+        // Refunds — full and partial refunds on captured/settled transactions
+        .route("/internal/v1/refunds",     post(routes::refunds::create).get(routes::refunds::list))
+        .route("/internal/v1/refunds/:id", get(routes::refunds::get))
+
+        // Disputes — consumer-initiated chargebacks with evidence and admin resolution
+        .route("/internal/v1/disputes",                     post(routes::disputes::open).get(routes::disputes::list))
+        .route("/internal/v1/disputes/:id",                 get(routes::disputes::get))
+        .route("/internal/v1/disputes/:id/evidence",        post(routes::disputes::submit_evidence).get(routes::disputes::list_evidence))
+        .route("/internal/v1/disputes/:id/resolve",         post(routes::disputes::resolve))
+
+        // Merchant profiles — public network identity and storefront
+        .route("/internal/v1/merchant-profiles",                          post(routes::merchant_profiles::create).get(routes::merchant_profiles::list))
+        .route("/internal/v1/merchant-profiles/by-handle/:handle",        get(routes::merchant_profiles::get_by_handle))
+        .route("/internal/v1/merchant-profiles/by-merchant/:merchant_id", get(routes::merchant_profiles::get_by_merchant))
+        .route("/internal/v1/merchant-profiles/:id",                      get(routes::merchant_profiles::get).patch(routes::merchant_profiles::update))
+        .route("/internal/v1/merchant-profiles/:id/social-links",         post(routes::merchant_profiles::add_social_link))
+
+        // Payment requests — receiver-initiated pull payments (P2P "request money")
+        .route("/internal/v1/payment-requests",              post(routes::payment_requests::create).get(routes::payment_requests::list))
+        .route("/internal/v1/payment-requests/:id",          get(routes::payment_requests::get))
+        .route("/internal/v1/payment-requests/:id/pay",      post(routes::payment_requests::pay))
+        .route("/internal/v1/payment-requests/:id/decline",  post(routes::payment_requests::decline))
+        .route("/internal/v1/payment-requests/:id/cancel",   post(routes::payment_requests::cancel))
+
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
         .layer(TraceLayer::new_for_http());
