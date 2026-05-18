@@ -210,52 +210,38 @@ export default function ConsumersPage() {
             </div>
           )}
 
-          {/* Badge control */}
-          <div className="bg-white rounded-lg shadow-card overflow-hidden">
-            <div className="px-xl py-lg border-b border-gray-100">
-              <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-sm">
-                <ShieldCheck size={15} className="text-gray-400" />
-                Atribuir badge de verificação
-              </h3>
-              <p className="text-xs text-gray-400 mt-xs">
-                O badge aparece no perfil do utilizador na app mobile.
-              </p>
+          {/* Verification */}
+          <div className="bg-white rounded-lg shadow-card p-xl">
+            <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Verificação</p>
+            <div className="flex items-center gap-md mb-lg">
+              {consumer.verification_badge === 'CONSUMER' ? (
+                <span className="flex items-center gap-xs text-sm font-medium text-amber-700">
+                  <ShieldCheck size={16} />Verificado
+                </span>
+              ) : (
+                <span className="flex items-center gap-xs text-sm text-gray-400">
+                  <ShieldOff size={16} />Não verificado
+                </span>
+              )}
             </div>
-            <div className="px-xl py-lg flex flex-wrap gap-sm">
+            <div className="flex gap-md flex-wrap">
               <button
-                disabled={badgeSaving}
                 onClick={() => handleSetBadge('CONSUMER')}
-                className={`px-lg py-sm text-sm font-medium rounded-md border transition-colors disabled:opacity-50 ${
-                  consumer.verification_badge === 'CONSUMER'
-                    ? 'bg-amber-50 border-amber-400 text-amber-800'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
+                disabled={badgeSaving || consumer.verification_badge === 'CONSUMER'}
+                className="h-9 px-lg rounded-md text-xs font-medium transition-colors bg-amber-50 text-amber-700 hover:bg-amber-100 disabled:opacity-50 flex items-center gap-xs"
               >
-                Consumidor (gold)
+                <ShieldCheck size={13} />Verificar
               </button>
               <button
-                disabled={badgeSaving}
-                onClick={() => handleSetBadge('MERCHANT')}
-                className={`px-lg py-sm text-sm font-medium rounded-md border transition-colors disabled:opacity-50 ${
-                  consumer.verification_badge === 'MERCHANT'
-                    ? 'bg-blue-50 border-blue-400 text-blue-800'
-                    : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Comerciante (azul)
-              </button>
-              <button
-                disabled={badgeSaving || consumer.verification_badge === null}
                 onClick={() => handleSetBadge(null)}
-                className="px-lg py-sm text-sm font-medium rounded-md border border-gray-200 text-gray-500 hover:bg-gray-50 transition-colors disabled:opacity-40 flex items-center gap-xs"
+                disabled={badgeSaving || consumer.verification_badge !== 'CONSUMER' || consumer.handle === 'fm65'}
+                className="h-9 px-lg rounded-md text-xs font-medium transition-colors bg-gray-100 text-gray-700 hover:bg-gray-200 disabled:opacity-50 flex items-center gap-xs"
               >
-                <ShieldOff size={13} /> Remover badge
+                <ShieldOff size={13} />Remover verificação
               </button>
               {badgeSaving && <Spinner className="h-4 w-4 self-center" />}
             </div>
-            {badgeError && (
-              <p className="px-xl pb-lg text-xs text-error">{badgeError}</p>
-            )}
+            {badgeError && <p className="mt-md text-xs text-error">{badgeError}</p>}
           </div>
 
         </>
