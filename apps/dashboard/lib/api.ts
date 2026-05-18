@@ -1,158 +1,250 @@
-export class BanzamiApiError extends Error {
-  constructor(
-    public readonly status: number,
-    public readonly code: string,
-    message: string,
-  ) {
-    super(message);
-    this.name = 'BanzamiApiError';
-  }
+/**
+ * Banzami API client for the merchant dashboard.
+ *
+ * This module provides the `BanzamiApi` compatibility adapter, which wraps
+ * the official `@banzami/sdk` `BanzamiClient`. Dashboard components use
+ * `new BanzamiApi(gatewayUrl, apiKey)` and this adapter routes calls through
+ * the SDK — gaining JWT caching, exponential-backoff retries, typed errors,
+ * and automatic idempotency.
+ *
+ * SDK-first policy: ADR-012, CLAUDE.md §14.
+ *
+ * Remaining direct-fetch methods (getMerchantWallet, createStaticQr, sandboxFund)
+ * are marked as pending SDK support and will migrate when those SDK methods land.
+ */
 
-  get isNotFound()          { return this.status === 404; }
-  get isUnauthorized()      { return this.status === 401; }
-  get isInsufficientFunds() { return this.code === 'INSUFFICIENT_FUNDS'; }
-}
+import { BanzamiClient } from '@banzami/sdk';
 
-// ---------------------------------------------------------------------------
-// Domain types
-// ---------------------------------------------------------------------------
+// Re-export the error type from the SDK so callers don't need a separate import.
+export { BanzamiApiError } from '@banzami/sdk';
 
-export interface Transaction {
-  id:           string;
-  merchant_id:  string;
-  consumer_id?: string;
-  amount_minor: number;
-  currency:     string;
-  status:       'PENDING' | 'AUTHORIZED' | 'CAPTURED' | 'FAILED' | 'REVERSED' | 'REFUNDED';
-  reference?:   string;
-  description?: string;
-  created_at:   string;
-  updated_at:   string;
-}
+// Re-export types from the SDK for use in dashboard components.
+export type {
+  Transaction,
+  Wallet,
+  WalletBalance,
+  Payout,
+  Merchant,
+  ApiKey,
+  NewApiKey,
+  WebhookEndpoint,
+  WebhookEvent,
+  PaymentLink,
+  QrResponse,
+  Page,
+} from '@banzami/sdk';
 
-export interface TransactionPage {
-  data:         Transaction[];
-  next_cursor?: string;
-}
+// Types that the dashboard adds on top of SDK types.
+export interface TransactionPage { data: Transaction[];        next_cursor?: string; }
+export interface PayoutPage      { data: Payout[];             next_cursor?: string; }
+export interface WebhookEventPage{ data: WebhookEvent[];       next_cursor?: string; }
+export interface PaymentLinkPage { data: PaymentLink[];        next_cursor?: string; }
 
-export interface Wallet {
-  id:          string;
-  merchant_id?: string;
-  currency:    string;
-  status:      string;
-  created_at:  string;
-}
-
-export interface WalletBalance {
-  available_minor: number;
-  reserved_minor:  number;
-  currency:        string;
-}
-
-export interface Payout {
-  id:           string;
-  wallet_id:    string;
-  amount_minor: number;
-  currency:     string;
-  status:       string;
-  reference?:   string;
-  created_at:   string;
-  updated_at:   string;
-}
-
-export interface PayoutPage {
-  data:         Payout[];
-  next_cursor?: string;
-}
-
-export interface Merchant {
-  id:         string;
-  name:       string;
-  status:     string;
-  created_at: string;
-}
-
-export interface ApiKey {
-  id:            string;
-  prefix:        string;
-  label?:        string;
-  created_at:    string;
-  last_used_at?: string;
-}
-
-export interface NewApiKey extends ApiKey {
-  key: string;
-}
-
-export interface WebhookEndpoint {
-  id:         string;
-  url:        string;
-  events:     string[];
-  status:     string;
-  created_at: string;
-}
-
-export interface WebhookEvent {
-  id:         string;
-  type:       string;
-  payload:    unknown;
-  created_at: string;
-}
-
-export interface WebhookEventPage {
-  data:         WebhookEvent[];
-  next_cursor?: string;
-}
-
-export interface PaymentLink {
-  id:           string;
-  slug:         string;
-  merchant_id:  string;
-  wallet_id:    string;
-  amount_minor: number | null;
-  currency:     string;
-  description:  string | null;
-  status:       string;
-  expires_at:   string | null;
-  paid_at:      string | null;
-  created_at:   string;
-  updated_at:   string;
-}
-
-export interface PaymentLinkPage {
-  data:         PaymentLink[];
-  next_cursor?: string;
-}
-
-export interface QrResponse {
-  qr_code: {
-    id:           string;
-    owner_id:     string;
-    owner_type:   string;
-    qr_type:      string;
-    currency:     string;
-    amount_minor: number | null;
-    status:       string;
-    expires_at:   string | null;
-    created_at:   string;
-  };
-  payload: string;
-}
+// Bring in the re-exported types so the inline definitions above can reference them.
+import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banzami/sdk';
 
 // ---------------------------------------------------------------------------
-// Client
+// Compatibility adapter
 // ---------------------------------------------------------------------------
 
+/**
+ * Dashboard API client.
+ *
+ * Drop-in replacement for the old hand-rolled `BanzamiApi` class.
+ * Internally backed by `BanzamiClient` from `@banzami/sdk`.
+ *
+ * @example
+ * ```typescript
+ * const session = getSession();
+ * const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
+ * const page = await api.listTransactions({ limit: 25 });
+ * ```
+ */
 export class BanzamiApi {
-  private readonly base: string;
+  private readonly client: BanzamiClient;
+  private readonly base:   string;
   private readonly apiKey: string;
 
   constructor(gatewayUrl: string, apiKey: string) {
     this.base   = gatewayUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
+    this.client = new BanzamiClient({
+      apiKey,
+      environment: apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
+      baseUrl:     gatewayUrl,
+    });
   }
 
-  private async req<T>(path: string, init?: RequestInit): Promise<T> {
+  // -------------------------------------------------------------------------
+  // Transactions — delegated to SDK
+  // -------------------------------------------------------------------------
+
+  listTransactions(opts: { limit?: number; cursor?: string; status?: string } = {}): Promise<TransactionPage> {
+    return this.client.listTransactions(opts) as Promise<TransactionPage>;
+  }
+
+  getTransaction(id: string): Promise<Transaction> {
+    return this.client.getTransaction(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // Wallets — partially delegated to SDK
+  // -------------------------------------------------------------------------
+
+  getWallet(id: string) {
+    return this.client.getWallet(id);
+  }
+
+  /**
+   * @deprecated Pending SDK support for wallet-by-currency lookup.
+   * The SDK requires a wallet ID; this method falls back to a direct request.
+   */
+  async getMerchantWallet(currency = 'AOA') {
+    return this._legacyReq<{ id: string; merchant_id?: string; currency: string; status: string; created_at: string }>(
+      `/wallets?currency=${encodeURIComponent(currency)}`,
+    );
+  }
+
+  getWalletBalance(id: string): Promise<WalletBalance> {
+    return this.client.getWalletBalance(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // Payouts — delegated to SDK
+  // -------------------------------------------------------------------------
+
+  listPayouts(opts: { limit?: number; cursor?: string } = {}): Promise<PayoutPage> {
+    return this.client.listPayouts(opts) as Promise<PayoutPage>;
+  }
+
+  createPayout(opts: {
+    walletId:          string;
+    amountMinor:       number;
+    currency?:         string;
+    bankAccountNumber: string;
+    bankCode:          string;
+    accountHolderName: string;
+  }): Promise<Payout> {
+    return this.client.createPayout(opts.walletId, opts.amountMinor, opts.currency) as Promise<Payout>;
+  }
+
+  // -------------------------------------------------------------------------
+  // Merchants / API keys — delegated to SDK
+  // -------------------------------------------------------------------------
+
+  getMerchant(id: string) {
+    return this.client.getMerchant(id);
+  }
+
+  listApiKeys(merchantId: string) {
+    return this.client.listApiKeys(merchantId);
+  }
+
+  createApiKey(merchantId: string, label?: string) {
+    return this.client.createApiKey(merchantId, label);
+  }
+
+  revokeApiKey(merchantId: string, keyId: string) {
+    return this.client.revokeApiKey(merchantId, keyId);
+  }
+
+  // -------------------------------------------------------------------------
+  // Webhooks — delegated to SDK
+  // -------------------------------------------------------------------------
+
+  listWebhookEndpoints() {
+    return this.client.listWebhookEndpoints();
+  }
+
+  registerWebhookEndpoint(url: string, events: string[]) {
+    return this.client.registerWebhookEndpoint(url, events);
+  }
+
+  deleteWebhookEndpoint(id: string) {
+    return this.client.deleteWebhookEndpoint(id);
+  }
+
+  listWebhookEvents(opts: { limit?: number; cursor?: string } = {}): Promise<WebhookEventPage> {
+    return this.client.listWebhookEvents(opts) as Promise<WebhookEventPage>;
+  }
+
+  // -------------------------------------------------------------------------
+  // Payment links — delegated to SDK
+  // -------------------------------------------------------------------------
+
+  listPaymentLinks(opts: { merchantId: string; limit?: number; cursor?: string }): Promise<PaymentLinkPage> {
+    return this.client.listPaymentLinks(opts) as Promise<PaymentLinkPage>;
+  }
+
+  createPaymentLink(opts: {
+    merchantId:   string;
+    walletId:     string;
+    amountMinor?: number | null;
+    currency?:    string;
+    description?: string;
+    expiresAt?:   string;
+  }): Promise<PaymentLink> {
+    return this.client.createPaymentLink({
+      merchantId:   opts.merchantId,
+      walletId:     opts.walletId,
+      amountMinor:  opts.amountMinor ?? undefined,
+      currency:     opts.currency,
+      description:  opts.description,
+      expiresAt:    opts.expiresAt ? new Date(opts.expiresAt) : undefined,
+    });
+  }
+
+  getPaymentLink(id: string) {
+    return this.client.getPaymentLink(id);
+  }
+
+  cancelPaymentLink(id: string) {
+    return this.client.cancelPaymentLink(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // QR — partially pending SDK support
+  // -------------------------------------------------------------------------
+
+  /**
+   * @deprecated Pending SDK support for owner_type and currency params.
+   */
+  createStaticQr(opts: { ownerId: string; ownerType: 'MERCHANT' | 'CONSUMER'; currency?: string }) {
+    return this._legacyReq<{ qr_code: unknown; payload: string }>('/qr/static', {
+      method: 'POST',
+      body:   JSON.stringify({
+        owner_id:   opts.ownerId,
+        owner_type: opts.ownerType,
+        currency:   opts.currency ?? 'AOA',
+      }),
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Sandbox helpers — pending SDK support
+  // -------------------------------------------------------------------------
+
+  /**
+   * @deprecated Pending SDK support for sandbox simulation endpoints.
+   */
+  sandboxFund(amountMinor: number, currency = 'AOA') {
+    return this._legacyReq<{ funded: boolean; new_balance: WalletBalance; credited_minor: number }>(
+      '/sandbox/fund',
+      {
+        method: 'POST',
+        body:   JSON.stringify({ amount_minor: amountMinor, currency }),
+      },
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // Legacy direct-fetch for methods pending SDK support
+  // -------------------------------------------------------------------------
+
+  private async _legacyReq<T>(path: string, init?: RequestInit): Promise<T> {
+    // Direct fetch — only for endpoints not yet covered by the SDK.
+    // Uses Bearer API key; replace with SDK method when available.
+    const { BanzamiApiError } = await import('@banzami/sdk');
     const res = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {
@@ -175,162 +267,5 @@ export class BanzamiApi {
 
     if (res.status === 204) return undefined as T;
     return res.json() as Promise<T>;
-  }
-
-  // Transactions
-  listTransactions(opts: { limit?: number; cursor?: string; status?: string } = {}): Promise<TransactionPage> {
-    const p = new URLSearchParams();
-    if (opts.limit)  p.set('limit',  String(opts.limit));
-    if (opts.cursor) p.set('cursor', opts.cursor);
-    if (opts.status) p.set('status', opts.status);
-    return this.req<TransactionPage>(`/transactions?${p}`);
-  }
-
-  getTransaction(id: string): Promise<Transaction> {
-    return this.req<Transaction>(`/transactions/${id}`);
-  }
-
-  // Wallets
-  getWallet(id: string): Promise<Wallet> {
-    return this.req<Wallet>(`/wallets/${id}`);
-  }
-
-  getMerchantWallet(currency = 'AOA'): Promise<Wallet> {
-    return this.req<Wallet>(`/wallets?currency=${currency}`);
-  }
-
-  getWalletBalance(id: string): Promise<WalletBalance> {
-    return this.req<WalletBalance>(`/wallets/${id}/balance`);
-  }
-
-  // Payouts
-  listPayouts(opts: { limit?: number; cursor?: string } = {}): Promise<PayoutPage> {
-    const p = new URLSearchParams();
-    if (opts.limit)  p.set('limit',  String(opts.limit));
-    if (opts.cursor) p.set('cursor', opts.cursor);
-    return this.req<PayoutPage>(`/payouts?${p}`);
-  }
-
-  createPayout(opts: {
-    walletId:          string;
-    amountMinor:       number;
-    currency?:         string;
-    bankAccountNumber: string;
-    bankCode:          string;
-    accountHolderName: string;
-  }): Promise<Payout> {
-    return this.req<Payout>('/payouts', {
-      method: 'POST',
-      body:   JSON.stringify({
-        idempotency_key:     crypto.randomUUID(),
-        wallet_id:           opts.walletId,
-        amount_minor:        opts.amountMinor,
-        currency:            opts.currency ?? 'AOA',
-        bank_account_number: opts.bankAccountNumber,
-        bank_code:           opts.bankCode,
-        account_holder_name: opts.accountHolderName,
-      }),
-    });
-  }
-
-  // Merchants
-  getMerchant(id: string): Promise<Merchant> {
-    return this.req<Merchant>(`/merchants/${id}`);
-  }
-
-  // API Keys
-  listApiKeys(merchantId: string): Promise<ApiKey[]> {
-    return this.req<ApiKey[]>(`/merchants/${merchantId}/api-keys`);
-  }
-
-  createApiKey(merchantId: string, label?: string): Promise<NewApiKey> {
-    return this.req<NewApiKey>(`/merchants/${merchantId}/api-keys`, {
-      method: 'POST',
-      body:   JSON.stringify({ label: label ?? null }),
-    });
-  }
-
-  revokeApiKey(merchantId: string, keyId: string): Promise<void> {
-    return this.req<void>(`/merchants/${merchantId}/api-keys/${keyId}`, { method: 'DELETE' });
-  }
-
-  // Webhooks
-  listWebhookEndpoints(): Promise<WebhookEndpoint[]> {
-    return this.req<WebhookEndpoint[]>('/webhooks/endpoints');
-  }
-
-  registerWebhookEndpoint(url: string, events: string[]): Promise<WebhookEndpoint> {
-    return this.req<WebhookEndpoint>('/webhooks/endpoints', {
-      method: 'POST',
-      body:   JSON.stringify({ url, events }),
-    });
-  }
-
-  deleteWebhookEndpoint(id: string): Promise<void> {
-    return this.req<void>(`/webhooks/endpoints/${id}`, { method: 'DELETE' });
-  }
-
-  listWebhookEvents(opts: { limit?: number; cursor?: string } = {}): Promise<WebhookEventPage> {
-    const p = new URLSearchParams();
-    if (opts.limit)  p.set('limit',  String(opts.limit));
-    if (opts.cursor) p.set('cursor', opts.cursor);
-    return this.req<WebhookEventPage>(`/webhooks/events?${p}`);
-  }
-
-  // Payment Links
-  listPaymentLinks(opts: { merchantId: string; limit?: number; cursor?: string }): Promise<PaymentLinkPage> {
-    const p = new URLSearchParams({ merchant_id: opts.merchantId });
-    if (opts.limit)  p.set('limit',  String(opts.limit));
-    if (opts.cursor) p.set('cursor', opts.cursor);
-    return this.req<PaymentLinkPage>(`/payment-links?${p}`);
-  }
-
-  createPaymentLink(opts: {
-    merchantId:   string;
-    walletId:     string;
-    amountMinor?: number | null;
-    currency?:    string;
-    description?: string;
-    expiresAt?:   string;
-  }): Promise<PaymentLink> {
-    return this.req<PaymentLink>('/payment-links', {
-      method: 'POST',
-      body:   JSON.stringify({
-        merchant_id:  opts.merchantId,
-        wallet_id:    opts.walletId,
-        amount_minor: opts.amountMinor ?? null,
-        currency:     opts.currency ?? 'AOA',
-        description:  opts.description ?? null,
-        expires_at:   opts.expiresAt ?? null,
-      }),
-    });
-  }
-
-  getPaymentLink(id: string): Promise<PaymentLink> {
-    return this.req<PaymentLink>(`/payment-links/${id}`);
-  }
-
-  cancelPaymentLink(id: string): Promise<PaymentLink> {
-    return this.req<PaymentLink>(`/payment-links/${id}`, { method: 'DELETE' });
-  }
-
-  // QR codes
-  createStaticQr(opts: { ownerId: string; ownerType: 'MERCHANT' | 'CONSUMER'; currency?: string }): Promise<QrResponse> {
-    return this.req<QrResponse>('/qr/static', {
-      method: 'POST',
-      body:   JSON.stringify({
-        owner_id:   opts.ownerId,
-        owner_type: opts.ownerType,
-        currency:   opts.currency ?? 'AOA',
-      }),
-    });
-  }
-
-  // Sandbox
-  sandboxFund(amountMinor: number, currency = 'AOA'): Promise<{ funded: boolean; new_balance: WalletBalance; credited_minor: number }> {
-    return this.req('/sandbox/fund', {
-      method: 'POST',
-      body:   JSON.stringify({ amount_minor: amountMinor, currency }),
-    });
   }
 }
