@@ -60,9 +60,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
 
 		// Consumers
-		r.Get("/admin/v1/consumers",               consumerH.List)
-		r.Get("/admin/v1/consumers/{id}",          consumerH.Get)
-		r.Patch("/admin/v1/consumers/{id}/badge",  consumerH.SetBadge)
+		r.Get("/admin/v1/consumers",                    consumerH.List)
+		r.Get("/admin/v1/consumers/{id}",               consumerH.Get)
+		r.Post("/admin/v1/consumers/{id}/suspend",      consumerH.Suspend)
+		r.Patch("/admin/v1/consumers/{id}/badge",       consumerH.SetBadge)
 
 		// Compliance
 		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)

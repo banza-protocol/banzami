@@ -51,6 +51,25 @@ func (h *ConsumerHandler) Get(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// POST /admin/v1/consumers/{id}/suspend
+func (h *ConsumerHandler) Suspend(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	result, err := h.core.SuspendConsumer(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]any{
+				"error": map[string]any{"code": "NOT_FOUND", "message": "consumer not found"},
+			})
+			return
+		}
+		writeJSON(w, http.StatusUnprocessableEntity, map[string]any{
+			"error": map[string]any{"code": "UNPROCESSABLE", "message": err.Error()},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // PATCH /admin/v1/consumers/{id}/badge
 func (h *ConsumerHandler) SetBadge(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

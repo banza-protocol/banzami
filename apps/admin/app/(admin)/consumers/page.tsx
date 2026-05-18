@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, ArrowLeft, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Search, ArrowLeft, ShieldCheck, ShieldOff, Ban } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type Consumer, type VerificationBadge } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
@@ -16,6 +16,10 @@ export default function ConsumersPage() {
   const [consumer, setConsumer]   = useState<Consumer | null>(null);
   const [badgeSaving, setBadgeSaving] = useState(false);
   const [badgeError,  setBadgeError]  = useState('');
+
+  const [showSuspend, setShowSuspend]     = useState(false);
+  const [suspending,  setSuspending]      = useState(false);
+  const [suspendError, setSuspendError]   = useState('');
   const loadConsumers = useCallback(async (q?: string) => {
     const session = getSession();
     if (!session) return;
@@ -36,6 +40,23 @@ export default function ConsumersPage() {
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     loadConsumers(search.trim() || undefined);
+  }
+
+  async function handleSuspend() {
+    if (!consumer) return;
+    const session = getSession();
+    if (!session) return;
+    setSuspending(true); setSuspendError('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const updated = await api.suspendConsumer(consumer.id);
+      setConsumer(updated);
+      setShowSuspend(false);
+    } catch (e) {
+      setSuspendError(e instanceof Error ? e.message : 'Erro ao suspender.');
+    } finally {
+      setSuspending(false);
+    }
   }
 
   async function handleSetBadge(badge: VerificationBadge | null) {
@@ -124,6 +145,58 @@ export default function ConsumersPage() {
               } />
             </div>
           </div>
+
+          {/* Suspend action */}
+          {consumer.status !== 'SUSPENDED' && (
+            <div className="bg-white rounded-lg shadow-card overflow-hidden">
+              <div className="px-xl py-lg border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-sm">
+                  <Ban size={15} className="text-gray-400" />
+                  Acções de conta
+                </h3>
+              </div>
+              <div className="px-xl py-lg flex flex-wrap gap-sm">
+                <button
+                  onClick={() => { setShowSuspend(true); setSuspendError(''); }}
+                  className="px-lg py-sm text-sm font-medium rounded-md border border-error/40 text-error bg-error-bg hover:bg-red-100 transition-colors"
+                >
+                  Suspender
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Suspend confirmation modal */}
+          {showSuspend && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-md">
+              <div className="bg-white rounded-xl shadow-xl w-full max-w-sm p-xl flex flex-col gap-lg">
+                <h3 className="text-sm font-semibold text-gray-900">Suspender @{consumer.handle}?</h3>
+                <p className="text-xs text-gray-500">
+                  A conta ficará imediatamente inactiva. Esta acção pode ser revertida via API.
+                </p>
+                {suspendError && (
+                  <p className="text-xs text-error bg-error-bg rounded-lg px-lg py-sm">{suspendError}</p>
+                )}
+                <div className="flex gap-sm justify-end">
+                  <button
+                    onClick={() => setShowSuspend(false)}
+                    disabled={suspending}
+                    className="px-lg py-sm text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleSuspend}
+                    disabled={suspending}
+                    className="px-lg py-sm text-sm font-medium rounded-md bg-error text-white hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-sm"
+                  >
+                    {suspending && <Spinner className="h-3 w-3" />}
+                    Confirmar suspensão
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Badge control */}
           <div className="bg-white rounded-lg shadow-card overflow-hidden">
