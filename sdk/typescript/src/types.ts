@@ -216,9 +216,22 @@ export interface WebhookEndpoint {
   created_at: string;
 }
 
+/**
+ * Canonical event types dispatched by the Banzami api-gateway.
+ * Use `string` for forward-compatibility with types not yet in this list.
+ */
+export type WebhookEventType =
+  | 'payment_link.paid'
+  | 'transaction.completed'
+  | 'transaction.failed'
+  | 'payout.created'
+  | 'payout.completed'
+  | 'payout.failed';
+
 export interface WebhookEvent {
   id:         string;
-  type:       string;
-  payload:    unknown;
+  type:       WebhookEventType | string;
+  /** Event-specific payload. Cast to a typed interface after checking `type`. */
+  data:       unknown;
   created_at: string;
 }

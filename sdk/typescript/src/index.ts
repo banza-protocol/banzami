@@ -1,9 +1,20 @@
-export { BanzamiClient }                        from './client.js';
-export type { BanzamiClientOptions, BanzamiHooks } from './client.js';
+export { BanzamiClient }                              from './client.js';
+export type { BanzamiClientOptions, BanzamiHooks }   from './client.js';
 
-export { BanzamiApiError } from './errors.js';
+export { BanzamiApiError }                           from './errors.js';
 
-export { formatMinor, addMinor, subtractMinor } from './money.js';
+export {
+  WebhooksClient,
+  BanzamiWebhookSignatureError,
+  constructEvent,
+  verifySignature,
+  generateTestSignature,
+  generateTestEvent,
+  SIGNATURE_HEADER,
+  TOLERANCE_SECONDS,
+} from './webhooks.js';
+
+export { formatMinor, addMinor, subtractMinor }      from './money.js';
 
 export type {
   BanzamiEnvironment,
@@ -36,4 +47,5 @@ export type {
   WebhookEndpoint,
   WebhookEndpointStatus,
   WebhookEvent,
+  WebhookEventType,
 } from './types.js';

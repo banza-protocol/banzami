@@ -1,18 +1,23 @@
-// Run: ts-node examples/node-webhook.ts
+/**
+ * Banzami Webhook Handler — Node.js example
+ *
+ * Uses `banzami.webhooks.constructEvent()` which handles:
+ *   - Banzami-Signature header parsing (t=<unix>,v1=<hex>)
+ *   - HMAC-SHA256 verification with timestamp in the signed payload
+ *   - 300-second replay-attack protection window
+ *   - Constant-time comparison
+ *
+ * Run: ts-node examples/node-webhook.ts
+ */
 
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { createHmac, timingSafeEqual }                    from 'node:crypto';
+import { BanzamiClient, BanzamiWebhookSignatureError, SIGNATURE_HEADER } from '../src/index.js';
+import type { WebhookEvent } from '../src/index.js';
 
-const WEBHOOK_SECRET = process.env.BANZAMI_WEBHOOK_SECRET!;
-
-function verifySignature(rawBody: Buffer, signature: string, secret: string): boolean {
-  if (!signature) return false;
-  const expected = 'sha256=' + createHmac('sha256', secret).update(rawBody).digest('hex');
-  const expBuf   = Buffer.from(expected);
-  const sigBuf   = Buffer.from(signature);
-  if (expBuf.length !== sigBuf.length) return false;
-  return timingSafeEqual(expBuf, sigBuf);
-}
+const banzami = new BanzamiClient({
+  apiKey:        process.env.BANZAMI_API_KEY!,
+  webhookSecret: process.env.BANZAMI_WEBHOOK_SECRET!,
+});
 
 createServer((req: IncomingMessage, res: ServerResponse) => {
   if (req.method !== 'POST' || req.url !== '/webhooks/banzami') {
@@ -23,28 +28,46 @@ createServer((req: IncomingMessage, res: ServerResponse) => {
   const chunks: Buffer[] = [];
   req.on('data', (chunk: Buffer) => chunks.push(chunk));
   req.on('end', () => {
-    const rawBody   = Buffer.concat(chunks);
-    const signature = (req.headers['x-banzami-signature'] as string) ?? '';
+    const rawBody        = Buffer.concat(chunks);
+    // Header name lookup is case-insensitive in Node.js; the canonical name is
+    // SIGNATURE_HEADER = 'Banzami-Signature'.
+    const signatureHeader = (req.headers[SIGNATURE_HEADER.toLowerCase()] as string) ?? '';
 
-    if (!verifySignature(rawBody, signature, WEBHOOK_SECRET)) {
-      res.writeHead(401).end('Unauthorized');
+    let event: WebhookEvent;
+    try {
+      event = banzami.webhooks.constructEvent(rawBody, signatureHeader);
+    } catch (err) {
+      if (err instanceof BanzamiWebhookSignatureError) {
+        console.error('Webhook verification failed:', err.message);
+        res.writeHead(401).end('Unauthorized');
+      } else {
+        console.error('Unexpected error processing webhook:', err);
+        res.writeHead(500).end('Internal Server Error');
+      }
       return;
     }
 
-    const event = JSON.parse(rawBody.toString()) as { type: string; payload: unknown };
-
     switch (event.type) {
+      case 'payment_link.paid':
+        console.log('Payment link paid:', event.data);
+        break;
       case 'transaction.completed':
-        console.log('Transaction completed:', event.payload);
+        console.log('Transaction completed:', event.data);
         break;
       case 'transaction.failed':
-        console.log('Transaction failed:', event.payload);
+        console.log('Transaction failed:', event.data);
         break;
-      case 'payment_link.used':
-        console.log('Payment link used:', event.payload);
+      case 'payout.created':
+        console.log('Payout created:', event.data);
+        break;
+      case 'payout.completed':
+        console.log('Payout completed:', event.data);
+        break;
+      case 'payout.failed':
+        console.log('Payout failed:', event.data);
         break;
       default:
-        console.log('Webhook received:', event.type, event.payload);
+        console.log('Unhandled webhook event:', event.type, event.data);
     }
 
     res.writeHead(200).end('OK');
