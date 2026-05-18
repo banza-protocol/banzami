@@ -64,6 +64,23 @@ export interface Merchant {
   created_at: string;
 }
 
+export interface Wallet {
+  id:                   string;
+  merchant_id:          string;
+  currency:             string;
+  status:               'ACTIVE' | 'SUSPENDED' | 'CLOSED';
+  available_account_id: string;
+  reserved_account_id:  string;
+  created_at:           string;
+}
+
+export interface AdminCreditResult {
+  wallet_id:    string;
+  currency:     string;
+  amount_minor: number;
+  new_balance:  number;
+}
+
 export type VerificationBadge = 'CONSUMER' | 'MERCHANT';
 
 export interface Consumer {
@@ -208,6 +225,17 @@ export class AdminApi {
   }
   markPayoutReturned(id: string, reason: string): Promise<Payout> {
     return this.req(`/admin/v1/payouts/${id}/returned`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  // Wallets
+  getWallet(merchantId: string, currency = 'AOA'): Promise<Wallet> {
+    return this.req(`/admin/v1/wallets?merchant_id=${encodeURIComponent(merchantId)}&currency=${encodeURIComponent(currency)}`);
+  }
+  adminCreditWallet(walletId: string, amountMinor: number, reason: string, currency = 'AOA'): Promise<AdminCreditResult> {
+    return this.req(`/admin/v1/wallets/${walletId}/credit`, {
+      method: 'POST',
+      body:   JSON.stringify({ amount_minor: amountMinor, currency, reason }),
+    });
   }
 
   // Consumers

@@ -191,6 +191,122 @@ pub async fn sandbox_credit(
     }))
 }
 
+// ---------------------------------------------------------------------------
+// Admin
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+pub struct AdminCreditBody {
+    pub amount_minor: i64,
+    pub currency:     Option<String>,
+    pub reason:       String,
+}
+
+#[derive(Serialize)]
+pub struct AdminCreditResponse {
+    pub wallet_id:    String,
+    pub currency:     String,
+    pub amount_minor: i64,
+    pub new_balance:  i64,
+}
+
+/// POST /internal/v1/wallets/:id/admin-credit
+///
+/// Injects funds into a merchant wallet's available ledger account for admin
+/// purposes (beta funding, pilot merchants, TestFlight). No cap — admin-only.
+/// The `reason` field is required and embedded in the ledger posting description
+/// for full audit traceability.
+pub async fn admin_credit(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<AdminCreditBody>,
+) -> ApiResult<Json<AdminCreditResponse>> {
+    if body.reason.trim().is_empty() {
+        return Err(ApiError::bad_request("reason is required"));
+    }
+    if body.amount_minor <= 0 {
+        return Err(ApiError::bad_request("amount_minor must be positive"));
+    }
+
+    let wallet_id: WalletId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
+
+    let currency_code = body.currency.as_deref().unwrap_or("AOA");
+
+    let available_account_id: uuid::Uuid = sqlx::query_scalar(
+        "SELECT available_account_id
+         FROM wallets
+         WHERE id = $1 AND status = 'ACTIVE'",
+    )
+    .bind(wallet_id.as_uuid())
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
+
+    let posting_id = LedgerPostingId::new();
+    let now        = chrono::Utc::now();
+    let description = format!("[ADMIN] Manual wallet credit — {}", body.reason.trim());
+
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES ($1, $2, $3, $4)",
+    )
+    .bind(posting_id.as_uuid())
+    .bind(&description)
+    .bind(format!("admin-credit-{}-{}", wallet_id, uuid::Uuid::new_v4()))
+    .bind(now)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    sqlx::query(
+        "INSERT INTO ledger_entries
+         (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+    )
+    .bind(LedgerEntryId::new().as_uuid())
+    .bind(posting_id.as_uuid())
+    .bind(available_account_id)
+    .bind(body.amount_minor)
+    .bind(currency_code)
+    .bind(now)
+    .execute(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let new_balance: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(
+             SUM(CASE entry_type
+                 WHEN 'DEBIT'  THEN -amount_minor
+                 WHEN 'CREDIT' THEN  amount_minor
+                 END),
+             0)::BIGINT
+         FROM ledger_entries
+         WHERE account_id = $1",
+    )
+    .bind(available_account_id)
+    .fetch_one(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    tracing::info!(
+        wallet_id    = %wallet_id,
+        amount_minor = body.amount_minor,
+        currency     = currency_code,
+        reason       = %body.reason.trim(),
+        "admin credit applied to merchant wallet"
+    );
+
+    Ok(Json(AdminCreditResponse {
+        wallet_id:    wallet_id.to_string(),
+        currency:     currency_code.to_owned(),
+        amount_minor: body.amount_minor,
+        new_balance,
+    }))
+}
+
 /// GET /internal/v1/wallets?merchant_id=&currency=
 pub async fn get_for_merchant(
     State(state): State<AppState>,

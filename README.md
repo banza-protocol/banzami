@@ -339,6 +339,7 @@ banzami/
 │   ├── transfers/                 Instant P2P transfer engine
 │   ├── qr/                        Static and dynamic QR payment codes
 │   ├── payment-links/             Shareable URL payments for informal commerce
+│   ├── acquiring/                 Multicaixa Express acquiring — initiation, callbacks, wallet settlement
 │   └── api/                       Axum HTTP server wiring all domains
 │
 ├── services/                      Go services
@@ -421,7 +422,7 @@ banzami/
 │       └── CHANGELOG.md
 │
 ├── db/
-│   └── migrations/                Global PostgreSQL migrations (0001–0018)
+│   └── migrations/                Global PostgreSQL migrations (0001–0023)
 │
 ├── infra/
 │   ├── docker/                    Docker Compose for local development
@@ -430,10 +431,12 @@ banzami/
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
-│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-011)
+│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-012)
 │   ├── domains/                   Per-domain technical documentation
+│   │   ├── acquiring/             Acquiring flow, wallet settlement, EMIS integration
+│   │   └── consumer-deposits/     Consumer wallet top-up via Multicaixa Express
 │   ├── security/                  Security model and threat analysis
-│   ├── sandbox/                   Sandbox developer guide (test cards, utilities, env setup)
+│   ├── sandbox/                   Sandbox developer guide, env isolation, sandbox-vs-production
 │   ├── runbooks/                  Operational runbooks
 │   ├── playbooks/                 Incident playbooks
 │   └── api/                       API reference documentation
@@ -849,6 +852,19 @@ Idempotency: the pay endpoint uses `"pl-pay-" + link.ID` as the transfer idempot
 
 ---
 
+#### `banzami-acquiring`
+Multicaixa Express acquiring bridge. Connects payment links to EMIS (Angola's national instant payment network) and processes confirmation callbacks.
+
+Provider selection at boot via `ACQUIRING_PROVIDER` env var:
+- `SimulatedProvider` (default) — generates realistic references, signs callbacks locally, no external HTTP calls. Used in development, sandbox, and TestFlight.
+- `EMISProvider` — live EMIS Multicaixa Express integration. Requires `EMIS_*` env vars. Refuses to activate unless `APP_ENV=production`.
+
+On callback confirmation the acquiring route posts a double-entry ledger credit to the merchant wallet (`system:transit DR / wallet:available CR`), fully idempotent via `ledger_postings.idempotency_key`.
+
+Consumer deposits (`consumer_deposits` table) share the same provider infrastructure but credit consumer wallets via a separate callback endpoint. See [docs/domains/consumer-deposits/](docs/domains/consumer-deposits/).
+
+---
+
 ## Services
 
 ### API Gateway (`services/api-gateway`, port 8080)
@@ -948,16 +964,24 @@ Consumer-facing service. This is what the mobile app (Flutter SDK) calls directl
 Internal HTTP server binding all Rust domain crates. Only reachable from localhost. Uses Axum with `TraceLayer` for structured request tracing.
 
 **Configuration (environment variables):**
-| Variable                        | Default   | Description                                            |
-|---------------------------------|-----------|--------------------------------------------------------|
-| `DATABASE_URL`                  | required  | PostgreSQL connection string                           |
-| `CORE_API_PORT`                 | `8081`    | Listen port                                            |
-| `TRANSIT_ACCOUNT_ID`            | auto-gen  | Ledger account ID for in-flight funds                  |
-| `BANK_ACCOUNT_ID`               | auto-gen  | Ledger account ID for bank funds                       |
-| `RUST_LOG`                      | `warn`    | Log filter (e.g. `core_api=info,warn`)                 |
-| `QR_EXPIRY_INTERVAL_SECS`       | `60`      | How often the QR expiry background worker runs         |
-| `SETTLEMENT_SCHEDULER_INTERVAL_SECS` | `86400` | Settlement batch scheduler interval (default: daily) |
-| `BALANCE_CHECKER_INTERVAL_SECS` | `3600`   | Ledger invariant checker interval (default: hourly)    |
+| Variable                             | Default      | Description                                                     |
+|--------------------------------------|--------------|-----------------------------------------------------------------|
+| `DATABASE_URL`                       | required     | PostgreSQL connection string                                    |
+| `CORE_API_PORT`                      | `8081`       | Listen port                                                     |
+| `TRANSIT_ACCOUNT_ID`                 | auto-gen     | Ledger account ID for acquiring transit (in-flight funds)       |
+| `BANK_ACCOUNT_ID`                    | auto-gen     | Ledger account ID for bank settlement funds                     |
+| `APP_ENV`                            | (unset)      | Set to `production` to enable boot safety guard                 |
+| `ACQUIRING_PROVIDER`                 | `SIMULATED`  | `EMIS` for production Multicaixa Express; default is simulated  |
+| `ACQUIRING_WEBHOOK_SECRET`           | required     | HMAC-SHA256 secret for validating inbound acquiring callbacks   |
+| `EMIS_API_URL`                       | —            | EMIS API base URL (required when `ACQUIRING_PROVIDER=EMIS`)     |
+| `EMIS_API_KEY`                       | —            | EMIS API key (required when `ACQUIRING_PROVIDER=EMIS`)          |
+| `EMIS_ENTITY`                        | —            | EMIS entity number (required when `ACQUIRING_PROVIDER=EMIS`)    |
+| `RUST_LOG`                           | `warn`       | Log filter (e.g. `core_api=info,warn`)                          |
+| `QR_EXPIRY_INTERVAL_SECS`            | `60`         | How often the QR expiry background worker runs                  |
+| `SETTLEMENT_SCHEDULER_INTERVAL_SECS` | `86400`      | Settlement batch scheduler interval (default: daily)            |
+| `BALANCE_CHECKER_INTERVAL_SECS`      | `3600`       | Ledger invariant checker interval (default: hourly)             |
+
+**Boot safety guard:** if `APP_ENV=production` and `ACQUIRING_PROVIDER` is not `EMIS`, the process exits immediately with a fatal error. This prevents deploying simulated payments to production.
 
 ---
 
@@ -1072,10 +1096,19 @@ Observability:
 
 **Consumers**
 
-| Method | Path                       | Description              |
-|--------|----------------------------|--------------------------|
-| GET    | `/admin/v1/consumers`      | List consumers (optional `?handle=` filter) |
-| GET    | `/admin/v1/consumers/{id}` | Get consumer details     |
+| Method | Path                              | Description                                         |
+|--------|-----------------------------------|-----------------------------------------------------|
+| GET    | `/admin/v1/consumers`             | List consumers (optional `?handle=` filter)         |
+| GET    | `/admin/v1/consumers/{id}`        | Get consumer details                                |
+| POST   | `/admin/v1/consumers/{id}/suspend`| Suspend consumer account (requires `notes`)         |
+| PATCH  | `/admin/v1/consumers/{id}/badge`  | Set or clear verification badge (`badge: "CONSUMER"` or `null`) |
+
+**Wallets (admin)**
+
+| Method | Path                          | Description                                                        |
+|--------|-------------------------------|--------------------------------------------------------------------|
+| GET    | `/admin/v1/wallets`           | Get wallet by merchant (`?merchant_id=&currency=`)                 |
+| POST   | `/admin/v1/wallets/{id}/credit`| Manually credit a merchant wallet — requires `amount_minor`, `currency`, `reason` (mandatory). No cap. Creates auditable ledger posting. |
 
 Observability:
 - `GET /health` — liveness probe
@@ -1086,6 +1119,30 @@ Observability:
 ### Internal Routes (core-api, loopback only)
 
 The same operations are available at `/internal/v1/*` on port 8081. These are the routes the Go services actually call. They are never proxied to the public internet.
+
+**Acquiring**
+
+| Method | Path                                          | Description                                                    |
+|--------|-----------------------------------------------|----------------------------------------------------------------|
+| POST   | `/internal/v1/acquiring/payments`             | Initiate Multicaixa Express payment for a payment link         |
+| POST   | `/internal/v1/acquiring/callbacks/emis`       | Inbound EMIS callback — validates HMAC, confirms payment, credits merchant wallet |
+| POST   | `/internal/v1/acquiring/test/confirm`         | Dev helper — simulate confirmation for a pending payment (`?external_ref=`) |
+
+**Consumer Deposits**
+
+| Method | Path                                              | Description                                                      |
+|--------|---------------------------------------------------|------------------------------------------------------------------|
+| POST   | `/internal/v1/consumer-deposits`                  | Initiate a consumer wallet top-up via acquiring provider         |
+| GET    | `/internal/v1/consumer-deposits/{id}`             | Get deposit status                                               |
+| POST   | `/internal/v1/consumer-deposits/callback`         | Inbound callback — validates HMAC, confirms deposit, credits consumer wallet |
+| POST   | `/internal/v1/consumer-deposits/test-confirm`     | Dev helper — simulate confirmation (`?external_ref=`)            |
+
+**Wallet (admin credit)**
+
+| Method | Path                                          | Description                                                              |
+|--------|-----------------------------------------------|--------------------------------------------------------------------------|
+| POST   | `/internal/v1/wallets/{id}/sandbox-credit`    | Credit sandbox merchant wallet (capped at 100M AOA, dev/sandbox only)   |
+| POST   | `/internal/v1/wallets/{id}/admin-credit`      | Credit merchant wallet for any amount — requires `reason`. Full audit trail. |
 
 ---
 
@@ -1361,6 +1418,8 @@ All schema changes are managed as numbered migrations in `db/migrations/`. Migra
 | `0019`    | Consumer verification | `verification_badge TEXT CHECK ('CONSUMER','MERCHANT')` added to `consumers` |
 | `0020`    | Seed data           | Seed `verification_badge` for initial consumer accounts |
 | `0021`    | Merchant verification | `verified BOOLEAN NOT NULL DEFAULT false` added to `merchants` |
+| `0022`    | Consumer suspension | `suspension_notes TEXT` added to `consumers`         |
+| `0023`    | Consumer deposits   | `consumer_deposits` — Multicaixa top-up lifecycle for consumer wallets |
 
 ### Financial Precision
 
@@ -1734,7 +1793,7 @@ The Rust job spins up a PostgreSQL 16 service container so `#[sqlx::test]` integ
 |----------------------|----------------------------------------------------|
 | `make dev-up`        | Start PostgreSQL and Redis                         |
 | `make dev-down`      | Stop infrastructure                                |
-| `make db-migrate`    | Apply all pending migrations (currently 0001–0021) |
+| `make db-migrate`    | Apply all pending migrations (currently 0001–0023) |
 | `make db-reset`      | Drop, recreate, and re-migrate dev database        |
 | `make core-run`      | Run the Rust core-api (:8081)                      |
 | `make gateway-run`   | Run the Go api-gateway (:8080)                     |

@@ -8,7 +8,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 use banzami_acquiring::{AcquiringEngine, AcquiringError, AcquiringPayment};
-use banzami_types::PaymentLinkId;
+use banzami_types::{LedgerEntryId, LedgerPostingId, PaymentLinkId, WalletId};
 
 use crate::{
     error::{ApiError, ApiResult},
@@ -147,6 +147,122 @@ pub async fn emis_callback(
                 ApiError::unprocessable("INVALID_SIGNATURE", p.to_string()),
             other => map_err(other),
         })?;
+
+    // Wire the confirmed payment → wallet credit.
+    // Double-entry: system:transit DR / wallet:available CR
+    // Idempotency key is tied to the acquiring payment ID so retried callbacks
+    // result in a duplicate-key error on ledger_postings and are safely ignored.
+    let idempotency_key = format!("acquiring-settle-{}", payment.id);
+
+    let already_settled: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM ledger_postings WHERE idempotency_key = $1)",
+    )
+    .bind(&idempotency_key)
+    .fetch_one(&state.pool)
+    .await
+    .unwrap_or(false);
+
+    if !already_settled {
+        // Look up the wallet_id from the payment link.
+        let wallet_id_raw: Option<uuid::Uuid> = sqlx::query_scalar(
+            "SELECT pl.wallet_id
+             FROM acquiring_payments ap
+             JOIN payment_links pl ON pl.id = ap.payment_link_id
+             WHERE ap.id = $1",
+        )
+        .bind(payment.id.as_uuid())
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+        if let Some(wallet_id_raw) = wallet_id_raw {
+            let wallet_id: WalletId = wallet_id_raw.to_string().parse()
+                .map_err(|_| ApiError::internal("invalid wallet_id from payment link"))?;
+
+            let available_account_id: Option<uuid::Uuid> = sqlx::query_scalar(
+                "SELECT available_account_id FROM wallets WHERE id = $1 AND status = 'ACTIVE'",
+            )
+            .bind(wallet_id_raw)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+
+            if let Some(available_account_id) = available_account_id {
+                let posting_id = LedgerPostingId::new();
+                let now        = chrono::Utc::now();
+                let currency   = payment.amount.currency.code();
+
+                let _ = sqlx::query(
+                    "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+                     VALUES ($1, $2, $3, $4)
+                     ON CONFLICT (idempotency_key) DO NOTHING",
+                )
+                .bind(posting_id.as_uuid())
+                .bind(format!("Acquiring settlement — {}", payment.id))
+                .bind(&idempotency_key)
+                .bind(now)
+                .execute(&state.pool)
+                .await;
+
+                // Re-fetch the actual posted posting_id in case another request won the race.
+                let actual_posting_id: uuid::Uuid = sqlx::query_scalar(
+                    "SELECT id FROM ledger_postings WHERE idempotency_key = $1",
+                )
+                .bind(&idempotency_key)
+                .fetch_one(&state.pool)
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
+
+                let _ = sqlx::query(
+                    "INSERT INTO ledger_entries
+                     (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+                     VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)
+                     ON CONFLICT DO NOTHING",
+                )
+                .bind(LedgerEntryId::new().as_uuid())
+                .bind(actual_posting_id)
+                .bind(state.transit_account_id.as_uuid())
+                .bind(payment.amount.amount_minor())
+                .bind(currency)
+                .bind(now)
+                .execute(&state.pool)
+                .await;
+
+                let _ = sqlx::query(
+                    "INSERT INTO ledger_entries
+                     (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+                     VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)
+                     ON CONFLICT DO NOTHING",
+                )
+                .bind(LedgerEntryId::new().as_uuid())
+                .bind(actual_posting_id)
+                .bind(available_account_id)
+                .bind(payment.amount.amount_minor())
+                .bind(currency)
+                .bind(now)
+                .execute(&state.pool)
+                .await;
+
+                tracing::info!(
+                    payment_id   = %payment.id,
+                    wallet_id    = %wallet_id,
+                    amount_minor = payment.amount.amount_minor(),
+                    currency     = currency,
+                    "acquiring: wallet credited after callback settlement"
+                );
+            } else {
+                tracing::warn!(
+                    payment_id = %payment.id,
+                    "acquiring: wallet not active or not found — skipping settlement credit"
+                );
+            }
+        } else {
+            tracing::warn!(
+                payment_id = %payment.id,
+                "acquiring: no wallet_id on payment link — skipping settlement credit"
+            );
+        }
+    }
 
     Ok(Json(payment.into()))
 }

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw, Trash2, ShieldCheck, ShieldOff } from 'lucide-react';
+import { Search, Plus, Copy, Check, ArrowLeft, Mail, RefreshCw, Trash2, ShieldCheck, ShieldOff, Wallet } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { AdminApi, type Merchant, type MerchantCompliance } from '@/lib/admin-api';
+import { AdminApi, type Merchant, type MerchantCompliance, type Wallet as MerchantWallet } from '@/lib/admin-api';
 import { Badge } from '@/components/ui/badge';
 import { Spinner } from '@/components/ui/spinner';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -72,6 +72,14 @@ export default function MerchantsPage() {
   const [verifiedSaving, setVerifiedSaving] = useState(false);
   const [verifiedError, setVerifiedError]   = useState('');
 
+  // Wallet + admin credit state
+  const [wallet, setWallet]               = useState<MerchantWallet | null>(null);
+  const [creditAmount, setCreditAmount]   = useState('');
+  const [creditReason, setCreditReason]   = useState('');
+  const [crediting, setCrediting]         = useState(false);
+  const [creditMsg, setCreditMsg]         = useState('');
+  const [lastBalance, setLastBalance]     = useState<number | null>(null);
+
   // Create state
   const [createName, setCreateName]         = useState('');
   const [createEmail, setCreateEmail]       = useState('');
@@ -106,11 +114,15 @@ export default function MerchantsPage() {
   async function openDetail(id: string) {
     const session = getSession();
     if (!session) return;
-    setDetailLoading(true); setDetailError(''); setMerchant(null); setCompliance(null);
+    setDetailLoading(true); setDetailError('');
+    setMerchant(null); setCompliance(null); setWallet(null);
+    setCreditMsg(''); setCreditAmount(''); setCreditReason(''); setLastBalance(null);
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
       const [m, c] = await Promise.all([api.getMerchant(id), api.getMerchantCompliance(id)]);
       setMerchant(m); setCompliance(c);
+      // Fetch wallet in background — non-fatal if missing
+      api.getWallet(id, 'AOA').then(setWallet).catch(() => {});
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : 'Erro.');
     } finally {
@@ -156,6 +168,28 @@ export default function MerchantsPage() {
       setVerifiedError(e instanceof Error ? e.message : 'Erro ao atualizar verificação.');
     } finally {
       setVerifiedSaving(false);
+    }
+  }
+
+  async function handleAdminCredit() {
+    if (!wallet) return;
+    const session = getSession();
+    if (!session) return;
+    const amountKz = parseFloat(creditAmount);
+    if (!amountKz || amountKz <= 0) { setCreditMsg('Valor inválido.'); return; }
+    if (!creditReason.trim()) { setCreditMsg('Motivo obrigatório.'); return; }
+    const amountMinor = Math.round(amountKz * 100);
+    setCrediting(true); setCreditMsg('');
+    try {
+      const api = new AdminApi(session.apiUrl, session.adminKey);
+      const result = await api.adminCreditWallet(wallet.id, amountMinor, creditReason.trim());
+      setLastBalance(result.new_balance);
+      setCreditMsg(`✓ Crédito aplicado. Saldo disponível: ${(result.new_balance / 100).toLocaleString('pt-AO', { minimumFractionDigits: 2 })} ${result.currency}`);
+      setCreditAmount(''); setCreditReason('');
+    } catch (e) {
+      setCreditMsg(e instanceof Error ? e.message : 'Erro ao aplicar crédito.');
+    } finally {
+      setCrediting(false);
     }
   }
 
@@ -261,7 +295,7 @@ export default function MerchantsPage() {
       {/* ── Detail view ────────────────────────────────────────────────── */}
       {tab === 'list' && (merchant || detailLoading || detailError) && (
         <>
-          <button onClick={() => { setMerchant(null); setCompliance(null); setAction(null); }}
+          <button onClick={() => { setMerchant(null); setCompliance(null); setAction(null); setWallet(null); setCreditMsg(''); setLastBalance(null); }}
             className="flex items-center gap-sm text-sm text-gray-400 hover:text-gray-900 transition-colors self-start">
             <ArrowLeft size={14} /> Voltar à lista
           </button>
@@ -348,6 +382,52 @@ export default function MerchantsPage() {
                   Apagar Comerciante
                 </button>
               </div>
+
+              {/* Admin credit — shown only when wallet is loaded */}
+              {wallet && (
+                <div className="bg-white rounded-lg shadow-card p-xl">
+                  <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg flex items-center gap-xs">
+                    <Wallet size={13} />Crédito Manual
+                  </p>
+                  {lastBalance !== null && (
+                    <p className="text-xs text-gray-500 mb-md">
+                      Saldo disponível: <span className="font-medium text-gray-900">{(lastBalance / 100).toLocaleString('pt-AO', { minimumFractionDigits: 2 })} AOA</span>
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-md">
+                    <div className="flex gap-md">
+                      <input
+                        type="number"
+                        min="1"
+                        step="0.01"
+                        value={creditAmount}
+                        onChange={e => setCreditAmount(e.target.value)}
+                        placeholder="Valor em Kz (ex: 50000)"
+                        className="flex-1 h-9 bg-gray-50 border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-gray-900/20"
+                      />
+                    </div>
+                    <input
+                      value={creditReason}
+                      onChange={e => setCreditReason(e.target.value)}
+                      placeholder="Motivo (obrigatório) — ex: TestFlight beta funding"
+                      className="h-9 bg-gray-50 border border-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-gray-900/20"
+                    />
+                    <button
+                      onClick={handleAdminCredit}
+                      disabled={crediting || !creditAmount || !creditReason.trim()}
+                      className="h-9 px-lg bg-gray-900 text-white rounded-md text-xs font-medium hover:bg-gray-700 disabled:opacity-50 transition-colors flex items-center gap-sm self-start"
+                    >
+                      {crediting && <Spinner className="h-3 w-3" />}
+                      Aplicar crédito
+                    </button>
+                    {creditMsg && (
+                      <p className={`text-xs font-mono break-all ${creditMsg.startsWith('✓') ? 'text-success' : 'text-error'}`}>
+                        {creditMsg}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <div className="bg-white rounded-lg shadow-card p-xl">
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-lg">Credenciais</p>
