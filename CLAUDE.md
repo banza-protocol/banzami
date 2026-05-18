@@ -1215,7 +1215,117 @@ See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for the full rationale, t
 
 ---
 
-# 15. Final Principle
+# 15. Documentation Source of Truth
+
+## 15.1 The Rule
+
+`docs/BANZAMI_REFERENCE.md` is the **single source of truth** for the entire public Banzami ecosystem.
+
+This is a binding architectural constraint.
+
+---
+
+## 15.2 What BANZAMI_REFERENCE.md Is
+
+It is simultaneously:
+
+* the canonical product definition,
+* the official ecosystem description,
+* the official public positioning,
+* the official architecture reference,
+* the official payment philosophy,
+* the official UX philosophy,
+* and the authoritative content source for the website.
+
+Think of it as: **The Constitution of the Banzami Ecosystem.**
+
+The public website is only the visual interface for consuming that constitution.
+
+---
+
+## 15.3 The Mandatory Content Flow
+
+```text
+BANZAMI_REFERENCE.md
+↓
+structured parsing / rendering
+↓
+website sections
+↓
+banzami.org
+```
+
+NEVER the reverse:
+
+```text
+website first → markdown later    ← FORBIDDEN
+```
+
+---
+
+## 15.4 The Publication Rule
+
+NOTHING may appear on:
+
+* banzami.org,
+* landing pages,
+* docs pages,
+* manifesto pages,
+* ecosystem pages,
+* architecture pages,
+* SDK explanation pages,
+* marketing pages,
+* investor or product pages,
+
+WITHOUT FIRST existing inside `docs/BANZAMI_REFERENCE.md`.
+
+---
+
+## 15.5 The Update Rule
+
+Whenever a new concept is added:
+
+* QR feature,
+* wallet flow,
+* SDK flow,
+* merchant experience,
+* risk or security model,
+* payment philosophy,
+* EMIS integration explanation,
+* mobile UX,
+* ecosystem principle,
+
+it MUST first be documented in `BANZAMI_REFERENCE.md`.
+
+Only after that may it appear publicly on the website.
+
+---
+
+## 15.6 Technical Implementation
+
+The `apps/docs` website is architected so that:
+
+* the markdown file drives public content,
+* sections are rendered from the parsed markdown,
+* architecture diagrams reference the markdown structure,
+* all future updates begin in the markdown file.
+
+The implementation uses:
+
+* `lib/reference.ts` — the content parsing engine,
+* section-based routing derived from H2 headings,
+* custom React components for callouts, diagrams, flow blocks,
+* MDX-compatible rendering where needed.
+
+---
+
+## 15.7 ADR Reference
+
+See [ADR-015](docs/adr/ADR-015-markdown-first-content-architecture.md) for full context, rationale, and implementation guidance.
+
+---
+
+# 16. Final Principle
 
 Every engineer working on Banzami must understand:
 
