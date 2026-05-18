@@ -16,6 +16,7 @@
 #   dashboard-frontend Next.js merchant dashboard
 #   pay-frontend       Next.js pay page (pay.banzami.org)
 #   checkout-frontend  Next.js checkout page
+#   docs-frontend      Next.js public website (banzami.org)
 
 set -euo pipefail
 
@@ -25,7 +26,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -167,6 +168,40 @@ deploy_checkout_frontend() {
   _deploy_frontend "checkout" "checkout-frontend" "banzami/checkout-frontend:latest" "banzami-checkout-frontend-1"
 }
 
+deploy_docs_frontend() {
+  step "docs-frontend" "Next.js public website (banzami.org)"
+
+  info "Syncing app source to server..."
+  rsync -az --delete \
+    --exclude='.git' \
+    --exclude='node_modules/' \
+    --exclude='.next/' \
+    "$REPO_ROOT/apps/docs/" \
+    "$REMOTE:/srv/banzami/src/apps/docs/"
+  ok "App sync complete"
+
+  info "Syncing BANZAMI_REFERENCE.md (build-time content source)..."
+  # The Dockerfile builds with repo root as context so it can COPY both
+  # apps/docs/ and docs/BANZAMI_REFERENCE.md into the image (ADR-015).
+  ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs"
+  rsync -az \
+    "$REPO_ROOT/docs/BANZAMI_REFERENCE.md" \
+    "$REMOTE:/srv/banzami/src/docs/BANZAMI_REFERENCE.md"
+  ok "Reference doc synced"
+
+  info "Building Docker image on server (context = repo root)..."
+  ssh "$REMOTE" "docker build $NO_CACHE \
+    -f /srv/banzami/src/apps/docs/Dockerfile \
+    -t banzami/docs-frontend:latest \
+    /srv/banzami/src/ 2>&1" \
+    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
+  ok "Image built"
+
+  info "Recreating container..."
+  ssh "$REMOTE" "docker rm -f banzami-docs-frontend-1 2>/dev/null || true; cd $REMOTE_COMPOSE_DIR && docker compose up -d docs-frontend 2>&1"
+  ok "Container started"
+}
+
 # Shared frontend deploy (Next.js apps all follow the same pattern)
 _deploy_frontend() {
   local app_name="$1"       # e.g. "admin"
@@ -238,6 +273,7 @@ for svc in "${SERVICES[@]}"; do
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
+    docs-frontend)      deploy_docs_frontend ;;
   esac
 done
 
