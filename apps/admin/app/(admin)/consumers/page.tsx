@@ -147,8 +147,8 @@ export default function ConsumersPage() {
               <Row label="Estado"    value={<Badge label={consumer.status} />} />
               <Row label="Criado em" value={new Date(consumer.created_at).toLocaleString('pt-AO', { dateStyle: 'medium', timeStyle: 'short' })} />
               <Row label="Badge de verificação" value={
-                consumer.verification_badge
-                  ? <Badge label={consumer.verification_badge} />
+                consumer.verification_badge === 'CONSUMER'
+                  ? <span className="text-xs font-medium text-amber-700 flex items-center gap-xs"><ShieldCheck size={13} />Verificado</span>
                   : <span className="text-gray-400 text-xs">Nenhum</span>
               } />
             </div>
