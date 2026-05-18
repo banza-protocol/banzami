@@ -40,6 +40,28 @@ export interface PayoutPage      { data: Payout[];             next_cursor?: str
 export interface WebhookEventPage{ data: WebhookEvent[];       next_cursor?: string; }
 export interface PaymentLinkPage { data: PaymentLink[];        next_cursor?: string; }
 
+export interface WebhookDelivery {
+  id:           string;
+  endpoint_id:  string;
+  event_id:     string;
+  status:       'PENDING' | 'DELIVERED' | 'FAILED' | 'RETRYING';
+  attempt:      number;
+  next_attempt?: string;
+  last_error?:  string;
+  created_at:   string;
+  updated_at:   string;
+}
+
+export interface EndpointHealth {
+  endpoint_id:      string;
+  total_24h:        number;
+  delivered_24h:    number;
+  failed_24h:       number;
+  last_delivery_at: string | null;
+  last_status:      string | null;
+  success_rate_pct: number;
+}
+
 // Bring in the re-exported types so the inline definitions above can reference them.
 import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banzami/sdk';
 
@@ -166,6 +188,20 @@ export class BanzamiApi {
 
   listWebhookEvents(opts: { limit?: number; cursor?: string } = {}): Promise<WebhookEventPage> {
     return this.client.listWebhookEvents(opts) as Promise<WebhookEventPage>;
+  }
+
+  /** @deprecated Pending SDK support for endpoint health. */
+  getEndpointHealth(endpointId: string): Promise<EndpointHealth> {
+    return this._legacyReq<EndpointHealth>(`/webhooks/endpoints/${encodeURIComponent(endpointId)}/health`);
+  }
+
+  /** @deprecated Pending SDK support for delivery replay. */
+  replayDelivery(deliveryId: string): Promise<WebhookDelivery> {
+    return this._legacyReq<WebhookDelivery>(`/webhooks/deliveries/${encodeURIComponent(deliveryId)}/replay`, { method: 'POST' });
+  }
+
+  listEventDeliveries(eventId: string): Promise<{ data: WebhookDelivery[] }> {
+    return this._legacyReq<{ data: WebhookDelivery[] }>(`/webhooks/events/${encodeURIComponent(eventId)}/deliveries`);
   }
 
   // -------------------------------------------------------------------------
