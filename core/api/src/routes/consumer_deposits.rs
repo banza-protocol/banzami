@@ -4,7 +4,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
 use banzami_acquiring::{AcquiringEngine, AcquiringError};
@@ -13,6 +13,7 @@ use banzami_types::{ConsumerId, Currency, LedgerEntryId, LedgerPostingId};
 
 use crate::{
     error::{ApiError, ApiResult},
+    routes::risk,
     state::AppState,
 };
 
@@ -73,6 +74,20 @@ pub async fn initiate(
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {currency_code}")))?;
 
     let amount = banzami_types::Money::new(body.amount_minor, currency);
+
+    // Refuse if the consumer account is frozen.
+    if risk::is_frozen(&state.pool, "CONSUMER", consumer_id.as_uuid()).await {
+        risk::flag_suspicious(
+            &state.pool, "CONSUMER", consumer_id.as_uuid(),
+            "FROZEN_ACCOUNT_ATTEMPT",
+            "deposit initiated for a frozen consumer",
+            serde_json::json!({ "amount_minor": body.amount_minor }),
+        ).await;
+        return Err(ApiError::unprocessable(
+            "ACCOUNT_FROZEN",
+            "consumer account is suspended",
+        ));
+    }
 
     // Look up (or create) the consumer's wallet.
     let wallet = state.consumer_wallet
@@ -333,6 +348,30 @@ pub async fn callback(
             .bind(now)
             .execute(&state.pool)
             .await;
+
+            // Velocity counters (fire-and-forget).
+            let hour_start = now.date_naive()
+                .and_hms_opt(now.hour(), 0, 0).map(|d| d.and_utc()).unwrap_or(now);
+            let day_start  = now.date_naive()
+                .and_hms_opt(0, 0, 0).map(|d| d.and_utc()).unwrap_or(now);
+            risk::increment_velocity(&state.pool, "CONSUMER", dep_consumer_id, "HOURLY", hour_start, dep_amount_minor).await;
+            risk::increment_velocity(&state.pool, "CONSUMER", dep_consumer_id, "DAILY",  day_start,  dep_amount_minor).await;
+
+            // Audit log (fire-and-forget).
+            risk::audit(
+                &state.pool,
+                "SYSTEM",
+                "DEPOSIT_SETTLED",
+                &format!("CONSUMER:{dep_consumer_id}"),
+                serde_json::json!({
+                    "deposit_id":   dep_id.to_string(),
+                    "wallet_id":    dep_wallet_id.to_string(),
+                    "amount_minor": dep_amount_minor,
+                    "currency":     dep_currency,
+                    "posting_id":   actual_posting_id.to_string(),
+                }),
+                None,
+            ).await;
 
             tracing::info!(
                 deposit_id   = %dep_id,

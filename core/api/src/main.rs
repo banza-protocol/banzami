@@ -1,10 +1,12 @@
 mod error;
+mod middleware;
 mod routes;
 mod state;
 
 use std::{env, time::Duration};
 
 use axum::{
+    middleware as axum_middleware,
     routing::{get, post},
     Router,
 };
@@ -225,6 +227,7 @@ async fn main() {
         .route("/internal/v1/consumer-deposits/test-confirm", post(routes::consumer_deposits::test_confirm))
 
         .with_state(state)
+        .layer(axum_middleware::from_fn(middleware::request_id))
         .layer(TraceLayer::new_for_http());
 
     let addr = format!("0.0.0.0:{port}");
