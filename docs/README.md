@@ -22,6 +22,8 @@ ADRs document the major technical decisions made in this project, their rational
 | [ADR-008](adr/ADR-008-dashboard-separation.md) | Dashboard Separation | Accepted |
 | [ADR-009](adr/ADR-009-payment-links.md) | Payment Links: Shareable URL Commerce Primitive | Accepted |
 | [ADR-010](adr/ADR-010-consumer-auth-pin-jwt.md) | Consumer Authentication: PIN + JWT | Accepted |
+| [ADR-011](adr/ADR-011-integration-ecosystem-strategy.md) | Integration Ecosystem Strategy: v1 | Accepted |
+| [ADR-012](adr/ADR-012-sdk-first-ecosystem.md) | SDK-First Ecosystem: Mandatory SDK Usage | Accepted |
 
 New ADRs should be numbered sequentially and placed in `docs/adr/`. ADRs are immutable once accepted — supersede with a new ADR rather than editing.
 

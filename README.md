@@ -583,6 +583,14 @@ QR is the primary payment modality for Angola's market — it works offline, req
 
 ---
 
+### SDK-First Ecosystem Policy
+
+**Banzami is an SDK-first platform.** All external integrations MUST use official Banzami SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
+
+The SDKs are not optional helper libraries. They are security boundaries, DX infrastructure, and payment orchestration layers. Without SDK standardization, integrations become inconsistent, security mistakes multiply, and ecosystem maintenance becomes impossible at scale.
+
+---
+
 ### Official Example Integrations
 
 Reference implementations that demonstrate correct, production-grade Banzami merchant integration. These serve as canonical guides for specific integration patterns.
@@ -598,6 +606,8 @@ Reference implementations that demonstrate correct, production-grade Banzami mer
 - Three-layer idempotency (initiation → confirmation → receipt)
 - Next.js `server-only` credential isolation
 - Poll-and-webhook dual-path payment confirmation
+
+> Doa's current implementation uses direct `fetch()` — a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to `@banzami/sdk` to become the complete canonical SDK example. See [`docs/integrations/doa/`](docs/integrations/doa/).
 
 Full documentation: [`docs/integrations/doa/`](docs/integrations/doa/)
 

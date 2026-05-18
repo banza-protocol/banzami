@@ -142,7 +142,9 @@ The badge is purely informational — it does not change any API behavior. The A
 
 ## API Client Architecture
 
-Doa does not use the Banzami TypeScript SDK. It makes direct `fetch()` calls from two server-only files:
+> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md), CLAUDE.md §14). The current direct `fetch()` implementation is a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to the official Banzami TypeScript SDK — see the [SDK Migration](#sdk-migration) section below.
+
+The current (transitional) implementation uses direct `fetch()` calls from two server-only files:
 
 ```
 lib/payments/providers/banzami.ts    ← initiation (POST /v1/payment-links)
@@ -151,9 +153,37 @@ app/api/donations/banzami-status/    ← status check (GET /v1/payment-links/{id
 
 Both files use `import 'server-only'` (Next.js compiler directive) to enforce that credentials never reach the browser. The module boundary is enforced at build time — importing either file from a `'use client'` component causes a build error.
 
-### Why not the TypeScript SDK?
+### SDK Migration
 
-The SDK provides retry, idempotency, and type safety. For Doa's narrow usage pattern (two endpoints, server-only calls, no need for retry at the SDK layer since API routes have their own error handling), the direct fetch approach is simpler and more transparent. A production SDK integration would be appropriate for applications with broader Banzami API surface coverage.
+The target architecture after SDK migration:
+
+```typescript
+// lib/payments/providers/banzami.ts — after migration
+import Banzami from '@banzami/sdk';
+
+const banzami = new Banzami({ apiKey: process.env.BANZAMI_API_KEY });
+// banzami.isSandbox → true when bz_test_ key — replaces IS_SANDBOX detection
+
+// Payment link creation
+const link = await banzami.paymentLinks.create({
+  merchantId:  MERCHANT_ID,
+  walletId:    WALLET_ID,
+  amount:      { minor: input.amount, currency: 'AOA' },
+  description: `DOA-${input.intent_id.slice(0, 8).toUpperCase()}`,
+  idempotencyKey: `banzami:${input.intent_id}`,
+});
+
+// Webhook verification
+const event = await banzami.webhooks.constructEvent(rawBody, sigHeader);
+```
+
+The SDK provides:
+- automatic environment routing (`bz_test_` → sandbox gateway, `bz_live_` → live gateway)
+- built-in idempotency key management and reuse across retries
+- exponential backoff on `429`/`5xx` responses
+- typed response models — no manual `as BanzamiPaymentLink` casts
+- `banzami.webhooks.constructEvent()` — replaces the manual `verifySignature()` implementation
+- `banzami.isSandbox` — replaces the `API_KEY.startsWith('bz_test_')` detection
 
 ---
 

@@ -890,7 +890,134 @@ We optimize for:
 
 ---
 
-# 14. Final Principle
+# 14. SDK-First Ecosystem Policy
+
+**Banzami is an SDK-first platform.**
+
+This is a binding architectural constraint, not a preference.
+
+## 14.1 The Rule
+
+ALL external applications integrating Banzami MUST use an official Banzami SDK.
+
+Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, curl wrappers, or handcrafted API clients are NOT the recommended integration path.
+
+They are NOT acceptable in:
+
+* official examples,
+* demos,
+* merchant integrations,
+* documentation,
+* showcase applications,
+* reference implementations,
+* plugins,
+* templates,
+* tutorials.
+
+## 14.2 Why SDKs Are Mandatory
+
+The SDKs are NOT optional helper libraries.
+
+They are:
+
+* security boundaries,
+* DX infrastructure,
+* payment orchestration layers,
+* compatibility layers,
+* ecosystem standardization tools.
+
+Official SDK usage guarantees:
+
+* consistent integrations,
+* safer integrations,
+* typed APIs,
+* automatic idempotency,
+* retry handling,
+* webhook verification,
+* environment isolation,
+* API evolution compatibility,
+* production-grade developer experience.
+
+Without SDK standardization:
+
+* integrations become inconsistent,
+* merchants implement payment logic incorrectly,
+* security mistakes multiply,
+* and ecosystem maintenance becomes impossible at scale.
+
+## 14.3 SDK Requirements
+
+All SDKs must provide:
+
+* typed APIs,
+* environment isolation (sandbox / live),
+* automatic idempotency key management,
+* retries with exponential backoff,
+* webhook signature verification,
+* QR payment helpers,
+* payment intent helpers,
+* standardized error hierarchy,
+* tracing and observability hooks,
+* structured logging support,
+* and production-grade documentation.
+
+## 14.4 Secret Key Rule
+
+Secret API keys MUST NEVER be used in frontend, browser, or mobile client code.
+
+* Server SDKs: secret keys only.
+* Client SDKs: publishable / public keys only.
+
+## 14.5 Mandatory SDKs for v1
+
+The following SDKs are required before the ecosystem is complete:
+
+Server-side:
+
+* TypeScript / Node.js SDK
+* PHP SDK
+* Python SDK
+* Go SDK
+
+Client-side:
+
+* Flutter SDK
+* JavaScript Browser SDK
+
+Future:
+
+* Laravel package
+* WordPress / WooCommerce plugin
+* Android native SDK
+* iOS native SDK
+
+## 14.6 If an SDK Does Not Exist
+
+If a required SDK is not yet production-ready, the SDK must be implemented FIRST.
+
+No production-facing integration should bypass the SDK layer because the SDK is not ready.
+
+SDK quality is a platform-critical priority.
+
+## 14.7 Documentation Rule
+
+All Banzami documentation must assume SDK usage by default.
+
+Raw HTTP examples are permitted only for:
+
+* low-level API reference sections,
+* debugging documentation,
+* advanced integration guides.
+
+SDK examples are the primary integration path in all other contexts.
+
+## 14.8 ADR Reference
+
+See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for the full rationale, tradeoffs, and implementation guidance.
+
+---
+
+# 15. Final Principle
 
 Every engineer working on Banzami must understand:
 
