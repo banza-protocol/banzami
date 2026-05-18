@@ -197,3 +197,54 @@ func (h *WebhookHandler) ListDeliveries(w http.ResponseWriter, r *http.Request) 
 
 	respond(w, http.StatusOK, map[string]any{"data": deliveries})
 }
+
+// ReplayDelivery handles POST /v1/webhooks/deliveries/{id}/replay.
+//
+// Re-queues a permanently-failed delivery as a new PENDING delivery.
+// Useful for manual recovery after an endpoint outage.
+func (h *WebhookHandler) ReplayDelivery(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"only merchant accounts may replay deliveries")
+		return
+	}
+
+	delivery, err := h.svc.ReplayDelivery(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	if err != nil {
+		if errors.Is(err, service.ErrEndpointNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "delivery not found")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"delivery could not be replayed")
+		return
+	}
+
+	respond(w, http.StatusCreated, delivery)
+}
+
+// EndpointHealth handles GET /v1/webhooks/endpoints/{id}/health.
+//
+// Returns delivery success/failure stats for the endpoint in the last 24 hours.
+func (h *WebhookHandler) EndpointHealth(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN",
+			"only merchant accounts may view endpoint health")
+		return
+	}
+
+	health, err := h.svc.EndpointHealth(r.Context(), principal.MerchantID, chi.URLParam(r, "id"))
+	if err != nil {
+		if errors.Is(err, service.ErrEndpointNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "endpoint not found")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"health could not be fetched")
+		return
+	}
+
+	respond(w, http.StatusOK, health)
+}

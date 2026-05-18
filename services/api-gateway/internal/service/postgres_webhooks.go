@@ -309,6 +309,105 @@ func (s *PostgresWebhookService) ListDeliveries(
 }
 
 // ---------------------------------------------------------------------------
+// Replay — re-queue a permanently-failed delivery
+// ---------------------------------------------------------------------------
+
+func (s *PostgresWebhookService) ReplayDelivery(ctx context.Context, merchantID, deliveryID string) (*WebhookDelivery, error) {
+	// Verify the delivery exists and belongs to the merchant's endpoint.
+	var eventID, endpointID string
+	err := s.pool.QueryRow(ctx,
+		`SELECT d.event_id, d.endpoint_id
+		 FROM webhook_deliveries d
+		 JOIN webhook_endpoints ep ON ep.id = d.endpoint_id
+		 JOIN webhook_events    e  ON e.id  = d.event_id
+		 WHERE d.id = $1 AND ep.merchant_id = $2`,
+		deliveryID, merchantID,
+	).Scan(&eventID, &endpointID)
+	if err != nil {
+		return nil, ErrEndpointNotFound
+	}
+
+	// Insert a fresh PENDING delivery — new UUID, reset attempt count.
+	now := time.Now().UTC()
+	newID := uuid.NewString()
+	_, err = s.pool.Exec(ctx,
+		`INSERT INTO webhook_deliveries
+		     (id, event_id, endpoint_id, status, attempt_count, scheduled_at, created_at)
+		 VALUES ($1, $2, $3, 'PENDING', 0, now(), now())`,
+		newID, eventID, endpointID,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("replay delivery: %w", err)
+	}
+
+	slog.Info("webhook delivery replayed", "original_id", deliveryID, "new_id", newID)
+
+	return &WebhookDelivery{
+		ID:         newID,
+		EventID:    eventID,
+		EndpointID: endpointID,
+		Status:     "PENDING",
+		CreatedAt:  now,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// EndpointHealth — delivery success/failure stats for the last 24 hours
+// ---------------------------------------------------------------------------
+
+func (s *PostgresWebhookService) EndpointHealth(ctx context.Context, merchantID, endpointID string) (*EndpointHealth, error) {
+	// Verify the endpoint belongs to the merchant.
+	var count int
+	err := s.pool.QueryRow(ctx,
+		`SELECT COUNT(1) FROM webhook_endpoints WHERE id = $1 AND merchant_id = $2`,
+		endpointID, merchantID,
+	).Scan(&count)
+	if err != nil || count == 0 {
+		return nil, ErrEndpointNotFound
+	}
+
+	type statsRow struct {
+		Total          int
+		Success        int
+		Failed         int
+		LastDelivered  *time.Time
+		LastFailed     *time.Time
+	}
+
+	var stats statsRow
+	err = s.pool.QueryRow(ctx,
+		`SELECT
+		     COUNT(*)                                                        AS total,
+		     COUNT(*) FILTER (WHERE status = 'SUCCESS')                     AS success,
+		     COUNT(*) FILTER (WHERE status = 'FAILED')                      AS failed,
+		     MAX(delivered_at) FILTER (WHERE status = 'SUCCESS')            AS last_delivered,
+		     MAX(created_at)   FILTER (WHERE status = 'FAILED')             AS last_failed
+		 FROM webhook_deliveries
+		 WHERE endpoint_id = $1
+		   AND created_at >= NOW() - INTERVAL '24 hours'`,
+		endpointID,
+	).Scan(&stats.Total, &stats.Success, &stats.Failed, &stats.LastDelivered, &stats.LastFailed)
+	if err != nil {
+		return nil, fmt.Errorf("endpoint health query: %w", err)
+	}
+
+	successRate := 0.0
+	if stats.Total > 0 {
+		successRate = float64(stats.Success) / float64(stats.Total) * 100
+	}
+
+	return &EndpointHealth{
+		EndpointID:      endpointID,
+		TotalLast24h:    stats.Total,
+		SuccessLast24h:  stats.Success,
+		FailedLast24h:   stats.Failed,
+		SuccessRatePct:  successRate,
+		LastDeliveredAt: stats.LastDelivered,
+		LastFailedAt:    stats.LastFailed,
+	}, nil
+}
+
+// ---------------------------------------------------------------------------
 // Background delivery worker
 // ---------------------------------------------------------------------------
 

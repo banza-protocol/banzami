@@ -69,6 +69,17 @@ type DispatchRequest struct {
 	Payload    json.RawMessage // raw domain object (e.g. a Transaction)
 }
 
+// EndpointHealth summarises delivery reliability for a single endpoint.
+type EndpointHealth struct {
+	EndpointID       string  `json:"endpoint_id"`
+	TotalLast24h     int     `json:"total_last_24h"`
+	SuccessLast24h   int     `json:"success_last_24h"`
+	FailedLast24h    int     `json:"failed_last_24h"`
+	SuccessRatePct   float64 `json:"success_rate_pct"`
+	LastDeliveredAt  *time.Time `json:"last_delivered_at,omitempty"`
+	LastFailedAt     *time.Time `json:"last_failed_at,omitempty"`
+}
+
 // WebhookService manages endpoint registration and reliable event delivery.
 // The production implementation persists state in PostgreSQL and runs a
 // persistent worker with exponential-backoff retries.
@@ -85,6 +96,14 @@ type WebhookService interface {
 
 	ListEvents(ctx context.Context, merchantID string, limit int) ([]*WebhookEvent, error)
 	ListDeliveries(ctx context.Context, eventID string) ([]*WebhookDelivery, error)
+
+	// ReplayDelivery re-queues a permanently-failed delivery as a new PENDING row,
+	// resetting the attempt counter. Safe to call multiple times — idempotent via
+	// a new UUID per replay, so each replay is a distinct delivery attempt.
+	ReplayDelivery(ctx context.Context, merchantID, deliveryID string) (*WebhookDelivery, error)
+
+	// EndpointHealth returns delivery success/failure stats for an endpoint.
+	EndpointHealth(ctx context.Context, merchantID, endpointID string) (*EndpointHealth, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -306,6 +325,42 @@ func (s *StubWebhookService) finalizeDelivery(id, status string, code int, body 
 			return
 		}
 	}
+}
+
+func (s *StubWebhookService) ReplayDelivery(_ context.Context, _, deliveryID string) (*WebhookDelivery, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, d := range s.deliveries {
+		if d.ID == deliveryID {
+			cp := *d
+			cp.Status = "pending"
+			return &cp, nil
+		}
+	}
+	return nil, errors.New("delivery not found")
+}
+
+func (s *StubWebhookService) EndpointHealth(_ context.Context, _, endpointID string) (*EndpointHealth, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	health := &EndpointHealth{EndpointID: endpointID}
+	cutoff := time.Now().UTC().Add(-24 * time.Hour)
+	for _, d := range s.deliveries {
+		if d.EndpointID != endpointID || d.CreatedAt.Before(cutoff) {
+			continue
+		}
+		health.TotalLast24h++
+		if d.Status == "success" {
+			health.SuccessLast24h++
+			health.LastDeliveredAt = d.DeliveredAt
+		} else if d.Status == "failed" {
+			health.FailedLast24h++
+		}
+	}
+	if health.TotalLast24h > 0 {
+		health.SuccessRatePct = float64(health.SuccessLast24h) / float64(health.TotalLast24h) * 100
+	}
+	return health, nil
 }
 
 func generateWebhookSecret() string {
