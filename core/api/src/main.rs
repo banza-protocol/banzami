@@ -220,6 +220,14 @@ async fn main() {
         .route("/internal/v1/acquiring/callbacks/emis",      post(routes::acquiring::emis_callback))
         .route("/internal/v1/acquiring/test/confirm",        post(routes::acquiring::test_confirm))
 
+        // Admin — operational control: freeze/unfreeze, risk flags, audit log, reconciliation
+        .route("/internal/v1/admin/freeze",                               post(routes::admin::freeze_account))
+        .route("/internal/v1/admin/freeze/:entity_type/:entity_id",       axum::routing::delete(routes::admin::unfreeze_account))
+        .route("/internal/v1/admin/risk-flags",                           get(routes::admin::list_risk_flags))
+        .route("/internal/v1/admin/audit-log",                            get(routes::admin::query_audit_log))
+        .route("/internal/v1/admin/acquiring-recon",                      post(routes::admin::run_acquiring_reconciliation).get(routes::admin::list_acquiring_reconciliation_runs))
+        .route("/internal/v1/admin/acquiring-recon/:run_id",              get(routes::admin::get_acquiring_reconciliation_run))
+
         // Consumer deposits — top-up consumer wallets via acquiring provider
         .route("/internal/v1/consumer-deposits",              post(routes::consumer_deposits::initiate))
         .route("/internal/v1/consumer-deposits/:id",          get(routes::consumer_deposits::get))

@@ -75,6 +75,57 @@ pub async fn initiate(
 
     let amount = banzami_types::Money::new(body.amount_minor, currency);
 
+    // KYC enforcement — apply deposit limits based on the consumer's KYC level.
+    // customer_compliance.customer_id is the same UUID as consumers.id.
+    {
+        let kyc_level: String = sqlx::query_scalar(
+            "SELECT COALESCE(kyc_level, 'NONE')
+             FROM customer_compliance
+             WHERE customer_id = $1",
+        )
+        .bind(consumer_id.as_uuid())
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        .unwrap_or_else(|| "NONE".to_string());
+
+        // Per-transaction limits (minor units). 1 Kz = 100 minor.
+        let (max_single, max_daily): (i64, i64) = match kyc_level.as_str() {
+            "FULL"     => (500_000_000_00, i64::MAX), // 5 000 000 Kz, unlimited daily
+            "ENHANCED" => (200_000_000_00, 1_000_000_000_00), // 2 000 000 / 10 000 000 Kz
+            "BASIC"    => (30_000_000_00,  100_000_000_00),   // 300 000 / 1 000 000 Kz
+            _          => (5_000_000_00,   10_000_000_00),    // 50 000 / 100 000 Kz (NONE)
+        };
+
+        if body.amount_minor > max_single {
+            return Err(ApiError::unprocessable(
+                "KYC_LIMIT_EXCEEDED",
+                format!("deposit exceeds single-transaction limit for KYC level {kyc_level}"),
+            ));
+        }
+
+        // Daily limit: sum velocity counters for today.
+        let (_h_count, _h_amt, _d_count, d_amt) =
+            risk::get_velocity(&state.pool, "CONSUMER", consumer_id.as_uuid()).await;
+        if max_daily != i64::MAX && d_amt.saturating_add(body.amount_minor) > max_daily {
+            risk::flag_suspicious(
+                &state.pool, "CONSUMER", consumer_id.as_uuid(),
+                "KYC_LIMIT_EXCEEDED",
+                &format!("daily deposit limit exceeded for KYC level {kyc_level}"),
+                serde_json::json!({
+                    "daily_so_far": d_amt,
+                    "requested": body.amount_minor,
+                    "limit": max_daily,
+                    "kyc_level": kyc_level,
+                }),
+            ).await;
+            return Err(ApiError::unprocessable(
+                "KYC_DAILY_LIMIT_EXCEEDED",
+                format!("daily deposit limit reached for KYC level {kyc_level}"),
+            ));
+        }
+    }
+
     // Refuse if the consumer account is frozen.
     if risk::is_frozen(&state.pool, "CONSUMER", consumer_id.as_uuid()).await {
         risk::flag_suspicious(
