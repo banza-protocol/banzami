@@ -3,6 +3,7 @@
 **Version:** 1.0  
 **Date:** 2026-05-19  
 **Status:** Official  
+**Author:** Fidel Monteiro — `@fm65`  
 
 ---
 
