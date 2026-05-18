@@ -3,7 +3,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
-import rehypeHighlight from 'rehype-highlight'
 import { ArchitectureDiagram } from './ArchitectureDiagram'
 import { Callout } from './Callout'
 
@@ -12,64 +11,109 @@ interface Props {
   className?: string
 }
 
+function isAsciiDiagram(text: string): boolean {
+  return (
+    text.includes('──') ||
+    text.includes('↓') ||
+    text.includes('→') ||
+    text.includes('↗') ||
+    text.includes('┌') ||
+    text.includes('│') ||
+    text.includes('└') ||
+    text.includes('▶') ||
+    (text.includes('←') && text.includes('─'))
+  )
+}
+
+function toAnchorId(text: string): string {
+  return String(text)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+}
+
 export function MarkdownSection({ content, className = '' }: Props) {
   return (
     <div className={`prose prose-banzami max-w-none ${className}`}>
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
-        rehypePlugins={[rehypeRaw, rehypeHighlight]}
+        rehypePlugins={[rehypeRaw]}
         components={{
-          // Render blockquotes as styled callout boxes
+          // Blockquotes → premium Callout
           blockquote({ children }) {
             return <Callout>{children}</Callout>
           },
-          // Detect ASCII diagrams in code blocks and render with ArchitectureDiagram
-          code({ className: cls, children, ...props }) {
-            const isBlock = !props.hasOwnProperty('inline')
-            const content = String(children).trim()
-            const isAsciiDiagram =
-              isBlock &&
-              !cls &&
-              (content.includes('──') ||
-                content.includes('↓') ||
-                content.includes('→') ||
-                content.includes('┌') ||
-                content.includes('│') ||
-                content.includes('└'))
 
-            if (isAsciiDiagram) {
-              return <ArchitectureDiagram>{content}</ArchitectureDiagram>
+          // Code blocks: detect ASCII diagrams, otherwise styled code
+          code({ className: cls, children, ...props }) {
+            const text = String(children).trim()
+            const isBlock = !Object.prototype.hasOwnProperty.call(props, 'inline')
+
+            if (isBlock && !cls && isAsciiDiagram(text)) {
+              return <ArchitectureDiagram>{text}</ArchitectureDiagram>
             }
 
+            if (isBlock) {
+              // Fenced code block with language
+              const lang = cls?.replace('language-', '') ?? ''
+              return (
+                <pre className={`language-${lang}`}>
+                  <code className={cls} {...props}>{children}</code>
+                </pre>
+              )
+            }
+
+            // Inline code
             return (
               <code className={cls} {...props}>
                 {children}
               </code>
             )
           },
-          // Section headings get anchor IDs for deep linking
+
+          // Anchored headings for deep linking
           h2({ children }) {
-            const id = String(children)
-              .toLowerCase()
-              .replace(/[^a-z0-9\s]/g, '')
-              .trim()
-              .replace(/\s+/g, '-')
+            const id = toAnchorId(String(children))
             return (
-              <h2 id={id} className="scroll-mt-20">
-                {children}
+              <h2 id={id} className="group scroll-mt-24">
+                <a href={`#${id}`} className="no-underline">
+                  {children}
+                </a>
               </h2>
             )
           },
           h3({ children }) {
-            const id = String(children)
-              .toLowerCase()
-              .replace(/[^a-z0-9\s.]/g, '')
-              .trim()
-              .replace(/\s+/g, '-')
+            const id = toAnchorId(String(children))
             return (
-              <h3 id={id} className="scroll-mt-20">
-                {children}
+              <h3 id={id} className="group scroll-mt-24">
+                <a href={`#${id}`} className="no-underline">
+                  {children}
+                </a>
               </h3>
+            )
+          },
+
+          // Tables with better styling
+          table({ children }) {
+            return (
+              <div className="overflow-x-auto">
+                <table>{children}</table>
+              </div>
+            )
+          },
+
+          // External links open in new tab
+          a({ href, children, ...props }) {
+            const isExternal = href?.startsWith('http')
+            return (
+              <a
+                href={href}
+                {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+                {...props}
+              >
+                {children}
+              </a>
             )
           },
         }}

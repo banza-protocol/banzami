@@ -3,23 +3,109 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --bz-primary:      #990011;
+    --bz-bg:           #FCF6F5;
+    --bz-surface:      #EAE0DF;
+    --bz-border:       #D4C9C7;
+    --bz-text:         #1A1A1A;
+    --bz-muted:        #6B6265;
+    --bz-gold:         #C89B3C;
+  }
+
   html {
     scroll-behavior: smooth;
+    background-color: var(--bz-bg);
+    color: var(--bz-text);
+  }
+
+  body {
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::selection {
-    background: theme('colors.banzami.200');
-    color: theme('colors.banzami.900');
+    background: rgb(153 0 17 / 0.15);
+    color: #7A000E;
   }
+
+  /* Subtle custom scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--bz-border); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--bz-muted); }
 }
 
 @layer components {
-  .prose pre {
-    @apply rounded-xl;
+  /* Flow step animation (used in PaymentFlowDiagram) */
+  .flow-step {
+    @apply transition-all duration-300;
+  }
+  .flow-step:hover {
+    @apply -translate-y-0.5;
   }
 
-  /* ASCII diagrams inside prose stay readable */
-  .prose .architecture-diagram {
-    @apply font-mono text-sm;
+  /* Premium card base */
+  .card {
+    @apply rounded-2xl border border-bz-border bg-white shadow-card transition-shadow duration-200;
   }
+  .card:hover {
+    @apply shadow-card-md;
+  }
+
+  /* Burgundy CTA button */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 rounded-xl bg-bz-primary px-5 py-2.5 text-sm font-semibold text-white shadow-primary transition-all duration-200;
+  }
+  .btn-primary:hover {
+    @apply bg-bz-primary-dark shadow-none -translate-y-px;
+  }
+
+  /* Ghost button */
+  .btn-ghost {
+    @apply inline-flex items-center gap-2 rounded-xl border border-bz-border bg-white px-5 py-2.5 text-sm font-semibold text-bz-text shadow-card transition-all duration-200;
+  }
+  .btn-ghost:hover {
+    @apply border-bz-primary text-bz-primary bg-bz-primary-light -translate-y-px;
+  }
+
+  /* Gold accent badge */
+  .badge-gold {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-bz-gold bg-bz-gold-light px-3 py-1 text-xs font-semibold text-amber-800;
+  }
+
+  /* Prose improvements */
+  .prose pre { @apply rounded-2xl !important; }
+  .prose code:not(pre code) {
+    @apply rounded-md bg-bz-primary-light px-1.5 py-0.5 text-bz-primary;
+  }
+  .prose table th { @apply bg-bz-surface; }
+  .prose table td { @apply align-top; }
+  .prose h2 { @apply scroll-mt-24; }
+  .prose h3 { @apply scroll-mt-24; }
+
+  /* Diagram-specific overrides */
+  .architecture-diagram { @apply font-mono text-sm leading-relaxed; }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .gradient-primary {
+    background: linear-gradient(135deg, var(--bz-primary) 0%, #CC001A 100%);
+  }
+  .gradient-warm {
+    background: linear-gradient(135deg, #FCF6F5 0%, #EAE0DF 100%);
+  }
+}
+
+/* Reading progress bar (used on reference page) */
+#reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 3px;
+  background: var(--bz-primary);
+  z-index: 9999;
+  transition: width 0.1s linear;
 }
