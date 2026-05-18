@@ -50,6 +50,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		consumerH       := handler.NewConsumerHandler(core)
 		walletH         := handler.NewWalletHandler(core)
 		riskH           := handler.NewRiskHandler(core)
+		disputeH        := handler.NewDisputeHandler(core)
 
 		// Merchants
 		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
@@ -109,6 +110,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/risk/acquiring-recon",                  riskH.RunAcquiringReconciliation)
 		r.Get("/admin/v1/risk/acquiring-recon",                   riskH.ListAcquiringReconciliationRuns)
 		r.Get("/admin/v1/risk/acquiring-recon/{id}",              riskH.GetAcquiringReconciliationRun)
+
+		// Disputes — admin resolution
+		r.Get("/admin/v1/disputes",            disputeH.List)
+		r.Get("/admin/v1/disputes/{id}",       disputeH.Get)
+		r.Post("/admin/v1/disputes/{id}/resolve", disputeH.Resolve)
 	})
 
 	// Wrap chi router with otelhttp: creates one span per request and records
