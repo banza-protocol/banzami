@@ -187,14 +187,19 @@ export default function MerchantsPage() {
       loadMerchants();
       return;
     }
-    let result: MerchantCompliance;
+    let compliance: MerchantCompliance;
     switch (action) {
-      case 'approve':  result = await api.approveMerchant(merchant.id); break;
-      case 'reject':   result = await api.rejectMerchant(merchant.id, notes); break;
-      case 'suspend':  result = await api.suspendMerchant(merchant.id, notes); break;
-      case 'flag_aml': result = await api.flagAML(merchant.id, notes); break;
+      case 'approve':  compliance = await api.approveMerchant(merchant.id); break;
+      case 'reject':   compliance = await api.rejectMerchant(merchant.id, notes); break;
+      case 'suspend':  compliance = await api.suspendMerchant(merchant.id, notes); break;
+      case 'flag_aml': compliance = await api.flagAML(merchant.id, notes); break;
+      default: return;
     }
-    setCompliance(result);
+    // Re-fetch merchant to pick up status changes driven by compliance actions
+    // (e.g. suspend → merchant.status becomes SUSPENDED).
+    const updated = await api.getMerchant(merchant.id);
+    setMerchant(updated);
+    setCompliance(compliance);
     setAction(null);
   }
 
