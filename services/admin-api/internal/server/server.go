@@ -49,6 +49,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		reconciliationH := handler.NewReconciliationHandler(core)
 		consumerH       := handler.NewConsumerHandler(core)
 		walletH         := handler.NewWalletHandler(core)
+		riskH           := handler.NewRiskHandler(core)
 
 		// Merchants
 		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
@@ -96,9 +97,18 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/payouts/{id}/fail", payoutH.Fail)
 		r.Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
 
-		// Reconciliation
+		// Reconciliation (settlement-level)
 		r.Post("/admin/v1/reconciliation/run",       reconciliationH.Run)
 		r.Get("/admin/v1/reconciliation/runs/{id}",  reconciliationH.Get)
+
+		// Risk — freeze/unfreeze, risk flags, audit log, acquiring reconciliation
+		r.Post("/admin/v1/risk/freeze",                           riskH.FreezeAccount)
+		r.Delete("/admin/v1/risk/freeze/{entity_type}/{entity_id}", riskH.UnfreezeAccount)
+		r.Get("/admin/v1/risk/flags",                             riskH.ListRiskFlags)
+		r.Get("/admin/v1/risk/audit-log",                         riskH.QueryAuditLog)
+		r.Post("/admin/v1/risk/acquiring-recon",                  riskH.RunAcquiringReconciliation)
+		r.Get("/admin/v1/risk/acquiring-recon",                   riskH.ListAcquiringReconciliationRuns)
+		r.Get("/admin/v1/risk/acquiring-recon/{id}",              riskH.GetAcquiringReconciliationRun)
 	})
 
 	// Wrap chi router with otelhttp: creates one span per request and records
