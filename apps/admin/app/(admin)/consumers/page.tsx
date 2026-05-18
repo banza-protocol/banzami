@@ -176,13 +176,16 @@ export default function ConsumersPage() {
                 <p className="text-xs text-gray-500">
                   A conta ficará imediatamente inactiva. Esta acção pode ser revertida via API.
                 </p>
-                <textarea
-                  value={suspendNotes}
-                  onChange={e => setSuspendNotes(e.target.value)}
-                  placeholder="Motivo ou observações…"
-                  rows={3}
-                  className="w-full text-sm border border-gray-200 rounded-md px-lg py-sm resize-none outline-none focus:ring-2 focus:ring-gray-900/20"
-                />
+                <div className="flex flex-col gap-xs">
+                  <label className="text-xs font-medium text-gray-700">Notas (obrigatório)</label>
+                  <textarea
+                    value={suspendNotes}
+                    onChange={e => setSuspendNotes(e.target.value)}
+                    placeholder="Motivo ou observações…"
+                    rows={3}
+                    className="w-full text-sm border border-gray-200 rounded-md px-lg py-sm resize-none outline-none focus:ring-2 focus:ring-gray-900/20"
+                  />
+                </div>
                 {suspendError && (
                   <p className="text-xs text-error bg-error-bg rounded-lg px-lg py-sm">{suspendError}</p>
                 )}
