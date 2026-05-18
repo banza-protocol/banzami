@@ -130,15 +130,25 @@ Obrigado por fazeres parte do beta Banzami Business!
 
 ---
 
-## Próxima submissão (App Store produção)
+## Próximas submissões
 
-Quando for submeter para a App Store pública (não TestFlight):
+### TestFlight (builds seguintes)
 
-1. Criar novas contas de revisão sandbox (não reutilizar as actuais — o reviewer pode ter feito alterações)
-2. Actualizar o bloco **App Store Review Notes** com as novas credenciais
-3. Actualizar o campo **Demo Account** em App Store Connect
-4. Mudar `method` no `ExportOptions.plist` de `app-store-connect` para `app-store` se necessário
-5. Adicionar linha ao Registo de submissões com nova data e build
+Builds submetidos ao mesmo grupo externo **não precisam de nova Beta App Review** da Apple. Basta:
+
+1. Incrementar o build number (`version: 1.0.0+2`, etc.)
+2. Submeter para App Store Connect → TestFlight → grupo externo existente
+3. Adicionar linha ao Registo de submissões
+
+Não é necessário actualizar as notas de revisão nem criar novas contas.
+
+### App Store (lançamento público)
+
+Quando for submeter para a App Store pública, a Apple faz uma revisão completa. Nessa altura:
+
+1. Criar contas de revisão sandbox frescas
+2. Preencher App Store Review Notes e Demo Account em App Store Connect
+3. Seguir o processo normal de submissão
 
 ---
 
@@ -167,8 +177,9 @@ Quando for submeter para a App Store pública (não TestFlight):
 
 ## Contas de revisão sandbox
 
-> **Estado:** Apps aprovadas em 2026-05-18. As contas de revisão abaixo podem ser desactivadas no sandbox.
-> Para futuras submissões basta reactivar ou criar novas contas.
+> **Estado:** Apps aprovadas em 2026-05-18 (TestFlight External).
+> As contas abaixo podem ser desactivadas — builds TestFlight seguintes não precisam de revisão Apple.
+> Só serão necessárias novas contas quando for submeter para a App Store pública.
 
 ### Consumer (Banzami)
 
