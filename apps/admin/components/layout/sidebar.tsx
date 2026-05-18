@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Building2, Users, Layers, Banknote, RefreshCw, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, Users, Layers, Banknote, RefreshCw, ShieldAlert, LogOut } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 
 const NAV = [
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/settlements',    label: 'Liquidações',  icon: Layers          },
   { href: '/payouts',        label: 'Pagamentos',   icon: Banknote        },
   { href: '/reconciliation', label: 'Reconciliação',icon: RefreshCw       },
+  { href: '/risk',           label: 'Risco & Audit', icon: ShieldAlert     },
 ];
 
 export function Sidebar() {

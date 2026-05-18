@@ -92,6 +92,53 @@ export interface Consumer {
   created_at:          string;
 }
 
+export interface RiskFlag {
+  id:          string;
+  entity_type: 'MERCHANT' | 'CONSUMER';
+  entity_id:   string;
+  flag_type:   string;
+  severity:    'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  description: string;
+  resolved:    boolean;
+  created_at:  string;
+}
+
+export interface AuditEntry {
+  id:         string;
+  actor:      string;
+  action:     string;
+  subject:    string;
+  metadata:   Record<string, unknown>;
+  request_id: string | null;
+  created_at: string;
+}
+
+export interface AcquiringReconRun {
+  id:                       string;
+  reconciliation_date:      string;
+  status:                   'RUNNING' | 'COMPLETED' | 'FAILED';
+  total_callbacks:          number;
+  matched:                  number;
+  missing_posting:          number;
+  amount_mismatch:          number;
+  total_discrepancy_minor:  number;
+  started_at:               string;
+  completed_at?:            string;
+  items?:                   AcquiringReconItem[];
+}
+
+export interface AcquiringReconItem {
+  id:                     string;
+  callback_id:            string;
+  acquiring_payment_id:   string | null;
+  status:                 'MATCHED' | 'MISSING_POSTING' | 'AMOUNT_MISMATCH' | 'DUPLICATE';
+  callback_amount_minor:  number | null;
+  ledger_amount_minor:    number | null;
+  external_ref:           string;
+  discrepancy_minor:      number;
+  reconciled_at:          string;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -257,8 +304,45 @@ export class AdminApi {
     });
   }
 
-  // Reconciliation
+  // Reconciliation (settlement-level)
   runReconciliation(): Promise<Record<string, unknown>> {
     return this.req('/admin/v1/reconciliation/run', { method: 'POST', body: JSON.stringify({}) });
+  }
+
+  // Risk — freeze/unfreeze
+  freezeAccount(entityType: 'MERCHANT' | 'CONSUMER', entityId: string, reason: string): Promise<Record<string, unknown>> {
+    return this.req('/admin/v1/risk/freeze', {
+      method: 'POST',
+      body:   JSON.stringify({ entity_type: entityType, entity_id: entityId, reason }),
+    });
+  }
+  unfreezeAccount(entityType: 'MERCHANT' | 'CONSUMER', entityId: string, reason: string): Promise<Record<string, unknown>> {
+    return this.req(`/admin/v1/risk/freeze/${entityType}/${entityId}`, {
+      method: 'DELETE',
+      body:   JSON.stringify({ reason }),
+    });
+  }
+  listRiskFlags(resolved = false): Promise<{ data: RiskFlag[] }> {
+    return this.req(`/admin/v1/risk/flags?resolved=${resolved}`);
+  }
+  queryAuditLog(params?: { subject?: string; actor?: string; action?: string; limit?: number }): Promise<{ data: AuditEntry[] }> {
+    const q = new URLSearchParams();
+    if (params?.subject) q.set('subject', params.subject);
+    if (params?.actor)   q.set('actor',   params.actor);
+    if (params?.action)  q.set('action',  params.action);
+    if (params?.limit)   q.set('limit',   String(params.limit));
+    return this.req(`/admin/v1/risk/audit-log?${q.toString()}`);
+  }
+
+  // Acquiring reconciliation
+  runAcquiringReconciliation(date?: string): Promise<AcquiringReconRun> {
+    const q = date ? `?date=${encodeURIComponent(date)}` : '';
+    return this.req(`/admin/v1/risk/acquiring-recon${q}`, { method: 'POST' });
+  }
+  listAcquiringReconciliationRuns(): Promise<{ data: AcquiringReconRun[] }> {
+    return this.req('/admin/v1/risk/acquiring-recon');
+  }
+  getAcquiringReconciliationRun(runId: string): Promise<AcquiringReconRun> {
+    return this.req(`/admin/v1/risk/acquiring-recon/${runId}`);
   }
 }
