@@ -130,6 +130,18 @@ Obrigado por fazeres parte do beta Banzami Business!
 
 ---
 
+## Próxima submissão (App Store produção)
+
+Quando for submeter para a App Store pública (não TestFlight):
+
+1. Criar novas contas de revisão sandbox (não reutilizar as actuais — o reviewer pode ter feito alterações)
+2. Actualizar o bloco **App Store Review Notes** com as novas credenciais
+3. Actualizar o campo **Demo Account** em App Store Connect
+4. Mudar `method` no `ExportOptions.plist` de `app-store-connect` para `app-store` se necessário
+5. Adicionar linha ao Registo de submissões com nova data e build
+
+---
+
 ## Onde colocar
 
 ### App Store Review Notes
@@ -155,24 +167,28 @@ Obrigado por fazeres parte do beta Banzami Business!
 
 ## Contas de revisão sandbox
 
-As contas abaixo estão provisionadas no ambiente sandbox.
-**Não eliminar** — são necessárias para futuras submissões.
+> **Estado:** Apps aprovadas em 2026-05-18. As contas de revisão abaixo podem ser desactivadas no sandbox.
+> Para futuras submissões basta reactivar ou criar novas contas.
 
 ### Consumer (Banzami)
 
-| Campo    | Valor     |
-|----------|-----------|
-| Handle   | review    |
-| PIN      | 123456    |
-| Consumer ID | 64080866-4c92-4358-ad20-2233a8db8428 |
+| Campo       | Valor                                    | Estado                |
+|-------------|------------------------------------------|-----------------------|
+| Handle      | review                                   | Desactivar no sandbox |
+| PIN         | 123456                                   | —                     |
+| Consumer ID | 64080866-4c92-4358-ad20-2233a8db8428     | Desactivar no sandbox |
+
+Para desactivar: `POST /v1/consumers/64080866-4c92-4358-ad20-2233a8db8428/suspend` (via API gateway sandbox com chave de admin).
 
 ### Merchant (Banzami Business)
 
-| Campo       | Valor                                                                     |
-|-------------|---------------------------------------------------------------------------|
-| Merchant ID | b7f088ce-ca5e-4810-8624-d503da4d83dc                                      |
-| API Key     | bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2 |
-| Ambiente    | SANDBOX                                                                   |
+| Campo       | Valor                                                                      | Estado                |
+|-------------|----------------------------------------------------------------------------|-----------------------|
+| Merchant ID | b7f088ce-ca5e-4810-8624-d503da4d83dc                                       | Desactivar no sandbox |
+| API Key     | bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2  | Revogar no dashboard  |
+| Ambiente    | SANDBOX                                                                    | —                     |
+
+Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definições → API Keys.
 
 ---
 
@@ -180,6 +196,6 @@ As contas abaixo estão provisionadas no ambiente sandbox.
 
 | Data | Build | Apps | Estado |
 |------|-------|------|--------|
-|      |       |      |        |
+| 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business | ✅ Aprovado (TestFlight External) |
 
 Adicionar uma linha a cada submissão.
