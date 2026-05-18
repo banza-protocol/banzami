@@ -5,6 +5,7 @@ use axum::{
 use serde::Deserialize;
 
 use banzami_compliance::{ComplianceEngine, ComplianceError};
+use banzami_merchants::{MerchantEngine, MerchantError};
 use banzami_types::MerchantId;
 
 use crate::{
@@ -15,6 +16,13 @@ use crate::{
 fn compliance_err(e: ComplianceError) -> ApiError {
     match e {
         ComplianceError::NotFound => ApiError::not_found("compliance record not found"),
+        other => ApiError::internal(other.to_string()),
+    }
+}
+
+fn merchant_err(e: MerchantError) -> ApiError {
+    match e {
+        MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
         other => ApiError::internal(other.to_string()),
     }
 }
@@ -75,6 +83,10 @@ pub async fn suspend_merchant(
         .suspend_merchant(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;
+    state.merchant
+        .suspend(merchant_id)
+        .await
+        .map_err(merchant_err)?;
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
