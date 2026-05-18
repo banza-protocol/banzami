@@ -137,6 +137,29 @@ Raw HTTP integration is permitted in:
 - **SDK implementation code itself** — the SDK must make HTTP calls
 - **Advanced debugging** — developers tracing raw requests to diagnose issues
 - **Internal Banzami services** — Go services calling the Rust core over loopback are not external integrations
+- **Public unauthenticated endpoints** — payment link status polling (`GET /public/pay/{slug}/status`), QR payload display, health checks
+- **Browser-side checkout UI** — the `@banzami/checkout-js` browser SDK handles frontend flows using only publishable endpoints; no secret keys involved
+- **WooCommerce/WordPress frontend polling** — same restriction as browser checkout
+
+### Platform Stabilization Phase (2026-05-18)
+
+A full SDK ecosystem audit identified critical defects in the webhook signature implementation across both the TypeScript and Python SDKs. These defects were blocking production:
+
+| Defect | Impact |
+|--------|--------|
+| Python SDK: wrong header (`X-Banzami-Signature` vs `Banzami-Signature`) | Verification always fails |
+| Python SDK: no timestamp in HMAC (`body_only` vs `"{ts}.{body}"`) | Signatures never match gateway |
+| TypeScript SDK: missing webhook module entirely | No `constructEvent()` API |
+| TypeScript SDK example: same wrong format + wrong event type | Examples corrupt merchant implementations |
+
+Remediation implemented in this phase:
+1. **Canonical webhook signature spec** created at `docs/standards/webhook-signature-spec.md` — single source of truth for all SDKs
+2. **Python SDK** `signature.py` rewritten with correct format; all tests rewritten to validate correct contract
+3. **TypeScript SDK** `webhooks.ts` created with `constructEvent()`, `verifySignature()`, `generateTestSignature()`, `generateTestEvent()`
+4. **TypeScript SDK example** corrected with right header name, format, and event types
+5. **Go SDK scaffold** created at `sdk/go/` — webhook verification matches canonical Go signer exactly
+6. **Cross-SDK certification suite** created at `sdk-certification/` with golden test vectors that all SDKs must pass
+7. **Dashboard** `apps/dashboard/lib/api.ts` migrated to use `@banzami/sdk` `BanzamiClient` internally
 
 ---
 

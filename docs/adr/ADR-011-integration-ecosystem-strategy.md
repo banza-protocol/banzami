@@ -1,7 +1,8 @@
 # ADR-011 — Integration Ecosystem Strategy: v1
 
 **Status:** Accepted  
-**Date:** 2026-05-15
+**Date:** 2026-05-15  
+**Extended by:** [ADR-012](ADR-012-sdk-first-ecosystem.md) — mandatory SDK usage for all external integrations
 
 ---
 
