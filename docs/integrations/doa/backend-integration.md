@@ -380,16 +380,53 @@ Removing `banzami` from this list disables the method for donors without changin
 
 ## API Client Architecture
 
-Doa does not use the Banzami TypeScript SDK. All Banzami API calls are direct `fetch()` calls from two server-only files:
+> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()` approach predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banzami/sdk` — see the [SDK Migration Target](#sdk-migration-target) below.
+
+Current (transitional) API calls are direct `fetch()` from two server-only files:
 
 | File | Banzami endpoint | Purpose |
 |------|-----------------|---------|
 | `lib/payments/providers/banzami.ts` | `POST /v1/auth/token`, `POST /v1/payment-links` | Payment initiation |
 | `app/api/donations/banzami-status/route.ts` | `POST /v1/auth/token`, `GET /v1/payment-links/{id}` | Status polling |
 
-Both obtain a fresh JWT per request. In production, a shared token cache (e.g., Redis with a 55-minute TTL) would reduce auth overhead, but is not required for Doa's current traffic profile.
+Both obtain a fresh JWT per request. Both use `import 'server-only'` — the Next.js build fails if either is imported from a client component.
 
-Both files use `import 'server-only'` — the Next.js build fails if either is imported from a client component.
+### SDK Migration Target
+
+After migration to `@banzami/sdk`, the initiation path collapses to:
+
+```typescript
+import 'server-only';
+import Banzami from '@banzami/sdk';
+
+const banzami = new Banzami({ apiKey: process.env.BANZAMI_API_KEY });
+
+// initiate():
+const link = await banzami.paymentLinks.create({
+  merchantId:     MERCHANT_ID,
+  walletId:       WALLET_ID,
+  amount:         { minor: Number(input.amount), currency: 'AOA' },
+  description:    `DOA-${input.intent_id.slice(0, 8).toUpperCase()}`,
+  idempotencyKey: `banzami:${input.intent_id}`,
+});
+// SDK handles: auth token exchange, retries, idempotency, typed response
+```
+
+The status check route:
+
+```typescript
+const link = await banzami.paymentLinks.retrieve(linkId);
+// link.status: 'ACTIVE' | 'USED' | 'CANCELLED' | 'EXPIRED'
+```
+
+The webhook route's `verifySignature()`:
+
+```typescript
+const event = await banzami.webhooks.constructEvent(rawBody, sigHeader);
+// throws on invalid signature or expired timestamp — no manual timingSafeEqual needed
+```
+
+`banzami.isSandbox` replaces the `API_KEY.startsWith('bz_test_')` detection. The SDK automatically routes to sandbox or live gateway based on the key prefix.
 
 ---
 

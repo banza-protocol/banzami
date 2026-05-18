@@ -3,6 +3,8 @@
 > **This is the canonical Banzami integration example.**
 > Every API call, payload shape, webhook handler, and environment configuration shown here reflects the live production system.
 
+> **SDK Migration Required.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banzami/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
+
 ---
 
 ## What is Doa?
