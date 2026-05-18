@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use banzami_types::{Currency, LedgerEntryId, LedgerPostingId, MerchantId, WalletId};
 use banzami_wallets::{CreateWalletRequest, WalletEngine, WalletError};
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{error::{ApiError, ApiResult}, routes::risk, state::AppState};
 
 #[derive(Deserialize)]
 pub struct CreateWalletBody {
@@ -290,6 +290,21 @@ pub async fn admin_credit(
     .fetch_one(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Audit log (fire-and-forget).
+    risk::audit(
+        &state.pool,
+        "ADMIN",
+        "ADMIN_CREDIT",
+        &format!("WALLET:{wallet_id}"),
+        serde_json::json!({
+            "amount_minor": body.amount_minor,
+            "currency":     currency_code,
+            "reason":       body.reason.trim(),
+            "posting_id":   posting_id.as_uuid().to_string(),
+        }),
+        None,
+    ).await;
 
     tracing::info!(
         wallet_id    = %wallet_id,

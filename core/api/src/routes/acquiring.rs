@@ -4,7 +4,7 @@ use axum::{
     http::{HeaderMap, StatusCode},
     Json,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Timelike, Utc};
 use serde::{Deserialize, Serialize};
 
 use banzami_acquiring::{AcquiringEngine, AcquiringError, AcquiringPayment};
@@ -12,6 +12,7 @@ use banzami_types::{LedgerEntryId, LedgerPostingId, PaymentLinkId, WalletId};
 
 use crate::{
     error::{ApiError, ApiResult},
+    routes::risk,
     state::AppState,
 };
 
@@ -163,11 +164,12 @@ pub async fn emis_callback(
     .unwrap_or(false);
 
     if !already_settled {
-        // Look up the wallet_id from the payment link.
-        let wallet_id_raw: Option<uuid::Uuid> = sqlx::query_scalar(
-            "SELECT pl.wallet_id
+        // Look up wallet_id + merchant_id from the payment link.
+        let row: Option<(uuid::Uuid, uuid::Uuid)> = sqlx::query_as(
+            "SELECT pl.wallet_id, w.merchant_id
              FROM acquiring_payments ap
              JOIN payment_links pl ON pl.id = ap.payment_link_id
+             JOIN wallets w        ON w.id  = pl.wallet_id
              WHERE ap.id = $1",
         )
         .bind(payment.id.as_uuid())
@@ -175,9 +177,25 @@ pub async fn emis_callback(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-        if let Some(wallet_id_raw) = wallet_id_raw {
+        if let Some((wallet_id_raw, merchant_id_raw)) = row {
             let wallet_id: WalletId = wallet_id_raw.to_string().parse()
                 .map_err(|_| ApiError::internal("invalid wallet_id from payment link"))?;
+
+            // Refuse to credit a frozen merchant's wallet.
+            if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw).await {
+                risk::flag_suspicious(
+                    &state.pool, "MERCHANT", merchant_id_raw,
+                    "FROZEN_ACCOUNT_ATTEMPT",
+                    "acquiring callback received for a frozen merchant",
+                    serde_json::json!({ "payment_id": payment.id.to_string() }),
+                ).await;
+                tracing::warn!(
+                    payment_id   = %payment.id,
+                    merchant_id  = %merchant_id_raw,
+                    "acquiring: merchant is frozen — skipping settlement credit"
+                );
+                return Ok(Json(payment.into()));
+            }
 
             let available_account_id: Option<uuid::Uuid> = sqlx::query_scalar(
                 "SELECT available_account_id FROM wallets WHERE id = $1 AND status = 'ACTIVE'",
@@ -189,7 +207,7 @@ pub async fn emis_callback(
 
             if let Some(available_account_id) = available_account_id {
                 let posting_id = LedgerPostingId::new();
-                let now        = chrono::Utc::now();
+                let now        = Utc::now();
                 let currency   = payment.amount.currency.code();
 
                 let _ = sqlx::query(
@@ -204,7 +222,6 @@ pub async fn emis_callback(
                 .execute(&state.pool)
                 .await;
 
-                // Re-fetch the actual posted posting_id in case another request won the race.
                 let actual_posting_id: uuid::Uuid = sqlx::query_scalar(
                     "SELECT id FROM ledger_postings WHERE idempotency_key = $1",
                 )
@@ -243,10 +260,35 @@ pub async fn emis_callback(
                 .execute(&state.pool)
                 .await;
 
+                // Velocity counters (fire-and-forget).
+                let hour_start = now.date_naive()
+                    .and_hms_opt(now.hour(), 0, 0).map(|d| d.and_utc()).unwrap_or(now);
+                let day_start  = now.date_naive()
+                    .and_hms_opt(0, 0, 0).map(|d| d.and_utc()).unwrap_or(now);
+                let amt = payment.amount.amount_minor();
+                risk::increment_velocity(&state.pool, "MERCHANT", merchant_id_raw, "HOURLY", hour_start, amt).await;
+                risk::increment_velocity(&state.pool, "MERCHANT", merchant_id_raw, "DAILY",  day_start,  amt).await;
+
+                // Audit log (fire-and-forget).
+                risk::audit(
+                    &state.pool,
+                    "SYSTEM",
+                    "ACQUIRING_SETTLED",
+                    &format!("WALLET:{wallet_id}"),
+                    serde_json::json!({
+                        "payment_id":   payment.id.to_string(),
+                        "merchant_id":  merchant_id_raw.to_string(),
+                        "amount_minor": amt,
+                        "currency":     currency,
+                        "posting_id":   actual_posting_id.to_string(),
+                    }),
+                    None,
+                ).await;
+
                 tracing::info!(
                     payment_id   = %payment.id,
                     wallet_id    = %wallet_id,
-                    amount_minor = payment.amount.amount_minor(),
+                    amount_minor = amt,
                     currency     = currency,
                     "acquiring: wallet credited after callback settlement"
                 );

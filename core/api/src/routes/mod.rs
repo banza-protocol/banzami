@@ -1,4 +1,5 @@
 pub mod acquiring;
+pub mod risk;
 pub mod consumer_deposits;
 pub mod compliance;
 pub mod consumer_wallets;
