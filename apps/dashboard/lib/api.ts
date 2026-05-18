@@ -40,6 +40,42 @@ export interface PayoutPage      { data: Payout[];             next_cursor?: str
 export interface WebhookEventPage{ data: WebhookEvent[];       next_cursor?: string; }
 export interface PaymentLinkPage { data: PaymentLink[];        next_cursor?: string; }
 
+export interface Refund {
+  id:             string;
+  transaction_id: string;
+  merchant_id:    string;
+  consumer_id:    string | null;
+  wallet_id:      string;
+  amount_minor:   number;
+  currency:       string;
+  reason:         string | null;
+  status:         string;
+  failure_reason: string | null;
+  processed_at:   string | null;
+  created_at:     string;
+  updated_at:     string;
+}
+
+export interface RefundPage { data: Refund[] }
+
+export interface Dispute {
+  id:                string;
+  transaction_id:    string;
+  merchant_id:       string;
+  consumer_id:       string;
+  amount_minor:      number;
+  currency:          string;
+  reason:            string;
+  status:            string;
+  evidence_deadline: string | null;
+  resolution_notes:  string | null;
+  created_at:        string;
+  updated_at:        string;
+  resolved_at:       string | null;
+}
+
+export interface DisputePage { data: Dispute[] }
+
 export interface WebhookDelivery {
   id:           string;
   endpoint_id:  string;
@@ -271,6 +307,51 @@ export class BanzamiApi {
         body:   JSON.stringify({ amount_minor: amountMinor, currency }),
       },
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Refunds — pending SDK support
+  // -------------------------------------------------------------------------
+
+  listRefunds(opts: { transaction_id?: string; limit?: number } = {}): Promise<RefundPage> {
+    const params = new URLSearchParams();
+    if (opts.transaction_id) params.set('transaction_id', opts.transaction_id);
+    if (opts.limit)          params.set('limit', String(opts.limit));
+    return this._legacyReq<RefundPage>(`/refunds?${params}`);
+  }
+
+  createRefund(opts: {
+    transaction_id:  string;
+    amount_minor:    number;
+    reason?:         string;
+    idempotency_key: string;
+  }): Promise<Refund> {
+    return this._legacyReq<Refund>('/refunds', {
+      method: 'POST',
+      body:   JSON.stringify(opts),
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Disputes — pending SDK support
+  // -------------------------------------------------------------------------
+
+  listDisputes(opts: { status?: string; limit?: number } = {}): Promise<DisputePage> {
+    const params = new URLSearchParams();
+    if (opts.status) params.set('status', opts.status);
+    if (opts.limit)  params.set('limit', String(opts.limit));
+    return this._legacyReq<DisputePage>(`/disputes?${params}`);
+  }
+
+  openDispute(opts: {
+    transaction_id: string;
+    consumer_id:    string;
+    reason:         string;
+  }): Promise<Dispute> {
+    return this._legacyReq<Dispute>('/disputes', {
+      method: 'POST',
+      body:   JSON.stringify(opts),
+    });
   }
 
   // -------------------------------------------------------------------------

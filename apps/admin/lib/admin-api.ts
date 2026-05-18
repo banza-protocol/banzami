@@ -139,6 +139,22 @@ export interface AcquiringReconItem {
   reconciled_at:          string;
 }
 
+export interface AdminDispute {
+  id:                string;
+  transaction_id:    string;
+  merchant_id:       string;
+  consumer_id:       string;
+  amount_minor:      number;
+  currency:          string;
+  reason:            string;
+  status:            string;
+  evidence_deadline: string | null;
+  resolution_notes:  string | null;
+  created_at:        string;
+  updated_at:        string;
+  resolved_at:       string | null;
+}
+
 // ---------------------------------------------------------------------------
 // Client
 // ---------------------------------------------------------------------------
@@ -332,6 +348,23 @@ export class AdminApi {
     if (params?.action)  q.set('action',  params.action);
     if (params?.limit)   q.set('limit',   String(params.limit));
     return this.req(`/admin/v1/risk/audit-log?${q.toString()}`);
+  }
+
+  // Disputes
+  listDisputes(params?: { merchant_id?: string; consumer_id?: string; status?: string; limit?: number }): Promise<{ data: AdminDispute[] }> {
+    const q = new URLSearchParams();
+    if (params?.merchant_id)  q.set('merchant_id',  params.merchant_id);
+    if (params?.consumer_id)  q.set('consumer_id',  params.consumer_id);
+    if (params?.status)       q.set('status',       params.status);
+    if (params?.limit)        q.set('limit',        String(params.limit));
+    return this.req(`/admin/v1/disputes?${q.toString()}`);
+  }
+  getDispute(id: string): Promise<AdminDispute> { return this.req(`/admin/v1/disputes/${id}`); }
+  resolveDispute(id: string, outcome: string, notes: string, resolvedBy: string): Promise<AdminDispute> {
+    return this.req(`/admin/v1/disputes/${id}/resolve`, {
+      method: 'POST',
+      body:   JSON.stringify({ outcome, resolution_notes: notes, resolved_by: resolvedBy }),
+    });
   }
 
   // Acquiring reconciliation

@@ -312,6 +312,84 @@ Banzami is building realtime African payment infrastructure with banking-grade e
 
 ---
 
+## 2.7 Wallet-Native Identity — Core Architectural Constraint
+
+This is a binding architectural constraint, not a design preference.
+
+### What Banzami IS
+
+Banzami is:
+
+* a **wallet-native payment network** — every account is a wallet, every payment is a wallet transfer,
+* a **QR-native ecosystem** — QR codes are the primary payment initiation mechanism,
+* an **instant-transfer infrastructure** — money moves between wallets in real time,
+* a **kwanza-native money network** — AOA is the primary unit, local rails (EMIS, Multicaixa Express) are native integrations,
+* a **@handle-based identity system** — payments are addressed to human-readable handles, not card numbers or account strings.
+
+### What Banzami is NOT
+
+Banzami is NOT:
+
+* a card processor,
+* a Stripe clone,
+* a Visa / Mastercard gateway,
+* a card-tokenization platform,
+* a card-first payment UX.
+
+Visa and Mastercard are **optional future funding rails only** — a mechanism for topping up wallets from external sources. They are NEVER the core payment network. Card numbers, CVV forms, and card tokenization are NOT part of the primary payment flow.
+
+### Primary Payment Rail
+
+```text
+Consumer Wallet  ──ledger transfer──▶  Merchant Wallet
+```
+
+This is the canonical payment operation. Everything else derives from it:
+
+* QR payment: encodes amount + merchant wallet reference → consumer scans → ledger transfer
+* @handle transfer: consumer-to-consumer wallet transfer via handle lookup
+* Payment request: merchant requests amount → consumer approves → ledger transfer
+* Payment link: pre-configured QR / URL → same ledger transfer at resolution
+
+### UX Philosophy
+
+The canonical UX flow is:
+
+```text
+SCAN QR → CONFIRM → INSTANT SETTLEMENT
+```
+
+Reference models: Pix (Brazil), WeChat Pay, M-Pesa, UPI — NOT Stripe checkout, NOT card entry forms.
+
+Users must NEVER be asked for:
+
+* card numbers,
+* CVV codes,
+* expiry dates,
+* billing addresses.
+
+### SDK and Documentation Rules
+
+* All SDKs MUST prioritize QR and wallet APIs as primary integration surface.
+* All documentation examples MUST showcase QR commerce and wallet transfers first.
+* Payment link, QR generation, and instant transfer are TIER 1 features.
+* Card-related APIs are future / supplementary and must NEVER appear in primary docs or examples.
+
+### Engineering Enforcement
+
+Every new feature, endpoint, or flow MUST be evaluated against this identity:
+
+* Does it serve wallet ↔ wallet transfers?
+* Does it make QR payments simpler?
+* Does it strengthen the @handle identity?
+* Does it deepen local rail (EMIS / Multicaixa Express) integration?
+
+If a feature serves card processing as a primary concern, it does not belong in the core network.
+
+See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for full context, rationale, and tradeoffs.
+
+---
+
 # 3. Official Technology Stack
 
 ---

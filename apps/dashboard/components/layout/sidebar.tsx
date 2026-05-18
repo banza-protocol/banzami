@@ -12,6 +12,8 @@ import {
   Webhook,
   Settings,
   LogOut,
+  RotateCcw,
+  ShieldAlert,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 
@@ -22,6 +24,8 @@ const NAV = [
   { href: '/payouts',        label: 'Pagamentos',     icon: Banknote        },
   { href: '/payment-links',  label: 'Cobranças',      icon: Link2           },
   { href: '/receive',        label: 'Receber (QR)',   icon: QrCode          },
+  { href: '/refunds',        label: 'Reembolsos',     icon: RotateCcw       },
+  { href: '/disputes',       label: 'Disputas',       icon: ShieldAlert     },
   { href: '/webhooks',       label: 'Webhooks',       icon: Webhook         },
   { href: '/settings',       label: 'Definições',     icon: Settings        },
 ];

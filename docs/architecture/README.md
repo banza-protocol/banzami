@@ -1,5 +1,31 @@
 # Banzami — System Architecture
 
+## Network Identity
+
+Banzami is a **wallet-native payment network**. This is the foundational architectural constraint from which all design decisions derive.
+
+| What Banzami IS | What Banzami is NOT |
+|-----------------|---------------------|
+| Wallet ↔ wallet instant transfer network | Card processor |
+| QR-native payment ecosystem | Stripe clone |
+| @handle-based identity system | Visa/Mastercard gateway |
+| Kwanza-native money network | Card-first checkout platform |
+| Local rail integration (EMIS, Multicaixa Express) | Western fintech copy-paste |
+
+The canonical payment operation:
+
+```
+Consumer Wallet ──[ledger transfer]──▶ Merchant Wallet
+```
+
+The canonical UX: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
+
+Reference models: **Pix, WeChat Pay, M-Pesa, UPI** — not Stripe checkout.
+
+See [ADR-013](../adr/ADR-013-wallet-native-identity.md) and [CLAUDE.md §2.7](../../CLAUDE.md) for the full architectural constraint.
+
+---
+
 ## Overview
 
 Banzami is a **modular monolith** deployed as a set of coordinated processes. The core design principle is domain isolation without premature service extraction: each domain has strong internal boundaries but shares a single PostgreSQL instance and a single deployment unit per service.
