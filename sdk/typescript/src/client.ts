@@ -18,6 +18,14 @@ import type {
   PaymentLink,
   WebhookEndpoint,
   WebhookEvent,
+  Refund,
+  CreateRefundParams,
+  Dispute,
+  OpenDisputeParams,
+  ListDisputesParams,
+  PaymentRequest,
+  CreatePaymentRequestParams,
+  ListPaymentRequestsParams,
 } from './types.js';
 
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
@@ -506,5 +514,109 @@ export class BanzamiClient {
     return this.request<Page<WebhookEvent>>(
       `/webhooks/events${this.qs({ limit: params.limit, cursor: params.cursor })}`,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Refunds
+  // ---------------------------------------------------------------------------
+
+  createRefund(params: CreateRefundParams): Promise<Refund> {
+    return this.request<Refund>('/refunds', {
+      method: 'POST',
+      body:   JSON.stringify({
+        transaction_id:  params.transaction_id,
+        amount_minor:    params.amount_minor,
+        reason:          params.reason ?? null,
+        idempotency_key: params.idempotency_key ?? crypto.randomUUID(),
+      }),
+    });
+  }
+
+  getRefund(id: string): Promise<Refund> {
+    return this.request<Refund>(`/refunds/${id}`);
+  }
+
+  listRefunds(params: { transactionId?: string; limit?: number } = {}): Promise<Page<Refund>> {
+    return this.request<Page<Refund>>(
+      `/refunds${this.qs({ transaction_id: params.transactionId, limit: params.limit })}`,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Disputes
+  // ---------------------------------------------------------------------------
+
+  openDispute(params: OpenDisputeParams): Promise<Dispute> {
+    return this.request<Dispute>('/disputes', {
+      method: 'POST',
+      body:   JSON.stringify({
+        transaction_id:    params.transaction_id,
+        consumer_id:       params.consumer_id,
+        amount_minor:      params.amount_minor,
+        currency:          params.currency,
+        reason:            params.reason,
+        evidence_deadline: params.evidence_deadline ?? null,
+      }),
+    });
+  }
+
+  getDispute(id: string): Promise<Dispute> {
+    return this.request<Dispute>(`/disputes/${id}`);
+  }
+
+  listDisputes(params: ListDisputesParams = {}): Promise<Page<Dispute>> {
+    return this.request<Page<Dispute>>(
+      `/disputes${this.qs({ status: params.status, limit: params.limit })}`,
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment requests
+  // ---------------------------------------------------------------------------
+
+  createPaymentRequest(params: CreatePaymentRequestParams): Promise<PaymentRequest> {
+    return this.request<PaymentRequest>('/payment-requests', {
+      method: 'POST',
+      body:   JSON.stringify({
+        requester_id:    params.requester_id,
+        payer_handle:    params.payer_handle ?? null,
+        amount_minor:    params.amount_minor,
+        currency:        params.currency,
+        description:     params.description ?? null,
+        expires_at:      params.expires_at ?? null,
+        idempotency_key: params.idempotency_key ?? crypto.randomUUID(),
+      }),
+    });
+  }
+
+  getPaymentRequest(id: string): Promise<PaymentRequest> {
+    return this.request<PaymentRequest>(`/payment-requests/${id}`);
+  }
+
+  listPaymentRequests(params: ListPaymentRequestsParams = {}): Promise<Page<PaymentRequest>> {
+    return this.request<Page<PaymentRequest>>(
+      `/payment-requests${this.qs({ status: params.status, limit: params.limit })}`,
+    );
+  }
+
+  payPaymentRequest(id: string, payerId: string): Promise<PaymentRequest> {
+    return this.request<PaymentRequest>(`/payment-requests/${id}/pay`, {
+      method: 'POST',
+      body:   JSON.stringify({ payer_id: payerId }),
+    });
+  }
+
+  declinePaymentRequest(id: string, payerId: string): Promise<PaymentRequest> {
+    return this.request<PaymentRequest>(`/payment-requests/${id}/decline`, {
+      method: 'POST',
+      body:   JSON.stringify({ payer_id: payerId }),
+    });
+  }
+
+  cancelPaymentRequest(id: string, requesterId: string): Promise<PaymentRequest> {
+    return this.request<PaymentRequest>(`/payment-requests/${id}/cancel`, {
+      method: 'POST',
+      body:   JSON.stringify({ requester_id: requesterId }),
+    });
   }
 }

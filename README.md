@@ -1,20 +1,25 @@
 # Banzami
 
-> Modern financial infrastructure for Africa — engineered for reliability, interoperability, and operational excellence.
+> Angola's wallet-native payment network — instant transfers, QR-first commerce, kwanza-native money movement.
 
-Banzami is a financial technology platform focused on building secure, resilient, and developer-friendly payment infrastructure for Angola and emerging African markets.
+Banzami is a **wallet-native payment network** for Angola and emerging African markets. Every payment is a wallet-to-wallet ledger transfer. Every merchant payment surface is a QR code. Every account is addressable by @handle.
+
+The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
+
+Reference models: Pix, WeChat Pay, M-Pesa, UPI — not card-first checkout.
 
 The platform provides:
 
-* payment processing,
-* wallet infrastructure,
-* merchant settlements,
-* payout orchestration,
-* reconciliation systems,
-* compliance enforcement,
-* and financial operations tooling.
+* **QR-native payments** — scan to pay, scan to receive, instant settlement,
+* **@handle identity** — payments addressed to human-readable handles,
+* **wallet infrastructure** — double-entry ledger, strongly consistent balances,
+* **payment requests** — pull payments via @handle or link,
+* **instant transfers** — consumer-to-consumer and consumer-to-merchant,
+* **merchant settlements** — T+0 wallet credit, configurable payout cycles,
+* **local rail integration** — EMIS, Multicaixa Express,
+* **payout orchestration**, **reconciliation**, **compliance enforcement**.
 
-Banzami is designed as an API-first infrastructure layer enabling businesses, platforms, and digital services to move money safely and efficiently.
+Banzami is an API-first infrastructure layer. External integrations use official Banzami SDKs. See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for the network identity constraint and [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for SDK policy.
 
 ---
 

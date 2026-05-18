@@ -71,6 +71,37 @@ export async function initiatePay(
   return res.json();
 }
 
+export interface SocialLink {
+  platform: string;
+  url:      string;
+}
+
+export interface MerchantProfile {
+  id:           string;
+  merchant_id:  string;
+  handle:       string;
+  display_name: string;
+  tagline:      string | null;
+  description:  string | null;
+  category:     string | null;
+  logo_url:     string | null;
+  cover_url:    string | null;
+  public:       boolean;
+  wallet_id:    string | null;
+  social_links: SocialLink[];
+  created_at:   string;
+  updated_at:   string;
+}
+
+export async function getMerchantProfile(handle: string): Promise<MerchantProfile | null> {
+  const res = await fetch(`${GATEWAY_URL}/public/profiles/${encodeURIComponent(handle)}`, {
+    next: { revalidate: 60 },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
 export function formatAmount(amountMinor: number, currency: string): string {
   const major = amountMinor / 100;
   if (currency.toUpperCase() === 'AOA') {

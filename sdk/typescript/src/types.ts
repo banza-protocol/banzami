@@ -203,6 +203,112 @@ export interface PaymentLink {
 }
 
 // ---------------------------------------------------------------------------
+// Refunds
+// ---------------------------------------------------------------------------
+
+export type RefundStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
+
+export interface Refund {
+  id:             string;
+  transaction_id: string;
+  merchant_id:    string;
+  amount_minor:   number;
+  currency:       string;
+  status:         RefundStatus;
+  reason?:        string;
+  created_at:     string;
+  updated_at:     string;
+}
+
+export interface CreateRefundParams {
+  transaction_id:   string;
+  amount_minor:     number;
+  reason?:          string;
+  /** Idempotency key — auto-generated if omitted. */
+  idempotency_key?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Disputes
+// ---------------------------------------------------------------------------
+
+export type DisputeStatus =
+  | 'OPEN'
+  | 'UNDER_REVIEW'
+  | 'WON_BY_CONSUMER'
+  | 'WON_BY_MERCHANT'
+  | 'CLOSED';
+
+export interface Dispute {
+  id:                string;
+  transaction_id:    string;
+  merchant_id:       string;
+  consumer_id:       string;
+  amount_minor:      number;
+  currency:          string;
+  reason:            string;
+  status:            DisputeStatus;
+  evidence_deadline?: string;
+  resolution_notes?:  string;
+  resolved_at?:       string;
+  created_at:        string;
+  updated_at:        string;
+}
+
+export interface OpenDisputeParams {
+  transaction_id:   string;
+  consumer_id:      string;
+  amount_minor:     number;
+  currency:         string;
+  reason:           string;
+  evidence_deadline?: string;
+}
+
+export interface ListDisputesParams {
+  status?: DisputeStatus;
+  limit?:  number;
+}
+
+// ---------------------------------------------------------------------------
+// Payment requests
+// ---------------------------------------------------------------------------
+
+export type PaymentRequestStatus =
+  | 'PENDING'
+  | 'PAID'
+  | 'DECLINED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export interface PaymentRequest {
+  id:             string;
+  requester_id:   string;
+  payer_id?:      string;
+  amount_minor:   number;
+  currency:       string;
+  description?:   string;
+  status:         PaymentRequestStatus;
+  expires_at?:    string;
+  created_at:     string;
+  updated_at:     string;
+}
+
+export interface CreatePaymentRequestParams {
+  requester_id:     string;
+  payer_handle?:    string;
+  amount_minor:     number;
+  currency:         string;
+  description?:     string;
+  expires_at?:      string;
+  idempotency_key?: string;
+}
+
+export interface ListPaymentRequestsParams {
+  status?: PaymentRequestStatus;
+  limit?:  number;
+}
+
+// ---------------------------------------------------------------------------
 // Webhooks
 // ---------------------------------------------------------------------------
 
