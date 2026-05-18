@@ -258,9 +258,13 @@ func (c *CoreAdminClient) GetConsumer(ctx context.Context, id string) (map[strin
 
 // SetConsumerBadge assigns or removes a verification badge on a consumer.
 // badge must be "CONSUMER", "MERCHANT", or "" to clear.
-func (c *CoreAdminClient) SuspendConsumer(ctx context.Context, id string) (map[string]any, error) {
+func (c *CoreAdminClient) SuspendConsumer(ctx context.Context, id, notes string) (map[string]any, error) {
 	var out map[string]any
-	return out, c.post(ctx, "/internal/v1/consumers/"+id+"/suspend", nil, &out)
+	body := map[string]any{"notes": nil}
+	if notes != "" {
+		body["notes"] = notes
+	}
+	return out, c.post(ctx, "/internal/v1/consumers/"+id+"/suspend", body, &out)
 }
 
 func (c *CoreAdminClient) SetConsumerBadge(ctx context.Context, id, badge string) (map[string]any, error) {

@@ -78,6 +78,7 @@ pub struct ConsumerIdentity {
     pub display_name:        Option<String>,
     pub status:              ConsumerStatus,
     pub verification_badge:  Option<VerificationBadge>,
+    pub suspension_notes:    Option<String>,
     pub created_at:          DateTime<Utc>,
     pub updated_at:          DateTime<Utc>,
 }

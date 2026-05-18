@@ -18,6 +18,7 @@ export default function ConsumersPage() {
   const [badgeError,  setBadgeError]  = useState('');
 
   const [showSuspend, setShowSuspend]     = useState(false);
+  const [suspendNotes, setSuspendNotes]   = useState('');
   const [suspending,  setSuspending]      = useState(false);
   const [suspendError, setSuspendError]   = useState('');
   const loadConsumers = useCallback(async (q?: string) => {
@@ -49,9 +50,10 @@ export default function ConsumersPage() {
     setSuspending(true); setSuspendError('');
     try {
       const api = new AdminApi(session.apiUrl, session.adminKey);
-      const updated = await api.suspendConsumer(consumer.id);
+      const updated = await api.suspendConsumer(consumer.id, suspendNotes);
       setConsumer(updated);
       setShowSuspend(false);
+      setSuspendNotes('');
     } catch (e) {
       setSuspendError(e instanceof Error ? e.message : 'Erro ao suspender.');
     } finally {
@@ -174,12 +176,19 @@ export default function ConsumersPage() {
                 <p className="text-xs text-gray-500">
                   A conta ficará imediatamente inactiva. Esta acção pode ser revertida via API.
                 </p>
+                <textarea
+                  value={suspendNotes}
+                  onChange={e => setSuspendNotes(e.target.value)}
+                  placeholder="Motivo da suspensão (opcional)"
+                  rows={3}
+                  className="w-full text-sm border border-gray-200 rounded-md px-lg py-sm resize-none outline-none focus:ring-2 focus:ring-gray-900/20"
+                />
                 {suspendError && (
                   <p className="text-xs text-error bg-error-bg rounded-lg px-lg py-sm">{suspendError}</p>
                 )}
                 <div className="flex gap-sm justify-end">
                   <button
-                    onClick={() => setShowSuspend(false)}
+                    onClick={() => { setShowSuspend(false); setSuspendNotes(''); }}
                     disabled={suspending}
                     className="px-lg py-sm text-sm rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
                   >

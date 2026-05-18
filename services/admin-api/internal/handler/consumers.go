@@ -54,7 +54,13 @@ func (h *ConsumerHandler) Get(w http.ResponseWriter, r *http.Request) {
 // POST /admin/v1/consumers/{id}/suspend
 func (h *ConsumerHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
-	result, err := h.core.SuspendConsumer(r.Context(), id)
+
+	var body struct {
+		Notes string `json:"notes"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+
+	result, err := h.core.SuspendConsumer(r.Context(), id, body.Notes)
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			writeJSON(w, http.StatusNotFound, map[string]any{

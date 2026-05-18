@@ -21,7 +21,7 @@ pub trait IdentityEngine: Send + Sync {
         -> Result<ConsumerIdentity, IdentityError>;
     async fn get(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError>;
     async fn get_by_handle(&self, handle: &str) -> Result<ConsumerIdentity, IdentityError>;
-    async fn suspend(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError>;
+    async fn suspend(&self, id: ConsumerId, notes: Option<String>) -> Result<ConsumerIdentity, IdentityError>;
     async fn close(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError>;
     async fn set_badge(
         &self,
@@ -59,6 +59,7 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
             display_name:       req.display_name,
             status:             ConsumerStatus::Active,
             verification_badge: None,
+            suspension_notes:   None,
             created_at:         now,
             updated_at:         now,
         };
@@ -75,7 +76,7 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
         self.repo.get_by_handle(&normalized).await
     }
 
-    async fn suspend(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError> {
+    async fn suspend(&self, id: ConsumerId, notes: Option<String>) -> Result<ConsumerIdentity, IdentityError> {
         let identity = self.repo.get(id).await?;
         if identity.status == ConsumerStatus::Closed {
             return Err(IdentityError::InvalidStatusTransition {
@@ -83,7 +84,7 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
                 to:   ConsumerStatus::Suspended,
             });
         }
-        self.repo.update_status(id, ConsumerStatus::Suspended).await
+        self.repo.suspend_with_notes(id, notes).await
     }
 
     async fn close(&self, id: ConsumerId) -> Result<ConsumerIdentity, IdentityError> {
@@ -170,6 +171,21 @@ mod tests {
             Ok(identity.clone())
         }
 
+        async fn suspend_with_notes(
+            &self,
+            id:    ConsumerId,
+            notes: Option<String>,
+        ) -> Result<ConsumerIdentity, IdentityError> {
+            let mut store = self.identities.lock().unwrap();
+            let identity = store
+                .iter_mut()
+                .find(|i| i.id == id)
+                .ok_or(IdentityError::NotFound(id))?;
+            identity.status           = ConsumerStatus::Suspended;
+            identity.suspension_notes = notes;
+            Ok(identity.clone())
+        }
+
         async fn set_badge(
             &self,
             id:    ConsumerId,
@@ -238,7 +254,7 @@ mod tests {
             .await
             .unwrap();
 
-        let suspended = eng.suspend(identity.id).await.unwrap();
+        let suspended = eng.suspend(identity.id, Some("test suspension".into())).await.unwrap();
         assert_eq!(suspended.status, ConsumerStatus::Suspended);
 
         let closed = eng.close(identity.id).await.unwrap();
@@ -253,7 +269,7 @@ mod tests {
             .await
             .unwrap();
         eng.close(identity.id).await.unwrap();
-        let err = eng.suspend(identity.id).await.unwrap_err();
+        let err = eng.suspend(identity.id, None).await.unwrap_err();
         assert!(matches!(
             err,
             IdentityError::InvalidStatusTransition {

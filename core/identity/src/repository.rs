@@ -16,6 +16,11 @@ pub trait IdentityRepository: Send + Sync {
         id:     ConsumerId,
         status: ConsumerStatus,
     ) -> Result<ConsumerIdentity, IdentityError>;
+    async fn suspend_with_notes(
+        &self,
+        id:    ConsumerId,
+        notes: Option<String>,
+    ) -> Result<ConsumerIdentity, IdentityError>;
     async fn set_badge(
         &self,
         id:    ConsumerId,
@@ -34,6 +39,7 @@ struct IdentityRow {
     display_name:       Option<String>,
     status:             String,
     verification_badge: Option<String>,
+    suspension_notes:   Option<String>,
     created_at:         DateTime<Utc>,
     updated_at:         DateTime<Utc>,
 }
@@ -53,7 +59,7 @@ impl PostgresIdentityRepository {
 }
 
 const SELECT: &str =
-    "SELECT id, handle, display_name, status, verification_badge, created_at, updated_at
+    "SELECT id, handle, display_name, status, verification_badge, suspension_notes, created_at, updated_at
      FROM consumers";
 
 impl IdentityRepository for PostgresIdentityRepository {
@@ -131,6 +137,25 @@ impl IdentityRepository for PostgresIdentityRepository {
         self.get(id).await
     }
 
+    async fn suspend_with_notes(
+        &self,
+        id:    ConsumerId,
+        notes: Option<String>,
+    ) -> Result<ConsumerIdentity, IdentityError> {
+        let now = Utc::now();
+        sqlx::query(
+            "UPDATE consumers SET status = 'SUSPENDED', suspension_notes = $1, updated_at = $2 WHERE id = $3",
+        )
+        .bind(&notes)
+        .bind(now)
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(IdentityError::Database)?;
+
+        self.get(id).await
+    }
+
     async fn set_badge(
         &self,
         id:    ConsumerId,
@@ -169,6 +194,7 @@ fn identity_from_row(row: IdentityRow) -> Result<ConsumerIdentity, IdentityError
         display_name:       row.display_name,
         status,
         verification_badge,
+        suspension_notes:   row.suspension_notes,
         created_at:         row.created_at,
         updated_at:         row.updated_at,
     })
