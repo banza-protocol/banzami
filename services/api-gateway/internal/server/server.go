@@ -95,9 +95,13 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/endpoints", wbhHandler.ListEndpoints)
 				r.Get("/endpoints/{id}", wbhHandler.GetEndpoint)
 				r.Delete("/endpoints/{id}", wbhHandler.DeactivateEndpoint)
+				r.Get("/endpoints/{id}/health", wbhHandler.EndpointHealth)
 
 				r.Get("/events", wbhHandler.ListEvents)
 				r.Get("/events/{id}/deliveries", wbhHandler.ListDeliveries)
+
+				// Replay a permanently-failed delivery (dead-letter recovery).
+				r.Post("/deliveries/{id}/replay", wbhHandler.ReplayDelivery)
 			})
 
 			r.Route("/merchants", func(r chi.Router) {
