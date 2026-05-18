@@ -27,6 +27,18 @@ async fn main() {
         )
         .init();
 
+    // Safety guard: refuse to boot with a simulated acquirer in production.
+    let app_env         = env::var("APP_ENV").unwrap_or_default();
+    let acquiring_prov  = env::var("ACQUIRING_PROVIDER").unwrap_or_default();
+    if app_env.eq_ignore_ascii_case("production") && !acquiring_prov.eq_ignore_ascii_case("EMIS") {
+        eprintln!(
+            "FATAL: APP_ENV=production requires ACQUIRING_PROVIDER=EMIS. \
+             Refusing to boot with simulated acquirer in production."
+        );
+        std::process::exit(1);
+    }
+    tracing::info!(app_env = %app_env, acquiring_provider = %acquiring_prov, "boot: environment validated");
+
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let port = env::var("CORE_API_PORT")
         .unwrap_or_else(|_| "8081".into())
@@ -124,6 +136,7 @@ async fn main() {
         .route("/internal/v1/wallets/:id",                get(routes::wallets::get))
         .route("/internal/v1/wallets/:id/balance",        get(routes::wallets::balance))
         .route("/internal/v1/wallets/:id/sandbox-credit", post(routes::wallets::sandbox_credit))
+        .route("/internal/v1/wallets/:id/admin-credit",   post(routes::wallets::admin_credit))
 
         // Transactions
         .route("/internal/v1/transactions",                  post(routes::transactions::create))
@@ -204,6 +217,12 @@ async fn main() {
         .route("/internal/v1/acquiring/payments",            post(routes::acquiring::initiate_payment))
         .route("/internal/v1/acquiring/callbacks/emis",      post(routes::acquiring::emis_callback))
         .route("/internal/v1/acquiring/test/confirm",        post(routes::acquiring::test_confirm))
+
+        // Consumer deposits — top-up consumer wallets via acquiring provider
+        .route("/internal/v1/consumer-deposits",              post(routes::consumer_deposits::initiate))
+        .route("/internal/v1/consumer-deposits/:id",          get(routes::consumer_deposits::get))
+        .route("/internal/v1/consumer-deposits/callback",     post(routes::consumer_deposits::callback))
+        .route("/internal/v1/consumer-deposits/test-confirm", post(routes::consumer_deposits::test_confirm))
 
         .with_state(state)
         .layer(TraceLayer::new_for_http());

@@ -53,8 +53,9 @@ pub type AcquiringEng     = PostgresAcquiringEngine;
 #[derive(Clone)]
 pub struct AppState {
     #[allow(dead_code)]
-    pub pool:            PgPool,
-    pub wallet:          Arc<WalletEng>,
+    pub pool:               PgPool,
+    pub transit_account_id: AccountId,
+    pub wallet:             Arc<WalletEng>,
     pub tx_engine:       Arc<TxEng>,
     pub merchant:        Arc<MerchantEng>,
     pub settlement:      Arc<SettlementEng>,
@@ -186,6 +187,7 @@ impl AppState {
 
         Self {
             pool,
+            transit_account_id,
             wallet,
             tx_engine,
             merchant,

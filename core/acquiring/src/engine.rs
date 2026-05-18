@@ -99,6 +99,25 @@ pub trait AcquiringEngine: Send + Sync {
         external_ref: &str,
     ) -> Result<AcquiringPayment, AcquiringError>;
 
+    /// Returns the name of the currently configured provider.
+    fn provider_name(&self) -> &'static str;
+
+    /// Initiate a payment without a payment link — used for consumer deposits.
+    /// Returns `(external_ref, instructions, expires_at)` directly from the provider.
+    async fn initiate_raw(
+        &self,
+        internal_ref: &str,
+        amount:       Money,
+    ) -> Result<crate::provider::ExternalPaymentRef, AcquiringError>;
+
+    /// Validate an inbound callback without storing or updating acquiring_payments.
+    /// Used by the consumer deposit handler which manages its own table.
+    async fn validate_callback_raw(
+        &self,
+        raw_body:  &[u8],
+        signature: &str,
+    ) -> Result<crate::provider::PaymentConfirmation, AcquiringError>;
+
     /// Generate a signed test callback payload (simulated provider only).
     /// Returns `None` for production providers.
     fn generate_test_callback(
@@ -235,6 +254,34 @@ impl AcquiringEngine for PostgresAcquiringEngine {
         external_ref: &str,
     ) -> Result<AcquiringPayment, AcquiringError> {
         self.repo.get_payment_by_external_ref(external_ref).await
+    }
+
+    fn provider_name(&self) -> &'static str {
+        self.provider.provider_name()
+    }
+
+    async fn initiate_raw(
+        &self,
+        internal_ref: &str,
+        amount:       Money,
+    ) -> Result<crate::provider::ExternalPaymentRef, AcquiringError> {
+        let req = crate::provider::InitiatePaymentRequest {
+            internal_ref: internal_ref.to_string(),
+            amount,
+            description:  Some("Consumer deposit".to_string()),
+        };
+        self.provider.initiate_payment(req).await.map_err(AcquiringError::Provider)
+    }
+
+    async fn validate_callback_raw(
+        &self,
+        raw_body:  &[u8],
+        signature: &str,
+    ) -> Result<crate::provider::PaymentConfirmation, AcquiringError> {
+        self.provider
+            .validate_callback(raw_body, signature)
+            .await
+            .map_err(AcquiringError::Provider)
     }
 
     fn generate_test_callback(

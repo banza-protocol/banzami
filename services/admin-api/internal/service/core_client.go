@@ -223,6 +223,12 @@ func (c *CoreAdminClient) GetWallet(ctx context.Context, merchantID, currency st
 	return out, c.get(ctx, "/internal/v1/wallets?merchant_id="+merchantID+"&currency="+currency, &out)
 }
 
+func (c *CoreAdminClient) AdminCreditWallet(ctx context.Context, walletID string, amountMinor int64, currency, reason string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/wallets/"+walletID+"/admin-credit",
+		map[string]any{"amount_minor": amountMinor, "currency": currency, "reason": reason}, &out)
+}
+
 func (c *CoreAdminClient) CreateTransaction(ctx context.Context, body map[string]any) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/transactions", body, &out)
