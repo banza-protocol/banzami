@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -16,10 +17,11 @@ import (
 type PaymentLinkHandler struct {
 	svc         service.PaymentLinkService
 	merchantSvc service.MerchantService
+	webhookSvc  service.WebhookService
 }
 
-func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.MerchantService) *PaymentLinkHandler {
-	return &PaymentLinkHandler{svc: svc, merchantSvc: merchantSvc}
+func NewPaymentLinkHandler(svc service.PaymentLinkService, merchantSvc service.MerchantService, webhookSvc service.WebhookService) *PaymentLinkHandler {
+	return &PaymentLinkHandler{svc: svc, merchantSvc: merchantSvc, webhookSvc: webhookSvc}
 }
 
 // POST /v1/payment-links
@@ -142,6 +144,22 @@ func (h *PaymentLinkHandler) MarkUsed(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	// Dispatch payment_link.paid to the merchant's registered webhook endpoints.
+	// Fire-and-forget: the response goes to the caller immediately; webhook
+	// delivery is tracked and retried independently by the WebhookService.
+	go func(l *service.PaymentLink) {
+		payload, err := json.Marshal(l)
+		if err != nil {
+			return
+		}
+		_, _ = h.webhookSvc.Dispatch(context.Background(), service.DispatchRequest{
+			MerchantID: l.MerchantID,
+			EventType:  "payment_link.paid",
+			Payload:    json.RawMessage(payload),
+		})
+	}(link)
+
 	respond(w, http.StatusOK, link)
 }
 
