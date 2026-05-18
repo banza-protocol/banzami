@@ -7,35 +7,36 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import":  "./dist/index.js",
+      "import": "./dist/index.js",
       "require": "./dist/cjs/index.js",
-      "types":   "./dist/index.d.ts"
+      "types": "./dist/index.d.ts"
     },
     "./theme": {
-      "import":  "./dist/theme/index.js",
+      "import": "./dist/theme/index.js",
       "require": "./dist/cjs/theme/index.js",
-      "types":   "./dist/theme/index.d.ts"
+      "types": "./dist/theme/index.d.ts"
     },
     "./money": {
-      "import":  "./dist/money.js",
+      "import": "./dist/money.js",
       "require": "./dist/cjs/money.js",
-      "types":   "./dist/money.d.ts"
+      "types": "./dist/money.d.ts"
     }
   },
   "files": [
     "dist"
   ],
   "scripts": {
-    "build":      "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
-    "typecheck":  "tsc --noEmit",
-    "clean":      "rm -rf dist",
-    "test":       "vitest run",
+    "build": "tsc -p tsconfig.build.json && tsc -p tsconfig.cjs.json",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "engines": {
     "node": ">=18"
   },
   "devDependencies": {
+    "@types/node": "^25.8.0",
     "typescript": "^5.4.0",
     "vitest": "^4.1.6"
   }
