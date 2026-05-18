@@ -3,6 +3,7 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
+import type { ReactElement } from 'react'
 import { ArchitectureDiagram } from './ArchitectureDiagram'
 import { Callout } from './Callout'
 
@@ -33,6 +34,18 @@ function toAnchorId(text: string): string {
     .replace(/\s+/g, '-')
 }
 
+// Extract text content from a react-markdown code child
+function extractCodeChild(children: React.ReactNode): { text: string; lang: string | undefined } {
+  const child = Array.isArray(children) ? children[0] : children
+  if (child && typeof child === 'object' && 'props' in child) {
+    const el = child as ReactElement<{ children?: React.ReactNode; className?: string }>
+    const text = String(el.props.children ?? '').trim()
+    const lang = el.props.className?.replace('language-', '') || undefined
+    return { text, lang }
+  }
+  return { text: '', lang: undefined }
+}
+
 export function MarkdownSection({ content, className = '' }: Props) {
   return (
     <div className={`prose prose-banzami max-w-none ${className}`}>
@@ -40,46 +53,41 @@ export function MarkdownSection({ content, className = '' }: Props) {
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeRaw]}
         components={{
-          // Blockquotes → premium Callout
-          blockquote({ children }) {
-            return <Callout>{children}</Callout>
-          },
+          // ── Block code: handled at the <pre> level (correct HTML nesting) ──
+          // Never return <pre> from the code component — that causes
+          // <p><pre> which is invalid HTML and triggers a hydration error.
+          pre({ children }) {
+            const { text, lang } = extractCodeChild(children)
 
-          // Code blocks: detect ASCII diagrams, otherwise styled code
-          code({ className: cls, children, ...props }) {
-            const text = String(children).trim()
-            const isBlock = !Object.prototype.hasOwnProperty.call(props, 'inline')
-
-            if (isBlock && !cls && isAsciiDiagram(text)) {
+            // Un-classified code blocks that look like ASCII diagrams → visual component
+            if (!lang && text && isAsciiDiagram(text)) {
               return <ArchitectureDiagram>{text}</ArchitectureDiagram>
             }
 
-            if (isBlock) {
-              // Fenced code block with language
-              const lang = cls?.replace('language-', '') ?? ''
-              return (
-                <pre className={`language-${lang}`}>
-                  <code className={cls} {...props}>{children}</code>
-                </pre>
-              )
-            }
+            // Everything else → standard pre (prose styles apply)
+            return <pre>{children}</pre>
+          },
 
-            // Inline code
+          // ── Inline code only — no pre wrapping here ─────────────────────
+          code({ className: cls, children, ...rest }) {
             return (
-              <code className={cls} {...props}>
+              <code className={cls} {...rest}>
                 {children}
               </code>
             )
           },
 
-          // Anchored headings for deep linking
+          // ── Blockquotes → premium Callout ────────────────────────────────
+          blockquote({ children }) {
+            return <Callout>{children}</Callout>
+          },
+
+          // ── Anchored headings for deep linking ───────────────────────────
           h2({ children }) {
             const id = toAnchorId(String(children))
             return (
               <h2 id={id} className="group scroll-mt-24">
-                <a href={`#${id}`} className="no-underline">
-                  {children}
-                </a>
+                <a href={`#${id}`} className="no-underline">{children}</a>
               </h2>
             )
           },
@@ -87,14 +95,12 @@ export function MarkdownSection({ content, className = '' }: Props) {
             const id = toAnchorId(String(children))
             return (
               <h3 id={id} className="group scroll-mt-24">
-                <a href={`#${id}`} className="no-underline">
-                  {children}
-                </a>
+                <a href={`#${id}`} className="no-underline">{children}</a>
               </h3>
             )
           },
 
-          // Tables with better styling
+          // ── Scrollable tables on mobile ──────────────────────────────────
           table({ children }) {
             return (
               <div className="overflow-x-auto">
@@ -103,14 +109,14 @@ export function MarkdownSection({ content, className = '' }: Props) {
             )
           },
 
-          // External links open in new tab
-          a({ href, children, ...props }) {
+          // ── External links → new tab ─────────────────────────────────────
+          a({ href, children, ...rest }) {
             const isExternal = href?.startsWith('http')
             return (
               <a
                 href={href}
                 {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                {...props}
+                {...rest}
               >
                 {children}
               </a>
