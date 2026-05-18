@@ -88,6 +88,9 @@ func main() {
 		QrSvc:             service.NewCoreApiQrService(coreClient),
 		PaymentLinkSvc:    service.NewCoreApiPaymentLinkService(coreClient),
 		AcquiringSvc:      service.NewCoreApiAcquiringService(coreClient),
+		RefundSvc:         service.NewCoreApiRefundService(coreClient),
+		DisputeSvc:        service.NewCoreApiDisputeService(coreClient),
+		PaymentRequestSvc: service.NewCoreApiPaymentRequestService(coreClient),
 		FCMSvc:            fcmSvc,
 	}
 

@@ -20,19 +20,22 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis               *redis.Client
-	TransactionSvc      service.TransactionService
-	WebhookSvc          service.WebhookService
-	MerchantSvc         service.MerchantService
-	WalletSvc           service.WalletService
-	PayoutSvc           service.PayoutService
-	ConsumerSvc         service.ConsumerService
-	ConsumerWalletSvc   service.ConsumerWalletService
-	TransferSvc         service.TransferService
-	QrSvc               service.QrService
-	PaymentLinkSvc      service.PaymentLinkService
-	AcquiringSvc        service.AcquiringService
-	FCMSvc              *notify.FCMService
+	Redis                 *redis.Client
+	TransactionSvc        service.TransactionService
+	WebhookSvc            service.WebhookService
+	MerchantSvc           service.MerchantService
+	WalletSvc             service.WalletService
+	PayoutSvc             service.PayoutService
+	ConsumerSvc           service.ConsumerService
+	ConsumerWalletSvc     service.ConsumerWalletService
+	TransferSvc           service.TransferService
+	QrSvc                 service.QrService
+	PaymentLinkSvc        service.PaymentLinkService
+	AcquiringSvc          service.AcquiringService
+	RefundSvc             service.RefundService
+	DisputeSvc            service.DisputeService
+	PaymentRequestSvc     service.PaymentRequestService
+	FCMSvc                *notify.FCMService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -63,19 +66,22 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	// Handlers
 	// ---------------------------------------------------------------------------
-	authHandler          := handler.NewAuthHandler(cfg, deps.MerchantSvc)
-	txHandler            := handler.NewTransactionHandler(deps.TransactionSvc)
-	wbhHandler           := handler.NewWebhookHandler(deps.WebhookSvc)
-	mchHandler           := handler.NewMerchantHandler(deps.MerchantSvc)
-	wltHandler           := handler.NewWalletHandler(deps.WalletSvc)
-	payoutHandler        := handler.NewPayoutHandler(deps.PayoutSvc)
-	consumerHandler      := handler.NewConsumerHandler(deps.ConsumerSvc)
-	consumerWltHandler   := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
-	transferHandler      := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc)
-	qrHandler            := handler.NewQrHandler(deps.QrSvc)
-	paymentLinkHandler   := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
-	acquiringHandler     := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
-	sandboxHandler       := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
+	authHandler           := handler.NewAuthHandler(cfg, deps.MerchantSvc)
+	txHandler             := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler            := handler.NewWebhookHandler(deps.WebhookSvc)
+	mchHandler            := handler.NewMerchantHandler(deps.MerchantSvc)
+	wltHandler            := handler.NewWalletHandler(deps.WalletSvc)
+	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc)
+	consumerHandler       := handler.NewConsumerHandler(deps.ConsumerSvc)
+	consumerWltHandler    := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
+	transferHandler       := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc)
+	qrHandler             := handler.NewQrHandler(deps.QrSvc)
+	paymentLinkHandler    := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
+	acquiringHandler      := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
+	sandboxHandler        := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
+	refundHandler         := handler.NewRefundHandler(deps.RefundSvc)
+	disputeHandler        := handler.NewDisputeHandler(deps.DisputeSvc)
+	paymentReqHandler     := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -166,6 +172,32 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", paymentLinkHandler.Get)
 				r.Delete("/{id}", paymentLinkHandler.Cancel)
 				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
+			})
+
+			// Refunds
+			r.Route("/refunds", func(r chi.Router) {
+				r.Post("/", refundHandler.Create)
+				r.Get("/", refundHandler.List)
+				r.Get("/{id}", refundHandler.Get)
+			})
+
+			// Disputes
+			r.Route("/disputes", func(r chi.Router) {
+				r.Post("/", disputeHandler.Open)
+				r.Get("/", disputeHandler.List)
+				r.Get("/{id}", disputeHandler.Get)
+				r.Post("/{id}/evidence", disputeHandler.SubmitEvidence)
+				r.Get("/{id}/evidence", disputeHandler.ListEvidence)
+			})
+
+			// Payment requests
+			r.Route("/payment-requests", func(r chi.Router) {
+				r.Post("/", paymentReqHandler.Create)
+				r.Get("/", paymentReqHandler.List)
+				r.Get("/{id}", paymentReqHandler.Get)
+				r.Post("/{id}/pay", paymentReqHandler.Pay)
+				r.Post("/{id}/decline", paymentReqHandler.Decline)
+				r.Post("/{id}/cancel", paymentReqHandler.Cancel)
 			})
 
 			// Sandbox utilities — only functional with bz_test_ keys.
