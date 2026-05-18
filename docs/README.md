@@ -49,6 +49,33 @@ Each financial domain has a dedicated document covering its business purpose, ar
 
 ---
 
+## Official Example Integrations
+
+Reference implementations that demonstrate correct Banzami integration patterns. These are not toy examples — each documents a production-grade merchant integration and serves as the canonical guide for that integration type.
+
+| Integration | Type | Documentation |
+|-------------|------|---------------|
+| [Doa](integrations/doa/README.md) | Donation platform — QR payments, webhooks, sandbox | [Full docs →](integrations/doa/) |
+
+### Doa Integration Coverage
+
+| Document | Contents |
+|----------|----------|
+| [README](integrations/doa/README.md) | Overview, quick start, architecture summary |
+| [Architecture](integrations/doa/architecture.md) | System boundaries, component responsibilities, idempotency layers |
+| [Payment Flow](integrations/doa/payment-flow.md) | End-to-end sequence diagram, API reference, failure modes |
+| [QR Payments](integrations/doa/qr-payments.md) | Merchant-presented QR model, polling, confirmation UX |
+| [Webhooks](integrations/doa/webhooks.md) | HMAC verification, retry policy, intent resolution |
+| [Sandbox](integrations/doa/sandbox.md) | Environment setup, test instruments, simulation |
+| [Frontend Integration](integrations/doa/frontend-integration.md) | Payment UI, QR generation, sandbox badge, polling loop |
+| [Backend Integration](integrations/doa/backend-integration.md) | Provider interface, idempotency, persistence, configuration |
+| [Security](integrations/doa/security.md) | Secret management, signature verification, replay protection |
+| [Observability](integrations/doa/observability.md) | Structured logs, payment tracing, webhook monitoring |
+| [Production Checklist](integrations/doa/production-checklist.md) | Go-live steps, credential migration, E2E test |
+| [Troubleshooting](integrations/doa/troubleshooting.md) | Webhook failures, mismatch errors, diagnostics |
+
+---
+
 ## Other Documentation
 
 | Directory | Contents |
