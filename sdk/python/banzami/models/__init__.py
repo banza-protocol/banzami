@@ -8,7 +8,7 @@ from .qr_payment import ParsedQr, QrCode, QrCodeStatus, QrCodeType, QrPayment
 from .transaction import Transaction, TransactionStatus
 from .transfer import Transfer, TransferDirection, TransferStatus
 from .wallet import Wallet, WalletBalance, WalletStatus
-from .webhook import WebhookEndpoint, WebhookEndpointStatus, WebhookEvent
+from .webhook import WebhookEndpoint, WebhookEndpointStatus, WebhookEvent, WebhookEventType
 
 __all__ = [
     "Money",
@@ -36,4 +36,5 @@ __all__ = [
     "WebhookEndpoint",
     "WebhookEndpointStatus",
     "WebhookEvent",
+    "WebhookEventType",
 ]

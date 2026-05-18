@@ -7,7 +7,7 @@ import json
 from banzami.exceptions import BanzamiWebhookSignatureError
 from banzami.models.webhook import WebhookEndpoint, WebhookEvent
 from banzami.pagination import Page
-from banzami.signature import verify_signature
+from banzami.signature import generate_test_signature, verify_signature
 
 from .base import AsyncResource
 
@@ -87,7 +87,7 @@ class WebhooksResource(AsyncResource):
         payload:
             Raw HTTP request body bytes (or string).
         signature:
-            Value of the ``X-Banzami-Signature`` header.
+            Value of the ``Banzami-Signature`` header.
         webhook_secret:
             Override the secret configured on the client. Useful when
             handling events from multiple endpoints with different secrets.
@@ -95,7 +95,8 @@ class WebhooksResource(AsyncResource):
         Raises
         ------
         BanzamiWebhookSignatureError
-            If the signature does not match.
+            If the signature does not match or the timestamp is outside the
+            300-second replay protection window.
         ValueError
             If no webhook secret is available.
         """
@@ -109,8 +110,39 @@ class WebhooksResource(AsyncResource):
         if not verify_signature(payload, signature, secret):
             raise BanzamiWebhookSignatureError(
                 "Webhook signature verification failed. "
-                "Ensure you are passing the raw request body before any parsing."
+                "Ensure you are passing the raw request body before any parsing, "
+                "and that the request timestamp is within 300 seconds of now."
             )
 
         body = payload if isinstance(payload, str) else payload.decode()
         return WebhookEvent.model_validate(json.loads(body))
+
+    def generate_test_signature(
+        self,
+        payload: bytes | str,
+        *,
+        webhook_secret: str | None = None,
+        timestamp: int | None = None,
+    ) -> str:
+        """Generate a valid Banzami-Signature header value for local testing.
+
+        Use in test suites to simulate Banzami webhook deliveries without a
+        real Banzami account.
+
+        Parameters
+        ----------
+        payload:
+            The webhook body bytes (or string) you want to sign.
+        webhook_secret:
+            Override the secret configured on the client.
+        timestamp:
+            Unix seconds for the ``t=`` field. Defaults to ``time.time()``.
+
+        Returns
+        -------
+        str
+            A ``Banzami-Signature`` header value, e.g.
+            ``"t=1716000000,v1=abc123..."``
+        """
+        secret = webhook_secret or self._webhook_secret or ""
+        return generate_test_signature(payload, secret, timestamp=timestamp)

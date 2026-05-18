@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel
 
@@ -20,8 +20,23 @@ class WebhookEndpoint(BaseModel):
     created_at: datetime
 
 
+# ---------------------------------------------------------------------------
+# Canonical event type registry
+# Matches the event type strings dispatched by services/api-gateway.
+# ---------------------------------------------------------------------------
+
+WebhookEventType = Literal[
+    "payment_link.paid",
+    "transaction.completed",
+    "transaction.failed",
+    "payout.created",
+    "payout.completed",
+    "payout.failed",
+]
+
+
 class WebhookEvent(BaseModel):
     id:         str
-    type:       str
-    payload:    dict[str, Any]
+    type:       str  # str (not WebhookEventType) to forward-compat unknown event types
+    data:       dict[str, Any] = {}
     created_at: datetime
