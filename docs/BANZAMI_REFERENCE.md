@@ -748,12 +748,73 @@ Sem terminal POS necessário. Sem acordo de cartão necessário. Sem volume mens
 
 O tempo entre "quero aceitar pagamentos digitais" e "estou a aceitar pagamentos digitais" deve ser medido em minutos, não semanas.
 
-### 11.2 O painel do comerciante
+### 11.2 Banzami Business
 
-Cada comerciante tem um painel baseado na web:
+A Banzami Business é a aplicação móvel para operação diária do comerciante. Não é uma versão simplificada do painel web — é um sistema operativo de negócio concebido para o comerciante no terreno.
 
-| Secção | O que mostra |
-|--------|-------------|
+> Para muitas cantinas, táxis, bancas de mercado e pequenos negócios, a Banzami Business é a interface principal. Sem computador. Sem TPA. Só o telefone.
+
+```
+Consumidor
+     |
+     v
+QR / @banza / Link
+     |
+     v
+┌─────────────────────┐
+│  Banzami Business   │  <- notificacao instantanea
+└─────────────────────┘
+     |
+     v
+┌─────────────────────┐
+│   Ledger Banzami    │  <- carteira actualizada
+└─────────────────────┘
+     |
+     v
+┌─────────────────────┐
+│  Painel Web / Banco │  <- gestao e liquidacao
+└─────────────────────┘
+```
+
+**O que a Banzami Business permite:**
+
+- Receber notificações de pagamento instantâneas no telemóvel
+- Gerar QR estático e dinâmico a qualquer momento
+- Acompanhar transacções e saldo em tempo real
+- Emitir links de pagamento via WhatsApp, SMS ou redes sociais
+- Confirmar pagamentos recebidos
+- Gerir pedidos de pagamento
+- Operar o negócio inteiramente a partir do telemóvel
+
+**Cenários reais em Angola:**
+
+| Tipo de negócio | Fluxo com Banzami Business |
+|-----------------|----------------------------|
+| **Cantina de bairro** | QR impresso na parede → cliente faz scan → notificação imediata |
+| **Motorista de táxi** | Gera QR antes da viagem → cliente paga → confirmação automática |
+| **Banca de mercado** | @banza exibido → cliente transfere → saldo actualizado em segundos |
+| **Delivery** | Link de pagamento enviado → cliente confirma → entrega desbloqueada |
+| **Escola** | QR dinâmico por propina → pagamento registado → sem recibo manual |
+
+### 11.3 Painel Web
+
+O painel web é o centro de controlo avançado do comerciante — acessível via navegador, concebido para gestão, análise e operações administrativas.
+
+```
+┌─────────────────────┐   ┌─────────────────────┐
+│  Banzami Business   │   │    Painel Web        │
+│  (app movel)        │   │  (navegador)         │
+├─────────────────────┤   ├─────────────────────┤
+│  operacao diaria    │   │  administracao       │
+│  QR e notificacoes  │   │  analytics           │
+│  saldo e pedidos    │   │  gestao de equipa    │
+│  links de pagamento │   │  SDK e webhooks      │
+│                     │   │  disputas            │
+└─────────────────────┘   └─────────────────────┘
+```
+
+| Secção | O que permite |
+|--------|--------------|
 | **Saldo da carteira** | Saldo disponível e reservado, actualizado em tempo real |
 | **Transacções** | Cada pagamento recebido — timestamp, valor, @banza do consumidor |
 | **Análises** | Volume diário/mensal, contagens de transacções, horas de pico |
@@ -765,21 +826,38 @@ Cada comerciante tem um painel baseado na web:
 | **Chaves API** | Gerar e gerir credenciais para integrações SDK |
 | **Acesso da equipa** | Adicionar pessoal com permissões controladas |
 
-### 11.3 Três formas de receber pagamento
+### 11.4 Três formas de receber pagamento
 
 | Superfície | Como | Melhor para |
 |------------|------|------------|
 | **QR Estático** | Imprimir e exibir permanentemente | Cantinas, quiosques, retalho físico |
+| **QR Dinâmico** | Gerado por transacção, com valor pré-definido | Restaurantes, POS, delivery |
 | **Link de pagamento** | Partilhar via WhatsApp, SMS ou redes sociais | Vendas remotas, comércio informal |
-| **Integração SDK** | Incorporar numa app | Apps de táxi, delivery, ecommerce |
+| **Pedido de pagamento** | Enviar directamente ao @banza do consumidor | Facturação, serviços por encomenda |
+| **Integração SDK** | Incorporar numa app ou plataforma web | Apps de táxi, delivery, ecommerce local |
 
-### 11.4 Pagamentos
+### 11.5 Pagamentos
 
-Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir do painel ou via API. O Banzami inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
+Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir da Banzami Business, do painel ou via API. O Banzami inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
 
-### 11.5 A loja QR
+### 11.6 A loja QR
 
 Cada comerciante tem um perfil público permanente em `pay.banzami.org/profiles/@banza`. Esta é a identidade digital que ancora o comerciante na rede Banzami — partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
+
+### 11.7 SDK/API para ecommerce e apps
+
+Aplicações angolanas — apps de táxi, delivery, ecommerce, escolas, plataformas de doações — podem integrar pagamentos Banzami directamente no fluxo do utilizador.
+
+O consumidor paga dentro da app, em Kwanza, sem sair para outro ambiente. A carteira do comerciante actualiza instantaneamente. Sem gateway externo. Sem redireccionamento. Sem fricção.
+
+A integração é feita via SDK oficial Banzami. Ver secção 12 para documentação técnica completa.
+
+| Plataforma | SDK |
+|------------|-----|
+| **Web / Node.js** | TypeScript SDK |
+| **PHP / Laravel** | PHP SDK |
+| **Mobile (Flutter)** | Flutter SDK |
+| **Qualquer linguagem** | API REST |
 
 ---
 
