@@ -1346,13 +1346,13 @@ Use Banza when referring to:
 * the merchant solution ("Banza Business"),
 * SDKs and APIs ("Banza SDK", "Banza API"),
 * payment links and checkout ("Banza Pay Links", "Banza Checkout"),
-* consumer-facing copy ("Paga com Banza", "adoptar a Banza").
+* consumer-facing copy ("Paga com Banza", "adoptar o Banza").
 
 ## 16.3 Use "Banzami" for organizational context
 
 Use Banzami when referring to:
 
-* the company and team ("a Banzami constrói..."),
+* the company and team ("o Banzami constrói..."),
 * institutional mission and strategy,
 * bank and regulatory relationships,
 * the technical platform and infrastructure as a whole,
@@ -1393,7 +1393,32 @@ Banzami (organization)
 * "SDK Banzami" → WRONG. Use "Banza SDK."
 * Blind replace-all of "Banzami" → FORBIDDEN. Context matters.
 
-## 16.7 Canonical positioning phrases
+## 16.7 Grammatical gender — binding rule
+
+Both brand names are grammatically **masculine** in Portuguese:
+
+- **O Banza** (not "a Banza")
+- **O Banzami** (not "a Banzami")
+
+This applies to all articles and contractions:
+
+| Wrong | Correct |
+|-------|---------|
+| a Banza | o Banza |
+| da Banza | do Banza |
+| na Banza | no Banza |
+| pela Banza | pelo Banza |
+| a Banzami | o Banzami |
+| da Banzami | do Banzami |
+| pela Banzami | pelo Banzami |
+
+Agreement: participles and adjectives qualifying Banza/Banzami must be masculine:
+- "O Banza é construído..." (not "construída")
+- "O Banzami é reconhecido..." (not "reconhecida")
+
+Compound product names follow the head noun gender (e.g. "o Banza Business" since "negócio" is masculine; "a Banza Wallet" since "carteira" is feminine).
+
+## 16.8 Canonical positioning phrases
 
 > "Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente."
 > "Banzami constrói a infraestrutura. Banza move o dinheiro."

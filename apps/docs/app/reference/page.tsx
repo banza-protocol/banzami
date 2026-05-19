@@ -9,7 +9,7 @@ import { ReferenceMobileToc } from '@/components/ReferenceMobileToc'
 export const metadata: Metadata = {
   title: 'Banza — Referência Oficial',
   description:
-    'Documento de referência oficial Banza — 20 secções cobrindo filosofia, arquitectura, ecossistema, segurança e visão da rede angolana de pagamentos instantâneos. Publicado pela Banzami.',
+    'Documento de referência oficial Banza — 20 secções cobrindo filosofia, arquitectura, ecossistema, segurança e visão da rede angolana de pagamentos instantâneos. Publicado pelo Banzami.',
 }
 
 export default function ReferencePage() {
