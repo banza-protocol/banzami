@@ -1467,19 +1467,19 @@ Três painéis principais Grafana fornecem visibilidade operacional:
 │                                                                     │
 │  CAMADA DE OPERAÇÕES                                                │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  Painel Admin — Liquidações · Reconciliação · Disputas        │   │
+│  │  Painel Admin — Liquidações · Reconciliação · Disputas       │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
 │  CAMADA DE PROGRAMADORES                                            │
-│  ┌────────────┐ ┌──────┐ ┌────┐ ┌──────────┐ ┌────────────────┐    │
-│  │ TypeScript │ │  PHP │ │ Go │ │  Python  │ │    Flutter     │    │
-│  │    SDK     │ │  SDK │ │SDK │ │   SDK    │ │     SDK        │    │
-│  └────────────┘ └──────┘ └────┘ └──────────┘ └────────────────┘    │
+│  ┌────────────┐ ┌──────┐ ┌────┐ ┌──────────┐ ┌────────────────┐     │
+│  │ TypeScript │ │  PHP │ │ Go │ │  Python  │ │    Flutter     │     │
+│  │    SDK     │ │  SDK │ │SDK │ │   SDK    │ │     SDK        │     │
+│  └────────────┘ └──────┘ └────┘ └──────────┘ └────────────────┘     │
 │                                                                     │
 │  CAMADA DE INFRAESTRUTURA                                           │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  Core Rust · APIs Go · PostgreSQL · Redis · Grafana           │   │
-│  │  OpenTelemetry · Prometheus · Cloudflare · Docker             │   │
+│  │  Core Rust · APIs Go · PostgreSQL · Redis · Grafana          │   │
+│  │  OpenTelemetry · Prometheus · Cloudflare · Docker            │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
