@@ -1358,12 +1358,12 @@ Cada decisão arquitectural é ordenada por:
 └──────┬──────────────────────────────────────────┬──────────────┘
        │                                          │
        v                                          v
-┌──────────────────┐                  ┌──────────────────────────┐
-│  API PÚBLICA (Go) │                  │    API ADMIN (Go)        │
-│  Pagamentos · QR  │                  │    Liquidações           │
-│  Transfer. · SDK │                  │    Disputas              │
-│  Perfis          │                  │    Reconciliação         │
-└──────┬───────────┘                  └───────────┬──────────────┘
+┌────────────────────┐                ┌──────────────────────────┐
+│  API PÚBLICA (Go)  │                │    API ADMIN (Go)        │
+│  Pagamentos · QR   │                │    Liquidações           │
+│  Transfer. · SDK   │                │    Disputas              │
+│  Perfis            │                │    Reconciliação         │
+└──────┬─────────────┘                └───────────┬──────────────┘
        │                                          │
        └───────────────────────┬──────────────────┘
                                v
