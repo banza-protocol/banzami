@@ -16,6 +16,9 @@ interface Props {
   params: Promise<{ section: string }>
 }
 
+// Only pre-generated slugs are valid — unknown slugs return 404 without rendering
+export const dynamicParams = false
+
 // Statically generate all section routes from BANZAMI_REFERENCE.md
 export async function generateStaticParams() {
   return getAllSectionSlugs().map((slug) => ({ section: slug }))
