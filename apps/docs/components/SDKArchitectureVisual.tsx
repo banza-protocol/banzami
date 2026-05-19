@@ -1,6 +1,6 @@
 const pipeline = [
   { label: 'App Externa',    sub: 'Táxi · Ecommerce · Escola', icon: '📱', highlight: false },
-  { label: 'SDK Banzami',    sub: 'TS · PHP · Go · Python',    icon: '🔧', highlight: false },
+  { label: 'Banza SDK',      sub: 'TS · PHP · Go · Python',    icon: '🔧', highlight: false },
   { label: 'API Gateway',    sub: 'Auth · Rate limit · Routing', icon: '🚪', highlight: false },
   { label: 'Core Rust',      sub: 'Risk · Compliance · Ledger', icon: '⚙️', highlight: true  },
   { label: 'Ledger',         sub: 'Entrada dupla · Imutável',   icon: '📒', highlight: true  },

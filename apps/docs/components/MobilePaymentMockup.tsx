@@ -113,7 +113,7 @@ export function MobilePaymentMockup() {
             <div className="mt-0.5 text-xs text-green-700">
               💰 Recebeu 2.500 Kz de @joao
             </div>
-            <div className="mt-1 text-[10px] text-green-500">Agora mesmo · Banzami</div>
+            <div className="mt-1 text-[10px] text-green-500">Agora mesmo · Banza</div>
           </div>
         </div>
       </div>

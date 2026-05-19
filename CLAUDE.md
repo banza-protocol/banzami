@@ -1325,7 +1325,89 @@ See [ADR-015](docs/adr/ADR-015-markdown-first-content-architecture.md) for full 
 
 ---
 
-# 16. Final Principle
+# 16. Banzami / Banza Brand Architecture
+
+This is a binding rule for all engineers and all content.
+
+## 16.1 The Two-Level Model
+
+**Banzami** = organization / ecosystem / infrastructure / institutional entity
+
+**Banza** = main payment product / payment experience / wallet-QR network
+
+## 16.2 Use "Banza" for product-level context
+
+Use Banza when referring to:
+
+* the payment experience users interact with,
+* wallets and balances ("Banza Wallet"),
+* the payment network ("rede Banza"),
+* QR payments ("Banza QR"),
+* the merchant solution ("Banza Business"),
+* SDKs and APIs ("Banza SDK", "Banza API"),
+* payment links and checkout ("Banza Pay Links", "Banza Checkout"),
+* consumer-facing copy ("Paga com Banza", "adoptar a Banza").
+
+## 16.3 Use "Banzami" for organizational context
+
+Use Banzami when referring to:
+
+* the company and team ("a Banzami constrói..."),
+* institutional mission and strategy,
+* bank and regulatory relationships,
+* the technical platform and infrastructure as a whole,
+* documentation source of truth (BANZAMI_REFERENCE.md),
+* the ecosystem umbrella ("Ecossistema Banzami"),
+* future non-Banza products of the organization.
+
+## 16.4 Product hierarchy
+
+```
+Banzami (organization)
+└── Banza (main payment product)
+    ├── Banza Wallet
+    ├── Banza Business (mobile + web interfaces)
+    ├── Banza QR
+    ├── Banza Checkout
+    ├── Banza Pay Links
+    ├── Banza API
+    ├── Banza SDK
+    └── @banza (payment identity)
+```
+
+## 16.5 SDK naming
+
+* TypeScript: `@banza/sdk`, class `BanzaClient`
+* PHP: `banza/sdk-php`, class `BanzaClient`
+* Go: `banza-go`
+* Python: `banza-python`
+* Flutter: `banza_flutter`, class `BanzaPay`
+* Webhook header: `banza-signature`
+* Env var: `BANZA_WEBHOOK_SECRET`
+
+## 16.6 Forbidden substitutions
+
+* "Pagar com Banzami" → WRONG. Use "Pagar com Banza."
+* "carteira Banzami" → WRONG. Use "Banza Wallet."
+* "Banzami Business" → WRONG. Use "Banza Business."
+* "SDK Banzami" → WRONG. Use "Banza SDK."
+* Blind replace-all of "Banzami" → FORBIDDEN. Context matters.
+
+## 16.7 Canonical positioning phrases
+
+> "Banzami é o ecossistema. Banza é a experiência de pagamento."
+> "Banzami constrói a infraestrutura. Banza é como Angola paga."
+
+## 16.8 Content update flow
+
+ALWAYS update BANZAMI_REFERENCE.md FIRST.
+Never update website, UI, or SDK names before the reference document is coherent.
+
+See ADR-016 for full context, rationale, and migration rules.
+
+---
+
+# 17. Final Principle
 
 Every engineer working on Banzami must understand:
 

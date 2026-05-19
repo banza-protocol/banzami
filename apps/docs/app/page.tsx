@@ -13,9 +13,9 @@ import { MobilePaymentMockup } from '@/components/MobilePaymentMockup'
 import { SectionCard } from '@/components/SectionCard'
 
 export const metadata: Metadata = {
-  title: 'Banzami — Rede Angolana de Pagamentos Instantâneos por QR Code',
+  title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
   description:
-    'Banzami é a rede angolana de pagamentos instantâneos por QR Code, permitindo pagamentos wallet-to-wallet em Kwanza através de SDKs oficiais.',
+    'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banza SDKs oficiais.',
 }
 
 // ---- Problem cards -----------------------------------------------------------
@@ -104,7 +104,7 @@ export default function HomePage() {
           Escanear. Confirmar. Pago instantaneamente.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Cada pagamento Banzami é uma transferência directa entre carteiras, registada no ledger de forma atómica e imutável.
+          Cada pagamento Banza é uma transferência directa entre carteiras, registada no ledger de forma atómica e imutável.
         </p>
         <PaymentFlowDiagram />
       </section>
@@ -132,7 +132,7 @@ export default function HomePage() {
           Uma rede. Múltiplos actores.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Consumidores, comerciantes, apps externas, SDKs, bancos e o core financeiro Banzami — todos ligados através de uma infraestrutura comum.
+          Consumidores, comerciantes, apps externas, Banza SDKs, bancos e o core financeiro — todos ligados através de uma infraestrutura da Banzami.
         </p>
         <EcosystemMap />
       </section>
@@ -146,7 +146,7 @@ export default function HomePage() {
           Um QR code. Todo o comércio angolano.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Do táxi à escola, da cantina à plataforma de doações — o QR Banzami serve todos os casos de uso do mercado angolano.
+          Do táxi à escola, da cantina à plataforma de doações — o Banza QR serve todos os casos de uso do mercado angolano.
         </p>
         <QRCommerceVisual />
       </section>
@@ -157,7 +157,7 @@ export default function HomePage() {
           Casos de uso
         </div>
         <h2 className="mb-8 text-2xl font-bold tracking-tight text-bz-text md:text-3xl">
-          Banzami em todo o Angola
+          Banza em todo o Angola
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {useCases.map((uc, i) => (
@@ -179,7 +179,7 @@ export default function HomePage() {
           O pagamento perfeito dura menos de 3 segundos.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          A experiência mobile Banzami é desenhada para ser instantânea, em português (pt-AO), e funcionar em qualquer rede de dados angolana.
+          A experiência mobile Banza é desenhada para ser instantânea, em português (pt-AO), e funcionar em qualquer rede de dados angolana.
         </p>
         <MobilePaymentMockup />
       </section>
@@ -193,15 +193,15 @@ export default function HomePage() {
           SDK-first. Integração em Kwanza.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          A plataforma Banzami é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao SDK oficial.
+          A Banza é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banza SDK oficial.
         </p>
         <SDKArchitectureVisual />
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/banzami-para-programadores" className="btn-primary">
+          <Link href="/banza-para-programadores" className="btn-primary">
             Ver documentação de programadores
           </Link>
-          <Link href="/o-motor-de-crescimento-banzami" className="btn-ghost">
-            O Flywheel Banzami
+          <Link href="/o-motor-de-crescimento-da-banza" className="btn-ghost">
+            O Motor de Crescimento da Banza
           </Link>
         </div>
       </section>
@@ -254,9 +254,9 @@ export default function HomePage() {
 
       {/* ─── 14. SOURCE ATTRIBUTION ───────────────────────────────────────── */}
       <div className="border-t border-bz-border bg-bz-surface px-5 py-6 text-center text-xs text-bz-muted md:px-8 lg:px-12">
-        Organização Banzami · Referência v{reference.meta.version} · Todo o conteúdo deriva de{' '}
+        Organização Banzami · Banza Reference v{reference.meta.version} · Todo o conteúdo deriva de{' '}
         <code className="rounded bg-bz-border px-1.5 py-0.5 font-mono">docs/BANZAMI_REFERENCE.md</code>
-        {' '}· ADR-015
+        {' '}· ADR-015 · ADR-016
       </div>
     </div>
   )

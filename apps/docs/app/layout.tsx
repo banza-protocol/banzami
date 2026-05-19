@@ -13,26 +13,28 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Banzami — Rede Angolana de Pagamentos Instantâneos por QR Code',
-    template: '%s · Banzami',
+    default: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
+    template: '%s · Banza',
   },
   description:
-    'Banzami é a rede angolana de pagamentos instantâneos por QR Code, permitindo pagamentos wallet-to-wallet em Kwanza, transferências telefone-a-telefone, pagamentos em apps, ecommerce e pequenos negócios através de SDKs oficiais.',
+    'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza, transferências telefone-a-telefone, pagamentos em apps, ecommerce e pequenos negócios através de Banza SDKs oficiais.',
   keywords: [
+    'Banza',
     'Banzami',
     'pagamentos Angola',
     'QR Code Angola',
     'pagamentos em Kwanza',
     'carteira digital Angola',
+    'Banza Business',
+    'Banza SDK',
     'pagamentos instantâneos Angola',
     'ecommerce Angola',
     'pagamentos para táxi Angola',
-    'SDK pagamentos Angola',
   ],
   openGraph: {
-    title: 'Banzami — Rede Angolana de Pagamentos Instantâneos por QR Code',
+    title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
     description:
-      'Banzami é a rede angolana de pagamentos instantâneos por QR Code, permitindo pagamentos wallet-to-wallet em Kwanza através de SDKs oficiais.',
+      'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banza SDKs oficiais.',
     siteName: 'Banzami',
     locale: 'pt_AO',
     type: 'website',
@@ -68,8 +70,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="hidden items-center gap-1 md:flex">
               {[
                 { href: '/reference',                 label: 'Referência' },
-                { href: '/banzami-para-programadores',          label: 'Programadores' },
-                { href: '/banzami-para-comerciantes',           label: 'Comerciantes' },
+                { href: '/banza-para-programadores',          label: 'Programadores' },
+                { href: '/banza-para-comerciantes',           label: 'Comerciantes' },
                 { href: '/arquitectura-tecnica',                label: 'Arquitectura' },
                 { href: '/seguranca-e-integridade-financeira',  label: 'Segurança' },
               ].map(({ href, label }) => (
@@ -125,14 +127,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <span className="font-bold text-bz-text">Banzami</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
-                  Rede Angolana de Pagamentos Instantâneos por QR Code
+                  Banza — Rede Angolana de Pagamentos Instantâneos por QR Code
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs text-bz-muted">
                 <Link href="/o-que-e-o-banzami" className="hover:text-bz-primary">O que é o Banzami</Link>
-                <Link href="/banzami-para-programadores" className="hover:text-bz-primary">Programadores</Link>
-                <Link href="/banzami-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
+                <Link href="/banza-para-programadores" className="hover:text-bz-primary">Programadores</Link>
+                <Link href="/banza-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
                 <Link href="/arquitectura-tecnica" className="hover:text-bz-primary">Arquitectura</Link>
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
               </div>
