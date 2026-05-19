@@ -750,68 +750,54 @@ O tempo entre "quero aceitar pagamentos digitais" e "estou a aceitar pagamentos 
 
 ### 11.2 Banzami Business
 
-A Banzami Business é a aplicação móvel para operação diária do comerciante. Não é uma versão simplificada do painel web — é um sistema operativo de negócio concebido para o comerciante no terreno.
-
-> Para muitas cantinas, táxis, bancas de mercado e pequenos negócios, a Banzami Business é a interface principal. Sem computador. Sem TPA. Só o telefone.
+A Banzami Business é a plataforma operacional para comerciantes no ecossistema Banzami. Não é uma aplicação — é um sistema completo com duas interfaces complementares que servem o mesmo negócio em contextos diferentes.
 
 ```
-Consumidor
-     |
-     v
-QR / @banza / Link
-     |
-     v
-┌─────────────────────┐
-│  Banzami Business   │  <- notificacao instantanea
-└─────────────────────┘
-     |
-     v
-┌─────────────────────┐
-│   Ledger Banzami    │  <- carteira actualizada
-└─────────────────────┘
-     |
-     v
-┌─────────────────────┐
-│  Painel Web / Banco │  <- gestao e liquidacao
-└─────────────────────┘
+             Banzami Business
+         /                      \
+┌──────────────────┐   ┌──────────────────┐
+│  Interface movel │   │   Interface web  │
+├──────────────────┤   ├──────────────────┤
+│  operacao diaria │   │  administracao   │
+│  QR              │   │  analytics       │
+│  notificacoes    │   │  equipa / SDK    │
+│  saldo e pedidos │   │  disputas        │
+└──────────────────┘   └──────────────────┘
 ```
 
-**O que a Banzami Business permite:**
+Um negócio pequeno pode operar inteiramente pela interface móvel. Um negócio maior usa ambas. A escolha é do comerciante — a plataforma é sempre a mesma.
 
-- Receber notificações de pagamento instantâneas no telemóvel
+#### 11.2.1 Interface móvel
+
+Optimizada para operação diária no terreno. É a interface principal para cantinas, táxis, bancas de mercado, vendedores ambulantes e qualquer comerciante que opere sem computador.
+
+> Sem TPA. Sem computador. Só o telefone — e o negócio funciona.
+
+**O que a interface móvel permite:**
+
+- Receber notificações de pagamento instantâneas
 - Gerar QR estático e dinâmico a qualquer momento
 - Acompanhar transacções e saldo em tempo real
 - Emitir links de pagamento via WhatsApp, SMS ou redes sociais
 - Confirmar pagamentos recebidos
 - Gerir pedidos de pagamento
-- Operar o negócio inteiramente a partir do telemóvel
+- Iniciar pagamentos para conta bancária
 
 **Cenários reais em Angola:**
 
-| Tipo de negócio | Fluxo com Banzami Business |
-|-----------------|----------------------------|
+| Tipo de negócio | Fluxo com a interface móvel |
+|-----------------|------------------------------|
 | **Cantina de bairro** | QR impresso na parede → cliente faz scan → notificação imediata |
 | **Motorista de táxi** | Gera QR antes da viagem → cliente paga → confirmação automática |
 | **Banca de mercado** | @banza exibido → cliente transfere → saldo actualizado em segundos |
 | **Delivery** | Link de pagamento enviado → cliente confirma → entrega desbloqueada |
 | **Escola** | QR dinâmico por propina → pagamento registado → sem recibo manual |
 
-### 11.3 Painel Web
+#### 11.2.2 Interface web
 
-O painel web é o centro de controlo avançado do comerciante — acessível via navegador, concebido para gestão, análise e operações administrativas.
+A interface web é a superfície administrativa avançada da Banzami Business — não é um produto separado. É o centro de controlo do mesmo negócio, acessível via navegador.
 
-```
-┌─────────────────────┐   ┌─────────────────────┐
-│  Banzami Business   │   │  Painel Web         │
-│  (app movel)        │   │  (navegador)        │
-├─────────────────────┤   ├─────────────────────┤
-│  operacao diaria    │   │  administracao      │
-│  QR e notificacoes  │   │  analytics          │
-│  saldo e pedidos    │   │  gestao de equipa   │
-│  links de pagamento │   │  SDK e webhooks     │
-│                     │   │  disputas           │
-└─────────────────────┘   └─────────────────────┘
-```
+**O que a interface web oferece:**
 
 | Secção | O que permite |
 |--------|--------------|
@@ -826,7 +812,29 @@ O painel web é o centro de controlo avançado do comerciante — acessível via
 | **Chaves API** | Gerar e gerir credenciais para integrações SDK |
 | **Acesso da equipa** | Adicionar pessoal com permissões controladas |
 
-### 11.4 Três formas de receber pagamento
+### 11.3 Como o pagamento flui
+
+```
+Consumidor
+     |
+     v
+QR / @banza / Link
+     |
+     v
+┌─────────────────────┐
+│   Ledger Banzami    │  <- pagamento liquidado instantaneamente
+└─────────────────────┘
+     |
+     v
+┌─────────────────────┐
+│  Banzami Business   │  <- comerciante notificado imediatamente
+├─────────────────────┤
+│  Interface movel    │  <- operacao diaria, QR, saldo
+│  Interface web      │  <- analytics, gestao avancada
+└─────────────────────┘
+```
+
+### 11.4 Superfícies de pagamento
 
 | Superfície | Como | Melhor para |
 |------------|------|------------|
@@ -838,7 +846,7 @@ O painel web é o centro de controlo avançado do comerciante — acessível via
 
 ### 11.5 Pagamentos
 
-Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir da Banzami Business, do painel ou via API. O Banzami inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
+Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir da interface móvel, da interface web ou via API. O Banzami inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
 
 ### 11.6 A loja QR
 
