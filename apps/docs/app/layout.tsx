@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
   robots: { index: true, follow: true },
-  authors: [{ name: 'Fidel Monteiro' }],
+  authors: [{ name: 'Organização Banzami' }],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -140,11 +140,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             <div className="mt-8 border-t border-bz-border pt-6 text-center text-[11px] text-bz-muted">
               <p>
-                Autor: <span className="font-medium text-bz-text">{reference.meta.author}</span> ·
-                Referência v{reference.meta.version} ·{' '}
-                Todo o conteúdo deriva de{' '}
+                Organização Banzami · Referência v{reference.meta.version} · Todo o conteúdo deriva de{' '}
                 <code className="rounded bg-bz-surface px-1 font-mono">docs/BANZAMI_REFERENCE.md</code>{' '}
-                (ADR-015)
+                · ADR-015
               </p>
             </div>
           </div>

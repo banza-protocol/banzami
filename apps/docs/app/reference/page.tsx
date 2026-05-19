@@ -59,7 +59,7 @@ export default function ReferencePage() {
                 {[
                   { label: 'Versão',  value: reference.meta.version,  mono: true },
                   { label: 'Estado',  value: reference.meta.status,   mono: false },
-                  { label: 'Autor',   value: reference.meta.author,   mono: false },
+                  { label: 'Organização', value: reference.meta.author, mono: false },
                   { label: 'Data',    value: reference.meta.date,     mono: true },
                 ].map(({ label, value, mono }) => (
                   <div key={label}>
@@ -128,7 +128,7 @@ export default function ReferencePage() {
                 ADR-015 — o ficheiro markdown é canónico. Este site é a camada de apresentação visual.
               </p>
               <p className="mt-2 text-xs text-bz-muted">
-                Autor: {reference.meta.author} · v{reference.meta.version}
+                Organização Banzami · v{reference.meta.version}
               </p>
             </div>
           </div>
