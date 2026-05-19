@@ -18,7 +18,7 @@ export function EcosystemMap() {
 
       {/* Desktop SVG map */}
       <div className="hidden md:block">
-        <svg viewBox="0 0 600 400" className="w-full" aria-label="Mapa do ecossistema Banzami">
+        <svg viewBox="0 -14 600 448" className="w-full" aria-label="Mapa do ecossistema Banzami">
           {/* Connection lines */}
           {[
             [300,200, 300, 30],   // center to top (Consumidor)
