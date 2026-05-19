@@ -180,14 +180,17 @@ deploy_docs_frontend() {
     "$REMOTE:/srv/banzami/src/apps/docs/"
   ok "App sync complete"
 
-  info "Syncing BANZAMI_REFERENCE.md (build-time content source)..."
+  info "Syncing docs/ content (build-time source — ADR-015)..."
   # The Dockerfile builds with repo root as context so it can COPY both
-  # apps/docs/ and docs/BANZAMI_REFERENCE.md into the image (ADR-015).
-  ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs"
+  # apps/docs/ and docs/ into the image (ADR-015).
+  ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs/validation"
   rsync -az \
     "$REPO_ROOT/docs/BANZAMI_REFERENCE.md" \
     "$REMOTE:/srv/banzami/src/docs/BANZAMI_REFERENCE.md"
-  ok "Reference doc synced"
+  rsync -az \
+    "$REPO_ROOT/docs/validation/" \
+    "$REMOTE:/srv/banzami/src/docs/validation/"
+  ok "Reference doc and validation matrix synced"
 
   info "Building Docker image on server (context = repo root)..."
   ssh "$REMOTE" "docker build $NO_CACHE \
