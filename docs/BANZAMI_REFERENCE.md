@@ -311,7 +311,7 @@ Os modelos de referência para este tipo de transformação existem. O **Pix** d
 Tudo no Banzami é construído sobre uma operação:
 
 ```
-Carteira do Consumidor  ────[transferência instantânea no ledger]────▶  Carteira do Comerciante
+Carteira do Consumidor  ────[transferência instantânea no ledger]────>  Carteira do Comerciante
 ```
 
 Quando um consumidor paga um comerciante, o dinheiro move-se de uma carteira digital para outra. A transferência é atómica, instantânea e registada num ledger financeiro imutável. Não existe estado intermédio, sem período pendente, sem atraso na liquidação. O dinheiro está na carteira do comerciante no momento em que o consumidor confirma o pagamento.
@@ -365,13 +365,13 @@ Fluxo de scan QR:
 │  telemóvel ou a app Banzami      │
 └──────────────┬───────────────────┘
                │
-               ▼
+               v
 ┌──────────────────────────────────┐
 │  Faz o scan do código QR do      │
 │  comerciante                     │
 └──────────────┬───────────────────┘
                │
-               ▼
+               v
 ┌──────────────────────────────────┐
 │  A app descodifica:              │
 │  → Comerciante: @cantina.luanda  │
@@ -380,7 +380,7 @@ Fluxo de scan QR:
 │    (estático)                    │
 └──────────────┬───────────────────┘
                │
-               ▼
+               v
 ┌──────────────────────────────────┐
 │  Ecrã de confirmação:            │
 │  "Pagar 2.500 Kz a               │
@@ -389,7 +389,7 @@ Fluxo de scan QR:
 │  [✓ Confirmar com impressão]     │
 └──────────────┬───────────────────┘
                │ biométrico / PIN
-               ▼
+               v
 ┌──────────────────────────────────┐
 │  ✅ PAGO — 2.500 Kz              │
 │  @cantina.luanda                 │
@@ -697,8 +697,8 @@ Cada titular de conta possui uma **carteira digital em Kwanza**. Quando um consu
 ```
 ┌───────────────────┐                      ┌───────────────────┐
 │   Consumidor      │                      │   Comerciante     │
-│   Carteira        │ ─[transferência]────▶ │   Carteira        │
-│   @joao     │    no ledger          │   @cantina.luanda │
+│   Carteira        │ --[transferencia]--> │   Carteira        │
+│   @joao           │      no ledger       │   @cantina.luanda │
 │   Saldo: 15Kz     │                      │   Saldo: 0Kz      │
 └───────────────────┘                      └───────────────────┘
          ↓ Após pagamento                           ↓
@@ -1046,32 +1046,32 @@ Uma rede de pagamentos não é um produto que se constrói e lança. É uma rede
 │                                                                  │
 │         Mais comerciantes aceitam QR                             │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Mais razões para os consumidores obterem uma carteira    │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Mais consumidores têm carteiras                          │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Mais comerciantes querem aceitar QR                      │
 │                    │                                             │
 │            ┌───────┘                                             │
-│            ▼                                                     │
+│            v                                                     │
 │         Mais integrações SDK                                     │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Mais consumidores descobrem o Banzami dentro de apps     │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Mais circulação de carteiras                             │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         Menos dependência de dinheiro físico                     │
 │                    │                                             │
-│                    ▼                                             │
+│                    v                                             │
 │         O Banzami torna-se o padrão                              │
 │                    │                                             │
-│                    └──────────────────▶ (ciclo acelera)          │
+│                    └──────────────────> (ciclo acelera)          │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
@@ -1109,17 +1109,17 @@ O Banzami não é um produto único — é um ecossistema de participantes inter
 │                     REDE BANZAMI                            │
 │                                                             │
 │  ┌──────────────┐    paga    ┌──────────────────────────┐   │
-│  │  Consumidores│───────────▶│  Comerciantes            │   │
-│  │  (carteiras) │◀───────────│  (carteiras + painel)    │   │
+│  │  Consumidores│───────────>│  Comerciantes            │   │
+│  │  (carteiras) │<───────────│  (carteiras + painel)    │   │
 │  └──────────────┘   recebe   └──────────────────────────┘   │
 │         │                              │                    │
-│         ▼                              ▼                    │
+│         v                              v                    │
 │  ┌──────────────────────────────────────────────────────┐   │
 │  │      Motor de Ledger e Carteiras Banzami             │   │
 │  │    (dupla entrada, instantâneo, imutável)            │   │
 │  └──────────────────────────────────────────────────────┘   │
 │         │                              │                    │
-│         ▼                              ▼                    │
+│         v                              v                    │
 │  ┌──────────────┐             ┌──────────────────────────┐  │
 │  │  Apps com    │             │  EMIS / Bancos Angolanos  │  │
 │  │  SDK Banzami │             │  (liquidação interbancária│  │
@@ -1260,23 +1260,28 @@ Cada decisão arquitectural é ordenada por:
 │   App Consumidor · Painel Comerciante · App 3ª Parte · SDKs     │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTPS / TLS 1.3
-┌──────────────────────────▼──────────────────────────────────────┐
+                           v
+┌─────────────────────────────────────────────────────────────────┐
 │               CLOUDFLARE (DDoS, WAF, CDN)                       │
 └──────────────────────────┬──────────────────────────────────────┘
                            │
-┌──────────────────────────▼──────────────────────────────────────┐
+                           v
+┌─────────────────────────────────────────────────────────────────┐
 │                  API GATEWAY (Go)                               │
 │       Auth · Rate limiting · Routing · Entrega de webhooks      │
 └──────┬──────────────────────────────────────────┬──────────────┘
        │                                          │
-┌──────▼───────────┐                  ┌───────────▼──────────────┐
+       v                                          v
+┌──────────────────┐                  ┌──────────────────────────┐
 │  API PÚBLICA (Go) │                  │    API ADMIN (Go)        │
 │  Pagamentos · QR  │                  │    Liquidações           │
 │  Transfer. · SDK │                  │    Disputas              │
 │  Perfis          │                  │    Reconciliação         │
 └──────┬───────────┘                  └───────────┬──────────────┘
        │                                          │
-┌──────▼──────────────────────────────────────────▼──────────────┐
+       └───────────────────────┬──────────────────┘
+                               v
+┌─────────────────────────────────────────────────────────────────┐
 │                      CORE API (Rust)                            │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
@@ -1290,12 +1295,14 @@ Cada decisão arquitectural é ordenada por:
 │  └──────────┘  └──────────┘  └──────────┘  └──────────────┘    │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
-┌──────────────────────────────▼──────────────────────────────────┐
+                               v
+┌─────────────────────────────────────────────────────────────────┐
 │                          POSTGRESQL                             │
 │               (única fonte de verdade financeira)               │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
-┌──────────────────────────────▼──────────────────────────────────┐
+                               v
+┌─────────────────────────────────────────────────────────────────┐
 │                    EMIS / BANCOS ANGOLANOS                      │
 │                  (rede de liquidação interbancária)             │
 └─────────────────────────────────────────────────────────────────┘
