@@ -111,7 +111,7 @@ export function MobilePaymentMockup() {
           <div>
             <div className="text-xs font-bold text-green-800">Notificação Comerciante</div>
             <div className="mt-0.5 text-xs text-green-700">
-              💰 Recebeu 2.500 Kz de @joao.silva
+              💰 Recebeu 2.500 Kz de @joao
             </div>
             <div className="mt-1 text-[10px] text-green-500">Agora mesmo · Banzami</div>
           </div>

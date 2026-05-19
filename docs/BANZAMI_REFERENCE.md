@@ -258,9 +258,9 @@ Os modelos de referência para este tipo de transformação existem. O **Pix** d
 
 ---
 
-**7h15.** A Amélia acorda, verifica a sua carteira Banzami no telemóvel. Recebeu 5.000 Kz durante a noite — o seu irmão mais novo pagou-lhe de volta dinheiro que ela lhe tinha emprestado na semana passada. Ele enviou de Benguela às 23h00. Chegou instantaneamente. Não houve transferência bancária. Não houve mensagem de WhatsApp. Ele escreveu `@amelia.luanda`, inseriu o valor, confirmou com o seu PIN, e estava feito.
+**7h15.** A Amélia acorda, verifica a sua carteira Banzami no telemóvel. Recebeu 5.000 Kz durante a noite — o seu irmão mais novo pagou-lhe de volta dinheiro que ela lhe tinha emprestado na semana passada. Ele enviou de Benguela às 23h00. Chegou instantaneamente. Não houve transferência bancária. Não houve mensagem de WhatsApp. Ele escreveu `@amelia`, inseriu o valor, confirmou com o seu PIN, e estava feito.
 
-**8h00.** Na cantina da esquina perto do seu apartamento, a Amélia pede café e pão. Aponta o telemóvel para o código QR colado na parede. A app mostra `@cantina.margarida`. Ela escreve `1.500 Kz` e prime o polegar para confirmar. O telemóvel da Margarida acende-se no balcão: *"Recebeu 1.500 Kz de @amelia.luanda."* Sem troco. Sem espera. Pequeno-almoço feito.
+**8h00.** Na cantina da esquina perto do seu apartamento, a Amélia pede café e pão. Aponta o telemóvel para o código QR colado na parede. A app mostra `@cantina.margarida`. Ela escreve `1.500 Kz` e prime o polegar para confirmar. O telemóvel da Margarida acende-se no balcão: *"Recebeu 1.500 Kz de @amelia."* Sem troco. Sem espera. Pequeno-almoço feito.
 
 **8h30.** A Amélia trabalha como designer gráfica freelance. Um cliente devia-lhe pelo logótipo. Ela tinha enviado um link de pagamento na semana passada: `pay.banzami.org/fatura-logo-92`. Esta manhã abre o painel do comerciante no portátil e vê o estado mudar para **Pago** — o cliente pagou às 8h22. Ela tem o dinheiro. Tem o recibo digital. Não teve de enviar uma única mensagem de WhatsApp para o perseguir.
 
@@ -300,7 +300,7 @@ Cada pessoa e cada comerciante no Banzami tem uma **carteira digital em Kwanza**
 
 ```
 ┌─────────────────────────────────────┐
-│  @joao.silva                        │
+│  @joao                        │
 │  ID Carteira: wlt_...               │
 │                                     │
 │  Disponível:   12.750 Kz  ← gastável agora
@@ -317,7 +317,7 @@ O saldo **disponível** pode ser gasto ou transferido imediatamente. O saldo **r
 Cada conta Banzami tem um **@banza** — um identificador único e legível por humanos que funciona como identidade de pagamento nativa.
 
 ```
-@joao.silva          ← @banza de consumidor
+@joao          ← @banza de consumidor
 @cantina.luanda      ← @banza de comerciante
 @escola.benguela     ← @banza de instituição
 @doa.creators        ← @banza de plataforma
@@ -376,7 +376,7 @@ Fluxo de scan QR:
 Simultaneamente:
 
 ```
-Telemóvel do comerciante: 📳 "Recebeu 2.500 Kz de @joao.silva"
+Telemóvel do comerciante: 📳 "Recebeu 2.500 Kz de @joao"
 Carteira do comerciante: saldo actualizado em tempo real
 ```
 
@@ -674,7 +674,7 @@ Cada titular de conta possui uma **carteira digital em Kwanza**. Quando um consu
 ┌───────────────────┐                      ┌───────────────────┐
 │   Consumidor      │                      │   Comerciante     │
 │   Carteira        │ ─[transferência]────▶ │   Carteira        │
-│   @joao.silva     │    no ledger          │   @cantina.luanda │
+│   @joao     │    no ledger          │   @cantina.luanda │
 │   Saldo: 15Kz     │                      │   Saldo: 0Kz      │
 └───────────────────┘                      └───────────────────┘
          ↓ Após pagamento                           ↓
@@ -946,12 +946,12 @@ Feito.
 Deve dinheiro a um amigo pelo almoço.
 
 Abre o Banzami. Toca em "Enviar."
-Escreve: @maria.luanda
+Escreve: @maria
 Insere: 3.000 Kz
 Toca em "Confirmar."
 
 Feito. A carteira da Maria é creditada instantaneamente.
-Ela recebe: "Recebeu 3.000 Kz de @joao.silva."
+Ela recebe: "Recebeu 3.000 Kz de @joao."
 ```
 
 ### 13.5 Pagar um link de pagamento
