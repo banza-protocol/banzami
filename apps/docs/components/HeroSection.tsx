@@ -48,12 +48,12 @@ export function HeroSection({ tagline }: Props) {
         </p>
 
         {/* SCAN → CONFIRM → PAID strip */}
-        <div className="mb-10 inline-flex items-center gap-3 rounded-2xl border border-bz-border bg-white px-6 py-3 shadow-card">
+        <div className="mb-10 mx-auto flex w-fit flex-col items-center rounded-2xl border border-bz-border bg-white px-8 py-4 shadow-card sm:flex-row sm:gap-0 sm:px-6 sm:py-3">
           {['Escanear', 'Confirmar', 'Pago instantaneamente'].map((step, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <span className="font-semibold text-bz-text">{step}</span>
+            <div key={i} className="flex flex-col items-center sm:flex-row sm:items-center">
+              <span className="py-1.5 font-semibold text-bz-text sm:py-0">{step}</span>
               {i < 2 && (
-                <span className="text-bz-primary font-light">→</span>
+                <span className="inline-block rotate-90 font-light text-bz-primary sm:rotate-0 sm:px-3">→</span>
               )}
             </div>
           ))}
