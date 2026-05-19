@@ -234,13 +234,15 @@ Um toque. Pago. A escola regista-o imediatamente.
 ```
 
 ```
-Uma utilizadora chama um táxi a partir da aplicação.
-O motorista chega. A corrida termina. A tarifa aparece automaticamente: 3.200 Kz.
-"Pagar com Banzami."
-Um toque. Confirmação biométrica.
-A carteira da passageira debita. A carteira do motorista é creditada na mesma fracção de segundo.
-A corrida fecha. O recibo está na app.
-Nenhum comprovativo por WhatsApp. Nenhuma transferência manual. Nenhum dinheiro físico.
+Um utilizador abre uma app de táxi angolana.
+Escolhe o destino. A app calcula a tarifa: 3.200 Kz.
+"Confirmar e pagar com Banzami."
+O fluxo de pagamento Banzami abre dentro da própria app — sem sair, sem redireccionamentos.
+O utilizador confirma com o seu @banza e PIN.
+O pagamento é autorizado. O táxi é pedido automaticamente.
+O motorista recebe a corrida — e a confirmação de pagamento — em simultâneo.
+A corrida começa. Nenhum dinheiro muda de mãos no fim.
+A app de táxi usa o SDK Banzami. Uma chamada de SDK. Pagamento integrado.
 ```
 
 ```
