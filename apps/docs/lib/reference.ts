@@ -153,6 +153,8 @@ function validateRaw(raw: string): void {
 export function toSlug(title: string): string {
   return title
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')  // strip combining diacritical marks (é→e, ã→a, ç→c)
     .replace(/[^a-z0-9\s-]/g, '')
     .trim()
     .replace(/\s+/g, '-')

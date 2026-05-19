@@ -79,7 +79,7 @@ export default function HomePage() {
           ))}
           {/* Why Now — sourced from §3 */}
           {whyNowSection && (
-            <Link href="/why-now" className="card group p-5 hover:border-bz-primary/30">
+            <Link href="/por-que-agora" className="card group p-5 hover:border-bz-primary/30">
               <div className="mb-3 text-2xl">⏱️</div>
               <h3 className="mb-1 text-sm font-semibold text-bz-text group-hover:text-bz-primary transition-colors">
                 Porquê agora?
@@ -197,10 +197,10 @@ export default function HomePage() {
         </p>
         <SDKArchitectureVisual />
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/banzami-for-developers" className="btn-primary">
+          <Link href="/banzami-para-programadores" className="btn-primary">
             Ver documentação de programadores
           </Link>
-          <Link href="/the-banzami-flywheel" className="btn-ghost">
+          <Link href="/o-motor-de-crescimento-banzami" className="btn-ghost">
             O Flywheel Banzami
           </Link>
         </div>

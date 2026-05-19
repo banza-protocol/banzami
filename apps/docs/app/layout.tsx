@@ -68,10 +68,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="hidden items-center gap-1 md:flex">
               {[
                 { href: '/reference',                 label: 'Referência' },
-                { href: '/banzami-for-developers',    label: 'Programadores' },
-                { href: '/banzami-for-merchants',     label: 'Comerciantes' },
-                { href: '/technical-architecture',    label: 'Arquitectura' },
-                { href: '/security-financial-integrity', label: 'Segurança' },
+                { href: '/banzami-para-programadores',          label: 'Programadores' },
+                { href: '/banzami-para-comerciantes',           label: 'Comerciantes' },
+                { href: '/arquitectura-tecnica',                label: 'Arquitectura' },
+                { href: '/seguranca-e-integridade-financeira',  label: 'Segurança' },
               ].map(({ href, label }) => (
                 <Link
                   key={href}
@@ -130,10 +130,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs text-bz-muted">
-                <Link href="/what-is-banzami" className="hover:text-bz-primary">O que é o Banzami</Link>
-                <Link href="/banzami-for-developers" className="hover:text-bz-primary">Programadores</Link>
-                <Link href="/banzami-for-merchants" className="hover:text-bz-primary">Comerciantes</Link>
-                <Link href="/technical-architecture" className="hover:text-bz-primary">Arquitectura</Link>
+                <Link href="/o-que-e-o-banzami" className="hover:text-bz-primary">O que é o Banzami</Link>
+                <Link href="/banzami-para-programadores" className="hover:text-bz-primary">Programadores</Link>
+                <Link href="/banzami-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
+                <Link href="/arquitectura-tecnica" className="hover:text-bz-primary">Arquitectura</Link>
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
               </div>
             </div>
