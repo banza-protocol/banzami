@@ -48,7 +48,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="pt-AO" suppressHydrationWarning>
-      <body className={`${inter.variable} bg-bz-bg text-bz-text antialiased font-sans`}>
+      <body className={`${inter.variable} bg-bz-bg text-bz-text antialiased font-sans overflow-x-hidden`}>
 
         {/* Top navigation */}
         <header className="sticky top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
