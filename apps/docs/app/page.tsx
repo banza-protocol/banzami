@@ -118,7 +118,7 @@ export default function HomePage() {
           O telemóvel é a carteira.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Sem números de cartão. Sem IBAN. Sem formulários. Apenas @handle, QR e liquidação instantânea em Kwanza.
+          Sem números de cartão. Sem IBAN. Sem formulários. Apenas @banza, QR e liquidação instantânea em Kwanza.
         </p>
         <WalletToWalletVisual />
       </section>

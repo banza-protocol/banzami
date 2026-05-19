@@ -79,14 +79,14 @@ O consumidor vê a confirmação de sucesso
 
 ### Identidade no Banzami
 
-Cada pessoa e cada comerciante na rede Banzami tem um **@handle** — um endereço de pagamento legível por humanos. Enviar dinheiro no Banzami tem este aspecto:
+Cada pessoa e cada comerciante na rede Banzami tem um **@banza** — uma identidade de pagamento nativa Banzami. Enviar dinheiro no Banzami tem este aspecto:
 
 ```
 Pagar: @cantina.luanda
 Valor: 2.500 Kz
 ```
 
-Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados de cartão. Apenas um handle e um valor.
+Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados de cartão. Apenas um @banza e um valor.
 
 ### Quem o Banzami serve
 
@@ -177,7 +177,7 @@ O hábito já existe. O Banzami melhora-o.
 
 ### 3.3 O QR já provou o modelo globalmente
 
-No Brasil, o Pix criou uma rede de pagamentos instantâneos QR-native que se tornou o método de pagamento dominante em menos de três anos. Na Índia, o UPI processa milhares de milhões de transacções mensalmente usando transferências instantâneas baseadas em @handle. Na China, o WeChat Pay tornou o scan de QR tão habitual que o dinheiro físico se tornou a excepção nas grandes cidades.
+No Brasil, o Pix criou uma rede de pagamentos instantâneos QR-native que se tornou o método de pagamento dominante em menos de três anos. Na Índia, o UPI processa milhares de milhões de transacções mensalmente usando transferências instantâneas baseadas em @banza. Na China, o WeChat Pay tornou o scan de QR tão habitual que o dinheiro físico se tornou a excepção nas grandes cidades.
 
 Nenhum desses países tinha vantagens especiais. Tinham uma infraestrutura clara, um lançamento focado e um produto genuinamente melhor do que o dinheiro físico. Angola tem exactamente as mesmas pré-condições. O modelo está provado.
 
@@ -246,7 +246,7 @@ A missão do Banzami está alcançada quando:
 - Os programadores angolanos têm uma infraestrutura de pagamentos da qual se orgulham de construir
 - A rede Banzami tornou-se infraestrutura — parte do modo como Angola funciona
 
-Os modelos de referência para este tipo de transformação existem. O **Pix** do Brasil tornou os pagamentos QR o padrão nacional em menos de três anos. O **UPI** da Índia tornou as transferências instantâneas baseadas em @handle o padrão para mil milhões de pessoas. Ambos começaram com foco: um país, uma rede, uma promessa clara a cada utilizador.
+Os modelos de referência para este tipo de transformação existem. O **Pix** do Brasil tornou os pagamentos QR o padrão nacional em menos de três anos. O **UPI** da Índia tornou as transferências instantâneas baseadas em @banza o padrão para mil milhões de pessoas. Ambos começaram com foco: um país, uma rede, uma promessa clara a cada utilizador.
 
 **O Banzami é isso para Angola.**
 
@@ -312,18 +312,18 @@ Cada pessoa e cada comerciante no Banzami tem uma **carteira digital em Kwanza**
 
 O saldo **disponível** pode ser gasto ou transferido imediatamente. O saldo **reservado** cobre operações pendentes. Ambos são sempre exactos. Não existe "por favor verifique daqui a alguns minutos."
 
-### 6.3 @Handles
+### 6.3 @Banza
 
-Cada conta Banzami tem um **@handle** — um identificador único e legível por humanos que funciona também como endereço de pagamento.
+Cada conta Banzami tem um **@banza** — um identificador único e legível por humanos que funciona como identidade de pagamento nativa.
 
 ```
-@joao.silva          ← handle de consumidor
-@cantina.luanda      ← handle de comerciante
-@escola.benguela     ← handle de instituição
-@doa.creators        ← handle de plataforma
+@joao.silva          ← @banza de consumidor
+@cantina.luanda      ← @banza de comerciante
+@escola.benguela     ← @banza de instituição
+@doa.creators        ← @banza de plataforma
 ```
 
-Os handles substituem a necessidade de números de conta bancária, IBANs ou códigos de referência. Para enviar dinheiro a alguém, escreve o seu handle. Para receber dinheiro, partilha o seu handle. Os comerciantes imprimem o seu handle em cartazes físicos ao lado do seu código QR. É simultaneamente uma marca, um endereço e uma identidade de pagamento.
+O @banza substitui a necessidade de números de conta bancária, IBANs ou códigos de referência. Para enviar dinheiro a alguém, escreve o seu @banza. Para receber dinheiro, partilha o seu @banza. Os comerciantes imprimem o seu @banza em cartazes físicos ao lado do seu código QR. É simultaneamente uma marca, um endereço e uma identidade de pagamento.
 
 ### 6.4 Pagamentos QR
 
@@ -411,7 +411,7 @@ O EMIS é o caminho. O Banzami é o produto.
 ┌────────────────────────────────────────────┐
 │   Camada de Produto Banzami                │
 │   carteiras · QR · SDKs · ferramentas      │
-│   @handles · links de pagamento · UX inst. │
+│   @banza · links de pagamento · UX inst.   │
 ├────────────────────────────────────────────┤
 │   EMIS / Multicaixa Express                │
 │   (rede de liquidação interbancária        │
@@ -436,7 +436,7 @@ O Banzami não substitui o sistema bancário. Constrói a camada de comércio ac
 | Funcionalidade | Descrição |
 |----------------|-----------|
 | **Pagamentos QR** | O consumidor faz o scan do QR do comerciante; liquidação instantânea de carteira-para-carteira; sem hardware necessário |
-| **Transferências P2P** | O consumidor envia dinheiro para qualquer @handle; instantâneo; sem dados bancários necessários |
+| **Transferências P2P** | O consumidor envia dinheiro para qualquer @banza; instantâneo; sem dados bancários necessários |
 | **Links de pagamento** | URLs partilháveis; o consumidor abre no browser e paga; o comerciante vê confirmação instantânea |
 | **Pedidos de pagamento** | Factura digital enviada para a carteira de um consumidor; pagar ou recusar com um toque |
 | **Liquidação instantânea** | Dinheiro na carteira do destinatário no momento em que o pagamento é confirmado; sem períodos pendentes |
@@ -447,7 +447,7 @@ O Banzami não substitui o sistema bancário. Constrói a camada de comércio ac
 |----------------|-----------|
 | **Carteira do comerciante** | Carteira de negócio dedicada para receber pagamentos, acompanhar saldos e solicitar pagamentos |
 | **Painel do comerciante** | Interface web para histórico de transacções, análises, reembolsos, disputas e gestão de equipa |
-| **Loja QR** | Página de perfil público do comerciante em `pay.banzami.org/profiles/@handle` |
+| **Loja QR** | Página de perfil público do comerciante em `pay.banzami.org/profiles/@banza` |
 | **Geração de QR estático** | Código QR permanente para a carteira do comerciante; imprimir e exibir em qualquer lugar |
 | **Geração de QR dinâmico** | QR por transacção com valor fixo e expiração |
 | **Pagamentos** | Levanta o saldo da carteira para uma conta bancária angolana a pedido |
@@ -586,7 +586,7 @@ A lógica é fundamental. Um código QR é um endereço de pagamento visual. Pod
 
 ### 9.1 QR Estático
 
-Um QR estático codifica uma referência de carteira e @handle. Impresso uma vez, usado indefinidamente.
+Um QR estático codifica uma referência de carteira e @banza. Impresso uma vez, usado indefinidamente.
 
 **Colocação típica:** colado na parede de uma cantina, num posto de mercado, na mesa de um restaurante, mostrado no ecrã de um telemóvel.
 
@@ -620,7 +620,7 @@ O consumidor faz o scan. O valor está pré-preenchido. Só precisa de confirmar
 
 ### 9.3 Loja QR do comerciante
 
-Cada comerciante tem uma página de perfil público em `pay.banzami.org/profiles/@handle`:
+Cada comerciante tem uma página de perfil público em `pay.banzami.org/profiles/@banza`:
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -718,7 +718,7 @@ Estas três camadas são expressões da mesma conta subjacente. Juntas, tornam o
 
 ### 11.1 Primeiros passos
 
-Um comerciante regista-se no Banzami, fornece informações básicas do negócio e recebe uma carteira de comerciante e um @handle em minutos. Um código QR estático está pronto para download imediatamente.
+Um comerciante regista-se no Banzami, fornece informações básicas do negócio e recebe uma carteira de comerciante e um @banza em minutos. Um código QR estático está pronto para download imediatamente.
 
 Sem terminal POS necessário. Sem acordo de cartão necessário. Sem volume mensal mínimo. A verificação KYC é necessária antes da liquidação em directo, mas o processo é totalmente digital.
 
@@ -731,7 +731,7 @@ Cada comerciante tem um painel baseado na web:
 | Secção | O que mostra |
 |--------|-------------|
 | **Saldo da carteira** | Saldo disponível e reservado, actualizado em tempo real |
-| **Transacções** | Cada pagamento recebido — timestamp, valor, @handle do consumidor |
+| **Transacções** | Cada pagamento recebido — timestamp, valor, @banza do consumidor |
 | **Análises** | Volume diário/mensal, contagens de transacções, horas de pico |
 | **Links de pagamento** | Criar, partilhar e gerir links de pagamento |
 | **Pedidos de pagamento** | Enviar pedidos de pagamento a consumidores específicos |
@@ -755,7 +755,7 @@ Os saldos da carteira são levantados para uma conta bancária angolana a pedido
 
 ### 11.5 A loja QR
 
-Cada comerciante tem um perfil público permanente em `pay.banzami.org/profiles/@handle`. Esta é a identidade digital que ancora o comerciante na rede Banzami — partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
+Cada comerciante tem um perfil público permanente em `pay.banzami.org/profiles/@banza`. Esta é a identidade digital que ancora o comerciante na rede Banzami — partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
 
 ---
 
@@ -897,7 +897,7 @@ Cada conta tem acesso a um sandbox completo com chaves API separadas (`bz_sandbo
 | Pagamentos | Criar, obter, listar |
 | Webhooks | Registar endpoint, listar eventos, listar entregas |
 | Comerciantes | Criar, obter, actualizar |
-| Consumidores | Criar, obter por handle |
+| Consumidores | Criar, obter por @banza |
 | Chaves API | Criar, listar, revogar |
 
 ---
@@ -913,7 +913,7 @@ O Banzami é para cada angolano com um smartphone. Não é necessária uma conta
 ```
 1. Inserir o seu número de telemóvel
 2. Verificar com um código de uso único
-3. Escolher o seu @handle
+3. Escolher o seu @banza
 4. Definir um PIN (biométrico opcional)
 
 → Carteira pronta. Pode receber dinheiro imediatamente.
@@ -983,7 +983,7 @@ Um toque. Pago. A escola regista-o imediatamente.
 
 ### 13.7 A sua carteira é o seu registo
 
-A app Banzami mostra cada transacção — enviada e recebida — com timestamps, valores e o @handle da outra parte. Sem cobranças misteriosas. Sem dinheiro físico por contabilizar. Visibilidade completa sobre a sua actividade financeira.
+A app Banzami mostra cada transacção — enviada e recebida — com timestamps, valores e o @banza da outra parte. Sem cobranças misteriosas. Sem dinheiro físico por contabilizar. Visibilidade completa sobre a sua actividade financeira.
 
 ---
 
@@ -1001,7 +1001,7 @@ A questão não é se os pagamentos digitais são melhores. São objectivamente.
 
 Para além das comparações:
 
-- **Uma identidade para todos os pagamentos.** O seu @handle é o seu endereço para cada pagamento: comerciantes, amigos, família, instituições.
+- **Uma identidade para todos os pagamentos.** O seu @banza é o seu endereço para cada pagamento: comerciantes, amigos, família, instituições.
 - **Mais seguro do que dinheiro físico.** O dinheiro fica na sua carteira até confirmar um pagamento. Um telemóvel perdido não significa dinheiro perdido.
 - **Sem problema de troco.** Ninguém precisa de troco exacto. Ninguém se desculpa por não ter notas pequenas.
 - **Famílias e distância.** Envie dinheiro a família noutra cidade instantaneamente. Sem filas, sem códigos de transferência, sem espera.

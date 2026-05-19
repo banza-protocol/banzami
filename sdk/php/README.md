@@ -2,7 +2,7 @@
 
 Official PHP SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@handle transfers** — not card forms or IBAN strings. All monetary values are in AOA (Kwanza), expressed as **integer minor units**.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings. All monetary values are in AOA (Kwanza), expressed as **integer minor units**.
 
 > See [ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md) and [ADR-014](../../docs/adr/ADR-014-angola-national-mission.md) for platform identity and market positioning.
 
@@ -281,8 +281,8 @@ try {
 | `isInsufficientFunds()` | Sender wallet has insufficient balance |
 | `isWalletNotFound()` | Wallet ID does not exist |
 | `isWalletNotActive()` | Wallet is suspended or closed |
-| `isHandleNotFound()` | No consumer with the given handle |
-| `isHandleTaken()` | Handle is already registered |
+| `isHandleNotFound()` | No consumer with the given @banza |
+| `isHandleTaken()` | @banza is already registered |
 | `isLinkNotActive()` | Payment link is used, cancelled, or expired |
 
 ---

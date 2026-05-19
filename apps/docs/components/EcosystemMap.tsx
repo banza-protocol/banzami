@@ -1,6 +1,6 @@
 const actors = [
-  { label: 'Consumidor',   sublabel: '@handle',          icon: '👤', pos: 'top-0 left-1/2 -translate-x-1/2' },
-  { label: 'Comerciante',  sublabel: 'QR / @handle',     icon: '🏪', pos: 'top-[20%] right-0' },
+  { label: 'Consumidor',   sublabel: '@banza',          icon: '👤', pos: 'top-0 left-1/2 -translate-x-1/2' },
+  { label: 'Comerciante',  sublabel: 'QR / @banza',     icon: '🏪', pos: 'top-[20%] right-0' },
   { label: 'Apps Externas',sublabel: 'Táxi / Delivery',  icon: '📱', pos: 'top-[60%] right-0' },
   { label: 'SDKs',         sublabel: 'TS · PHP · Go · Python', icon: '🔧', pos: 'bottom-0 right-[25%]' },
   { label: 'EMIS / Bancos',sublabel: 'Rails bancários',  icon: '🏦', pos: 'bottom-0 left-[25%]' },
@@ -40,8 +40,8 @@ export function EcosystemMap() {
 
           {/* Outer nodes */}
           {[
-            { cx:300, cy:28,  label:'Consumidor',    sub:'@handle',          emoji:'👤' },
-            { cx:544, cy:112, label:'Comerciante',   sub:'QR / @handle',     emoji:'🏪' },
+            { cx:300, cy:28,  label:'Consumidor',    sub:'@banza',          emoji:'👤' },
+            { cx:544, cy:112, label:'Comerciante',   sub:'QR / @banza',     emoji:'🏪' },
             { cx:544, cy:288, label:'Apps Externas', sub:'Táxi · Delivery',  emoji:'📱' },
             { cx:444, cy:382, label:'SDKs',          sub:'TS · PHP · Go',    emoji:'🔧' },
             { cx:156, cy:382, label:'EMIS/Bancos',   sub:'Rails bancários',  emoji:'🏦' },

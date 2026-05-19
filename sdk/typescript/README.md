@@ -2,7 +2,7 @@
 
 Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@handle transfers** — not card forms or IBAN strings.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
 
 All monetary values use **integer minor units** in AOA (Kwanza). No floating-point arithmetic.
 
@@ -45,7 +45,7 @@ const balance  = await client.getConsumerWalletBalance(wallet.id);
 console.log(balance.available_minor); // e.g. 25000 (Kz)
 ```
 
-### Look up a consumer by handle
+### Look up a consumer by @banza
 
 ```typescript
 const consumer = await client.getConsumerByHandle('joao_silva');
