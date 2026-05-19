@@ -3,7 +3,7 @@ export function WalletToWalletVisual() {
     <div className="my-8 overflow-hidden rounded-3xl border border-bz-border bg-white p-6 shadow-card md:p-8">
       <div className="mb-6 text-center">
         <span className="badge-gold">Operação Fundamental</span>
-        <p className="mt-2 text-xs text-bz-muted">Toda a transacção Banzami é uma transferência entre carteiras</p>
+        <p className="mt-2 text-xs text-bz-muted">Toda a transacção Banza é uma transferência entre carteiras</p>
       </div>
 
       <div className="flex flex-col items-center gap-6 md:flex-row md:items-stretch md:gap-4">

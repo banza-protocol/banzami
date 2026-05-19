@@ -32,7 +32,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: section.title,
     description: `Banzami — §${section.number}: ${section.title}`,
     openGraph: {
-      title: `${section.title} · Banzami`,
+      title: `${section.title} · Banza`,
       description: `Referência oficial Banzami — secção ${section.number}: ${section.title}`,
       locale: 'pt_AO',
     },
