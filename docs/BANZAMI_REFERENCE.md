@@ -619,12 +619,12 @@ Um QR estático codifica uma referência de carteira e @banza. Impresso uma vez,
 │                                              │
 │   Payload QR: banzami://pay/@cantina.luanda  │
 │                                              │
-│   ┌────────────────────┐                     │
-│   │  ▓▓▓  ░░  ▓▓▓▓    │  @cantina.luanda    │
-│   │  ▓▓▓  ░░  ▓▓▓▓    │                     │
-│   │    ░░░░░░░░        │  Scan para Pagar    │
-│   │  ▓▓▓  ░░  ▓▓▓▓    │                     │
-│   └────────────────────┘                     │
+│   ┌──────────────────┐                       │
+│   │  ## .. ## ## ##  │  @cantina.luanda      │
+│   │  ##    ## ## ##  │                       │
+│   │  .. ## .. .. ..  │  Scan para Pagar      │
+│   │  ## .. ## ## ##  │                       │
+│   └──────────────────┘                       │
 │                                              │
 └──────────────────────────────────────────────┘
 ```
