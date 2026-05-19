@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     template: '%s · Banza',
   },
   description:
-    'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza, transferências telefone-a-telefone, pagamentos em apps, ecommerce e pequenos negócios através de Banza SDKs oficiais.',
+    'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banza SDK para programadores e Banza Business para comerciantes.',
   keywords: [
     'Banza',
     'Banzami',
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
     description:
-      'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banza SDKs oficiais.',
+      'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banza SDK e Banza Business.',
     siteName: 'Banzami',
     locale: 'pt_AO',
     type: 'website',

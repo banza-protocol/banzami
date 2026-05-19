@@ -7,7 +7,7 @@
 
 ---
 
-> **Banzami é a organização que constrói o ecossistema angolano de pagamentos digitais.**  
+> **Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente.**  
 > **Banza é a rede de pagamentos instantâneos QR-native em Kwanza, construída pela Banzami.**  
 > Carteira-a-carteira. Liquidação instantânea. Sem cartão. Construída para cada angolano.
 
@@ -47,12 +47,12 @@ Angola precisa do seu próprio — construído para o Kwanza, para o QR, para o 
 
 ## 1. O que é o Banzami?
 
-**Banzami** é a organização que constrói o ecossistema angolano de pagamentos digitais — a infraestrutura, a plataforma, a missão institucional e o ecossistema de parceiros que torna possível uma nova era de comércio digital em Angola.
+**Banzami** constrói a infraestrutura que permite ao país pagar digitalmente — a plataforma, a missão institucional e o ecossistema de parceiros que tornam possível uma nova era de comércio digital em Angola.
 
 **Banza** é o produto principal da Banzami: a **rede de pagamentos instantâneos de Angola** — uma infraestrutura completa de pagamentos digitais construída especificamente para o comércio angolano, comerciantes angolanos e consumidores angolanos.
 
-> *Banzami é o ecossistema. Banza é a experiência de pagamento.*  
-> *Banzami constrói a infraestrutura. Banza é como Angola paga.*
+> *Banzami constrói a infraestrutura. Banza move o dinheiro.*  
+> *Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é como Angola paga.*
 
 ### Hierarquia do produto
 
@@ -1641,7 +1641,7 @@ Para Angola.
 ---
 
 *Banza — A rede de pagamentos instantâneos de Angola. Wallet-native. QR-first. Construída para cada angolano.*  
-*Banzami — A organização que constrói o ecossistema de pagamentos digitais de Angola.*
+*Banzami — A infraestrutura que permite Angola pagar digitalmente.*
 
 ---
 
