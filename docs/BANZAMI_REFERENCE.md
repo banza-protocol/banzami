@@ -802,14 +802,14 @@ O painel web é o centro de controlo avançado do comerciante — acessível via
 
 ```
 ┌─────────────────────┐   ┌─────────────────────┐
-│  Banzami Business   │   │    Painel Web        │
-│  (app movel)        │   │  (navegador)         │
+│  Banzami Business   │   │  Painel Web         │
+│  (app movel)        │   │  (navegador)        │
 ├─────────────────────┤   ├─────────────────────┤
-│  operacao diaria    │   │  administracao       │
-│  QR e notificacoes  │   │  analytics           │
-│  saldo e pedidos    │   │  gestao de equipa    │
-│  links de pagamento │   │  SDK e webhooks      │
-│                     │   │  disputas            │
+│  operacao diaria    │   │  administracao      │
+│  QR e notificacoes  │   │  analytics          │
+│  saldo e pedidos    │   │  gestao de equipa   │
+│  links de pagamento │   │  SDK e webhooks     │
+│                     │   │  disputas           │
 └─────────────────────┘   └─────────────────────┘
 ```
 
