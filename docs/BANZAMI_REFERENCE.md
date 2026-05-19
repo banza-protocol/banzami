@@ -391,7 +391,7 @@ Fluxo de scan QR:
                │ biométrico / PIN
                v
 ┌──────────────────────────────────┐
-│  ✅ PAGO — 2.500 Kz              │
+│  ✓ PAGO - 2.500 Kz               │
 │  @cantina.luanda                 │
 │  Há 2 segundos                   │
 └──────────────────────────────────┘
