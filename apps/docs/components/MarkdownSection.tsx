@@ -29,6 +29,8 @@ function isAsciiDiagram(text: string): boolean {
 function toAnchorId(text: string): string {
   return String(text)
     .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')   // strip combining diacritics (é→e, ã→a, ç→c)
     .replace(/[^a-z0-9\s]/g, '')
     .trim()
     .replace(/\s+/g, '-')
