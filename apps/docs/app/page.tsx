@@ -132,7 +132,7 @@ export default function HomePage() {
           Uma rede. Múltiplos actores.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Consumidores, comerciantes, apps externas, Banza SDKs, bancos e o core financeiro — todos ligados através de uma infraestrutura da Banzami.
+          Consumidores, comerciantes, apps externas, Banza SDKs, bancos e o core financeiro — todos ligados através de uma infraestrutura do Banzami.
         </p>
         <EcosystemMap />
       </section>
@@ -193,15 +193,15 @@ export default function HomePage() {
           SDK-first. Integração em Kwanza.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          A Banza é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banza SDK oficial.
+          O Banza é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banza SDK oficial.
         </p>
         <SDKArchitectureVisual />
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/banza-para-programadores" className="btn-primary">
             Ver documentação de programadores
           </Link>
-          <Link href="/o-motor-de-crescimento-da-banza" className="btn-ghost">
-            O Motor de Crescimento da Banza
+          <Link href="/o-motor-de-crescimento-do-banza" className="btn-ghost">
+            O Motor de Crescimento do Banza
           </Link>
         </div>
       </section>

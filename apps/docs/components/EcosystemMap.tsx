@@ -13,7 +13,7 @@ export function EcosystemMap() {
     <div className="my-8 overflow-hidden rounded-3xl border border-bz-border bg-gradient-to-br from-bz-bg to-white p-6 shadow-card md:p-10">
       <div className="mb-6 text-center">
         <span className="badge-gold">Ecossistema Banza</span>
-        <p className="mt-2 text-sm text-bz-muted">Uma rede centrada no Core da Banzami</p>
+        <p className="mt-2 text-sm text-bz-muted">Uma rede centrada no Core do Banzami</p>
       </div>
 
       {/* Desktop SVG map */}
