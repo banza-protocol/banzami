@@ -1,7 +1,7 @@
 # Banzami — Documento de Referência Oficial
 
 **Version:** 1.0  
-**Date:** 2026-05-19  
+**Date:** 19/05/2026  
 **Status:** Official  
 **Author:** Banzami
 
