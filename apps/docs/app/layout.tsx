@@ -69,11 +69,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">
               {[
-                { href: '/reference',                 label: 'Referência' },
-                { href: '/banza-para-programadores',          label: 'Programadores' },
-                { href: '/banza-para-comerciantes',           label: 'Comerciantes' },
-                { href: '/arquitectura-tecnica',                label: 'Arquitectura' },
-                { href: '/seguranca-e-integridade-financeira',  label: 'Segurança' },
+                { href: '/reference',                          label: 'Referência' },
+                { href: '/banza-para-programadores',           label: 'Programadores' },
+                { href: '/banza-para-comerciantes',            label: 'Comerciantes' },
+                { href: '/arquitectura-tecnica',               label: 'Arquitectura' },
+                { href: '/seguranca-e-integridade-financeira', label: 'Segurança' },
+                { href: '/validacao',                          label: 'Validação' },
               ].map(({ href, label }) => (
                 <Link
                   key={href}
@@ -137,6 +138,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/banza-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
                 <Link href="/arquitectura-tecnica" className="hover:text-bz-primary">Arquitectura</Link>
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
+                <Link href="/validacao" className="hover:text-bz-primary">Validação</Link>
               </div>
             </div>
 
