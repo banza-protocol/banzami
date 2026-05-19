@@ -7,30 +7,126 @@
     "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
   },
   "categories": [
-    { "id": "cat-docs",           "name": "Site & Documentação",             "description": "Plataforma de documentação pública, renderização do documento de referência e navegação." },
-    { "id": "cat-identity",       "name": "Identidade & Posicionamento",      "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e definição do ecossistema." },
-    { "id": "cat-wallet",         "name": "Banza Wallet",                     "description": "Carteiras digitais em Kwanza — criação, saldos, histórico e carregamento." },
-    { "id": "cat-handle",         "name": "@banza",                           "description": "Sistema de identidade de pagamento — registo, resolução e pesquisa de @banza." },
-    { "id": "cat-qr",             "name": "Pagamentos QR",                    "description": "QR estático, dinâmico, scan, resolução e loja QR pública do comerciante." },
-    { "id": "cat-p2p",            "name": "Transferências P2P",               "description": "Transferências pessoa-a-pessoa por @banza e divisão de contas por QR." },
-    { "id": "cat-paylinks",       "name": "Pay Links",                        "description": "Links de pagamento partilháveis — criação, página pública e liquidação." },
-    { "id": "cat-payrequests",    "name": "Pedidos de Pagamento",             "description": "Facturas digitais enviadas directamente para carteiras — criar, notificar, pagar." },
-    { "id": "cat-biz-mobile",     "name": "Banza Business (Móvel)",           "description": "Interface móvel para operação diária do comerciante — QR, notificações, saldo." },
-    { "id": "cat-biz-web",        "name": "Banza Business (Web)",             "description": "Dashboard web para administração — analytics, chaves API, equipa, disputas." },
-    { "id": "cat-sdk",            "name": "SDKs",                             "description": "SDKs oficiais Banza — TypeScript, PHP, Go, Python, Flutter." },
-    { "id": "cat-api",            "name": "API REST",                         "description": "API HTTP versionada e idempotente para todas as operações da plataforma." },
-    { "id": "cat-webhooks",       "name": "Webhooks",                         "description": "Entrega de eventos em tempo real — HMAC-SHA256, retry, catálogo de eventos." },
-    { "id": "cat-sandbox",        "name": "Sandbox",                          "description": "Ambiente de teste completamente isolado da produção." },
-    { "id": "cat-ledger",         "name": "Ledger & Contabilidade",           "description": "Ledger de dupla entrada, imutabilidade, operações atómicas e reconciliação." },
-    { "id": "cat-kyc",            "name": "KYC/KYB",                          "description": "Verificação de identidade de consumidores e comerciantes conforme requisitos BNA." },
-    { "id": "cat-risk",           "name": "Motor de Risco",                   "description": "Triagem de transacções em tempo real — fraude, velocidade, sinais de dispositivo." },
-    { "id": "cat-security",       "name": "Segurança",                        "description": "TLS, encriptação, idempotência, auditoria e segurança de credenciais." },
-    { "id": "cat-payouts",        "name": "Levantamentos",                    "description": "Transferência de saldo de carteira para conta bancária angolana via EMIS." },
-    { "id": "cat-refunds",        "name": "Reembolsos & Disputas",            "description": "Reembolsos parciais/totais e processo de resolução de disputas." },
-    { "id": "cat-arch",           "name": "Arquitectura",                     "description": "Decisões e implementação da arquitectura técnica — Rust, Go, PostgreSQL, Redis." },
-    { "id": "cat-observability",  "name": "Observabilidade",                  "description": "OpenTelemetry, Prometheus, Grafana e logs estruturados." },
-    { "id": "cat-emis",           "name": "EMIS & Bancos",                    "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano." },
-    { "id": "cat-roadmap",        "name": "Roadmap",                          "description": "Funcionalidades futuras — médio e longo prazo, conforme §19 da referência." }
+    {
+      "id": "cat-docs",
+      "name": "Site & Documentação",
+      "description": "Plataforma de documentação pública, renderização do documento de referência e navegação."
+    },
+    {
+      "id": "cat-identity",
+      "name": "Identidade & Posicionamento",
+      "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e definição do ecossistema."
+    },
+    {
+      "id": "cat-wallet",
+      "name": "Banza Wallet",
+      "description": "Carteiras digitais em Kwanza — criação, saldos, histórico e carregamento."
+    },
+    {
+      "id": "cat-handle",
+      "name": "@banza",
+      "description": "Sistema de identidade de pagamento — registo, resolução e pesquisa de @banza."
+    },
+    {
+      "id": "cat-qr",
+      "name": "Pagamentos QR",
+      "description": "QR estático, dinâmico, scan, resolução e loja QR pública do comerciante."
+    },
+    {
+      "id": "cat-p2p",
+      "name": "Transferências P2P",
+      "description": "Transferências pessoa-a-pessoa por @banza e divisão de contas por QR."
+    },
+    {
+      "id": "cat-paylinks",
+      "name": "Pay Links",
+      "description": "Links de pagamento partilháveis — criação, página pública e liquidação."
+    },
+    {
+      "id": "cat-payrequests",
+      "name": "Pedidos de Pagamento",
+      "description": "Facturas digitais enviadas directamente para carteiras — criar, notificar, pagar."
+    },
+    {
+      "id": "cat-biz-mobile",
+      "name": "Banza Business (Móvel)",
+      "description": "Interface móvel para operação diária do comerciante — QR, notificações, saldo."
+    },
+    {
+      "id": "cat-biz-web",
+      "name": "Banza Business (Web)",
+      "description": "Dashboard web para administração — analytics, chaves API, equipa, disputas."
+    },
+    {
+      "id": "cat-sdk",
+      "name": "SDKs",
+      "description": "SDKs oficiais Banza — TypeScript, PHP, Go, Python, Flutter."
+    },
+    {
+      "id": "cat-api",
+      "name": "API REST",
+      "description": "API HTTP versionada e idempotente para todas as operações da plataforma."
+    },
+    {
+      "id": "cat-webhooks",
+      "name": "Webhooks",
+      "description": "Entrega de eventos em tempo real — HMAC-SHA256, retry, catálogo de eventos."
+    },
+    {
+      "id": "cat-sandbox",
+      "name": "Sandbox",
+      "description": "Ambiente de teste completamente isolado da produção."
+    },
+    {
+      "id": "cat-ledger",
+      "name": "Ledger & Contabilidade",
+      "description": "Ledger de dupla entrada, imutabilidade, operações atómicas e reconciliação."
+    },
+    {
+      "id": "cat-kyc",
+      "name": "KYC/KYB",
+      "description": "Verificação de identidade de consumidores e comerciantes conforme requisitos BNA."
+    },
+    {
+      "id": "cat-risk",
+      "name": "Motor de Risco",
+      "description": "Triagem de transacções em tempo real — fraude, velocidade, sinais de dispositivo."
+    },
+    {
+      "id": "cat-security",
+      "name": "Segurança",
+      "description": "TLS, encriptação, idempotência, auditoria e segurança de credenciais."
+    },
+    {
+      "id": "cat-payouts",
+      "name": "Levantamentos",
+      "description": "Transferência de saldo de carteira para conta bancária angolana via EMIS."
+    },
+    {
+      "id": "cat-refunds",
+      "name": "Reembolsos & Disputas",
+      "description": "Reembolsos parciais/totais e processo de resolução de disputas."
+    },
+    {
+      "id": "cat-arch",
+      "name": "Arquitectura",
+      "description": "Decisões e implementação da arquitectura técnica — Rust, Go, PostgreSQL, Redis."
+    },
+    {
+      "id": "cat-observability",
+      "name": "Observabilidade",
+      "description": "OpenTelemetry, Prometheus, Grafana e logs estruturados."
+    },
+    {
+      "id": "cat-emis",
+      "name": "EMIS & Bancos",
+      "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano."
+    },
+    {
+      "id": "cat-roadmap",
+      "name": "Roadmap",
+      "description": "Funcionalidades futuras — médio e longo prazo, conforme §19 da referência."
+    }
   ],
   "items": [
     {
@@ -44,7 +140,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js · TypeScript · Tailwind",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Site acessível e funcional em produção",
         "Conteúdo renderizado a partir de BANZAMI_REFERENCE.md",
@@ -53,13 +152,28 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "route",     "label": "Rota principal",         "ref": "apps/docs/app/page.tsx" },
-        { "type": "component", "label": "Layout raiz",            "ref": "apps/docs/app/layout.tsx" },
-        { "type": "config",    "label": "Configuração Tailwind",  "ref": "apps/docs/tailwind.config.ts" }
+        {
+          "type": "route",
+          "label": "Rota principal",
+          "ref": "apps/docs/app/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "Layout raiz",
+          "ref": "apps/docs/app/layout.tsx"
+        },
+        {
+          "type": "config",
+          "label": "Configuração Tailwind",
+          "ref": "apps/docs/tailwind.config.ts"
+        }
       ],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "DOC-002",
@@ -72,7 +186,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "TypeScript · Node.js fs",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Todas as 20 secções parseadas correctamente",
         "Metadados (versão, data, estado) extraídos",
@@ -81,13 +198,28 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "component", "label": "Motor de parsing",      "ref": "apps/docs/lib/reference.ts" },
-        { "type": "component", "label": "Tipos de referência",   "ref": "apps/docs/lib/types.ts" },
-        { "type": "route",     "label": "Página de referência",  "ref": "apps/docs/app/reference/page.tsx" }
+        {
+          "type": "component",
+          "label": "Motor de parsing",
+          "ref": "apps/docs/lib/reference.ts"
+        },
+        {
+          "type": "component",
+          "label": "Tipos de referência",
+          "ref": "apps/docs/lib/types.ts"
+        },
+        {
+          "type": "route",
+          "label": "Página de referência",
+          "ref": "apps/docs/app/reference/page.tsx"
+        }
       ],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "DOC-003",
@@ -100,7 +232,9 @@
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js App Router · TypeScript",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "20 rotas de secção funcionais",
         "Conteúdo completo por secção",
@@ -109,13 +243,30 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "route",     "label": "Rota de secção",       "ref": "apps/docs/app/[section]/page.tsx" },
-        { "type": "component", "label": "SectionHero",          "ref": "apps/docs/components/SectionHero.tsx" },
-        { "type": "component", "label": "SectionNav sidebar",   "ref": "apps/docs/components/SectionNav.tsx" }
+        {
+          "type": "route",
+          "label": "Rota de secção",
+          "ref": "apps/docs/app/[section]/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "SectionHero",
+          "ref": "apps/docs/components/SectionHero.tsx"
+        },
+        {
+          "type": "component",
+          "label": "SectionNav sidebar",
+          "ref": "apps/docs/components/SectionNav.tsx"
+        }
       ],
-      "dependencies": ["DOC-002"],
+      "dependencies": [
+        "DOC-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "DOC-004",
@@ -128,7 +279,10 @@
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js · TypeScript · JSON",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Todas as categorias do ecossistema representadas",
         "Filtros por status, prioridade e categoria",
@@ -138,13 +292,30 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "route",     "label": "Página /validacao",          "ref": "apps/docs/app/validacao/page.tsx" },
-        { "type": "component", "label": "ValidationDashboard",        "ref": "apps/docs/components/validation/ValidationDashboard.tsx" },
-        { "type": "component", "label": "Matriz JSON",                "ref": "docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json" }
+        {
+          "type": "route",
+          "label": "Página /validacao",
+          "ref": "apps/docs/app/validacao/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "ValidationDashboard",
+          "ref": "apps/docs/components/validation/ValidationDashboard.tsx"
+        },
+        {
+          "type": "component",
+          "label": "Matriz JSON",
+          "ref": "docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json"
+        }
       ],
-      "dependencies": ["DOC-001"],
+      "dependencies": [
+        "DOC-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-05-20",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "IDT-001",
@@ -157,7 +328,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Markdown · Git",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "20 secções completas e coerentes",
         "Terminologia de marca consistente (Banzami/Banza)",
@@ -166,12 +340,23 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "adr",       "label": "ADR-015 — Markdown-first",  "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md" },
-        { "type": "component", "label": "Ficheiro de referência",    "ref": "docs/BANZAMI_REFERENCE.md" }
+        {
+          "type": "adr",
+          "label": "ADR-015 — Markdown-first",
+          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
+        },
+        {
+          "type": "component",
+          "label": "Ficheiro de referência",
+          "ref": "docs/BANZAMI_REFERENCE.md"
+        }
       ],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "IDT-002",
@@ -184,7 +369,9 @@
       "priority": "CRITICAL",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Documentação · Código",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Banzami usado apenas em contexto organizacional",
         "Banza usado em contexto de produto",
@@ -193,12 +380,25 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "adr",    "label": "ADR-016 — Arquitectura de marca", "ref": "docs/adr/ADR-016-brand-architecture.md" },
-        { "type": "config", "label": "CLAUDE.md §16",                   "ref": "CLAUDE.md" }
+        {
+          "type": "adr",
+          "label": "ADR-016 — Arquitectura de marca",
+          "ref": "docs/adr/ADR-016-brand-architecture.md"
+        },
+        {
+          "type": "config",
+          "label": "CLAUDE.md §16",
+          "ref": "CLAUDE.md"
+        }
       ],
-      "dependencies": ["IDT-001"],
+      "dependencies": [
+        "IDT-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "IDT-003",
@@ -211,7 +411,9 @@
       "priority": "HIGH",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Documentação · Site",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Site usa frases de posicionamento canónicas",
         "Nenhuma descrição incorrecta no site público",
@@ -219,12 +421,26 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "route", "label": "Homepage",    "ref": "apps/docs/app/page.tsx" },
-        { "type": "component", "label": "HeroSection", "ref": "apps/docs/components/HeroSection.tsx" }
+        {
+          "type": "route",
+          "label": "Homepage",
+          "ref": "apps/docs/app/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "HeroSection",
+          "ref": "apps/docs/components/HeroSection.tsx"
+        }
       ],
-      "dependencies": ["IDT-001", "IDT-002"],
+      "dependencies": [
+        "IDT-001",
+        "IDT-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "WAL-001",
@@ -237,7 +453,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Consumer Platform",
       "technicalArea": "Flutter · Go · PostgreSQL",
-      "validationMethods": ["manual_ux", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Onboarding completo em menos de 2 minutos",
         "Verificação OTP por SMS funcional",
@@ -247,9 +467,24 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-001"],
-      "blockingIssues": ["Autenticação por SMS não implementada", "Infraestrutura de wallets não iniciada"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "HDL-001"
+      ],
+      "blockingIssues": [
+        "Autenticação por SMS não implementada",
+        "Infraestrutura de wallets não iniciada"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-WAL-001-1",
+          "name": "Wallet creation invariant",
+          "rule": "Every wallet must have exactly one owner identity; orphaned wallets must not exist",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": []
     },
     {
       "id": "WAL-002",
@@ -262,7 +497,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "integration_tests", "unit_tests"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests",
+        "unit_tests"
+      ],
       "acceptanceCriteria": [
         "Saldo disponível actualiza imediatamente após cada transacção",
         "Saldo reservado reflecte operações pendentes correctamente",
@@ -271,9 +510,33 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001", "LED-003"],
-      "blockingIssues": ["Motor de carteiras em Rust não iniciado"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "LED-001",
+        "LED-003"
+      ],
+      "blockingIssues": [
+        "Motor de carteiras em Rust não iniciado"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-WAL-002-1",
+          "name": "Balance consistency invariant",
+          "rule": "wallet.balance == sum(credit ledger entries) - sum(debit ledger entries) for wallet_id",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-WAL-002-2",
+          "name": "Non-negative reserved balance invariant",
+          "rule": "wallet.reserved_balance >= 0 at all times; no negative reserves permitted",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "LED-001",
+        "LED-003"
+      ]
     },
     {
       "id": "WAL-003",
@@ -286,7 +549,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Consumer Platform",
       "technicalArea": "Go · PostgreSQL · Flutter",
-      "validationMethods": ["integration_tests", "manual_ux"],
+      "validationMethods": [
+        "integration_tests",
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Todas as transacções listadas por ordem cronológica inversa",
         "Cada transacção com timestamp, valor, contraparte e estado",
@@ -295,9 +561,18 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WAL-001", "LED-001"],
+      "dependencies": [
+        "WAL-001",
+        "LED-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "WAL-001",
+        "LED-001"
+      ]
     },
     {
       "id": "WAL-004",
@@ -310,7 +585,11 @@
       "priority": "HIGH",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · Go · EMIS",
-      "validationMethods": ["integration_tests", "financial_invariant", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "financial_invariant",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Transferência de conta bancária para carteira Banza funcional",
         "Saldo actualizado após confirmação EMIS",
@@ -319,9 +598,20 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["EMS-001", "LED-001"],
-      "blockingIssues": ["Integração EMIS bloqueada — ver EMS-001"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "EMS-001",
+        "LED-001"
+      ],
+      "blockingIssues": [
+        "Integração EMIS bloqueada — ver EMS-001"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "WAL-001",
+        "LED-001"
+      ]
     },
     {
       "id": "HDL-001",
@@ -334,7 +624,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Identity",
       "technicalArea": "Go · PostgreSQL",
-      "validationMethods": ["unit_tests", "integration_tests"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "@banza único em toda a rede",
         "Formato válido: alfanumérico + pontos",
@@ -345,7 +638,10 @@
       "evidence": [],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "HDL-002",
@@ -358,7 +654,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / API",
       "technicalArea": "Go · Redis · PostgreSQL",
-      "validationMethods": ["unit_tests", "integration_tests"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Resolução correcta para todos os @banza registados",
         "Latência p99 < 100ms",
@@ -367,9 +666,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-001"],
+      "dependencies": [
+        "HDL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "HDL-003",
@@ -382,7 +686,9 @@
       "priority": "MEDIUM",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Sugestões em tempo real durante digitação",
         "Indicador de disponibilidade por handle",
@@ -390,9 +696,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-001", "HDL-002"],
+      "dependencies": [
+        "HDL-001",
+        "HDL-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "QR-001",
@@ -405,7 +717,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Go · Flutter",
-      "validationMethods": ["integration_tests", "manual_ux", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "manual_ux",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "QR codifica banza://@banza correctamente",
         "Resolve para carteira correcta ao ser scaneado",
@@ -415,9 +731,24 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-001", "WAL-001"],
+      "dependencies": [
+        "HDL-001",
+        "WAL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-QR-001-1",
+          "name": "QR merchant binding invariant",
+          "rule": "Static QR code must resolve to exactly one merchant wallet; no ambiguous resolution",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "WAL-001"
+      ]
     },
     {
       "id": "QR-002",
@@ -430,7 +761,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Rust · Go",
-      "validationMethods": ["integration_tests", "financial_invariant", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "financial_invariant",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "QR codifica qrc_id correctamente",
         "Valor e referência pré-preenchidos no consumidor",
@@ -440,9 +775,31 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-001", "LED-003"],
+      "dependencies": [
+        "QR-001",
+        "LED-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-QR-002-1",
+          "name": "Payment amount invariant",
+          "rule": "QR payment amount == ledger debit on consumer wallet == ledger credit on merchant wallet",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-QR-002-2",
+          "name": "QR expiry invariant",
+          "rule": "Dynamic QR codes past their expiry must be rejected — no payment may settle against expired QR",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "QR-001",
+        "LED-003"
+      ]
     },
     {
       "id": "QR-003",
@@ -455,7 +812,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go · Rust",
-      "validationMethods": ["manual_ux", "e2e_tests", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "e2e_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Câmara abre instantaneamente ao tocar em 'Pagar'",
         "QR descodificado em menos de 1 segundo",
@@ -465,9 +826,20 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-001", "QR-002", "WAL-001"],
+      "dependencies": [
+        "QR-001",
+        "QR-002",
+        "WAL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "QR-001",
+        "QR-002",
+        "WAL-001"
+      ]
     },
     {
       "id": "QR-004",
@@ -480,7 +852,10 @@
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
-      "validationMethods": ["manual_ux", "integration_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Página acessível em pay.banzami.org/profiles/@banza",
         "QR estático exibido correctamente",
@@ -490,9 +865,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-001", "HDL-001"],
+      "dependencies": [
+        "QR-001",
+        "HDL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "QR-005",
@@ -505,7 +886,10 @@
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
-      "validationMethods": ["manual_ux", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "QR pessoal exibível na app",
         "Scan pelo pagante resolve para carteira correcta",
@@ -514,9 +898,18 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-003", "WAL-001"],
+      "dependencies": [
+        "QR-003",
+        "WAL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "QR-003",
+        "WAL-001"
+      ]
     },
     {
       "id": "P2P-001",
@@ -529,7 +922,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
       "technicalArea": "Rust · Go · Flutter",
-      "validationMethods": ["financial_invariant", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Transferência de carteira A para carteira B correcta",
         "Ambos os saldos actualizados atomicamente",
@@ -539,9 +936,32 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-002", "WAL-001", "LED-003"],
+      "dependencies": [
+        "HDL-002",
+        "WAL-001",
+        "LED-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-P2P-001-1",
+          "name": "Transfer conservation invariant",
+          "rule": "sender.balance_delta + receiver.balance_delta == 0 — no money is created or destroyed",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-P2P-001-2",
+          "name": "Sender non-negative post-transfer invariant",
+          "rule": "sender.balance >= 0 after transfer; no overdraft permitted",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "WAL-001",
+        "LED-003"
+      ]
     },
     {
       "id": "P2P-002",
@@ -554,7 +974,10 @@
       "priority": "MEDIUM",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Go · Rust · Flutter",
-      "validationMethods": ["integration_tests", "manual_ux"],
+      "validationMethods": [
+        "integration_tests",
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "QR dinâmico gerado para total de grupo",
         "Múltiplos scans aceites até ao total",
@@ -563,9 +986,18 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-002", "QR-003"],
+      "dependencies": [
+        "QR-002",
+        "QR-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "QR-002",
+        "QR-003"
+      ]
     },
     {
       "id": "PL-001",
@@ -578,7 +1010,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Payment Links",
       "technicalArea": "Go · Rust · TypeScript SDK",
-      "validationMethods": ["integration_tests", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Link criado via SDK com montante, descrição e expiração",
         "URL partilhável gerada (pay.banzami.org/{slug})",
@@ -588,9 +1023,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001", "WH-001"],
+      "dependencies": [
+        "LED-001",
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "PL-002",
@@ -603,7 +1044,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
-      "validationMethods": ["manual_ux", "e2e_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "e2e_tests"
+      ],
       "acceptanceCriteria": [
         "Página acessível sem autenticação",
         "Nome do comerciante, valor e descrição exibidos",
@@ -613,9 +1057,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["PL-001"],
+      "dependencies": [
+        "PL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "PL-003",
@@ -628,7 +1077,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
-      "validationMethods": ["financial_invariant", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Saldo do comerciante actualizado instantaneamente",
         "Webhook transaction.completed entregue em <2s",
@@ -637,9 +1090,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["PL-001", "WH-001", "LED-003"],
+      "dependencies": [
+        "PL-001",
+        "WH-001",
+        "LED-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "PR-001",
@@ -652,7 +1112,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Payment Requests",
       "technicalArea": "Go · FCM · Flutter",
-      "validationMethods": ["integration_tests", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Pedido criado via API/SDK com valor e descrição",
         "Notificação push entregue ao consumidor",
@@ -661,9 +1124,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["HDL-002", "WAL-001"],
+      "dependencies": [
+        "HDL-002",
+        "WAL-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "PR-002",
@@ -676,7 +1145,11 @@
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Rust · Go",
-      "validationMethods": ["manual_ux", "financial_invariant", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "financial_invariant",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Pagamento com um toque + biometria",
         "Liquidação instantânea após confirmação",
@@ -685,9 +1158,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["PR-001", "LED-003", "WH-001"],
+      "dependencies": [
+        "PR-001",
+        "LED-003",
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BM-001",
@@ -700,7 +1180,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
-      "validationMethods": ["manual_ux", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Notificações de pagamento em tempo real",
         "Geração de QR estático e dinâmico",
@@ -710,9 +1193,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WAL-001", "QR-001", "QR-002"],
+      "dependencies": [
+        "WAL-001",
+        "QR-001",
+        "QR-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BM-002",
@@ -725,7 +1215,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "FCM · Go · Flutter",
-      "validationMethods": ["integration_tests", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Notificação push entregue em <2s após liquidação",
         "Funciona com app em background ou fechada",
@@ -734,9 +1227,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-003", "WH-001"],
+      "dependencies": [
+        "LED-003",
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BM-003",
@@ -749,7 +1248,9 @@
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "QR estático disponível em alta resolução para impressão",
         "QR dinâmico gerado com valor inserido pelo comerciante",
@@ -758,9 +1259,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["QR-001", "QR-002"],
+      "dependencies": [
+        "QR-001",
+        "QR-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BW-001",
@@ -773,7 +1280,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · TypeScript · Go",
-      "validationMethods": ["manual_ux", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Todas as secções da §11.2.2 implementadas",
         "Saldo em tempo real no dashboard",
@@ -782,9 +1292,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WAL-002", "WAL-003"],
+      "dependencies": [
+        "WAL-002",
+        "WAL-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BW-002",
@@ -797,7 +1313,9 @@
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · PostgreSQL",
-      "validationMethods": ["manual_ux"],
+      "validationMethods": [
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Volume diário e mensal correctos",
         "Gráfico de horas de pico",
@@ -806,9 +1324,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["BW-001"],
+      "dependencies": [
+        "BW-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BW-003",
@@ -821,7 +1344,10 @@
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
-      "validationMethods": ["security_audit", "manual_ux"],
+      "validationMethods": [
+        "security_audit",
+        "manual_ux"
+      ],
       "acceptanceCriteria": [
         "Chave gerada e mostrada uma única vez",
         "Listagem de chaves activas (sem valor bruto)",
@@ -830,9 +1356,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["SEC-001"],
+      "dependencies": [
+        "SEC-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "BW-004",
@@ -845,7 +1376,10 @@
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
-      "validationMethods": ["manual_ux", "integration_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Convite de membro de equipa por email",
         "Permissões diferenciadas (leitura vs. operação)",
@@ -854,9 +1388,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["BW-001"],
+      "dependencies": [
+        "BW-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SDK-001",
@@ -869,7 +1408,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "TypeScript · Node.js",
-      "validationMethods": ["unit_tests", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Publicado em npm como @banza/sdk",
         "BanzaClient tipado para todas as operações",
@@ -880,9 +1423,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001", "WH-001"],
-      "blockingIssues": ["API REST não implementada ainda"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "API-001",
+        "WH-001"
+      ],
+      "blockingIssues": [
+        "API REST não implementada ainda"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SDK-002",
@@ -895,7 +1446,11 @@
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "PHP · Laravel",
-      "validationMethods": ["unit_tests", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Publicado em Packagist como banza/sdk-php",
         "BanzaClient PHP com as mesmas garantias do TypeScript SDK",
@@ -904,9 +1459,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001"],
-      "blockingIssues": ["API REST não implementada ainda"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "API-001"
+      ],
+      "blockingIssues": [
+        "API REST não implementada ainda"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SDK-003",
@@ -919,7 +1481,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Flutter · Dart",
-      "validationMethods": ["manual_ux", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Publicado no pub.dev como banza_flutter",
         "BanzaPay.confirm() funcional",
@@ -929,9 +1495,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001", "QR-003"],
-      "blockingIssues": ["API REST não implementada ainda"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "API-001",
+        "QR-003"
+      ],
+      "blockingIssues": [
+        "API REST não implementada ainda"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SDK-004",
@@ -944,7 +1518,11 @@
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Go",
-      "validationMethods": ["unit_tests", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Módulo Go publicado como banza-go",
         "Propagação de contexto em todas as chamadas",
@@ -953,9 +1531,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001"],
+      "dependencies": [
+        "API-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SDK-005",
@@ -968,7 +1551,11 @@
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Python · asyncio · Pydantic",
-      "validationMethods": ["unit_tests", "integration_tests", "sandbox"],
+      "validationMethods": [
+        "unit_tests",
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Publicado no PyPI como banza-python",
         "API async com asyncio",
@@ -977,9 +1564,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001"],
+      "dependencies": [
+        "API-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "API-001",
@@ -992,7 +1584,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · PostgreSQL · Redis",
-      "validationMethods": ["integration_tests", "financial_invariant", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "financial_invariant",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Endpoints de transacção CRUD funcionais",
         "Endpoints de carteira (saldo, histórico)",
@@ -1003,9 +1599,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001", "SEC-003"],
-      "blockingIssues": ["Core Rust + API Go em desenvolvimento"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "LED-001",
+        "SEC-003"
+      ],
+      "blockingIssues": [
+        "Core Rust + API Go em desenvolvimento"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "API-002",
@@ -1018,7 +1622,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Redis",
-      "validationMethods": ["integration_tests", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "POST /qr/static e /qr/dynamic funcionais",
         "POST /payment-links com slug único",
@@ -1027,9 +1634,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001"],
+      "dependencies": [
+        "API-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "API-003",
@@ -1042,7 +1654,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Rust",
-      "validationMethods": ["financial_invariant", "integration_tests"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "POST /payouts com rastreamento de estado",
         "POST /refunds com suporte a parcial e total",
@@ -1051,9 +1666,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001", "EMS-002"],
-      "blockingIssues": ["Integração EMIS necessária para levantamentos"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "API-001",
+        "EMS-002"
+      ],
+      "blockingIssues": [
+        "Integração EMIS necessária para levantamentos"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "WH-001",
@@ -1066,7 +1689,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis · PostgreSQL",
-      "validationMethods": ["integration_tests", "sandbox"],
+      "validationMethods": [
+        "integration_tests",
+        "sandbox"
+      ],
       "acceptanceCriteria": [
         "Entrega em <2s após trigger",
         "Retry automático com backoff exponencial",
@@ -1076,9 +1702,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-003"],
+      "dependencies": [
+        "LED-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "WH-002",
@@ -1091,7 +1722,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
       "technicalArea": "Go · Criptografia",
-      "validationMethods": ["unit_tests", "security_audit"],
+      "validationMethods": [
+        "unit_tests",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Header banza-signature presente em todos os webhooks",
         "HMAC-SHA256 verificável com segredo configurado",
@@ -1100,9 +1734,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WH-001", "SEC-001"],
+      "dependencies": [
+        "WH-001",
+        "SEC-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "WH-003",
@@ -1115,7 +1755,9 @@
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis",
-      "validationMethods": ["integration_tests"],
+      "validationMethods": [
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Mínimo 5 tentativas de retry",
         "Backoff exponencial (1s, 2s, 4s, 8s, 16s)",
@@ -1124,9 +1766,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WH-001"],
+      "dependencies": [
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SBX-001",
@@ -1139,7 +1786,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform",
       "technicalArea": "Go · PostgreSQL · Redis",
-      "validationMethods": ["integration_tests", "security_audit"],
+      "validationMethods": [
+        "integration_tests",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Chaves bz_sandbox_... não funcionam em produção",
         "Dados sandbox completamente separados",
@@ -1149,9 +1799,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001"],
+      "dependencies": [
+        "API-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "LED-001",
@@ -1164,7 +1819,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "unit_tests", "integration_tests"],
+      "validationMethods": [
+        "financial_invariant",
+        "unit_tests",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Cada pagamento gera par de entradas D/C",
         "Soma de todas as entradas = 0 sempre",
@@ -1174,8 +1833,26 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
-      "blockingIssues": ["Core Rust em desenvolvimento inicial"],
-      "lastUpdated": "2026-05-19"
+      "blockingIssues": [
+        "Core Rust em desenvolvimento inicial"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-LED-001-1",
+          "name": "Double-entry balance invariant",
+          "rule": "For every transaction: sum(debits) + sum(credits) == 0",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-LED-001-2",
+          "name": "Ledger entry immutability",
+          "rule": "No UPDATE or DELETE may modify existing ledger entries; only INSERT is permitted",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": []
     },
     {
       "id": "LED-002",
@@ -1188,7 +1865,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "security_audit"],
+      "validationMethods": [
+        "financial_invariant",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Zero operações de UPDATE/DELETE no ledger",
         "Reembolso cria entrada oposta",
@@ -1197,9 +1877,23 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001"],
+      "dependencies": [
+        "LED-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-LED-002-1",
+          "name": "Append-only invariant",
+          "rule": "ledger_entries table must have no UPDATE/DELETE triggers or permissions",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "LED-001"
+      ]
     },
     {
       "id": "LED-003",
@@ -1212,7 +1906,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "integration_tests"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Falha após débito causa rollback do crédito",
         "Sem 'half-committed' transactions visíveis",
@@ -1221,9 +1918,29 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001"],
+      "dependencies": [
+        "LED-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-LED-003-1",
+          "name": "Atomicity invariant",
+          "rule": "Debit and credit posts succeed or fail together — no partial ledger state is permitted",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-LED-003-2",
+          "name": "Idempotency invariant",
+          "rule": "Replaying the same idempotency key must produce identical ledger state with no duplicate entries",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "LED-001"
+      ]
     },
     {
       "id": "LED-004",
@@ -1236,7 +1953,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Reconciliation (Rust)",
       "technicalArea": "Rust · PostgreSQL · EMIS",
-      "validationMethods": ["reconciliation", "financial_invariant"],
+      "validationMethods": [
+        "reconciliation",
+        "financial_invariant"
+      ],
       "acceptanceCriteria": [
         "Job executa automaticamente cada dia",
         "Soma de saldos de carteiras = soma de ledger",
@@ -1246,9 +1966,21 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001", "LED-002", "EMS-001"],
-      "blockingIssues": ["EMIS integration bloqueada"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "LED-001",
+        "LED-002",
+        "EMS-001"
+      ],
+      "blockingIssues": [
+        "EMIS integration bloqueada"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "LED-001",
+        "LED-002"
+      ]
     },
     {
       "id": "KYC-001",
@@ -1261,7 +1993,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Go · Flutter · Parceiro KYC",
-      "validationMethods": ["manual_ux", "security_audit", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "security_audit",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Documentos angolanos aceites (B.I., Passaporte, Carta)",
         "Verificação por OCR + revisão manual",
@@ -1271,12 +2007,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["WAL-001"],
+      "dependencies": [
+        "WAL-001"
+      ],
       "blockingIssues": [
         "Decisão de parceiro KYC angolano pendente — acção não técnica, bloqueia todo o arranque KYC",
         "Sem parceiro seleccionado não é possível iniciar integração técnica"
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-05-20",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "KYC-002",
@@ -1289,7 +2030,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Go · Merchant Platform",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Verificação NIF para entidades formais",
         "Verificação de identidade para comerciantes individuais",
@@ -1298,9 +2042,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["BM-001"],
+      "dependencies": [
+        "BM-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RSK-001",
@@ -1313,7 +2062,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Risk (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
-      "validationMethods": ["financial_invariant", "integration_tests", "security_audit"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Verificação de velocidade de transacção por carteira",
         "Detecção de valores anómalos",
@@ -1323,9 +2076,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001"],
-      "blockingIssues": ["Core Rust em desenvolvimento"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "LED-001"
+      ],
+      "blockingIssues": [
+        "Core Rust em desenvolvimento"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RSK-002",
@@ -1338,7 +2098,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Risk · Admin Platform",
       "technicalArea": "Go · Admin Dashboard",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Fila de revisão no admin com transacções sinalizadas",
         "Alertas operacionais configuráveis",
@@ -1347,9 +2110,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["RSK-001"],
+      "dependencies": [
+        "RSK-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SEC-001",
@@ -1362,7 +2130,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Infrastructure / Security",
       "technicalArea": "Cloudflare · Docker · Go",
-      "validationMethods": ["security_audit", "production_review"],
+      "validationMethods": [
+        "security_audit",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Todas as APIs servidas sobre HTTPS/TLS 1.3",
         "Cloudflare como WAF e terminação TLS",
@@ -1371,9 +2142,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["ARC-002"],
+      "dependencies": [
+        "ARC-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SEC-002",
@@ -1386,7 +2162,9 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
       "technicalArea": "PostgreSQL · Rust · Go",
-      "validationMethods": ["security_audit"],
+      "validationMethods": [
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Chaves API armazenadas em hash SHA-256",
         "Segredos de webhook hasheados",
@@ -1398,7 +2176,10 @@
       "evidence": [],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SEC-003",
@@ -1411,7 +2192,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
-      "validationMethods": ["unit_tests", "financial_invariant"],
+      "validationMethods": [
+        "unit_tests",
+        "financial_invariant"
+      ],
       "acceptanceCriteria": [
         "Header X-Idempotency-Key processado em todos os POST",
         "Segundo submit retorna resultado original",
@@ -1420,9 +2204,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-001"],
+      "dependencies": [
+        "LED-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "SEC-004",
@@ -1435,7 +2224,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "security_audit"],
+      "validationMethods": [
+        "financial_invariant",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Cada transacção com timestamp, actor e resultado",
         "Trilho não editável (append-only)",
@@ -1444,9 +2236,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-002"],
+      "dependencies": [
+        "LED-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "PAY-001",
@@ -1459,7 +2256,11 @@
       "priority": "HIGH",
       "ownerArea": "Core / Payouts",
       "technicalArea": "Rust · Go · EMIS",
-      "validationMethods": ["financial_invariant", "integration_tests", "reconciliation"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests",
+        "reconciliation"
+      ],
       "acceptanceCriteria": [
         "Levantamento criado via API/interface",
         "Saldo reservado imediatamente",
@@ -1469,9 +2270,26 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["EMS-001", "WAL-002"],
-      "blockingIssues": ["Integração EMIS bloqueada — ver EMS-001"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "EMS-001",
+        "WAL-002"
+      ],
+      "blockingIssues": [
+        "Integração EMIS bloqueada — ver EMS-001"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-PAY-001-1",
+          "name": "Payout conservation invariant",
+          "rule": "payout.amount == wallet debit == external bank credit; no leakage or duplication",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "WAL-002"
+      ]
     },
     {
       "id": "PAY-002",
@@ -1484,7 +2302,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Reconciliation",
       "technicalArea": "Rust · EMIS",
-      "validationMethods": ["reconciliation", "financial_invariant"],
+      "validationMethods": [
+        "reconciliation",
+        "financial_invariant"
+      ],
       "acceptanceCriteria": [
         "Estado do levantamento visível até confirmação bancária",
         "Reconciliação automática com extractos EMIS",
@@ -1493,9 +2314,18 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["EMS-002"],
-      "blockingIssues": ["Integração EMIS bloqueada — ver EMS-001 e EMS-002"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "EMS-002"
+      ],
+      "blockingIssues": [
+        "Integração EMIS bloqueada — ver EMS-001 e EMS-002"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "PAY-001"
+      ]
     },
     {
       "id": "REF-001",
@@ -1508,7 +2338,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
-      "validationMethods": ["financial_invariant", "integration_tests"],
+      "validationMethods": [
+        "financial_invariant",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Reembolso cria nova entrada de ledger oposta",
         "Transacção original não modificada",
@@ -1518,9 +2351,30 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["LED-002", "WH-001"],
+      "dependencies": [
+        "LED-002",
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [
+        {
+          "id": "INV-REF-001-1",
+          "name": "Refund ceiling invariant",
+          "rule": "refund.amount <= original_payment.amount; over-refund must be blocked at write time",
+          "status": "NOT_RUN"
+        },
+        {
+          "id": "INV-REF-001-2",
+          "name": "Refund idempotency invariant",
+          "rule": "Replaying a refund with the same idempotency key must not create duplicate ledger entries",
+          "status": "NOT_RUN"
+        }
+      ],
+      "requires": [
+        "LED-002"
+      ]
     },
     {
       "id": "REF-002",
@@ -1533,7 +2387,10 @@
       "priority": "HIGH",
       "ownerArea": "Core / Disputes",
       "technicalArea": "Go · Admin Platform",
-      "validationMethods": ["manual_ux", "integration_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Consumidor pode abrir disputa na app",
         "Comerciante notificado e pode responder",
@@ -1543,9 +2400,17 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["REF-001", "WH-001"],
+      "dependencies": [
+        "REF-001",
+        "WH-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": [
+        "REF-001"
+      ]
     },
     {
       "id": "ARC-001",
@@ -1558,7 +2423,12 @@
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Rust",
       "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": ["financial_invariant", "unit_tests", "integration_tests", "production_review"],
+      "validationMethods": [
+        "financial_invariant",
+        "unit_tests",
+        "integration_tests",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Motor de ledger em Rust funcional",
         "Motor de carteiras em Rust funcional",
@@ -1568,11 +2438,18 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "adr", "label": "CLAUDE.md §3.1 — Rust para Core Financeiro", "ref": "CLAUDE.md" }
+        {
+          "type": "adr",
+          "label": "CLAUDE.md §3.1 — Rust para Core Financeiro",
+          "ref": "CLAUDE.md"
+        }
       ],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "ARC-002",
@@ -1585,7 +2462,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Go",
       "technicalArea": "Go · Redis · PostgreSQL",
-      "validationMethods": ["integration_tests", "production_review"],
+      "validationMethods": [
+        "integration_tests",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "API Gateway com auth e rate limiting",
         "API Pública com endpoints de pagamento",
@@ -1595,11 +2475,20 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "adr", "label": "CLAUDE.md §3.2 — Go para API Layer", "ref": "CLAUDE.md" }
+        {
+          "type": "adr",
+          "label": "CLAUDE.md §3.2 — Go para API Layer",
+          "ref": "CLAUDE.md"
+        }
       ],
-      "dependencies": ["ARC-001"],
+      "dependencies": [
+        "ARC-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "ARC-003",
@@ -1612,7 +2501,10 @@
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "TypeScript · Next.js · React",
-      "validationMethods": ["manual_ux", "production_review"],
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Site de documentação em produção",
         "TypeScript estrito em todo o código frontend",
@@ -1621,13 +2513,24 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "route",     "label": "apps/docs/ — site de documentação", "ref": "apps/docs" },
-        { "type": "config",    "label": "tsconfig.json — TypeScript estrito",  "ref": "apps/docs/tsconfig.json" }
+        {
+          "type": "route",
+          "label": "apps/docs/ — site de documentação",
+          "ref": "apps/docs"
+        },
+        {
+          "type": "config",
+          "label": "tsconfig.json — TypeScript estrito",
+          "ref": "apps/docs/tsconfig.json"
+        }
       ],
       "notes": "Site de documentação em produção e validado. Dashboard de comerciante planeado.",
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "ARC-004",
@@ -1640,7 +2543,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Database",
       "technicalArea": "PostgreSQL",
-      "validationMethods": ["financial_invariant", "production_review"],
+      "validationMethods": [
+        "financial_invariant",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "PostgreSQL em produção com backup automático",
         "Replicação configurada",
@@ -1652,7 +2558,10 @@
       "evidence": [],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "ARC-005",
@@ -1665,7 +2574,9 @@
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering",
       "technicalArea": "Arquitectura",
-      "validationMethods": ["production_review"],
+      "validationMethods": [
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "ADR documentando a decisão",
         "Estrutura de módulos definida",
@@ -1674,12 +2585,23 @@
       ],
       "testCoverage": false,
       "evidence": [
-        { "type": "adr",    "label": "CLAUDE.md §2.3 — Modular Monolith First", "ref": "CLAUDE.md" },
-        { "type": "config", "label": "Estrutura de repositório CLAUDE.md §4",    "ref": "CLAUDE.md" }
+        {
+          "type": "adr",
+          "label": "CLAUDE.md §2.3 — Modular Monolith First",
+          "ref": "CLAUDE.md"
+        },
+        {
+          "type": "config",
+          "label": "Estrutura de repositório CLAUDE.md §4",
+          "ref": "CLAUDE.md"
+        }
       ],
       "dependencies": [],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "OBS-001",
@@ -1692,7 +2614,9 @@
       "priority": "CRITICAL",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "OpenTelemetry · Prometheus · Go · Rust",
-      "validationMethods": ["production_review"],
+      "validationMethods": [
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Instrumentação OTel em todos os serviços Go e Rust",
         "Métricas Prometheus expostas em /metrics",
@@ -1701,9 +2625,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["ARC-001", "ARC-002"],
+      "dependencies": [
+        "ARC-001",
+        "ARC-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "OBS-002",
@@ -1716,7 +2646,9 @@
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Grafana · Prometheus",
-      "validationMethods": ["production_review"],
+      "validationMethods": [
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Painel Pagamentos com taxas, erros, latências",
         "Painel Carteiras e Ledger com volumes e percentis",
@@ -1725,9 +2657,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["OBS-001"],
+      "dependencies": [
+        "OBS-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "OBS-003",
@@ -1740,7 +2677,9 @@
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Go · Rust · Docker",
-      "validationMethods": ["production_review"],
+      "validationMethods": [
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Logs JSON em todos os serviços",
         "transaction_id em logs de pagamento",
@@ -1749,9 +2688,15 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["ARC-001", "ARC-002"],
+      "dependencies": [
+        "ARC-001",
+        "ARC-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "EMS-001",
@@ -1764,7 +2709,11 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · Go · EMIS API",
-      "validationMethods": ["integration_tests", "reconciliation", "production_review"],
+      "validationMethods": [
+        "integration_tests",
+        "reconciliation",
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Conexão ao EMIS estabelecida e certificada",
         "Transferências interbancárias funcionais",
@@ -1780,7 +2729,10 @@
         "Acordo com EMIS não formalizado",
         "Análise jurídica e de conformidade regulatória em curso"
       ],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "EMS-002",
@@ -1793,7 +2745,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · EMIS",
-      "validationMethods": ["financial_invariant", "reconciliation"],
+      "validationMethods": [
+        "financial_invariant",
+        "reconciliation"
+      ],
       "acceptanceCriteria": [
         "Levantamentos liquidam via EMIS correctamente",
         "Carregamentos de carteira confirmados via EMIS",
@@ -1802,9 +2757,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["EMS-001"],
-      "blockingIssues": ["Bloqueado por EMS-001 — certificação BNA pendente"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "EMS-001"
+      ],
+      "blockingIssues": [
+        "Bloqueado por EMS-001 — certificação BNA pendente"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RD-001",
@@ -1818,7 +2780,10 @@
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Dart",
-      "validationMethods": ["manual_ux", "e2e_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "e2e_tests"
+      ],
       "acceptanceCriteria": [
         "App publicada em Google Play e App Store",
         "Onboarding completo em <2 minutos",
@@ -1827,9 +2792,16 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001", "API-002", "QR-003"],
+      "dependencies": [
+        "API-001",
+        "API-002",
+        "QR-003"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-05-20",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RD-002",
@@ -1842,7 +2814,9 @@
       "priority": "MEDIUM",
       "ownerArea": "Core / Payment Requests",
       "technicalArea": "Go · PostgreSQL",
-      "validationMethods": ["integration_tests"],
+      "validationMethods": [
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Recorrência configurável: semanal, mensal, trimestral",
         "Notificação automática antes da data",
@@ -1850,9 +2824,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["PR-001"],
+      "dependencies": [
+        "PR-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RD-003",
@@ -1865,7 +2844,10 @@
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / Plugins",
       "technicalArea": "PHP · WooCommerce",
-      "validationMethods": ["manual_ux", "integration_tests"],
+      "validationMethods": [
+        "manual_ux",
+        "integration_tests"
+      ],
       "acceptanceCriteria": [
         "Plugin publicado no repositório WordPress",
         "Integração via banza/sdk-php",
@@ -1874,9 +2856,14 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["SDK-002"],
+      "dependencies": [
+        "SDK-002"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RD-004",
@@ -1889,7 +2876,10 @@
       "priority": "LOW",
       "ownerArea": "Core / Funding",
       "technicalArea": "Go · Card Processor",
-      "validationMethods": ["financial_invariant", "security_audit"],
+      "validationMethods": [
+        "financial_invariant",
+        "security_audit"
+      ],
       "acceptanceCriteria": [
         "Carregamento por cartão de débito angolano funcional",
         "Cartão nunca exposto no fluxo de pagamento",
@@ -1899,9 +2889,15 @@
       "testCoverage": false,
       "evidence": [],
       "notes": "Cartão = via de financiamento APENAS. O pagamento continua a ser sempre wallet-to-wallet.",
-      "dependencies": ["WAL-001", "EMS-001"],
+      "dependencies": [
+        "WAL-001",
+        "EMS-001"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     },
     {
       "id": "RD-005",
@@ -1914,7 +2910,9 @@
       "priority": "LOW",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Multi-tenant · Localização",
-      "validationMethods": ["production_review"],
+      "validationMethods": [
+        "production_review"
+      ],
       "acceptanceCriteria": [
         "Densidade de rede Angola atingida (critérios a definir)",
         "Arquitectura multi-tenant testada",
@@ -1924,9 +2922,18 @@
       "testCoverage": false,
       "evidence": [],
       "notes": "O momento ainda não chegou. Angola vem primeiro.",
-      "dependencies": ["EMS-001", "KYC-001", "WAL-001"],
-      "blockingIssues": ["Densidade de rede Angola não atingida"],
-      "lastUpdated": "2026-05-19"
+      "dependencies": [
+        "EMS-001",
+        "KYC-001",
+        "WAL-001"
+      ],
+      "blockingIssues": [
+        "Densidade de rede Angola não atingida"
+      ],
+      "lastUpdated": "2026-05-19",
+      "history": [],
+      "invariants": [],
+      "requires": []
     }
   ]
 }
