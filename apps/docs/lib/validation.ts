@@ -7,14 +7,17 @@ import type {
   ValidationItem,
 } from './validation-types'
 
+// READ-ONLY: this module only reads validation data at build time.
+// No write path exists. Updates must go through Git → review → deploy.
 const MATRIX_PATH = path.join(
   process.cwd(),
   '../../docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json',
 )
 
-export function getValidationMatrix(): ValidationMatrix {
+/** Read-only loader — runs server-side at build time only. Never call from a mutation handler. */
+export function getValidationMatrix(): Readonly<ValidationMatrix> {
   const raw = fs.readFileSync(MATRIX_PATH, 'utf-8')
-  return JSON.parse(raw) as ValidationMatrix
+  return Object.freeze(JSON.parse(raw) as ValidationMatrix)
 }
 
 export function computeMetrics(
