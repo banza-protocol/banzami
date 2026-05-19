@@ -73,8 +73,9 @@ Banzami (organização / ecossistema)
 
 ### Frase de posicionamento canónica
 
-> *"Banzami é o ecossistema. Banza é a experiência de pagamento."*  
-> *"Banzami constrói a infraestrutura. Banza é como Angola paga."*
+> *"Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente."*  
+> *"Banzami constrói a infraestrutura. Banza move o dinheiro."*  
+> *"Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é como Angola paga."*
 
 ---
 
