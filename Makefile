@@ -86,6 +86,8 @@ help:
 	@printf "    make stack-up        Start full stack in containers (runs migrations)\n"
 	@printf "    make stack-down      Stop and remove containers\n"
 	@printf "    make stack-logs      Tail all service logs\n"
+	@printf "\n  \033[1mLocal tools\033[0m\n"
+	@printf "    make studio          Validation Studio — local editor (:3099)\n"
 	@printf "\n  \033[1mQuality\033[0m\n"
 	@printf "    make check-all       Run all linters and type-checkers\n"
 	@printf "    make test-all        Run all test suites\n"
@@ -267,3 +269,12 @@ sdk-test:
 
 test-all: core-test gateway-test admin-api-test public-api-test sdk-test
 	@printf "\nAll test suites passed.\n"
+
+# ─── Local tools ──────────────────────────────────────────────────────────────
+.PHONY: studio studio-install
+
+studio-install:
+	cd apps/validation-studio && npm install
+
+studio: studio-install
+	cd apps/validation-studio && npm run dev

@@ -1433,7 +1433,117 @@ See ADR-016 for full context, rationale, and migration rules.
 
 ---
 
-# 17. Final Principle
+# 17. Validation Governance — Claude Approval Gates
+
+## 17.1 Rule
+
+Claude must NEVER apply validation status changes to `docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json` without first producing a structured proposal and receiving the exact approval phrase from the human.
+
+## 17.2 Required Approval Phrases
+
+Validation changes are governance actions. The following exact phrases are the only accepted approvals:
+
+| Action | Required exact phrase |
+|--------|-----------------------|
+| Apply JSON change | `APPROVE VALIDATION <ITEM_ID>` |
+| Create git commit | `APPROVE COMMIT <ITEM_ID>` |
+
+Example: `APPROVE VALIDATION QR-001`
+
+## 17.3 Rejected Phrasings
+
+The following are explicitly NOT accepted and must never trigger a write operation:
+
+`yes` · `ok` · `confirm` · `go` · `apply` · `looks good` · `pode avançar` · `sim` · `continua` · `approved` · any paraphrase or equivalent
+
+## 17.4 Phase Separation
+
+Applying the JSON change and creating the git commit are separate governance actions, each requiring its own approval phrase. Applying does not automatically commit.
+
+## 17.5 Multi-Item Rule
+
+If multiple items are involved, each requires its own explicit approval:
+
+```
+APPROVE VALIDATION QR-001
+APPROVE VALIDATION WH-001
+```
+
+Batch approval does not exist.
+
+## 17.6 Proposal Requirements
+
+Before any approval gate is shown, Claude must produce a full VALIDATION PROPOSAL containing:
+- Current status → proposed status
+- **Validation fingerprint** (16-char SHA256 hex — computed from item state + git diff)
+- **Architecture lock status** — each `requires` entry and its current status
+- **Financial invariant status** — each invariant and its PASS/FAIL/UNKNOWN/NOT_RUN status
+- Acceptance criteria check (PASS / PARTIAL / FAIL / UNVERIFIABLE per criterion, with file:line citations)
+- Evidence found
+- Fields that will be updated (explicit before/after)
+- **History entry preview** (the immutable entry that will be appended)
+- Risks
+- Suggested commit message in `validation(ID): description` format
+
+Claude may NOT propose `VALIDATED` if:
+- any acceptance criterion fails
+- evidence would remain empty
+- any `requires` item is not VALIDATED (architecture lock)
+- the item is financially critical AND any invariant is not PASS
+
+## 17.7 Fingerprint Contract
+
+The validation fingerprint anchors the proposal to a specific implementation state. It is computed as:
+```
+SHA256(item_id | SHA256(git_diff)[0:16])[0:16]
+```
+
+The approval phrase must include the fingerprint:
+```
+APPROVE VALIDATION QR-001 a84f9e2d1c3b5f7e
+```
+
+Before applying, Claude must recompute the fingerprint. If it differs from the proposal fingerprint, apply is ABORTED with:
+> "⛔ Fingerprint mismatch. Implementation changed after proposal. Generate a new proposal."
+
+## 17.8 Immutable History
+
+Every status transition appends one history entry to the item's `history[]` array. History entries are never modified or deleted. The entry structure:
+```json
+{
+  "timestamp": "ISO 8601",
+  "from": "previous status",
+  "to": "new status",
+  "approvedBy": "local-admin",
+  "fingerprint": "16-char hex",
+  "commit": "optional git hash",
+  "reason": "justification",
+  "evidence": ["ref1", "ref2"]
+}
+```
+
+## 17.9 Financial Invariants
+
+Items in `cat-ledger`, `cat-wallet`, `cat-p2p`, `cat-qr`, `cat-payouts`, `cat-refunds` are financially critical. They carry an `invariants[]` array with named rules. ALL invariants must be PASS before VALIDATED can be proposed. Invariant statuses: PASS · FAIL · UNKNOWN · NOT_RUN.
+
+## 17.10 Architecture Lock
+
+Each item has a `requires[]` array — the hard dependency list. An item may NOT become VALIDATED unless every item in `requires` is already VALIDATED. This is checked:
+- at proposal time (Claude warns and refuses VALIDATED)
+- at apply time (Claude re-verifies and aborts if any lock is unmet)
+- in the Studio UI (lock icon + red dependency list if unmet)
+
+## 17.7 Commands
+
+The slash commands implementing this workflow are in `.claude/commands/`:
+- `/validate-feature <ID>` — full inspection + proposal + gated apply + gated commit
+- `/validate-current` — auto-detect item from git context, then same flow
+- `/validation-propose <ID>` — proposal only, never writes
+- `/validation-apply <ID>` — apply a proposal already generated in this conversation
+
+---
+
+# 18. Final Principle
 
 Every engineer working on Banzami must understand:
 
