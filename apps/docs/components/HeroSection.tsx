@@ -64,10 +64,10 @@ export function HeroSection({ tagline }: Props) {
           <Link href="/reference" className="btn-primary text-base px-6 py-3">
             Ler o manifesto
           </Link>
-          <Link href="/technical-architecture" className="btn-ghost text-base px-6 py-3">
+          <Link href="/arquitectura-tecnica" className="btn-ghost text-base px-6 py-3">
             Ver arquitectura
           </Link>
-          <Link href="/banzami-business-ecosystem" className="btn-ghost text-base px-6 py-3">
+          <Link href="/ecossistema-de-negocio-banzami" className="btn-ghost text-base px-6 py-3">
             Explorar ecossistema
           </Link>
         </div>

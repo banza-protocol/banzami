@@ -39,7 +39,7 @@ const steps = [
       </svg>
     ),
     label: 'Carteira Creditada',
-    sublabel: 'Comerciante recebe ao instante',
+    sublabel: 'Comerciante recebe de imediato',
     color: 'bg-bz-surface text-bz-primary border-bz-border',
   },
 ]

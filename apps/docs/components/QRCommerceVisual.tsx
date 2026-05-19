@@ -29,7 +29,7 @@ export function QRCommerceVisual() {
             <rect x="3" y="14" width="7" height="7" rx="1" />
             <path d="M14 14h.01M18 14h.01M14 18h.01M18 18h.01M14 16h4" strokeLinecap="round" />
           </svg>
-          <span className="mt-1 text-[10px] font-bold">BANZAMI QR</span>
+          <span className="mt-1 text-[10px] font-bold">BANZA QR</span>
         </div>
 
         {/* Use case grid */}

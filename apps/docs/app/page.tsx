@@ -157,7 +157,7 @@ export default function HomePage() {
           Casos de uso
         </div>
         <h2 className="mb-8 text-2xl font-bold tracking-tight text-bz-text md:text-3xl">
-          Banza em todo o Angola
+          Banza em toda Angola
         </h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {useCases.map((uc, i) => (

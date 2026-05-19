@@ -4,7 +4,7 @@ const stages = [
   { label: 'Motor de Risco',sub: 'Limites · Padrões',   icon: '🛡️', color: 'bg-amber-50 text-amber-800 border-amber-200' },
   { label: 'Idempotência',  sub: 'Chave única / Redis', icon: '🔄', color: 'bg-amber-50 text-amber-800 border-amber-200' },
   { label: 'Ledger',        sub: 'Entrada dupla · Rust', icon: '📒', color: 'bg-bz-primary-light text-bz-primary border-bz-primary/20' },
-  { label: 'Audit Log',     sub: 'Imutável · Rastreável', icon: '📋', color: 'bg-bz-primary-light text-bz-primary border-bz-primary/20' },
+  { label: 'Registo de Auditoria', sub: 'Imutável · Rastreável', icon: '📋', color: 'bg-bz-primary-light text-bz-primary border-bz-primary/20' },
   { label: 'Reconciliação', sub: 'Verificação contínua', icon: '✅', color: 'bg-green-50 text-green-800 border-green-200' },
 ]
 
