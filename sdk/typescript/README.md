@@ -38,7 +38,7 @@ const client = new BanzamiClient({
 ### Create a consumer and provision a wallet
 
 ```typescript
-const consumer = await client.createConsumer('joao_silva', 'João Silva');
+const consumer = await client.createConsumer('joao', 'João Silva');
 const wallet   = await client.getOrCreateConsumerWallet(consumer.id);
 
 const balance  = await client.getConsumerWalletBalance(wallet.id);
@@ -48,7 +48,7 @@ console.log(balance.available_minor); // e.g. 25000 (Kz)
 ### Look up a consumer by @banza
 
 ```typescript
-const consumer = await client.getConsumerByHandle('joao_silva');
+const consumer = await client.getConsumerByHandle('joao');
 if (consumer.status !== 'ACTIVE') {
   throw new Error('Consumer is not active');
 }

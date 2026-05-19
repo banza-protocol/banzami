@@ -15,7 +15,7 @@ export function WalletToWalletVisual() {
             </svg>
             Carteira Consumidor
           </div>
-          <div className="text-2xl font-bold text-bz-text">@joao.silva</div>
+          <div className="text-2xl font-bold text-bz-text">@joao</div>
           <div className="mt-2 text-sm text-bz-muted">Saldo: 50.000 Kz</div>
           <div className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm">
             <span className="font-semibold text-bz-primary">− 2.500 Kz</span>
