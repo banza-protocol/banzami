@@ -1,368 +1,370 @@
-# Banzami — Official Reference Document
+# Banzami — Documento de Referência Oficial
 
 **Version:** 1.0  
 **Date:** 2026-05-19  
 **Status:** Official  
-**Author:** Fidel Monteiro — `@fm65`
+**Author:** Organização Banzami
 
 ---
 
-> **Banzami is Angola's QR-native instant payment network.**  
-> Wallet-to-wallet. Instant settlement. No card required. Built for every Angolan.
+> **O Banzami é a rede de pagamentos instantâneos QR-native de Angola.**  
+> Carteira-a-carteira. Liquidação instantânea. Sem cartão. Construído para cada angolano.
 
 ---
 
-Angola does not need a copy of someone else's payment system.  
-Angola needs its own — built for Kwanza, built for QR, built for the smartphone in every pocket.
+Angola não precisa de uma cópia do sistema de pagamentos de outro país.  
+Angola precisa do seu próprio — construído para o Kwanza, para o QR, para o smartphone em cada bolso.
 
-**That is Banzami.**
-
----
-
-## Table of Contents
-
-1. [What Is Banzami?](#1-what-is-banzami)
-2. [Why Banzami Exists](#2-why-banzami-exists)
-3. [Why Now?](#3-why-now)
-4. [The Vision](#4-the-vision)
-5. [A Morning in Luanda](#5-a-morning-in-luanda)
-6. [How Banzami Works](#6-how-banzami-works)
-7. [Core Features](#7-core-features)
-8. [Real Angola Use Cases](#8-real-angola-use-cases)
-9. [QR Payment Ecosystem](#9-qr-payment-ecosystem)
-10. [Wallet-Native Philosophy](#10-wallet-native-philosophy)
-11. [Banzami for Merchants](#11-banzami-for-merchants)
-12. [Banzami for Developers](#12-banzami-for-developers)
-13. [Banzami for Consumers](#13-banzami-for-consumers)
-14. [The Banzami Flywheel](#14-the-banzami-flywheel)
-15. [Banzami Business Ecosystem](#15-banzami-business-ecosystem)
-16. [Security & Financial Integrity](#16-security--financial-integrity)
-17. [Technical Architecture](#17-technical-architecture)
-18. [The Banzami Ecosystem](#18-the-banzami-ecosystem)
-19. [Roadmap & Future](#19-roadmap--future)
-20. [Final Vision Statement](#20-final-vision-statement)
+**Isso é o Banzami.**
 
 ---
 
-## 1. What Is Banzami?
+## Índice
 
-Banzami is **Angola's instant payment network** — a complete digital payment infrastructure built specifically for Angolan commerce, Angolan merchants, and Angolan consumers.
+1. [O que é o Banzami?](#1-o-que-é-o-banzami)
+2. [Por que o Banzami Existe](#2-por-que-o-banzami-existe)
+3. [Por que Agora?](#3-por-que-agora)
+4. [A Visão](#4-a-visão)
+5. [Uma Manhã em Luanda](#5-uma-manhã-em-luanda)
+6. [Como o Banzami Funciona](#6-como-o-banzami-funciona)
+7. [Funcionalidades Principais](#7-funcionalidades-principais)
+8. [Casos de Uso Reais em Angola](#8-casos-de-uso-reais-em-angola)
+9. [Ecossistema de Pagamentos QR](#9-ecossistema-de-pagamentos-qr)
+10. [Filosofia Wallet-Native](#10-filosofia-wallet-native)
+11. [Banzami para Comerciantes](#11-banzami-para-comerciantes)
+12. [Banzami para Programadores](#12-banzami-para-programadores)
+13. [Banzami para Consumidores](#13-banzami-para-consumidores)
+14. [O Motor de Crescimento Banzami](#14-o-motor-de-crescimento-banzami)
+15. [Ecossistema de Negócio Banzami](#15-ecossistema-de-negócio-banzami)
+16. [Segurança e Integridade Financeira](#16-segurança-e-integridade-financeira)
+17. [Arquitectura Técnica](#17-arquitectura-técnica)
+18. [O Ecossistema Banzami](#18-o-ecossistema-banzami)
+19. [Roadmap e Futuro](#19-roadmap-e-futuro)
+20. [Declaração de Visão Final](#20-declaração-de-visão-final)
 
-It is not a bank. It is not a card processor. It is not a generic fintech platform adapted from a Western model and rebranded for Africa.
+---
 
-Banzami is a **wallet-native payment network**: every account is a digital wallet, every payment is an instant wallet-to-wallet transfer, and every merchant interaction is a QR code. Money moves between wallets in real time — confirmed, settled, and visible in seconds.
+## 1. O que é o Banzami?
 
-### The four pillars of Banzami
+O Banzami é a **rede de pagamentos instantâneos de Angola** — uma infraestrutura completa de pagamentos digitais construída especificamente para o comércio angolano, comerciantes angolanos e consumidores angolanos.
 
-| Pillar | What it means |
-|--------|---------------|
-| **Wallet-native** | Every account is a digital Kwanza wallet. Payments are direct wallet transfers. No IBAN required. No bank code required. No card required. |
-| **QR-native** | The primary merchant payment surface is a QR code. A merchant prints a QR. A consumer scans it. Payment is instant. No card terminal, no hardware, no friction. |
-| **Instant settlement** | Money moves the moment payment is confirmed. Not the next business day. Not after manual verification. Instantly — in the same transaction. |
-| **SDK-first** | Every Angolan application — taxi apps, delivery platforms, ecommerce sites, donation platforms — integrates Banzami in hours and accepts instant Kwanza payments natively inside their product. |
+Não é um banco. Não é um processador de cartões. Não é uma plataforma fintech genérica adaptada de um modelo ocidental e rebaptizada para África.
 
-### The canonical payment experience
+O Banzami é uma **rede de pagamentos wallet-native**: cada conta é uma carteira digital, cada pagamento é uma transferência instantânea de carteira-para-carteira, e cada interação comercial é um código QR. O dinheiro move-se entre carteiras em tempo real — confirmado, liquidado e visível em segundos.
+
+### Os quatro pilares do Banzami
+
+| Pilar | O que significa |
+|-------|----------------|
+| **Wallet-native** | Cada conta é uma carteira digital em Kwanza. Os pagamentos são transferências directas entre carteiras. Sem IBAN. Sem código bancário. Sem cartão. |
+| **QR-native** | A principal superfície de pagamento para comerciantes é um código QR. O comerciante imprime um QR. O consumidor faz o scan. O pagamento é instantâneo. Sem terminal de cartão, sem hardware, sem atrito. |
+| **Liquidação instantânea** | O dinheiro move-se no momento em que o pagamento é confirmado. Não no próximo dia útil. Não após verificação manual. Instantaneamente — na mesma transacção. |
+| **SDK-first** | Qualquer aplicação angolana — apps de táxi, plataformas de delivery, sites de ecommerce, plataformas de doações — integra o Banzami em horas e aceita pagamentos instantâneos em Kwanza nativamente no seu produto. |
+
+### A experiência de pagamento canónica
 
 ```
-Consumer scans merchant QR
+O consumidor faz o scan do QR do comerciante
           ↓
-Confirms amount and merchant identity (one tap)
+Confirma o valor e a identidade do comerciante (um toque)
           ↓
-Payment committed and settled atomically
+Pagamento comprometido e liquidado atomicamente
           ↓
-Merchant receives instant notification + balance update
+O comerciante recebe notificação instantânea + actualização do saldo
           ↓
-Consumer sees success confirmation
+O consumidor vê a confirmação de sucesso
 ```
 
-**Total time from scan to confirmed settlement: under 3 seconds.**
+**Tempo total desde o scan até à liquidação confirmada: menos de 3 segundos.**
 
-### Identity in Banzami
+### Identidade no Banzami
 
-Every person and every merchant in the Banzami network has a **@handle** — a human-readable payment address. Sending money in Banzami looks like this:
+Cada pessoa e cada comerciante na rede Banzami tem um **@handle** — um endereço de pagamento legível por humanos. Enviar dinheiro no Banzami tem este aspecto:
 
 ```
-Pay: @cantina.luanda
-Amount: 2.500 Kz
+Pagar: @cantina.luanda
+Valor: 2.500 Kz
 ```
 
-No bank account number. No IBAN. No reference codes. No card details. Just a handle and an amount.
+Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados de cartão. Apenas um handle e um valor.
 
-### Who Banzami serves
+### Quem o Banzami serve
 
-- **Merchants** — from cantinas and market stalls to ecommerce platforms and taxi apps
-- **Developers** — building the next generation of Angolan applications that need to accept payments
-- **Consumers** — every Angolan who wants to pay, send money, and receive payments instantly
-- **Banks and partners** — who want to offer their customers a modern digital commerce layer
+- **Comerciantes** — desde cantinas e bancas de mercado até plataformas de ecommerce e apps de táxi
+- **Programadores** — a construir a próxima geração de aplicações angolanas que precisam de aceitar pagamentos
+- **Consumidores** — cada angolano que quer pagar, enviar dinheiro e receber pagamentos instantaneamente
+- **Bancos e parceiros** — que querem oferecer aos seus clientes uma camada moderna de comércio digital
 
 ---
 
-### Why the name Banzami?
+### Por que o nome Banzami?
 
-**Banza** is a word rooted in the Kimbundu language tradition — one of Angola's oldest living languages, spoken by millions of Angolans, present in place names across the country, and woven into the cultural memory of this nation. A *banza* is a place. A gathering. A home. A centre of life where people come together.
+**Banza** é uma palavra enraizada na tradição linguística Kimbundu — uma das línguas vivas mais antigas de Angola, falada por milhões de angolanos, presente em topónimos por todo o país e tecida na memória cultural desta nação. Uma *banza* é um lugar. Um encontro. Uma casa. Um centro de vida onde as pessoas se reúnem.
 
-Banzami takes that root and builds from it. A payment network takes its character from the people who use it. A name that is distinctly Angolan — not a borrowed word, not a translated concept, not a brand invented in another continent — was the only honest choice.
+O Banzami parte dessa raiz e constrói a partir dela. Uma rede de pagamentos tem o carácter das pessoas que a utilizam. Um nome distintamente angolano — não uma palavra emprestada, não um conceito traduzido, não uma marca inventada noutro continente — era a única escolha honesta.
 
-The name is a signal: this platform was made here. For here.
-
----
-
-## 2. Why Banzami Exists
-
-Angola has a payments problem. It is not a technology problem — Angola has strong mobile penetration, growing internet infrastructure, and a population that is ready for digital commerce. The problem is that the existing payment experience is broken in predictable, fixable ways.
-
-### 2.1 The cash dependency
-
-Despite widespread smartphone usage, cash remains the dominant payment method in Angola for one clear reason: **cash is simpler than the existing digital alternatives**.
-
-Paying digitally today means finding a bank branch or ATM, initiating a transfer, copying a reference code, waiting for confirmation, and sometimes manually proving the payment to the merchant. For small, everyday purchases — a meal at a cantina, a ride home, a purchase at the market — cash is simply faster.
-
-**Banzami makes digital payments faster than cash.**
-
-### 2.2 The WhatsApp proof problem
-
-The current "digital" payment flow in Angolan informal commerce is not digital at all:
-
-```
-Step 1 — Customer initiates a bank transfer
-Step 2 — Customer takes a screenshot of the confirmation
-Step 3 — Customer sends the screenshot to the merchant via WhatsApp
-Step 4 — Merchant inspects the screenshot manually
-Step 5 — Merchant decides whether to trust it
-```
-
-This is manual reconciliation disguised as digital payment. It creates disputes. Screenshots can be fabricated. It fails completely at scale. The merchant must trust a photo on a screen, and the customer must hope the merchant honours it.
-
-**Banzami eliminates this entirely.** When a customer scans a Banzami QR and confirms payment, the merchant sees instant, cryptographically confirmed notification in their app. No screenshots. No WhatsApp messages. No manual check. The payment is settled and the merchant wallet is updated in real time.
-
-### 2.3 The in-app payment gap
-
-Angolan taxi apps, delivery platforms, and marketplaces cannot close the payment loop inside their products. The payment step forces users outside the app — to cash, to an external bank transfer, to fragile workarounds that break more often than they work.
-
-The result: broken user experiences, high dropout rates, and merchants who cannot deliver a seamless digital service regardless of how good their product is.
-
-Banzami provides the SDK infrastructure that allows any Angolan application to embed a complete payment flow — confirmation, settlement, receipt — without the consumer ever leaving the app.
-
-### 2.4 The SDK gap
-
-There is no Angola-native payment SDK. A developer building an Angolan application has no clean, typed, production-ready API for accepting instant Kwanza payments. They improvise — with security vulnerabilities, inconsistent behaviour, no retry logic, and no meaningful support when something goes wrong.
-
-Banzami is the first payment infrastructure built specifically for Angolan developers: typed SDKs, automatic idempotency, exponential backoff retry, webhook signature verification, and sandbox testing — all production-grade, all out of the box.
-
-### 2.5 The merchant exclusion problem
-
-Small merchants — cantinas, pharmacies, market vendors — are excluded from digital commerce because existing solutions require expensive hardware, formal bank agreements with complex requirements, or card terminal infrastructure that the majority of Angola's merchants simply cannot access.
-
-Banzami requires none of this. A merchant needs a phone and a printed QR code. That is the entire infrastructure requirement to begin accepting instant digital payments.
+O nome é um sinal: esta plataforma foi feita aqui. Para aqui.
 
 ---
 
-## 3. Why Now?
+## 2. Por que o Banzami Existe
 
-The conditions for a payment network transformation in Angola are not future possibilities. They are present realities.
+Angola tem um problema de pagamentos. Não é um problema tecnológico — Angola tem uma forte penetração móvel, infraestrutura de internet crescente e uma população pronta para o comércio digital. O problema é que a experiência de pagamento existente está quebrada de formas previsíveis e corrigíveis.
 
-### 3.1 The smartphone is already there
+### 2.1 A dependência do dinheiro físico
 
-Angola has one of the fastest-growing mobile penetration rates on the continent. Smartphones are no longer scarce. They are in cantinas, in markets, in taxis, in schools, in homes across Luanda, Benguela, Huambo, and beyond. The device that delivers Banzami is already in the pocket of the person we need to reach.
+Apesar da utilização generalizada de smartphones, o dinheiro físico continua a ser o método de pagamento dominante em Angola por uma razão clara: **o dinheiro físico é mais simples do que as alternativas digitais existentes**.
 
-The infrastructure barrier that once blocked digital commerce — "people don't have phones" — no longer exists.
+Pagar digitalmente hoje significa encontrar uma agência bancária ou ATM, iniciar uma transferência, copiar um código de referência, aguardar confirmação e, por vezes, provar manualmente o pagamento ao comerciante. Para compras pequenas do dia-a-dia — uma refeição numa cantina, uma corrida para casa, uma compra no mercado — o dinheiro físico é simplesmente mais rápido.
 
-### 3.2 The WhatsApp economy is proof
+**O Banzami torna os pagamentos digitais mais rápidos do que o dinheiro físico.**
 
-Angola already has a digital economy. It runs on WhatsApp. Products are sold, services are negotiated, and even payments are confirmed — via screenshots — over WhatsApp every day.
+### 2.2 O problema da prova via WhatsApp
 
-This is not a sign that Angolans are not ready for digital commerce. It is proof that they already conduct digital commerce, using whatever tools are available. Banzami is the better tool. It does what WhatsApp-plus-screenshots does, but correctly, instantly, and securely.
+O fluxo de pagamento "digital" actual no comércio informal angolano não é digital de forma alguma:
 
-The habit already exists. Banzami improves it.
+```
+Passo 1 — O cliente inicia uma transferência bancária
+Passo 2 — O cliente tira um screenshot da confirmação
+Passo 3 — O cliente envia o screenshot ao comerciante via WhatsApp
+Passo 4 — O comerciante inspecciona o screenshot manualmente
+Passo 5 — O comerciante decide se confia nele
+```
 
-### 3.3 QR has already proven the model globally
+Isto é reconciliação manual disfarçada de pagamento digital. Cria disputas. Screenshots podem ser fabricados. Falha completamente à escala. O comerciante tem de confiar numa fotografia no ecrã, e o cliente tem de esperar que o comerciante a honre.
 
-In Brazil, Pix created a QR-native instant payment network that became the dominant payment method in under three years. In India, UPI processes billions of transactions monthly using @handle-based instant transfers. In China, WeChat Pay made QR scanning so habitual that physical cash has become the exception in major cities.
+**O Banzami elimina isto por completo.** Quando um cliente faz o scan de um QR Banzami e confirma o pagamento, o comerciante vê uma notificação instantânea e criptograficamente confirmada na sua app. Sem screenshots. Sem mensagens de WhatsApp. Sem verificação manual. O pagamento é liquidado e a carteira do comerciante é actualizada em tempo real.
 
-None of these countries had special advantages. They had a clear infrastructure, a focused rollout, and a product that was genuinely better than cash. Angola has all the same preconditions. The model is proven.
+### 2.3 A lacuna nos pagamentos in-app
 
-### 3.4 The informal economy needs digital infrastructure
+As apps de táxi angolanas, plataformas de delivery e marketplaces não conseguem fechar o ciclo de pagamento dentro dos seus produtos. O passo do pagamento força os utilizadores para fora da app — para dinheiro físico, para uma transferência bancária externa, para soluções improvisadas que falham mais vezes do que funcionam.
 
-The majority of Angolan commerce happens informally. Market vendors, street merchants, freelancers, small businesses — these are not edge cases. They are the economic backbone of the country. Existing digital payment solutions have systematically excluded them.
+O resultado: experiências de utilizador quebradas, altas taxas de abandono e comerciantes que não conseguem oferecer um serviço digital fluido independentemente de quão bom seja o seu produto.
 
-A QR-native, hardware-free, zero-monthly-fee payment network is the first solution that fits how informal Angolan commerce actually works.
+O Banzami fornece a infraestrutura SDK que permite a qualquer aplicação angolana incorporar um fluxo de pagamento completo — confirmação, liquidação, recibo — sem o consumidor sair alguma vez da app.
 
-### 3.5 The developer generation is ready
+### 2.4 A lacuna do SDK
 
-Angola has a growing generation of developers building mobile applications, web platforms, and digital services for the local market. They are skilled, motivated, and working on real problems. What they lack is an Angolan payment API — a clean, reliable way to accept Kwanza in their products.
+Não existe nenhum SDK de pagamentos nativo angolano. Um programador a construir uma aplicação angolana não tem uma API limpa, tipada e pronta para produção para aceitar pagamentos instantâneos em Kwanza. Improvisa — com vulnerabilidades de segurança, comportamento inconsistente, sem lógica de retry e sem suporte significativo quando algo corre mal.
 
-Banzami is that infrastructure. The developer community is ready to build with it.
+O Banzami é a primeira infraestrutura de pagamentos construída especificamente para programadores angolanos: SDKs tipados, idempotência automática, retry com backoff exponencial, verificação de assinaturas de webhooks e testes em sandbox — tudo de nível de produção, tudo pronto a usar.
 
-### 3.6 The leapfrog opportunity
+### 2.5 O problema de exclusão dos comerciantes
 
-Angola has the opportunity to leapfrog the card infrastructure phase entirely. Western economies built payment networks around cards in the 1980s and are now slowly migrating away from them. Angola never built a card network at scale. That means Angola can go directly to the better model: wallet-native, QR-first, instant settlement.
+Pequenos comerciantes — cantinas, farmácias, vendedores de mercado — estão excluídos do comércio digital porque as soluções existentes requerem hardware caro, acordos bancários formais com requisitos complexos, ou infraestrutura de terminais de cartão à qual a maioria dos comerciantes angolanos simplesmente não tem acesso.
 
-Angola does not need to repeat a 40-year detour. It can start at the destination.
+O Banzami não requer nada disto. Um comerciante precisa de um telefone e um código QR impresso. Esse é o único requisito de infraestrutura para começar a aceitar pagamentos digitais instantâneos.
 
 ---
 
-## 4. The Vision
+## 3. Por que Agora?
 
-Angola's digital economy is not broken — it is unfinished. The infrastructure exists. The population is ready. What is missing is the payment layer that connects them.
+As condições para uma transformação da rede de pagamentos em Angola não são possibilidades futuras. São realidades presentes.
 
-Banzami's vision is to complete that layer.
+### 3.1 O smartphone já está lá
 
-### The target future
+Angola tem uma das taxas de penetração móvel de crescimento mais rápido no continente. Os smartphones já não são escassos. Estão em cantinas, em mercados, em táxis, em escolas, em casas por toda a Luanda, Benguela, Huambo e além. O dispositivo que entrega o Banzami já está no bolso da pessoa que precisamos de alcançar.
 
-```
-A cantina owner in Luanda prints a QR code and places it on the counter.
-A customer orders, picks up their phone, and scans the QR.
-Payment is confirmed in under 3 seconds.
-The owner's phone shows: "Recebeu 2.500 Kz."
-No cash changes hands. No screenshots are sent. No one waits for anything.
-```
+A barreira de infraestrutura que antes bloqueava o comércio digital — "as pessoas não têm telemóveis" — já não existe.
 
-```
-A taxi driver completes a ride.
-The app shows the fare.
-The passenger taps "Pagar."
-Money moves from the passenger's Banzami wallet to the driver's wallet instantly.
-The ride closes. The driver sees the payment. The passenger gets a receipt.
-No cash. No friction. No manual confirmation.
-```
+### 3.2 A economia do WhatsApp é a prova
 
-```
-A student needs to pay school fees.
-The school sends a payment request to the parent's Banzami app.
-The parent sees the amount, the school name, and the term.
-One tap. Paid. The school records it immediately.
-```
+Angola já tem uma economia digital. Funciona no WhatsApp. Produtos são vendidos, serviços são negociados e até pagamentos são confirmados — via screenshots — pelo WhatsApp todos os dias.
 
-These are not ambitious futures. They are achievable today, with infrastructure that already exists, for users who are already connected. Banzami is the missing layer.
+Isto não é sinal de que os angolanos não estão prontos para o comércio digital. É prova de que já conduzem comércio digital, usando as ferramentas disponíveis. O Banzami é a ferramenta melhor. Faz o que o WhatsApp-mais-screenshots faz, mas correctamente, instantaneamente e com segurança.
 
-### What success looks like
+O hábito já existe. O Banzami melhora-o.
 
-Banzami's mission is achieved when:
+### 3.3 O QR já provou o modelo globalmente
 
-- QR payments are the **normal expectation** in Angolan shops, restaurants, and markets — not a novelty
-- Every Angolan taxi app, delivery platform, and ecommerce site uses a Banzami SDK as its payment engine
-- The WhatsApp proof-of-payment has disappeared from Angolan commerce
-- A significant share of everyday Angolan transactions happen digitally, without cash
-- Angolan developers have a payment infrastructure they are proud to build on
-- The Banzami network has become infrastructure — part of how Angola works
+No Brasil, o Pix criou uma rede de pagamentos instantâneos QR-native que se tornou o método de pagamento dominante em menos de três anos. Na Índia, o UPI processa milhares de milhões de transacções mensalmente usando transferências instantâneas baseadas em @handle. Na China, o WeChat Pay tornou o scan de QR tão habitual que o dinheiro físico se tornou a excepção nas grandes cidades.
 
-The reference models for this kind of transformation exist. Brazil's **Pix** turned QR payments into the national default in under three years. India's **UPI** made @handle-based instant transfers the standard for one billion people. Both started with focus: one country, one network, one clear promise to every user.
+Nenhum desses países tinha vantagens especiais. Tinham uma infraestrutura clara, um lançamento focado e um produto genuinamente melhor do que o dinheiro físico. Angola tem exactamente as mesmas pré-condições. O modelo está provado.
 
-**Banzami is that for Angola.**
+### 3.4 A economia informal precisa de infraestrutura digital
+
+A maioria do comércio angolano acontece informalmente. Vendedores de mercado, comerciantes de rua, freelancers, pequenos negócios — estes não são casos extremos. São a espinha dorsal económica do país. As soluções de pagamento digital existentes têm sistematicamente excluído estas pessoas.
+
+Uma rede de pagamentos QR-native, sem hardware, sem taxa mensal, é a primeira solução que se adapta ao modo como o comércio informal angolano realmente funciona.
+
+### 3.5 A geração de programadores está pronta
+
+Angola tem uma geração crescente de programadores a construir aplicações móveis, plataformas web e serviços digitais para o mercado local. São qualificados, motivados e a trabalhar em problemas reais. O que lhes falta é uma API de pagamentos angolana — uma forma limpa e fiável de aceitar Kwanza nos seus produtos.
+
+O Banzami é essa infraestrutura. A comunidade de programadores está pronta para construir com ela.
+
+### 3.6 A oportunidade do salto tecnológico
+
+Angola tem a oportunidade de saltar por completo a fase da infraestrutura de cartões. As economias ocidentais construíram redes de pagamentos em torno de cartões nos anos 80 e estão agora a migrar lentamente para longe deles. Angola nunca construiu uma rede de cartões à escala. Isso significa que Angola pode ir directamente para o modelo melhor: wallet-native, QR-first, liquidação instantânea.
+
+Angola não precisa de repetir um desvio de 40 anos. Pode começar no destino.
 
 ---
 
-## 5. A Morning in Luanda
+## 4. A Visão
 
-*This is not a product demo. This is a vision of ordinary life when Banzami has become the default.*
+A economia digital de Angola não está quebrada — está inacabada. A infraestrutura existe. A população está pronta. O que falta é a camada de pagamentos que os liga.
 
----
+A visão do Banzami é completar essa camada.
 
-**7h15.** Amélia wakes up, checks her Banzami wallet on her phone. She received 5.000 Kz overnight — her younger brother paid back money she lent him last week. He sent it from Benguela at 23h00. It arrived instantly. There was no bank transfer. There was no WhatsApp message. He typed `@amelia.luanda`, entered the amount, confirmed with his PIN, and it was done.
-
-**8h00.** At the corner cantina near her apartment, Amélia orders coffee and bread. She points her phone at the QR code taped to the wall. The app shows `@cantina.margarida`. She types `1.500 Kz` and presses her thumb to confirm. Margarida's phone lights up at the counter: *"Recebeu 1.500 Kz de @amelia.luanda."* No change. No waiting. Breakfast done.
-
-**8h30.** Amélia works as a freelance graphic designer. A client owed her for a logo. She had sent a payment link last week: `pay.banzami.org/fatura-logo-92`. This morning she opens the merchant dashboard on her laptop and sees the status change to **Pago** — the client paid at 8h22. She has the money. She has the digital receipt. She did not have to send a single WhatsApp message to chase it.
-
-**12h30.** Lunch with three colleagues. The restaurant generates a dynamic QR for the group's table — total 18.000 Kz, split four ways. Each person scans the QR from their phones and pays 4.500 Kz. The restaurant's app shows `18.000 Kz recebidos` within seconds of the last scan. No one pulls out a wallet. No one does mental arithmetic trying to make change. The table clears in minutes.
-
-**17h00.** Amélia takes a ride home. The app shows the fare at the end of the trip: 3.200 Kz. She taps "Pagar." One tap, biometric confirm. The driver's phone notifies him. The ride closes in the app. Neither of them mentioned cash.
-
-**19h30.** Her daughter's school sent a payment request this morning — monthly tuition for March: 35.000 Kz. Amélia opens it in the Banzami app. The school name is there. The amount is there. The description says "Propinas — Março 2026." She pays in one tap. The school marks the fee as settled. No queue. No bank. No receipt to carry.
-
-**22h00.** Before sleeping, Amélia checks her wallet. Today she spent 1.500 Kz (cantina), 4.500 Kz (lunch), 3.200 Kz (taxi), 35.000 Kz (school fees). Received 5.000 Kz (brother) and 25.000 Kz (client). Every transaction is there, timestamped, labelled, clear. No mystery. No missing Kwanza. Full visibility over her day.
-
----
-
-*Cash never appeared. WhatsApp proof images were never sent. No one queued at a bank. No reference codes were copied. No one waited.*
-
-*This is a normal Tuesday in Luanda. Powered by Banzami.*
-
----
-
-## 6. How Banzami Works
-
-### 6.1 The fundamental operation
-
-Everything in Banzami is built on one operation:
+### O futuro alvo
 
 ```
-Consumer Wallet  ────[instant ledger transfer]────▶  Merchant Wallet
+Uma dona de cantina em Luanda imprime um código QR e coloca-o no balcão.
+Um cliente encomenda, pega no telefone e faz o scan do QR.
+O pagamento é confirmado em menos de 3 segundos.
+O telemóvel da dona mostra: "Recebeu 2.500 Kz."
+Nenhum dinheiro muda de mãos. Nenhum screenshot é enviado. Ninguém espera por nada.
 ```
 
-When a consumer pays a merchant, money moves from one digital wallet to another. The transfer is atomic, instant, and recorded in an immutable financial ledger. There is no intermediate state, no pending period, no settlement delay. The money is in the merchant wallet the moment the consumer confirms payment.
+```
+Um taxista termina uma corrida.
+A app mostra a tarifa.
+O passageiro toca em "Pagar."
+O dinheiro move-se da carteira Banzami do passageiro para a carteira do motorista instantaneamente.
+A corrida fecha. O motorista vê o pagamento. O passageiro recebe um recibo.
+Sem dinheiro físico. Sem atrito. Sem confirmação manual.
+```
 
-This is the core of the network. Every product feature — QR codes, payment links, payment requests, SDK integrations — is a different way of initiating this same fundamental operation.
+```
+Um estudante precisa de pagar as propinas.
+A escola envia um pedido de pagamento para a app Banzami do encarregado de educação.
+O encarregado vê o valor, o nome da escola e o trimestre.
+Um toque. Pago. A escola regista-o imediatamente.
+```
 
-### 6.2 Wallets
+Estes não são futuros ambiciosos. São alcançáveis hoje, com infraestrutura que já existe, para utilizadores que já estão ligados. O Banzami é a camada que falta.
 
-Every person and every merchant in Banzami has a **digital Kwanza wallet**. A wallet holds AOA balances, receives payments, and sends transfers. It is not a bank account — it is a Banzami-native payment account, instantly accessible from any device.
+### Como é o sucesso
+
+A missão do Banzami está alcançada quando:
+
+- Os pagamentos QR são a **expectativa normal** nas lojas, restaurantes e mercados angolanos — não uma novidade
+- Cada app de táxi, plataforma de delivery e site de ecommerce angolano usa um SDK Banzami como motor de pagamentos
+- A prova de pagamento via WhatsApp desapareceu do comércio angolano
+- Uma parte significativa das transacções angolanas do dia-a-dia acontece digitalmente, sem dinheiro físico
+- Os programadores angolanos têm uma infraestrutura de pagamentos da qual se orgulham de construir
+- A rede Banzami tornou-se infraestrutura — parte do modo como Angola funciona
+
+Os modelos de referência para este tipo de transformação existem. O **Pix** do Brasil tornou os pagamentos QR o padrão nacional em menos de três anos. O **UPI** da Índia tornou as transferências instantâneas baseadas em @handle o padrão para mil milhões de pessoas. Ambos começaram com foco: um país, uma rede, uma promessa clara a cada utilizador.
+
+**O Banzami é isso para Angola.**
+
+---
+
+## 5. Uma Manhã em Luanda
+
+*Isto não é uma demonstração de produto. É uma visão da vida ordinária quando o Banzami se tiver tornado o padrão.*
+
+---
+
+**7h15.** A Amélia acorda, verifica a sua carteira Banzami no telemóvel. Recebeu 5.000 Kz durante a noite — o seu irmão mais novo pagou-lhe de volta dinheiro que ela lhe tinha emprestado na semana passada. Ele enviou de Benguela às 23h00. Chegou instantaneamente. Não houve transferência bancária. Não houve mensagem de WhatsApp. Ele escreveu `@amelia.luanda`, inseriu o valor, confirmou com o seu PIN, e estava feito.
+
+**8h00.** Na cantina da esquina perto do seu apartamento, a Amélia pede café e pão. Aponta o telemóvel para o código QR colado na parede. A app mostra `@cantina.margarida`. Ela escreve `1.500 Kz` e prime o polegar para confirmar. O telemóvel da Margarida acende-se no balcão: *"Recebeu 1.500 Kz de @amelia.luanda."* Sem troco. Sem espera. Pequeno-almoço feito.
+
+**8h30.** A Amélia trabalha como designer gráfica freelance. Um cliente devia-lhe pelo logótipo. Ela tinha enviado um link de pagamento na semana passada: `pay.banzami.org/fatura-logo-92`. Esta manhã abre o painel do comerciante no portátil e vê o estado mudar para **Pago** — o cliente pagou às 8h22. Ela tem o dinheiro. Tem o recibo digital. Não teve de enviar uma única mensagem de WhatsApp para o perseguir.
+
+**12h30.** Almoço com três colegas. O restaurante gera um QR dinâmico para a mesa do grupo — total 18.000 Kz, dividido por quatro. Cada pessoa faz o scan do QR do seu telemóvel e paga 4.500 Kz. A app do restaurante mostra `18.000 Kz recebidos` em segundos após o último scan. Ninguém tira a carteira. Ninguém faz aritmética mental a tentar fazer o troco. A mesa liberta-se em minutos.
+
+**17h00.** A Amélia apanha um táxi para casa. A app mostra a tarifa no fim da corrida: 3.200 Kz. Ela toca em "Pagar." Um toque, confirmação biométrica. O telemóvel do motorista notifica-o. A corrida fecha na app. Nenhum dos dois mencionou dinheiro físico.
+
+**19h30.** A escola da filha enviou um pedido de pagamento esta manhã — propinas mensais de Março: 35.000 Kz. A Amélia abre-o na app Banzami. O nome da escola está lá. O valor está lá. A descrição diz "Propinas — Março 2026." Paga com um toque. A escola marca a propina como liquidada. Sem fila. Sem banco. Sem recibo para guardar.
+
+**22h00.** Antes de dormir, a Amélia verifica a sua carteira. Hoje gastou 1.500 Kz (cantina), 4.500 Kz (almoço), 3.200 Kz (táxi), 35.000 Kz (propinas). Recebeu 5.000 Kz (irmão) e 25.000 Kz (cliente). Cada transacção está lá, com timestamp, etiqueta, clara. Sem mistério. Sem Kwanza em falta. Visibilidade total sobre o seu dia.
+
+---
+
+*O dinheiro físico nunca apareceu. Imagens de prova de WhatsApp nunca foram enviadas. Ninguém ficou em fila num banco. Nenhum código de referência foi copiado. Ninguém esperou.*
+
+*Isto é uma terça-feira normal em Luanda. Com o Banzami.*
+
+---
+
+## 6. Como o Banzami Funciona
+
+### 6.1 A operação fundamental
+
+Tudo no Banzami é construído sobre uma operação:
+
+```
+Carteira do Consumidor  ────[transferência instantânea no ledger]────▶  Carteira do Comerciante
+```
+
+Quando um consumidor paga um comerciante, o dinheiro move-se de uma carteira digital para outra. A transferência é atómica, instantânea e registada num ledger financeiro imutável. Não existe estado intermédio, sem período pendente, sem atraso na liquidação. O dinheiro está na carteira do comerciante no momento em que o consumidor confirma o pagamento.
+
+Este é o núcleo da rede. Cada funcionalidade do produto — códigos QR, links de pagamento, pedidos de pagamento, integrações SDK — é uma forma diferente de iniciar esta mesma operação fundamental.
+
+### 6.2 Carteiras
+
+Cada pessoa e cada comerciante no Banzami tem uma **carteira digital em Kwanza**. Uma carteira detém saldos em AOA, recebe pagamentos e envia transferências. Não é uma conta bancária — é uma conta de pagamento nativa Banzami, acessível instantaneamente a partir de qualquer dispositivo.
 
 ```
 ┌─────────────────────────────────────┐
 │  @joao.silva                        │
-│  Wallet ID: wlt_...                 │
+│  ID Carteira: wlt_...               │
 │                                     │
-│  Available:    12.750 Kz  ← spendable now
-│  Reserved:      2.500 Kz  ← pending operation
+│  Disponível:   12.750 Kz  ← gastável agora
+│  Reservado:     2.500 Kz  ← operação pendente
 │  ─────────────────────────────────  │
 │  Total:        15.250 Kz            │
 └─────────────────────────────────────┘
 ```
 
-The **available** balance can be spent or transferred immediately. The **reserved** balance covers pending operations. Both are always accurate. There is no "please check back in a few minutes."
+O saldo **disponível** pode ser gasto ou transferido imediatamente. O saldo **reservado** cobre operações pendentes. Ambos são sempre exactos. Não existe "por favor verifique daqui a alguns minutos."
 
 ### 6.3 @Handles
 
-Every Banzami account has a **@handle** — a unique, human-readable identifier that doubles as the payment address.
+Cada conta Banzami tem um **@handle** — um identificador único e legível por humanos que funciona também como endereço de pagamento.
 
 ```
-@joao.silva          ← consumer handle
-@cantina.luanda      ← merchant handle
-@escola.benguela     ← institution handle
-@doa.creators        ← platform handle
+@joao.silva          ← handle de consumidor
+@cantina.luanda      ← handle de comerciante
+@escola.benguela     ← handle de instituição
+@doa.creators        ← handle de plataforma
 ```
 
-Handles replace the need for bank account numbers, IBANs, or reference codes. To send money to someone, you type their handle. To receive money, you share your handle. Merchants print their handle on physical signs next to their QR code. It is simultaneously a brand, an address, and a payment identity.
+Os handles substituem a necessidade de números de conta bancária, IBANs ou códigos de referência. Para enviar dinheiro a alguém, escreve o seu handle. Para receber dinheiro, partilha o seu handle. Os comerciantes imprimem o seu handle em cartazes físicos ao lado do seu código QR. É simultaneamente uma marca, um endereço e uma identidade de pagamento.
 
-### 6.4 QR payments
+### 6.4 Pagamentos QR
 
-A **QR code** is a visual payment address — a scannable shortcut to a wallet. Scanning it tells the consumer's app exactly where the payment should go.
+Um **código QR** é um endereço de pagamento visual — um atalho digitalizável para uma carteira. Fazer o scan informa a app do consumidor exactamente para onde o pagamento deve ir.
 
-**Static QR** — permanent, linked to a wallet. The consumer scans, enters the amount, and pays. Printed once, used indefinitely.
+**QR Estático** — permanente, ligado a uma carteira. O consumidor faz o scan, insere o valor e paga. Impresso uma vez, usado indefinidamente.
 
-**Dynamic QR** — generated for a specific transaction, with a fixed amount and expiry. The consumer scans and only needs to confirm.
+**QR Dinâmico** — gerado para uma transacção específica, com um valor fixo e expiração. O consumidor faz o scan e só precisa de confirmar.
 
 ```
-QR scan flow:
+Fluxo de scan QR:
 
 ┌──────────────────────────────────┐
-│  Consumer opens phone camera     │
-│  or Banzami app                  │
+│  O consumidor abre a câmara do   │
+│  telemóvel ou a app Banzami      │
 └──────────────┬───────────────────┘
                │
                ▼
 ┌──────────────────────────────────┐
-│  Scans merchant QR code          │
+│  Faz o scan do código QR do      │
+│  comerciante                     │
 └──────────────┬───────────────────┘
                │
                ▼
 ┌──────────────────────────────────┐
-│  App decodes:                    │
-│  → Merchant: @cantina.luanda     │
-│  → Amount: 2.500 Kz (dynamic)    │
-│    or consumer enters (static)   │
+│  A app descodifica:              │
+│  → Comerciante: @cantina.luanda  │
+│  → Valor: 2.500 Kz (dinâmico)    │
+│    ou o consumidor insere        │
+│    (estático)                    │
 └──────────────┬───────────────────┘
                │
                ▼
 ┌──────────────────────────────────┐
-│  Confirmation screen:            │
+│  Ecrã de confirmação:            │
 │  "Pagar 2.500 Kz a               │
 │   @cantina.luanda?"              │
 │                                  │
 │  [✓ Confirmar com impressão]     │
 └──────────────┬───────────────────┘
-               │ biometric / PIN
+               │ biométrico / PIN
                ▼
 ┌──────────────────────────────────┐
 │  ✅ PAGO — 2.500 Kz              │
@@ -371,253 +373,254 @@ QR scan flow:
 └──────────────────────────────────┘
 ```
 
-Simultaneously:
+Simultaneamente:
 
 ```
-Merchant phone: 📳 "Recebeu 2.500 Kz de @joao.silva"
-Merchant wallet: balance updated in real time
+Telemóvel do comerciante: 📳 "Recebeu 2.500 Kz de @joao.silva"
+Carteira do comerciante: saldo actualizado em tempo real
 ```
 
-### 6.5 Payment links
+### 6.5 Links de pagamento
 
-A **payment link** is a shareable URL containing a pre-configured payment request. The merchant sends it via WhatsApp, SMS, email, or social media. The consumer opens it in a browser and pays with their Banzami wallet.
+Um **link de pagamento** é um URL partilhável que contém um pedido de pagamento pré-configurado. O comerciante envia-o via WhatsApp, SMS, email ou redes sociais. O consumidor abre-o num browser e paga com a sua carteira Banzami.
 
 ```
 https://pay.banzami.org/abc123
 ```
 
-Payment links directly replace the "send me the WhatsApp screenshot" flow. The consumer clicks a link, sees the merchant and amount, confirms payment, and the merchant sees instant settlement — no screenshot, no manual check, no trust required.
+Os links de pagamento substituem directamente o fluxo "envia-me o screenshot do WhatsApp". O consumidor clica num link, vê o comerciante e o valor, confirma o pagamento, e o comerciante vê a liquidação instantânea — sem screenshot, sem verificação manual, sem necessidade de confiança.
 
-### 6.6 Payment requests
+### 6.6 Pedidos de pagamento
 
-A **payment request** is a digital invoice pushed directly to a specific consumer's wallet. The consumer sees it as a notification and pays or declines with a single tap.
+Um **pedido de pagamento** é uma factura digital enviada directamente para a carteira de um consumidor específico. O consumidor vê-o como uma notificação e paga ou recusa com um único toque.
 
 ```
-Merchant sends:    "Pagamento de 15.000 Kz — Encomenda #42"
-Consumer receives: push notification → opens Banzami app
-Consumer taps:     "Pagar"
-Result:            instant settlement + receipt for both
+O comerciante envia:  "Pagamento de 15.000 Kz — Encomenda #42"
+O consumidor recebe: notificação push → abre a app Banzami
+O consumidor toca:   "Pagar"
+Resultado:           liquidação instantânea + recibo para ambos
 ```
 
-### 6.7 EMIS and the banking layer
+### 6.7 EMIS e a camada bancária
 
-Banzami integrates with **EMIS** (Empresa Interbancária de Serviços) — Angola's interbank payment infrastructure — to allow money to flow between Banzami wallets and the Angolan banking system.
+O Banzami integra-se com o **EMIS** (Empresa Interbancária de Serviços) — a infraestrutura de pagamentos interbancários de Angola — para permitir que o dinheiro flua entre carteiras Banzami e o sistema bancário angolano.
 
-EMIS is the rail. Banzami is the product.
+O EMIS é o caminho. O Banzami é o produto.
 
 ```
 ┌────────────────────────────────────────────┐
-│   Banzami Product Layer                    │
-│   wallets · QR · SDKs · merchant tools     │
-│   @handles · payment links · instant UX    │
+│   Camada de Produto Banzami                │
+│   carteiras · QR · SDKs · ferramentas      │
+│   @handles · links de pagamento · UX inst. │
 ├────────────────────────────────────────────┤
 │   EMIS / Multicaixa Express                │
-│   (Angola's interbank settlement rail)     │
+│   (rede de liquidação interbancária        │
+│    de Angola)                              │
 ├────────────────────────────────────────────┤
-│   Angolan Banks                            │
-│   (accounts, regulated settlement)        │
+│   Bancos Angolanos                         │
+│   (contas, liquidação regulada)            │
 ├────────────────────────────────────────────┤
 │   BNA — Banco Nacional de Angola           │
-│   (monetary authority, regulation)         │
+│   (autoridade monetária, regulação)        │
 └────────────────────────────────────────────┘
 ```
 
-Banzami does not replace the banking system. It builds the commerce layer above it.
+O Banzami não substitui o sistema bancário. Constrói a camada de comércio acima dele.
 
 ---
 
-## 7. Core Features
+## 7. Funcionalidades Principais
 
-### Payments
+### Pagamentos
 
-| Feature | Description |
-|---------|-------------|
-| **QR payments** | Consumer scans merchant QR; instant wallet-to-wallet settlement; no hardware required |
-| **P2P transfers** | Consumer sends money to any @handle; instant; no bank details needed |
-| **Payment links** | Shareable URLs; consumer opens in browser and pays; merchant sees instant confirmation |
-| **Payment requests** | Digital invoice pushed to a consumer's wallet; pay or decline in one tap |
-| **Instant settlement** | Money in the recipient wallet the moment payment is confirmed; no pending periods |
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Pagamentos QR** | O consumidor faz o scan do QR do comerciante; liquidação instantânea de carteira-para-carteira; sem hardware necessário |
+| **Transferências P2P** | O consumidor envia dinheiro para qualquer @handle; instantâneo; sem dados bancários necessários |
+| **Links de pagamento** | URLs partilháveis; o consumidor abre no browser e paga; o comerciante vê confirmação instantânea |
+| **Pedidos de pagamento** | Factura digital enviada para a carteira de um consumidor; pagar ou recusar com um toque |
+| **Liquidação instantânea** | Dinheiro na carteira do destinatário no momento em que o pagamento é confirmado; sem períodos pendentes |
 
-### Merchant tools
+### Ferramentas para comerciantes
 
-| Feature | Description |
-|---------|-------------|
-| **Merchant wallet** | Dedicated business wallet for receiving payments, tracking balances, and requesting payouts |
-| **Merchant dashboard** | Web interface for transaction history, analytics, refunds, disputes, and team management |
-| **QR storefront** | Public merchant profile page at `pay.banzami.org/profiles/@handle` |
-| **Static QR generation** | Permanent QR code for the merchant's wallet; print and display anywhere |
-| **Dynamic QR generation** | Per-transaction QR with fixed amount and expiry |
-| **Payouts** | Withdraw wallet balance to an Angolan bank account on demand |
-| **Refunds** | Issue partial or full refunds from the merchant dashboard or API |
-| **Dispute management** | Structured resolution process for payment disputes |
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Carteira do comerciante** | Carteira de negócio dedicada para receber pagamentos, acompanhar saldos e solicitar pagamentos |
+| **Painel do comerciante** | Interface web para histórico de transacções, análises, reembolsos, disputas e gestão de equipa |
+| **Loja QR** | Página de perfil público do comerciante em `pay.banzami.org/profiles/@handle` |
+| **Geração de QR estático** | Código QR permanente para a carteira do comerciante; imprimir e exibir em qualquer lugar |
+| **Geração de QR dinâmico** | QR por transacção com valor fixo e expiração |
+| **Pagamentos** | Levanta o saldo da carteira para uma conta bancária angolana a pedido |
+| **Reembolsos** | Emite reembolsos parciais ou totais a partir do painel ou da API |
+| **Gestão de disputas** | Processo de resolução estruturado para disputas de pagamento |
 
-### Developer platform
+### Plataforma de programadores
 
-| Feature | Description |
-|---------|-------------|
-| **REST API** | Versioned, idempotent HTTP API for all platform operations |
-| **TypeScript SDK** | Fully typed Node.js/browser SDK with automatic idempotency and retry |
-| **PHP SDK** | PSR-18 compatible SDK with Laravel integration |
-| **Go SDK** | Native Go client with context propagation and structured errors |
-| **Python SDK** | Async-first SDK with Pydantic v2 and Django/FastAPI support |
-| **Flutter SDK** | Mobile SDK for in-app payment flows and QR commerce |
-| **Webhook system** | Real-time event delivery with HMAC-SHA256 signature verification and automatic retry |
-| **Sandbox environment** | Fully isolated test environment; identical API surface; no real money |
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **API REST** | API HTTP versionada e idempotente para todas as operações da plataforma |
+| **SDK TypeScript** | SDK Node.js/browser completamente tipado com idempotência e retry automáticos |
+| **SDK PHP** | SDK compatível com PSR-18 com integração Laravel |
+| **SDK Go** | Cliente Go nativo com propagação de contexto e erros estruturados |
+| **SDK Python** | SDK async-first com Pydantic v2 e suporte Django/FastAPI |
+| **SDK Flutter** | SDK móvel para fluxos de pagamento in-app e comércio QR |
+| **Sistema de webhooks** | Entrega de eventos em tempo real com verificação de assinatura HMAC-SHA256 e retry automático |
+| **Ambiente sandbox** | Ambiente de teste completamente isolado; superfície de API idêntica; sem dinheiro real |
 
-### Infrastructure
+### Infraestrutura
 
-| Feature | Description |
-|---------|-------------|
-| **Idempotency** | All payment operations are safe to retry; duplicate submissions produce no side effects |
-| **Double-entry ledger** | Every monetary movement recorded as immutable ledger entries; fully auditable |
-| **Reconciliation** | Automated daily reconciliation of all wallet balances and ledger entries |
-| **Risk engine** | Real-time transaction screening for fraud and compliance signals |
-| **KYC/KYB** | Identity verification for consumers and merchants; tiered by transaction volume |
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Idempotência** | Todas as operações de pagamento são seguras para retry; submissões duplicadas não produzem efeitos secundários |
+| **Ledger de dupla entrada** | Cada movimento monetário registado como entradas de ledger imutáveis; completamente auditável |
+| **Reconciliação** | Reconciliação automática diária de todos os saldos de carteiras e entradas de ledger |
+| **Motor de risco** | Triagem de transacções em tempo real para sinais de fraude e conformidade |
+| **KYC/KYB** | Verificação de identidade para consumidores e comerciantes; por níveis conforme o volume de transacções |
 
 ---
 
-## 8. Real Angola Use Cases
+## 8. Casos de Uso Reais em Angola
 
-### 8.1 Taxi and ride-hailing apps
+### 8.1 Apps de táxi e transporte
 
-**The problem today:**  
-An Angolan ride-hailing app completes a trip but cannot collect payment in-app. The driver says "cash only." The passenger scrambles for change. The platform has zero visibility into payments. The driver carries cash all day — a safety risk.
+**O problema hoje:**  
+Uma app de transporte angolana completa uma corrida mas não consegue cobrar o pagamento na app. O motorista diz "só dinheiro." O passageiro procura troco. A plataforma tem zero visibilidade sobre os pagamentos. O motorista carrega dinheiro o dia todo — um risco de segurança.
 
-**With Banzami:**  
-The ride ends. The app shows the fare. The passenger sees a confirmation screen. One tap — biometric or PIN. The fare transfers instantly from the passenger's wallet to the driver's. The platform receives a webhook. The ride closes automatically.
-
-```
-BEFORE: Ride ends → driver requests cash → passenger finds change → no digital record
-AFTER:  Ride ends → app shows fare → passenger taps "Pagar" → instant settlement
-```
-
-### 8.2 Cantinas and small merchants
-
-**The problem today:**  
-A cantina owner wants to accept digital payments. A bank POS terminal requires a formal bank agreement and charges per transaction. Most small merchants do not qualify. The only alternative is accepting bank transfers and waiting for WhatsApp screenshots — some of which are fabricated.
-
-**With Banzami:**  
-The owner registers on Banzami, creates a wallet, and downloads their QR code. They print it on paper and place it on the counter. When a customer scans it and pays, the owner's phone shows "Recebeu 2.500 Kz." No terminal. No monthly fee. No waiting. No screenshots.
+**Com o Banzami:**  
+A corrida termina. A app mostra a tarifa. O passageiro vê um ecrã de confirmação. Um toque — biométrico ou PIN. A tarifa transfere-se instantaneamente da carteira do passageiro para a do motorista. A plataforma recebe um webhook. A corrida fecha automaticamente.
 
 ```
-BEFORE: Customer pays → sends WhatsApp screenshot → owner verifies manually
-AFTER:  Customer scans QR → pays instantly → owner's phone confirms in real time
+ANTES: Corrida termina → motorista pede dinheiro → passageiro procura troco → sem registo digital
+DEPOIS: Corrida termina → app mostra tarifa → passageiro toca "Pagar" → liquidação instantânea
 ```
 
-### 8.3 Ecommerce and online stores
+### 8.2 Cantinas e pequenos comerciantes
 
-**The problem today:**  
-An Angolan ecommerce site has no reliable way to collect online payments in Kwanza. International processors do not support AOA. Customers are redirected to external banking portals. Checkout abandonment is high.
+**O problema hoje:**  
+Uma dona de cantina quer aceitar pagamentos digitais. Um terminal POS bancário requer um acordo bancário formal e cobra por transacção. A maioria dos pequenos comerciantes não se qualifica. A única alternativa é aceitar transferências bancárias e aguardar screenshots de WhatsApp — alguns dos quais são fabricados.
 
-**With Banzami:**  
-The site integrates the Banzami TypeScript SDK. At checkout, the customer confirms payment with their wallet. Settlement is instant. The store receives a webhook and fulfils the order. No redirect. No external portal.
+**Com o Banzami:**  
+A dona regista-se no Banzami, cria uma carteira e descarrega o seu código QR. Imprime-o em papel e coloca-o no balcão. Quando um cliente faz o scan e paga, o telemóvel da dona mostra "Recebeu 2.500 Kz." Sem terminal. Sem taxa mensal. Sem espera. Sem screenshots.
+
+```
+ANTES: Cliente paga → envia screenshot WhatsApp → dona verifica manualmente
+DEPOIS: Cliente faz scan do QR → paga instantaneamente → telemóvel da dona confirma em tempo real
+```
+
+### 8.3 Ecommerce e lojas online
+
+**O problema hoje:**  
+Um site de ecommerce angolano não tem forma fiável de cobrar pagamentos online em Kwanza. Os processadores internacionais não suportam AOA. Os clientes são redirecionados para portais bancários externos. O abandono do checkout é elevado.
+
+**Com o Banzami:**  
+O site integra o SDK TypeScript Banzami. No checkout, o cliente confirma o pagamento com a sua carteira. A liquidação é instantânea. A loja recebe um webhook e cumpre a encomenda. Sem redirecionamento. Sem portal externo.
 
 ```typescript
-// Ecommerce checkout — TypeScript
+// Checkout de ecommerce — TypeScript
 const link = await client.createPaymentLink({
   merchantId:  'mch_...',
   walletId:    'wlt_...',
   amountMinor: 45000,           // 45 000 Kz
   description: 'Encomenda #1042 — 3 produtos',
 });
-// Customer pays → webhook fires → order fulfilled
+// Cliente paga → webhook dispara → encomenda cumprida
 ```
 
-### 8.4 Donation and creator platforms
+### 8.4 Plataformas de doações e criadores
 
-**The problem today:**  
-A creator or NGO running a platform like DOA cannot accept instant digital donations in Kwanza. Supporters send bank transfers and email proof. Many drop off. The platform has no real-time tracking.
+**O problema hoje:**  
+Um criador ou ONG a gerir uma plataforma como o DOA não consegue aceitar doações digitais instantâneas em Kwanza. Os apoiantes enviam transferências bancárias e mandam prova por email. Muitos desistem. A plataforma não tem acompanhamento em tempo real.
 
-**With Banzami:**  
-The platform integrates Banzami payment links or payment requests. A supporter taps "Apoiar com 1.000 Kz." The donation transfers instantly. The creator sees it in real time. The entire flow happens in-app.
-
-```
-BEFORE: Supporter sends transfer → emails proof → platform waits
-AFTER:  Supporter taps "Apoiar" → instant transfer → creator sees it immediately
-```
-
-### 8.5 Delivery apps and marketplaces
-
-**The problem today:**  
-A food delivery app cannot close the payment loop in-app. Cash on delivery creates safety risks for drivers, fraud risk for merchants, and broken UX for consumers.
-
-**With Banzami:**  
-The delivery app integrates the Flutter SDK. When the driver marks an order delivered, the consumer's app prompts for payment. One tap — instant settlement. The restaurant and the driver both see it. Cash disappears from the flow entirely.
-
-### 8.6 Schools and institutions
-
-**The problem today:**  
-A school collects tuition via bank transfer. Parents queue at banks. Receipts are delivered manually. The school has no real-time view of outstanding balances.
-
-**With Banzami:**  
-The school issues payment requests for each student. Parents receive a notification, see the student name and amount, and pay with one tap. The school dashboard shows paid and outstanding in real time.
+**Com o Banzami:**  
+A plataforma integra links de pagamento ou pedidos de pagamento Banzami. Um apoiante toca em "Apoiar com 1.000 Kz." A doação transfere-se instantaneamente. O criador vê-a em tempo real. Todo o fluxo acontece dentro da app.
 
 ```
-BEFORE: Parent queues at bank → manual transfer → delivers receipt → school processes manually
-AFTER:  Parent taps "Pagar" → instant settlement → school sees it in real time
+ANTES: Apoiante envia transferência → manda prova por email → plataforma aguarda
+DEPOIS: Apoiante toca "Apoiar" → transferência instantânea → criador vê imediatamente
 ```
 
-### 8.7 Freelancers and professionals
+### 8.5 Apps de delivery e marketplaces
 
-**The problem today:**  
-A freelance designer invoices a client. The client makes a bank transfer. The freelancer waits hours for confirmation. There is no structured payment record.
+**O problema hoje:**  
+Uma app de entrega de comida não consegue fechar o ciclo de pagamento na app. O pagamento na entrega cria riscos de segurança para os motoristas, risco de fraude para os comerciantes e UX quebrada para os consumidores.
 
-**With Banzami:**  
-The freelancer generates a payment link or request. The client clicks, confirms, and the wallet is credited instantly. Both parties have a timestamped digital receipt.
+**Com o Banzami:**  
+A app de delivery integra o SDK Flutter. Quando o motorista marca uma encomenda como entregue, a app do consumidor solicita o pagamento. Um toque — liquidação instantânea. O restaurante e o motorista vêem ambos. O dinheiro físico desaparece do fluxo por completo.
 
-### 8.8 Restaurants and cafés
+### 8.6 Escolas e instituições
 
-**The problem today:**  
-A group dinner ends. The table tries to split the bill via individual bank transfers to the server's account. The server must reconcile multiple payments manually before the table can leave.
+**O problema hoje:**  
+Uma escola cobra propinas via transferência bancária. Os encarregados fazem fila nos bancos. Os recibos são entregues manualmente. A escola não tem visão em tempo real dos saldos em dívida.
 
-**With Banzami:**  
-The restaurant generates a dynamic QR for the table's total. Customers scan and pay their share. Each payment is confirmed instantly. When the full amount is reached, the table is done.
+**Com o Banzami:**  
+A escola emite pedidos de pagamento para cada aluno. Os encarregados recebem uma notificação, vêem o nome do aluno e o valor, e pagam com um toque. O painel da escola mostra pagos e em dívida em tempo real.
+
+```
+ANTES: Encarregado faz fila no banco → transferência manual → entrega recibo → escola processa manualmente
+DEPOIS: Encarregado toca "Pagar" → liquidação instantânea → escola vê em tempo real
+```
+
+### 8.7 Freelancers e profissionais
+
+**O problema hoje:**  
+Um designer freelance factura um cliente. O cliente faz uma transferência bancária. O freelancer aguarda horas pela confirmação. Não existe registo de pagamento estruturado.
+
+**Com o Banzami:**  
+O freelancer gera um link de pagamento ou pedido. O cliente clica, confirma e a carteira é creditada instantaneamente. Ambas as partes têm um recibo digital com timestamp.
+
+### 8.8 Restaurantes e cafés
+
+**O problema hoje:**  
+Um jantar em grupo termina. A mesa tenta dividir a conta via transferências bancárias individuais para a conta do empregado. O empregado tem de reconciliar múltiplos pagamentos manualmente antes de a mesa poder sair.
+
+**Com o Banzami:**  
+O restaurante gera um QR dinâmico para o total da mesa. Os clientes fazem o scan e pagam a sua parte. Cada pagamento é confirmado instantaneamente. Quando o valor total é atingido, a mesa está feita.
 
 ---
 
-## 9. QR Payment Ecosystem
+## 9. Ecossistema de Pagamentos QR
 
-QR codes are not a feature in Banzami — they are the **primary payment surface**.
+Os códigos QR não são uma funcionalidade no Banzami — são a **principal superfície de pagamento**.
 
-The logic is fundamental. A QR code is a visual payment address. It can be printed, displayed on a screen, shared as an image, or embedded in a document. It requires no card terminal, no NFC hardware, no proprietary equipment. A merchant with a phone and a printer has everything they need.
+A lógica é fundamental. Um código QR é um endereço de pagamento visual. Pode ser impresso, exibido num ecrã, partilhado como imagem ou incorporado num documento. Não requer terminal de cartão, hardware NFC nem equipamento proprietário. Um comerciante com um telemóvel e uma impressora tem tudo o que precisa.
 
-### 9.1 Static QR
+### 9.1 QR Estático
 
-A static QR encodes a wallet reference and @handle. Printed once, used indefinitely.
+Um QR estático codifica uma referência de carteira e @handle. Impresso uma vez, usado indefinidamente.
 
-**Typical placement:** taped to a cantina wall, placed at a market stall, set on a restaurant table, shown on a phone screen.
+**Colocação típica:** colado na parede de uma cantina, num posto de mercado, na mesa de um restaurante, mostrado no ecrã de um telemóvel.
 
 ```
 ┌──────────────────────────────────────────────┐
 │                                              │
-│   QR payload: banzami://pay/@cantina.luanda  │
+│   Payload QR: banzami://pay/@cantina.luanda  │
 │                                              │
 │   ┌────────────────────┐                     │
 │   │  ▓▓▓  ░░  ▓▓▓▓    │  @cantina.luanda    │
 │   │  ▓▓▓  ░░  ▓▓▓▓    │                     │
-│   │    ░░░░░░░░        │  Scan to Pay        │
+│   │    ░░░░░░░░        │  Scan para Pagar    │
 │   │  ▓▓▓  ░░  ▓▓▓▓    │                     │
 │   └────────────────────┘                     │
 │                                              │
 └──────────────────────────────────────────────┘
 ```
 
-When a consumer scans a static QR, they see the merchant name and enter the amount. One confirmation, instant payment.
+Quando um consumidor faz o scan de um QR estático, vê o nome do comerciante e insere o valor. Uma confirmação, pagamento instantâneo.
 
-### 9.2 Dynamic QR
+### 9.2 QR Dinâmico
 
-A dynamic QR encodes a specific amount and expires after use or a time limit.
+Um QR dinâmico codifica um valor específico e expira após o uso ou um limite de tempo.
 
 ```
-QR payload: banzami://pay/qr/qrc_abc123
-            └── resolves to: @cantina.luanda, 2.500 Kz, expires in 5 min
+Payload QR: banzami://pay/qr/qrc_abc123
+            └── resolve para: @cantina.luanda, 2.500 Kz, expira em 5 min
 ```
 
-The consumer scans. The amount is pre-filled. They only confirm. Used for per-transaction flows: restaurant orders, delivery confirmations, POS integrations.
+O consumidor faz o scan. O valor está pré-preenchido. Só precisa de confirmar. Usado para fluxos por transacção: pedidos de restaurante, confirmações de entrega, integrações POS.
 
-### 9.3 Merchant QR storefront
+### 9.3 Loja QR do comerciante
 
-Every merchant has a public profile page at `pay.banzami.org/profiles/@handle`:
+Cada comerciante tem uma página de perfil público em `pay.banzami.org/profiles/@handle`:
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -633,155 +636,155 @@ Every merchant has a public profile page at `pay.banzami.org/profiles/@handle`:
 └──────────────────────────────────────────────┘
 ```
 
-Shareable on Instagram, WhatsApp, printed flyers, and email. Any consumer who visits can pay instantly.
+Partilhável no Instagram, WhatsApp, flyers impressos e email. Qualquer consumidor que chegue pode pagar instantaneamente.
 
-### 9.4 P2P QR
+### 9.4 QR P2P
 
-Consumers display their personal QR to receive money from friends or family. Identical flow to a merchant QR — wallet-to-wallet, instant.
+Os consumidores exibem o seu QR pessoal para receber dinheiro de amigos ou família. Fluxo idêntico ao QR de um comerciante — de carteira-para-carteira, instantâneo.
 
-**Common use:** splitting a bill, repaying a friend, parent sending lunch money to a child at school.
+**Uso comum:** dividir uma conta, pagar a um amigo, pais a enviar dinheiro para almoço a uma criança na escola.
 
-### 9.5 Why QR is the right surface for Angola
+### 9.5 Por que o QR é a superfície certa para Angola
 
-| Alternative | Why it fails |
-|-------------|-------------|
-| Card terminals | Expensive hardware, bank agreement required, excludes the majority of merchants |
-| Bank transfer | IBAN and reference codes, no instant confirmation, manual reconciliation |
-| NFC payments | Requires NFC-capable hardware, not universal |
-| Cash | No digital record, security risk, no remote or online payment |
-| **QR (Banzami)** | Works with any smartphone, zero hardware cost, instant confirmation, free to display, works remotely |
+| Alternativa | Por que falha |
+|-------------|--------------|
+| Terminais de cartão | Hardware caro, acordo bancário necessário, exclui a maioria dos comerciantes |
+| Transferência bancária | IBAN e códigos de referência, sem confirmação instantânea, reconciliação manual |
+| Pagamentos NFC | Requer hardware com capacidade NFC, não é universal |
+| Dinheiro físico | Sem registo digital, risco de segurança, sem pagamento remoto ou online |
+| **QR (Banzami)** | Funciona com qualquer smartphone, custo zero de hardware, confirmação instantânea, gratuito para exibir, funciona remotamente |
 
-QR eliminates the infrastructure barrier that has kept small merchants outside of digital commerce. A merchant with a phone and a printer is ready to accept instant digital payments.
+O QR elimina a barreira de infraestrutura que manteve os pequenos comerciantes fora do comércio digital. Um comerciante com um telemóvel e uma impressora está pronto para aceitar pagamentos digitais instantâneos.
 
 ---
 
-## 10. Wallet-Native Philosophy
+## 10. Filosofia Wallet-Native
 
-### 10.1 What wallet-native means
+### 10.1 O que significa wallet-native
 
-In a card-based system, money flows through card networks (Visa, Mastercard), is authorized by issuers, and settles between banks over one to three business days. The consumer never directly holds money — they hold access to a card-linked balance that a foreign network processes on their behalf.
+Num sistema baseado em cartões, o dinheiro flui através de redes de cartões (Visa, Mastercard), é autorizado por emissores e liquida entre bancos em um a três dias úteis. O consumidor nunca detém directamente dinheiro — detém acesso a um saldo ligado a um cartão que uma rede estrangeira processa em seu nome.
 
-Banzami is fundamentally different.
+O Banzami é fundamentalmente diferente.
 
-Every account holder owns a **digital Kwanza wallet**. When a consumer pays a merchant, money moves directly from one wallet to another in a single, atomic ledger operation. No card network. No foreign authorization. Settlement is not deferred — it happens in the same transaction.
+Cada titular de conta possui uma **carteira digital em Kwanza**. Quando um consumidor paga um comerciante, o dinheiro move-se directamente de uma carteira para outra numa única operação de ledger atómica. Sem rede de cartões. Sem autorização estrangeira. A liquidação não é diferida — acontece na mesma transacção.
 
-### 10.2 The primary payment rail
+### 10.2 O caminho de pagamento principal
 
 ```
 ┌───────────────────┐                      ┌───────────────────┐
-│   Consumer        │                      │   Merchant        │
-│   Wallet          │ ─[ledger transfer]─▶ │   Wallet          │
-│   @joao.silva     │                      │   @cantina.luanda │
-│   Balance: 15Kz   │                      │   Balance: 0Kz    │
+│   Consumidor      │                      │   Comerciante     │
+│   Carteira        │ ─[transferência]────▶ │   Carteira        │
+│   @joao.silva     │    no ledger          │   @cantina.luanda │
+│   Saldo: 15Kz     │                      │   Saldo: 0Kz      │
 └───────────────────┘                      └───────────────────┘
-         ↓ After payment                            ↓
-    Balance: 12.5 Kz                       Balance: 2.5 Kz
+         ↓ Após pagamento                           ↓
+    Saldo: 12.5 Kz                          Saldo: 2.5 Kz
 ```
 
-This is the complete picture. No card network. No intermediary processor. One ledger operation. Both balances update instantly and atomically.
+Esta é a imagem completa. Sem rede de cartões. Sem processador intermediário. Uma operação de ledger. Ambos os saldos actualizam instantânea e atomicamente.
 
-### 10.3 Banzami is NOT card-first
+### 10.3 O Banzami NÃO é card-first
 
-| Payment model | How it works | Banzami? |
-|---------------|-------------|----------|
-| Stripe / POS terminal | Card tokenisation → card network → issuer auth → settlement in days | ✗ |
-| Bank transfer | IBAN + reference → interbank messaging → settlement in hours/days | ✗ |
-| Mobile money (no local rail) | Foreign float account → delayed settlement | ✗ |
-| **Banzami** | **Wallet → ledger transfer → wallet — instant, local, in Kwanza** | **✓** |
+| Modelo de pagamento | Como funciona | Banzami? |
+|---------------------|--------------|----------|
+| Stripe / Terminal POS | Tokenização do cartão → rede de cartões → autorização do emissor → liquidação em dias | ✗ |
+| Transferência bancária | IBAN + referência → mensagens interbancárias → liquidação em horas/dias | ✗ |
+| Mobile money (sem rede local) | Conta flutuante estrangeira → liquidação adiada | ✗ |
+| **Banzami** | **Carteira → transferência no ledger → carteira — instantâneo, local, em Kwanza** | **✓** |
 
-Cards do not exist in the core Banzami network. In a future phase, card top-up will allow consumers to fund their Banzami wallet from a debit card — but that card is used to add funds, not to make payments. Every payment, regardless of how the wallet was funded, is a wallet-to-wallet transfer.
+Os cartões não existem na rede principal Banzami. Numa fase futura, o carregamento por cartão permitirá aos consumidores financiar a sua carteira Banzami a partir de um cartão de débito — mas esse cartão é usado para adicionar fundos, não para fazer pagamentos. Cada pagamento, independentemente de como a carteira foi financiada, é uma transferência de carteira-para-carteira.
 
-### 10.4 Local rails, local money
+### 10.4 Redes locais, dinheiro local
 
-Banzami's settlement runs on Angolan infrastructure — EMIS and the Angolan banking system. This is not a limitation. It is a deliberate strength.
+A liquidação do Banzami corre em infraestrutura angolana — EMIS e o sistema bancário angolano. Isto não é uma limitação. É uma vantagem deliberada.
 
-A payment network built on foreign card infrastructure depends on foreign approval, foreign pricing, and foreign availability. Banzami's settlement is Angolan, in Kwanza, on rails that Angola controls. It works when international networks do not. It charges in AOA without currency conversion. It operates within the regulatory framework of the Banco Nacional de Angola.
+Uma rede de pagamentos construída em infraestrutura de cartões estrangeiros depende de aprovação estrangeira, preços estrangeiros e disponibilidade estrangeira. A liquidação do Banzami é angolana, em Kwanza, em redes que Angola controla. Funciona quando as redes internacionais não funcionam. Cobra em AOA sem conversão de moeda. Opera dentro do quadro regulatório do Banco Nacional de Angola.
 
-Local infrastructure for a local economy.
+Infraestrutura local para uma economia local.
 
-### 10.5 Three expressions of the same identity
+### 10.5 Três expressões da mesma identidade
 
 ```
-Wallet ↔ Wallet    the financial identity — holds and transfers Kwanza
-QR ↔ QR            the physical identity — how you pay in person
-Handle ↔ Handle    the digital identity — how you address payments anywhere
+Carteira ↔ Carteira   a identidade financeira — detém e transfere Kwanza
+QR ↔ QR               a identidade física — como paga presencialmente
+Handle ↔ Handle        a identidade digital — como endereça pagamentos em qualquer lugar
 ```
 
-These three layers are expressions of the same underlying account. Together, they make Banzami usable in every context: physical commerce, digital commerce, remote payments, and person-to-person transfers.
+Estas três camadas são expressões da mesma conta subjacente. Juntas, tornam o Banzami utilizável em todos os contextos: comércio físico, comércio digital, pagamentos remotos e transferências pessoa-a-pessoa.
 
 ---
 
-## 11. Banzami for Merchants
+## 11. Banzami para Comerciantes
 
-### 11.1 Getting started
+### 11.1 Primeiros passos
 
-A merchant registers on Banzami, provides basic business information, and receives a merchant wallet and a @handle within minutes. A static QR code is ready for download immediately.
+Um comerciante regista-se no Banzami, fornece informações básicas do negócio e recebe uma carteira de comerciante e um @handle em minutos. Um código QR estático está pronto para download imediatamente.
 
-No POS terminal required. No card agreement needed. No minimum monthly volume. KYC verification is required before live settlement, but the process is fully digital.
+Sem terminal POS necessário. Sem acordo de cartão necessário. Sem volume mensal mínimo. A verificação KYC é necessária antes da liquidação em directo, mas o processo é totalmente digital.
 
-The time between "I want to accept digital payments" and "I am accepting digital payments" should be measured in minutes, not weeks.
+O tempo entre "quero aceitar pagamentos digitais" e "estou a aceitar pagamentos digitais" deve ser medido em minutos, não semanas.
 
-### 11.2 The merchant dashboard
+### 11.2 O painel do comerciante
 
-Every merchant has a web-based dashboard:
+Cada comerciante tem um painel baseado na web:
 
-| Section | What it shows |
-|---------|---------------|
-| **Wallet balance** | Available and reserved balance, updated in real time |
-| **Transactions** | Every payment received — timestamp, amount, consumer @handle |
-| **Analytics** | Daily/monthly volume, transaction counts, peak hours |
-| **Payment links** | Create, share, and manage payment links |
-| **Payment requests** | Send payment requests to specific consumers |
-| **Refunds** | Issue full or partial refunds |
-| **Disputes** | View and respond to consumer disputes |
-| **Payouts** | Withdraw to an Angolan bank account on demand |
-| **API keys** | Generate and manage credentials for SDK integrations |
-| **Team access** | Add staff with controlled permissions |
+| Secção | O que mostra |
+|--------|-------------|
+| **Saldo da carteira** | Saldo disponível e reservado, actualizado em tempo real |
+| **Transacções** | Cada pagamento recebido — timestamp, valor, @handle do consumidor |
+| **Análises** | Volume diário/mensal, contagens de transacções, horas de pico |
+| **Links de pagamento** | Criar, partilhar e gerir links de pagamento |
+| **Pedidos de pagamento** | Enviar pedidos de pagamento a consumidores específicos |
+| **Reembolsos** | Emitir reembolsos totais ou parciais |
+| **Disputas** | Ver e responder a disputas de consumidores |
+| **Pagamentos** | Levantar para uma conta bancária angolana a pedido |
+| **Chaves API** | Gerar e gerir credenciais para integrações SDK |
+| **Acesso da equipa** | Adicionar pessoal com permissões controladas |
 
-### 11.3 Three ways to receive payment
+### 11.3 Três formas de receber pagamento
 
-| Surface | How | Best for |
-|---------|-----|----------|
-| **Static QR** | Print and display permanently | Cantinas, kiosks, physical retail |
-| **Payment link** | Share via WhatsApp, SMS, or social media | Remote sales, informal commerce |
-| **SDK integration** | Embed in an app | Taxi apps, delivery, ecommerce |
+| Superfície | Como | Melhor para |
+|------------|------|------------|
+| **QR Estático** | Imprimir e exibir permanentemente | Cantinas, quiosques, retalho físico |
+| **Link de pagamento** | Partilhar via WhatsApp, SMS ou redes sociais | Vendas remotas, comércio informal |
+| **Integração SDK** | Incorporar numa app | Apps de táxi, delivery, ecommerce |
 
-### 11.4 Payouts
+### 11.4 Pagamentos
 
-Wallet balances are withdrawn to an Angolan bank account on demand — from the dashboard or via the API. Banzami initiates the payout immediately via EMIS and tracks it with full transparency. No manual requests. No opaque timelines.
+Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir do painel ou via API. O Banzami inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
 
-### 11.5 The QR storefront
+### 11.5 A loja QR
 
-Every merchant has a permanent public profile at `pay.banzami.org/profiles/@handle`. This is the digital identity that anchors the merchant in the Banzami network — shareable as a link, printable as a QR, discoverable via search. Any consumer who reaches it can pay instantly.
+Cada comerciante tem um perfil público permanente em `pay.banzami.org/profiles/@handle`. Esta é a identidade digital que ancora o comerciante na rede Banzami — partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
 
 ---
 
-## 12. Banzami for Developers
+## 12. Banzami para Programadores
 
-### 12.1 SDK-first architecture
+### 12.1 Arquitectura SDK-first
 
-Banzami is engineered for developers. The recommended integration path is always through an official Banzami SDK — never raw HTTP calls, never handcrafted clients, never improvised workarounds.
+O Banzami é construído para programadores. O caminho de integração recomendado é sempre através de um SDK Banzami oficial — nunca chamadas HTTP directas, nunca clientes artesanais, nunca soluções improvisadas.
 
-Official SDKs provide by default:
+Os SDKs oficiais fornecem por defeito:
 
-- **Typed API surfaces** — no guessing about request or response shapes
-- **Automatic idempotency** — every POST is safe to retry; no duplicate charges
-- **Exponential backoff retry** — transient failures are handled without code
-- **Webhook signature verification** — security by default, not by optional configuration
-- **Environment isolation** — sandbox and live are fully separate; no accidental production calls
-- **Structured errors** — meaningful error hierarchy, not raw HTTP codes
+- **Superfícies de API tipadas** — sem adivinhação sobre formas de pedido ou resposta
+- **Idempotência automática** — cada POST é seguro para retry; sem cobranças duplicadas
+- **Retry com backoff exponencial** — falhas transitórias são tratadas sem código
+- **Verificação de assinatura de webhooks** — segurança por defeito, não por configuração opcional
+- **Isolamento de ambiente** — sandbox e directo são completamente separados; sem chamadas acidentais para produção
+- **Erros estruturados** — hierarquia de erros significativa, não códigos HTTP brutos
 
-### 12.2 Available SDKs
+### 12.2 SDKs disponíveis
 
-| SDK | Language | Primary use |
-|-----|----------|-------------|
-| `@banzami/sdk` | TypeScript / Node.js | Backend APIs, ecommerce, server-side payment flows |
-| `banzami/sdk-php` | PHP | Web apps, Laravel, WooCommerce |
-| `banzami-go` | Go | High-performance services, microservices |
-| `banzami-python` | Python | Django, FastAPI, data pipelines |
-| `banzami_flutter` | Flutter / Dart | Mobile apps, in-app payment flows, QR commerce |
+| SDK | Linguagem | Uso principal |
+|-----|-----------|--------------|
+| `@banzami/sdk` | TypeScript / Node.js | APIs backend, ecommerce, fluxos de pagamento server-side |
+| `banzami/sdk-php` | PHP | Aplicações web, Laravel, WooCommerce |
+| `banzami-go` | Go | Serviços de alto desempenho, microsserviços |
+| `banzami-python` | Python | Django, FastAPI, pipelines de dados |
+| `banzami_flutter` | Flutter / Dart | Apps móveis, fluxos de pagamento in-app, comércio QR |
 
-### 12.3 TypeScript SDK — integration example
+### 12.3 SDK TypeScript — exemplo de integração
 
 ```typescript
 import { BanzamiClient } from '@banzami/sdk';
@@ -791,7 +794,7 @@ const client = new BanzamiClient({
   apiKey:  'bz_live_...',
 });
 
-// Generate a dynamic QR for a taxi ride
+// Gerar um QR dinâmico para uma corrida de táxi
 const qr = await client.createDynamicQr({
   ownerId:     'cns_driver_id',
   amountMinor: 3200,              // 3 200 Kz
@@ -799,18 +802,18 @@ const qr = await client.createDynamicQr({
   expiresAt:   new Date(Date.now() + 5 * 60 * 1000),
 });
 
-// Passenger scans → confirms → webhook fires:
+// Passageiro faz scan → confirma → webhook dispara:
 // { type: "transaction.completed", data: { ... } }
 ```
 
-### 12.4 PHP SDK — payment link example
+### 12.4 SDK PHP — exemplo de link de pagamento
 
 ```php
 use Banzami\BanzamiClient;
 
 $client = new BanzamiClient(apiKey: 'bz_live_...');
 
-// Create a payment link for a WooCommerce order
+// Criar um link de pagamento para uma encomenda WooCommerce
 $link = $client->createPaymentLink([
     'merchant_id'  => 'mch_...',
     'wallet_id'    => 'wlt_...',
@@ -819,13 +822,13 @@ $link = $client->createPaymentLink([
     'expires_at'   => (new DateTime('+24 hours'))->format(DateTime::RFC3339),
 ]);
 
-// Redirect customer to: https://pay.banzami.org/{$link['slug']}
+// Redirecionar cliente para: https://pay.banzami.org/{$link['slug']}
 ```
 
-### 12.5 Flutter SDK — in-app payment sheet
+### 12.5 SDK Flutter — folha de pagamento in-app
 
 ```dart
-// Delivery app: trigger payment when order is confirmed delivered
+// App de delivery: accionar pagamento quando a encomenda é confirmada entregue
 final result = await BanzamiPay.confirm(
   context:     context,
   merchantId:  'mch_...',
@@ -839,14 +842,14 @@ if (result.status == PaymentStatus.completed) {
 }
 ```
 
-The SDK handles the entire payment flow inside a sheet — consumer authentication, wallet lookup, confirmation UI, real-time status, success/failure callbacks. The host app receives a typed result and never implements payment logic from scratch.
+O SDK trata de todo o fluxo de pagamento dentro de uma folha — autenticação do consumidor, pesquisa de carteira, UI de confirmação, estado em tempo real, callbacks de sucesso/falha. A app anfitriã recebe um resultado tipado e nunca implementa lógica de pagamento de raiz.
 
 ### 12.6 Webhooks
 
-Every significant event in Banzami triggers a signed webhook delivery. Applications subscribe to event types and receive them within seconds of the triggering action.
+Cada evento significativo no Banzami aciona uma entrega de webhook assinado. As aplicações subscrevem tipos de eventos e recebem-nos em segundos após a acção desencadeadora.
 
 ```typescript
-// Express webhook handler
+// Gestor de webhooks Express
 app.post('/webhooks/banzami', express.raw({ type: 'application/json' }), (req, res) => {
   try {
     const event = BanzamiWebhooks.constructEvent(
@@ -875,100 +878,100 @@ app.post('/webhooks/banzami', express.raw({ type: 'application/json' }), (req, r
 });
 ```
 
-### 12.7 Sandbox environment
+### 12.7 Ambiente sandbox
 
-Every account has access to a full sandbox with separate API keys (`bz_sandbox_...`), isolated data, and no real money movement. The sandbox API surface is identical to production. Build, test, and validate the entire integration before touching a live credential.
+Cada conta tem acesso a um sandbox completo com chaves API separadas (`bz_sandbox_...`), dados isolados e sem movimento de dinheiro real. A superfície de API do sandbox é idêntica à de produção. Construa, teste e valide toda a integração antes de tocar numa credencial em directo.
 
-### 12.8 Core API reference
+### 12.8 Referência de API principal
 
-| Category | Operations |
-|----------|-----------|
-| Transactions | Create, capture, void, list, get |
-| Wallets | Get balance, list transactions |
-| Transfers | Create, list |
-| QR codes | Create static, create dynamic, decode, mark used |
-| Payment links | Create, get, list, cancel, get public, get status |
-| Payment requests | Create, get, list, pay, decline, cancel |
-| Refunds | Create, get, list |
-| Disputes | Open, get, list |
-| Payouts | Create, get, list |
-| Webhooks | Register endpoint, list events, list deliveries |
-| Merchants | Create, get, update |
-| Consumers | Create, get by handle |
-| API keys | Create, list, revoke |
+| Categoria | Operações |
+|-----------|-----------|
+| Transacções | Criar, capturar, anular, listar, obter |
+| Carteiras | Obter saldo, listar transacções |
+| Transferências | Criar, listar |
+| Códigos QR | Criar estático, criar dinâmico, descodificar, marcar como usado |
+| Links de pagamento | Criar, obter, listar, cancelar, obter público, obter estado |
+| Pedidos de pagamento | Criar, obter, listar, pagar, recusar, cancelar |
+| Reembolsos | Criar, obter, listar |
+| Disputas | Abrir, obter, listar |
+| Pagamentos | Criar, obter, listar |
+| Webhooks | Registar endpoint, listar eventos, listar entregas |
+| Comerciantes | Criar, obter, actualizar |
+| Consumidores | Criar, obter por handle |
+| Chaves API | Criar, listar, revogar |
 
 ---
 
-## 13. Banzami for Consumers
+## 13. Banzami para Consumidores
 
-### 13.1 The consumer experience
+### 13.1 A experiência do consumidor
 
-Banzami is for every Angolan with a smartphone. No traditional bank account required to get started. No technical knowledge needed. One phone. One wallet. Everything else follows.
+O Banzami é para cada angolano com um smartphone. Não é necessária uma conta bancária tradicional para começar. Não é necessário conhecimento técnico. Um telemóvel. Uma carteira. Tudo o resto segue-se.
 
-### 13.2 Getting a wallet
-
-```
-1. Enter your phone number
-2. Verify with a one-time code
-3. Choose your @handle
-4. Set a PIN (biometric optional)
-
-→ Wallet ready. You can receive money immediately.
-```
-
-Under two minutes from start to finish.
-
-### 13.3 Paying with QR
+### 13.2 Obter uma carteira
 
 ```
-You arrive at a cantina.
-A QR code is on the counter.
+1. Inserir o seu número de telemóvel
+2. Verificar com um código de uso único
+3. Escolher o seu @handle
+4. Definir um PIN (biométrico opcional)
 
-You open Banzami. Tap "Pagar."
-You scan.
-
-App shows: "Pagar a @cantina.luanda"
-You enter 1.500 Kz.
-You confirm with your fingerprint.
-
-Screen: ✅ Pago. 1.500 Kz.
-
-The cantina owner's phone lights up.
-Done.
+→ Carteira pronta. Pode receber dinheiro imediatamente.
 ```
 
-### 13.4 Sending money to a friend
+Menos de dois minutos do início ao fim.
+
+### 13.3 Pagar com QR
 
 ```
-You owe a friend for lunch.
+Chega a uma cantina.
+Um código QR está no balcão.
 
-Open Banzami. Tap "Enviar."
-Type: @maria.luanda
-Enter: 3.000 Kz
-Tap "Confirmar."
+Abre o Banzami. Toca em "Pagar."
+Faz o scan.
 
-Done. Maria's wallet is credited instantly.
-She receives: "Recebeu 3.000 Kz de @joao.silva."
+A app mostra: "Pagar a @cantina.luanda"
+Insere 1.500 Kz.
+Confirma com a impressão digital.
+
+Ecrã: ✅ Pago. 1.500 Kz.
+
+O telemóvel da dona da cantina acende-se.
+Feito.
 ```
 
-### 13.5 Paying a payment link
+### 13.4 Enviar dinheiro a um amigo
 
-A merchant sends via WhatsApp:
+```
+Deve dinheiro a um amigo pelo almoço.
+
+Abre o Banzami. Toca em "Enviar."
+Escreve: @maria.luanda
+Insere: 3.000 Kz
+Toca em "Confirmar."
+
+Feito. A carteira da Maria é creditada instantaneamente.
+Ela recebe: "Recebeu 3.000 Kz de @joao.silva."
+```
+
+### 13.5 Pagar um link de pagamento
+
+Um comerciante envia via WhatsApp:
 
 ```
 "Aqui está o link: pay.banzami.org/xyz789"
 ```
 
-You tap it. A page opens:
-- Merchant name and logo
-- Amount: 15.000 Kz
-- Description: Encomenda #12
+Toca nele. Uma página abre:
+- Nome e logótipo do comerciante
+- Valor: 15.000 Kz
+- Descrição: Encomenda #12
 
-Tap "Pagar com Banzami." Confirm with PIN. Done.
+Toca em "Pagar com Banzami." Confirma com PIN. Feito.
 
-### 13.6 Receiving a payment request
+### 13.6 Receber um pedido de pagamento
 
-Your child's school sends a payment request. Your app shows:
+A escola do seu filho envia um pedido de pagamento. A sua app mostra:
 
 ```
 📩 Pagamento solicitado
@@ -976,261 +979,261 @@ Your child's school sends a payment request. Your app shows:
 [Pagar]  [Ver detalhes]
 ```
 
-One tap. Paid. The school records it immediately.
+Um toque. Pago. A escola regista-o imediatamente.
 
-### 13.7 Your wallet is your record
+### 13.7 A sua carteira é o seu registo
 
-The Banzami app shows every transaction — sent and received — with timestamps, amounts, and the other party's @handle. No mystery charges. No unaccounted cash. Complete visibility over your financial activity.
-
----
-
-### 13.8 Why consumers will adopt Banzami
-
-The question is not whether digital payments are better. They objectively are. The question is whether Banzami is better than the specific alternatives Angolans use today.
-
-| Current alternative | Banzami advantage |
-|--------------------|-------------------|
-| Cash | No change needed; remote payments possible; full digital receipt; no risk of carrying money |
-| Bank transfer | No reference codes; no IBAN; instant confirmation; no screenshot proof required |
-| WhatsApp screenshot | Cryptographically confirmed; no risk of fabricated proof; merchant sees it in real time |
-| Waiting for confirmation | There is no waiting. Settlement is instant. |
-| Splitting bills manually | QR-based split; each person pays their share independently; no mental arithmetic, no awkward recollection |
-
-Beyond the comparisons:
-
-- **One identity for all payments.** Your @handle is your address for every payment: merchants, friends, family, institutions.
-- **Safer than cash.** Money stays in your wallet until you confirm a payment. A lost phone does not mean lost money.
-- **No change problem.** No one needs exact change. No one apologises for not having small notes.
-- **Families and distance.** Send money to family in another city instantly. No queues, no transfer codes, no waiting.
-- **Invisible to strangers.** QR payments are between your phone and the merchant's system. No one sees your financial information.
-
-The consumer adoption story is not about technology adoption. It is about making something that people already want to do — pay and be paid — simpler and more reliable than it has ever been.
+A app Banzami mostra cada transacção — enviada e recebida — com timestamps, valores e o @handle da outra parte. Sem cobranças misteriosas. Sem dinheiro físico por contabilizar. Visibilidade completa sobre a sua actividade financeira.
 
 ---
 
-## 14. The Banzami Flywheel
+### 13.8 Por que os consumidores vão adoptar o Banzami
 
-A payment network is not a product you build and ship. It is a network you grow — and its value compounds as it grows.
+A questão não é se os pagamentos digitais são melhores. São objectivamente. A questão é se o Banzami é melhor do que as alternativas específicas que os angolanos usam hoje.
 
-### The flywheel mechanism
+| Alternativa actual | Vantagem Banzami |
+|--------------------|-----------------|
+| Dinheiro físico | Sem troco necessário; pagamentos remotos possíveis; recibo digital completo; sem risco de transportar dinheiro |
+| Transferência bancária | Sem códigos de referência; sem IBAN; confirmação instantânea; sem prova de screenshot necessária |
+| Screenshot WhatsApp | Criptograficamente confirmado; sem risco de prova fabricada; o comerciante vê em tempo real |
+| Aguardar confirmação | Não há espera. A liquidação é instantânea. |
+| Dividir contas manualmente | Divisão baseada em QR; cada pessoa paga a sua parte independentemente; sem aritmética mental, sem recordação incómoda |
+
+Para além das comparações:
+
+- **Uma identidade para todos os pagamentos.** O seu @handle é o seu endereço para cada pagamento: comerciantes, amigos, família, instituições.
+- **Mais seguro do que dinheiro físico.** O dinheiro fica na sua carteira até confirmar um pagamento. Um telemóvel perdido não significa dinheiro perdido.
+- **Sem problema de troco.** Ninguém precisa de troco exacto. Ninguém se desculpa por não ter notas pequenas.
+- **Famílias e distância.** Envie dinheiro a família noutra cidade instantaneamente. Sem filas, sem códigos de transferência, sem espera.
+- **Invisível para estranhos.** Os pagamentos QR são entre o seu telemóvel e o sistema do comerciante. Ninguém vê a sua informação financeira.
+
+A história da adopção pelo consumidor não é sobre adopção de tecnologia. É sobre tornar algo que as pessoas já querem fazer — pagar e ser pago — mais simples e mais fiável do que alguma vez foi.
+
+---
+
+## 14. O Motor de Crescimento Banzami
+
+Uma rede de pagamentos não é um produto que se constrói e lança. É uma rede que se faz crescer — e o seu valor compõe-se à medida que cresce.
+
+### O mecanismo do motor
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
 │                                                                  │
-│         More merchants accept QR                                 │
+│         Mais comerciantes aceitam QR                             │
 │                    │                                             │
 │                    ▼                                             │
-│         More reasons for consumers to get a wallet               │
+│         Mais razões para os consumidores obterem uma carteira    │
 │                    │                                             │
 │                    ▼                                             │
-│         More consumers have wallets                              │
+│         Mais consumidores têm carteiras                          │
 │                    │                                             │
 │                    ▼                                             │
-│         More merchants want to accept QR                         │
+│         Mais comerciantes querem aceitar QR                      │
 │                    │                                             │
 │            ┌───────┘                                             │
 │            ▼                                                     │
-│         More SDK integrations                                    │
+│         Mais integrações SDK                                     │
 │                    │                                             │
 │                    ▼                                             │
-│         More consumers discover Banzami inside apps              │
+│         Mais consumidores descobrem o Banzami dentro de apps     │
 │                    │                                             │
 │                    ▼                                             │
-│         More wallet circulation                                  │
+│         Mais circulação de carteiras                             │
 │                    │                                             │
 │                    ▼                                             │
-│         Less cash dependence                                     │
+│         Menos dependência de dinheiro físico                     │
 │                    │                                             │
 │                    ▼                                             │
-│         Banzami becomes the default                              │
+│         O Banzami torna-se o padrão                              │
 │                    │                                             │
-│                    └──────────────────▶ (cycle accelerates)      │
+│                    └──────────────────▶ (ciclo acelera)          │
 │                                                                  │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### The three growth engines
+### Os três motores de crescimento
 
-**Engine 1 — Merchant QR density**
+**Motor 1 — Densidade QR dos comerciantes**
 
-Every merchant who joins Banzami is a new reason for a consumer to get a wallet. A cantina, a pharmacy, a market vendor, a restaurant — each one is a node in the network. As merchant density increases in a neighbourhood or a city, the friction for a consumer to go without a Banzami wallet increases. Eventually the question is not "should I get Banzami?" but "why don't I have Banzami yet?"
+Cada comerciante que se junta ao Banzami é uma nova razão para um consumidor obter uma carteira. Uma cantina, uma farmácia, um vendedor de mercado, um restaurante — cada um é um nó na rede. À medida que a densidade de comerciantes aumenta num bairro ou cidade, o atrito para um consumidor ficar sem carteira Banzami aumenta. Eventualmente a questão não é "devo obter o Banzami?" mas "por que é que ainda não tenho o Banzami?"
 
-**Engine 2 — SDK integrations**
+**Motor 2 — Integrações SDK**
 
-Every Angolan app that integrates the Banzami SDK brings its entire user base into contact with the Banzami wallet. A taxi app with 50,000 active users creates more wallet activations than any marketing campaign. A delivery platform, a streaming service, a gaming app — each integration is a multiplier on consumer adoption, without any additional acquisition cost.
+Cada app angolana que integra o SDK Banzami traz toda a sua base de utilizadores para contacto com a carteira Banzami. Uma app de táxi com 50.000 utilizadores activos cria mais activações de carteiras do que qualquer campanha de marketing. Uma plataforma de delivery, um serviço de streaming, uma app de jogos — cada integração é um multiplicador na adopção pelo consumidor, sem custo de aquisição adicional.
 
-**Engine 3 — Wallet circulation**
+**Motor 3 — Circulação de carteiras**
 
-As more consumers hold wallets and more merchants accept payments, money begins to circulate inside the Banzami network. A consumer pays a cantina. The cantina pays a supplier. The supplier pays staff. Staff pay merchants. Each Kwanza that stays in the network rather than leaving as cash withdrawal increases liquidity for everyone and reduces the friction of leaving.
+À medida que mais consumidores têm carteiras e mais comerciantes aceitam pagamentos, o dinheiro começa a circular dentro da rede Banzami. Um consumidor paga uma cantina. A cantina paga um fornecedor. O fornecedor paga pessoal. O pessoal paga comerciantes. Cada Kwanza que fica na rede em vez de sair como levantamento em dinheiro aumenta a liquidez para todos e reduz o atrito de sair.
 
-### Why density before expansion
+### Por que densidade antes de expansão
 
-The flywheel does not spin across geography. It spins within a market.
+O motor não gira pela geografia. Gira dentro de um mercado.
 
-A Banzami network with 10,000 Angolan merchants and 500,000 Angolan wallets is dramatically more valuable to every participant than a Banzami presence in 10 countries with 100 merchants each. The network effect requires concentration. This is why Angola comes first — not because other markets are unimportant, but because the flywheel must be spinning strongly before expansion makes sense.
+Uma rede Banzami com 10.000 comerciantes angolanos e 500.000 carteiras angolanas é dramaticamente mais valiosa para cada participante do que uma presença Banzami em 10 países com 100 comerciantes cada. O efeito de rede requer concentração. É por isso que Angola vem primeiro — não porque outros mercados são sem importância, mas porque o motor deve estar a girar fortemente antes que a expansão faça sentido.
 
 ---
 
-## 15. Banzami Business Ecosystem
+## 15. Ecossistema de Negócio Banzami
 
-Banzami is not a single product — it is an ecosystem of interconnected participants, each of whom benefits from the network's growth.
+O Banzami não é um produto único — é um ecossistema de participantes interligados, cada um dos quais beneficia do crescimento da rede.
 
-### 15.1 Network participants
+### 15.1 Participantes da rede
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     BANZAMI NETWORK                         │
+│                     REDE BANZAMI                            │
 │                                                             │
-│  ┌──────────────┐     pay     ┌──────────────────────────┐  │
-│  │  Consumers   │────────────▶│  Merchants               │  │
-│  │  (wallets)   │◀────────────│  (wallets + dashboard)   │  │
-│  └──────────────┘   receive   └──────────────────────────┘  │
+│  ┌──────────────┐    paga    ┌──────────────────────────┐   │
+│  │  Consumidores│───────────▶│  Comerciantes            │   │
+│  │  (carteiras) │◀───────────│  (carteiras + painel)    │   │
+│  └──────────────┘   recebe   └──────────────────────────┘   │
 │         │                              │                    │
 │         ▼                              ▼                    │
 │  ┌──────────────────────────────────────────────────────┐   │
-│  │          Banzami Ledger & Wallet Engine              │   │
-│  │       (double-entry, instant, immutable)             │   │
+│  │      Motor de Ledger e Carteiras Banzami             │   │
+│  │    (dupla entrada, instantâneo, imutável)            │   │
 │  └──────────────────────────────────────────────────────┘   │
 │         │                              │                    │
 │         ▼                              ▼                    │
 │  ┌──────────────┐             ┌──────────────────────────┐  │
-│  │  Apps with   │             │  EMIS / Angolan Banks    │  │
-│  │  Banzami SDK │             │  (interbank settlement)  │  │
+│  │  Apps com    │             │  EMIS / Bancos Angolanos  │  │
+│  │  SDK Banzami │             │  (liquidação interbancária│  │
 │  └──────────────┘             └──────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### 15.2 Bank and partner relationships
+### 15.2 Relações com bancos e parceiros
 
-Angolan banks are not Banzami's competitors. They are essential partners.
+Os bancos angolanos não são concorrentes do Banzami. São parceiros essenciais.
 
-- **Banks provide:** licensed accounts, settlement infrastructure, regulatory compliance, and the Kwanza balances that fund Banzami wallets.
-- **Banzami provides:** instant payment UX, QR commerce layer, developer SDKs, merchant tools, and the network effect that makes digital payments habitual.
+- **Os bancos fornecem:** contas licenciadas, infraestrutura de liquidação, conformidade regulatória e os saldos em Kwanza que financiam as carteiras Banzami.
+- **O Banzami fornece:** UX de pagamento instantâneo, camada de comércio QR, SDKs para programadores, ferramentas para comerciantes e o efeito de rede que torna os pagamentos digitais habituais.
 
-Banks gain a modern commerce product on top of their existing infrastructure without building it themselves. Banzami gains access to the regulated infrastructure it cannot own directly. This is a partnership with aligned incentives — not a conflict.
+Os bancos ganham um produto de comércio moderno sobre a sua infraestrutura existente sem o construírem eles próprios. O Banzami ganha acesso à infraestrutura regulada que não pode possuir directamente. Esta é uma parceria com incentivos alinhados — não um conflito.
 
-### 15.3 Revenue model
+### 15.3 Modelo de receita
 
-| Revenue stream | Mechanism |
-|----------------|-----------|
-| **Transaction fees** | Small percentage of each successful merchant settlement |
-| **Payout fees** | Nominal fee per bank withdrawal from a merchant wallet |
-| **Enterprise SDK licensing** | Volume pricing for high-transaction integrators |
-| **Premium merchant tools** | Advanced analytics, multi-location management (future) |
+| Fonte de receita | Mecanismo |
+|-----------------|-----------|
+| **Comissões de transacção** | Pequena percentagem de cada liquidação de comerciante bem-sucedida |
+| **Comissões de pagamento** | Taxa nominal por levantamento bancário de uma carteira de comerciante |
+| **Licenciamento SDK empresarial** | Preços por volume para integradores de alta transacção |
+| **Ferramentas premium para comerciantes** | Análises avançadas, gestão multi-localização (futuro) |
 
-All fees are transparent and disclosed at onboarding. No hidden charges. No monthly minimums. No hardware costs.
-
----
-
-## 16. Security & Financial Integrity
-
-Banzami handles real money. Security and financial integrity are not features — they are the foundation upon which everything else is built.
-
-### 16.1 Double-entry ledger
-
-Every monetary movement in Banzami is recorded as an immutable **double-entry ledger entry** — the same accounting principle used by banks and financial institutions for centuries.
-
-```
-Consumer pays 2.500 Kz to a merchant:
-
-  Consumer Wallet   │ DEBIT  │ -2.500 Kz
-  Merchant Wallet   │ CREDIT │ +2.500 Kz
-  ──────────────────────────────────────
-  Net:              │        │     0 Kz
-```
-
-No money is created or destroyed. Every Kwanza in the system is accounted for at every moment. If a ledger entry would create an imbalance, the operation is rejected before it commits.
-
-### 16.2 Immutability and audit trails
-
-Ledger entries cannot be edited or deleted. A refund does not modify the original transaction — it creates a new, opposing entry. This means the complete financial history of every wallet is always fully reconstructible.
-
-In the event of any audit, dispute, or regulatory inquiry, every payment can be traced from initiation to settlement with a complete, tamper-proof record.
-
-### 16.3 Idempotency
-
-Every payment operation is **idempotent** — submitting the same operation twice produces no additional effect. Network failures sometimes cause retries. Without idempotency, a retry would create a duplicate charge.
-
-Banzami assigns a unique idempotency key to every operation. If the same key is submitted again, the original result is returned immediately, without creating a new transaction.
-
-### 16.4 Risk engine
-
-Every transaction passes through a real-time risk engine before committing to the ledger:
-
-- transaction velocity (unusual frequency from a single wallet)
-- amount anomalies (amounts far outside a wallet's normal range)
-- account signals (newly registered accounts, unverified identity)
-- device and session signals (inconsistent device fingerprint or location)
-
-Transactions above risk thresholds are held for review or declined before the ledger is touched.
-
-### 16.5 KYC and KYB
-
-**KYC (Know Your Customer):** every consumer is identity-verified before live payments are enabled. Verification uses Angolan identity documents (B.I., Passaporte, or Carta de Condução), tiered by transaction volume.
-
-**KYB (Know Your Business):** every merchant is business-verified. NIF verification for formal entities; identity verification for individual merchants.
-
-These processes satisfy BNA (Banco Nacional de Angola) requirements for digital payment operators.
-
-### 16.6 Encryption and data security
-
-| Protection | Standard |
-|-----------|---------|
-| Data at rest | AES-256 encryption |
-| Data in transit | TLS 1.3 |
-| API keys | SHA-256 hashed at rest; raw key shown only once |
-| Webhook secrets | Hashed at rest; HMAC signing only |
-| KYC documents | Encrypted storage with access audit log |
-
-### 16.7 Sandbox isolation
-
-Sandbox and production are **completely isolated** — different API keys, different data, different infrastructure. Real money never moves in sandbox. This isolation is enforced at both the API layer and the infrastructure layer. There is no way to accidentally route sandbox traffic to production.
-
-### 16.8 Reconciliation
-
-Automated reconciliation runs daily:
-
-- Sum of all wallet balances reconciled against all ledger credits and debits
-- Expected EMIS settlement amounts reconciled against actual bank credits
-- Pending payout amounts reconciled against completed bank transfers
-
-Any discrepancy — no matter how small — triggers an alert and a resolution workflow. The platform targets zero unresolved discrepancies at any point in time.
+Todas as comissões são transparentes e divulgadas no onboarding. Sem encargos ocultos. Sem mínimos mensais. Sem custos de hardware.
 
 ---
 
-## 17. Technical Architecture
+## 16. Segurança e Integridade Financeira
 
-### 17.1 Design principles
+O Banzami lida com dinheiro real. A segurança e a integridade financeira não são funcionalidades — são a fundação sobre a qual tudo o resto é construído.
 
-Banzami is engineered as **national-scale financial infrastructure**. Not a startup MVP. Not a proof of concept. Infrastructure designed to operate for decades.
+### 16.1 Ledger de dupla entrada
 
-Every architectural decision is ordered by:
+Cada movimento monetário no Banzami é registado como uma **entrada de ledger de dupla entrada** imutável — o mesmo princípio contabilístico usado por bancos e instituições financeiras há séculos.
 
-1. **Correctness** — financial operations are safe, auditable, and deterministic above all else
-2. **Reliability** — the platform is available when merchants and consumers need it
-3. **Security** — every layer is built with a threat model
-4. **Observability** — every component emits metrics, traces, and structured logs
-5. **Maintainability** — the codebase is designed for long-term operation, not short-term velocity
+```
+O consumidor paga 2.500 Kz a um comerciante:
 
-### 17.2 Technology stack
+  Carteira do Consumidor   │ DÉBITO  │ -2.500 Kz
+  Carteira do Comerciante  │ CRÉDITO │ +2.500 Kz
+  ──────────────────────────────────────────────
+  Líquido:                 │         │     0 Kz
+```
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Financial core** | Rust | Memory safety, deterministic performance, zero garbage collection pauses in the payment path |
-| **API layer** | Go | Simplicity, reliability, excellent concurrency for API serving |
-| **Frontend** | TypeScript + Next.js | Type-safe, modern, excellent developer experience |
-| **Mobile SDKs** | Flutter | Cross-platform; single codebase for Android and iOS |
-| **Database** | PostgreSQL | The single source of financial truth; ACID guarantees; proven at scale |
-| **Cache & coordination** | Redis | Rate limiting, idempotency storage, session management, pub/sub for real-time events |
-| **Observability** | OpenTelemetry + Prometheus + Grafana | Full-stack visibility from API gateway to ledger write |
-| **Infrastructure** | Docker + Hetzner/OVH + Cloudflare | Reliable, cost-effective, African-adjacent infrastructure |
+Nenhum dinheiro é criado ou destruído. Cada Kwanza no sistema é contabilizado em cada momento. Se uma entrada de ledger criasse um desequilíbrio, a operação é rejeitada antes de ser confirmada.
 
-### 17.3 Core architecture
+### 16.2 Imutabilidade e trilhos de auditoria
+
+As entradas de ledger não podem ser editadas ou apagadas. Um reembolso não modifica a transacção original — cria uma nova entrada oposta. Isto significa que o historial financeiro completo de cada carteira é sempre completamente reconstruível.
+
+Em caso de qualquer auditoria, disputa ou inquérito regulatório, cada pagamento pode ser rastreado desde o início até à liquidação com um registo completo e inviolável.
+
+### 16.3 Idempotência
+
+Cada operação de pagamento é **idempotente** — submeter a mesma operação duas vezes não produz efeito adicional. As falhas de rede por vezes causam retries. Sem idempotência, um retry criaria uma cobrança duplicada.
+
+O Banzami atribui uma chave de idempotência única a cada operação. Se a mesma chave for submetida novamente, o resultado original é devolvido imediatamente, sem criar uma nova transacção.
+
+### 16.4 Motor de risco
+
+Cada transacção passa por um motor de risco em tempo real antes de ser confirmada no ledger:
+
+- velocidade de transacção (frequência invulgar de uma única carteira)
+- anomalias de valor (valores muito fora do intervalo normal de uma carteira)
+- sinais de conta (contas recentemente registadas, identidade não verificada)
+- sinais de dispositivo e sessão (impressão digital de dispositivo ou localização inconsistente)
+
+As transacções acima dos limiares de risco são retidas para revisão ou recusadas antes de o ledger ser tocado.
+
+### 16.5 KYC e KYB
+
+**KYC (Know Your Customer):** cada consumidor é verificado de identidade antes de os pagamentos em directo serem activados. A verificação usa documentos de identidade angolanos (B.I., Passaporte ou Carta de Condução), por níveis conforme o volume de transacções.
+
+**KYB (Know Your Business):** cada comerciante é verificado. Verificação NIF para entidades formais; verificação de identidade para comerciantes individuais.
+
+Estes processos satisfazem os requisitos do BNA (Banco Nacional de Angola) para operadores de pagamento digital.
+
+### 16.6 Encriptação e segurança de dados
+
+| Protecção | Norma |
+|-----------|-------|
+| Dados em repouso | Encriptação AES-256 |
+| Dados em trânsito | TLS 1.3 |
+| Chaves API | Hash SHA-256 em repouso; chave bruta mostrada apenas uma vez |
+| Segredos de webhook | Hash em repouso; apenas assinatura HMAC |
+| Documentos KYC | Armazenamento encriptado com registo de auditoria de acesso |
+
+### 16.7 Isolamento sandbox
+
+O sandbox e a produção são **completamente isolados** — diferentes chaves API, diferentes dados, diferente infraestrutura. O dinheiro real nunca se move no sandbox. Este isolamento é aplicado tanto na camada API como na camada de infraestrutura. Não há forma de encaminhar acidentalmente tráfego sandbox para produção.
+
+### 16.8 Reconciliação
+
+A reconciliação automática corre diariamente:
+
+- Soma de todos os saldos de carteiras reconciliada com todos os créditos e débitos do ledger
+- Valores de liquidação EMIS esperados reconciliados com créditos bancários reais
+- Valores de pagamento pendentes reconciliados com transferências bancárias concluídas
+
+Qualquer discrepância — por menor que seja — aciona um alerta e um fluxo de resolução. A plataforma visa zero discrepâncias não resolvidas em qualquer ponto no tempo.
+
+---
+
+## 17. Arquitectura Técnica
+
+### 17.1 Princípios de design
+
+O Banzami é construído como **infraestrutura financeira à escala nacional**. Não um MVP de startup. Não uma prova de conceito. Infraestrutura concebida para operar durante décadas.
+
+Cada decisão arquitectural é ordenada por:
+
+1. **Correcção** — as operações financeiras são seguras, auditáveis e determinísticas acima de tudo
+2. **Fiabilidade** — a plataforma está disponível quando os comerciantes e consumidores precisam
+3. **Segurança** — cada camada é construída com um modelo de ameaças
+4. **Observabilidade** — cada componente emite métricas, traços e logs estruturados
+5. **Manutenibilidade** — a base de código é concebida para operação a longo prazo, não velocidade a curto prazo
+
+### 17.2 Stack tecnológico
+
+| Camada | Tecnologia | Porquê |
+|--------|-----------|--------|
+| **Core financeiro** | Rust | Segurança de memória, desempenho determinístico, sem pausas de garbage collection no caminho de pagamento |
+| **Camada API** | Go | Simplicidade, fiabilidade, excelente concorrência para servir APIs |
+| **Frontend** | TypeScript + Next.js | Type-safe, moderno, excelente experiência de programador |
+| **SDKs móveis** | Flutter | Cross-platform; base de código única para Android e iOS |
+| **Base de dados** | PostgreSQL | A única fonte de verdade financeira; garantias ACID; provado à escala |
+| **Cache e coordenação** | Redis | Rate limiting, armazenamento de idempotência, gestão de sessão, pub/sub para eventos em tempo real |
+| **Observabilidade** | OpenTelemetry + Prometheus + Grafana | Visibilidade full-stack desde o gateway API até à escrita no ledger |
+| **Infraestrutura** | Docker + Hetzner/OVH + Cloudflare | Infraestrutura fiável, económica e próxima de África |
+
+### 17.3 Arquitectura principal
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         CLIENTS                                 │
-│   Consumer App · Merchant Dashboard · 3rd-party App · SDKs      │
+│                          CLIENTES                               │
+│   App Consumidor · Painel Comerciante · App 3ª Parte · SDKs     │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTPS / TLS 1.3
 ┌──────────────────────────▼──────────────────────────────────────┐
@@ -1238,278 +1241,278 @@ Every architectural decision is ordered by:
 └──────────────────────────┬──────────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────────┐
-│                    API GATEWAY (Go)                             │
-│        Auth · Rate limiting · Routing · Webhook delivery        │
+│                  API GATEWAY (Go)                               │
+│       Auth · Rate limiting · Routing · Entrega de webhooks      │
 └──────┬──────────────────────────────────────────┬──────────────┘
        │                                          │
 ┌──────▼───────────┐                  ┌───────────▼──────────────┐
-│  PUBLIC API (Go)  │                  │    ADMIN API (Go)        │
-│  Payments · QR   │                  │    Settlements           │
-│  Transfers · SDK │                  │    Disputes              │
-│  Profiles        │                  │    Reconciliation        │
+│  API PÚBLICA (Go) │                  │    API ADMIN (Go)        │
+│  Pagamentos · QR  │                  │    Liquidações           │
+│  Transfer. · SDK │                  │    Disputas              │
+│  Perfis          │                  │    Reconciliação         │
 └──────┬───────────┘                  └───────────┬──────────────┘
        │                                          │
 ┌──────▼──────────────────────────────────────────▼──────────────┐
-│                       CORE API (Rust)                           │
+│                      CORE API (Rust)                            │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
-│  │  Ledger  │  │ Wallets  │  │   Txns   │  │  Settlement  │    │
-│  │  Engine  │  │  Engine  │  │  Engine  │  │  Reconcile   │    │
+│  │  Motor   │  │  Motor   │  │  Motor   │  │  Liquidação  │    │
+│  │  Ledger  │  │Carteiras │  │  Transac.│  │  Reconciliac.│    │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────────┘    │
 │                                                                 │
 │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────────┐    │
-│  │   Risk   │  │Compliance│  │ Payouts  │  │  Refunds /   │    │
-│  │  Engine  │  │   Core   │  │  Engine  │  │  Disputes    │    │
+│  │  Motor   │  │Conformid.│  │  Motor   │  │  Reembolsos /│    │
+│  │  Risco   │  │   Core   │  │Pagamentos│  │  Disputas    │    │
 │  └──────────┘  └──────────┘  └──────────┘  └──────────────┘    │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────────┐
 │                          POSTGRESQL                             │
-│                (single source of financial truth)               │
+│               (única fonte de verdade financeira)               │
 └──────────────────────────────┬──────────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────────┐
-│                    EMIS / ANGOLAN BANKS                         │
-│                 (interbank settlement rail)                     │
+│                    EMIS / BANCOS ANGOLANOS                      │
+│                  (rede de liquidação interbancária)             │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 17.4 The payment critical path
+### 17.4 O caminho crítico de pagamento
 
-The critical path is kept deliberately minimal:
+O caminho crítico é mantido deliberadamente mínimo:
 
 ```
-auth → risk check → compliance → ledger write → wallet update → response
+auth → verificação de risco → conformidade → escrita no ledger → actualização de carteira → resposta
 ```
 
-Everything outside this path is asynchronous:
-- webhook delivery
-- analytics recording
-- reconciliation jobs
-- push notification dispatch
-- reporting
+Tudo fora deste caminho é assíncrono:
+- entrega de webhooks
+- registo de análises
+- trabalhos de reconciliação
+- despacho de notificações push
+- relatórios
 
-This keeps the operation the consumer and merchant wait for — the confirmation — as fast as possible, with no unnecessary blocking.
+Isto mantém a operação que o consumidor e o comerciante esperam — a confirmação — o mais rápida possível, sem bloqueios desnecessários.
 
-### 17.5 Instant settlement guarantee
+### 17.5 Garantia de liquidação instantânea
 
-Three architectural contracts underpin every transaction:
+Três contratos arquitecturais sustentam cada transacção:
 
-1. **Ledger writes are synchronous and atomic.** The transaction is not confirmed until ledger entries are durable. Financial correctness is never traded for speed.
-2. **Wallet balances update immediately** after every committed transaction. When the consumer's success screen appears, the merchant's balance has already changed. There is no "will update shortly."
-3. **Webhook delivery begins immediately** after transaction commit. The merchant's server-side integration receives the event within seconds of confirmation.
+1. **As escritas no ledger são síncronas e atómicas.** A transacção não é confirmada até as entradas do ledger serem duráveis. A correcção financeira nunca é trocada por velocidade.
+2. **Os saldos das carteiras actualizam imediatamente** após cada transacção confirmada. Quando o ecrã de sucesso do consumidor aparece, o saldo do comerciante já mudou. Não existe "irá actualizar brevemente."
+3. **A entrega de webhooks começa imediatamente** após a confirmação da transacção. A integração server-side do comerciante recebe o evento em segundos após a confirmação.
 
-### 17.6 Modular monolith approach
+### 17.6 Abordagem de monólito modular
 
-Banzami is a **modular monolith** — one deployable unit with strongly isolated internal modules, clear domain boundaries, and explicit internal interfaces.
+O Banzami é um **monólito modular** — uma unidade implementável com módulos internos fortemente isolados, fronteiras de domínio claras e interfaces internas explícitas.
 
-This is a deliberate choice. Premature microservices introduce distributed systems complexity, operational overhead, and failure modes that are not justified until scaling boundaries are proven by real traffic. The modular monolith is simpler to reason about, deploy, and maintain — and it can be decomposed into services exactly when, and only when, the evidence demands it.
+Esta é uma escolha deliberada. Os microsserviços prematuros introduzem complexidade de sistemas distribuídos, sobrecarga operacional e modos de falha que não são justificados até que os limites de escala sejam provados por tráfego real. O monólito modular é mais simples de raciocinar, implementar e manter — e pode ser decomposto em serviços exactamente quando, e apenas quando, a evidência o exige.
 
-### 17.7 Observability
+### 17.7 Observabilidade
 
-Every service emits:
+Cada serviço emite:
 
-- **Metrics** (Prometheus) — request rates, error rates, latency percentiles, wallet operations, settlement volumes
-- **Traces** (OpenTelemetry) — end-to-end request traces from API gateway to ledger write
-- **Structured logs** — JSON with transaction IDs, operation types, and outcomes
-- **Health signals** — liveness and readiness endpoints
+- **Métricas** (Prometheus) — taxas de pedidos, taxas de erro, percentis de latência, operações de carteiras, volumes de liquidação
+- **Traços** (OpenTelemetry) — traços de pedidos ponta-a-ponta desde o gateway API até à escrita no ledger
+- **Logs estruturados** — JSON com IDs de transacção, tipos de operação e resultados
+- **Sinais de saúde** — endpoints de liveness e readiness
 
-Three primary Grafana dashboards provide operational visibility:
+Três painéis principais Grafana fornecem visibilidade operacional:
 
-| Dashboard | Coverage |
-|-----------|---------|
-| **Payments** | Transaction rates, error rates, QR completion, webhook delivery |
-| **Wallets & Ledger** | Transfer volume, latency percentiles, balance read rates, refunds and disputes |
-| **Settlements & Payouts** | Settlement rates, payout throughput, reconciliation operations |
+| Painel | Cobertura |
+|--------|----------|
+| **Pagamentos** | Taxas de transacção, taxas de erro, conclusão QR, entrega de webhooks |
+| **Carteiras e Ledger** | Volume de transferências, percentis de latência, taxas de leitura de saldos, reembolsos e disputas |
+| **Liquidações e Pagamentos** | Taxas de liquidação, throughput de pagamentos, operações de reconciliação |
 
 ---
 
-## 18. The Banzami Ecosystem
+## 18. O Ecossistema Banzami
 
-### 18.1 Full platform map
+### 18.1 Mapa completo da plataforma
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         BANZAMI PLATFORM                            │
+│                       PLATAFORMA BANZAMI                            │
 │                                                                     │
-│  CONSUMER LAYER                                                     │
+│  CAMADA DO CONSUMIDOR                                               │
 │  ┌──────────────────┐   ┌──────────────────────────────────────┐    │
-│  │  Consumer App    │   │  pay.banzami.org                     │    │
-│  │  (Flutter)       │   │  payment links · QR · storefronts    │    │
+│  │  App Consumidor  │   │  pay.banzami.org                     │    │
+│  │  (Flutter)       │   │  links · QR · lojas de comerciantes  │    │
 │  └──────────────────┘   └──────────────────────────────────────┘    │
 │                                                                     │
-│  MERCHANT LAYER                                                     │
+│  CAMADA DO COMERCIANTE                                              │
 │  ┌──────────────────┐   ┌──────────────────────────────────────┐    │
-│  │  Merchant        │   │  QR (static + dynamic)               │    │
-│  │  Dashboard       │   │  Payment links · Requests            │    │
-│  │  (Next.js)       │   │  Refunds · Disputes · Analytics      │    │
+│  │  Painel do       │   │  QR (estático + dinâmico)            │    │
+│  │  Comerciante     │   │  Links · Pedidos de pagamento        │    │
+│  │  (Next.js)       │   │  Reembolsos · Disputas · Análises    │    │
 │  └──────────────────┘   └──────────────────────────────────────┘    │
 │                                                                     │
-│  OPERATIONS LAYER                                                   │
+│  CAMADA DE OPERAÇÕES                                                │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  Admin Dashboard — Settlements · Reconciliation · Disputes    │   │
+│  │  Painel Admin — Liquidações · Reconciliação · Disputas        │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 │                                                                     │
-│  DEVELOPER LAYER                                                    │
+│  CAMADA DE PROGRAMADORES                                            │
 │  ┌────────────┐ ┌──────┐ ┌────┐ ┌──────────┐ ┌────────────────┐    │
 │  │ TypeScript │ │  PHP │ │ Go │ │  Python  │ │    Flutter     │    │
 │  │    SDK     │ │  SDK │ │SDK │ │   SDK    │ │     SDK        │    │
 │  └────────────┘ └──────┘ └────┘ └──────────┘ └────────────────┘    │
 │                                                                     │
-│  INFRASTRUCTURE LAYER                                               │
+│  CAMADA DE INFRAESTRUTURA                                           │
 │  ┌──────────────────────────────────────────────────────────────┐   │
-│  │  Rust Core · Go APIs · PostgreSQL · Redis · Grafana           │   │
+│  │  Core Rust · APIs Go · PostgreSQL · Redis · Grafana           │   │
 │  │  OpenTelemetry · Prometheus · Cloudflare · Docker             │   │
 │  └──────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 18.2 The developer platform
+### 18.2 A plataforma de programadores
 
-The developer platform is the infrastructure through which Angola's application builders access instant payments:
+A plataforma de programadores é a infraestrutura através da qual os construtores de aplicações angolanas acedem a pagamentos instantâneos:
 
-- API documentation — comprehensive reference for every endpoint
-- SDK documentation — integration guides for every language
-- Sandbox environment — test without limits, without risk
-- Webhook testing tools — inspect and replay webhook events
-- API key management — generate, rotate, and revoke credentials
-- Integration examples — reference implementations for common flows
+- Documentação API — referência abrangente para cada endpoint
+- Documentação SDK — guias de integração para cada linguagem
+- Ambiente sandbox — teste sem limites, sem risco
+- Ferramentas de teste de webhooks — inspeccionar e reproduzir eventos de webhook
+- Gestão de chaves API — gerar, rodar e revogar credenciais
+- Exemplos de integração — implementações de referência para fluxos comuns
 
-### 18.3 Plugin ecosystem
+### 18.3 Ecossistema de plugins
 
-| Plugin | Platform | What it does |
-|--------|----------|-------------|
-| WooCommerce | WordPress | Payment gateway for WooCommerce-powered Angolan stores |
-| PrestaShop (future) | PrestaShop | Payment module for PrestaShop merchants |
+| Plugin | Plataforma | O que faz |
+|--------|----------|-----------|
+| WooCommerce | WordPress | Gateway de pagamento para lojas angolanas com WooCommerce |
+| PrestaShop (futuro) | PrestaShop | Módulo de pagamento para comerciantes PrestaShop |
 
-Plugins use the SDK internally — they inherit all SDK guarantees: idempotency, retry handling, signature verification.
+Os plugins usam o SDK internamente — herdam todas as garantias do SDK: idempotência, tratamento de retry, verificação de assinatura.
 
-### 18.4 Real-time event catalogue
+### 18.4 Catálogo de eventos em tempo real
 
-| Event | When it fires |
-|-------|--------------|
-| `transaction.completed` | Payment settled successfully |
-| `transaction.failed` | Payment attempt failed |
-| `payout.completed` | Bank withdrawal settled |
-| `refund.created` | Refund initiated |
-| `refund.completed` | Refund settled |
-| `dispute.opened` | Consumer opens a dispute |
-| `dispute.resolved` | Dispute resolved |
-| `payment_request.paid` | Consumer pays a payment request |
-| `payment_request.declined` | Consumer declines a payment request |
-
----
-
-## 19. Roadmap & Future
-
-### Near-term
-
-| Feature | Description |
-|---------|-------------|
-| **Python SDK** | Async-first with Pydantic v2; Django and FastAPI integrations |
-| **Merchant profile management** | Dashboard UI for creating and editing public merchant profiles |
-| **FCM payment request notifications** | Push notifications for incoming payment requests |
-| **Webhook event expansion** | Events for refunds, disputes, and payment requests |
-
-### Medium-term
-
-| Feature | Description |
-|---------|-------------|
-| **Consumer mobile app** | Native Flutter app: wallet, QR scanner, P2P transfers, transaction history |
-| **Recurring payments** | Scheduled requests for subscriptions, school fees, and memberships |
-| **Split payments** | Group bills divided automatically between multiple consumers |
-| **Merchant discovery** | In-app merchant directory; find and pay local merchants |
-| **Offline QR** | Static QR payments that queue and settle when connectivity resumes |
-
-### Long-term
-
-| Feature | Description |
-|---------|-------------|
-| **Marketplace payments** | Multi-merchant settlement in a single consumer purchase |
-| **Card wallet top-up** | Fund a Banzami wallet using a debit card (card is a funding rail — not the payment model) |
-| **Financial interoperability** | Deeper EMIS integration; broader Angolan banking infrastructure compatibility |
-| **Geographic expansion** | After Angola achieves network density: the same model, applied to neighbouring markets |
-| **Business accounts** | Multi-user accounts with role-based permissions and accounting integrations |
-
-### On geographic expansion
-
-Expansion is a future milestone, not a current objective. A payment network becomes valuable through density. A network thin across many countries is worth less to every participant than a network dense in one. Banzami achieves real network density in Angola first, then expands with a model that has already been proven.
-
-The architecture is already designed for it. The timing is not yet.
+| Evento | Quando dispara |
+|--------|---------------|
+| `transaction.completed` | Pagamento liquidado com sucesso |
+| `transaction.failed` | Tentativa de pagamento falhada |
+| `payout.completed` | Levantamento bancário liquidado |
+| `refund.created` | Reembolso iniciado |
+| `refund.completed` | Reembolso liquidado |
+| `dispute.opened` | Consumidor abre uma disputa |
+| `dispute.resolved` | Disputa resolvida |
+| `payment_request.paid` | Consumidor paga um pedido de pagamento |
+| `payment_request.declined` | Consumidor recusa um pedido de pagamento |
 
 ---
 
-## 20. Final Vision Statement
+## 19. Roadmap e Futuro
 
-### What Angola's commerce deserves
+### Curto prazo
 
-Angola's commerce deserves infrastructure that matches its energy.
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **SDK Python** | Async-first com Pydantic v2; integrações Django e FastAPI |
+| **Gestão de perfil de comerciante** | UI do painel para criar e editar perfis públicos de comerciantes |
+| **Notificações FCM de pedidos de pagamento** | Notificações push para pedidos de pagamento recebidos |
+| **Expansão de eventos webhook** | Eventos para reembolsos, disputas e pedidos de pagamento |
 
-Not infrastructure adapted from a foreign model that was never designed for Kwanza, for informal merchants, or for QR-native payments. Not infrastructure dependent on foreign rails, foreign approval, or foreign pricing.
+### Médio prazo
 
-Infrastructure built here. For here.
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **App móvel do consumidor** | App Flutter nativa: carteira, scanner QR, transferências P2P, histórico de transacções |
+| **Pagamentos recorrentes** | Pedidos agendados para subscrições, propinas escolares e quotas |
+| **Pagamentos divididos** | Contas de grupo divididas automaticamente entre múltiplos consumidores |
+| **Descoberta de comerciantes** | Directório de comerciantes na app; encontrar e pagar comerciantes locais |
+| **QR offline** | Pagamentos QR estáticos que fazem fila e liquidam quando a conectividade recomeça |
 
-**That is Banzami.**
+### Longo prazo
 
-### The transformation
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| **Pagamentos em marketplace** | Liquidação multi-comerciante numa única compra do consumidor |
+| **Carregamento de carteira por cartão** | Financiar uma carteira Banzami usando um cartão de débito (o cartão é uma via de financiamento — não o modelo de pagamento) |
+| **Interoperabilidade financeira** | Integração EMIS mais profunda; compatibilidade mais ampla com infraestrutura bancária angolana |
+| **Expansão geográfica** | Após Angola atingir densidade de rede: o mesmo modelo, aplicado a mercados vizinhos |
+| **Contas empresariais** | Contas multi-utilizador com permissões baseadas em funções e integrações contabilísticas |
 
-**Today:**
-- A merchant cannot accept digital payments without expensive hardware or a bank agreement
-- A consumer must photograph bank transfers and send them via WhatsApp to prove a purchase
-- A developer building an Angolan app has no payment SDK built for their market
-- A taxi app cannot close the payment loop in-app
-- A cantina has no choice but cash
-- A school reconciles fee payments from physical receipts, manually, at the end of the week
+### Sobre a expansão geográfica
 
-**Tomorrow — with Banzami:**
-- A merchant prints a QR and accepts instant payments from any smartphone, immediately
-- A consumer scans, confirms, and pays in under 3 seconds — with a cryptographic receipt
-- A developer integrates a typed, production-ready SDK and ships a payment feature in hours
-- A taxi app closes every ride with instant in-app settlement
-- A cantina has a wallet, a dashboard, and full visibility over every transaction
-- A school knows in real time exactly who has paid
+A expansão é um marco futuro, não um objectivo actual. Uma rede de pagamentos torna-se valiosa através da densidade. Uma rede fina em muitos países vale menos para cada participante do que uma rede densa num só. O Banzami atinge densidade de rede real em Angola primeiro, depois expande com um modelo que já foi provado.
 
-### Why this matters beyond commerce
+A arquitectura já está concebida para isso. O timing ainda não chegou.
 
-Payments are not just transactions. They are trust.
+---
 
-When a payment is instant and confirmed, both parties can move forward without doubt. When a receipt is digital and permanent, there is no dispute about what was agreed. When a wallet is always accessible, the ability to participate in economic life is not restricted by geography, formal banking access, or physical cash.
+## 20. Declaração de Visão Final
 
-Banzami makes the Angolan economy more liquid, more transparent, and more accessible — not by replacing what exists, but by completing what is missing.
+### O que o comércio de Angola merece
 
-### The promise
+O comércio de Angola merece infraestrutura que corresponda à sua energia.
 
-Every engineering decision, every product choice, and every design in Banzami reflects one commitment:
+Não infraestrutura adaptada de um modelo estrangeiro que nunca foi concebido para o Kwanza, para comerciantes informais ou para pagamentos QR-native. Não infraestrutura dependente de redes estrangeiras, aprovação estrangeira ou preços estrangeiros.
 
-**Digital payments in Angola should be instant, accessible, integrated, and usable by everyone.**
+Infraestrutura construída aqui. Para aqui.
 
-Not for some merchants. Not for some consumers. Not for some applications.
+**Isso é o Banzami.**
 
-For every cantina. For every taxi. For every school, market vendor, ecommerce site, delivery platform, freelancer, and family.
+### A transformação
 
-For Angola.
+**Hoje:**
+- Um comerciante não pode aceitar pagamentos digitais sem hardware caro ou um acordo bancário
+- Um consumidor tem de fotografar transferências bancárias e enviá-las via WhatsApp para provar uma compra
+- Um programador a construir uma app angolana não tem SDK de pagamentos construído para o seu mercado
+- Uma app de táxi não consegue fechar o ciclo de pagamento na app
+- Uma cantina não tem escolha senão dinheiro físico
+- Uma escola reconcilia pagamentos de propinas a partir de recibos físicos, manualmente, no fim da semana
+
+**Amanhã — com o Banzami:**
+- Um comerciante imprime um QR e aceita pagamentos instantâneos de qualquer smartphone, imediatamente
+- Um consumidor faz o scan, confirma e paga em menos de 3 segundos — com um recibo criptográfico
+- Um programador integra um SDK tipado e pronto para produção e lança uma funcionalidade de pagamento em horas
+- Uma app de táxi fecha cada corrida com liquidação instantânea na app
+- Uma cantina tem uma carteira, um painel e visibilidade total sobre cada transacção
+- Uma escola sabe em tempo real exactamente quem pagou
+
+### Por que isto importa para além do comércio
+
+Os pagamentos não são apenas transacções. São confiança.
+
+Quando um pagamento é instantâneo e confirmado, ambas as partes podem avançar sem dúvida. Quando um recibo é digital e permanente, não há disputa sobre o que foi acordado. Quando uma carteira é sempre acessível, a capacidade de participar na vida económica não é restringida pela geografia, pelo acesso bancário formal ou pelo dinheiro físico.
+
+O Banzami torna a economia angolana mais líquida, mais transparente e mais acessível — não substituindo o que existe, mas completando o que falta.
+
+### A promessa
+
+Cada decisão de engenharia, cada escolha de produto e cada design no Banzami reflecte um compromisso:
+
+**Os pagamentos digitais em Angola devem ser instantâneos, acessíveis, integrados e utilizáveis por todos.**
+
+Não para alguns comerciantes. Não para alguns consumidores. Não para algumas aplicações.
+
+Para cada cantina. Para cada táxi. Para cada escola, vendedor de mercado, site de ecommerce, plataforma de delivery, freelancer e família.
+
+Para Angola.
 
 ```
-   SCAN   →   CONFIRM   →   PAID INSTANTLY
+   SCAN   →   CONFIRMAR   →   PAGO INSTANTANEAMENTE
 ```
 
 ---
 
-*Banzami — Angola's instant payment network.*  
-*Wallet-native. QR-first. Built for every Angolan.*
+*Banzami — A rede de pagamentos instantâneos de Angola.*  
+*Wallet-native. QR-first. Construído para cada angolano.*
 
 ---
 
-**Document references:**
+**Referências do documento:**
 
-- [ADR-013 — Wallet-Native Payment Network Identity](adr/ADR-013-wallet-native-identity.md)
-- [ADR-014 — Angola-First National Mission](adr/ADR-014-angola-national-mission.md)
-- [ADR-012 — SDK-First Ecosystem](adr/ADR-012-sdk-first-ecosystem.md)
-- [Product Strategy](product/strategy.md)
-- [Market Positioning](product/positioning.md)
-- [Mobile UX Philosophy](standards/mobile-ux-philosophy.md)
-- [Merchant Onboarding](domains/merchant-onboarding/README.md)
-- [Architecture README](architecture/README.md)
-- [TypeScript SDK](../sdk/typescript/README.md)
-- [PHP SDK](../sdk/php/README.md)
-- [CLAUDE.md — Engineering Constitution](../CLAUDE.md)
+- [ADR-013 — Identidade de Rede de Pagamentos Wallet-Native](adr/ADR-013-wallet-native-identity.md)
+- [ADR-014 — Missão Nacional Angola-First](adr/ADR-014-angola-national-mission.md)
+- [ADR-012 — Ecossistema SDK-First](adr/ADR-012-sdk-first-ecosystem.md)
+- [Estratégia de Produto](product/strategy.md)
+- [Posicionamento de Mercado](product/positioning.md)
+- [Filosofia UX Móvel](standards/mobile-ux-philosophy.md)
+- [Onboarding de Comerciantes](domains/merchant-onboarding/README.md)
+- [README de Arquitectura](architecture/README.md)
+- [SDK TypeScript](../sdk/typescript/README.md)
+- [SDK PHP](../sdk/php/README.md)
+- [CLAUDE.md — Constituição de Engenharia](../CLAUDE.md)
