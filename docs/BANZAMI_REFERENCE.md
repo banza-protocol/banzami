@@ -323,15 +323,15 @@ Este é o núcleo da rede. Cada funcionalidade do produto — códigos QR, links
 Cada pessoa e cada comerciante no Banzami tem uma **carteira digital em Kwanza**. Uma carteira detém saldos em AOA, recebe pagamentos e envia transferências. Não é uma conta bancária — é uma conta de pagamento nativa Banzami, acessível instantaneamente a partir de qualquer dispositivo.
 
 ```
-┌─────────────────────────────────────┐
-│  @joao                        │
-│  ID Carteira: wlt_...               │
-│                                     │
-│  Disponível:   12.750 Kz  ← gastável agora
-│  Reservado:     2.500 Kz  ← operação pendente
-│  ─────────────────────────────────  │
-│  Total:        15.250 Kz            │
-└─────────────────────────────────────┘
+┌──────────────────────────────────────────────────┐
+│  @joao                                           │
+│  ID Carteira: wlt_...                            │
+│                                                  │
+│  Disponível:   12.750 Kz  ← gastável agora       │
+│  Reservado:     2.500 Kz  ← operação pendente    │
+│  ──────────────────────────────────────────────  │
+│  Total:        15.250 Kz                         │
+└──────────────────────────────────────────────────┘
 ```
 
 O saldo **disponível** pode ser gasto ou transferido imediatamente. O saldo **reservado** cobre operações pendentes. Ambos são sempre exactos. Não existe "por favor verifique daqui a alguns minutos."
