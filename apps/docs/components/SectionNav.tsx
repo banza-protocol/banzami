@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import type { ReferenceSection } from '@/lib/types'
 
 interface Props {
@@ -10,6 +11,28 @@ interface Props {
 
 export function SectionNav({ sections }: Props) {
   const pathname = usePathname()
+  const [scrollActiveNumber, setScrollActiveNumber] = useState<number | null>(null)
+
+  // On /reference, track which section is visible and highlight it in the sidebar
+  useEffect(() => {
+    if (pathname !== '/reference') {
+      setScrollActiveNumber(null)
+      return
+    }
+
+    const update = () => {
+      let current: number | null = sections[0]?.number ?? null
+      for (const s of sections) {
+        const el = document.getElementById(`section-${s.number}`)
+        if (el && el.getBoundingClientRect().top <= 120) current = s.number
+      }
+      setScrollActiveNumber(current)
+    }
+
+    window.addEventListener('scroll', update, { passive: true })
+    update()
+    return () => window.removeEventListener('scroll', update)
+  }, [pathname, sections])
 
   const isActive = (href: string) => pathname === href
 
@@ -53,7 +76,12 @@ export function SectionNav({ sections }: Props) {
 
       {sections.map((section) => {
         const href = `/${section.slug}`
-        const active = isActive(href)
+        // On /reference: highlight based on scroll position
+        // On individual section pages: highlight based on pathname
+        const active =
+          pathname === '/reference'
+            ? scrollActiveNumber === section.number
+            : isActive(href)
         return (
           <Link
             key={section.id}
@@ -65,7 +93,7 @@ export function SectionNav({ sections }: Props) {
             }`}
           >
             <span
-              className={`w-5 shrink-0 font-mono text-[10px] ${active ? 'text-bz-primary' : 'text-bz-border'}`}
+              className={`w-5 shrink-0 font-mono text-[10px] transition-colors ${active ? 'text-bz-primary' : 'text-bz-border'}`}
             >
               {section.number}.
             </span>

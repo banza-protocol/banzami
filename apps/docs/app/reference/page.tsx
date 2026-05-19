@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { getReference } from '@/lib/reference'
 import { MarkdownSection } from '@/components/MarkdownSection'
 import { ReadingProgress } from '@/components/ReadingProgress'
+import { ReferenceToc } from '@/components/ReferenceToc'
+import { ReferenceMobileToc } from '@/components/ReferenceMobileToc'
 
 export const metadata: Metadata = {
   title: 'Referência Oficial Banzami',
@@ -19,26 +21,8 @@ export default function ReferencePage() {
       <ReadingProgress />
 
       <div className="flex min-h-screen">
-        {/* Sticky mini ToC — visible on xl+ */}
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 overflow-y-auto border-r border-bz-border bg-white px-3 py-5 xl:block">
-          <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-bz-muted">
-            Índice
-          </div>
-          <nav className="flex flex-col gap-0.5">
-            {reference.sections.map((section) => (
-              <a
-                key={section.id}
-                href={`#section-${section.number}`}
-                className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-[11px] text-bz-muted transition-colors hover:bg-bz-surface hover:text-bz-text"
-              >
-                <span className="w-4 shrink-0 font-mono text-[9px] text-bz-border">
-                  {section.number}.
-                </span>
-                <span className="line-clamp-1">{section.title}</span>
-              </a>
-            ))}
-          </nav>
-        </aside>
+        {/* Sticky mini ToC — visible on xl+ with active section tracking */}
+        <ReferenceToc sections={reference.sections} />
 
         {/* Main document */}
         <div className="min-w-0 flex-1 px-5 py-10 md:px-8 lg:px-12">
@@ -74,25 +58,8 @@ export default function ReferencePage() {
               </div>
             </div>
 
-            {/* Mobile ToC */}
-            <details className="mb-10 rounded-2xl border border-bz-border bg-white p-5 xl:hidden">
-              <summary className="cursor-pointer text-sm font-semibold text-bz-text">
-                Índice ({reference.sections.length} secções)
-              </summary>
-              <ol className="mt-4 grid gap-1 sm:grid-cols-2">
-                {reference.sections.map((section) => (
-                  <li key={section.id}>
-                    <a
-                      href={`#section-${section.number}`}
-                      className="flex items-baseline gap-2 rounded-lg px-2 py-1 text-sm text-bz-muted hover:bg-bz-surface hover:text-bz-text transition-colors"
-                    >
-                      <span className="font-mono text-[10px] text-bz-border">{section.number}.</span>
-                      {section.title}
-                    </a>
-                  </li>
-                ))}
-              </ol>
-            </details>
+            {/* Mobile ToC — active section tracking */}
+            <ReferenceMobileToc sections={reference.sections} />
 
             {/* All sections rendered from BANZAMI_REFERENCE.md */}
             {reference.sections.map((section) => (
