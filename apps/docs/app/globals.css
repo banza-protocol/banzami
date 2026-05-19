@@ -17,6 +17,7 @@
     scroll-behavior: smooth;
     background-color: var(--bz-bg);
     color: var(--bz-text);
+    overflow-x: hidden; /* iOS Safari: overflow on body alone does not prevent horizontal scroll */
   }
 
   body {
