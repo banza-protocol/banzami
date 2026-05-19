@@ -233,6 +233,28 @@ O encarregado vê o valor, o nome da escola e o trimestre.
 Um toque. Pago. A escola regista-o imediatamente.
 ```
 
+```
+Uma utilizadora chama um táxi a partir da aplicação.
+O motorista chega. A corrida termina. A tarifa aparece automaticamente: 3.200 Kz.
+"Pagar com Banzami."
+Um toque. Confirmação biométrica.
+A carteira da passageira debita. A carteira do motorista é creditada na mesma fracção de segundo.
+A corrida fecha. O recibo está na app.
+Nenhum comprovativo por WhatsApp. Nenhuma transferência manual. Nenhum dinheiro físico.
+```
+
+```
+Uma cliente vê um vestido numa loja angolana online.
+Adiciona ao carrinho. Vai ao checkout.
+"Pagar com Banzami."
+A aplicação abre o fluxo de pagamento Banzami.
+Ela confirma o valor: 15.000 Kz.
+O comerciante recebe confirmação via webhook em menos de 2 segundos.
+O pedido muda imediatamente para: "Pagamento confirmado."
+Sem cartão internacional. Sem IBAN. Sem referência manual.
+Compra online em Kwanza. Instantaneamente.
+```
+
 Estes não são futuros ambiciosos. São alcançáveis hoje, com infraestrutura que já existe, para utilizadores que já estão ligados. O Banzami é a camada que falta.
 
 ### Como é o sucesso
