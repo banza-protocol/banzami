@@ -286,7 +286,7 @@ Os modelos de referência para este tipo de transformação existem. O **Pix** d
 
 **8h00.** Na cantina da esquina perto do seu apartamento, a Amélia pede café e pão. Aponta o telemóvel para o código QR colado na parede. A app mostra `@cantina.margarida`. Ela escreve `1.500 Kz` e prime o polegar para confirmar. O telemóvel da Margarida acende-se no balcão: *"Recebeu 1.500 Kz de @amelia."* Sem troco. Sem espera. Pequeno-almoço feito.
 
-**8h30.** A Amélia trabalha como designer gráfica freelance. Um cliente devia-lhe pelo logótipo. Ela tinha enviado um link de pagamento na semana passada: `pay.banzami.org/fatura-logo-92`. Esta manhã abre o painel do comerciante no portátil e vê o estado mudar para **Pago** — o cliente pagou às 8h22. Ela tem o dinheiro. Tem o recibo digital. Não teve de enviar uma única mensagem de WhatsApp para o perseguir.
+**8h30.** A Amélia trabalha como designer gráfica freelance. Um cliente devia-lhe pelo logótipo. Ela tinha enviado um link de pagamento na semana passada: `pay.banzami.org/fatura-logo-92`. Esta manhã abre a Banzami Business no portátil e vê o estado mudar para **Pago** — o cliente pagou às 8h22. Ela tem o dinheiro. Tem o recibo digital. Não teve de enviar uma única mensagem de WhatsApp para o perseguir.
 
 **12h30.** Almoço com três colegas. O restaurante gera um QR dinâmico para a mesa do grupo — total 18.000 Kz, dividido por quatro. Cada pessoa faz o scan do QR do seu telemóvel e paga 4.500 Kz. A app do restaurante mostra `18.000 Kz recebidos` em segundos após o último scan. Ninguém tira a carteira. Ninguém faz aritmética mental a tentar fazer o troco. A mesa liberta-se em minutos.
 
@@ -470,12 +470,12 @@ O Banzami não substitui o sistema bancário. Constrói a camada de comércio ac
 | Funcionalidade | Descrição |
 |----------------|-----------|
 | **Carteira do comerciante** | Carteira de negócio dedicada para receber pagamentos, acompanhar saldos e solicitar pagamentos |
-| **Painel do comerciante** | Interface web para histórico de transacções, análises, reembolsos, disputas e gestão de equipa |
+| **Banzami Business** | Plataforma operacional do comerciante: interface móvel para operação diária e interface web para análises, reembolsos, disputas e gestão de equipa |
 | **Loja QR** | Página de perfil público do comerciante em `pay.banzami.org/profiles/@banza` |
 | **Geração de QR estático** | Código QR permanente para a carteira do comerciante; imprimir e exibir em qualquer lugar |
 | **Geração de QR dinâmico** | QR por transacção com valor fixo e expiração |
 | **Pagamentos** | Levanta o saldo da carteira para uma conta bancária angolana a pedido |
-| **Reembolsos** | Emite reembolsos parciais ou totais a partir do painel ou da API |
+| **Reembolsos** | Emite reembolsos parciais ou totais a partir da Banzami Business ou da API |
 | **Gestão de disputas** | Processo de resolução estruturado para disputas de pagamento |
 
 ### Plataforma de programadores
@@ -577,7 +577,7 @@ A app de delivery integra o SDK Flutter. Quando o motorista marca uma encomenda 
 Uma escola cobra propinas via transferência bancária. Os encarregados fazem fila nos bancos. Os recibos são entregues manualmente. A escola não tem visão em tempo real dos saldos em dívida.
 
 **Com o Banzami:**  
-A escola emite pedidos de pagamento para cada aluno. Os encarregados recebem uma notificação, vêem o nome do aluno e o valor, e pagam com um toque. O painel da escola mostra pagos e em dívida em tempo real.
+A escola emite pedidos de pagamento para cada aluno. Os encarregados recebem uma notificação, vêem o nome do aluno e o valor, e pagam com um toque. A Banzami Business mostra pagos e em dívida em tempo real.
 
 ```
 ANTES: Encarregado faz fila no banco → transferência manual → entrega recibo → escola processa manualmente
@@ -1196,7 +1196,7 @@ O Banzami não é um produto único — é um ecossistema de participantes inter
 │                                                             │
 │  ┌──────────────┐    paga    ┌──────────────────────────┐   │
 │  │  Consumidores│───────────>│  Comerciantes            │   │
-│  │  (carteiras) │<───────────│  (carteiras + painel)    │   │
+│  │  (carteiras) │<───────────│  (Banzami Business)      │   │
 │  └──────────────┘   recebe   └──────────────────────────┘   │
 │         │                              │                    │
 │         v                              v                    │
@@ -1343,7 +1343,7 @@ Cada decisão arquitectural é ordenada por:
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                          CLIENTES                               │
-│   App Consumidor · Painel Comerciante · App 3ª Parte · SDKs     │
+│   App Consumidor · Banzami Business · Apps Integradas · SDKs    │
 └──────────────────────────┬──────────────────────────────────────┘
                            │ HTTPS / TLS 1.3
                            v
@@ -1460,9 +1460,9 @@ Três painéis principais Grafana fornecem visibilidade operacional:
 │                                                                     │
 │  CAMADA DO COMERCIANTE                                              │
 │  ┌──────────────────┐   ┌──────────────────────────────────────┐    │
-│  │  Painel do       │   │  QR (estático + dinâmico)            │    │
-│  │  Comerciante     │   │  Links · Pedidos de pagamento        │    │
-│  │  (Next.js)       │   │  Reembolsos · Disputas · Análises    │    │
+│  │  Banzami Business│   │  QR (estático + dinâmico)            │    │
+│  │  Interface movel │   │  Links · Pedidos de pagamento        │    │
+│  │  Interface web   │   │  Reembolsos · Disputas · Análises    │    │
 │  └──────────────────┘   └──────────────────────────────────────┘    │
 │                                                                     │
 │  CAMADA DE OPERAÇÕES                                                │
@@ -1527,7 +1527,7 @@ Os plugins usam o SDK internamente — herdam todas as garantias do SDK: idempot
 | Funcionalidade | Descrição |
 |----------------|-----------|
 | **SDK Python** | Async-first com Pydantic v2; integrações Django e FastAPI |
-| **Gestão de perfil de comerciante** | UI do painel para criar e editar perfis públicos de comerciantes |
+| **Gestão de perfil de comerciante** | Interface na Banzami Business para criar e editar perfis públicos de comerciantes |
 | **Notificações FCM de pedidos de pagamento** | Notificações push para pedidos de pagamento recebidos |
 | **Expansão de eventos webhook** | Eventos para reembolsos, disputas e pedidos de pagamento |
 
@@ -1586,7 +1586,7 @@ Infraestrutura construída aqui. Para aqui.
 - Um consumidor faz o scan, confirma e paga em menos de 3 segundos — com um recibo criptográfico
 - Um programador integra um SDK tipado e pronto para produção e lança uma funcionalidade de pagamento em horas
 - Uma app de táxi fecha cada corrida com liquidação instantânea na app
-- Uma cantina tem uma carteira, um painel e visibilidade total sobre cada transacção
+- Uma cantina tem uma carteira, a Banzami Business e visibilidade total sobre cada transacção
 - Uma escola sabe em tempo real exactamente quem pagou
 
 ### Por que isto importa para além do comércio
