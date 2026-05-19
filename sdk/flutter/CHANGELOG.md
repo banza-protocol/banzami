@@ -16,9 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BanzamiApiException` with `statusCode`, `code`, and convenience flags: `isInsufficientFunds`, `isHandleTaken`, `isQrExpired`
 - `BanzamiNetworkException` for connectivity failures (no HTTP response received)
 - `CheckoutScreen` — full-screen hosted payment page displaying a QR code and deep-link button; polls every 3 seconds and fires `onSuccess` on confirmation
-- `BanzamiSendScreen` — P2P transfer flow: recipient handle entry, amount input, confirmation, and `onSuccess` callback with the completed `Transfer`
-- `BanzamiReceiveScreen` — displays the consumer's `@handle` as a scannable QR code; supports optional fixed-amount mode with real-time QR payload updates
-- `BanzamiScanScreen` — camera-based QR scan-to-pay flow supporting both `banzami:@{handle}` deep links and payment link URLs; handles camera permission errors with a retry path
+- `BanzamiSendScreen` — P2P transfer flow: recipient @banza entry, amount input, confirmation, and `onSuccess` callback with the completed `Transfer`
+- `BanzamiReceiveScreen` — displays the consumer's `@banza` as a scannable QR code; supports optional fixed-amount mode with real-time QR payload updates
+- `BanzamiScanScreen` — camera-based QR scan-to-pay flow supporting both `banzami:@{banza}` deep links and payment link URLs; handles camera permission errors with a retry path
 - `BanzamiButton` widget with four variants: primary, secondary (outlined), ghost (text-only), and destructive; supports `isLoading`, `fullWidth`, and leading `icon`
 - `BanzamiAmountInput` widget — large-format monetary input that exposes minor units via `onChanged`; supports thousands separator, `errorText`, and `enabled` flag
 - `BanzamiQrDisplay` widget with static and dynamic constructors; shows amount label and subtitle beneath the QR code in Banzami visual style

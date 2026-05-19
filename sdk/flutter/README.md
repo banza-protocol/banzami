@@ -98,7 +98,7 @@ final link = await client.getPaymentLinkBySlug('abc123');
 await client.payPaymentLink(link.slug, amountMinor: link.amountMinor);
 ```
 
-### P2P transfer by handle
+### P2P transfer by @banza
 
 ```dart
 final transfer = await client.sendByHandle(
@@ -180,7 +180,7 @@ Navigator.pushReplacement(
 |---------------|-------------------------|----------|----------------------------------------------------------|
 | `client`      | `ConsumerPublicClient`  | yes      | Authenticated consumer client                            |
 | `consumerId`  | `String`                | yes      | Used to determine debit/credit direction in transfer list|
-| `handle`      | `String`                | yes      | Consumer's own handle — excluded from send autocomplete  |
+| `handle`      | `String`                | yes      | Consumer's own @banza — excluded from send autocomplete  |
 | `logoAssetPath` | `String?`             | no       | Asset path for the QR code logo on the receive screen    |
 | `environment` | `BanzamiEnvironment`    | no       | Default: `production`. Set `sandbox` to show fund panel  |
 
@@ -188,7 +188,7 @@ Navigator.pushReplacement(
 
 ### `BanzamiSendScreen`
 
-P2P transfer flow. The user enters a recipient `@handle`, an amount, and an optional description. Suggestions appear after 2 characters and are fetched from `GET /v1/consumers/search`. Handle existence is validated on blur and blocked at send time if unregistered.
+P2P transfer flow. The user enters a recipient `@banza`, an amount, and an optional description. Suggestions appear after 2 characters and are fetched from `GET /v1/consumers/search`. @banza existence is validated on blur and blocked at send time if unregistered.
 
 ```dart
 Navigator.push(
@@ -210,13 +210,13 @@ Navigator.push(
 |-------------|------------------------------|----------|--------------------------------------------------------|
 | `client`    | `ConsumerPublicClient`       | yes      | Authenticated consumer client                          |
 | `onSuccess` | `void Function(Transfer)`    | yes      | Called with the completed transfer                     |
-| `ownHandle` | `String?`                    | no       | Logged-in consumer's handle — filtered from suggestions|
+| `ownHandle` | `String?`                    | no       | Logged-in consumer's @banza — filtered from suggestions|
 
 ---
 
 ### `BanzamiReceiveScreen`
 
-Displays the consumer's `@handle` as a scannable QR code. The user can optionally set a fixed amount; the QR payload updates in real time to include it.
+Displays the consumer's `@banza` as a scannable QR code. The user can optionally set a fixed amount; the QR payload updates in real time to include it.
 
 ```dart
 Navigator.push(
@@ -229,7 +229,7 @@ Navigator.push(
 
 | Parameter | Type     | Required | Description                             |
 |-----------|----------|----------|-----------------------------------------|
-| `handle`  | `String` | yes      | The logged-in consumer's Banzami handle |
+| `handle`  | `String` | yes      | The logged-in consumer's @banza         |
 
 ---
 
@@ -237,7 +237,7 @@ Navigator.push(
 
 Camera-based QR scan-to-pay flow. Supports two QR formats:
 
-- `banzami:@{handle}[?amount={minor}&currency=AOA]` — resolves to a P2P transfer
+- `banzami:@{banza}[?amount={minor}&currency=AOA]` — resolves to a P2P transfer
 - Any URL — extracts the slug from the last path segment and pays the payment link
 
 ```dart
@@ -354,7 +354,7 @@ BanzamiQrDisplay.dynamic(
 |---------------|-----------|---------|------------------------------------------|
 | `payload`     | `String`  | required| QR data string                           |
 | `amountLabel` | `String?` | `null`  | Pre-formatted amount shown below the QR  |
-| `subtitle`    | `String?` | `null`  | Secondary label (e.g. `@handle`)         |
+| `subtitle`    | `String?` | `null`  | Secondary label (e.g. `@banza`)          |
 | `size`        | `double`  | `240`   | QR code size in logical pixels           |
 
 ---
@@ -523,7 +523,7 @@ flutter test
 | Model                    | Source                             | Description                              |
 |--------------------------|------------------------------------|------------------------------------------|
 | `Consumer`               | `models/consumer.dart`             | Banzami consumer account                 |
-| `ConsumerSuggestion`     | `models/consumer_suggestion.dart`  | Lightweight handle autocomplete result   |
+| `ConsumerSuggestion`     | `models/consumer_suggestion.dart`  | Lightweight @banza autocomplete result   |
 | `Merchant`               | `models/merchant.dart`             | Merchant account                         |
 | `MerchantBalance`        | `models/merchant.dart`             | Wallet balance for a merchant            |
 | `MerchantTransaction`    | `models/merchant.dart`             | Single merchant transaction              |
