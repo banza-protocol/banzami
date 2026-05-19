@@ -1622,14 +1622,14 @@ Para Angola.
 
 **Referências do documento:**
 
-- [ADR-013 — Identidade de Rede de Pagamentos Wallet-Native](adr/ADR-013-wallet-native-identity.md)
-- [ADR-014 — Missão Nacional Angola-First](adr/ADR-014-angola-national-mission.md)
-- [ADR-012 — Ecossistema SDK-First](adr/ADR-012-sdk-first-ecosystem.md)
-- [Estratégia de Produto](product/strategy.md)
-- [Posicionamento de Mercado](product/positioning.md)
-- [Filosofia UX Móvel](standards/mobile-ux-philosophy.md)
-- [Onboarding de Comerciantes](domains/merchant-onboarding/README.md)
-- [README de Arquitectura](architecture/README.md)
-- [SDK TypeScript](../sdk/typescript/README.md)
-- [SDK PHP](../sdk/php/README.md)
-- [CLAUDE.md — Constituição de Engenharia](../CLAUDE.md)
+- ADR-013 — Identidade de Rede de Pagamentos Wallet-Native
+- ADR-014 — Missão Nacional Angola-First
+- ADR-012 — Ecossistema SDK-First
+- Estratégia de Produto
+- Posicionamento de Mercado
+- Filosofia UX Móvel
+- Onboarding de Comerciantes
+- README de Arquitectura
+- SDK TypeScript
+- SDK PHP
+- CLAUDE.md — Constituição de Engenharia
