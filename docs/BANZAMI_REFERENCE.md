@@ -122,9 +122,9 @@ Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados
 
 **Banza** é uma palavra enraizada na tradição linguística Kimbundu — uma das línguas vivas mais antigas de Angola, falada por milhões de angolanos, presente em topónimos por todo o país e tecida na memória cultural desta nação. Uma *banza* é um lugar. Um encontro. Uma casa. Um centro de vida onde as pessoas se reúnem.
 
-A **Banza** — o produto de pagamento — herda directamente este significado: um espaço onde o comércio acontece, onde o dinheiro circula, onde angolanos se encontram para trocar valor.
+O **Banza** — o produto de pagamento — herda directamente este significado: um espaço onde o comércio acontece, onde o dinheiro circula, onde angolanos se encontram para trocar valor.
 
-A **Banzami** — a organização — parte dessa mesma raiz e constrói a partir dela o ecossistema que torna tudo isso possível.
+O **Banzami** — a organização — parte dessa mesma raiz e constrói a partir dela o ecossistema que torna tudo isso possível.
 
 Um nome distintamente angolano — não uma palavra emprestada, não um conceito traduzido, não uma marca inventada noutro continente — era a única escolha honesta.
 
@@ -722,12 +722,12 @@ Cada titular de conta possui uma **Banza Wallet em Kwanza**. Quando um consumido
 ```
 ┌───────────────────┐                      ┌───────────────────┐
 │   Consumidor      │                      │   Comerciante     │
-│   Carteira        │ --[transferencia]--> │   Carteira        │
+│   Carteira        │ --[transferência]--> │   Carteira        │
 │   @joao           │      no ledger       │   @cantina.luanda │
-│   Saldo: 15Kz     │                      │   Saldo: 0Kz      │
+│   Saldo: 15 Kz    │                      │   Saldo: 0 Kz     │
 └───────────────────┘                      └───────────────────┘
          ↓ Após pagamento                           ↓
-    Saldo: 12.5 Kz                          Saldo: 2.5 Kz
+    Saldo: 12,5 Kz                          Saldo: 2,5 Kz
 ```
 
 Esta é a imagem completa. Sem rede de cartões. Sem processador intermediário. Uma operação de ledger. Ambos os saldos actualizam instantânea e atomicamente.
@@ -781,11 +781,11 @@ O Banza Business é a plataforma operacional para comerciantes no ecossistema Ba
              Banza Business
          /                      \
 ┌──────────────────┐   ┌──────────────────┐
-│  Interface movel │   │   Interface web  │
+│  Interface móvel │   │   Interface web  │
 ├──────────────────┤   ├──────────────────┤
-│  operacao diaria │   │  administracao   │
+│  operação diária │   │  administração   │
 │  QR              │   │  analytics       │
-│  notificacoes    │   │  equipa / SDK    │
+│  notificações    │   │  equipa / SDK    │
 │  saldo e pedidos │   │  disputas        │
 └──────────────────┘   └──────────────────┘
 ```
@@ -854,8 +854,8 @@ QR / @banza / Link
 ┌─────────────────────┐
 │  Banza Business   │  <- comerciante notificado imediatamente
 ├─────────────────────┤
-│  Interface movel    │  <- operacao diaria, QR, saldo
-│  Interface web      │  <- analytics, gestao avancada
+│  Interface móvel    │  <- operação diária, QR, saldo
+│  Interface web      │  <- analytics, gestão avançada
 └─────────────────────┘
 ```
 
@@ -1486,7 +1486,7 @@ Três painéis principais Grafana fornecem visibilidade operacional:
 │  CAMADA DO COMERCIANTE                                              │
 │  ┌──────────────────┐   ┌──────────────────────────────────────┐    │
 │  │  Banza Business│   │  QR (estático + dinâmico)            │    │
-│  │  Interface movel │   │  Links · Pedidos de pagamento        │    │
+│  │  Interface móvel │   │  Links · Pedidos de pagamento        │    │
 │  │  Interface web   │   │  Reembolsos · Disputas · Análises    │    │
 │  └──────────────────┘   └──────────────────────────────────────┘    │
 │                                                                     │
@@ -1580,7 +1580,7 @@ Os plugins usam o SDK internamente — herdam todas as garantias do SDK: idempot
 
 A expansão é um marco futuro, não um objectivo actual. Uma rede de pagamentos torna-se valiosa através da densidade. Uma rede fina em muitos países vale menos para cada participante do que uma rede densa num só. O Banza atinge densidade de rede real em Angola primeiro, depois expande com um modelo que já foi provado.
 
-A arquitectura já está concebida para isso. O timing ainda não chegou.
+A arquitectura já está concebida para isso. O momento ainda não chegou.
 
 ---
 
