@@ -408,7 +408,8 @@ banzami/
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
 │   ├── merchant/                  Standalone Flutter merchant app (reference project)
-│   └── docs/                      Developer documentation site
+│   ├── docs/                      Developer documentation site
+│   └── validation-studio/         LOCAL-ONLY governance workstation (Next.js, :3099)
 │
 ├── sdk/
 │   ├── flutter/                   Flutter SDK — mobile runtime (iOS + Android)
@@ -455,7 +456,7 @@ banzami/
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
-│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-012)
+│   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-016)
 │   ├── domains/                   Per-domain technical documentation
 │   │   ├── acquiring/             Acquiring flow, wallet settlement, EMIS integration
 │   │   └── consumer-deposits/     Consumer wallet top-up via Multicaixa Express
@@ -463,7 +464,8 @@ banzami/
 │   ├── sandbox/                   Sandbox developer guide, env isolation, sandbox-vs-production
 │   ├── runbooks/                  Operational runbooks
 │   ├── playbooks/                 Incident playbooks
-│   └── api/                       API reference documentation
+│   ├── api/                       API reference documentation
+│   └── validation/                Implementation matrix + governance model (BANZAMI_IMPLEMENTATION_MATRIX.json)
 │
 ├── tools/                         Internal developer tooling
 ├── CLAUDE.md                      Engineering Constitution (mandatory reading)
@@ -1830,6 +1832,8 @@ The Rust job spins up a PostgreSQL 16 service container so `#[sqlx::test]` integ
 | `make test-all`      | Run all test suites (Rust + Go + TypeScript SDK)   |
 | `make check-all`     | Run all linters and type-checkers                  |
 | `make sqlx-prepare`  | Regenerate `.sqlx/` offline query cache            |
+| `make studio`        | Start Validation Studio at http://localhost:3099 (local only) |
+| `make studio-install`| Install Validation Studio npm dependencies        |
 
 ---
 
