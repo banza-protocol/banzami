@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-05-19",
+    "lastUpdated": "2026-05-20",
     "referenceVersion": "1.0",
     "referenceFile": "docs/BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
@@ -124,7 +124,7 @@
       "referenceSection": "§15 (ADR-015)",
       "description": "Sistema de controlo de implementação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação.",
       "requirement": "Página /validacao com matriz completa de implementação, filtros, pesquisa, métricas globais e rastreabilidade ao documento de referência.",
-      "status": "IN_PROGRESS",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js · TypeScript · JSON",
@@ -144,7 +144,7 @@
       ],
       "dependencies": ["DOC-001"],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "IDT-001",
@@ -1257,7 +1257,7 @@
       "referenceSection": "§16.5",
       "description": "Verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Por níveis conforme volume.",
       "requirement": "KYC obrigatório antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
-      "status": "PLANNED",
+      "status": "BLOCKED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Go · Flutter · Parceiro KYC",
@@ -1272,8 +1272,11 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": ["WAL-001"],
-      "blockingIssues": ["Parceiro KYC angolano não seleccionado"],
-      "lastUpdated": "2026-05-19"
+      "blockingIssues": [
+        "Decisão de parceiro KYC angolano pendente — acção não técnica, bloqueia todo o arranque KYC",
+        "Sem parceiro seleccionado não é possível iniciar integração técnica"
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "KYC-002",
@@ -1807,10 +1810,11 @@
       "id": "RD-001",
       "title": "App móvel do consumidor Banza (Flutter)",
       "categoryId": "cat-roadmap",
-      "referenceSection": "§19 — Médio prazo",
-      "description": "App Flutter nativa para consumidores — carteira, scanner QR, transferências P2P, histórico e gestão de conta.",
+      "referenceSection": "§6.4, §13",
+      "description": "App Flutter nativa para consumidores — carteira, scanner QR, transferências P2P, histórico e gestão de conta. Este é o produto principal do consumidor, não uma funcionalidade de roadmap.",
       "requirement": "App nativa disponível em Android e iOS. UX da §6.4 e §13 completamente implementada.",
-      "status": "FUTURE",
+      "status": "PLANNED",
+      "notes": "Reclassificado de FUTURE para PLANNED — a app do consumidor é o produto, não roadmap. Sem ela nenhum consumidor pode pagar via QR. Integração na Fase 4 do roadmap de execução.",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Dart",
@@ -1823,9 +1827,9 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": ["API-001", "API-002"],
+      "dependencies": ["API-001", "API-002", "QR-003"],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "RD-002",
