@@ -23,39 +23,25 @@ export function WalletToWalletVisual() {
           </div>
         </div>
 
-        {/* Ledger bridge */}
-        <div className="flex flex-col items-center justify-center gap-2 md:py-4">
-          {/* Arrow down on mobile */}
-          <div className="flex flex-col items-center gap-1 md:hidden">
-            <div className="h-6 w-0.5 bg-bz-primary/30" />
-            <svg className="h-4 w-4 text-bz-primary" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 16l-6-8h12z" />
-            </svg>
+        {/* Ledger bridge — one atomic operation, no relay arrows */}
+        <div className="flex flex-col items-center justify-center md:py-4">
+          {/* Mobile: vertical plain line */}
+          <div className="flex flex-col items-center md:hidden">
+            <div className="h-5 w-px bg-bz-primary/30" />
+            <div className="my-1 rounded-xl border border-bz-primary/25 bg-bz-primary-light px-4 py-3 text-center">
+              <div className="text-[11px] font-bold tracking-[0.15em] text-bz-primary">LEDGER ATÓMICO</div>
+              <div className="mt-1 text-[10px] text-bz-primary/70">Débito ↔ Crédito</div>
+            </div>
+            <div className="h-5 w-px bg-bz-primary/30" />
           </div>
-          {/* Arrow right on desktop */}
-          <div className="hidden items-center gap-1 md:flex">
-            <div className="h-0.5 w-6 bg-bz-primary/30" />
-            <svg className="h-4 w-4 text-bz-primary" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16 12l-8-6v12z" />
-            </svg>
-          </div>
-          <div className="rounded-xl border border-bz-primary/20 bg-bz-primary-light px-3 py-2 text-center">
-            <div className="text-xs font-bold text-bz-primary">LEDGER</div>
-            <div className="mt-0.5 text-[10px] text-bz-muted">Entrada dupla</div>
-          </div>
-          {/* Arrow right on desktop */}
-          <div className="hidden items-center gap-1 md:flex">
-            <svg className="h-4 w-4 text-bz-primary" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16 12l-8-6v12z" />
-            </svg>
-            <div className="h-0.5 w-6 bg-bz-primary/30" />
-          </div>
-          {/* Arrow down on mobile */}
-          <div className="flex flex-col items-center gap-1 md:hidden">
-            <svg className="h-4 w-4 text-bz-primary" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 16l-6-8h12z" />
-            </svg>
-            <div className="h-6 w-0.5 bg-bz-primary/30" />
+          {/* Desktop: horizontal plain line */}
+          <div className="hidden items-center md:flex">
+            <div className="h-px w-8 bg-bz-primary/30" />
+            <div className="rounded-xl border border-bz-primary/25 bg-bz-primary-light px-3 py-2.5 text-center">
+              <div className="text-[11px] font-bold tracking-[0.15em] text-bz-primary">LEDGER ATÓMICO</div>
+              <div className="mt-0.5 text-[10px] text-bz-primary/70">Débito ↔ Crédito</div>
+            </div>
+            <div className="h-px w-8 bg-bz-primary/30" />
           </div>
         </div>
 
@@ -68,7 +54,6 @@ export function WalletToWalletVisual() {
             Carteira Comerciante
           </div>
           <div className="text-2xl font-bold text-bz-text">@cantina.luanda</div>
-          <div className="mt-2 text-sm text-bz-muted">Saldo actualizado ao instante</div>
           <div className="mt-4 rounded-xl bg-green-50 px-4 py-3 text-sm">
             <span className="font-semibold text-green-700">+ 2.500 Kz</span>
             <span className="ml-2 text-bz-muted">Crédito</span>
