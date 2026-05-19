@@ -202,7 +202,7 @@ O hábito já existe. A Banza melhora-o.
 
 ### 3.3 O QR já provou o modelo globalmente
 
-No Brasil, o Pix criou uma rede de pagamentos instantâneos QR-native que se tornou o método de pagamento dominante em menos de três anos. Na Índia, o UPI processa milhares de milhões de transacções mensalmente usando transferências instantâneas baseadas em @banza. Na China, o WeChat Pay tornou o scan de QR tão habitual que o dinheiro físico se tornou a excepção nas grandes cidades.
+No Brasil, o Pix criou uma rede de pagamentos instantâneos QR-native que se tornou o método de pagamento dominante em menos de três anos. Na Índia, o UPI processa milhares de milhões de transacções mensalmente usando transferências instantâneas por identificadores virtuais de utilizador — o mesmo conceito do @banza. Na China, o WeChat Pay tornou o scan de QR tão habitual que o dinheiro físico se tornou a excepção nas grandes cidades.
 
 Nenhum desses países tinha vantagens especiais. Tinham uma infraestrutura clara, um lançamento focado e um produto genuinamente melhor do que o dinheiro físico. Angola tem exactamente as mesmas pré-condições. O modelo está provado.
 
@@ -295,7 +295,7 @@ A missão da Banzami está alcançada quando:
 - Os programadores angolanos têm uma infraestrutura de pagamentos da qual se orgulham de construir
 - A rede Banza tornou-se infraestrutura — parte do modo como Angola funciona
 
-Os modelos de referência para este tipo de transformação existem. O **Pix** do Brasil tornou os pagamentos QR o padrão nacional em menos de três anos. O **UPI** da Índia tornou as transferências instantâneas baseadas em @banza o padrão para mil milhões de pessoas. Ambos começaram com foco: um país, uma rede, uma promessa clara a cada utilizador.
+Os modelos de referência para este tipo de transformação existem. O **Pix** do Brasil tornou os pagamentos QR o padrão nacional em menos de três anos. O **UPI** da Índia tornou as transferências instantâneas por identificadores virtuais o padrão para mil milhões de pessoas. Ambos começaram com foco: um país, uma rede, uma promessa clara a cada utilizador.
 
 **A Banza é isso para Angola.**
 
@@ -499,7 +499,7 @@ A Banza não substitui o sistema bancário. Constrói a camada de comércio acim
 | **Loja QR** | Página de perfil público do comerciante em `pay.banzami.org/profiles/@banza` |
 | **Geração de QR estático** | Código QR permanente para a carteira do comerciante; imprimir e exibir em qualquer lugar |
 | **Geração de QR dinâmico** | QR por transacção com valor fixo e expiração |
-| **Pagamentos** | Levanta o saldo da carteira para uma conta bancária angolana a pedido |
+| **Levantamentos** | Transferência do saldo da carteira para uma conta bancária angolana a pedido |
 | **Reembolsos** | Emite reembolsos parciais ou totais a partir da Banza Business ou da API |
 | **Gestão de disputas** | Processo de resolução estruturado para disputas de pagamento |
 
@@ -756,7 +756,7 @@ Infraestrutura local para uma economia local.
 ```
 Carteira ↔ Carteira   a identidade financeira — detém e transfere Kwanza
 QR ↔ QR               a identidade física — como paga presencialmente
-Handle ↔ Handle        a identidade digital — como endereça pagamentos em qualquer lugar
+@banza ↔ @banza        a identidade digital — como endereça pagamentos em qualquer lugar
 ```
 
 Estas três camadas são expressões da mesma conta subjacente. Juntas, tornam a Banza utilizável em todos os contextos: comércio físico, comércio digital, pagamentos remotos e transferências pessoa-a-pessoa.
@@ -806,7 +806,7 @@ Optimizada para operação diária no terreno. É a interface principal para can
 - Emitir links de pagamento via WhatsApp, SMS ou redes sociais
 - Confirmar pagamentos recebidos
 - Gerir pedidos de pagamento
-- Iniciar pagamentos para conta bancária
+- Iniciar levantamentos para conta bancária
 
 **Cenários reais em Angola:**
 
@@ -833,7 +833,7 @@ A interface web é a superfície administrativa avançada da Banza Business — 
 | **Pedidos de pagamento** | Enviar pedidos de pagamento a consumidores específicos |
 | **Reembolsos** | Emitir reembolsos totais ou parciais |
 | **Disputas** | Ver e responder a disputas de consumidores |
-| **Pagamentos** | Levantar para uma conta bancária angolana a pedido |
+| **Levantamentos** | Transferir saldo para uma conta bancária angolana a pedido |
 | **Chaves API** | Gerar e gerir credenciais para integrações SDK |
 | **Acesso da equipa** | Adicionar pessoal com permissões controladas |
 
@@ -869,9 +869,9 @@ QR / @banza / Link
 | **Pedido de pagamento** | Enviar directamente ao @banza do consumidor | Facturação, serviços por encomenda |
 | **Integração SDK** | Incorporar numa app ou plataforma web | Apps de táxi, delivery, ecommerce local |
 
-### 11.5 Pagamentos
+### 11.5 Levantamentos
 
-Os saldos da carteira são levantados para uma conta bancária angolana a pedido — a partir da interface móvel, da interface web ou via API. A Banza inicia o pagamento imediatamente via EMIS e acompanha-o com total transparência. Sem pedidos manuais. Sem prazos opacos.
+Os saldos da carteira são transferidos para uma conta bancária angolana a pedido — a partir da interface móvel, da interface web ou via API. A Banza inicia a transferência imediatamente via EMIS e acompanha-a com total transparência. Sem pedidos manuais. Sem prazos opacos.
 
 ### 11.6 A loja QR
 
@@ -1029,7 +1029,7 @@ Cada conta tem acesso a um sandbox completo com chaves API separadas (`bz_sandbo
 | Pedidos de pagamento | Criar, obter, listar, pagar, recusar, cancelar |
 | Reembolsos | Criar, obter, listar |
 | Disputas | Abrir, obter, listar |
-| Pagamentos | Criar, obter, listar |
+| Levantamentos | Criar, obter, listar |
 | Webhooks | Registar endpoint, listar eventos, listar entregas |
 | Comerciantes | Criar, obter, actualizar |
 | Consumidores | Criar, obter por @banza |
@@ -1252,7 +1252,7 @@ Os bancos ganham um produto de comércio moderno sobre a sua infraestrutura exis
 | Fonte de receita | Mecanismo |
 |-----------------|-----------|
 | **Comissões de transacção** | Pequena percentagem de cada liquidação de comerciante bem-sucedida |
-| **Comissões de pagamento** | Taxa nominal por levantamento bancário de uma carteira de comerciante |
+| **Comissões de levantamento** | Taxa nominal por levantamento bancário de uma carteira de comerciante |
 | **Licenciamento SDK empresarial** | Preços por volume para integradores de alta transacção |
 | **Ferramentas premium para comerciantes** | Análises avançadas, gestão multi-localização (futuro) |
 
@@ -1465,7 +1465,7 @@ Três painéis principais Grafana fornecem visibilidade operacional:
 |--------|----------|
 | **Pagamentos** | Taxas de transacção, taxas de erro, conclusão QR, entrega de webhooks |
 | **Carteiras e Ledger** | Volume de transferências, percentis de latência, taxas de leitura de saldos, reembolsos e disputas |
-| **Liquidações e Pagamentos** | Taxas de liquidação, throughput de pagamentos, operações de reconciliação |
+| **Liquidações e Levantamentos** | Taxas de liquidação, throughput de levantamentos, operações de reconciliação |
 
 ---
 
