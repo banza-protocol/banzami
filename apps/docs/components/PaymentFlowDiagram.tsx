@@ -46,7 +46,7 @@ const steps = [
 
 export function PaymentFlowDiagram() {
   return (
-    <div className="my-8">
+    <div className="my-8 overflow-hidden">
       {/* Mobile: vertical */}
       <div className="flex flex-col items-center gap-0 sm:hidden">
         {steps.map((step, i) => (
@@ -94,8 +94,8 @@ export function PaymentFlowDiagram() {
       </div>
 
       {/* Flow label */}
-      <div className="mt-4 text-center font-mono text-xs text-bz-muted">
-        QR Escaneado &nbsp;→&nbsp; Autorizado &nbsp;→&nbsp; Ledger Actualizado &nbsp;→&nbsp; Pago Instantaneamente
+      <div className="mt-4 text-center font-mono text-xs text-bz-muted break-words">
+        QR Escaneado → Autorizado → Ledger Actualizado → Pago Instantaneamente
       </div>
     </div>
   )
