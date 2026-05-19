@@ -17,10 +17,10 @@ RUN npm install --legacy-peer-deps
 
 COPY apps/docs/ ./
 
-# Place the reference document where lib/reference.ts expects it:
-# path.join(process.cwd(), '../../docs/BANZAMI_REFERENCE.md')
-# process.cwd() = /app → resolves to /docs/BANZAMI_REFERENCE.md
+# Place content docs where lib/ expects them (ADR-015):
+# process.cwd() = /app → ../../docs resolves to /docs/
 COPY docs/BANZAMI_REFERENCE.md /docs/BANZAMI_REFERENCE.md
+COPY docs/validation/ /docs/validation/
 
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
