@@ -35,11 +35,20 @@ export default function ValidacaoPage() {
             Execução e Validação do Ecossistema Banzami
           </h1>
 
-          <p className="mb-6 text-base text-bz-muted max-w-2xl">
+          <p className="mb-4 text-base text-bz-muted max-w-2xl">
             Acompanhamento rigoroso da implementação das funcionalidades descritas em{' '}
             <code className="rounded bg-bz-surface px-1.5 font-mono text-sm">BANZAMI_REFERENCE.md</code>.
             {' '}Cada item rastreado ao documento de referência oficial.
           </p>
+
+          {/* Governance notice */}
+          <div className="mb-6 inline-flex items-center gap-2 rounded-lg border border-bz-border bg-bz-surface px-3 py-2 text-xs text-bz-muted">
+            <svg className="h-3.5 w-3.5 shrink-0 text-bz-muted" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
+              <rect x="3" y="6" width="10" height="8" rx="1.5" />
+              <path d="M5.5 6V4.5a2.5 2.5 0 015 0V6" strokeLinecap="round" />
+            </svg>
+            Consulta pública · edição restrita à administração Banzami
+          </div>
 
           {/* Top-level progress */}
           <div className="mb-8 flex flex-wrap gap-6 text-sm">
