@@ -3,7 +3,7 @@ import type { ValidationMetrics } from '@/lib/validation-types'
 const STATUS_LABELS: Record<string, { label: string; color: string; bg: string; border: string }> = {
   VALIDATED:    { label: 'Validadas',    color: 'text-green-700',       bg: 'bg-green-50',       border: 'border-green-200' },
   IMPLEMENTED:  { label: 'Implementadas',color: 'text-bz-primary',      bg: 'bg-bz-primary-light',border: 'border-bz-primary/20' },
-  IN_PROGRESS:  { label: 'Em progresso', color: 'text-amber-700',       bg: 'bg-amber-50',       border: 'border-amber-200' },
+  IN_PROGRESS:  { label: 'Progresso',    color: 'text-amber-700',       bg: 'bg-amber-50',       border: 'border-amber-200' },
   PLANNED:      { label: 'Planeadas',    color: 'text-bz-muted',        bg: 'bg-bz-surface',     border: 'border-bz-border' },
   BLOCKED:      { label: 'Bloqueadas',   color: 'text-red-700',         bg: 'bg-red-50',         border: 'border-red-200' },
   FUTURE:       { label: 'Roadmap',      color: 'text-violet-700',      bg: 'bg-violet-50',      border: 'border-violet-200' },
@@ -22,7 +22,7 @@ export function ValidationMetrics({ metrics }: Props) {
     { key: 'PLANNED',     value: metrics.planned,     ...STATUS_LABELS.PLANNED },
     { key: 'BLOCKED',     value: metrics.blocked,     ...STATUS_LABELS.BLOCKED },
     { key: 'FUTURE',      value: metrics.future,      ...STATUS_LABELS.FUTURE },
-    { key: 'coverage',    value: `${metrics.testCoveragePct}%`, label: 'Cobertura testes', color: 'text-bz-muted', bg: 'bg-white', border: 'border-bz-border' },
+    { key: 'coverage',    value: `${metrics.testCoveragePct}%`, label: 'Cobertura',       color: 'text-bz-muted', bg: 'bg-white', border: 'border-bz-border' },
   ]
 
   return (
@@ -35,7 +35,7 @@ export function ValidationMetrics({ metrics }: Props) {
           <span className={`text-2xl font-bold tabular-nums leading-none ${c.color}`}>
             {c.value}
           </span>
-          <span className={`text-[10px] font-semibold uppercase tracking-wider ${c.color} opacity-70`}>
+          <span className={`whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider ${c.color} opacity-70`}>
             {c.label ?? c.key}
           </span>
         </div>
