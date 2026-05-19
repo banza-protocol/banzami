@@ -26,11 +26,11 @@ export function ValidationMetrics({ metrics }: Props) {
   ]
 
   return (
-    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-8">
+    <div className="flex flex-wrap gap-3">
       {cards.map((c) => (
         <div
           key={c.key}
-          className={`flex flex-col gap-1 rounded-xl border p-3 ${c.bg} ${c.border}`}
+          className={`flex min-w-[8rem] flex-1 flex-col gap-1 rounded-xl border p-3 ${c.bg} ${c.border}`}
         >
           <span className={`text-2xl font-bold tabular-nums leading-none ${c.color}`}>
             {c.value}
