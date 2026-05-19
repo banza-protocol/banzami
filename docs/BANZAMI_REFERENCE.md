@@ -1207,8 +1207,8 @@ O Banzami não é um produto único — é um ecossistema de participantes inter
 │         │                              │                    │
 │         v                              v                    │
 │  ┌──────────────┐             ┌──────────────────────────┐  │
-│  │  Apps com    │             │  EMIS / Bancos Angolanos  │  │
-│  │  SDK Banzami │             │  (liquidação interbancária│  │
+│  │  Apps com    │             │  EMIS / Bancos Angolanos │  │
+│  │  SDK Banzami │             │  (liquidação interbanc.) │  │
 │  └──────────────┘             └──────────────────────────┘  │
 └─────────────────────────────────────────────────────────────┘
 ```
