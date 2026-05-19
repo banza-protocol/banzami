@@ -14,7 +14,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: {
     default: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
-    template: '%s · Banza',
+    template: '%s · Banzami',
   },
   description:
     'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banza SDK para programadores e Banza Business para comerciantes.',
