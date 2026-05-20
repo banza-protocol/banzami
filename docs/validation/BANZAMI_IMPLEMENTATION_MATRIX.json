@@ -3198,14 +3198,15 @@
       "referenceSection": "§17.5",
       "description": "Todas as operações financeiras dentro de transacções PostgreSQL — ou tudo commit, ou tudo rollback. Sem estado intermédio.",
       "requirement": "Sem estado de pagamento intermédio visível. Transacção confirma ou falha — nunca parcialmente.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "unit_tests",
-        "integration_tests"
+        "integration_tests",
+        "production_review"
       ],
       "acceptanceCriteria": [
         "Falha após débito causa rollback do crédito",
@@ -3269,12 +3270,13 @@
         }
       ],
       "confidence": {
-        "score": 75,
-        "level": "HIGH",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence non-empty (+20)",
           "unit_tests (+15)",
           "integration_tests (+20)",
+          "production_review (+10)",
           "all 5 invariants PASS (+20)"
         ]
       },
@@ -3295,6 +3297,20 @@
             "db/migrations/0001_ledger_schema.sql",
             "db/migrations/0033_ledger_immutability.sql",
             "core/ledger/tests/integration.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-05-20T00:00:00Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "7ec7bef2843bf7eb",
+          "commit": "803fb76",
+          "reason": "Production SQL verification: zero orphans, zero duplicate idempotency keys, FK constraints confirmed. 8 LED-003 integration tests pass including rollback, FK, concurrent, and SQL sweep tests. production_review added; confidence 75→85 VERY_HIGH.",
+          "evidence": [
+            "core/ledger/tests/integration.rs",
+            "production-sql: orphans=0, dup_idem=0, FK confirmed",
+            "production-sql: idempotency_key UNIQUE constraint active"
           ]
         }
       ],
