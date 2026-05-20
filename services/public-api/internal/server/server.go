@@ -48,10 +48,16 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	transferH    := handler.NewTransferHandler(deps.CoreClient)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
 	sandboxH     := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
+	onboardingH  := handler.NewOnboardingHandler(deps.CoreClient)
 
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
 	r.Post("/v1/auth/token",    authH.Token)
+
+	// Consumer wallet onboarding — no JWT required (consumer doesn't have one yet)
+	r.Post("/v1/consumer/onboarding/start",      onboardingH.Start)
+	r.Post("/v1/consumer/onboarding/verify-otp", onboardingH.VerifyOtp)
+	r.Post("/v1/consumer/onboarding/complete",   onboardingH.Complete)
 
 	// Public consumer endpoints — no JWT required
 	// /search must be registered before /{handle} so chi matches it as a static segment
