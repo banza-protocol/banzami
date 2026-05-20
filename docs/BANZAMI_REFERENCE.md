@@ -120,7 +120,7 @@ Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados
 
 ### Por que os nomes Banzami e Banza?
 
-**Banza** é uma palavra enraizada na tradição linguística Kimbundu — uma das línguas vivas mais antigas de Angola, falada por milhões de angolanos, presente em topónimos por todo o país e tecida na memória cultural desta nação. Uma *banza* é um lugar. Um encontro. Uma casa. Um centro de vida onde as pessoas se reúnem.
+**Banza** é uma palavra profundamente enraizada nas tradições linguísticas bantu de Angola, especialmente no universo Kikongo, onde *mbanza* designa historicamente um lugar de encontro, uma povoação, uma cidade ou um centro de vida comunitária. Uma *banza* é um lugar. Um encontro. Uma casa. Um centro de vida onde as pessoas se reúnem.
 
 O **Banza** — o produto de pagamento — herda directamente este significado: um espaço onde o comércio acontece, onde o dinheiro circula, onde angolanos se encontram para trocar valor.
 
