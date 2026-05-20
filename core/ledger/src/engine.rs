@@ -1,4 +1,4 @@
-use banzami_types::{AccountId, Money};
+use banzami_types::{AccountId, LedgerPostingId, Money};
 
 use crate::{Account, LedgerEntry, LedgerError, LedgerPosting};
 
@@ -12,6 +12,8 @@ use crate::{Account, LedgerEntry, LedgerError, LedgerPosting};
 /// - `post()` is atomic — either all entries are written or none are.
 /// - `post()` is idempotent — re-posting the same `idempotency_key` returns the existing posting.
 /// - `balance()` is derived from entries — never from a stored mutable value.
+/// - `reverse()` creates a new balanced posting that offsets the original entry-for-entry.
+/// - Ledger entries are immutable after commit — no UPDATE or DELETE is permitted.
 ///
 /// Callers build a [`LedgerPosting`] via [`crate::PostingBuilder`], which enforces
 /// the balance invariant before calling `post()`. The engine re-validates before
@@ -24,7 +26,31 @@ pub trait LedgerEngine: Send + Sync {
     ///
     /// Re-posting an existing `idempotency_key` returns the original posting
     /// unchanged and does not create duplicate entries.
+    ///
+    /// Validates that each entry's currency matches the declared currency of
+    /// its target account. Returns `AccountCurrencyMismatch` otherwise.
     async fn post(&self, posting: LedgerPosting) -> Result<LedgerPosting, LedgerError>;
+
+    /// Create a reversal posting that exactly offsets `original`.
+    ///
+    /// Every DEBIT in the original becomes a CREDIT in the reversal, and vice
+    /// versa. The reversal is a new balanced posting with its own
+    /// `new_idempotency_key`. The original posting is not mutated.
+    ///
+    /// Idempotent: re-submitting the same `new_idempotency_key` returns the
+    /// existing reversal posting without creating a duplicate.
+    async fn reverse(
+        &self,
+        original: &LedgerPosting,
+        description: impl Into<String> + Send,
+        new_idempotency_key: impl Into<String> + Send,
+    ) -> Result<LedgerPosting, LedgerError>;
+
+    /// Fetch a posting and all its entries by ID.
+    async fn get_posting(
+        &self,
+        posting_id: LedgerPostingId,
+    ) -> Result<LedgerPosting, LedgerError>;
 
     /// Derive the current balance of an account from its ledger entries.
     ///

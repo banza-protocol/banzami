@@ -245,8 +245,10 @@ pub async fn commit_reserved(
 
 /// POST /internal/v1/consumer-wallets/test-credit
 ///
-/// Injects funds directly into a consumer's available ledger account.
-/// For development and test environments only — not exposed in production.
+/// Injects funds into a consumer's available ledger account using a balanced
+/// double-entry posting. DR transit account (ASSET) / CR consumer available
+/// account (LIABILITY). For development and test environments only — not
+/// exposed in production.
 pub async fn test_credit(
     State(state): State<AppState>,
     Json(body): Json<TestCreditBody>,
@@ -279,21 +281,46 @@ pub async fn test_credit(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("no active wallet for consumer in that currency"))?;
 
+    // Build a balanced double-entry posting:
+    //   DR transit account    (ASSET  — funds leave system transit float)
+    //   CR consumer available (LIABILITY — we owe the consumer these funds)
+    let amount = Money::new(body.amount_minor, currency);
+    let idempotency_key = format!("admin-test-credit-{}-{}", consumer_id, uuid::Uuid::new_v4());
     let posting_id = LedgerPostingId::new();
     let now        = chrono::Utc::now();
+
+    let mut tx = state.pool.begin().await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
          VALUES ($1, $2, $3, $4)",
     )
     .bind(posting_id.as_uuid())
-    .bind("Test credit (admin)")
-    .bind(format!("admin-test-credit-{}-{}", consumer_id, uuid::Uuid::new_v4()))
+    .bind("Test credit (admin) — DR transit / CR consumer available")
+    .bind(&idempotency_key)
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // DEBIT: transit account (ASSET account loses funds — funds flow out to consumer)
+    sqlx::query(
+        "INSERT INTO ledger_entries
+         (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)",
+    )
+    .bind(LedgerEntryId::new().as_uuid())
+    .bind(posting_id.as_uuid())
+    .bind(state.transit_account_id.as_uuid())
+    .bind(amount.amount_minor())
+    .bind(currency.code())
+    .bind(now)
+    .execute(&mut *tx)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // CREDIT: consumer available account (LIABILITY — we now owe the consumer)
     sqlx::query(
         "INSERT INTO ledger_entries
          (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
@@ -302,18 +329,22 @@ pub async fn test_credit(
     .bind(LedgerEntryId::new().as_uuid())
     .bind(posting_id.as_uuid())
     .bind(available_account_id)
-    .bind(body.amount_minor)
+    .bind(amount.amount_minor())
     .bind(currency.code())
     .bind(now)
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let new_balance: i64 = sqlx::query_scalar(
+    tx.commit().await.map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Derive new balance for the consumer's available account.
+    // LIABILITY account: net = SUM(DEBIT) - SUM(CREDIT); consumer balance = -net.
+    let net_minor: i64 = sqlx::query_scalar(
         "SELECT COALESCE(
              SUM(CASE entry_type
-                 WHEN 'DEBIT'  THEN -amount_minor
-                 WHEN 'CREDIT' THEN  amount_minor
+                 WHEN 'DEBIT'  THEN  amount_minor
+                 WHEN 'CREDIT' THEN -amount_minor
                  END),
              0)::BIGINT
          FROM ledger_entries
@@ -324,11 +355,14 @@ pub async fn test_credit(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    let new_balance = -net_minor; // negate: LIABILITY credits increase consumer balance
+
     tracing::info!(
-        consumer_id = %consumer_id,
+        consumer_id  = %consumer_id,
         amount_minor = body.amount_minor,
         currency     = currency.code(),
-        "admin test credit applied"
+        posting_id   = %posting_id,
+        "admin test credit applied (double-entry)"
     );
 
     Ok(Json(TestCreditResponse {
