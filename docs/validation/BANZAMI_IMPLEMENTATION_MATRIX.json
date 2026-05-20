@@ -1023,14 +1023,15 @@
       "referenceSection": "§6.2",
       "description": "Carteira com dois estados de saldo: disponível (gastável imediatamente) e reservado (operações pendentes). Ambos exactos e em tempo real.",
       "requirement": "Saldo disponível e reservado sempre exactos. Sem atraso de actualização. Sem inconsistência eventual.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
       "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
-        "unit_tests"
+        "unit_tests",
+        "production_review"
       ],
       "acceptanceCriteria": [
         "Saldo disponível actualiza imediatamente após cada transacção",
@@ -1080,12 +1081,13 @@
         }
       ],
       "confidence": {
-        "score": 75,
-        "level": "HIGH",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence non-empty (+20)",
           "unit_tests (+15)",
           "integration_tests (+20)",
+          "production_review (+10)",
           "all invariants PASS (+20)"
         ]
       },
@@ -1108,6 +1110,22 @@
             "core/consumer-wallets/tests/integration.rs",
             "core/api/src/routes/consumer_wallets.rs",
             "core/api/src/main.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-05-20T00:00:00Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "a0a07a138adba2e1",
+          "commit": "03f7c6a",
+          "reason": "Production SQL verification: 3 ACTIVE consumer wallets, all with available+reserved sub-accounts, zero negative balances, zero negative reservations, ledger-derived balances consistent. Migrations 0031+0032 in production. Architecture lock cleared: LED-001 and LED-003 VALIDATED. confidence 75→85 VERY_HIGH.",
+          "evidence": [
+            "core/consumer-wallets/src/engine.rs",
+            "db/migrations/0031_consumer_wallets.sql",
+            "db/migrations/0032_wallet_reservations.sql",
+            "production-sql: 3 wallets, negative_balance=0, negative_reservations=0",
+            "production-sql: all wallets have available+reserved account IDs"
           ]
         }
       ],
