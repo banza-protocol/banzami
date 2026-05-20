@@ -11,6 +11,7 @@ pub use repository::{
 };
 pub use wallet::{
     ChangePinRequest,
+    CommitReservedRequest,
     CompleteOnboardingRequest,
     ConsumerWallet,
     ConsumerWalletBalance,
@@ -18,11 +19,12 @@ pub use wallet::{
     CreateConsumerWalletRequest,
     KycStatus,
     ReleaseRequest,
+    ReservationStatus,
     ReserveRequest,
-    SettleRequest,
     StartOnboardingRequest,
     VerifyOtpRequest,
     VerifyPinRequest,
+    WalletReservation,
 };
 
 use thiserror::Error;
@@ -82,6 +84,12 @@ pub enum ConsumerWalletError {
 
     #[error("wallet {0} is locked due to too many failed PIN attempts")]
     WalletLocked(ConsumerWalletId),
+
+    #[error("reservation {0} not found")]
+    ReservationNotFound(uuid::Uuid),
+
+    #[error("reservation {0} is not in ACTIVE status — cannot release or commit")]
+    ReservationNotActive(uuid::Uuid),
 
     #[error("OTP is invalid or expired")]
     OtpInvalid,

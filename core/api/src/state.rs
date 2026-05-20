@@ -150,7 +150,8 @@ impl AppState {
         let cw_ledger       = PostgresLedgerRepository::new(pool.clone());
         let cw_onboard_repo = PostgresOnboardingRepository::new(pool.clone());
         let cw_repo         = PostgresConsumerWalletRepository::new(pool.clone());
-        let consumer_wallet = Arc::new(PostgresConsumerWalletEngine::new(
+        let consumer_wallet = Arc::new(PostgresConsumerWalletEngine::with_pool(
+            pool.clone(),
             Arc::new(cw_ledger),
             cw_onboard_repo,
             cw_repo,
