@@ -1611,7 +1611,88 @@ The slash commands implementing this workflow are in `.claude/commands/`:
 
 ---
 
-# 18. Final Principle
+# 18. Governance Primitive Freeze
+
+## 18.1 Status
+
+The validation governance architecture is **mature and sufficient**.
+
+The following layers are now considered foundational and stable:
+
+- BANZAMI_REFERENCE.md
+- Validation Matrix (BANZAMI_IMPLEMENTATION_MATRIX.json)
+- Public /validacao page
+- Local Validation Studio
+- Validation Fingerprints
+- Immutable Validation History
+- Financial Invariants + Invariant Taxonomy
+- Validation Domains (11 DOM-*)
+- Confidence Scores (threshold = 80)
+- Freeze / Revalidation Rules
+- Strict Human Approval Gates
+- Git-based Governance
+- Architecture Lock Rules
+- Read-only Public Validation
+- Claude Validation Commands
+
+## 18.2 The Freeze Rule
+
+**No new governance primitives should be introduced unless justified by a concrete operational need.**
+
+Accepted justifications:
+
+1. A real implementation problem arises
+2. A real security issue is identified
+3. A real operational bottleneck is encountered
+4. A real audit or compliance requirement appears
+5. A real product scaling issue emerges
+
+**Not accepted:**
+
+- theoretical elegance
+- abstractions without operational value
+- meta-governance layers
+- speculative future-proofing
+- complexity for its own sake
+
+Every proposed governance change must answer three questions:
+
+- What concrete problem does this solve?
+- Why are existing primitives insufficient?
+- What is the operational impact vs. complexity cost?
+
+## 18.3 Governance Role Going Forward
+
+The governance system now serves execution:
+
+- implementation tracking
+- validation engine
+- audit layer
+- architectural integrity system
+
+It must not become more complex than the product it governs.
+
+## 18.4 Priority Shift
+
+The project priority is now **product execution**.
+
+Focus moves to:
+
+- wallets and ledger engine
+- QR payment flows
+- merchant UX (Banza Business)
+- consumer UX (Banza app)
+- settlement and reconciliation
+- SDKs (TypeScript, PHP, Python, Go, Flutter)
+- sandbox environment
+- closed-loop payments
+- ecommerce and mobile app integrations
+
+The governance system exists to support this work. Build the actual Banza network.
+
+---
+
+# 19. Final Principle
 
 Every engineer working on Banzami must understand:
 

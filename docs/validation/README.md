@@ -278,3 +278,62 @@ Nenhuma alteração pode ser feita directamente em produção, via interface web
 Acessível em `/validacao` — renderiza este JSON com filtros, pesquisa e métricas de progresso.
 
 Derivado de: `BANZAMI_REFERENCE.md` · ADR-015
+
+---
+
+## Governance Primitive Freeze
+
+### Estado
+
+A arquitectura de governança de validação está **madura e suficiente**.
+
+As seguintes camadas são consideradas estáveis e fundacionais:
+
+- BANZAMI_REFERENCE.md
+- Validation Matrix
+- Página pública /validacao
+- Local Validation Studio
+- Validation Fingerprints
+- Immutable Validation History
+- Financial Invariants + Invariant Taxonomy
+- Validation Domains (11 DOM-*)
+- Confidence Scores (limiar = 80)
+- Freeze / Revalidation Rules
+- Strict Human Approval Gates
+- Git-based Governance
+- Architecture Lock Rules
+- Claude Validation Commands
+
+### Regra de congelamento
+
+**Nenhuma nova primitiva de governança deve ser introduzida sem uma necessidade operacional concreta.**
+
+Justificações aceites:
+
+1. Um problema real de implementação surge
+2. Uma questão de segurança real é identificada
+3. Um bottleneck operacional real é encontrado
+4. Um requisito de auditoria ou conformidade real aparece
+5. Um problema real de escalamento do produto emerge
+
+**Não aceite:**
+
+- elegância teórica
+- abstracções sem valor operacional
+- camadas meta-governança
+- complexidade especulativa
+
+Qualquer nova proposta de governança deve responder:
+
+- Que problema concreto resolve?
+- Por que as primitivas existentes são insuficientes?
+- Qual é o impacto operacional versus o custo de complexidade?
+
+### Prioridade actual
+
+A prioridade do projecto é agora **execução do produto**.
+
+O foco move-se para: carteiras, fluxos QR, UX do comerciante (Banza Business), UX do consumidor, liquidação e reconciliação, SDKs, sandbox, pagamentos em circuito fechado, integrações de ecommerce e app móvel.
+
+O sistema de governança existe para apoiar este trabalho.
+**Não pode tornar-se mais complexo do que o produto que governa.**
