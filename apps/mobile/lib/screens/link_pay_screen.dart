@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 /// Opened when the app receives a deep link: banzami://pay/link/{slug}
@@ -81,12 +81,12 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
+      backgroundColor: BanzaColors.offWhite,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title: const Text('Pagar', style: BanzamiTextStyles.headingSm),
+        title: const Text('Pagar', style: BanzaTextStyles.headingSm),
       ),
       body: _buildBody(),
     );
@@ -94,18 +94,18 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
     }
 
     if (_error != null && _link == null) {
       return Center(child: Padding(
-        padding: const EdgeInsets.all(BanzamiSpacing.xl),
+        padding: const EdgeInsets.all(BanzaSpacing.xl),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.link_off_rounded, color: BanzamiColors.error, size: 48),
-          const SizedBox(height: BanzamiSpacing.lg),
-          Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+          const Icon(Icons.link_off_rounded, color: BanzaColors.error, size: 48),
+          const SizedBox(height: BanzaSpacing.lg),
+          Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
               textAlign: TextAlign.center),
-          const SizedBox(height: BanzamiSpacing.xl),
+          const SizedBox(height: BanzaSpacing.xl),
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
             child: const Text('Voltar'),
@@ -130,67 +130,67 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
         : 'Valor livre';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(children: [
         // Amount card
         Container(
           width:       double.infinity,
-          padding:     const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl, vertical: BanzamiSpacing.xxl),
-          decoration:  const BoxDecoration(gradient: BanzamiGradients.wine,
-              borderRadius: BanzamiRadius.xlAll),
+          padding:     const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl, vertical: BanzaSpacing.xxl),
+          decoration:  const BoxDecoration(gradient: BanzaGradients.wine,
+              borderRadius: BanzaRadius.xlAll),
           child: Column(children: [
             Text(
               link.description ?? 'Pagamento Banzami',
-              style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white.withValues(alpha: 0.7)),
+              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.white.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: BanzamiSpacing.sm),
+            const SizedBox(height: BanzaSpacing.sm),
             Text(
               amountLabel,
-              style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.white),
+              style: BanzaTextStyles.displayMd.copyWith(color: BanzaColors.white),
             ),
           ]),
         ),
 
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         // Amount input if open link
         if (needsAmount) ...[
           const Align(
             alignment: Alignment.centerLeft,
-            child: Text('Montante a pagar', style: BanzamiTextStyles.headingSm),
+            child: Text('Montante a pagar', style: BanzaTextStyles.headingSm),
           ),
-          const SizedBox(height: BanzamiSpacing.md),
-          BanzamiAmountInput(onChanged: (v) => setState(() => _enteredAmount = v)),
-          const SizedBox(height: BanzamiSpacing.xl),
+          const SizedBox(height: BanzaSpacing.md),
+          BanzaAmountInput(onChanged: (v) => setState(() => _enteredAmount = v)),
+          const SizedBox(height: BanzaSpacing.xl),
         ],
 
         if (_error != null)
           Container(
             width:   double.infinity,
-            padding: const EdgeInsets.all(BanzamiSpacing.md),
-            margin:  const EdgeInsets.only(bottom: BanzamiSpacing.lg),
+            padding: const EdgeInsets.all(BanzaSpacing.md),
+            margin:  const EdgeInsets.only(bottom: BanzaSpacing.lg),
             decoration: const BoxDecoration(
-              color:        BanzamiColors.errorBg,
-              borderRadius: BanzamiRadius.mdAll,
+              color:        BanzaColors.errorBg,
+              borderRadius: BanzaRadius.mdAll,
             ),
             child: Text(_error!,
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
           ),
 
         // Confirm button
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton(
+          child: BanzaButton(
             label:     'Confirmar pagamento',
             isLoading: _processing,
             onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
           ),
         ),
-        const SizedBox(height: BanzamiSpacing.md),
+        const SizedBox(height: BanzaSpacing.md),
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton.secondary(
+          child: BanzaButton.secondary(
             label:     'Cancelar',
             onPressed: _processing ? null : () => Navigator.of(context).pop(),
           ),
@@ -211,27 +211,27 @@ class _SuccessView extends StatelessWidget {
     final merchantLabel = link.merchantName ?? link.description ?? link.slug;
 
     return Center(child: Padding(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 80, height: 80,
           decoration: const BoxDecoration(
-            color:        BanzamiColors.successBg,
-            borderRadius: BanzamiRadius.fullAll,
+            color:        BanzaColors.successBg,
+            borderRadius: BanzaRadius.fullAll,
           ),
-          child: const Icon(Icons.check_rounded, color: BanzamiColors.success, size: 40),
+          child: const Icon(Icons.check_rounded, color: BanzaColors.success, size: 40),
         ),
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
         Text(amountLabel,
-            style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.gray900)),
-        const SizedBox(height: BanzamiSpacing.xs),
+            style: BanzaTextStyles.displayMd.copyWith(color: BanzaColors.gray900)),
+        const SizedBox(height: BanzaSpacing.xs),
         Text('Pagamento enviado para $merchantLabel',
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+            style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
             textAlign: TextAlign.center),
-        const SizedBox(height: BanzamiSpacing.xxl),
+        const SizedBox(height: BanzaSpacing.xxl),
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton(label: 'Fechar', onPressed: onClose),
+          child: BanzaButton(label: 'Fechar', onPressed: onClose),
         ),
       ]),
     ));
@@ -252,25 +252,25 @@ class _InvalidView extends StatelessWidget {
       _                           => 'Link inválido.',
     };
     return Center(child: Padding(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 72, height: 72,
           decoration: const BoxDecoration(
-            color:        BanzamiColors.errorBg,
-            borderRadius: BanzamiRadius.fullAll,
+            color:        BanzaColors.errorBg,
+            borderRadius: BanzaRadius.fullAll,
           ),
-          child: const Icon(Icons.close_rounded, color: BanzamiColors.error, size: 36),
+          child: const Icon(Icons.close_rounded, color: BanzaColors.error, size: 36),
         ),
-        const SizedBox(height: BanzamiSpacing.xl),
-        const Text('Link inválido', style: BanzamiTextStyles.headingLg),
-        const SizedBox(height: BanzamiSpacing.sm),
-        Text(msg, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+        const SizedBox(height: BanzaSpacing.xl),
+        const Text('Link inválido', style: BanzaTextStyles.headingLg),
+        const SizedBox(height: BanzaSpacing.sm),
+        Text(msg, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
             textAlign: TextAlign.center),
-        const SizedBox(height: BanzamiSpacing.xxl),
+        const SizedBox(height: BanzaSpacing.xxl),
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton(label: 'Fechar', onPressed: onClose),
+          child: BanzaButton(label: 'Fechar', onPressed: onClose),
         ),
       ]),
     ));

@@ -1,4 +1,4 @@
-import { BanzamiClient } from './client.js';
+import { BanzaClient } from './client.js';
 
 export interface WebhookEvent {
   type:    string;
@@ -11,7 +11,7 @@ export interface WebhookEvent {
  * Express usage (requires express.raw() body parser for this route):
  * ```ts
  * import express from 'express';
- * import { parseWebhook } from '@banzami/node/webhook';
+ * import { parseWebhook } from '@banza/node/webhook';
  *
  * app.post('/banzami/webhook', express.raw({ type: '*\/*' }), (req, res) => {
  *   const event = parseWebhook(req.body, req.headers['x-banzami-signature'], process.env.BANZAMI_WEBHOOK_SECRET!);
@@ -29,7 +29,7 @@ export function parseWebhook(
 ): WebhookEvent | null {
   const sig = Array.isArray(signature) ? signature[0] : (signature ?? '');
 
-  if (!BanzamiClient.verifyWebhook(rawBody, sig, secret)) {
+  if (!BanzaClient.verifyWebhook(rawBody, sig, secret)) {
     return null;
   }
 

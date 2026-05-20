@@ -64,7 +64,7 @@ The merchant should not have to touch the screen after displaying the QR. The no
 ### Consumer side (QR payment)
 
 ```
-Consumer opens camera or Banzami app
+Consumer opens camera or Banza app
         ↓
 QR scanned
         ↓
@@ -183,7 +183,7 @@ The Flutter SDK must expose:
 
 ```dart
 // Trigger payment confirmation sheet from merchant app
-final result = await BanzamiPay.confirm(
+final result = await BanzaPay.confirm(
   context: context,
   merchantId: 'mch_...',
   amountMinor: 2500,        // 2 500 Kz

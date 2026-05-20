@@ -6,9 +6,9 @@ import httpx
 import pytest
 import respx
 
-from banzami import Banzami
-from banzami.models.transaction import TransactionStatus
-from banzami.pagination import auto_paginate
+from banza import Banzami
+from banza.models.transaction import TransactionStatus
+from banza.pagination import auto_paginate
 
 BASE = "https://api.banzami.test"
 

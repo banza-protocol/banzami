@@ -1,4 +1,4 @@
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

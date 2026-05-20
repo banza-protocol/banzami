@@ -17,7 +17,7 @@ pip install banzami
 
 ```python
 import asyncio
-from banzami import Banzami
+from banza import Banzami
 
 async def main():
     async with Banzami(api_key="bz_live_...") as client:
@@ -59,7 +59,7 @@ print(transfer.status)  # COMPLETED
 ## Webhook verification
 
 ```python
-from banzami import Banzami, BanzamiWebhookSignatureError
+from banza import Banzami, BanzaWebhookSignatureError
 
 client = Banzami(api_key="...", webhook_secret="whsec_...")
 
@@ -67,10 +67,10 @@ client = Banzami(api_key="...", webhook_secret="whsec_...")
 try:
     event = client.webhooks.construct_event(
         payload=raw_body,
-        signature=request.headers["X-Banzami-Signature"],
+        signature=request.headers["Banza-Signature"],
     )
     print(event.type, event.payload)
-except BanzamiWebhookSignatureError:
+except BanzaWebhookSignatureError:
     return 400  # reject
 ```
 
@@ -89,14 +89,14 @@ client = Banzami(
 ## Observability hooks
 
 ```python
-from banzami import Banzami, BanzamiHooks
+from banza import Banzami, BanzaHooks
 import logging
 
 log = logging.getLogger("payments")
 
 client = Banzami(
     api_key="...",
-    hooks=BanzamiHooks(
+    hooks=BanzaHooks(
         on_request=lambda method, path, attempt:
             log.debug("→ %s %s (attempt %d)", method, path, attempt),
         on_response=lambda method, path, status, ms:
@@ -110,7 +110,7 @@ client = Banzami(
 ## Money helpers
 
 ```python
-from banzami.utils.money import format_minor, to_minor, from_minor
+from banza.utils.money import format_minor, to_minor, from_minor
 
 format_minor(50000, "AOA")   # "50.000 Kz"
 format_minor(5000,  "USD")   # "USD 50.00"
@@ -121,7 +121,7 @@ to_minor(19.99,  "USD")      # 1999
 ## Pagination
 
 ```python
-from banzami import auto_paginate
+from banza import auto_paginate
 
 # Iterate over every transaction without managing cursors manually.
 async for tx in auto_paginate(client.transactions.list, limit=50):

@@ -1,11 +1,11 @@
 // Run: deploy as app/api/checkout/route.ts in a Next.js App Router project
 
 import { NextRequest, NextResponse } from 'next/server';
-import { BanzamiClient }             from '@banzami/sdk';
+import { BanzaClient }             from '@banza/sdk';
 
-const banzami = new BanzamiClient({
+const banzami = new BanzaClient({
   baseUrl: process.env.BANZAMI_GATEWAY_URL!,
-  apiKey:  process.env.BANZAMI_API_KEY!,
+  apiKey:  process.env.BANZA_API_KEY!,
 });
 
 export async function POST(req: NextRequest): Promise<NextResponse> {

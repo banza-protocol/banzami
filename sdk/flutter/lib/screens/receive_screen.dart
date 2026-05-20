@@ -6,11 +6,11 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../theme/banzami_theme.dart';
+import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
-import '../widgets/banzami_amount_input.dart';
-import '../widgets/banzami_button.dart';
-import '../widgets/banzami_qr_display.dart';
+import '../widgets/banza_amount_input.dart';
+import '../widgets/banza_button.dart';
+import '../widgets/banza_qr_display.dart';
 
 class BanzamiReceiveScreen extends StatefulWidget {
   final String handle;
@@ -69,35 +69,35 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     await showModalBottomSheet<int>(
       context:            context,
       isScrollControlled: true,
-      backgroundColor:    BanzamiColors.white,
+      backgroundColor:    BanzaColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
-          BanzamiSpacing.xl,
-          BanzamiSpacing.xl,
-          BanzamiSpacing.xl,
-          MediaQuery.of(ctx).viewInsets.bottom + BanzamiSpacing.xl,
+          BanzaSpacing.xl,
+          BanzaSpacing.xl,
+          BanzaSpacing.xl,
+          MediaQuery.of(ctx).viewInsets.bottom + BanzaSpacing.xl,
         ),
         child: Column(
           mainAxisSize:      MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
-            const SizedBox(height: BanzamiSpacing.md),
-            BanzamiAmountInput(onChanged: (v) => draft = v),
-            const SizedBox(height: BanzamiSpacing.lg),
+            const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
+            const SizedBox(height: BanzaSpacing.md),
+            BanzaAmountInput(onChanged: (v) => draft = v),
+            const SizedBox(height: BanzaSpacing.lg),
             Row(children: [
               Expanded(
-                child: BanzamiButton.secondary(
+                child: BanzaButton.secondary(
                   label:     'Cancelar',
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
-              const SizedBox(width: BanzamiSpacing.sm),
+              const SizedBox(width: BanzaSpacing.sm),
               Expanded(
-                child: BanzamiButton(
+                child: BanzaButton(
                   label:     'Aplicar',
                   onPressed: () {
                     if (draft > 0) Navigator.pop(ctx, draft);
@@ -149,11 +149,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
         errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle:        const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.wine,
+          color:    BanzaColors.wine,
         ),
         dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
-          color:           BanzamiColors.gray900,
+          color:           BanzaColors.gray900,
         ),
         embeddedImage:      _logoUiImage,
         embeddedImageStyle: _logoUiImage != null
@@ -190,11 +190,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
         title:           const Text('Receber'),
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
       ),
       body: SafeArea(
@@ -207,11 +207,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
-                  padding: const EdgeInsets.all(BanzamiSpacing.xl),
+                  padding: const EdgeInsets.all(BanzaSpacing.xl),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      BanzamiQrDisplay(
+                      BanzaQrDisplay(
                         payload:       _qrPayload,
                         amountLabel:   (_amountSet && _amountMinor > 0)
                             ? formatMinor(_amountMinor, 'AOA')
@@ -223,7 +223,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                             : null,
                       ),
 
-                      const SizedBox(height: BanzamiSpacing.lg),
+                      const SizedBox(height: BanzaSpacing.lg),
 
                       TextButton.icon(
                         onPressed: () async {
@@ -236,15 +236,15 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                           }
                         },
                         icon:  const Icon(Icons.copy_rounded, size: 16,
-                            color: BanzamiColors.gray400),
+                            color: BanzaColors.gray400),
                         label: Text(
                           '@${widget.handle}',
-                          style: BanzamiTextStyles.bodyMd
-                              .copyWith(color: BanzamiColors.gray400),
+                          style: BanzaTextStyles.bodyMd
+                              .copyWith(color: BanzaColors.gray400),
                         ),
                       ),
 
-                      const SizedBox(height: BanzamiSpacing.xl),
+                      const SizedBox(height: BanzaSpacing.xl),
 
                       SizedBox(
                         width: double.infinity,
@@ -254,17 +254,17 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                           icon:  const Icon(Icons.link_rounded),
                           label: const Text('Partilhar link'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: BanzamiColors.wine,
-                            foregroundColor: BanzamiColors.white,
+                            backgroundColor: BanzaColors.wine,
+                            foregroundColor: BanzaColors.white,
                             padding:   const EdgeInsets.symmetric(vertical: 14),
                             shape:     RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
-                            textStyle: BanzamiTextStyles.headingSm,
+                            textStyle: BanzaTextStyles.headingSm,
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: BanzamiSpacing.sm),
+                      const SizedBox(height: BanzaSpacing.sm),
 
                       SizedBox(
                         width: double.infinity,
@@ -275,26 +275,26 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                               ? const SizedBox(
                                   width: 18, height: 18,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: BanzamiColors.wine))
+                                      strokeWidth: 2, color: BanzaColors.wine))
                               : const Icon(Icons.share_rounded),
                           label: const Text('Partilhar QR'),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: BanzamiColors.wine,
-                            side:    const BorderSide(color: BanzamiColors.wine),
+                            foregroundColor: BanzaColors.wine,
+                            side:    const BorderSide(color: BanzaColors.wine),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape:   RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(14)),
-                            textStyle: BanzamiTextStyles.headingSm,
+                            textStyle: BanzaTextStyles.headingSm,
                           ),
                         ),
                       ),
 
-                      const SizedBox(height: BanzamiSpacing.md),
+                      const SizedBox(height: BanzaSpacing.md),
 
                       if (_amountSet)
                         SizedBox(
                           width: double.infinity,
-                          child: BanzamiButton.secondary(
+                          child: BanzaButton.secondary(
                             label:     'Remover montante',
                             onPressed: _clearAmount,
                           ),
@@ -307,17 +307,17 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                             icon:  const Icon(Icons.add_rounded),
                             label: const Text('Definir montante fixo'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: BanzamiColors.wine,
-                              side:    const BorderSide(color: BanzamiColors.wine),
+                              foregroundColor: BanzaColors.wine,
+                              side:    const BorderSide(color: BanzaColors.wine),
                               padding: const EdgeInsets.symmetric(vertical: 14),
                               shape:   RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(14)),
-                              textStyle: BanzamiTextStyles.headingSm,
+                              textStyle: BanzaTextStyles.headingSm,
                             ),
                           ),
                         ),
 
-                      const SizedBox(height: BanzamiSpacing.lg),
+                      const SizedBox(height: BanzaSpacing.lg),
                     ],
                   ),
                 ),

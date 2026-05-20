@@ -36,15 +36,15 @@ Flutter was chosen because:
 sdk/flutter/
   lib/
     banzami_sdk.dart     ← single barrel export
-    client/              ← BanzamiClient (HTTP), BanzamiApiException
+    client/              ← BanzaClient (HTTP), BanzaApiException
     models/              ← Consumer, WalletBalance, Transfer, QrCode, …
     utils/               ← formatMinor()
     widgets/             ← BanzamiButton, BanzamiAmountInput, BanzamiQrDisplay, BanzamiQrScanner, BanzamiTransferItem
     screens/             ← BanzamiHomeScreen, BanzamiSendScreen, BanzamiReceiveScreen, BanzamiScanScreen
-    theme/               ← BanzamiColors, BanzamiTextStyles, BanzamiSpacing, BanzamiRadius, BanzamiTheme
+    theme/               ← BanzaColors, BanzaTextStyles, BanzaSpacing, BanzaRadius, BanzaTheme
 ```
 
-**Integration contract:** Host apps provide `BanzamiClient` (configured with `baseUrl` + `apiKey`) and consumer identity (`consumerId`, `walletId`). All screens accept an `onSuccess` callback and call `Navigator.pop` internally — the host app retains full navigation ownership.
+**Integration contract:** Host apps provide `BanzaClient` (configured with `baseUrl` + `apiKey`) and consumer identity (`consumerId`, `walletId`). All screens accept an `onSuccess` callback and call `Navigator.pop` internally — the host app retains full navigation ownership.
 
 **Money handling:** All monetary values are passed and stored as integer minor units throughout. `formatMinor(int, String)` handles display formatting: AOA uses integer kwanzas ("5 000 Kz"), other currencies divide by 100 and use `Intl.NumberFormat`. Floating-point arithmetic is never used for money (CLAUDE.md §10.3).
 
@@ -65,6 +65,6 @@ sdk/flutter/
 ## Consequences
 
 - Host apps must add Flutter as a dependency (via `flutter_module` or as a pub package). This is a non-trivial addition for existing native apps; documented in the SDK README.
-- The SDK's `BanzamiTheme.light` must be applied at the `MaterialApp` level. If the host app uses its own `ThemeData`, it must merge or wrap the Banzami theme for SDK screens.
+- The SDK's `BanzaTheme.light` must be applied at the `MaterialApp` level. If the host app uses its own `ThemeData`, it must merge or wrap the Banzami theme for SDK screens.
 - `mobile_scanner` requires camera permissions in `AndroidManifest.xml` and `Info.plist`. The SDK README documents the required entries.
 - The SDK has no offline capability — all operations require network access to the gateway. Offline queuing is deferred to a future release.

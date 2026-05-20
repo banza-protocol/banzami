@@ -13,5 +13,5 @@ class Money(BaseModel):
 
     def format(self) -> str:
         """Return a display string appropriate for the currency."""
-        from banzami.utils.money import format_minor  # local import avoids circular
+        from banza.utils.money import format_minor  # local import avoids circular
         return format_minor(self.amount_minor, self.currency)

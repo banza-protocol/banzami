@@ -235,16 +235,16 @@ Valid scenarios: `success`, `insufficient_funds`, `fraud_blocked`, `expired_card
 ### TypeScript / Node.js
 
 ```typescript
-import { BanzamiClient } from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
 // Sandbox
-const sandbox = new BanzamiClient({
+const sandbox = new BanzaClient({
   apiKey:      'bz_test_…',
   environment: 'sandbox',
 });
 
 // Production
-const live = new BanzamiClient({
+const live = new BanzaClient({
   apiKey:      'bz_live_…',
   environment: 'live',
 });
@@ -262,13 +262,13 @@ The SDK automatically routes to the correct base URL for the chosen environment.
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 // Sandbox
-final client = BanzamiClient(
+final client = BanzaClient(
   apiKey:      'bz_test_…',
   environment: BanzamiEnvironment.sandbox,
 );
 
 // Production
-final client = BanzamiClient(
+final client = BanzaClient(
   apiKey:      'bz_live_…',
   environment: BanzamiEnvironment.production,
 );
@@ -318,7 +318,7 @@ Use a webhook debugging tool (e.g. `webhook.site` or `smee.io`) during local dev
 
 ### Verifying webhook signatures
 
-Signature verification works identically in sandbox and live. The `X-Banzami-Signature` header is HMAC-SHA256 of the raw request body using your webhook secret.
+Signature verification works identically in sandbox and live. The `Banza-Signature` header is HMAC-SHA256 of the raw request body using your webhook secret.
 
 ```python
 import hashlib, hmac
@@ -414,7 +414,7 @@ curl -X POST https://sandbox-api.banzami.org/v1/transactions \
 When ready to switch from sandbox to live:
 
 1. **Generate a live API key** — `environment: "LIVE"` in the key creation request.
-2. **Update your `BanzamiClient` constructor** — change `environment` from `'sandbox'` to `'live'`.
+2. **Update your `BanzaClient` constructor** — change `environment` from `'sandbox'` to `'live'`.
 3. **Update environment variables** — replace `bz_test_` key with `bz_live_` key.
 4. **Register live webhook endpoints** — sandbox endpoints are not called for live events.
 5. **Verify your webhook signature implementation** — run a live test transaction.

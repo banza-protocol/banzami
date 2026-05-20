@@ -38,7 +38,7 @@ class WebhookController extends Controller
         try {
             $event = $handler->parse(
                 $request->getContent(),
-                $request->header('X-Banzami-Signature', '')
+                $request->header('Banza-Signature', '')
             );
         } catch (BanzamiException $e) {
             return response('Invalid signature', 401);

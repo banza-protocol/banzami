@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banzami;
+namespace Banza;
 
 /**
  * Banzami API client for PHP.
@@ -11,7 +11,7 @@ namespace Banzami;
  * No external dependencies — drop this library into any PHP project.
  *
  * Usage:
- *   $client = new BanzamiClient('https://api.banzami.ao', 'bz_live_...');
+ *   $client = new BanzaClient('https://api.banzami.ao', 'bz_live_...');
  *   $link   = $client->createPaymentLink([
  *       'merchant_id'  => '...',
  *       'wallet_id'    => '...',
@@ -21,7 +21,7 @@ namespace Banzami;
  *   ]);
  *   echo $link['slug']; // redirect customer to pay.banzami.co/{slug}
  */
-class BanzamiClient
+class BanzaClient
 {
     private string $baseUrl;
     private string $apiKey;
@@ -297,7 +297,7 @@ class BanzamiClient
      * The signature header is in the format: sha256=<hex_digest>
      *
      * @param string $rawBody    Raw request body (do NOT decode).
-     * @param string $signature  Value of the X-Banzami-Signature header.
+     * @param string $signature  Value of the Banza-Signature header.
      * @param string $secret     Webhook secret from the Banzami dashboard.
      */
     public static function verifyWebhookSignature(

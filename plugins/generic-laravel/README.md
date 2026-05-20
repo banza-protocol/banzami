@@ -51,7 +51,7 @@ BANZAMI_WALLET_ID=your_default_wallet_id
 
 ## Facade Usage
 
-The `Banzami` facade proxies all calls to the underlying `BanzamiClient`.
+The `Banzami` facade proxies all calls to the underlying `BanzaClient`.
 
 ### Payment Links
 

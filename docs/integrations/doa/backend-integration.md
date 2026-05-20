@@ -97,7 +97,7 @@ class BanzamiProvider implements PaymentProvider {
       }),
     });
     if (!linkRes.ok) throw new Error(`banzami_api_error:${linkRes.status}`);
-    const link = await linkRes.json() as BanzamiPaymentLink;
+    const link = await linkRes.json() as BanzaPaymentLink;
 
     const payUrl = `${PAY_BASE_URL}/${link.slug}`;
 
@@ -197,7 +197,7 @@ export async function GET(req: NextRequest) {
   });
   if (!res.ok) return NextResponse.json({ confirmed: false });
 
-  const link = await res.json() as BanzamiPaymentLink;
+  const link = await res.json() as BanzaPaymentLink;
 
   if (link.status !== 'USED') {
     return NextResponse.json({ confirmed: false });
@@ -237,7 +237,7 @@ Processing sequence:
 ```
 1. Check BANZAMI_WEBHOOK_SECRET is configured
 2. Read raw body: const raw = await req.text()
-3. Parse Banzami-Signature header
+3. Parse Banza-Signature header
 4. Verify HMAC-SHA256 signature
 5. Parse JSON payload: JSON.parse(raw)
 6. Check event type → unknown types return 200 + ignored
@@ -380,7 +380,7 @@ Removing `banzami` from this list disables the method for donors without changin
 
 ## API Client Architecture
 
-> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()` approach predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banzami/sdk` — see the [SDK Migration Target](#sdk-migration-target) below.
+> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()` approach predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` — see the [SDK Migration Target](#sdk-migration-target) below.
 
 Current (transitional) API calls are direct `fetch()` from two server-only files:
 
@@ -393,11 +393,11 @@ Both obtain a fresh JWT per request. Both use `import 'server-only'` — the Nex
 
 ### SDK Migration Target
 
-After migration to `@banzami/sdk`, the initiation path collapses to:
+After migration to `@banza/sdk`, the initiation path collapses to:
 
 ```typescript
 import 'server-only';
-import Banzami from '@banzami/sdk';
+import Banzami from '@banza/sdk';
 
 const banzami = new Banzami({ apiKey: process.env.BANZAMI_API_KEY });
 

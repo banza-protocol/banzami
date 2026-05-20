@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Banzami Pay',
-  description: 'Pague com a app Banzami',
+  title: 'Banza Pay',
+  description: 'Pague com a app Banza',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

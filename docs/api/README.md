@@ -204,11 +204,11 @@ List all delivery attempts for a specific event.
 
 **Signature verification:**
 
-Each delivery includes an `X-Banzami-Signature` header:
+Each delivery includes a `Banza-Signature` header:
 ```
-X-Banzami-Signature: sha256=<hmac-hex>
+Banza-Signature: t=<unix_timestamp>,v1=<hmac_sha256_hex>
 ```
-Compute `HMAC-SHA256(secret, raw_body)` and compare in constant time.
+Parse the `t=` and `v1=` components. Verify `|now - t| ≤ 300 s` (replay protection), then compute `HMAC-SHA256(secret, t + "." + raw_body)` and compare the hex digest against `v1` in constant time.
 
 **Event types:**
 

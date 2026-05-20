@@ -88,7 +88,7 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
 
 - [ ] **Complete the payment in the Banzami consumer app**
   - Scan the QR with a real Banzami account
-  - Confirm the app shows the correct amount and merchant name ("Banzami Business")
+  - Confirm the app shows the correct amount and merchant name ("Banza Business")
   - Complete with PIN or biometrics
 
 - [ ] **Verify confirmation in Doa**

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 
@@ -73,7 +73,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Confirmar',
-                style: TextStyle(color: BanzamiColors.wine)),
+                style: TextStyle(color: BanzaColors.wine)),
           ),
         ],
       ),
@@ -84,7 +84,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
     if (!mounted) return;
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzamiClient>();
+    final client  = context.read<BanzaClient>();
 
     try {
       await client.createPayout(
@@ -111,12 +111,12 @@ class _PayoutScreenState extends State<PayoutScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title: const Text('Pedir levantamento', style: BanzamiTextStyles.headingSm),
+        title: const Text('Pedir levantamento', style: BanzaTextStyles.headingSm),
       ),
       body: _success ? _buildSuccess() : _buildForm(),
     );
@@ -125,36 +125,36 @@ class _PayoutScreenState extends State<PayoutScreen> {
   Widget _buildSuccess() {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(BanzamiSpacing.xl),
+        padding: const EdgeInsets.all(BanzaSpacing.xl),
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
             width: 72, height: 72,
             decoration: BoxDecoration(
-              color:        BanzamiColors.success.withValues(alpha: 0.12),
+              color:        BanzaColors.success.withValues(alpha: 0.12),
               shape:        BoxShape.circle,
             ),
             child: const Icon(Icons.check_rounded,
-                color: BanzamiColors.success, size: 36),
+                color: BanzaColors.success, size: 36),
           ),
-          const SizedBox(height: BanzamiSpacing.xl),
-          const Text('Pedido enviado!', style: BanzamiTextStyles.headingMd),
-          const SizedBox(height: BanzamiSpacing.md),
+          const SizedBox(height: BanzaSpacing.xl),
+          const Text('Pedido enviado!', style: BanzaTextStyles.headingMd),
+          const SizedBox(height: BanzaSpacing.md),
           Text(
             'O seu pedido de levantamento foi registado e será processado em 1-3 dias úteis.',
-            style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+            style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: BanzamiSpacing.xxl),
+          const SizedBox(height: BanzaSpacing.xxl),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: BanzamiColors.wine,
-                foregroundColor: BanzamiColors.white,
+                backgroundColor: BanzaColors.wine,
+                foregroundColor: BanzaColors.white,
                 padding:   const EdgeInsets.symmetric(vertical: 14),
                 shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                textStyle: BanzamiTextStyles.headingSm,
+                textStyle: BanzaTextStyles.headingSm,
               ),
               child: const Text('Voltar'),
             ),
@@ -166,30 +166,30 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
   Widget _buildForm() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Form(
         key: _formKey,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
 
           // Info banner
           Container(
-            padding: const EdgeInsets.all(BanzamiSpacing.md),
+            padding: const EdgeInsets.all(BanzaSpacing.md),
             decoration: BoxDecoration(
-              color:        BanzamiColors.wine.withValues(alpha: 0.06),
+              color:        BanzaColors.wine.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border:       Border.all(color: BanzamiColors.wine.withValues(alpha: 0.2)),
+              border:       Border.all(color: BanzaColors.wine.withValues(alpha: 0.2)),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.info_outline_rounded,
-                  color: BanzamiColors.wine, size: 18),
+                  color: BanzaColors.wine, size: 18),
               const SizedBox(width: 10),
               Expanded(child: Text(
                 'O valor será transferido para a conta bancária indicada em 1-3 dias úteis.',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.wine),
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.wine),
               )),
             ]),
           ),
-          const SizedBox(height: BanzamiSpacing.xl),
+          const SizedBox(height: BanzaSpacing.xl),
 
           // Valor
           TextFormField(
@@ -207,7 +207,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
               return null;
             },
           ),
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzaSpacing.lg),
 
           // Banco
           DropdownButtonFormField<String>(
@@ -225,7 +225,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
                 .toList(),
             onChanged: (v) => setState(() => _selectedBank = v ?? _selectedBank),
           ),
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzaSpacing.lg),
 
           // IBAN / número de conta
           TextFormField(
@@ -241,7 +241,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
             validator: (v) =>
                 (v == null || v.trim().isEmpty) ? 'Introduza o número de conta' : null,
           ),
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzaSpacing.lg),
 
           // Titular
           TextFormField(
@@ -255,28 +255,28 @@ class _PayoutScreenState extends State<PayoutScreen> {
           ),
 
           if (_error != null) ...[
-            const SizedBox(height: BanzamiSpacing.lg),
+            const SizedBox(height: BanzaSpacing.lg),
             Container(
-              padding: const EdgeInsets.all(BanzamiSpacing.md),
+              padding: const EdgeInsets.all(BanzaSpacing.md),
               decoration: BoxDecoration(
-                color:        BanzamiColors.error.withValues(alpha: 0.08),
+                color:        BanzaColors.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(children: [
                 const Icon(Icons.error_outline_rounded,
-                    color: BanzamiColors.error, size: 20),
+                    color: BanzaColors.error, size: 20),
                 const SizedBox(width: 10),
                 Expanded(child: Text(_error!,
-                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error))),
+                    style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error))),
               ]),
             ),
           ],
 
-          const SizedBox(height: BanzamiSpacing.xxl),
+          const SizedBox(height: BanzaSpacing.xxl),
 
           SizedBox(
             width: double.infinity,
-            child: BanzamiButton(
+            child: BanzaButton(
               label:     'Pedir levantamento',
               onPressed: _loading ? null : _submit,
               isLoading: _loading,

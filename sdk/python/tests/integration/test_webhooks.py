@@ -9,9 +9,9 @@ import httpx
 import pytest
 import respx
 
-from banzami import Banzami
-from banzami.exceptions import BanzamiWebhookSignatureError
-from banzami.signature import generate_test_signature
+from banza import Banzami
+from banza.exceptions import BanzaWebhookSignatureError
+from banza.signature import generate_test_signature
 
 BASE           = "https://api.banzami.test"
 WEBHOOK_SECRET = "whsec_integration_test_secret!!"
@@ -40,7 +40,7 @@ async def test_construct_event_invalid_signature():
         async with Banzami(api_key="bz_test", base_url=BASE, webhook_secret=WEBHOOK_SECRET) as c:
             raw  = json.dumps(EVENT_PAYLOAD).encode()
             ts   = int(time.time())
-            with pytest.raises(BanzamiWebhookSignatureError):
+            with pytest.raises(BanzaWebhookSignatureError):
                 c.webhooks.construct_event(raw, f"t={ts},v1=deadbeef" + "0" * 56)
 
 
@@ -49,7 +49,7 @@ async def test_construct_event_tampered_body():
         async with Banzami(api_key="bz_test", base_url=BASE, webhook_secret=WEBHOOK_SECRET) as c:
             raw = json.dumps(EVENT_PAYLOAD).encode()
             sig = generate_test_signature(raw, WEBHOOK_SECRET)
-            with pytest.raises(BanzamiWebhookSignatureError):
+            with pytest.raises(BanzaWebhookSignatureError):
                 c.webhooks.construct_event(raw + b"tampered", sig)
 
 
@@ -60,7 +60,7 @@ async def test_construct_event_expired_timestamp():
             raw       = json.dumps(EVENT_PAYLOAD).encode()
             old_ts    = int(time.time()) - 400
             old_sig   = generate_test_signature(raw, WEBHOOK_SECRET, timestamp=old_ts)
-            with pytest.raises(BanzamiWebhookSignatureError):
+            with pytest.raises(BanzaWebhookSignatureError):
                 c.webhooks.construct_event(raw, old_sig)
 
 

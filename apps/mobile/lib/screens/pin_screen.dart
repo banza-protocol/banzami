@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/session_service.dart';
 import '../widgets/pin_pad.dart';
@@ -120,7 +120,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: BanzamiColors.error),
+            style: TextButton.styleFrom(foregroundColor: BanzaColors.error),
             child: const Text('Remover'),
           ),
         ],
@@ -136,7 +136,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     final session = context.read<SessionService>().session;
 
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -151,7 +151,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                   if (session?.displayName != null)
                     Text(
                       'Olá, ${session!.displayName}',
-                      style: BanzamiTextStyles.headingMd,
+                      style: BanzaTextStyles.headingMd,
                       textAlign: TextAlign.center,
                     ),
                   const SizedBox(height: 8),
@@ -161,8 +161,8 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                         : _error
                             ? 'PIN incorrecto. Tente novamente.'
                             : 'Introduza o PIN',
-                    style: BanzamiTextStyles.bodyMd.copyWith(
-                      color: _error ? BanzamiColors.error : BanzamiColors.gray400,
+                    style: BanzaTextStyles.bodyMd.copyWith(
+                      color: _error ? BanzaColors.error : BanzaColors.gray400,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -182,10 +182,10 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                   if (session?.biometricsEnabled == true)
                     TextButton.icon(
                       onPressed: _tryBiometrics,
-                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
+                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzaColors.wine),
                       label: Text(
                         'Usar biometria',
-                        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine),
+                        style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.wine),
                       ),
                     ),
 
@@ -195,7 +195,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                     onPressed: _confirmLogout,
                     child: Text(
                       'Usar outra conta',
-                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
                     ),
                   ),
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/banzami_theme.dart';
+import '../theme/banza_theme.dart';
 
 /// Large-format monetary amount input.
 ///
@@ -9,14 +9,14 @@ import '../theme/banzami_theme.dart';
 /// The user types "500" and sees "500 Kz"; the widget exposes 50000 minor units.
 ///
 /// Designed to sit prominently at the top of payment initiation screens.
-class BanzamiAmountInput extends StatefulWidget {
+class BanzaAmountInput extends StatefulWidget {
   final String currency;
   final int? initialAmountMinor;
   final void Function(int amountMinor) onChanged;
   final String? errorText;
   final bool enabled;
 
-  const BanzamiAmountInput({
+  const BanzaAmountInput({
     super.key,
     this.currency          = 'AOA',
     this.initialAmountMinor,
@@ -26,10 +26,10 @@ class BanzamiAmountInput extends StatefulWidget {
   });
 
   @override
-  State<BanzamiAmountInput> createState() => _BanzamiAmountInputState();
+  State<BanzaAmountInput> createState() => _BanzaAmountInputState();
 }
 
-class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
+class _BanzaAmountInputState extends State<BanzaAmountInput> {
   late final TextEditingController _controller;
 
   @override
@@ -61,15 +61,15 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color:        BanzamiColors.gray100,
-            borderRadius: BanzamiRadius.lgAll,
+            color:        BanzaColors.gray100,
+            borderRadius: BanzaRadius.lgAll,
             border: widget.errorText != null
-                ? Border.all(color: BanzamiColors.error, width: 1.5)
+                ? Border.all(color: BanzaColors.error, width: 1.5)
                 : null,
           ),
           padding: const EdgeInsets.symmetric(
-            horizontal: BanzamiSpacing.xl,
-            vertical:   BanzamiSpacing.lg,
+            horizontal: BanzaSpacing.xl,
+            vertical:   BanzaSpacing.lg,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -83,14 +83,14 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                     FilteringTextInputFormatter.digitsOnly,
                     _ThousandsSeparatorFormatter(),
                   ],
-                  style: BanzamiTextStyles.monoLg.copyWith(
-                    color: BanzamiColors.gray900,
+                  style: BanzaTextStyles.monoLg.copyWith(
+                    color: BanzaColors.gray900,
                   ),
                   decoration: InputDecoration(
                     border:           InputBorder.none,
                     hintText:         '0',
-                    hintStyle:        BanzamiTextStyles.monoLg.copyWith(
-                      color: BanzamiColors.gray400,
+                    hintStyle:        BanzaTextStyles.monoLg.copyWith(
+                      color: BanzaColors.gray400,
                     ),
                     contentPadding:   EdgeInsets.zero,
                     isDense:          true,
@@ -104,23 +104,23 @@ class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
                   },
                 ),
               ),
-              const SizedBox(width: BanzamiSpacing.sm),
+              const SizedBox(width: BanzaSpacing.sm),
               Text(
                 _symbol,
-                style: BanzamiTextStyles.headingMd.copyWith(
-                  color: BanzamiColors.gray400,
+                style: BanzaTextStyles.headingMd.copyWith(
+                  color: BanzaColors.gray400,
                 ),
               ),
             ],
           ),
         ),
         if (widget.errorText != null) ...[
-          const SizedBox(height: BanzamiSpacing.xs),
+          const SizedBox(height: BanzaSpacing.xs),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.sm),
             child: Text(
               widget.errorText!,
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
             ),
           ),
         ],

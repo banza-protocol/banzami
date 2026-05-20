@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 // Brand colors
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiColors {
+abstract class BanzaColors {
   // Primary — Space Cherry
   static const Color wine      = Color(0xFFB30012); // primary identity
   static const Color wineDark  = Color(0xFF4A0005); // gradient deep / pressed
@@ -40,14 +40,14 @@ abstract class BanzamiColors {
   static const Color info      = Color(0xFF1E3A8A);
   static const Color infoBg    = Color(0xFFEFF6FF);
 
-  BanzamiColors._();
+  BanzaColors._();
 }
 
 // ---------------------------------------------------------------------------
 // Gradients
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiGradients {
+abstract class BanzaGradients {
   /// Primary cherry gradient — balance card, key headers.
   static const LinearGradient wine = LinearGradient(
     colors: [Color(0xFFB30012), Color(0xFF4A0005)],
@@ -62,14 +62,14 @@ abstract class BanzamiGradients {
     end:    Alignment.bottomRight,
   );
 
-  BanzamiGradients._();
+  BanzaGradients._();
 }
 
 // ---------------------------------------------------------------------------
 // Typography
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiTextStyles {
+abstract class BanzaTextStyles {
   static const String _fontFamily = 'Inter';
 
   static const TextStyle displayXl = TextStyle(
@@ -78,7 +78,7 @@ abstract class BanzamiTextStyles {
     fontWeight:    FontWeight.w700,
     height:        56 / 48,
     letterSpacing: -0.5,
-    color:         BanzamiColors.gray900,
+    color:         BanzaColors.gray900,
   );
 
   static const TextStyle displayLg = TextStyle(
@@ -87,7 +87,7 @@ abstract class BanzamiTextStyles {
     fontWeight:    FontWeight.w700,
     height:        44 / 36,
     letterSpacing: -0.3,
-    color:         BanzamiColors.gray900,
+    color:         BanzaColors.gray900,
   );
 
   static const TextStyle displayMd = TextStyle(
@@ -96,7 +96,7 @@ abstract class BanzamiTextStyles {
     fontWeight:    FontWeight.w600,
     height:        36 / 28,
     letterSpacing: -0.2,
-    color:         BanzamiColors.gray900,
+    color:         BanzaColors.gray900,
   );
 
   static const TextStyle headingLg = TextStyle(
@@ -104,7 +104,7 @@ abstract class BanzamiTextStyles {
     fontSize:   22,
     fontWeight: FontWeight.w600,
     height:     30 / 22,
-    color:      BanzamiColors.gray900,
+    color:      BanzaColors.gray900,
   );
 
   static const TextStyle headingMd = TextStyle(
@@ -112,7 +112,7 @@ abstract class BanzamiTextStyles {
     fontSize:   18,
     fontWeight: FontWeight.w600,
     height:     26 / 18,
-    color:      BanzamiColors.gray900,
+    color:      BanzaColors.gray900,
   );
 
   static const TextStyle headingSm = TextStyle(
@@ -120,7 +120,7 @@ abstract class BanzamiTextStyles {
     fontSize:   16,
     fontWeight: FontWeight.w600,
     height:     24 / 16,
-    color:      BanzamiColors.gray900,
+    color:      BanzaColors.gray900,
   );
 
   static const TextStyle bodyLg = TextStyle(
@@ -128,7 +128,7 @@ abstract class BanzamiTextStyles {
     fontSize:   16,
     fontWeight: FontWeight.w400,
     height:     24 / 16,
-    color:      BanzamiColors.gray900,
+    color:      BanzaColors.gray900,
   );
 
   static const TextStyle bodyMd = TextStyle(
@@ -136,7 +136,7 @@ abstract class BanzamiTextStyles {
     fontSize:   14,
     fontWeight: FontWeight.w400,
     height:     20 / 14,
-    color:      BanzamiColors.gray900,
+    color:      BanzaColors.gray900,
   );
 
   static const TextStyle bodySm = TextStyle(
@@ -144,7 +144,7 @@ abstract class BanzamiTextStyles {
     fontSize:   12,
     fontWeight: FontWeight.w400,
     height:     18 / 12,
-    color:      BanzamiColors.gray400,
+    color:      BanzaColors.gray400,
   );
 
   static const TextStyle label = TextStyle(
@@ -153,7 +153,7 @@ abstract class BanzamiTextStyles {
     fontWeight:    FontWeight.w500,
     height:        16 / 12,
     letterSpacing: 0.2,
-    color:         BanzamiColors.gray900,
+    color:         BanzaColors.gray900,
   );
 
   static const TextStyle mono = TextStyle(
@@ -162,7 +162,7 @@ abstract class BanzamiTextStyles {
     fontWeight:   FontWeight.w400,
     height:       20 / 14,
     fontFeatures: [FontFeature.tabularFigures()],
-    color:        BanzamiColors.gray900,
+    color:        BanzaColors.gray900,
   );
 
   static const TextStyle monoLg = TextStyle(
@@ -171,17 +171,17 @@ abstract class BanzamiTextStyles {
     fontWeight:   FontWeight.w600,
     height:       36 / 28,
     fontFeatures: [FontFeature.tabularFigures()],
-    color:        BanzamiColors.gray900,
+    color:        BanzaColors.gray900,
   );
 
-  BanzamiTextStyles._();
+  BanzaTextStyles._();
 }
 
 // ---------------------------------------------------------------------------
 // Spacing
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiSpacing {
+abstract class BanzaSpacing {
   static const double micro   = 2;
   static const double xs      = 4;
   static const double sm      = 8;
@@ -192,14 +192,14 @@ abstract class BanzamiSpacing {
   static const double section = 48;
   static const double page    = 64;
 
-  BanzamiSpacing._();
+  BanzaSpacing._();
 }
 
 // ---------------------------------------------------------------------------
 // Border radius
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiRadius {
+abstract class BanzaRadius {
   static const double sm   = 4;
   static const double md   = 8;
   static const double lg   = 12;
@@ -214,14 +214,14 @@ abstract class BanzamiRadius {
   static const BorderRadius xxlAll  = BorderRadius.all(Radius.circular(xxl));
   static const BorderRadius fullAll = BorderRadius.all(Radius.circular(full));
 
-  BanzamiRadius._();
+  BanzaRadius._();
 }
 
 // ---------------------------------------------------------------------------
 // Elevation / shadow
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiShadows {
+abstract class BanzaShadows {
   static const List<BoxShadow> none = [];
 
   static const List<BoxShadow> card = [
@@ -258,55 +258,55 @@ abstract class BanzamiShadows {
     ),
   ];
 
-  BanzamiShadows._();
+  BanzaShadows._();
 }
 
 // ---------------------------------------------------------------------------
 // ThemeData
 // ---------------------------------------------------------------------------
 
-abstract class BanzamiTheme {
+abstract class BanzaTheme {
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor:   BanzamiColors.wine,
-      primary:     BanzamiColors.wine,
-      onPrimary:   BanzamiColors.white,
-      secondary:   BanzamiColors.wineLight,
-      onSecondary: BanzamiColors.white,
-      tertiary:    BanzamiColors.wineDark,
-      onTertiary:  BanzamiColors.white,
-      surface:     BanzamiColors.white,
-      onSurface:   BanzamiColors.gray900,
-      error:       BanzamiColors.error,
-      onError:     BanzamiColors.white,
+      seedColor:   BanzaColors.wine,
+      primary:     BanzaColors.wine,
+      onPrimary:   BanzaColors.white,
+      secondary:   BanzaColors.wineLight,
+      onSecondary: BanzaColors.white,
+      tertiary:    BanzaColors.wineDark,
+      onTertiary:  BanzaColors.white,
+      surface:     BanzaColors.white,
+      onSurface:   BanzaColors.gray900,
+      error:       BanzaColors.error,
+      onError:     BanzaColors.white,
       brightness:  Brightness.light,
     );
 
     return ThemeData(
       useMaterial3:            true,
       colorScheme:             colorScheme,
-      scaffoldBackgroundColor: BanzamiColors.offWhite,
+      scaffoldBackgroundColor: BanzaColors.offWhite,
       fontFamily:              'Inter',
 
       appBarTheme: const AppBarTheme(
-        backgroundColor:        BanzamiColors.white,
-        foregroundColor:        BanzamiColors.gray900,
+        backgroundColor:        BanzaColors.white,
+        foregroundColor:        BanzaColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0.5,
         centerTitle:            false,
-        titleTextStyle:         BanzamiTextStyles.headingMd,
+        titleTextStyle:         BanzaTextStyles.headingMd,
         surfaceTintColor:       Colors.transparent,
       ),
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzamiColors.wine,
-          foregroundColor: BanzamiColors.white,
+          backgroundColor: BanzaColors.wine,
+          foregroundColor: BanzaColors.white,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
-            borderRadius: BanzamiRadius.lgAll,
+            borderRadius: BanzaRadius.lgAll,
           ),
-          textStyle: BanzamiTextStyles.label.copyWith(
+          textStyle: BanzaTextStyles.label.copyWith(
             fontSize:   15,
             fontWeight: FontWeight.w600,
           ),
@@ -316,13 +316,13 @@ abstract class BanzamiTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
+          foregroundColor: BanzaColors.wine,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
-            borderRadius: BanzamiRadius.lgAll,
+            borderRadius: BanzaRadius.lgAll,
           ),
-          side: const BorderSide(color: BanzamiColors.wine, width: 1.5),
-          textStyle: BanzamiTextStyles.label.copyWith(
+          side: const BorderSide(color: BanzaColors.wine, width: 1.5),
+          textStyle: BanzaTextStyles.label.copyWith(
             fontSize:   15,
             fontWeight: FontWeight.w600,
           ),
@@ -331,8 +331,8 @@ abstract class BanzamiTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
-          textStyle: BanzamiTextStyles.label.copyWith(
+          foregroundColor: BanzaColors.wine,
+          textStyle: BanzaTextStyles.label.copyWith(
             fontSize:   14,
             fontWeight: FontWeight.w600,
           ),
@@ -341,105 +341,105 @@ abstract class BanzamiTheme {
 
       inputDecorationTheme: InputDecorationTheme(
         filled:     true,
-        fillColor:  BanzamiColors.gray100,
+        fillColor:  BanzaColors.gray100,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: BanzamiSpacing.lg,
-          vertical:   BanzamiSpacing.md,
+          horizontal: BanzaSpacing.lg,
+          vertical:   BanzaSpacing.md,
         ),
         border: const OutlineInputBorder(
-          borderRadius: BanzamiRadius.lgAll,
+          borderRadius: BanzaRadius.lgAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzamiRadius.lgAll,
+          borderRadius: BanzaRadius.lgAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzamiRadius.lgAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderRadius: BanzaRadius.lgAll,
+          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzamiRadius.lgAll,
-          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderRadius: BanzaRadius.lgAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzamiRadius.lgAll,
-          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderRadius: BanzaRadius.lgAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
-        hintStyle:  BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
-        labelStyle: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray600),
-        errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+        hintStyle:  BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+        labelStyle: BanzaTextStyles.label.copyWith(color: BanzaColors.gray600),
+        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
         floatingLabelStyle: const TextStyle(
-          color:      BanzamiColors.wine,
+          color:      BanzaColors.wine,
           fontSize:   12,
           fontWeight: FontWeight.w500,
         ),
       ),
 
       cardTheme: const CardThemeData(
-        color:     BanzamiColors.white,
+        color:     BanzaColors.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BanzamiRadius.lgAll,
-          side: BorderSide(color: BanzamiColors.gray200, width: 1),
+          borderRadius: BanzaRadius.lgAll,
+          side: BorderSide(color: BanzaColors.gray200, width: 1),
         ),
         margin: EdgeInsets.zero,
       ),
 
       dividerTheme: const DividerThemeData(
-        color:     BanzamiColors.gray100,
+        color:     BanzaColors.gray100,
         thickness: 1,
         space:     0,
       ),
 
       chipTheme: ChipThemeData(
-        backgroundColor: BanzamiColors.gray100,
-        labelStyle:      BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray600),
+        backgroundColor: BanzaColors.gray100,
+        labelStyle:      BanzaTextStyles.label.copyWith(color: BanzaColors.gray600),
         side:            BorderSide.none,
-        shape: const RoundedRectangleBorder(borderRadius: BanzamiRadius.smAll),
+        shape: const RoundedRectangleBorder(borderRadius: BanzaRadius.smAll),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       ),
 
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: BanzamiColors.wine,
+        color: BanzaColors.wine,
       ),
 
       snackBarTheme: SnackBarThemeData(
-        backgroundColor: BanzamiColors.gray900,
-        contentTextStyle: BanzamiTextStyles.bodyMd.copyWith(
-          color: BanzamiColors.white,
+        backgroundColor: BanzaColors.gray900,
+        contentTextStyle: BanzaTextStyles.bodyMd.copyWith(
+          color: BanzaColors.white,
         ),
         shape: const RoundedRectangleBorder(
-          borderRadius: BanzamiRadius.lgAll,
+          borderRadius: BanzaRadius.lgAll,
         ),
         behavior:  SnackBarBehavior.floating,
         elevation: 4,
       ),
 
       listTileTheme: const ListTileThemeData(
-        tileColor:      BanzamiColors.white,
+        tileColor:      BanzaColors.white,
         contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         minLeadingWidth: 20,
-        iconColor:      BanzamiColors.gray600,
+        iconColor:      BanzaColors.gray600,
       ),
 
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: BanzamiColors.white,
-        indicatorColor:  BanzamiColors.wine,
+        backgroundColor: BanzaColors.white,
+        indicatorColor:  BanzaColors.wine,
         surfaceTintColor: Colors.transparent,
         elevation:  0,
         shadowColor: const Color(0x1A000000),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return BanzamiTextStyles.label.copyWith(
+          return BanzaTextStyles.label.copyWith(
             fontSize: 11,
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzaColors.wine : BanzaColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? BanzamiColors.white : BanzamiColors.gray400,
+            color: selected ? BanzaColors.white : BanzaColors.gray400,
             size:  22,
           );
         }),
@@ -447,5 +447,5 @@ abstract class BanzamiTheme {
     );
   }
 
-  BanzamiTheme._();
+  BanzaTheme._();
 }

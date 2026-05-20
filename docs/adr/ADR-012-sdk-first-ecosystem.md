@@ -147,7 +147,7 @@ A full SDK ecosystem audit identified critical defects in the webhook signature 
 
 | Defect | Impact |
 |--------|--------|
-| Python SDK: wrong header (`X-Banzami-Signature` vs `Banzami-Signature`) | Verification always fails |
+| Python SDK: wrong header (`Banza-Signature` vs `Banza-Signature`) | Verification always fails |
 | Python SDK: no timestamp in HMAC (`body_only` vs `"{ts}.{body}"`) | Signatures never match gateway |
 | TypeScript SDK: missing webhook module entirely | No `constructEvent()` API |
 | TypeScript SDK example: same wrong format + wrong event type | Examples corrupt merchant implementations |
@@ -159,7 +159,7 @@ Remediation implemented in this phase:
 4. **TypeScript SDK example** corrected with right header name, format, and event types
 5. **Go SDK scaffold** created at `sdk/go/` — webhook verification matches canonical Go signer exactly
 6. **Cross-SDK certification suite** created at `sdk-certification/` with golden test vectors that all SDKs must pass
-7. **Dashboard** `apps/dashboard/lib/api.ts` migrated to use `@banzami/sdk` `BanzamiClient` internally
+7. **Dashboard** `apps/dashboard/lib/api.ts` migrated to use `@banza/sdk` `BanzaClient` internally
 
 ---
 
@@ -203,7 +203,7 @@ DOA's direct HTTP integration is in:
 
 Migration replaces these with:
 ```typescript
-import Banzami from '@banzami/sdk';
+import Banzami from '@banza/sdk';
 
 const banzami = new Banzami({ apiKey: process.env.BANZAMI_API_KEY });
 ```

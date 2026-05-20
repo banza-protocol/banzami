@@ -2,8 +2,8 @@
 
 import pytest
 
-from banzami.exceptions import (
-    BanzamiAPIError,
+from banza.exceptions import (
+    BanzaAPIError,
     BanzamiAuthenticationError,
     BanzamiInsufficientFundsError,
     BanzamiNotFoundError,
@@ -60,7 +60,7 @@ def test_factory_insufficient_funds():
 
 def test_api_error_is_base():
     err = api_error_from_response(401, "X", "y")
-    assert isinstance(err, BanzamiAPIError)
+    assert isinstance(err, BanzaAPIError)
 
 
 def test_request_id_propagated():

@@ -9,7 +9,7 @@ import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
-import 'banzami_environment.dart';
+import 'banza_environment.dart';
 
 /// Result of a sandbox wallet top-up via [ConsumerPublicClient.sandboxFund].
 class SandboxFundResult {
@@ -55,7 +55,7 @@ class ConsumerRegistration {
 /// ```
 class ConsumerPublicClient {
   final String baseUrl;
-  final BanzamiEnvironment environment;
+  final BanzaEnvironment environment;
   String? _token;
   final http.Client _http;
   final Uuid _uuid;
@@ -75,7 +75,7 @@ class ConsumerPublicClient {
 
   ConsumerPublicClient({
     required this.baseUrl,
-    this.environment = BanzamiEnvironment.production,
+    this.environment = BanzaEnvironment.production,
     http.Client? httpClient,
     this.onRequest,
     this.onResponse,
@@ -270,7 +270,7 @@ class ConsumerPublicClient {
 
   /// Credits the authenticated consumer's sandbox wallet with virtual funds.
   ///
-  /// Only works when [environment] is [BanzamiEnvironment.sandbox].
+  /// Only works when [environment] is [BanzaEnvironment.sandbox].
   /// Throws [BanzamiApiException] with code `SANDBOX_ONLY` if called in production.
   Future<SandboxFundResult> sandboxFund({
     required int amountMinor,

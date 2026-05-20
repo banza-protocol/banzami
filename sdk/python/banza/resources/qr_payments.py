@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from banzami.models.qr_payment import ParsedQr, QrPayment
-from banzami.utils.ids import new_idempotency_key
+from banza.models.qr_payment import ParsedQr, QrPayment
+from banza.utils.ids import new_idempotency_key
 
 from .base import AsyncResource
 

@@ -1,6 +1,6 @@
-export { BanzamiClient, BanzamiError } from './client.js';
+export { BanzaClient, BanzaError } from './client.js';
 export type {
-  BanzamiClientConfig,
+  BanzaClientConfig,
   PaymentLink,
   CreatePaymentLinkParams,
   Transaction,

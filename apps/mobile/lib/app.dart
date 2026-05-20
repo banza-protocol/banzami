@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
+import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'services/session_service.dart';
@@ -76,7 +76,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
           // Auto-logout on 401: clears session and returns to WelcomeScreen.
           client.onUnauthorized = () => context.read<SessionService>().logout();
           return MaterialApp(
-            title:                      'Banzami',
+            title:                      'Banza',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,
@@ -96,7 +96,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   ThemeData _buildTheme() {
-    final base = BanzamiTheme.light;
+    final base = BanzaTheme.light;
     return base.copyWith(textTheme: base.textTheme.apply(fontFamily: 'Inter'));
   }
 }

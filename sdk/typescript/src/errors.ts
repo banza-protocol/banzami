@@ -1,10 +1,10 @@
-export class BanzamiApiError extends Error {
+export class BanzaApiError extends Error {
   readonly status:  number;
   readonly code:    string;
 
   constructor(status: number, code: string, message: string) {
     super(message);
-    this.name   = 'BanzamiApiError';
+    this.name   = 'BanzaApiError';
     this.status = status;
     this.code   = code;
   }

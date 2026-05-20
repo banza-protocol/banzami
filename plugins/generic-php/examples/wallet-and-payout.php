@@ -5,14 +5,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Banzami\BanzamiClient;
+use Banza\BanzaClient;
 
-$client   = new BanzamiClient(getenv('BANZAMI_GATEWAY_URL'), getenv('BANZAMI_API_KEY'));
+$client   = new BanzaClient(getenv('BANZAMI_GATEWAY_URL'), getenv('BANZAMI_API_KEY'));
 $walletId = getenv('BANZAMI_WALLET_ID');
 
 $balance = $client->getWalletBalance($walletId);
-echo 'Available: ' . BanzamiClient::formatAmount($balance['available_minor'], $balance['currency']) . PHP_EOL;
-echo 'Reserved:  ' . BanzamiClient::formatAmount($balance['reserved_minor'],  $balance['currency']) . PHP_EOL;
+echo 'Available: ' . BanzaClient::formatAmount($balance['available_minor'], $balance['currency']) . PHP_EOL;
+echo 'Reserved:  ' . BanzaClient::formatAmount($balance['reserved_minor'],  $balance['currency']) . PHP_EOL;
 
 // Request a payout (minimum 5.000 Kz)
 if ($balance['available_minor'] >= 5000) {

@@ -18,7 +18,7 @@ import time
 
 import pytest
 
-from banzami.signature import (
+from banza.signature import (
     SIGNATURE_HEADER,
     TOLERANCE_SECONDS,
     generate_test_signature,

@@ -7,7 +7,7 @@ import pytest
 import respx
 from respx.transports import MockTransport
 
-from banzami import Banzami
+from banza import Banzami
 
 TEST_API_KEY   = "bz_test_key"
 TEST_BASE_URL  = "https://api.banzami.test"

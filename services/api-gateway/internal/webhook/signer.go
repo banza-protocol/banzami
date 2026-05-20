@@ -3,7 +3,7 @@
 //
 // Signature header format (compatible with Stripe's approach):
 //
-//	Banzami-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
+//	Banza-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
 //
 // The HMAC input is: "<unix_seconds>.<payload_bytes>"
 // Prepending the timestamp makes the signature unique per delivery, preventing
@@ -21,9 +21,9 @@ import (
 	"time"
 )
 
-const SignatureHeader = "Banzami-Signature"
+const SignatureHeader = "Banza-Signature"
 
-// Sign returns the value of the Banzami-Signature header for the given payload.
+// Sign returns the value of the Banza-Signature header for the given payload.
 func Sign(secret string, t time.Time, payload []byte) string {
 	ts := t.Unix()
 	mac := hmac.New(sha256.New, []byte(secret))
@@ -32,7 +32,7 @@ func Sign(secret string, t time.Time, payload []byte) string {
 	return fmt.Sprintf("t=%d,v1=%s", ts, hex.EncodeToString(mac.Sum(nil)))
 }
 
-// Verify validates the Banzami-Signature header against the given payload.
+// Verify validates the Banza-Signature header against the given payload.
 // Returns a non-nil error if the signature is invalid or the timestamp falls
 // outside the replay-protection tolerance window.
 func Verify(secret, header string, payload []byte, tolerance time.Duration) error {
@@ -78,7 +78,7 @@ func parseHeader(header string) (ts int64, v1 string, err error) {
 		}
 	}
 	if ts == 0 || v1 == "" {
-		return 0, "", errors.New("webhook: malformed Banzami-Signature header")
+		return 0, "", errors.New("webhook: malformed Banza-Signature header")
 	}
 	return ts, v1, nil
 }

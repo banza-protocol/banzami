@@ -157,7 +157,7 @@ describe('malformed headers', () => {
     ).toThrow(BanzamiWebhookSignatureError);
   });
 
-  it('V-012: wrong header format (old X-Banzami-Signature style) must be rejected', () => {
+  it('V-012: wrong header format (old Banza-Signature style) must be rejected', () => {
     const v = getVector('V-012');
     expect(() =>
       verifySignature(v.raw_body, v.expected_header, SECRET, {

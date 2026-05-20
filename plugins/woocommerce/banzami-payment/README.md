@@ -1,6 +1,6 @@
-# Banzami Payment Gateway for WooCommerce
+# Banza Payment Gateway for WooCommerce
 
-Accept payments via the Banzami platform in any WooCommerce store. Customers pay by scanning a QR code with the Banzami mobile app — no card details, no redirects to external pages.
+Accept payments via the Banza payment network in any WooCommerce store. Customers pay by scanning a QR code with the Banza app — no card details, no redirects to external pages.
 
 ## Requirements
 
@@ -12,8 +12,8 @@ Accept payments via the Banzami platform in any WooCommerce store. Customers pay
 ## Installation
 
 1. Upload the `banzami-payment/` folder to `/wp-content/plugins/`.
-2. In WordPress admin go to **Plugins → Installed Plugins** and activate **Banzami Payment Gateway**.
-3. Go to **WooCommerce → Settings → Payments** and click **Banzami**.
+2. In WordPress admin go to **Plugins → Installed Plugins** and activate **Banza Payment Gateway**.
+3. Go to **WooCommerce → Settings → Payments** and click **Banza**.
 4. Fill in the settings (see below) and click **Save changes**.
 
 ## Configuration
@@ -21,7 +21,7 @@ Accept payments via the Banzami platform in any WooCommerce store. Customers pay
 | Setting | Description |
 |---|---|
 | **Enable** | Toggle the gateway on/off at checkout |
-| **Title** | Label shown to customers at checkout (e.g. "Banzami — Pagar com o telemóvel") |
+| **Title** | Label shown to customers at checkout (e.g. "Banza — Pagar com o telemóvel") |
 | **Description** | Short description shown below the title at checkout |
 | **Gateway URL** | Your Banzami API gateway URL (`https://api.banzami.org` for production) |
 | **API Key** | Merchant API key from the Banzami dashboard — starts with `bz_live_` |
@@ -56,7 +56,7 @@ Customer → WooCommerce Checkout
          → Order set to "Pending payment"
          → Customer sees QR code + deep link
 
-Customer → Scans QR with Banzami app
+Customer → Scans QR with Banza app
          → Confirms payment in app
 
 Banzami  → POST https://your-store.com/wc-api/banzami
@@ -107,7 +107,7 @@ SIG="sha256=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{pri
 
 curl -X POST https://your-tunnel.ngrok.io/wc-api/banzami \
   -H "Content-Type: application/json" \
-  -H "X-Banzami-Signature: $SIG" \
+  -H "Banza-Signature: $SIG" \
   -d "$BODY"
 ```
 

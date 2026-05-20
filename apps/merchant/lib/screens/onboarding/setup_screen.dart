@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../../config.dart';
 import '../pin_create_screen.dart';
@@ -36,7 +36,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
     final apiKey     = _keyCtrl.text.trim();
 
     try {
-      final client = BanzamiClient(
+      final client = BanzaClient(
         baseUrl: AppConfig.gatewayUrl,
         apiKey:  apiKey,
       );
@@ -81,27 +81,27 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title: const Text('Configurar conta', style: BanzamiTextStyles.headingSm),
+        title: const Text('Configurar conta', style: BanzaTextStyles.headingSm),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(BanzamiSpacing.xl),
+        padding: const EdgeInsets.all(BanzaSpacing.xl),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Credenciais da sua conta', style: BanzamiTextStyles.headingSm),
+              const Text('Credenciais da sua conta', style: BanzaTextStyles.headingSm),
               const SizedBox(height: 8),
               Text(
                 'Encontre estes valores em dashboard.banzami.org → Definições → API.',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
               ),
-              const SizedBox(height: BanzamiSpacing.xl),
+              const SizedBox(height: BanzaSpacing.xl),
 
               TextFormField(
                 controller:        _idCtrl,
@@ -116,7 +116,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
                     ? 'Introduza o Merchant ID'
                     : null,
               ),
-              const SizedBox(height: BanzamiSpacing.lg),
+              const SizedBox(height: BanzaSpacing.lg),
 
               TextFormField(
                 controller:  _keyCtrl,
@@ -140,29 +140,29 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
               ),
 
               if (_error != null) ...[
-                const SizedBox(height: BanzamiSpacing.lg),
+                const SizedBox(height: BanzaSpacing.lg),
                 Container(
-                  padding: const EdgeInsets.all(BanzamiSpacing.md),
+                  padding: const EdgeInsets.all(BanzaSpacing.md),
                   decoration: BoxDecoration(
-                    color:        BanzamiColors.error.withValues(alpha: 0.08),
+                    color:        BanzaColors.error.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(children: [
                     const Icon(Icons.error_outline_rounded,
-                        color: BanzamiColors.error, size: 20),
+                        color: BanzaColors.error, size: 20),
                     const SizedBox(width: 10),
                     Expanded(child: Text(_error!,
-                        style: BanzamiTextStyles.bodySm
-                            .copyWith(color: BanzamiColors.error))),
+                        style: BanzaTextStyles.bodySm
+                            .copyWith(color: BanzaColors.error))),
                   ]),
                 ),
               ],
 
-              const SizedBox(height: BanzamiSpacing.xxl),
+              const SizedBox(height: BanzaSpacing.xxl),
 
               SizedBox(
                 width: double.infinity,
-                child: BanzamiButton(
+                child: BanzaButton(
                   label:     'Verificar e continuar',
                   onPressed: _loading ? null : _verify,
                   isLoading: _loading,

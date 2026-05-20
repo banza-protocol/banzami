@@ -6,7 +6,7 @@ Update here first so future submissions stay consistent.
 
 ---
 
-## Banzami (Consumer app)
+## Banza (Consumer app)
 
 Usa autenticação por **@banza handle + PIN**.
 
@@ -42,7 +42,7 @@ Important:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta da Banzami!
+Bem-vindo ao beta do Banza!
 
 O que testar:
 1. Registo e login com @banza e PIN
@@ -62,12 +62,12 @@ Para reportar problemas: agita o iPhone
 durante a app → aparece o menu de feedback
 do TestFlight → descreve o problema.
 
-Obrigado por fazeres parte do beta Banzami!
+Obrigado por fazeres parte do beta Banza!
 ```
 
 ---
 
-## Banzami Business (Merchant app)
+## Banza Business (Merchant app)
 
 Usa autenticação por **Merchant ID + API Key** (diferente da app consumer).
 
@@ -104,7 +104,7 @@ Important:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta da Banzami Business!
+Bem-vindo ao beta do Banza Business!
 
 O que testar:
 1. Configurar a conta com Merchant ID e API Key
@@ -125,7 +125,7 @@ Para reportar problemas: agita o iPhone
 durante a app → aparece o menu de feedback
 do TestFlight → descreve o problema.
 
-Obrigado por fazeres parte do beta Banzami Business!
+Obrigado por fazeres parte do beta Banza Business!
 ```
 
 ---
@@ -157,7 +157,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 ### App Store Review Notes
 
 1. Abre https://appstoreconnect.apple.com/
-2. Selecciona a app (`Banzami` ou `Banzami Business`)
+2. Selecciona a app (`Banza` ou `Banza Business`)
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
 5. Para o **Demo Account**:
@@ -181,7 +181,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 > As contas abaixo podem ser desactivadas — builds TestFlight seguintes não precisam de revisão Apple.
 > Só serão necessárias novas contas quando for submeter para a App Store pública.
 
-### Consumer (Banzami)
+### Consumer (Banza)
 
 | Campo       | Valor                                    | Estado                |
 |-------------|------------------------------------------|-----------------------|
@@ -191,7 +191,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 
 Para desactivar: `POST /v1/consumers/64080866-4c92-4358-ad20-2233a8db8428/suspend` (via API gateway sandbox com chave de admin).
 
-### Merchant (Banzami Business)
+### Merchant (Banza Business)
 
 | Campo       | Valor                                                                      | Estado                |
 |-------------|----------------------------------------------------------------------------|-----------------------|
@@ -207,6 +207,6 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 
 | Data | Build | Apps | Estado |
 |------|-------|------|--------|
-| 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business | ✅ Aprovado (TestFlight External) |
+| 2026-05-18 | 1.0.0 (1) | Banza + Banza Business | ✅ Aprovado (TestFlight External) |
 
 Adicionar uma linha a cada submissão.

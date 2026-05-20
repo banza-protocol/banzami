@@ -1,7 +1,7 @@
-export { BanzamiClient }                              from './client.js';
-export type { BanzamiClientOptions, BanzamiHooks }   from './client.js';
+export { BanzaClient }                              from './client.js';
+export type { BanzaClientOptions, BanzamiHooks }   from './client.js';
 
-export { BanzamiApiError }                           from './errors.js';
+export { BanzaApiError }                           from './errors.js';
 
 export {
   WebhooksClient,

@@ -45,7 +45,7 @@ class WebhookControllerTest extends TestCase
             [],
             [],
             [],
-            ['HTTP_X-Banzami-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
+            ['HTTP_Banza-Signature' => $signature, 'CONTENT_TYPE' => 'application/json'],
             $body,
         );
     }

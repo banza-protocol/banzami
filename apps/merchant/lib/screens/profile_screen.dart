@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 
@@ -25,20 +25,20 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     _canUseBio ??= svc.canUseBiometrics();
 
     return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
+      backgroundColor: BanzaColors.offWhite,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.lg),
+          padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.lg),
           children: [
-            const SizedBox(height: BanzamiSpacing.xl),
+            const SizedBox(height: BanzaSpacing.xl),
 
-            const Text('Perfil', style: BanzamiTextStyles.headingMd),
+            const Text('Perfil', style: BanzaTextStyles.headingMd),
 
-            const SizedBox(height: BanzamiSpacing.lg),
+            const SizedBox(height: BanzaSpacing.lg),
 
             _MerchantProfileHeader(session: session),
 
-            const SizedBox(height: BanzamiSpacing.sm),
+            const SizedBox(height: BanzaSpacing.sm),
 
             _MerchantIdCard(
               merchantId: session.merchantId,
@@ -46,7 +46,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
               onCopy:     _copyId,
             ),
 
-            const SizedBox(height: BanzamiSpacing.sm),
+            const SizedBox(height: BanzaSpacing.sm),
 
             FutureBuilder<bool>(
               future: _canUseBio,
@@ -58,7 +58,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                     busy:              _bioBusy,
                     onToggle:          (v) => _toggleBio(svc, v),
                   ),
-                  const SizedBox(height: BanzamiSpacing.sm),
+                  const SizedBox(height: BanzaSpacing.sm),
                 ]);
               },
             ),
@@ -66,20 +66,20 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
             _ActionTile(
               icon:  Icons.logout_rounded,
               label: 'Terminar sessão',
-              color: BanzamiColors.wine,
+              color: BanzaColors.wine,
               onTap: () => _confirmLogout(svc),
             ),
 
-            const SizedBox(height: BanzamiSpacing.xxl),
+            const SizedBox(height: BanzaSpacing.xxl),
 
             Center(
               child: Text(
-                'Banzami Business v1.0',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                'Banza Business v1.0',
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
               ),
             ),
 
-            const SizedBox(height: BanzamiSpacing.xl),
+            const SizedBox(height: BanzaSpacing.xl),
           ],
         ),
       ),
@@ -112,7 +112,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:   const RoundedRectangleBorder(borderRadius: BanzamiRadius.xlAll),
+        shape:   const RoundedRectangleBorder(borderRadius: BanzaRadius.xlAll),
         title:   const Text('Terminar sessão?'),
         content: const Text(
           'Terá de introduzir as suas credenciais novamente para voltar a entrar.',
@@ -121,7 +121,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sair', style: TextStyle(color: BanzamiColors.error)),
+            child: const Text('Sair', style: TextStyle(color: BanzaColors.error)),
           ),
         ],
       ),
@@ -145,17 +145,17 @@ class _MerchantProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient:     BanzamiGradients.wine,
-        borderRadius: BanzamiRadius.xlAll,
+        gradient:     BanzaGradients.wine,
+        borderRadius: BanzaRadius.xlAll,
         boxShadow: [
           BoxShadow(
-            color:      BanzamiColors.wineDark.withValues(alpha: 0.30),
+            color:      BanzaColors.wineDark.withValues(alpha: 0.30),
             blurRadius: 24,
             offset:     const Offset(0, 8),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(BanzamiSpacing.lg),
+      padding: const EdgeInsets.all(BanzaSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -163,23 +163,23 @@ class _MerchantProfileHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _Avatar(initial: initial),
-              const SizedBox(width: BanzamiSpacing.md),
+              const SizedBox(width: BanzaSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       session.merchantName,
-                      style: BanzamiTextStyles.headingSm.copyWith(
-                        color:      BanzamiColors.white,
+                      style: BanzaTextStyles.headingSm.copyWith(
+                        color:      BanzaColors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                     const SizedBox(height: 1),
                     Text(
                       session.merchantEmail,
-                      style: BanzamiTextStyles.bodySm.copyWith(
-                        color: BanzamiColors.white.withValues(alpha: 0.60),
+                      style: BanzaTextStyles.bodySm.copyWith(
+                        color: BanzaColors.white.withValues(alpha: 0.60),
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -187,24 +187,24 @@ class _MerchantProfileHeader extends StatelessWidget {
                 ),
               ),
               if (session.verified) ...[
-                const SizedBox(width: BanzamiSpacing.md),
+                const SizedBox(width: BanzaSpacing.md),
                 const _VerifiedBadge(),
               ],
             ],
           ),
           if (session.verified) ...[
-            const SizedBox(height: BanzamiSpacing.md),
+            const SizedBox(height: BanzaSpacing.md),
             Row(children: [
               Icon(
                 Icons.shield_outlined,
                 size:  13,
-                color: BanzamiColors.white.withValues(alpha: 0.35),
+                color: BanzaColors.white.withValues(alpha: 0.35),
               ),
               const SizedBox(width: 6),
               Text(
                 'Conta de comerciante verificada',
-                style: BanzamiTextStyles.bodySm.copyWith(
-                  color: BanzamiColors.white.withValues(alpha: 0.35),
+                style: BanzaTextStyles.bodySm.copyWith(
+                  color: BanzaColors.white.withValues(alpha: 0.35),
                 ),
               ),
             ]),
@@ -226,17 +226,17 @@ class _Avatar extends StatelessWidget {
       height: 52,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        color: BanzamiColors.white.withValues(alpha: 0.15),
+        color: BanzaColors.white.withValues(alpha: 0.15),
         border: Border.all(
-          color: BanzamiColors.white.withValues(alpha: 0.30),
+          color: BanzaColors.white.withValues(alpha: 0.30),
           width: 2,
         ),
       ),
       child: Center(
         child: Text(
           initial,
-          style: BanzamiTextStyles.headingLg.copyWith(
-            color:      BanzamiColors.white,
+          style: BanzaTextStyles.headingLg.copyWith(
+            color:      BanzaColors.white,
             fontSize:   20,
             fontWeight: FontWeight.w700,
           ),
@@ -253,12 +253,12 @@ class _VerifiedBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.md,
+        horizontal: BanzaSpacing.md,
         vertical:   5,
       ),
       decoration: BoxDecoration(
         color:        const Color(0xFF1D4ED8).withValues(alpha: 0.15),
-        borderRadius: BanzamiRadius.fullAll,
+        borderRadius: BanzaRadius.fullAll,
         border:       Border.all(color: const Color(0xFF1D4ED8).withValues(alpha: 0.35)),
       ),
       child: Row(
@@ -268,7 +268,7 @@ class _VerifiedBadge extends StatelessWidget {
           const SizedBox(width: 4),
           Text(
             'Verificado',
-            style: BanzamiTextStyles.label.copyWith(
+            style: BanzaTextStyles.label.copyWith(
               color:    const Color(0xFFBFDBFE),
               fontSize: 11,
             ),
@@ -298,49 +298,49 @@ class _MerchantIdCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BanzamiRadius.xlAll,
-        boxShadow:    BanzamiShadows.card,
+        color:        BanzaColors.white,
+        borderRadius: BanzaRadius.xlAll,
+        boxShadow:    BanzaShadows.card,
       ),
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.lg,
-        vertical:   BanzamiSpacing.md,
+        horizontal: BanzaSpacing.lg,
+        vertical:   BanzaSpacing.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(children: [
             _IconBox(icon: Icons.badge_outlined),
-            SizedBox(width: BanzamiSpacing.md),
-            Text('Merchant ID', style: BanzamiTextStyles.headingSm),
+            SizedBox(width: BanzaSpacing.md),
+            Text('Merchant ID', style: BanzaTextStyles.headingSm),
           ]),
 
-          const SizedBox(height: BanzamiSpacing.sm),
+          const SizedBox(height: BanzaSpacing.sm),
 
           GestureDetector(
             onTap: onCopy,
             child: Container(
               width:   double.infinity,
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.md,
-                vertical:   BanzamiSpacing.sm,
+                horizontal: BanzaSpacing.md,
+                vertical:   BanzaSpacing.sm,
               ),
               decoration: const BoxDecoration(
-                color:        BanzamiColors.gray100,
-                borderRadius: BanzamiRadius.lgAll,
+                color:        BanzaColors.gray100,
+                borderRadius: BanzaRadius.lgAll,
               ),
               child: Row(children: [
                 Expanded(
                   child: Text(
                     merchantId,
-                    style: BanzamiTextStyles.mono.copyWith(
+                    style: BanzaTextStyles.mono.copyWith(
                       fontSize: 12,
-                      color:    BanzamiColors.gray900,
+                      color:    BanzaColors.gray900,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: BanzamiSpacing.md),
+                const SizedBox(width: BanzaSpacing.md),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 220),
                   transitionBuilder: (child, anim) =>
@@ -350,24 +350,24 @@ class _MerchantIdCard extends StatelessWidget {
                           Icons.check_rounded,
                           key:   ValueKey('check'),
                           size:  20,
-                          color: BanzamiColors.success,
+                          color: BanzaColors.success,
                         )
                       : const Icon(
                           Icons.copy_rounded,
                           key:   ValueKey('copy'),
                           size:  20,
-                          color: BanzamiColors.gray400,
+                          color: BanzaColors.gray400,
                         ),
                 ),
               ]),
             ),
           ),
 
-          const SizedBox(height: BanzamiSpacing.sm),
+          const SizedBox(height: BanzaSpacing.sm),
 
           Text(
             'Toque para copiar o seu identificador único',
-            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
           ),
         ],
       ),
@@ -394,32 +394,32 @@ class _SecuritySection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BanzamiRadius.xlAll,
-        boxShadow:    BanzamiShadows.card,
+        color:        BanzaColors.white,
+        borderRadius: BanzaRadius.xlAll,
+        boxShadow:    BanzaShadows.card,
       ),
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.lg,
-        vertical:   BanzamiSpacing.md,
+        horizontal: BanzaSpacing.lg,
+        vertical:   BanzaSpacing.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Segurança', style: BanzamiTextStyles.headingSm),
+          const Text('Segurança', style: BanzaTextStyles.headingSm),
 
-          const SizedBox(height: BanzamiSpacing.sm),
+          const SizedBox(height: BanzaSpacing.sm),
 
           Row(children: [
             const _IconBox(icon: Icons.fingerprint_rounded),
-            const SizedBox(width: BanzamiSpacing.md),
+            const SizedBox(width: BanzaSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Biometria',
-                      style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
+                      style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
                   Text('Face ID / impressão digital',
-                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
                 ],
               ),
             ),
@@ -427,21 +427,21 @@ class _SecuritySection extends StatelessWidget {
               const SizedBox(
                 width:  22,
                 height: 22,
-                child:  CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
+                child:  CircularProgressIndicator(strokeWidth: 2, color: BanzaColors.wine),
               )
             else
               Switch(
                 value:            biometricsEnabled,
                 onChanged:        onToggle,
-                activeThumbColor: BanzamiColors.wine,
+                activeThumbColor: BanzaColors.wine,
                 trackColor: WidgetStateProperty.resolveWith((states) =>
                   states.contains(WidgetState.selected)
-                      ? BanzamiColors.wine.withValues(alpha: 0.25)
-                      : BanzamiColors.gray200),
+                      ? BanzaColors.wine.withValues(alpha: 0.25)
+                      : BanzaColors.gray200),
                 thumbColor: WidgetStateProperty.resolveWith((states) =>
                   states.contains(WidgetState.selected)
-                      ? BanzamiColors.wine
-                      : BanzamiColors.white),
+                      ? BanzaColors.wine
+                      : BanzaColors.white),
               ),
           ]),
         ],
@@ -471,12 +471,12 @@ class _ActionTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BanzamiRadius.xlAll,
-        boxShadow:    BanzamiShadows.card,
+        color:        BanzaColors.white,
+        borderRadius: BanzaRadius.xlAll,
+        boxShadow:    BanzaShadows.card,
       ),
       child: ClipRRect(
-        borderRadius: BanzamiRadius.xlAll,
+        borderRadius: BanzaRadius.xlAll,
         child: Material(
           color: Colors.transparent,
           child: InkWell(
@@ -485,16 +485,16 @@ class _ActionTile extends StatelessWidget {
             highlightColor: color.withValues(alpha: 0.03),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.lg,
-                vertical:   BanzamiSpacing.md,
+                horizontal: BanzaSpacing.lg,
+                vertical:   BanzaSpacing.md,
               ),
               child: Row(children: [
                 _IconBox(icon: icon, color: color),
-                const SizedBox(width: BanzamiSpacing.md),
+                const SizedBox(width: BanzaSpacing.md),
                 Expanded(
                   child: Text(
                     label,
-                    style: BanzamiTextStyles.bodyMd.copyWith(
+                    style: BanzaTextStyles.bodyMd.copyWith(
                       color:      color,
                       fontWeight: FontWeight.w500,
                     ),
@@ -524,7 +524,7 @@ class _IconBox extends StatelessWidget {
 
   const _IconBox({
     required this.icon,
-    this.color = BanzamiColors.wine,
+    this.color = BanzaColors.wine,
   });
 
   @override
@@ -534,7 +534,7 @@ class _IconBox extends StatelessWidget {
       height: 36,
       decoration: BoxDecoration(
         color:        color.withValues(alpha: 0.08),
-        borderRadius: BanzamiRadius.mdAll,
+        borderRadius: BanzaRadius.mdAll,
       ),
       child: Icon(icon, color: color, size: 18),
     );

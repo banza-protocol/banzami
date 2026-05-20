@@ -64,7 +64,7 @@ The REST API is the universal integration point. Every other layer — SDKs, plu
 - **Idempotency** — every `POST` accepts and enforces `Idempotency-Key`.
 - **Structured errors** — all errors return `{ "code": "MACHINE_CODE", "message": "Human message" }`.
 - **Pagination** — all list endpoints support cursor-based pagination: `?limit=N&cursor=TOKEN`.
-- **Webhook delivery** — signed with `X-Banzami-Signature: sha256=<hex>`.
+- **Webhook delivery** — signed with `Banza-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>`.
 
 ### Endpoints (v1 surface)
 
@@ -91,7 +91,7 @@ Server-side adapters are thin, language-idiomatic wrappers around the REST API. 
 
 | Adapter | Language | Package | Primary use case |
 |---------|----------|---------|-----------------|
-| `generic-node` | TypeScript/Node | `@banzami/node` | Express, Fastify, bare Node |
+| `generic-node` | TypeScript/Node | `@banza/node` | Express, Fastify, bare Node |
 | `generic-php` | PHP | Composer package | WordPress, Laravel, vanilla PHP |
 | `generic-laravel` | PHP/Laravel | Composer package | Laravel service provider + facades |
 
@@ -124,7 +124,7 @@ The Flutter SDK is not just a network client. It is the **Banzami Mobile Runtime
 #### Client capabilities
 
 ```dart
-final client = BanzamiClient(
+final client = BanzaClient(
   baseUrl: 'https://api.banzami.org',
   apiKey:  'bz_live_...',
   onRequest:  (method, path, attempt) => logger.debug('$method $path #$attempt'),
@@ -139,17 +139,17 @@ The following widget layer is planned for v1.1. Designs must use the official Ba
 
 | Widget | Description |
 |--------|-------------|
-| `BanzamiPaymentSheet` | Bottom sheet with QR + amount + confirm |
-| `BanzamiQrScanner` | Camera overlay with Banzami branding |
-| `BanzamiQrDisplay` | Animated QR with countdown timer |
-| `BanzamiTransferFlow` | Handle → amount → confirm 3-step flow |
-| `BanzamiWalletCard` | Balance display with Savanna Gold accent |
+| `BanzaPaymentSheet` | Bottom sheet with QR + amount + confirm |
+| `BanzaQrScanner` | Camera overlay with Banzami branding |
+| `BanzaQrDisplay` | Animated QR with countdown timer |
+| `BanzaTransferFlow` | Handle → amount → confirm 3-step flow |
+| `BanzaWalletCard` | Balance display with Savanna Gold accent |
 
 #### Design system compliance (Flutter)
 
 ```dart
 // Official Banzami theme token — never hardcode colors in widgets
-class BanzamiColors {
+class BanzaColors {
   static const primary    = Color(0xFF990011);  // Space Cherry
   static const wineRose   = Color(0xFFA63A50);
   static const savannaGold= Color(0xFFC89B3C);
@@ -165,18 +165,18 @@ class BanzamiColors {
 **Location:** `sdk/typescript/`  
 **Priority:** CRITICAL  
 **Runtimes:** Node.js ≥ 18, browser (ESM), Next.js (SSR-safe)  
-**Package:** `@banzami/sdk`
+**Package:** `@banza/sdk`
 
 The TypeScript SDK is the **primary web developer SDK**. It is the reference for ergonomics — all other SDKs should aspire to the same DX.
 
 #### Usage pattern
 
 ```typescript
-import { BanzamiClient } from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
-const client = new BanzamiClient({
+const client = new BanzaClient({
   baseUrl:  'https://api.banzami.org',
-  apiKey:   process.env.BANZAMI_API_KEY!,
+  apiKey:   process.env.BANZA_API_KEY!,
   hooks: {
     onRequest:  (method, path, attempt) => console.log(`→ ${method} ${path}`),
     onResponse: (method, path, status, ms) => console.log(`← ${status} (${ms}ms)`),
@@ -216,15 +216,15 @@ The TypeScript SDK must achieve parity with the following DX expectations (measu
 **Location:** `sdk/python/`  
 **Priority:** HIGH  
 **Runtime:** Python 3.12+  
-**Package:** `banzami`  
+**Package:** `banza-python`  
 **Paradigm:** async-first (`httpx` + `asyncio`)
 
 #### Usage pattern
 
 ```python
-from banzami import Banzami
+from banza import BanzaClient
 
-async with Banzami(api_key="bz_live_...") as client:
+async with BanzaClient(api_key="bz_live_...") as client:
     # Transaction
     tx = await client.transactions.create(
         amount=50000,
@@ -271,7 +271,7 @@ A merchant installs the plugin, enters their API key, and immediately accepts pa
 
 | Feature | Description |
 |---------|-------------|
-| QR checkout | WooCommerce checkout page shows Banzami QR code |
+| QR checkout | WooCommerce checkout page shows Banza QR code |
 | Hosted checkout redirect | Redirect to `apps/checkout/` for the payment UX |
 | Order synchronization | Webhook listener updates WooCommerce order status automatically |
 | Payment confirmation | Order moves to "Processing" when payment is confirmed |
@@ -283,7 +283,7 @@ A merchant installs the plugin, enters their API key, and immediately accepts pa
 | Field | Description |
 |-------|-------------|
 | API Key | `bz_live_...` or `bz_test_...` |
-| Webhook Secret | Used to verify `X-Banzami-Signature` |
+| Webhook Secret | Used to verify `Banza-Signature` |
 | Test Mode | Toggle between live and test environment |
 | Checkout Mode | QR inline / redirect to hosted checkout |
 
@@ -445,14 +445,14 @@ This guarantees that a network failure during a financial operation cannot resul
 
 All SDKs must provide a `verifyWebhookSignature` function that:
 1. Accepts the raw body (bytes, before any decoding)
-2. Accepts the `X-Banzami-Signature` header value
+2. Accepts the `Banza-Signature` header value
 3. Accepts the webhook secret from the Banzami dashboard
 4. Returns a boolean or raises a typed exception
 5. Uses constant-time comparison (prevents timing oracle attacks)
 
 ```
 Expected: sha256=HMAC-SHA256(secret, raw_body)
-Actual:   X-Banzami-Signature header value
+Actual:   Banza-Signature header value
 Compare:  constant-time (hmac.compare_digest or equivalent)
 ```
 

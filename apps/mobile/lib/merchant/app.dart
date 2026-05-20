@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
+import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'services/merchant_session_service.dart';
@@ -22,11 +22,11 @@ class BanzamiMerchantApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => MerchantSessionService()..initialize(),
         ),
-        ProxyProvider<MerchantSessionService, BanzamiClient>(
+        ProxyProvider<MerchantSessionService, BanzaClient>(
           update: (_, session, prev) {
             final apiKey = session.session?.apiKey ?? '';
             if (prev != null && apiKey == prev.apiKey) return prev;
-            return BanzamiClient(
+            return BanzaClient(
               baseUrl:    AppConfig.gatewayUrl,
               apiKey:     apiKey,
               httpClient: pinnedClient,
@@ -37,7 +37,7 @@ class BanzamiMerchantApp extends StatelessWidget {
       child: Consumer<MerchantSessionService>(
         builder: (context, session, _) {
           return MaterialApp(
-            title:                      'Banzami Business',
+            title:                      'Banza Business',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             home:                       _home(session),
@@ -55,7 +55,7 @@ class BanzamiMerchantApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-    final base = BanzamiTheme.light;
+    final base = BanzaTheme.light;
     return base.copyWith(
       textTheme: base.textTheme.apply(fontFamily: 'Inter'),
     );

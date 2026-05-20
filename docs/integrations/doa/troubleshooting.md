@@ -258,15 +258,15 @@ curl -X POST $BANZAMI_GATEWAY_URL/v1/auth/token \
 
 ## Sandbox/Live Environment Mismatch
 
-### Banzami app shows payment but Doa doesn't confirm
+### Banza app shows payment but Doa doesn't confirm
 
 **Symptom**: The Banzami consumer app shows the payment was completed. Doa's polling loop never advances. The link appears as `ACTIVE` in Banzami's API.
 
-**Root cause**: The donor paid with a Banzami app connected to the live network, but the QR encodes a sandbox pay URL, or vice versa. Environment-isolated links can only be paid from the matching environment.
+**Root cause**: The donor paid with a Banza app connected to the live network, but the QR encodes a sandbox pay URL, or vice versa. Environment-isolated links can only be paid from the matching environment.
 
-**Resolution**: Ensure the Banzami app environment matches the API key:
-- `bz_test_` key → only sandbox Banzami apps can pay the link
-- `bz_live_` key → only live Banzami apps can pay the link
+**Resolution**: Ensure the Banza app environment matches the API key:
+- `bz_test_` key → only sandbox Banza apps can pay the link
+- `bz_live_` key → only live Banza apps can pay the link
 
 This should never happen in production (all keys are live). It's common during development when testing with a live Banzami account against sandbox links.
 

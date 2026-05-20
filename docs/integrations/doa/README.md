@@ -3,7 +3,7 @@
 > **This is the canonical Banzami integration example.**
 > Every API call, payload shape, webhook handler, and environment configuration shown here reflects the live production system.
 
-> **SDK Migration Required.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banzami/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
+> **SDK Migration Required.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
 
 ---
 
@@ -53,7 +53,7 @@ No part of this integration is mocked, stubbed, or simplified for demo purposes.
 │                       /api/webhooks/                              │
 │                       banzami           (HMAC-verified push)     │
 └──────────────┬───────────────────────────────┬───────────────────┘
-               │  Bearer bz_live_/bz_test_      │  Banzami-Signature
+               │  Bearer bz_live_/bz_test_      │  Banza-Signature
                ▼                                ▼
 ┌──────────────────────────┐      ┌─────────────────────────────┐
 │  Banzami API Gateway     │      │  Banzami Webhook Delivery   │
@@ -66,10 +66,10 @@ No part of this integration is mocked, stubbed, or simplified for demo purposes.
                │
                ▼
 ┌──────────────────────────┐
-│  Banzami Pay Page        │
+│  Banza Pay Page        │
 │  pay.banzami.org/{slug}  │
 │  (QR target — donor      │
-│   scans with Banzami app)│
+│   scans with Banza app)│
 └──────────────────────────┘
 ```
 
@@ -85,7 +85,7 @@ Path A — Polling (active today)
 
 Path B — Webhook (active when BANZAMI_WEBHOOK_SECRET is set)
   Banzami pushes POST /api/webhooks/banzami on payment_link.paid
-  → Doa verifies Banzami-Signature
+  → Doa verifies Banza-Signature
   → applyPaymentEvent() → receipt → redirect
 
 Both paths call applyPaymentEvent() which deduplicates on
@@ -104,7 +104,7 @@ regardless of which path wins the race.
 4.  Doa stores link.id as provider_ref in donation_events (payment_initiated)
 5.  Doa returns { kind: 'inline', token: payUrl, provider_ref: linkId }
 6.  BanzamiPanel renders QR from payUrl, starts polling loop
-7.  Donor scans QR with Banzami app and confirms payment
+7.  Donor scans QR with Banza app and confirms payment
 8.  Banzami marks link as USED
 9.  Poll endpoint detects USED → applyPaymentEvent() → confirmed
 10. Receipt generated and delivered, campaign totals revalidated
@@ -119,10 +119,10 @@ regardless of which path wins the race.
 pay.banzami.org/{slug}  ← URL encoded in QR
          │
          ▼
-Donor opens Banzami app → taps "Pagar" → scans QR
+Donor opens Banza app → taps "Pagar" → scans QR
          │
          ▼
-Banzami app shows payment details (merchant, amount)
+Banza app shows payment details (merchant, amount)
          │
          ▼
 Donor confirms with PIN or biometrics
@@ -170,7 +170,7 @@ Register endpoint:
 
 On payment:
   Banzami → POST /api/webhooks/banzami
-  Headers: Banzami-Signature: t=1716000000,v1=a1b2c3...
+  Headers: Banza-Signature: t=1716000000,v1=a1b2c3...
   Body: { id, type: 'payment_link.paid', data: { ...link } }
 
 Doa:

@@ -5,13 +5,13 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from banzami.client import BanzamiClient
+    from banza.client import BanzaClient
 
 
 class AsyncResource:
     """Thin wrapper that delegates HTTP calls back to the root client."""
 
-    def __init__(self, client: "BanzamiClient") -> None:
+    def __init__(self, client: "BanzaClient") -> None:
         self._client = client
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:

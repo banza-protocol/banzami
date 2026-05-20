@@ -13,8 +13,8 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 
-from banzami import Banzami, BanzamiWebhookSignatureError
-from banzami.models import PaymentLink, Transaction, WebhookEvent
+from banza import Banzami, BanzaWebhookSignatureError
+from banza.models import PaymentLink, Transaction, WebhookEvent
 
 client: Banzami
 
@@ -45,7 +45,7 @@ class CreateTransactionRequest(BaseModel):
 @app.post("/pay", response_model=dict)
 async def create_payment(body: CreateTransactionRequest):
     """Accept a payment amount in Kwanza and return a checkout URL."""
-    from banzami.utils.money import to_minor
+    from banza.utils.money import to_minor
 
     tx = await client.transactions.create(
         amount=to_minor(body.amount_kz, "AOA"),
@@ -67,7 +67,7 @@ class QrRequest(BaseModel):
 @app.post("/qr", response_model=dict)
 async def create_qr(body: QrRequest):
     """Generate a dynamic QR code for an exact amount."""
-    from banzami.utils.money import to_minor
+    from banza.utils.money import to_minor
     from datetime import datetime, timedelta, timezone
 
     owner_id = os.environ["BANZAMI_WALLET_ID"]
@@ -97,7 +97,7 @@ async def handle_webhook(
 
     try:
         event: WebhookEvent = client.webhooks.construct_event(raw, x_banzami_signature)
-    except BanzamiWebhookSignatureError:
+    except BanzaWebhookSignatureError:
         raise HTTPException(status_code=400, detail="Invalid webhook signature")
 
     match event.type:

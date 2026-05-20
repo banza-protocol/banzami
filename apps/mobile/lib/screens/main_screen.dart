@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
@@ -101,7 +101,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
-      backgroundColor:     BanzamiColors.offWhite,
+      backgroundColor:     BanzaColors.offWhite,
       body:                IndexedStack(index: _tab, children: tabs),
       bottomNavigationBar: _FloatingTabBar(
         selectedIndex: _tab,
@@ -138,18 +138,18 @@ class _FloatingTabBar extends StatelessWidget {
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.fromLTRB(
-        BanzamiSpacing.lg,
-        BanzamiSpacing.xs,
-        BanzamiSpacing.lg,
-        bottom > 0 ? bottom + BanzamiSpacing.sm : BanzamiSpacing.lg,
+        BanzaSpacing.lg,
+        BanzaSpacing.xs,
+        BanzaSpacing.lg,
+        bottom > 0 ? bottom + BanzaSpacing.sm : BanzaSpacing.lg,
       ),
       child: Container(
         decoration: BoxDecoration(
-          color:        BanzamiColors.white,
-          borderRadius: BanzamiRadius.xxlAll,
+          color:        BanzaColors.white,
+          borderRadius: BanzaRadius.xxlAll,
           boxShadow: [
             BoxShadow(
-              color:      BanzamiColors.wineDark.withValues(alpha: 0.08),
+              color:      BanzaColors.wineDark.withValues(alpha: 0.08),
               blurRadius: 24,
               spreadRadius: 0,
               offset:     const Offset(0, 4),
@@ -162,8 +162,8 @@ class _FloatingTabBar extends StatelessWidget {
           ],
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzamiSpacing.xs,
-          vertical:   BanzamiSpacing.xs,
+          horizontal: BanzaSpacing.xs,
+          vertical:   BanzaSpacing.xs,
         ),
         child: Row(
           children: List.generate(
@@ -214,9 +214,9 @@ class _TabItem extends StatelessWidget {
           padding:  const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color:        isSelected
-                ? BanzamiColors.wine.withValues(alpha: 0.08)
+                ? BanzaColors.wine.withValues(alpha: 0.08)
                 : Colors.transparent,
-            borderRadius: BanzamiRadius.xlAll,
+            borderRadius: BanzaRadius.xlAll,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -224,14 +224,14 @@ class _TabItem extends StatelessWidget {
               Icon(
                 isSelected ? filledIcon : outlinedIcon,
                 size:  22,
-                color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
+                color: isSelected ? BanzaColors.wine : BanzaColors.gray400,
               ),
               const SizedBox(height: 3),
               Text(
                 label,
-                style: BanzamiTextStyles.label.copyWith(
+                style: BanzaTextStyles.label.copyWith(
                   fontSize: 10,
-                  color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
+                  color: isSelected ? BanzaColors.wine : BanzaColors.gray400,
                 ),
               ),
             ],

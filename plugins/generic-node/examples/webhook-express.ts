@@ -1,7 +1,7 @@
 // Run: ts-node examples/webhook-express.ts
 
 import express              from 'express';
-import { BanzamiError }     from '../src/client';
+import { BanzaError }     from '../src/client';
 import { parseWebhook }     from '../src/webhook';
 
 const app    = express();

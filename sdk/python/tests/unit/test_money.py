@@ -2,7 +2,7 @@
 
 import pytest
 
-from banzami.utils.money import format_minor, from_minor, to_minor
+from banza.utils.money import format_minor, from_minor, to_minor
 
 
 class TestFormatMinor:

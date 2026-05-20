@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -30,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.wine,
+      backgroundColor: BanzaColors.wine,
       body: FadeTransition(
         opacity: _fade,
         child: const Center(child: _Logo()),
@@ -51,16 +51,16 @@ class _Logo extends StatelessWidget {
           width:  72,
           height: 72,
           decoration: BoxDecoration(
-            color:        BanzamiColors.white.withValues(alpha: 0.15),
+            color:        BanzaColors.white.withValues(alpha: 0.15),
             borderRadius: BorderRadius.circular(20),
           ),
-          child: const Icon(Icons.storefront_rounded, color: BanzamiColors.white, size: 40),
+          child: const Icon(Icons.storefront_rounded, color: BanzaColors.white, size: 40),
         ),
         const SizedBox(height: 16),
         Text(
-          'Banzami',
-          style: BanzamiTextStyles.headingLg.copyWith(
-            color:        BanzamiColors.white,
+          'Banza',
+          style: BanzaTextStyles.headingLg.copyWith(
+            color:        BanzaColors.white,
             fontSize:     32,
             fontWeight:   FontWeight.w700,
             letterSpacing: 0.5,
@@ -69,8 +69,8 @@ class _Logo extends StatelessWidget {
         const SizedBox(height: 6),
         Text(
           'Painel de negócio',
-          style: BanzamiTextStyles.bodyMd.copyWith(
-            color: BanzamiColors.white.withValues(alpha: 0.7),
+          style: BanzaTextStyles.bodyMd.copyWith(
+            color: BanzaColors.white.withValues(alpha: 0.7),
           ),
         ),
       ],

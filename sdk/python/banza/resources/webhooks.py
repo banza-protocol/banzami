@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 
-from banzami.exceptions import BanzamiWebhookSignatureError
-from banzami.models.webhook import WebhookEndpoint, WebhookEvent
-from banzami.pagination import Page
-from banzami.signature import generate_test_signature, verify_signature
+from banza.exceptions import BanzaWebhookSignatureError
+from banza.models.webhook import WebhookEndpoint, WebhookEvent
+from banza.pagination import Page
+from banza.signature import generate_test_signature, verify_signature
 
 from .base import AsyncResource
 
@@ -94,7 +94,7 @@ class WebhooksResource(AsyncResource):
 
         Raises
         ------
-        BanzamiWebhookSignatureError
+        BanzaWebhookSignatureError
             If the signature does not match or the timestamp is outside the
             300-second replay protection window.
         ValueError
@@ -108,7 +108,7 @@ class WebhooksResource(AsyncResource):
             )
 
         if not verify_signature(payload, signature, secret):
-            raise BanzamiWebhookSignatureError(
+            raise BanzaWebhookSignatureError(
                 "Webhook signature verification failed. "
                 "Ensure you are passing the raw request body before any parsing, "
                 "and that the request timestamp is within 300 seconds of now."

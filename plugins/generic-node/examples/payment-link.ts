@@ -1,8 +1,8 @@
 // Run: ts-node examples/payment-link.ts
 
-import { BanzamiClient } from '../src/client';
+import { BanzaClient } from '../src/client';
 
-const client = new BanzamiClient({
+const client = new BanzaClient({
   gatewayUrl: process.env.BANZAMI_GATEWAY_URL ?? 'https://api.banzami.org',
   apiKey:     process.env.BANZAMI_API_KEY!,
 });

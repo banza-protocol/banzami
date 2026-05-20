@@ -2,7 +2,7 @@
  * Banzami API client for the merchant dashboard.
  *
  * This module provides the `BanzamiApi` compatibility adapter, which wraps
- * the official `@banzami/sdk` `BanzamiClient`. Dashboard components use
+ * the official `@banza/sdk` `BanzaClient`. Dashboard components use
  * `new BanzamiApi(gatewayUrl, apiKey)` and this adapter routes calls through
  * the SDK — gaining JWT caching, exponential-backoff retries, typed errors,
  * and automatic idempotency.
@@ -13,10 +13,10 @@
  * are marked as pending SDK support and will migrate when those SDK methods land.
  */
 
-import { BanzamiClient } from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
 // Re-export the error type from the SDK so callers don't need a separate import.
-export { BanzamiApiError } from '@banzami/sdk';
+export { BanzaApiError } from '@banza/sdk';
 
 // Re-export types from the SDK for use in dashboard components.
 export type {
@@ -32,7 +32,7 @@ export type {
   PaymentLink,
   QrResponse,
   Page,
-} from '@banzami/sdk';
+} from '@banza/sdk';
 
 // Types that the dashboard adds on top of SDK types.
 export interface TransactionPage { data: Transaction[];        next_cursor?: string; }
@@ -99,7 +99,7 @@ export interface EndpointHealth {
 }
 
 // Bring in the re-exported types so the inline definitions above can reference them.
-import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banzami/sdk';
+import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banza/sdk';
 
 // ---------------------------------------------------------------------------
 // Compatibility adapter
@@ -109,7 +109,7 @@ import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } fr
  * Dashboard API client.
  *
  * Drop-in replacement for the old hand-rolled `BanzamiApi` class.
- * Internally backed by `BanzamiClient` from `@banzami/sdk`.
+ * Internally backed by `BanzaClient` from `@banza/sdk`.
  *
  * @example
  * ```typescript
@@ -119,14 +119,14 @@ import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } fr
  * ```
  */
 export class BanzamiApi {
-  private readonly client: BanzamiClient;
+  private readonly client: BanzaClient;
   private readonly base:   string;
   private readonly apiKey: string;
 
   constructor(gatewayUrl: string, apiKey: string) {
     this.base   = gatewayUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
-    this.client = new BanzamiClient({
+    this.client = new BanzaClient({
       apiKey,
       environment: apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
       baseUrl:     gatewayUrl,
@@ -361,7 +361,7 @@ export class BanzamiApi {
   private async _legacyReq<T>(path: string, init?: RequestInit): Promise<T> {
     // Direct fetch — only for endpoints not yet covered by the SDK.
     // Uses Bearer API key; replace with SDK method when available.
-    const { BanzamiApiError } = await import('@banzami/sdk');
+    const { BanzaApiError } = await import('@banza/sdk');
     const res = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {
@@ -379,7 +379,7 @@ export class BanzamiApi {
         code    = body.code    ?? code;
         message = body.message ?? message;
       } catch { /* ignore parse errors */ }
-      throw new BanzamiApiError(res.status, code, message);
+      throw new BanzaApiError(res.status, code, message);
     }
 
     if (res.status === 204) return undefined as T;

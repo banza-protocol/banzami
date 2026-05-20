@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../config.dart';
 import '../services/merchant_session_service.dart';
@@ -54,7 +54,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
     setState(() { _creating = true; _error = null; });
 
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzamiClient>();
+    final client  = context.read<BanzaClient>();
 
     // Parse Kz input → minor units (centimos). Reject comma/period as
     // thousands separator — only accept a single decimal part.
@@ -108,12 +108,12 @@ class _ChargeScreenState extends State<ChargeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title: const Text('Nova cobrança', style: BanzamiTextStyles.headingSm),
+        title: const Text('Nova cobrança', style: BanzaTextStyles.headingSm),
       ),
       body: _link != null ? _buildResult() : _buildForm(),
     );
@@ -125,12 +125,12 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   Widget _buildForm() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Form(
         key: _formKey,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          const Text('Detalhes da cobrança', style: BanzamiTextStyles.headingSm),
-          const SizedBox(height: BanzamiSpacing.xl),
+          const Text('Detalhes da cobrança', style: BanzaTextStyles.headingSm),
+          const SizedBox(height: BanzaSpacing.xl),
 
           TextFormField(
             controller:  _amountCtrl,
@@ -150,7 +150,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               return null;
             },
           ),
-          const SizedBox(height: BanzamiSpacing.lg),
+          const SizedBox(height: BanzaSpacing.lg),
 
           TextFormField(
             controller:  _descCtrl,
@@ -163,27 +163,27 @@ class _ChargeScreenState extends State<ChargeScreen> {
           ),
 
           if (_error != null) ...[
-            const SizedBox(height: BanzamiSpacing.lg),
+            const SizedBox(height: BanzaSpacing.lg),
             Container(
-              padding: const EdgeInsets.all(BanzamiSpacing.md),
+              padding: const EdgeInsets.all(BanzaSpacing.md),
               decoration: BoxDecoration(
-                color:        BanzamiColors.error.withValues(alpha: 0.08),
+                color:        BanzaColors.error.withValues(alpha: 0.08),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Row(children: [
-                const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 20),
+                const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 20),
                 const SizedBox(width: 10),
                 Expanded(child: Text(_error!,
-                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error))),
+                    style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error))),
               ]),
             ),
           ],
 
-          const SizedBox(height: BanzamiSpacing.xxl),
+          const SizedBox(height: BanzaSpacing.xxl),
 
           SizedBox(
             width: double.infinity,
-            child: BanzamiButton(
+            child: BanzaButton(
               label:     'Gerar cobrança',
               onPressed: _creating ? null : _create,
               isLoading: _creating,
@@ -202,44 +202,44 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final link    = _link!;
     final session = context.read<MerchantSessionService>().session!;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(children: [
-        const SizedBox(height: BanzamiSpacing.lg),
+        const SizedBox(height: BanzaSpacing.lg),
 
         Text(
           session.merchantName,
-          style: BanzamiTextStyles.label.copyWith(
-            color:          BanzamiColors.gray400,
+          style: BanzaTextStyles.label.copyWith(
+            color:          BanzaColors.gray400,
             letterSpacing:  0.5,
           ),
         ),
-        const SizedBox(height: BanzamiSpacing.xs),
+        const SizedBox(height: BanzaSpacing.xs),
 
         if (link.amountMinor != null)
           Text(
             formatMinor(link.amountMinor!, link.currency),
-            style: BanzamiTextStyles.displayLg.copyWith(
-              color:      BanzamiColors.wine,
+            style: BanzaTextStyles.displayLg.copyWith(
+              color:      BanzaColors.wine,
               fontWeight: FontWeight.w700,
             ),
           ),
         if (link.description != null) ...[
           const SizedBox(height: 4),
           Text(link.description!,
-              style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
         ],
 
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         // QR code
         Container(
-          padding:     const EdgeInsets.all(BanzamiSpacing.lg),
+          padding:     const EdgeInsets.all(BanzaSpacing.lg),
           decoration:  BoxDecoration(
-            color:        BanzamiColors.white,
+            color:        BanzaColors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color:       BanzamiColors.gray400.withValues(alpha: 0.2),
+                color:       BanzaColors.gray400.withValues(alpha: 0.2),
                 blurRadius:  16,
                 offset:      const Offset(0, 4),
               ),
@@ -252,18 +252,18 @@ class _ChargeScreenState extends State<ChargeScreen> {
             errorCorrectionLevel: QrErrorCorrectLevel.H,
             eyeStyle:        const QrEyeStyle(
               eyeShape: QrEyeShape.square,
-              color:    BanzamiColors.wine,
+              color:    BanzaColors.wine,
             ),
             dataModuleStyle: const QrDataModuleStyle(
               dataModuleShape: QrDataModuleShape.square,
-              color:           BanzamiColors.gray900,
+              color:           BanzaColors.gray900,
             ),
             embeddedImage:      const AssetImage('assets/images/banzami_icon.png'),
             embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),
 
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         // URL — tap to copy
         GestureDetector(
@@ -276,34 +276,34 @@ class _ChargeScreenState extends State<ChargeScreen> {
           },
           child: Container(
             padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.lg, vertical: BanzamiSpacing.md),
+                horizontal: BanzaSpacing.lg, vertical: BanzaSpacing.md),
             decoration: BoxDecoration(
-              color:        BanzamiColors.gray100,
+              color:        BanzaColors.gray100,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(children: [
               Expanded(child: Text(_payUrl,
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray700),
+                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray700),
                   overflow: TextOverflow.ellipsis)),
               const SizedBox(width: 8),
-              const Icon(Icons.copy_rounded, size: 18, color: BanzamiColors.gray400),
+              const Icon(Icons.copy_rounded, size: 18, color: BanzaColors.gray400),
             ]),
           ),
         ),
 
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         // Partilhar
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton(
+          child: BanzaButton(
             key:       _shareButtonKey,
             label:     'Partilhar link',
             isLoading: _sharing,
             onPressed: _sharing ? null : () => _shareLink(link),
           ),
         ),
-        const SizedBox(height: BanzamiSpacing.md),
+        const SizedBox(height: BanzaSpacing.md),
 
         // Nova cobrança
         SizedBox(
@@ -311,8 +311,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
           child: OutlinedButton(
             onPressed: () => setState(() { _link = null; _amountCtrl.clear(); _descCtrl.clear(); }),
             style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.wine,
-              side:            const BorderSide(color: BanzamiColors.wine),
+              foregroundColor: BanzaColors.wine,
+              side:            const BorderSide(color: BanzaColors.wine),
               padding:         const EdgeInsets.symmetric(vertical: 14),
               shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),

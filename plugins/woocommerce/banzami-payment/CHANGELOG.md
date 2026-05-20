@@ -14,7 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Admin settings panel under WooCommerce → Settings → Payments: enable/disable toggle, title, description, gateway URL, API key, webhook secret, currency (`AOA` / `USD`), payment timeout (minutes)
 - `process_payment()` creates a Banzami transaction and sets the order to "Pending payment"; displays a QR code and deep-link button for the Banzami mobile app
 - Webhook endpoint registered at `https://your-store.com/wc-api/banzami`
-- HMAC-SHA256 webhook signature verification; requests with missing or invalid `X-Banzami-Signature` are rejected with HTTP 401
+- HMAC-SHA256 webhook signature verification; requests with missing or invalid `Banza-Signature` are rejected with HTTP 401
 - `transaction.completed` webhook handler: calls `$order->payment_complete()` and moves order to "Processing"
 - `transaction.failed` webhook handler: marks order as "Failed"
 - `transaction.refunded` webhook handler: marks order as "Refunded"; guarded by `_banzami_refund_processed` meta to prevent duplicate processing

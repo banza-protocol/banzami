@@ -30,7 +30,7 @@ Key reasons:
 
 **Operational clarity:** Operators see only the screens relevant to their role (compliance, settlement lifecycle, payout management, reconciliation). Merchants see only their business data (transactions, wallet, payouts, webhooks, API keys). Cross-contamination of mental models increases operational error risk.
 
-**Shared design system:** Both apps use identical Tailwind configuration with Banzami brand tokens (`apps/dashboard/tailwind.config.ts` and `apps/admin/tailwind.config.ts` are identical). When the shared TypeScript SDK (`@banzami/sdk`) is published, both apps will import from it. The visual differentiation is intentional: the admin app uses a dark (`gray-900`) sidebar and login screen to signal its internal-only nature.
+**Shared design system:** Both apps use identical Tailwind configuration with Banzami brand tokens (`apps/dashboard/tailwind.config.ts` and `apps/admin/tailwind.config.ts` are identical). When the shared TypeScript SDK (`@banza/sdk`) is published, both apps will import from it. The visual differentiation is intentional: the admin app uses a dark (`gray-900`) sidebar and login screen to signal its internal-only nature.
 
 ---
 
