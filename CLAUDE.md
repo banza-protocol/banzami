@@ -1701,3 +1701,67 @@ This platform handles money.
 Trust is the product.
 
 Everything else is secondary.
+
+---
+
+# 20. Repository Layout Freeze
+
+The repository layout is frozen. The semantic zones below are binding architectural constraints.
+
+## 20.1 Zone Definitions
+
+| Zone | Rule |
+|------|------|
+| `apps/` | **Product-facing applications only.** Merchant dashboard, admin panel, pay page, checkout, mobile apps. Nothing operational or governance-related. |
+| `platforms/` | Operational and governance platforms. Target home for `apps/docs` and `apps/validation-studio`. Not yet physically separated — see §20.5. |
+| `integrations/sdk/` | Official Banzami SDKs only. Target home for the current `sdk/` directory. |
+| `integrations/plugins/` | Commerce platform plugins (WooCommerce, Shopify). Target home for `plugins/woocommerce`, `plugins/shopify`. |
+| `integrations/adapters/` | Runtime/framework adapters (no product dependency). Target home for `plugins/generic-*`. |
+| `contracts/` | Canonical location for all public protocol contracts. OpenAPI specs, webhook schemas, QR payload specs, event contracts, SDK certification vectors. |
+| `core/jobs/` | Canonical home for background jobs owned by the financial core. Tokio tasks currently in `core/api/` must migrate here as they grow. |
+| `infra/terraform/` | Must be split by provider or infrastructure domain. No flat provider configs at the terraform root. |
+
+## 20.2 Frozen Rules
+
+1. `apps/` is for product-facing applications only. Never add documentation sites, governance tools, or operational dashboards here.
+2. `platforms/` is the semantic target for docs and studio — even while they physically live in `apps/`.
+3. `integrations/sdk/` is the semantic and eventual physical home for all official SDKs.
+4. `integrations/plugins/` is for commerce/platform plugins (WooCommerce-style integrations).
+5. `integrations/adapters/` is for runtime/framework adapters that have no product UI dependency.
+6. `contracts/` is the canonical location for all public protocol contracts. No protocol spec may live only in `docs/` once implementation begins.
+7. `core/jobs/` is the canonical home for all financial core background jobs.
+8. `infra/terraform/` must have one subdirectory per provider or infrastructure domain. No undifferentiated flat layout.
+9. **No new top-level directory** may be added without: (a) updating `README.md` Repository Layout section, (b) updating this section, and (c) adding it to `tools/check-repository-layout.mjs` ACCEPTED_TOP_LEVEL set.
+10. No protocol specification may exist only inside prose documentation (`docs/`) once the feature it describes is being implemented. It must have a corresponding artifact in `contracts/`.
+
+## 20.3 Compliance Check
+
+The structural rules above are enforced by:
+
+```bash
+make check-repo-layout
+# or directly:
+node tools/check-repository-layout.mjs
+```
+
+The check verifies: required top-level directories, `contracts/` subdirectories, `infra/terraform/` subdirectories, `core/jobs/` presence, no unknown top-level entries, README currency, and that this section exists.
+
+The check runs as part of `make check-all`.
+
+## 20.4 What the Check Does NOT Enforce (yet)
+
+- Physical location of `apps/docs` and `apps/validation-studio` — accepted as transitional.
+- Physical location of `sdk/` and `plugins/` — accepted as transitional `integrations/` migration candidates.
+- Physical location of `sdk-certification/` — accepted as transitional `contracts/sdk-certification/` migration candidate.
+
+## 20.5 Migration Candidates
+
+These directories do not match the target semantic architecture. Physical migration is deferred because it would break Dockerfiles, deploy scripts, or import paths. Document the migration plan in README.md before executing any move.
+
+| Current | Target | Status |
+|---------|--------|--------|
+| `apps/docs/` | `platforms/docs/` | Deferred — Dockerfile, deploy.sh hardcode this path |
+| `apps/validation-studio/` | `platforms/validation-studio/` | Deferred — Makefile, dev.sh reference this path |
+| `sdk/` | `integrations/sdk/` | Deferred — pubspec.yaml, package.json, import paths |
+| `plugins/` | `integrations/plugins/` + `integrations/adapters/` | Deferred — doc links |
+| `sdk-certification/` | `contracts/sdk-certification/` | Deferred — test runner paths |

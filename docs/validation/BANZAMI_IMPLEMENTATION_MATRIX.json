@@ -4537,6 +4537,94 @@
       "validatedAgainstCommit": null,
       "history": [],
       "lastUpdated": "2026-05-19"
+    },
+    {
+      "id": "ARCH-REPO-001",
+      "title": "Repository layout freeze",
+      "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
+      "referenceSection": "\u00a720 (CLAUDE.md \u00a720)",
+      "description": "Arquitectura do reposit\u00f3rio estabilizada e congelada. Zonas sem\u00e2nticas definidas, diret\u00f3rios obrigat\u00f3rios criados, verifica\u00e7\u00e3o autom\u00e1tica de layout em CI.",
+      "requirement": "README actualizado com layout alvo. CLAUDE.md \u00a720 com regras vinculativas. Diret\u00f3rios contracts/, core/jobs/, infra/terraform/* criados. Check autom\u00e1tico implementado e a passar. Sem diret\u00f3rios de topo desconhecidos.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Arquitectura / Governa\u00e7\u00e3o",
+      "technicalArea": "Repository Structure \u00b7 Node.js tooling \u00b7 Documentation",
+      "validationMethods": [
+        "unit_tests",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "README.md actualizado com layout actual e alvo",
+        "CLAUDE.md \u00a720 cont\u00e9m as 10 regras vinculativas",
+        "contracts/ e subdirect\u00f3rios criados",
+        "core/jobs/ criado com README",
+        "infra/terraform/ subdividido por provider/dom\u00ednio",
+        "tools/check-repository-layout.mjs implementado",
+        "make check-repo-layout passa sem falhas",
+        "make check-all inclui o check de layout",
+        "Nenhum diret\u00f3rio de topo desconhecido detectado"
+      ],
+      "testCoverage": true,
+      "evidence": [
+        {
+          "type": "file",
+          "label": "tools/check-repository-layout.mjs \u2014 layout compliance check",
+          "ref": "tools/check-repository-layout.mjs"
+        },
+        {
+          "type": "file",
+          "label": "contracts/README.md \u2014 protocol contracts governance",
+          "ref": "contracts/README.md"
+        },
+        {
+          "type": "file",
+          "label": "core/jobs/README.md \u2014 background job home",
+          "ref": "core/jobs/README.md"
+        },
+        {
+          "type": "config",
+          "label": "Makefile \u2014 check-repo-layout and check-all targets",
+          "ref": "Makefile"
+        },
+        {
+          "type": "docs",
+          "label": "CLAUDE.md \u00a720 \u2014 Repository Layout Freeze",
+          "ref": "CLAUDE.md"
+        },
+        {
+          "type": "docs",
+          "label": "README.md \u2014 Repository Layout section with target architecture",
+          "ref": "README.md"
+        }
+      ],
+      "notes": "Diret\u00f3rios f\u00edsicos de alto risco (sdk/, plugins/, apps/docs, sdk-certification/) n\u00e3o foram movidos \u2014 Dockerfiles e deploy.sh dependem das paths actuais. Layout f\u00edsico vs sem\u00e2ntico documentado em README e CLAUDE.md \u00a720.5.",
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "tools/check-repository-layout.mjs",
+        "CLAUDE.md",
+        "README.md",
+        "Makefile"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "unit_tests \u2014 check script passing (+15)",
+          "production_review \u2014 full audit (+10)",
+          "non-financial item (+20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-20"
     }
   ]
 }

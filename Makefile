@@ -89,7 +89,8 @@ help:
 	@printf "\n  \033[1mLocal tools\033[0m\n"
 	@printf "    make studio          Validation Studio — local editor (:3099)\n"
 	@printf "\n  \033[1mQuality\033[0m\n"
-	@printf "    make check-all       Run all linters and type-checkers\n"
+	@printf "    make check-all       Run all linters, type-checkers, and layout check\n"
+	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
 	@printf "    make test-all        Run all test suites\n"
 	@printf "\n"
 
@@ -259,9 +260,12 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all
+.PHONY: check-all test-all check-repo-layout
 
-check-all: core-check gateway-check admin-api-check public-api-check
+check-repo-layout:
+	node tools/check-repository-layout.mjs
+
+check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout
 	@printf "\nAll checks passed.\n"
 
 sdk-test:
