@@ -39,6 +39,13 @@ export const metadata: Metadata = {
     locale: 'pt_AO',
     type: 'website',
   },
+  icons: {
+    icon: [
+      { url: '/banza_icon_32.png',  sizes: '32x32',  type: 'image/png' },
+      { url: '/banza_icon_64.png',  sizes: '64x64',  type: 'image/png' },
+    ],
+    apple: { url: '/banza_icon_180.png', sizes: '180x180', type: 'image/png' },
+  },
   robots: { index: true, follow: true },
   authors: [{ name: 'Organização Banzami' }],
 }

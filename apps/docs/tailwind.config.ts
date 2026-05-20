@@ -30,6 +30,11 @@ const config: Config = {
         sans: ['var(--font-inter)', 'system-ui', '-apple-system', 'sans-serif'],
         mono: ['JetBrains Mono', 'Fira Code', 'ui-monospace', 'monospace'],
       },
+      backgroundImage: {
+        // Canonical Banza brand gradients — from assets/banza/tokens/tailwind.banza.js
+        'banza-brand':   'linear-gradient(145deg, #c21a2c 0%, #990011 38%, #7a000d 72%, #5e000a 100%)',
+        'banza-surface': 'linear-gradient(to bottom, #ffffff 0%, #FCF6F5 55%, #d8d0cf 100%)',
+      },
       borderRadius: {
         '2xl': '1rem',
         '3xl': '1.5rem',
