@@ -4,8 +4,8 @@ pub mod repository;
 
 pub use engine::{IdentityEngine, PostgresIdentityEngine};
 pub use identity::{
-    normalize_handle, validate_handle,
-    ConsumerIdentity, ConsumerStatus, CreateConsumerRequest, VerificationBadge,
+    is_reserved_handle, normalize_handle, validate_handle,
+    ConsumerIdentity, ConsumerStatus, CreateConsumerRequest, HandleResolution, VerificationBadge,
 };
 pub use repository::{IdentityRepository, PostgresIdentityRepository};
 
@@ -23,6 +23,12 @@ pub enum IdentityError {
 
     #[error("handle '{0}' is already taken")]
     HandleTaken(String),
+
+    #[error("consumer {0} is suspended — handle cannot be resolved")]
+    SuspendedIdentity(ConsumerId),
+
+    #[error("consumer {0} is closed — handle cannot be resolved")]
+    ClosedIdentity(ConsumerId),
 
     #[error("invalid handle: {0}")]
     InvalidHandle(&'static str),

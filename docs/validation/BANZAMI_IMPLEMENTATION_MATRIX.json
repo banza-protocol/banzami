@@ -1310,10 +1310,10 @@
       "referenceSection": "§6.3",
       "description": "Sistema de identidade de pagamento @banza — handle único e legível por humanos para cada conta. Registo, validação de formato e garantia de unicidade.",
       "requirement": "@banza único em toda a rede, alfanumérico com pontos permitidos, imutável após confirmação.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Identity",
-      "technicalArea": "Go · PostgreSQL",
+      "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "unit_tests",
         "integration_tests"
@@ -1324,8 +1324,19 @@
         "Reservado atomicamente durante onboarding",
         "Resolução de @banza para wallet_id correcta"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "core/identity/src/identity.rs — validate_handle() enforces 3-20 chars, starts-with-letter, no consecutive __, no trailing _, reserved list check",
+        "core/identity/src/identity.rs — RESERVED_HANDLES expanded: banza, emis, multicaixa, angola, bna, bai, bfa, bic, atlantico, millennium, standard, angolar, bde, banzai, banzamii",
+        "core/identity/src/identity.rs — is_reserved_handle() public function",
+        "core/identity/src/identity.rs — normalize_handle() strips @ prefix and lowercases before validation",
+        "core/identity/src/engine.rs — resolve_handle() returns SuspendedIdentity / ClosedIdentity for non-active consumers",
+        "core/identity/src/engine.rs — IdentityEngine trait: resolve_handle() added, returns HandleResolution struct",
+        "db/migrations/0035_handle_format_constraint.sql — DB-level CHECK constraint enforces format at storage layer",
+        "core/consumer-wallets/src/engine.rs — validate_handle_format() now delegates to banzami_identity::validate_handle() (single source of truth)",
+        "core/identity/tests/integration.rs — 10 integration tests including: valid registration, duplicate rejection, normalization collision, reserved handles, invalid syntax, resolve active, suspended not resolved, closed not resolved, unknown handle, concurrent registration (1 of 5 wins)",
+        "docs/BANZAMI_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale"
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -1334,21 +1345,61 @@
         "db/migrations/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-IDENTITY-001",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-IDENTITY-002",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-IDENTITY-003",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-IDENTITY-004",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-IDENTITY-005",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "evidence non-empty (+20)",
+          "unit_tests (+15)",
+          "integration_tests (+20)",
+          "non-financial item — no financial invariants required (+20)",
+          "capped at 75 — no production_review or e2e yet"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-05-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "pending-build",
+          "commit": null,
+          "reason": "HDL-001 implemented: validate_handle fixed (max 20, starts-with-letter, expanded reserved list), resolve_handle() added to IdentityEngine, migration 0035 (DB-level CHECK), handle validation unified in consumer-wallets, 10 integration tests, BANZAMI_REFERENCE.md §6.3 expanded",
+          "evidence": [
+            "core/identity/src/identity.rs",
+            "core/identity/src/engine.rs",
+            "db/migrations/0035_handle_format_constraint.sql",
+            "core/identity/tests/integration.rs",
+            "docs/BANZAMI_REFERENCE.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
     },
     {
       "id": "HDL-002",

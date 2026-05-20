@@ -199,6 +199,7 @@ name = "banzami-consumer-wallets"
 version = "0.1.0"
 dependencies = [
  "argon2",
+ "banzami-identity",
  "banzami-ledger",
  "banzami-types",
  "chrono",

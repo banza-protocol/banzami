@@ -374,6 +374,81 @@ Cada conta Banza tem um **@banza** — um identificador único e legível por hu
 
 O @banza substitui a necessidade de números de conta bancária, IBANs ou códigos de referência. Para enviar dinheiro a alguém, escreve o seu @banza. Para receber dinheiro, partilha o seu @banza. Os comerciantes imprimem o seu @banza em cartazes físicos ao lado do seu código QR. É simultaneamente uma marca, um endereço e uma identidade de pagamento nativa do Banza.
 
+#### Modelo de unicidade e formato
+
+O @banza é um identificador global único na rede Banza — sem ambiguidade, sem duplicados, sem colisões. As regras de formato garantem que cada handle seja legível por humanos e seguro como endereço financeiro:
+
+| Regra | Detalhe |
+|-------|---------|
+| Comprimento | 3 a 20 caracteres |
+| Carácter inicial | Letra minúscula (`a–z`) obrigatória |
+| Caracteres permitidos | Letras minúsculas, dígitos, underscore (`_`) |
+| Proibido | Dois underscores consecutivos (`__`), underscore final, caracteres especiais, maiúsculas |
+| Unicidade | Global — um handle pertence a exactamente um titular em toda a rede |
+| Normalização | `@Carlos` → `carlos`; maiúsculas e espaços são normalizados antes da validação |
+
+Exemplos válidos:
+
+```
+@ana
+@joao_silva
+@cantina99
+@mercearia_kilamba
+```
+
+Exemplos inválidos:
+
+```
+@1abc          ← começa com dígito
+@_foo          ← começa com underscore
+@foo__bar      ← underscores consecutivos
+@foo_          ← underscore final
+@héros         ← caractere não-ASCII
+@admin         ← reservado (namespace do sistema)
+```
+
+#### Namespace reservado
+
+Os seguintes identificadores são reservados pelo sistema e não podem ser registados:
+
+```
+admin · banza · banzami · emis · multicaixa · angola · bna
+bai · bfa · bic · atlantico · millennium · standard · angolar
+support · help · api · system · root · security · compliance
+audit · finance · legal · payments · transactions · wallets
+```
+
+A lista de reservados é gerida em `core/identity` e aplicada tanto ao nível da aplicação como ao nível da base de dados.
+
+#### Semântica de identidade financeira
+
+O @banza não é apenas um nome de utilizador — é uma **identidade de pagamento**. Cada transferência, pedido de pagamento, QR dinâmico e link de pagamento é resolvido através do @banza do destinatário. O processo de resolução verifica:
+
+1. O handle existe na rede.
+2. O titular está **ACTIVO** — contas suspensas ou encerradas não podem receber transferências.
+3. O sistema devolve o `consumer_id` que ancora a carteira de destino.
+
+```
+Handle fornecido pelo pagador: "@Ana"
+         ↓ normalização
+Handle normalizado: "ana"
+         ↓ consulta ao registo de identidade
+ConsumerIdentity { id, handle: "ana", status: ACTIVE }
+         ↓ consulta à carteira
+ConsumerWallet { available_account_id, currency: AOA }
+         ↓ transferência ledger
+Carteira de João   −2.000 Kz
+Carteira de Ana    +2.000 Kz
+```
+
+Nenhum IBAN, nenhum número de conta bancária, nenhum código de referência envolvido.
+
+#### Camada de routing humano
+
+O @banza é a camada de routing humano da rede Banza. Em sistemas bancários tradicionais, o routing é feito por SWIFT, IBANs ou números de conta — sequências opacas que os humanos não conseguem memorizar nem verificar visualmente. O @banza inverte este paradigma: o endereço de pagamento é memorável, verificável e socialmente partilhável.
+
+Este design segue os modelos de sucesso do Pix (CPF/chave aleatória), UPI (VPA como `nome@upi`) e M-Pesa (número de telefone como endereço) — adaptado à realidade angolana com um identificador nativo da rede Banza.
+
 ### 6.4 Pagamentos QR
 
 Um **código QR** é um endereço de pagamento visual — um atalho digitalizável para uma carteira. Fazer o scan informa a app do consumidor exactamente para onde o pagamento deve ir.

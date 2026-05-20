@@ -941,39 +941,12 @@ struct ReservationFetchRow {
 }
 
 // ---------------------------------------------------------------------------
-// Handle validation (mirrors core/identity::validate_handle — ADR-017 §6)
+// Handle validation — delegates to banzami-identity as single source of truth
 // ---------------------------------------------------------------------------
 
 fn validate_handle_format(handle: &str) -> Result<(), ConsumerWalletError> {
-    let h = handle.trim();
-    if h.len() < 3 || h.len() > 20 {
-        return Err(ConsumerWalletError::InvalidHandle("handle must be 3–20 characters"));
-    }
-    let mut chars = h.chars();
-    let first = chars.next().unwrap();
-    if !first.is_ascii_lowercase() {
-        return Err(ConsumerWalletError::InvalidHandle(
-            "handle must start with a lowercase letter",
-        ));
-    }
-    for c in chars {
-        if !matches!(c, 'a'..='z' | '0'..='9' | '_') {
-            return Err(ConsumerWalletError::InvalidHandle(
-                "handle may only contain lowercase letters, digits, and underscores",
-            ));
-        }
-    }
-    if h.contains("__") {
-        return Err(ConsumerWalletError::InvalidHandle(
-            "handle may not contain consecutive underscores",
-        ));
-    }
-    if h.ends_with('_') {
-        return Err(ConsumerWalletError::InvalidHandle(
-            "handle may not end with an underscore",
-        ));
-    }
-    Ok(())
+    banzami_identity::validate_handle(handle)
+        .map_err(ConsumerWalletError::InvalidHandle)
 }
 
 // ---------------------------------------------------------------------------

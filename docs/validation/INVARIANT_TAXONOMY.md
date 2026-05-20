@@ -483,6 +483,77 @@ Invariants over authentication, authorization, and data protection.
 
 ---
 
+## INV-IDENTITY — Handle Identity Invariants
+
+Invariants over the @banza handle registration and resolution system.
+
+### INV-IDENTITY-001
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-IDENTITY-001` |
+| **name** | Handle globally unique across the network |
+| **domain** | Identity |
+| **description** | No two consumers — active or not — may hold the same normalized handle. Once registered, a handle is permanently associated with one consumer_id. |
+| **rule** | `∀ handle h: count(consumers where handle == normalize(h)) == 1` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-handle`, `cat-identity` |
+| **validationMethod** | `UNIQUE` constraint `consumers_handle_key`; DB-level format CHECK `consumers_handle_format`; concurrent registration test → exactly one succeeds |
+
+### INV-IDENTITY-002
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-IDENTITY-002` |
+| **name** | Handle format enforced at all layers |
+| **domain** | Identity |
+| **description** | Handle format rules (3–20 chars, starts with `a-z`, only `a-z0-9_`, no `__`, no trailing `_`) are enforced at application layer (validate_handle) and at DB layer (CHECK constraint), so neither layer can be bypassed alone. |
+| **rule** | `validate_handle(h) AND h ~ '^[a-z][a-z0-9_]{2,19}$' AND h !~ '__' AND h !~ '_$'` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-identity` |
+| **validationMethod** | Unit tests on validate_handle; integration test rejects all malformed handles at engine layer; DB constraint rejects malformed handles if bypassed |
+
+### INV-IDENTITY-003
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-IDENTITY-003` |
+| **name** | Reserved namespace protected |
+| **domain** | Identity |
+| **description** | Handles in the reserved list (banza, emis, admin, system, etc.) can never be registered by any consumer. |
+| **rule** | `∀ h ∈ RESERVED_HANDLES: register(h) → Err(InvalidHandle)` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-identity` |
+| **validationMethod** | Unit test in identity.rs; integration test rejects known reserved handles |
+
+### INV-IDENTITY-004
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-IDENTITY-004` |
+| **name** | Normalization applied before uniqueness check |
+| **domain** | Identity |
+| **description** | Handle input is normalized (strip `@`, lowercase, trim) before both validation and uniqueness enforcement, preventing collision via case or prefix variation. |
+| **rule** | `normalize("@Carlos") == normalize("carlos") == "carlos"` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-identity` |
+| **validationMethod** | Integration test: register `@Carlos`, then attempt `@CARLOS` → HandleTaken |
+
+### INV-IDENTITY-005
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-IDENTITY-005` |
+| **name** | Handle resolution returns only ACTIVE consumers |
+| **domain** | Identity |
+| **description** | resolve_handle() returns SuspendedIdentity or ClosedIdentity for non-active consumers. Money can never be routed to an unreachable recipient via handle resolution. |
+| **rule** | `resolve_handle(h) → Ok(_) ⟹ consumer.status == ACTIVE` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-handle`, `cat-identity`, `cat-p2p` |
+| **validationMethod** | Unit tests in engine.rs; integration tests for suspended and closed consumers |
+
+---
+
 ## Invariant Status Values
 
 | Status | Meaning |
