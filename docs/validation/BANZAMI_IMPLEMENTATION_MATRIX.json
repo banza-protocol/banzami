@@ -330,24 +330,35 @@
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
-      "description": "Sistema de controlo de implementação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação.",
-      "requirement": "Página /validacao com matriz completa de implementação, filtros, pesquisa, métricas globais e rastreabilidade ao documento de referência.",
-      "status": "IMPLEMENTED",
+      "description": "Infraestrutura de governança de validação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação. Inclui página pública /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprovação por frases exactas, histórico imutável e testes automatizados da engine.",
+      "requirement": "Página /validacao com matriz completa de implementação, filtros por status/prioridade/categoria/domínio, pesquisa por palavra-chave, métricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZAMI_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determinístico, portas de aprovação humana com frases exactas, histórico append-only e suite de testes automatizados (≥80 casos).",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js · TypeScript · JSON",
       "validationMethods": [
         "manual_ux",
-        "production_review"
+        "production_review",
+        "unit_tests",
+        "security_audit"
       ],
       "acceptanceCriteria": [
-        "Todas as categorias do ecossistema representadas",
-        "Filtros por status, prioridade e categoria",
-        "Pesquisa por palavra-chave",
-        "Rastreabilidade a BANZAMI_REFERENCE.md",
-        "Métricas globais de implementação"
+        "Matriz JSON parseável e válida sem erros de schema",
+        "Página /validacao acessível em produção (banzami.org/validacao)",
+        "Todas as categorias do ecossistema representadas na matriz",
+        "Filtros por status, prioridade, categoria e domínio operacionais",
+        "Pesquisa por palavra-chave em tempo real funcional",
+        "Rastreabilidade a BANZAMI_REFERENCE.md via campo referenceSection",
+        "Métricas globais exibidas e computadas correctamente",
+        "Validation Studio acessível localmente em localhost:3099",
+        "Governance engine cobre todas as regras §17 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
+        "Sistema de aprovação por frases exactas implementado nos comandos Claude",
+        "Fingerprint computado deterministicamente e verificado antes de apply",
+        "Histórico de transições imutável (append-only)",
+        "Testes automatizados da engine de governança (≥80 casos)",
+        "Página /validacao é read-only — zero rotas de escrita no apps/docs"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -361,8 +372,68 @@
         },
         {
           "type": "component",
+          "label": "ValidationCard",
+          "ref": "apps/docs/components/validation/ValidationCard.tsx"
+        },
+        {
+          "type": "component",
+          "label": "ValidationFilters",
+          "ref": "apps/docs/components/validation/ValidationFilters.tsx"
+        },
+        {
+          "type": "component",
+          "label": "ValidationMetrics",
+          "ref": "apps/docs/components/validation/ValidationMetrics.tsx"
+        },
+        {
+          "type": "config",
           "label": "Matriz JSON",
           "ref": "docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json"
+        },
+        {
+          "type": "config",
+          "label": "vitest.config.ts (docs)",
+          "ref": "apps/docs/vitest.config.ts"
+        },
+        {
+          "type": "config",
+          "label": "vitest.config.ts (studio)",
+          "ref": "apps/validation-studio/vitest.config.ts"
+        },
+        {
+          "type": "test",
+          "label": "governance.test.ts (55+ testes)",
+          "ref": "apps/validation-studio/lib/__tests__/governance.test.ts"
+        },
+        {
+          "type": "test",
+          "label": "fingerprint.test.ts (32 testes)",
+          "ref": "apps/validation-studio/lib/__tests__/fingerprint.test.ts"
+        },
+        {
+          "type": "test",
+          "label": "validation.test.ts — docs (28 testes)",
+          "ref": "apps/docs/lib/__tests__/validation.test.ts"
+        },
+        {
+          "type": "adr",
+          "label": "ADR-015 (markdown-first content)",
+          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
+        },
+        {
+          "type": "route",
+          "label": "Validation Studio local",
+          "ref": "apps/validation-studio/app/page.tsx"
+        },
+        {
+          "type": "adr",
+          "label": "CLAUDE.md §17 Validation Governance",
+          "ref": "CLAUDE.md"
+        },
+        {
+          "type": "config",
+          "label": "Governance engine",
+          "ref": "apps/validation-studio/lib/governance.ts"
         }
       ],
       "dependencies": [
@@ -377,19 +448,37 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
           "implementation evidence (+20)",
+          "unit tests (+15)",
           "E2E / manual UX (+15)",
           "production / sandbox evidence (+10)",
           "non-financial item (invariants not required, +20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
+      "lastValidatedAt": "2026-05-20",
+      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+      "history": [
+        {
+          "timestamp": "2026-05-20T08:15:40.576Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "f9a79663d89963ed",
+          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+          "reason": "Governance infrastructure validated: 115 automated tests (87 studio + 28 docs) pass, all 14 acceptance criteria met, confidence 80/100 (VERY_HIGH).",
+          "evidence": [
+            "apps/validation-studio/lib/__tests__/governance.test.ts",
+            "apps/validation-studio/lib/__tests__/fingerprint.test.ts",
+            "apps/docs/lib/__tests__/validation.test.ts",
+            "apps/docs/app/validacao/page.tsx",
+            "apps/docs/components/validation/ValidationDashboard.tsx"
+          ]
+        }
+      ],
       "lastUpdated": "2026-05-20"
     },
     {
