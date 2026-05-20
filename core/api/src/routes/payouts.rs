@@ -64,7 +64,7 @@ pub async fn initiate(
             ApiError::unprocessable("INSUFFICIENT_BALANCE", &e.to_string())
         }
         PayoutError::DuplicateIdempotencyKey(_) => {
-            ApiError::conflict("idempotency key already used")
+            ApiError::conflict("CONFLICT", "idempotency key already used")
         }
         other => ApiError::internal(other.to_string()),
     })?;

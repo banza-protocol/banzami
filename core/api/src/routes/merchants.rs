@@ -68,7 +68,7 @@ pub async fn create_merchant(
         .await
         .map_err(|e| match e {
             MerchantError::DuplicateEmail(email) => {
-                ApiError::conflict(format!("email already registered: {email}"))
+                ApiError::conflict("CONFLICT", format!("email already registered: {email}"))
             }
             other => ApiError::internal(other.to_string()),
         })?;

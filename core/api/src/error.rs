@@ -19,8 +19,8 @@ impl ApiError {
         Self { status: StatusCode::BAD_REQUEST, code: "BAD_REQUEST", message: msg.into() }
     }
 
-    pub fn conflict(msg: impl Into<String>) -> Self {
-        Self { status: StatusCode::CONFLICT, code: "CONFLICT", message: msg.into() }
+    pub fn conflict(code: &'static str, msg: impl Into<String>) -> Self {
+        Self { status: StatusCode::CONFLICT, code, message: msg.into() }
     }
 
     pub fn unprocessable(code: &'static str, msg: impl Into<String>) -> Self {

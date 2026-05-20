@@ -108,7 +108,7 @@ pub async fn create(
         })
         .await
         .map_err(|e| match e {
-            IdentityError::HandleTaken(_)   => ApiError::conflict("handle already taken"),
+            IdentityError::HandleTaken(_)   => ApiError::conflict("HANDLE_TAKEN", "handle already taken"),
             IdentityError::InvalidHandle(r) => ApiError::bad_request(r),
             other                           => ApiError::internal(other.to_string()),
         })?;

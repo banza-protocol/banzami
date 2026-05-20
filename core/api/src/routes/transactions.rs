@@ -86,7 +86,7 @@ pub async fn create(
         .await
         .map_err(|e| match e {
             TransactionError::DuplicateIdempotencyKey(_) => {
-                ApiError::conflict("duplicate idempotency key")
+                ApiError::conflict("CONFLICT", "duplicate idempotency key")
             }
             other => ApiError::internal(other.to_string()),
         })?;
