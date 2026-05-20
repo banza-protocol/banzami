@@ -455,6 +455,32 @@ Invariants over authentication, authorization, and data protection.
 | **appliesToCategories** | `cat-wallet` |
 | **validationMethod** | Unit tests covering every allowed and every illegal transition; engine returns `InvalidStatusTransition` for illegal paths |
 
+### INV-WALLET-007
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WALLET-007` |
+| **name** | Active wallet has both ledger accounts |
+| **domain** | Wallet |
+| **description** | Every wallet row in `consumer_wallets` must have non-null `available_account_id` and `reserved_account_id`. Pre-activation state lives in `consumer_onboarding`, not in `consumer_wallets`. |
+| **rule** | `∀ wallet in consumer_wallets: available_account_id IS NOT NULL AND reserved_account_id IS NOT NULL` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | DB NOT NULL constraint on both columns in `consumer_wallets`; application: `activate()` only inserts wallet rows after ledger accounts are provisioned |
+
+### INV-WALLET-008
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WALLET-008` |
+| **name** | @banza handle globally unique |
+| **domain** | Wallet |
+| **description** | No two live consumers may share the same @banza handle. Uniqueness is enforced at the database level, preventing race-condition duplicates |
+| **rule** | `∀ handle h: count(consumers where handle == h AND status != 'CLOSED') <= 1` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-wallet`, `cat-identity` |
+| **validationMethod** | `UNIQUE` constraint `consumers_handle_key` on `consumers.handle` (from migration 0010); integration test: concurrent activation with same handle → one succeeds, one gets 23505 unique-violation |
+
 ---
 
 ## Invariant Status Values

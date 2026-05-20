@@ -163,6 +163,10 @@ pub struct ConsumerWallet {
     pub pin_hash:             Option<String>,
     pub failed_pin_attempts:  i32,
     pub locked_at:            Option<DateTime<Utc>>,
+    /// Set when status transitions to ACTIVE. Null during PENDING_*.
+    pub activated_at:         Option<DateTime<Utc>>,
+    /// Set when status transitions to CLOSED.
+    pub closed_at:            Option<DateTime<Utc>>,
     pub created_at:           DateTime<Utc>,
     pub updated_at:           DateTime<Utc>,
 }
@@ -187,22 +191,26 @@ pub struct ConsumerWalletBalance {
 // Request types
 // ---------------------------------------------------------------------------
 
-/// Start onboarding: submit phone number and create PENDING_OTP wallet record.
+/// Step 1 — Submit phone number. Creates a PENDING_OTP session.
 pub struct StartOnboardingRequest {
     pub phone_number: String,
     pub currency:     Currency,
+    /// Test helper: provides the OTP plaintext so the caller can drive the
+    /// full flow in tests without a real SMS service. `None` in production
+    /// (OTP hash is injected by the SMS dispatch layer).
+    pub otp_plaintext_for_test: Option<String>,
 }
 
-/// Verify OTP and advance to PENDING_PIN, provisioning ledger accounts.
+/// Step 2 — Verify OTP. Advances to PENDING_PIN, provisions ledger accounts.
 pub struct VerifyOtpRequest {
-    pub wallet_id:    ConsumerWalletId,
-    /// Plaintext OTP from consumer. Verified against stored hash; not persisted.
-    pub otp_code:     String,
+    pub session_id: uuid::Uuid,
+    /// Plaintext OTP from consumer. Verified against stored hash; never stored.
+    pub otp_code:   String,
 }
 
-/// Complete onboarding: choose handle and set PIN, activating the wallet.
+/// Step 3 — Choose @banza handle and set PIN. Activates the wallet.
 pub struct CompleteOnboardingRequest {
-    pub wallet_id:    ConsumerWalletId,
+    pub session_id:   uuid::Uuid,
     /// Desired @banza handle. Validated and uniqueness-checked by the engine.
     pub banza_handle: String,
     /// Plaintext PIN (4–6 digits). Hashed with Argon2id before storage.
