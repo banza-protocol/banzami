@@ -1,9 +1,14 @@
 pub mod engine;
+pub mod funding;
 pub mod onboarding;
 pub mod repository;
 pub mod wallet;
 
 pub use engine::{ConsumerWalletEngine, PostgresConsumerWalletEngine};
+pub use funding::{
+    CreateFundingSessionRequest, FundingEngine, FundingError, FundingProvider, FundingSession,
+    FundingStatus, PostgresFundingEngine, ReceiveCallbackRequest, ReconcileRequest,
+};
 pub use onboarding::{CompletedOnboarding, OnboardingSession, OnboardingStatus};
 pub use repository::{
     ConsumerWalletRepository, OnboardingRepository,
