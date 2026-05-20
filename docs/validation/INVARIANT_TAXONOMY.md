@@ -416,6 +416,45 @@ Invariants over authentication, authorization, and data protection.
 | **appliesToCategories** | `cat-security` |
 | **validationMethod** | nginx config review; integration test from external IP → connection refused |
 
+### INV-WALLET-004
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WALLET-004` |
+| **name** | Wallet-owner uniqueness |
+| **domain** | Wallet |
+| **description** | Each consumer has at most one non-CLOSED wallet per currency. No consumer may hold two active wallets in the same currency simultaneously |
+| **rule** | `∀ consumer, currency: count(wallets where status != 'CLOSED') <= 1` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | DB constraint: unique partial index on (consumer_id, currency) WHERE status NOT IN ('CLOSED'); integration test: attempt duplicate wallet creation → expect 409 |
+
+### INV-WALLET-005
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WALLET-005` |
+| **name** | Currency immutability |
+| **domain** | Wallet |
+| **description** | A wallet's currency is set once at creation and never changes for the lifetime of the wallet |
+| **rule** | `∀ wallet: wallet.currency at t=1 == wallet.currency at t=N` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | DB check constraint: `CHECK (currency = 'AOA')` for v1; application code rejects currency change requests; integration test: attempt currency update → expect 422 |
+
+### INV-WALLET-006
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WALLET-006` |
+| **name** | Lifecycle state machine |
+| **domain** | Wallet |
+| **description** | Wallet status transitions must follow the defined state machine. Illegal transitions (e.g., CLOSED → ACTIVE, LOCKED → PENDING_OTP) are rejected by the engine |
+| **rule** | `∀ transition (from, to): (from, to) ∈ ALLOWED_TRANSITIONS` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | Unit tests covering every allowed and every illegal transition; engine returns `InvalidStatusTransition` for illegal paths |
+
 ---
 
 ## Invariant Status Values
