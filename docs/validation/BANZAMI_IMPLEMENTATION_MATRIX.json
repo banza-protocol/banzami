@@ -3028,7 +3028,7 @@
       "referenceSection": "§16.1",
       "description": "Cada movimento monetário registado como par de entradas de ledger de dupla entrada — débito e crédito atomicamente. Líquido sempre zero.",
       "requirement": "Cada transacção cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
@@ -3043,8 +3043,15 @@
         "Operação rejeitada se ledger ficaria desequilibrado",
         "Entradas append-only — sem UPDATE ou DELETE"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "db/migrations/0001_ledger_schema.sql",
+        "db/migrations/0033_ledger_immutability.sql",
+        "core/ledger/src/posting.rs",
+        "core/ledger/src/engine.rs",
+        "core/ledger/src/repository.rs",
+        "core/ledger/tests/integration.rs"
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [
@@ -3059,37 +3066,52 @@
         "core/ledger/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [
-        "Core Rust em desenvolvimento inicial"
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-LED-001-1",
           "name": "Double-entry balance invariant",
           "rule": "For every transaction: sum(debits) + sum(credits) == 0",
-          "status": "NOT_RUN"
+          "status": "PASS"
         },
         {
           "id": "INV-LED-001-2",
           "name": "Ledger entry immutability",
           "rule": "No UPDATE or DELETE may modify existing ledger entries; only INSERT is permitted",
-          "status": "NOT_RUN"
+          "status": "PASS"
         }
       ],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "invariants not all PASS (+0)"
+          "evidence non-empty (+20)",
+          "unit_tests (+15)",
+          "integration_tests (+20)",
+          "all invariants PASS (+20)"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "validatedAgainstCommit": "00432fe",
+      "history": [
+        {
+          "timestamp": "2026-05-20T23:30:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "7d39e86aab927059",
+          "commit": "00432fe",
+          "reason": "Ledger engine hardened: DB immutability triggers, reverse() and get_posting() operations, account currency validation in post(), idempotency fixed to return original DB posting. 17 integration tests — all invariants PASS.",
+          "evidence": [
+            "db/migrations/0033_ledger_immutability.sql",
+            "core/ledger/src/engine.rs",
+            "core/ledger/src/repository.rs",
+            "core/ledger/tests/integration.rs"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "LED-002",
