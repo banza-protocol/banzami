@@ -1618,6 +1618,293 @@ Três painéis principais Grafana fornecem visibilidade operacional:
 
 ---
 
+### 17.8 Arquitectura de Carregamento de Carteira
+
+O carregamento de carteira é a fronteira mais crítica do ecossistema Banza: o ponto onde o dinheiro real do sistema bancário angolano entra na rede de ledger imutável do Banzami. Esta secção documenta a arquitectura interna que torna essa transição segura, auditável e idempotente.
+
+#### O problema fundamental
+
+O sistema bancário angolano — EMIS, Multicaixa Express, transferências interbancárias — é **assíncrono e eventualmente consistente**. Um pagamento iniciado pode ser confirmado segundos, minutos ou horas depois. Os callbacks podem chegar em duplicado. Uma transacção confirmada pode ser revertida pelo banco dias mais tarde.
+
+O ledger interno do Banzami é **síncrono e fortemente consistente**. Cada lançamento é atómico, imutável e reconciliável. Nenhum crédito pode existir sem um lançamento de dupla entrada balanceado e auditável.
+
+A arquitectura de carregamento é a ponte entre estes dois mundos.
+
+#### Princípios de design
+
+1. **Callbacks externos nunca creditam directamente.** Nenhum webhook ou resposta da API de um banco cria um lançamento no ledger. Todos os eventos externos passam por reconciliação.
+2. **Idempotência em todas as camadas.** Callbacks duplicados, retentativas e replays nunca produzem créditos duplicados.
+3. **Estados de transição explícitos.** Cada sessão de carregamento percorre uma máquina de estados auditável. Transições inválidas são rejeitadas.
+4. **Ligação obrigatória ao ledger.** Uma sessão só é considerada liquidada quando um `ledger_posting_id` está registado. Sem lançamento → sem crédito.
+5. **Imutabilidade total.** Reversões não apagam o histórico — criam um segundo lançamento que anula o primeiro. Ambos ficam para sempre.
+
+#### Máquina de estados
+
+```
+           ┌─────────────────────────────────────────────┐
+           │            FUNDING SESSION                  │
+           └─────────────────────────────────────────────┘
+
+  [criação]
+      │
+      ▼
+PENDING_PAYMENT ──────────────────────────────► EXPIRED
+      │                                         (TTL expirado sem pagamento)
+      │ consumidor paga no banco / ATM
+      ▼
+PENDING_PROVIDER_CONFIRMATION ───────────────► EXPIRED
+      │                                         (TTL expirado após pagamento)
+      │ callback do EMIS / banco recebido
+      ▼
+RECONCILING ─────────────────────────────────► FAILED
+      │        │                               (falha irrecuperável)
+      │        └──────────────────────────────► PENDING_PROVIDER_CONFIRMATION
+      │                                         (falha transitória — retry)
+      │ lançamento ledger criado
+      ▼
+  SETTLED ─────────────────────────────────────► REVERSED
+      (ledger_posting_id registado)               (reversão bancária —
+                                                   segundo lançamento criado)
+```
+
+**Transições válidas:**
+
+| De | Para | Condição |
+|----|------|----------|
+| PENDING_PAYMENT | PENDING_PROVIDER_CONFIRMATION | Consumidor iniciou pagamento |
+| PENDING_PAYMENT | EXPIRED | TTL expirado |
+| PENDING_PAYMENT | FAILED | Falha no provedor |
+| PENDING_PROVIDER_CONFIRMATION | RECONCILING | Callback recebido |
+| PENDING_PROVIDER_CONFIRMATION | EXPIRED | TTL expirado |
+| RECONCILING | SETTLED | Lançamento ledger criado com sucesso |
+| RECONCILING | FAILED | Falha irrecuperável na validação |
+| RECONCILING | PENDING_PROVIDER_CONFIRMATION | Falha transitória, retentativa |
+| SETTLED | REVERSED | Reversão bancária recebida |
+
+Todas as outras transições são rejeitadas com erro `InvalidTransition`.
+
+#### Componentes da arquitectura
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    EMIS / BANCO ANGOLANO                        │
+│             (confirmação assíncrona — eventualmente)            │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ callback HTTPS + HMAC
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 ADAPTADOR DE PROVEDOR (Go)                      │
+│  • verifica assinatura HMAC                                     │
+│  • extrai provider_event_id único                               │
+│  • encaminha para FundingEngine                                 │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│               provider_callbacks (PostgreSQL)                   │
+│  • UNIQUE(provider, provider_event_id) — idempotência ao nível  │
+│    dos dados: INSERT duplicado falha com constraint violation    │
+│  • registo imutável de cada callback recebido                   │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                 FUNDING ENGINE (Rust)                           │
+│  • valida transição de estado                                   │
+│  • avança sessão para RECONCILING                               │
+│  • despoleta job de reconciliação                               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              MOTOR DE RECONCILIAÇÃO (Rust)                      │
+│  • valida montante e moeda contra dados da sessão               │
+│  • cria lançamento de dupla entrada via LedgerEngine:           │
+│      DR conta de trânsito (ASSET)                               │
+│      CR conta disponível do consumidor (LIABILITY)              │
+│  • regista em reconciliation_attempts (imutável)                │
+│  • avança sessão para SETTLED + ledger_posting_id               │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │
+                           ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    LEDGER DO BANZA                              │
+│  • lançamento atómico e imutável                                │
+│  • saldo do consumidor actualizado instantaneamente             │
+│  • trilho de auditoria completo e reconciliável                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+#### Schema de base de dados
+
+**`consumer_deposits`** — máquina de estados da sessão de carregamento
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `id` | UUID | Identificador único da sessão |
+| `consumer_id` | UUID | Consumidor que inicia o carregamento |
+| `wallet_id` | UUID | Carteira que recebe os fundos |
+| `provider` | VARCHAR | `EMIS` \| `SIMULATED` |
+| `external_ref` | VARCHAR | Referência de pagamento apresentada ao consumidor |
+| `status` | VARCHAR | Estado actual da máquina de estados |
+| `amount_minor` | BIGINT | Montante em unidades menores (100 = 1 Kz) |
+| `ledger_posting_id` | UUID? | Lançamento ledger criado na liquidação |
+| `reversal_posting_id` | UUID? | Lançamento de reversão (se revertido) |
+| `reconciliation_attempts` | INT | Número de tentativas de reconciliação |
+| `expires_at` | TIMESTAMPTZ | TTL da sessão |
+| `confirmed_at` | TIMESTAMPTZ? | Timestamp de liquidação |
+| `reversed_at` | TIMESTAMPTZ? | Timestamp de reversão |
+
+**`provider_callbacks`** — registo imutável de callbacks externos
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `provider_event_id` | VARCHAR | ID único do evento do provedor |
+| `provider` | VARCHAR | Identificador do provedor |
+| `funding_session_id` | UUID? | Sessão associada |
+| `hmac_valid` | BOOLEAN | Assinatura HMAC verificada |
+| `status` | VARCHAR | `RECEIVED` \| `PROCESSING` \| `PROCESSED` \| `REJECTED` |
+| `payload` | JSONB | Payload bruto do callback |
+
+Chave única: `UNIQUE(provider, provider_event_id)` — a fronteira de idempotência ao nível dos dados.
+
+**`reconciliation_attempts`** — log de auditoria de reconciliação (append-only)
+
+| Coluna | Tipo | Descrição |
+|--------|------|-----------|
+| `funding_session_id` | UUID | Sessão reconciliada |
+| `attempt_number` | INT | Número da tentativa |
+| `outcome` | VARCHAR | `SUCCESS` \| `FAILURE` \| `RETRY` |
+| `ledger_posting_id` | UUID? | Lançamento criado (se sucesso) |
+| `detail` | TEXT | Descrição do resultado |
+
+#### O lançamento de dupla entrada na liquidação
+
+Quando uma sessão passa para SETTLED, o motor cria exatamente um lançamento balanceado:
+
+```
+DR  conta de trânsito (ASSET)
+    ← dinheiro externo chegou ao Banzami
+
+CR  conta disponível do consumidor (LIABILITY)
+    ← o Banzami deve esse valor ao consumidor
+```
+
+Este lançamento é:
+- atómico — ou ambas as entradas existem ou nenhuma
+- idempotente — a chave `funding-settle-{session_id}` previne duplicação
+- imutável — triggers de base de dados bloqueiam UPDATE/DELETE
+- reconciliável — o `ledger_posting_id` da sessão aponta para o lançamento exacto
+
+#### Reversão
+
+Quando um banco reverte uma transacção confirmada, o Banzami não apaga nada. Cria um segundo lançamento que anula o primeiro:
+
+```
+Lançamento original:
+  DR  conta de trânsito    +10.000 Kz
+  CR  conta disponível     +10.000 Kz
+
+Lançamento de reversão:
+  CR  conta de trânsito    +10.000 Kz  ← inverte o débito
+  DR  conta disponível     +10.000 Kz  ← retira o crédito do consumidor
+```
+
+Ambos os lançamentos ficam imutavelmente registados. O trilho de auditoria é completo. O saldo do consumidor reflecte a realidade.
+
+#### Cenários operacionais
+
+**Cenário A — Carregamento normal**
+
+```
+t=0s   Consumidor abre a app → selecciona BAI → recebe referência de pagamento
+t=0s   FundingSession criada: PENDING_PAYMENT
+t=30s  Consumidor paga via Multicaixa Express no ATM
+t=30s  FundingSession avança para: PENDING_PROVIDER_CONFIRMATION
+t=32s  EMIS envia callback HTTPS com HMAC assinado
+t=32s  provider_callbacks: INSERT com UNIQUE(EMIS, evt-abc123)
+t=32s  FundingSession avança para: RECONCILING
+t=32s  Motor de reconciliação valida → cria lançamento ledger
+t=32s  FundingSession avança para: SETTLED (ledger_posting_id = xyz)
+t=32s  Saldo da carteira actualizado instantaneamente
+t=32s  Consumidor vê +10.000 Kz disponíveis na app
+```
+
+**Cenário B — Callback com 17 minutos de atraso**
+
+```
+t=0s    Sessão criada: PENDING_PAYMENT
+t=5s    Consumidor paga: PENDING_PROVIDER_CONFIRMATION
+t=22m   Callback EMIS finalmente chega (17 minutos de atraso)
+t=22m   Sessão avança para RECONCILING
+t=22m   Reconciliação cria lançamento → SETTLED
+        Durante todo este tempo a carteira reflectia saldo 0 — correcto.
+        Nenhum crédito foi concedido antes da confirmação.
+```
+
+**Cenário C — Callback duplicado do banco**
+
+```
+t=0s   Sessão criada e confirmada normalmente → SETTLED
+t=5m   Banco reenvia o mesmo callback (retry automático)
+t=5m   INSERT em provider_callbacks falha:
+           ERROR: duplicate key value violates unique constraint
+           "provider_callbacks_event_unique"
+t=5m   FundingEngine retorna DuplicateCallback — sem alteração de estado
+       O saldo do consumidor não é alterado.
+       Zero créditos duplicados.
+```
+
+**Cenário D — Reversão bancária após liquidação**
+
+```
+t=0s   Sessão SETTLED → ledger_posting_id = posting-A
+t=3d   Banco reverte a transacção (chargeback)
+t=3d   reverse_session() chamado com razão "bank reversal: chargeback"
+t=3d   LedgerEngine.reverse(posting-A) cria posting-B (inverso exacto)
+t=3d   Sessão avança para REVERSED (reversal_posting_id = posting-B)
+       posting-A permanece imutável no ledger.
+       posting-B é o registo contabilístico da reversão.
+       O saldo do consumidor é reduzido ao valor original.
+       Trilho de auditoria completo: dois lançamentos balanceados.
+```
+
+**Cenário E — Timeout EMIS / falha transitória**
+
+```
+t=0s   Sessão criada: PENDING_PAYMENT → PENDING_PROVIDER_CONFIRMATION
+t=5m   Timeout de ligação ao EMIS — callback não chega
+t=5m   Worker de reconciliação detecta sessão em RECONCILING há > N minutos
+t=5m   Regista ReconciliationAttempt(RETRY)
+t=5m   Sessão volta para: PENDING_PROVIDER_CONFIRMATION
+t=8m   Callback chega com atraso → sessão avança normalmente
+       Ou sessão expira por TTL → EXPIRED
+```
+
+#### Modelo de segurança
+
+| Controlo | Mecanismo |
+|----------|-----------|
+| Autenticação de callbacks | HMAC-SHA256 com chave partilhada por provedor; callbacks sem HMAC válido são registados como `hmac_valid=false` e rejeitados pelo motor |
+| Protecção contra replay | `UNIQUE(provider, provider_event_id)` — constraint de base de dados; não depende de lógica de aplicação |
+| Idempotência de lançamento | Chave `funding-settle-{session_id}` em `ledger_postings` com UNIQUE constraint |
+| Imutabilidade | Triggers de PostgreSQL bloqueiam UPDATE/DELETE em `ledger_entries` e `ledger_postings` |
+| Isolamento sandbox | Sessões sandbox nunca tocam contas de liquidação reais |
+| Limites KYC | Verificação de limite por transacção e diário antes da criação da sessão |
+| Detecção de fraude | Contadores de velocidade; contas suspeitas bloqueadas antes da reconciliação |
+| Auditoria | `provider_callbacks` e `reconciliation_attempts` são append-only e imutáveis |
+
+#### Garantias de reconciliação
+
+O motor garante:
+
+1. **Uma sessão liquidada tem exactamente um lançamento ledger.** A chave de idempotência `funding-settle-{id}` previne duplicação mesmo em caso de retentativa.
+2. **Zero créditos sem lançamento.** O campo `ledger_posting_id` é sempre verificado — sem ID registado, o saldo não mudou.
+3. **Reversões preservam o histórico.** `reversal_posting_id` e `reversed_at` documentam a reversão sem apagar o lançamento original.
+4. **Sessões expiradas são impenháveis.** O estado EXPIRED é terminal — qualquer tentativa de avançar é rejeitada com `InvalidTransition`.
+
+---
+
 ## 18. O Ecossistema Banzami
 
 ### 18.1 Mapa completo da plataforma
