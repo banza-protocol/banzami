@@ -6,9 +6,12 @@ use sqlx::PgPool;
 use banzami_ledger::{Account, AccountType, LedgerEngine};
 use banzami_types::{ConsumerId, ConsumerWalletId, Currency, LedgerEntryId, LedgerPostingId, Money};
 
+use banzami_identity::ConsumerStatus;
+
 use crate::{
     onboarding::{CompletedOnboarding, OnboardingSession},
     repository::{ConsumerWalletRepository, OnboardingRepository},
+    routing::{routing_status_from_wallet, WalletRoutingDestination},
     wallet::{
         ChangePinRequest, CommitReservedRequest, CompleteOnboardingRequest, ConsumerWallet,
         ConsumerWalletBalance, ConsumerWalletStatus, CreateConsumerWalletRequest, KycStatus,
@@ -124,6 +127,42 @@ pub trait ConsumerWalletEngine: Send + Sync {
         &self,
         req: CommitReservedRequest,
     ) -> Result<(), ConsumerWalletError>;
+
+    // ── Routing (HDL-002) ──────────────────────────────────────────────────
+
+    /// Resolve a @banza handle to its active, routable wallet.
+    ///
+    /// Full resolution pipeline:
+    ///   1. normalize handle (strip @, lowercase)
+    ///   2. validate format (rejects malformed handles before DB hit)
+    ///   3. currency-aware wallet lookup (deterministic — ORDER BY created_at ASC)
+    ///   4. verify consumer identity is ACTIVE
+    ///   5. verify wallet routing status (ROUTABLE or LOCKED permitted)
+    ///   6. return canonical `WalletRoutingDestination`
+    ///
+    /// Errors: `HandleNotFound`, `InvalidHandle`, `SuspendedIdentity`,
+    ///         `ClosedIdentity`, `WalletCannotReceive`, `RoutingUnavailable`.
+    async fn resolve_to_wallet(
+        &self,
+        handle:   &str,
+        currency: Currency,
+    ) -> Result<WalletRoutingDestination, ConsumerWalletError>;
+
+    /// Resolve a batch of handles to their routable wallets.
+    ///
+    /// Returns a Vec of (handle, Result) pairs — one per input, in order.
+    /// Errors per handle are independent; one failure does not abort the batch.
+    async fn resolve_many(
+        &self,
+        handles:  &[&str],
+        currency: Currency,
+    ) -> Vec<(String, Result<WalletRoutingDestination, ConsumerWalletError>)>;
+
+    /// Check if a wallet (by ID) can currently receive inbound transfers.
+    async fn can_receive(
+        &self,
+        wallet_id: ConsumerWalletId,
+    ) -> Result<bool, ConsumerWalletError>;
 
     // ── Legacy / internal ──────────────────────────────────────────────────
 
@@ -898,6 +937,81 @@ where
         }
         self.create(CreateConsumerWalletRequest { consumer_id, currency }).await
     }
+
+    async fn resolve_to_wallet(
+        &self,
+        handle:   &str,
+        currency: Currency,
+    ) -> Result<WalletRoutingDestination, ConsumerWalletError> {
+        let normalized = banzami_identity::normalize_handle(handle);
+
+        // Syntax gate — rejects malformed handles before any DB round-trip.
+        banzami_identity::validate_handle(&normalized)
+            .map_err(ConsumerWalletError::InvalidHandle)?;
+
+        let lookup = self.wallets
+            .find_by_handle_for_routing(&normalized, currency)
+            .await?
+            .ok_or_else(|| ConsumerWalletError::HandleNotFound(normalized.clone()))?;
+
+        // Identity status gate.
+        match lookup.consumer_status {
+            ConsumerStatus::Active    => {}
+            ConsumerStatus::Suspended => {
+                return Err(ConsumerWalletError::SuspendedIdentity(normalized));
+            }
+            ConsumerStatus::Closed => {
+                return Err(ConsumerWalletError::ClosedIdentity(normalized));
+            }
+        }
+
+        let wallet         = lookup.wallet;
+        let routing_status = routing_status_from_wallet(wallet.status);
+
+        // Wallet status gate — only ROUTABLE and LOCKED may receive.
+        if !routing_status.can_receive() {
+            return Err(ConsumerWalletError::WalletCannotReceive(wallet.id));
+        }
+
+        tracing::debug!(
+            handle       = %normalized,
+            wallet_id    = %wallet.id,
+            routing      = %routing_status.as_str(),
+            "handle resolved to routable wallet"
+        );
+
+        Ok(WalletRoutingDestination {
+            consumer_id:       wallet.consumer_id,
+            wallet_id:         wallet.id,
+            normalized_handle: normalized,
+            display_name:      lookup.display_name,
+            currency:          wallet.currency,
+            wallet_status:     wallet.status,
+            routing_status,
+            activated_at:      wallet.activated_at,
+        })
+    }
+
+    async fn resolve_many(
+        &self,
+        handles:  &[&str],
+        currency: Currency,
+    ) -> Vec<(String, Result<WalletRoutingDestination, ConsumerWalletError>)> {
+        let mut results = Vec::with_capacity(handles.len());
+        for &handle in handles {
+            let result = self.resolve_to_wallet(handle, currency).await;
+            results.push((handle.to_string(), result));
+        }
+        results
+    }
+
+    async fn can_receive(
+        &self,
+        wallet_id: ConsumerWalletId,
+    ) -> Result<bool, ConsumerWalletError> {
+        let wallet = self.wallets.get(wallet_id).await?;
+        Ok(wallet.status.can_receive())
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -1261,6 +1375,25 @@ mod tests {
             Ok(self.wallets.lock().unwrap().values()
                 .find(|w| w.banza_handle.as_deref() == Some(handle))
                 .cloned())
+        }
+
+        async fn find_by_handle_for_routing(
+            &self,
+            handle:   &str,
+            currency: Currency,
+        ) -> Result<Option<crate::repository::RoutingLookup>, ConsumerWalletError> {
+            let wallet = self.wallets.lock().unwrap().values()
+                .find(|w| {
+                    w.banza_handle.as_deref() == Some(handle)
+                        && w.currency == currency
+                        && w.status != ConsumerWalletStatus::Closed
+                })
+                .cloned();
+            Ok(wallet.map(|w| crate::repository::RoutingLookup {
+                display_name: None,
+                consumer_status: ConsumerStatus::Active,
+                wallet: w,
+            }))
         }
 
         async fn find_by_phone(&self, phone: &str)

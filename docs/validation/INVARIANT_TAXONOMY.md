@@ -539,6 +539,71 @@ Invariants over the @banza handle registration and resolution system.
 | **appliesToCategories** | `cat-handle`, `cat-identity` |
 | **validationMethod** | Integration test: register `@Carlos`, then attempt `@CARLOS` → HandleTaken |
 
+### INV-HDL-002-1
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-HDL-002-1` |
+| **name** | Normalized handle resolves to at most one active wallet |
+| **domain** | Identity / Routing |
+| **description** | For any normalized handle and currency, there is at most one routable wallet. The UNIQUE constraint on (consumer_id, currency) WHERE NOT CLOSED combined with the UNIQUE constraint on handle ensures this structurally. |
+| **rule** | `∀ h, c: count(routable wallets for normalize(h) in currency c) ≤ 1` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-handle`, `cat-identity`, `cat-p2p`, `cat-qr` |
+| **validationMethod** | DB constraints: consumers_handle_key + consumer_wallets_consumer_currency_idx (partial); integration test: concurrent duplicate registration creates only one active wallet |
+
+### INV-HDL-002-2
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-HDL-002-2` |
+| **name** | Suspended or closed wallets/identities cannot be resolved |
+| **domain** | Identity / Routing |
+| **description** | resolve_to_wallet() returns an error for any handle whose consumer is SUSPENDED or CLOSED, or whose wallet status does not permit inbound transfers (SUSPENDED, CLOSED, PENDING_OTP, PENDING_PIN). |
+| **rule** | `resolve_to_wallet(h) → Ok(_) ⟹ consumer.status == ACTIVE ∧ wallet.can_receive() == true` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-handle`, `cat-identity`, `cat-p2p` |
+| **validationMethod** | Integration tests: suspended and closed identities rejected; WalletCannotReceive for non-active wallet statuses |
+
+### INV-HDL-002-3
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-HDL-002-3` |
+| **name** | Resolution is deterministic for the same normalized input |
+| **domain** | Identity / Routing |
+| **description** | The same normalized handle always resolves to the same wallet_id as long as the underlying DB state has not changed. The query uses ORDER BY created_at ASC LIMIT 1 — no random selection, no LIMIT without ORDER. |
+| **rule** | `∀ h: resolve(normalize(h)) = resolve(normalize(h))` for unchanged DB state |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-p2p`, `cat-qr` |
+| **validationMethod** | Integration test: 10 concurrent resolutions of the same handle return identical wallet_id |
+
+### INV-HDL-002-4
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-HDL-002-4` |
+| **name** | Malformed handles never resolve |
+| **domain** | Identity / Routing |
+| **description** | resolve_to_wallet() validates handle syntax before any DB access. Handles that fail validate_handle() are rejected with InvalidHandle immediately. |
+| **rule** | `¬validate_handle(h) ⟹ resolve_to_wallet(h) → Err(InvalidHandle)` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-identity` |
+| **validationMethod** | Integration test: 6 malformed handle patterns all return InvalidHandle |
+
+### INV-HDL-002-5
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-HDL-002-5` |
+| **name** | Concurrent resolution cannot create ambiguous routing |
+| **domain** | Identity / Routing |
+| **description** | Multiple concurrent calls to resolve_to_wallet() for the same handle return the same wallet_id. Registration and resolution are safe to run concurrently — DB constraints prevent ambiguity at the storage layer. |
+| **rule** | `∀ concurrent(resolve(h)): all results → same wallet_id or error` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-handle`, `cat-p2p` |
+| **validationMethod** | Integration test: JoinSet of 10 concurrent resolve calls — all return identical wallet_id |
+
 ### INV-IDENTITY-005
 
 | Field | Value |
