@@ -507,3 +507,302 @@ async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sql
 
     Ok(())
 }
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LED-003 — Atomic posting & consistency guarantees
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ─── INV-LED-003-1 / INV-LED-003-3 / INV-LED-003-4 ──────────────────────────
+
+/// Manually insert a posting header inside a PG transaction, then roll back
+/// without inserting entries. The header must vanish — no orphan posting
+/// and no financial trace of any kind.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn rollback_leaves_no_orphan_posting_or_entries(pool: PgPool) -> sqlx::Result<()> {
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+
+    let src = ledger.create_account(asset_account("src-rb")).await.unwrap();
+    let dst = ledger.create_account(liability_account("dst-rb")).await.unwrap();
+
+    let posting_id = uuid::Uuid::new_v4();
+
+    {
+        let mut tx = pool.begin().await?;
+
+        // Insert the posting header inside the transaction.
+        sqlx::query(
+            "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+             VALUES ($1, $2, $3, NOW())",
+        )
+        .bind(posting_id)
+        .bind("partial — will be rolled back")
+        .bind("idem-rb-orphan")
+        .execute(&mut *tx)
+        .await?;
+
+        // Do NOT insert entries. Roll back — simulates a failure mid-write.
+        tx.rollback().await?;
+    }
+
+    // No posting header must remain.
+    let header_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_postings WHERE id = $1",
+    )
+    .bind(posting_id)
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(header_count, 0, "rolled-back posting header must not persist");
+
+    // Balances must still be zero — no financial trace.
+    assert_eq!(ledger.balance(src.id).await.unwrap().amount_minor(), 0);
+    assert_eq!(ledger.balance(dst.id).await.unwrap().amount_minor(), 0);
+
+    Ok(())
+}
+
+/// Failed posting (account not found) must leave balances completely unchanged.
+/// INV-LED-003-3: rollback restores all state.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn failed_posting_leaves_balances_unchanged(pool: PgPool) -> sqlx::Result<()> {
+    use banzami_types::AccountId;
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+
+    let bank   = ledger.create_account(asset_account("bank-fail")).await.unwrap();
+    let wallet = ledger.create_account(liability_account("wallet-fail")).await.unwrap();
+
+    // First, make a legitimate posting so balance is non-zero.
+    ledger.post(
+        PostingBuilder::new("initial credit", "idem-fail-pre")
+            .debit(bank.id, kz(50_000_00))
+            .credit(wallet.id, kz(50_000_00))
+            .build()
+            .unwrap(),
+    ).await.unwrap();
+
+    let balance_before = ledger.balance(wallet.id).await.unwrap().amount_minor();
+
+    // Attempt to post with a phantom account (does not exist in ledger_accounts).
+    let phantom_id = AccountId::new();
+    let result = ledger.post(
+        PostingBuilder::new("bad posting", "idem-fail-bad")
+            .debit(bank.id, kz(1_000_00))
+            .credit(phantom_id, kz(1_000_00))
+            .build()
+            .unwrap(),
+    ).await;
+
+    // Must fail — phantom account not found.
+    assert!(result.is_err(), "posting to non-existent account must fail");
+
+    // Balance must be exactly the same as before.
+    let balance_after = ledger.balance(wallet.id).await.unwrap().amount_minor();
+    assert_eq!(
+        balance_before, balance_after,
+        "failed posting must leave balances unchanged"
+    );
+
+    // The failed posting header must not exist in the DB.
+    let orphan_count: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_postings WHERE idempotency_key = 'idem-fail-bad'",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(orphan_count, 0, "failed posting must leave no orphan header");
+
+    Ok(())
+}
+
+// ─── INV-LED-003-4 — No partial posting visible ───────────────────────────────
+
+/// A posting header inserted without entries has zero financial effect.
+/// The ledger balance for an account with no entries must be zero.
+/// (Even if DB constraints allowed a lone header, it cannot corrupt balances.)
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn posting_header_without_entries_has_zero_financial_effect(pool: PgPool) -> sqlx::Result<()> {
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+    let account = ledger.create_account(asset_account("headeronly")).await.unwrap();
+
+    // Insert a header-only posting directly — bypassing the engine (simulates
+    // an extreme crash scenario where entries were never committed).
+    sqlx::query(
+        "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+         VALUES (gen_random_uuid(), $1, $2, NOW())",
+    )
+    .bind("header only — no entries")
+    .bind("idem-headeronly-01")
+    .execute(&pool)
+    .await?;
+
+    // Balance must still be zero — no entries, no financial state.
+    let balance = ledger.balance(account.id).await.unwrap();
+    assert_eq!(balance.amount_minor(), 0, "lone posting header has no financial effect");
+
+    Ok(())
+}
+
+/// A ledger_entry row cannot be inserted without a valid posting_id.
+/// PostgreSQL FK constraint must reject the orphan entry.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn entry_without_posting_header_fk_rejected(pool: PgPool) -> sqlx::Result<()> {
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+    let account = ledger.create_account(asset_account("fk-test")).await.unwrap();
+
+    let phantom_posting_id = uuid::Uuid::new_v4(); // does not exist in ledger_postings
+
+    let result = sqlx::query(
+        "INSERT INTO ledger_entries
+         (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+         VALUES (gen_random_uuid(), $1, $2, 'DEBIT', 100, 'AOA', NOW())",
+    )
+    .bind(phantom_posting_id)
+    .bind(account.id.as_uuid())
+    .execute(&pool)
+    .await;
+
+    assert!(result.is_err(), "orphan ledger_entry must be rejected by FK");
+
+    // Balance must be zero.
+    assert_eq!(ledger.balance(account.id).await.unwrap().amount_minor(), 0);
+
+    Ok(())
+}
+
+// ─── INV-LED-003-5 — Concurrent different postings ───────────────────────────
+
+/// Two concurrent but DIFFERENT balanced postings (distinct idempotency keys
+/// and distinct amounts) must both land. Balances after must exactly reflect
+/// both postings with no lost updates and no duplication.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_different_postings_all_land_consistently(pool: PgPool) -> sqlx::Result<()> {
+    use std::sync::Arc;
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool));
+
+    let bank   = ledger.create_account(asset_account("bank-cd")).await.unwrap();
+    let wallet = ledger.create_account(liability_account("wallet-cd")).await.unwrap();
+
+    let l1 = ledger.clone();
+    let l2 = ledger.clone();
+
+    // 300 Kz and 700 Kz — distinct amounts, distinct keys.
+    let (r1, r2) = tokio::join!(
+        tokio::spawn(async move {
+            l1.post(
+                PostingBuilder::new("payment A", "idem-cd-A")
+                    .debit(bank.id, kz(300_00))
+                    .credit(wallet.id, kz(300_00))
+                    .build()
+                    .unwrap(),
+            ).await
+        }),
+        tokio::spawn(async move {
+            l2.post(
+                PostingBuilder::new("payment B", "idem-cd-B")
+                    .debit(bank.id, kz(700_00))
+                    .credit(wallet.id, kz(700_00))
+                    .build()
+                    .unwrap(),
+            ).await
+        }),
+    );
+
+    r1.unwrap().unwrap();
+    r2.unwrap().unwrap();
+
+    // Total credited to wallet must be exactly 1 000 Kz (300 + 700).
+    let wallet_balance = ledger.balance(wallet.id).await.unwrap();
+    assert_eq!(
+        wallet_balance.amount_minor().abs(), 1_000_00,
+        "both concurrent postings must land: expected 1 000 Kz, got {}",
+        wallet_balance.amount_minor().abs()
+    );
+
+    // Bank balance must equal 1 000 Kz debited.
+    let bank_balance = ledger.balance(bank.id).await.unwrap();
+    assert_eq!(bank_balance.amount_minor(), 1_000_00);
+
+    // Net across both accounts must be zero (double-entry invariant preserved).
+    let net = bank_balance.amount_minor() + wallet_balance.amount_minor();
+    assert_eq!(net, 0, "net across all accounts must be zero after concurrent postings");
+
+    Ok(())
+}
+
+// ─── SQL consistency sweep ────────────────────────────────────────────────────
+
+/// Run all SQL consistency invariants against the test database:
+/// - zero unbalanced postings
+/// - zero orphan entries (entry with no posting header)
+/// - zero posting headers with fewer than 2 entries
+/// - zero duplicate idempotency keys
+///
+/// Proves LED-003 structural invariants hold at the DB level, not just at
+/// the application layer.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn sql_consistency_invariants_all_pass(pool: PgPool) -> sqlx::Result<()> {
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+
+    let bank   = ledger.create_account(asset_account("bank-sql")).await.unwrap();
+    let wallet = ledger.create_account(liability_account("wallet-sql")).await.unwrap();
+
+    // Write several valid postings through the engine.
+    for i in 1u32..=5 {
+        ledger.post(
+            PostingBuilder::new(
+                format!("sql-sweep posting {i}"),
+                format!("idem-sql-{i:02}"),
+            )
+            .debit(bank.id, kz(i as i64 * 100_00))
+            .credit(wallet.id, kz(i as i64 * 100_00))
+            .build()
+            .unwrap(),
+        ).await.unwrap();
+    }
+
+    // 1. Zero unbalanced postings.
+    let unbalanced: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_postings p
+         WHERE (
+             SELECT COALESCE(SUM(CASE WHEN entry_type='DEBIT' THEN amount_minor ELSE -amount_minor END), 0)
+             FROM ledger_entries
+             WHERE posting_id = p.id
+         ) <> 0",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(unbalanced, 0, "must have zero unbalanced postings");
+
+    // 2. Zero orphan entries (entry pointing to non-existent posting).
+    // Note: FK constraint already prevents this; this assertion double-checks.
+    let orphan_entries: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_entries e
+         LEFT JOIN ledger_postings p ON p.id = e.posting_id
+         WHERE p.id IS NULL",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(orphan_entries, 0, "must have zero orphan entries");
+
+    // 3. Zero posting headers with fewer than 2 entries.
+    let thin_postings: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM ledger_postings p
+         WHERE (SELECT COUNT(*) FROM ledger_entries WHERE posting_id = p.id) < 2",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(thin_postings, 0, "every committed posting must have at least 2 entries");
+
+    // 4. Zero duplicate idempotency keys (UNIQUE constraint proof).
+    let dup_keys: i64 = sqlx::query_scalar(
+        "SELECT COUNT(*) FROM (
+             SELECT idempotency_key, COUNT(*) AS cnt
+             FROM ledger_postings
+             GROUP BY idempotency_key
+             HAVING COUNT(*) > 1
+         ) AS dupes",
+    )
+    .fetch_one(&pool)
+    .await?;
+    assert_eq!(dup_keys, 0, "must have zero duplicate idempotency keys");
+
+    Ok(())
+}
