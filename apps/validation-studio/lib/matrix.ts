@@ -115,6 +115,29 @@ export function computeChangeSummary(
         to: (updatedItem.requires ?? []).join(', ') || '—',
       })
 
+    if ((orig.validationDomain ?? '') !== (updatedItem.validationDomain ?? ''))
+      fieldChanges.push({
+        field: 'validationDomain',
+        from: orig.validationDomain ?? '—',
+        to: updatedItem.validationDomain ?? '—',
+      })
+
+    const origScore = orig.confidence?.score ?? 0
+    const updScore = updatedItem.confidence?.score ?? 0
+    if (origScore !== updScore)
+      fieldChanges.push({
+        field: 'confidence',
+        from: `${origScore} (${orig.confidence?.level ?? '—'})`,
+        to: `${updScore} (${updatedItem.confidence?.level ?? '—'})`,
+      })
+
+    if ((orig.freezeReason ?? '') !== (updatedItem.freezeReason ?? ''))
+      fieldChanges.push({
+        field: 'freezeReason',
+        from: orig.freezeReason ?? '—',
+        to: updatedItem.freezeReason ?? '—',
+      })
+
     if (fieldChanges.length > 0)
       changes.push({ itemId: updatedItem.id, title: updatedItem.title, changes: fieldChanges })
   }
