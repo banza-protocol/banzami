@@ -1,0 +1,72 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, merchant_id, handle, display_name, tagline, category,\n               logo_url, cover_url, created_at\n        FROM merchant_profiles\n        WHERE public = true\n          AND ($1::text IS NULL OR category = $1)\n          AND ($2::text IS NULL OR display_name ILIKE $2)\n        ORDER BY created_at DESC\n        LIMIT $3\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "handle",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "tagline",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "category",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "logo_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 7,
+        "name": "cover_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      false
+    ]
+  },
+  "hash": "4e97ea37d54bc40c94f5d4df24c717bde61099066355d0f4119938c50ffec256"
+}

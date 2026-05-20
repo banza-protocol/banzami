@@ -1,0 +1,94 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT id, merchant_id, handle, display_name, tagline, description,\n               category, logo_url, cover_url, public, wallet_id, created_at, updated_at\n        FROM merchant_profiles WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "merchant_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "handle",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "display_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "tagline",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "category",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "logo_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 8,
+        "name": "cover_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 9,
+        "name": "public",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 10,
+        "name": "wallet_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 11,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true,
+      true,
+      true,
+      false,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "01a5272f10cd59ff9e42322f28483f29808cecae12936dbe188d41e7b14f44f6"
+}

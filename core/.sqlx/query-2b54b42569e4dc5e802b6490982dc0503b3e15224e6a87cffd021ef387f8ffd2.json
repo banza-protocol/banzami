@@ -1,0 +1,58 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT id, dispute_id, submitted_by, party, description, file_url, created_at\n         FROM dispute_evidence WHERE id = $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 1,
+        "name": "dispute_id",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 2,
+        "name": "submitted_by",
+        "type_info": "Uuid"
+      },
+      {
+        "ordinal": 3,
+        "name": "party",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "description",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 5,
+        "name": "file_url",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 6,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "2b54b42569e4dc5e802b6490982dc0503b3e15224e6a87cffd021ef387f8ffd2"
+}

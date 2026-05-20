@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE merchant_profiles\n        SET display_name = COALESCE($1, display_name),\n            tagline      = COALESCE($2, tagline),\n            description  = COALESCE($3, description),\n            category     = COALESCE($4, category),\n            logo_url     = COALESCE($5, logo_url),\n            cover_url    = COALESCE($6, cover_url),\n            public       = COALESCE($7, public),\n            wallet_id    = COALESCE($8, wallet_id),\n            updated_at   = NOW()\n        WHERE id = $9\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Text",
+        "Varchar",
+        "Text",
+        "Text",
+        "Bool",
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "6a978fe2cbec31471880da278dd084d93459faeddee23ed82d87d756c3492003"
+}
