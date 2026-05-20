@@ -478,6 +478,155 @@ O Banza não substitui o sistema bancário. Constrói a camada de comércio acim
 
 ---
 
+### 6.8 Como o Dinheiro Entra na Carteira Banza
+
+O Banza é uma rede de pagamentos de circuito fechado. Dentro da rede, todas as transferências são liquidações instantâneas de carteira-para-carteira — movimentos contabilísticos entre contas no ledger do Banzami. Para que isso seja possível, é necessário que o dinheiro entre na rede através de um canal financeiro externo validado.
+
+Este processo chama-se **carregamento de carteira** (*wallet funding*) e é a ponte entre o sistema bancário angolano e a carteira digital do utilizador.
+
+#### A distinção fundamental
+
+| Dentro do Banza | Fora do Banza |
+|-----------------|---------------|
+| Transferências ledger instantâneas | Movimentos bancários com confirmação assíncrona |
+| Sem dependência de terceiros | Dependência de EMIS, bancos, Multicaixa Express |
+| Liquidação em milissegundos | Liquidação sujeita a confirmação do provedor externo |
+| Gratuito para o utilizador | Sujeito a taxas e regras do banco/EMIS |
+| Controlado pelo Banzami | Regulado pelo BNA e sistema bancário angolano |
+
+O Banzami não cria dinheiro nem substitui bancos. Cada Kwanza na rede Banza corresponde a um Kwanza real confirmado por um parceiro financeiro externo.
+
+#### Como o utilizador carrega a carteira
+
+```
+[Conta Bancária do Utilizador]
+           |
+           | transferência / Multicaixa Express
+           v
+[EMIS / Banco / Multicaixa Express]
+           |
+           | confirmação de liquidação
+           v
+[Bridge de Adquirência do Banzami]
+           |
+           | validação de callback (HMAC)
+           | verificação de idempotência
+           | reconciliação
+           | verificação de risco
+           v
+[Ledger do Banza]
+           |
+           | lançamento de dupla entrada:
+           |   DR  conta de trânsito / liquidação externa
+           |   CR  conta disponível da carteira do utilizador
+           v
+[Carteira Banza do Utilizador]
+           |
+           v
+  pronto para pagar por QR ou @banza
+```
+
+O processo do ponto de vista do utilizador:
+
+1. O utilizador abre a app Banza e escolhe **"Carregar carteira"**
+2. Selecciona o banco ou Multicaixa Express
+3. Confirma o valor e autoriza externamente
+4. O EMIS ou o banco confirma a liquidação ao Banzami
+5. O Banzami valida o callback, reconcilia e lança o crédito no ledger
+6. A carteira reflecte o novo saldo instantaneamente
+7. O utilizador pode pagar por QR ou transferir por @banza imediatamente
+
+Nenhum crédito é definitivo sem confirmação verificada do provedor externo. Capturas de ecrã de comprovativo, confirmações manuais ou mensagens WhatsApp nunca são aceites como prova de pagamento.
+
+#### Pagamento interno: utilizador para comerciante
+
+Uma vez que o dinheiro está dentro da rede Banza, qualquer pagamento subsequente é uma transferência ledger directa — sem envolvimento de bancos ou EMIS:
+
+```
+[Carteira Banza do Consumidor]
+           |
+           | transferência ledger atómica:
+           |   DR  conta disponível do consumidor
+           |   CR  conta disponível do comerciante
+           v
+[Carteira Banza do Comerciante]
+```
+
+Este movimento ocorre em milissegundos. O comerciante vê a confirmação instantaneamente. Não há períodos de espera, sem aprovações manuais, sem dependência externa.
+
+#### Levantamento do comerciante: de carteira para banco
+
+Quando o comerciante quer transferir o saldo da sua carteira Banza para a conta bancária, o fluxo inverte-se — volta a atravessar os carris bancários externos:
+
+```
+[Carteira Banza do Comerciante]
+           |
+           | pedido de levantamento / payout
+           v
+[Motor de Liquidação do Banzami]
+           |
+           | lançamento de dupla entrada:
+           |   DR  conta disponível do comerciante
+           |   CR  conta de liquidação / payout bancário
+           |
+           | instrução via carris bancários / EMIS
+           v
+[Conta Bancária do Comerciante]
+```
+
+O crédito na conta bancária está sujeito aos prazos e regras do banco parceiro. O saldo da carteira Banza é debitado imediatamente no momento do pedido, garantindo consistência interna.
+
+#### Cenários reais
+
+**João carrega 5.000 Kz**
+João abre a app Banza, selecciona Multicaixa Express, autoriza o débito na sua conta bancária. O Banzami recebe confirmação do EMIS, valida a assinatura do callback, lança o crédito no ledger. O saldo de João passa de 0 para 5.000 Kz. João pode imediatamente pagar o táxi por QR.
+
+**João paga uma cantina**
+João faz o scan do QR estático da cantina. Confirma 800 Kz. O Banzami debita a carteira de João e credita a carteira da cantina atomicamente no ledger. A cantina recebe notificação instantânea. Nenhum banco foi envolvido nesta transacção.
+
+**Ana recebe dinheiro de João por @banza**
+João envia 2.000 Kz para @ana. O Banzami resolve o handle, verifica ambas as carteiras, executa a transferência ledger. Ana recebe o dinheiro imediatamente. Não são necessários dados bancários.
+
+**Uma app de táxi cobra uma viagem**
+A app integra o Banza SDK. No fim da viagem, a app instrui o SDK a debitar a carteira do passageiro e creditar a carteira do operador. A liquidação ocorre dentro do Banza. O motorista não precisa de terminal.
+
+**Um comerciante levanta o saldo do dia**
+O comerciante abre o Banza Business, pede um payout de 50.000 Kz. O Banzami debita a carteira, inicia a instrução de transferência bancária via EMIS. O dinheiro chega à conta bancária do comerciante no prazo definido pelo banco parceiro.
+
+**Uma escola recebe propinas**
+Os pais digitalizam o QR da escola ou recebem um link de pagamento. Cada pagamento credita a carteira Banza da escola instantaneamente. A escola levanta para a conta bancária semanalmente.
+
+**Uma app de doações usa o Banza SDK**
+A app integra o Banza SDK para receber doações. O doador paga por QR ou link. O Banzami processa, credita a carteira da organização, emite evento webhook para a app confirmar a doação. Nenhuma integração bancária directa foi necessária.
+
+#### Garantias de integridade em cada carregamento
+
+Cada operação de carregamento de carteira deve satisfazer:
+
+| Garantia | Mecanismo |
+|----------|-----------|
+| Confirmação de provedor | Callback assinado com HMAC do EMIS ou banco |
+| Idempotência | Chave de idempotência única por transacção; replay sem efeito |
+| Lançamento de dupla entrada | DR conta de trânsito / CR conta disponível — sempre equilibrado |
+| Reconciliação | Cada crédito interno reconciliável contra confirmação externa |
+| Verificação de risco | Limites de carregamento, padrões de fraude, KYC |
+| Trilho de auditoria | Registo imutável de cada lançamento com timestamp e origem |
+| Isolamento sandbox | Créditos de sandbox nunca tocam contas de liquidação reais |
+
+Nenhum destes passos é opcional. A ausência de qualquer garantia invalida o lançamento.
+
+#### Canais de carregamento suportados e planeados
+
+| Canal | Estado | Notas |
+|-------|--------|-------|
+| Multicaixa Express | Planeado | Canal primário — penetração nacional |
+| Transferência bancária (EMIS) | Planeado | Bancos parceiros via rede interbancária |
+| Depósito bancário directo | Planeado | Referência de pagamento + reconciliação automática |
+| Rede de agentes / cash-in | Futuro | Parceiros regulados para áreas sem cobertura bancária |
+| Cartão internacional (Visa/MC) | Futuro | Apenas para carregamento de carteira; nunca como rail principal |
+
+---
+
 ## 7. Funcionalidades Principais
 
 ### Pagamentos
