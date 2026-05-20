@@ -3028,14 +3028,15 @@
       "referenceSection": "§16.1",
       "description": "Cada movimento monetário registado como par de entradas de ledger de dupla entrada — débito e crédito atomicamente. Líquido sempre zero.",
       "requirement": "Cada transacção cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "unit_tests",
-        "integration_tests"
+        "integration_tests",
+        "production_review"
       ],
       "acceptanceCriteria": [
         "Cada pagamento gera par de entradas D/C",
@@ -3082,12 +3083,13 @@
         }
       ],
       "confidence": {
-        "score": 75,
-        "level": "HIGH",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence non-empty (+20)",
           "unit_tests (+15)",
           "integration_tests (+20)",
+          "production_review (+10)",
           "all invariants PASS (+20)"
         ]
       },
@@ -3108,6 +3110,21 @@
             "core/ledger/src/engine.rs",
             "core/ledger/src/repository.rs",
             "core/ledger/tests/integration.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-05-20T00:00:00Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "3f7cd2bc726e3a42",
+          "commit": "00432fe",
+          "reason": "Production SQL verification complete: immutability triggers active, zero orphans, zero duplicate keys, zero currency mismatches. All 23 integration tests pass. production_review added to validationMethods; confidence 75→85 VERY_HIGH.",
+          "evidence": [
+            "core/ledger/src/repository.rs",
+            "core/ledger/tests/integration.rs",
+            "db/migrations/0033_ledger_immutability.sql",
+            "production-sql: triggers=4, orphans=0, dup_idem=0, currency_mixed=0"
           ]
         }
       ],
