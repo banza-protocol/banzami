@@ -3,8 +3,13 @@ import type {
   ValidationItem,
   GovernanceIssue,
   InvariantStatus,
+  ConfidenceScore,
 } from './types'
-import { FINANCIAL_CRITICAL_CATEGORIES } from './types'
+import {
+  FINANCIAL_CRITICAL_CATEGORIES,
+  VALIDATED_CONFIDENCE_THRESHOLD,
+  computeConfidence,
+} from './types'
 
 // ─── Single-item checks (no matrix context needed) ────────────────────────────
 
@@ -19,12 +24,30 @@ export function checkItem(item: ValidationItem): GovernanceIssue[] {
   if (!item.referenceSection?.trim())
     issues.push({ itemId: item.id, severity: 'error', rule: 'EMPTY_REFERENCE', message: 'ReferenceSection não pode ser vazio' })
 
+  // Validation domain required
+  if (!item.validationDomain?.trim())
+    issues.push({
+      itemId: item.id, severity: 'error', rule: 'MISSING_DOMAIN',
+      message: 'Validation domain obrigatório — ver VALIDATION_DOMAINS.md',
+    })
+
   // VALIDATED → evidence required
   if (item.status === 'VALIDATED' && item.evidence.length === 0)
     issues.push({
       itemId: item.id, severity: 'error', rule: 'VALIDATED_NO_EVIDENCE',
       message: 'VALIDATED requer pelo menos uma evidência documentada',
     })
+
+  // VALIDATED → confidence threshold
+  if (item.status === 'VALIDATED') {
+    const confidence = computeConfidence(item)
+    if (confidence.score < VALIDATED_CONFIDENCE_THRESHOLD) {
+      issues.push({
+        itemId: item.id, severity: 'error', rule: 'VALIDATED_LOW_CONFIDENCE',
+        message: `VALIDATED requer confidence >= ${VALIDATED_CONFIDENCE_THRESHOLD} (actual: ${confidence.score})`,
+      })
+    }
+  }
 
   // IMPLEMENTED → evidence recommended
   if (item.status === 'IMPLEMENTED' && item.evidence.length === 0)
@@ -38,6 +61,13 @@ export function checkItem(item: ValidationItem): GovernanceIssue[] {
     issues.push({
       itemId: item.id, severity: 'error', rule: 'BLOCKED_NO_REASON',
       message: 'BLOCKED requer pelo menos uma razão em blockingIssues',
+    })
+
+  // REVALIDATION_REQUIRED → freeze reason recommended
+  if (item.status === 'REVALIDATION_REQUIRED' && !item.freezeReason?.trim())
+    issues.push({
+      itemId: item.id, severity: 'warning', rule: 'REVALIDATION_NO_REASON',
+      message: 'REVALIDATION_REQUIRED deve incluir freezeReason explicando o motivo',
     })
 
   // CRITICAL → acceptance criteria recommended
@@ -68,7 +98,7 @@ export function checkItem(item: ValidationItem): GovernanceIssue[] {
 
 export function checkInvariants(item: ValidationItem): GovernanceIssue[] {
   if (!FINANCIAL_CRITICAL_CATEGORIES.has(item.categoryId)) return []
-  if (item.status !== 'VALIDATED') return []
+  if (item.status !== 'VALIDATED' && item.status !== 'REVALIDATION_REQUIRED') return []
 
   const issues: GovernanceIssue[] = []
 
@@ -141,6 +171,42 @@ export function getRequiresBlockers(
   return item.requires
     .map((id) => itemIndex.get(id))
     .filter((r): r is ValidationItem => r !== undefined && r.status !== 'VALIDATED')
+}
+
+/**
+ * Return items downstream of this item (listed in this item's `affects[]`).
+ * These may need revalidation if this item changes.
+ */
+export function getAffectedItems(
+  item: ValidationItem,
+  allItems: ValidationItem[],
+): ValidationItem[] {
+  if (!item.affects || item.affects.length === 0) return []
+  const itemIndex = new Map(allItems.map((i) => [i.id, i]))
+  return item.affects
+    .map((id) => itemIndex.get(id))
+    .filter((r): r is ValidationItem => r !== undefined)
+}
+
+/**
+ * Return items that have this item in their `requires[]` — i.e., items that
+ * depend on this item being VALIDATED.
+ */
+export function getDependents(
+  item: ValidationItem,
+  allItems: ValidationItem[],
+): ValidationItem[] {
+  return allItems.filter((other) => (other.requires ?? []).includes(item.id))
+}
+
+// ─── Revalidation checks ──────────────────────────────────────────────────────
+
+/**
+ * Check if a VALIDATED item's confidence score is computed correctly.
+ * Returns the live-computed confidence score (does not mutate the item).
+ */
+export function computeLiveConfidence(item: ValidationItem): ConfidenceScore {
+  return computeConfidence(item)
 }
 
 // ─── Full matrix checks ───────────────────────────────────────────────────────
