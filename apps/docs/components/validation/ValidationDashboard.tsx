@@ -7,6 +7,7 @@ import type {
   ValidationMetrics,
   ValidationStatus,
   ValidationPriority,
+  ValidationDomain,
 } from '@/lib/validation-types'
 import { ValidationSidebar } from './ValidationSidebar'
 import { ValidationFilters } from './ValidationFilters'
@@ -22,6 +23,7 @@ export function ValidationDashboard({ items, categories, metrics }: Props) {
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [activeStatus, setActiveStatus] = useState<ValidationStatus | null>(null)
   const [activePriority, setActivePriority] = useState<ValidationPriority | null>(null)
+  const [activeDomain, setActiveDomain] = useState<ValidationDomain | null>(null)
   const [search, setSearch] = useState('')
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
 
@@ -30,6 +32,7 @@ export function ValidationDashboard({ items, categories, metrics }: Props) {
       if (activeCategory && item.categoryId !== activeCategory) return false
       if (activeStatus && item.status !== activeStatus) return false
       if (activePriority && item.priority !== activePriority) return false
+      if (activeDomain && item.validationDomain !== activeDomain) return false
       if (search) {
         const q = search.toLowerCase()
         return (
@@ -42,7 +45,7 @@ export function ValidationDashboard({ items, categories, metrics }: Props) {
       }
       return true
     })
-  }, [items, activeCategory, activeStatus, activePriority, search])
+  }, [items, activeCategory, activeStatus, activePriority, activeDomain, search])
 
   function toggleItem(id: string) {
     setExpandedIds((prev) => {
@@ -100,6 +103,8 @@ export function ValidationDashboard({ items, categories, metrics }: Props) {
           onStatusChange={setActiveStatus}
           activePriority={activePriority}
           onPriorityChange={setActivePriority}
+          activeDomain={activeDomain}
+          onDomainChange={setActiveDomain}
           resultCount={filtered.length}
           totalCount={items.length}
         />
