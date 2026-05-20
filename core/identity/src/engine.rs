@@ -5,7 +5,7 @@ use banzami_types::ConsumerId;
 use crate::{
     identity::{
         normalize_handle, validate_handle, ConsumerIdentity, ConsumerStatus,
-        CreateConsumerRequest, VerificationBadge,
+        CreateConsumerRequest, HandleResolution, VerificationBadge,
     },
     repository::IdentityRepository,
     IdentityError,
@@ -28,6 +28,12 @@ pub trait IdentityEngine: Send + Sync {
         id:    ConsumerId,
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError>;
+
+    /// Resolve a @banza handle to its owner, confirming they are ACTIVE.
+    ///
+    /// Returns `SuspendedIdentity` or `ClosedIdentity` for non-active consumers,
+    /// so callers never accidentally send money to an unreachable recipient.
+    async fn resolve_handle(&self, handle: &str) -> Result<HandleResolution, IdentityError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -97,6 +103,24 @@ impl<R: IdentityRepository> IdentityEngine for PostgresIdentityEngine<R> {
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError> {
         self.repo.set_badge(id, badge).await
+    }
+
+    async fn resolve_handle(&self, handle: &str) -> Result<HandleResolution, IdentityError> {
+        let normalized = normalize_handle(handle);
+        let identity   = self.repo.get_by_handle(&normalized).await?;
+
+        match identity.status {
+            ConsumerStatus::Active    => {}
+            ConsumerStatus::Suspended => return Err(IdentityError::SuspendedIdentity(identity.id)),
+            ConsumerStatus::Closed    => return Err(IdentityError::ClosedIdentity(identity.id)),
+        }
+
+        Ok(HandleResolution {
+            consumer_id:  identity.id,
+            handle:       identity.handle,
+            display_name: identity.display_name,
+            status:       identity.status,
+        })
     }
 }
 
@@ -277,5 +301,52 @@ mod tests {
                 to:   ConsumerStatus::Suspended,
             }
         ));
+    }
+
+    #[tokio::test]
+    async fn resolve_handle_returns_active_consumer() {
+        let eng = engine();
+        let identity = eng
+            .create(CreateConsumerRequest { handle: "@Maria".into(), display_name: Some("Maria".into()) })
+            .await
+            .unwrap();
+
+        let resolved = eng.resolve_handle("@Maria").await.unwrap();
+        assert_eq!(resolved.consumer_id, identity.id);
+        assert_eq!(resolved.handle, "maria");
+        assert_eq!(resolved.status, ConsumerStatus::Active);
+    }
+
+    #[tokio::test]
+    async fn resolve_suspended_handle_returns_error() {
+        let eng = engine();
+        let identity = eng
+            .create(CreateConsumerRequest { handle: "rui".into(), display_name: None })
+            .await
+            .unwrap();
+        eng.suspend(identity.id, None).await.unwrap();
+
+        let err = eng.resolve_handle("rui").await.unwrap_err();
+        assert!(matches!(err, IdentityError::SuspendedIdentity(_)));
+    }
+
+    #[tokio::test]
+    async fn resolve_closed_handle_returns_error() {
+        let eng = engine();
+        let identity = eng
+            .create(CreateConsumerRequest { handle: "luis".into(), display_name: None })
+            .await
+            .unwrap();
+        eng.close(identity.id).await.unwrap();
+
+        let err = eng.resolve_handle("luis").await.unwrap_err();
+        assert!(matches!(err, IdentityError::ClosedIdentity(_)));
+    }
+
+    #[tokio::test]
+    async fn resolve_unknown_handle_returns_not_found() {
+        let eng = engine();
+        let err = eng.resolve_handle("nobody").await.unwrap_err();
+        assert!(matches!(err, IdentityError::HandleNotFound(_)));
     }
 }

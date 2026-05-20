@@ -2,9 +2,12 @@ use chrono::{DateTime, Utc};
 use banzami_types::ConsumerId;
 
 const RESERVED_HANDLES: &[&str] = &[
-    "admin", "banzami", "support", "help", "api", "system", "root",
+    "admin", "banzami", "banza", "banzai", "banzamii",
+    "support", "help", "api", "system", "root",
     "superuser", "service", "ops", "security", "compliance", "audit",
     "finance", "legal", "payments", "transactions", "wallets",
+    "emis", "multicaixa", "angola", "banco", "bna",
+    "angolar", "standard", "atlantico", "bai", "bfa", "bic", "millennium", "bde",
 ];
 
 /// Lifecycle state of a consumer identity.
@@ -88,6 +91,20 @@ pub struct CreateConsumerRequest {
     pub display_name: Option<String>,
 }
 
+/// Result returned by `IdentityEngine::resolve_handle`.
+///
+/// Resolving a handle confirms the recipient is active and reachable.
+/// Wallet lookups happen at a higher service layer — identity crate only
+/// owns consumer identity, not wallet associations.
+#[derive(Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct HandleResolution {
+    pub consumer_id:  banzami_types::ConsumerId,
+    pub handle:       String,
+    pub display_name: Option<String>,
+    pub status:       ConsumerStatus,
+}
+
 /// Strip leading `@`, lowercase, and trim whitespace.
 pub fn normalize_handle(raw: &str) -> String {
     raw.trim().trim_start_matches('@').to_lowercase()
@@ -96,18 +113,19 @@ pub fn normalize_handle(raw: &str) -> String {
 /// Validate a normalized handle (no leading `@`, already lowercased).
 ///
 /// Rules (enforced here; also mirrored in the DB CHECK constraint):
-/// - 3–30 characters
+/// - 3–20 characters
+/// - Must start with a lowercase letter (`a-z`)
 /// - Only lowercase letters (`a-z`), digits (`0-9`), and underscores (`_`)
-/// - Cannot start or end with `_`
+/// - Cannot end with `_`
 /// - No consecutive underscores (`__`)
 /// - Not a reserved keyword
 pub fn validate_handle(handle: &str) -> Result<(), &'static str> {
     let len = handle.len();
     if len < 3  { return Err("handle must be at least 3 characters"); }
-    if len > 30 { return Err("handle must be at most 30 characters"); }
+    if len > 20 { return Err("handle must be at most 20 characters"); }
 
     let bytes = handle.as_bytes();
-    if bytes[0] == b'_' { return Err("handle cannot start with an underscore"); }
+    if !bytes[0].is_ascii_lowercase() { return Err("handle must start with a lowercase letter"); }
     if bytes[len - 1] == b'_' { return Err("handle cannot end with an underscore"); }
 
     for (i, &b) in bytes.iter().enumerate() {
@@ -124,6 +142,11 @@ pub fn validate_handle(handle: &str) -> Result<(), &'static str> {
     }
 
     Ok(())
+}
+
+/// Returns `true` if the handle (already normalized) matches a reserved keyword.
+pub fn is_reserved_handle(handle: &str) -> bool {
+    RESERVED_HANDLES.contains(&handle)
 }
 
 // ---------------------------------------------------------------------------
@@ -148,7 +171,36 @@ mod tests {
 
     #[test]
     fn too_long() {
-        assert!(validate_handle(&"a".repeat(31)).is_err());
+        assert!(validate_handle(&"a".repeat(21)).is_err());
+    }
+
+    #[test]
+    fn exactly_20_chars_is_valid() {
+        assert!(validate_handle(&"a".repeat(20)).is_ok());
+    }
+
+    #[test]
+    fn starts_with_digit_blocked() {
+        assert!(validate_handle("1abc").is_err());
+    }
+
+    #[test]
+    fn starts_with_underscore_blocked() {
+        assert!(validate_handle("_foo").is_err());
+    }
+
+    #[test]
+    fn reserved_handles_extended() {
+        for h in &["banza", "emis", "multicaixa", "bna", "bai"] {
+            assert!(validate_handle(h).is_err(), "expected reserved: {h}");
+        }
+    }
+
+    #[test]
+    fn is_reserved_handle_works() {
+        assert!(is_reserved_handle("banza"));
+        assert!(is_reserved_handle("emis"));
+        assert!(!is_reserved_handle("ana"));
     }
 
     #[test]
