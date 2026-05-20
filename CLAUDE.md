@@ -1533,7 +1533,75 @@ Each item has a `requires[]` array — the hard dependency list. An item may NOT
 - at apply time (Claude re-verifies and aborts if any lock is unmet)
 - in the Studio UI (lock icon + red dependency list if unmet)
 
-## 17.7 Commands
+## 17.11 Invariant Taxonomy
+
+All invariants used in `invariants[]` MUST be drawn from the official registry at `docs/validation/INVARIANT_TAXONOMY.md`. That file is append-only. Invariant families:
+
+- **INV-LEDGER-\*** — double-entry, immutability, precision, atomicity
+- **INV-WALLET-\*** — no negative balance, ledger-derived balances, reserve/release symmetry
+- **INV-SETTLE-\*** — settlement amount identity, ledger correctness
+- **INV-IDEM-\*** — replay safety, idempotency key scope
+- **INV-RECON-\*** — posting linkage, external reconcilability
+- **INV-QR-\*** — unique resolution, single-use dynamic, expiry enforcement
+- **INV-KYC-\*** — compliance gate, limits enforcement
+- **INV-WEBHOOK-\*** — signature validity, delivery idempotency, environment isolation
+- **INV-SEC-\*** — secret key storage, environment isolation, PIN hashing, layer enforcement
+
+## 17.12 Validation Domains
+
+Every matrix item MUST have a `validationDomain` field set to one of the 11 canonical domains defined in `docs/validation/VALIDATION_DOMAINS.md`:
+
+| Domain | Coverage |
+|--------|---------|
+| DOM-FIN | Ledger, wallets, P2P, payouts, refunds, settlement |
+| DOM-IDENTITY | Identity, @handle |
+| DOM-CONSUMER | QR, pay links, payment requests |
+| DOM-MERCHANT | Banza Business (mobile + web) |
+| DOM-DEV | SDKs, API, webhooks, sandbox |
+| DOM-SEC | Security, risk |
+| DOM-COMPLIANCE | KYC/KYB |
+| DOM-OPS | Operational concerns |
+| DOM-OBS | Observability |
+| DOM-INFRA | Architecture, EMIS integration |
+| DOM-DOCS | Documentation, governance |
+
+A proposal for VALIDATED MUST declare the domain and Claude MUST verify it is correct.
+
+## 17.13 Confidence Score
+
+Every item carries `confidence: { score, level, basis[] }`:
+
+- **score**: 0–100 integer
+- **level**: `LOW` (<40) · `MEDIUM` (40–59) · `HIGH` (60–79) · `VERY_HIGH` (≥80)
+- **basis**: list of signals contributing to the score
+
+**VALIDATED requires confidence ≥ 80.** This is `VALIDATED_CONFIDENCE_THRESHOLD`.
+
+Score is computed from evidence signals:
+- `+20` if evidence[] is non-empty
+- `+15` if unit_tests in validationMethods
+- `+20` if integration_tests in validationMethods
+- `+15` if e2e_tests or manual_ux in validationMethods
+- `+10` if production_review or sandbox in validationMethods
+- `+20` if all invariants PASS (financial) or no invariants required (non-financial)
+
+Claude MUST recompute or verify the confidence score before proposing VALIDATED.
+
+## 17.14 Freeze and Revalidation Rules
+
+When a foundational item's status changes significantly:
+- Items in its `affects[]` array SHOULD be flagged as `REVALIDATION_REQUIRED`
+- `freezeReason` MUST be set explaining why revalidation is required
+- `REVALIDATION_REQUIRED` is a legitimate terminal status — not a bug, but a governance state
+
+When an item is `REVALIDATION_REQUIRED`:
+- Claude MUST NOT apply VALIDATED to it without a fresh full proposal
+- The `freezeReason` must be included in the history entry when cleared
+- Clearing requires a new fingerprint and new approval phrase
+
+Items also have `revalidateWhenChanged[]` — glob patterns of files whose modification should trigger a revalidation review.
+
+## 17.15 Commands
 
 The slash commands implementing this workflow are in `.claude/commands/`:
 - `/validate-feature <ID>` — full inspection + proposal + gated apply + gated commit
