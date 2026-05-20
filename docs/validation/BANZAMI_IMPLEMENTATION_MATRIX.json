@@ -3181,12 +3181,13 @@
       "referenceSection": "§17.5",
       "description": "Todas as operações financeiras dentro de transacções PostgreSQL — ou tudo commit, ou tudo rollback. Sem estado intermédio.",
       "requirement": "Sem estado de pagamento intermédio visível. Transacção confirma ou falha — nunca parcialmente.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "financial_invariant",
+        "unit_tests",
         "integration_tests"
       ],
       "acceptanceCriteria": [
@@ -3195,8 +3196,13 @@
         "Idempotência: segundo submit retorna resultado original",
         "Latência de transacção PostgreSQL <50ms p99"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "core/ledger/src/repository.rs",
+        "db/migrations/0001_ledger_schema.sql",
+        "db/migrations/0033_ledger_immutability.sql",
+        "core/ledger/tests/integration.rs"
+      ],
       "dependencies": [
         "LED-001"
       ],
@@ -3218,28 +3224,64 @@
           "id": "INV-LED-003-1",
           "name": "Atomicity invariant",
           "rule": "Debit and credit posts succeed or fail together — no partial ledger state is permitted",
-          "status": "NOT_RUN"
+          "status": "PASS"
         },
         {
           "id": "INV-LED-003-2",
           "name": "Idempotency invariant",
           "rule": "Replaying the same idempotency key must produce identical ledger state with no duplicate entries",
-          "status": "NOT_RUN"
+          "status": "PASS"
+        },
+        {
+          "id": "INV-LED-003-3",
+          "name": "Rollback invariant",
+          "rule": "A rolled-back or failed posting leaves all account balances completely unchanged",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-LED-003-4",
+          "name": "No partial visibility invariant",
+          "rule": "No partial posting state is ever visible: a posting header without entries has zero financial effect; an entry without a posting header is rejected by FK constraint",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-LED-003-5",
+          "name": "Concurrent consistency invariant",
+          "rule": "Concurrent postings with distinct idempotency keys must all land independently; net across all accounts remains zero",
+          "status": "PASS"
         }
       ],
       "confidence": {
-        "score": 20,
-        "level": "LOW",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "invariants not all PASS (+0)"
+          "evidence non-empty (+20)",
+          "unit_tests (+15)",
+          "integration_tests (+20)",
+          "all 5 invariants PASS (+20)"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "validatedAgainstCommit": "803fb76",
+      "history": [
+        {
+          "timestamp": "2026-05-21T00:15:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "5e5e9d3efd1000f0",
+          "commit": "803fb76",
+          "reason": "LED-003 atomic posting guarantees proven: 5 new integration tests — rollback, concurrent different postings, FK orphan rejection, header-only zero financial effect, SQL consistency sweep. All 5 invariants PASS. 23 total integration tests.",
+          "evidence": [
+            "core/ledger/src/repository.rs",
+            "db/migrations/0001_ledger_schema.sql",
+            "db/migrations/0033_ledger_immutability.sql",
+            "core/ledger/tests/integration.rs"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "LED-004",
