@@ -1,14 +1,22 @@
-import type { ValidationItem, ValidationCategory, ValidationStatus, ValidationPriority, ValidationMethod } from '@/lib/validation-types'
+import type { ValidationItem, ValidationCategory, ValidationStatus, ValidationPriority, ValidationMethod, ConfidenceLevel } from '@/lib/validation-types'
 import { ValidationEvidence } from './ValidationEvidence'
 
 const STATUS_CONFIG: Record<ValidationStatus, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  VALIDATED:    { label: 'Validada',      color: 'text-green-700',  bg: 'bg-green-50',        border: 'border-l-green-500',    dot: 'bg-green-500' },
-  IMPLEMENTED:  { label: 'Implementada',  color: 'text-bz-primary', bg: 'bg-bz-primary-light',border: 'border-l-bz-primary',   dot: 'bg-bz-primary' },
-  IN_PROGRESS:  { label: 'Em progresso',  color: 'text-amber-700',  bg: 'bg-amber-50',        border: 'border-l-amber-400',    dot: 'bg-amber-400' },
-  PLANNED:      { label: 'Planeada',      color: 'text-bz-muted',   bg: 'bg-bz-surface',      border: 'border-l-bz-border',    dot: 'bg-bz-border' },
-  FUTURE:       { label: 'Roadmap',       color: 'text-violet-700', bg: 'bg-violet-50',       border: 'border-l-violet-400',   dot: 'bg-violet-400' },
-  BLOCKED:      { label: 'Bloqueada',     color: 'text-red-700',    bg: 'bg-red-50',          border: 'border-l-red-500',      dot: 'bg-red-500' },
-  NEEDS_REVIEW: { label: 'Rever',         color: 'text-orange-700', bg: 'bg-orange-50',       border: 'border-l-orange-400',   dot: 'bg-orange-400' },
+  VALIDATED:             { label: 'Validada',    color: 'text-green-700',  bg: 'bg-green-50',        border: 'border-l-green-500',    dot: 'bg-green-500' },
+  IMPLEMENTED:           { label: 'Impl.',       color: 'text-bz-primary', bg: 'bg-bz-primary-light',border: 'border-l-bz-primary',   dot: 'bg-bz-primary' },
+  IN_PROGRESS:           { label: 'Progresso',   color: 'text-amber-700',  bg: 'bg-amber-50',        border: 'border-l-amber-400',    dot: 'bg-amber-400' },
+  PLANNED:               { label: 'Planeada',    color: 'text-bz-muted',   bg: 'bg-bz-surface',      border: 'border-l-bz-border',    dot: 'bg-bz-border' },
+  FUTURE:                { label: 'Roadmap',     color: 'text-violet-700', bg: 'bg-violet-50',       border: 'border-l-violet-400',   dot: 'bg-violet-400' },
+  BLOCKED:               { label: 'Bloqueada',   color: 'text-red-700',    bg: 'bg-red-50',          border: 'border-l-red-500',      dot: 'bg-red-500' },
+  NEEDS_REVIEW:          { label: 'Rever',       color: 'text-purple-700', bg: 'bg-purple-50',       border: 'border-l-purple-400',   dot: 'bg-purple-400' },
+  REVALIDATION_REQUIRED: { label: '↻ Revalidar', color: 'text-orange-700', bg: 'bg-orange-50',       border: 'border-l-orange-500',   dot: 'bg-orange-500' },
+}
+
+const CONFIDENCE_CONFIG: Record<ConfidenceLevel, { color: string; bg: string }> = {
+  VERY_HIGH: { color: 'text-emerald-700', bg: 'bg-emerald-50' },
+  HIGH:      { color: 'text-blue-700',    bg: 'bg-blue-50' },
+  MEDIUM:    { color: 'text-amber-700',   bg: 'bg-amber-50' },
+  LOW:       { color: 'text-slate-600',   bg: 'bg-slate-100' },
 }
 
 const PRIORITY_CONFIG: Record<ValidationPriority, { label: string; color: string; bg: string }> = {
@@ -41,9 +49,13 @@ export function ValidationCard({ item, category, isExpanded, onToggle }: Props) 
   const status = STATUS_CONFIG[item.status]
   const priority = PRIORITY_CONFIG[item.priority]
   const hasBlockers = item.blockingIssues.length > 0
+  const confidence = item.confidence
+  const confStyle = confidence ? CONFIDENCE_CONFIG[confidence.level] : null
+  const isRevalidation = item.status === 'REVALIDATION_REQUIRED'
+  const cardBg = isRevalidation ? 'bg-orange-50/30' : 'bg-white'
 
   return (
-    <div className={`overflow-hidden rounded-xl border border-bz-border border-l-4 bg-white shadow-card transition-shadow hover:shadow-card-md ${status.border}`}>
+    <div className={`overflow-hidden rounded-xl border border-bz-border border-l-4 shadow-card transition-shadow hover:shadow-card-md ${status.border} ${cardBg}`}>
       {/* Header — always visible */}
       <button
         onClick={onToggle}
@@ -71,6 +83,18 @@ export function ValidationCard({ item, category, isExpanded, onToggle }: Props) 
               {category && (
                 <span className="rounded-md bg-bz-surface px-1.5 py-0.5 text-[10px] text-bz-muted">
                   {category.name}
+                </span>
+              )}
+
+              {/* Domain */}
+              <span className="rounded-md border border-bz-border px-1.5 py-0.5 font-mono text-[10px] text-bz-muted">
+                {item.validationDomain}
+              </span>
+
+              {/* Confidence */}
+              {confidence && confStyle && (
+                <span className={`rounded-md px-1.5 py-0.5 font-mono text-[10px] font-bold ${confStyle.color} ${confStyle.bg}`}>
+                  {confidence.score}
                 </span>
               )}
 
@@ -103,6 +127,14 @@ export function ValidationCard({ item, category, isExpanded, onToggle }: Props) 
             <h4 className="mb-1 text-[10px] font-bold uppercase tracking-wider text-bz-muted">Requisito</h4>
             <p className="text-sm text-bz-text">{item.requirement}</p>
           </div>
+
+          {/* Revalidation freeze reason */}
+          {isRevalidation && item.freezeReason && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 p-3">
+              <h4 className="mb-1 text-[10px] font-bold uppercase tracking-wider text-orange-700">Motivo de revalidação</h4>
+              <p className="text-xs text-orange-800">{item.freezeReason}</p>
+            </div>
+          )}
 
           {/* Blocking issues */}
           {hasBlockers && (
@@ -144,6 +176,27 @@ export function ValidationCard({ item, category, isExpanded, onToggle }: Props) 
               </div>
             </div>
           </div>
+
+          {/* Invariants */}
+          {item.invariants && item.invariants.length > 0 && (
+            <div>
+              <h4 className="mb-2 text-[10px] font-bold uppercase tracking-wider text-bz-muted">Invariantes</h4>
+              <div className="flex flex-wrap gap-1">
+                {item.invariants.map((inv) => {
+                  const ic =
+                    inv.status === 'PASS'     ? 'bg-green-50 text-green-700 border-green-200' :
+                    inv.status === 'FAIL'     ? 'bg-red-50 text-red-700 border-red-200' :
+                    inv.status === 'UNKNOWN'  ? 'bg-slate-50 text-slate-500 border-slate-200' :
+                                                'bg-slate-50 text-slate-400 border-slate-200'
+                  return (
+                    <span key={inv.id} className={`rounded-md border px-1.5 py-0.5 font-mono text-[10px] ${ic}`} title={inv.rule}>
+                      {inv.id} {inv.status === 'PASS' ? '✓' : inv.status === 'FAIL' ? '✗' : '–'}
+                    </span>
+                  )
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Evidence */}
           <div>
