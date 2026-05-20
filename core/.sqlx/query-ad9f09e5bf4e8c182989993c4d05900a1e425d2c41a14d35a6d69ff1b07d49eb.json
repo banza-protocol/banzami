@@ -1,0 +1,22 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT COALESCE(SUM(amount_minor), 0)::BIGINT\n        FROM refunds\n        WHERE transaction_id = $1 AND status IN ('PENDING', 'PROCESSING', 'SUCCEEDED')\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "coalesce",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null
+    ]
+  },
+  "hash": "ad9f09e5bf4e8c182989993c4d05900a1e425d2c41a14d35a6d69ff1b07d49eb"
+}

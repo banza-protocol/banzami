@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE disputes SET status = 'UNDER_REVIEW', updated_at = NOW() WHERE id = $1 AND status = 'OPEN'",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "861a96f6236f46f05968cbc42faaa294efb9dfef15beeb0a0b69349c56a0ca32"
+}

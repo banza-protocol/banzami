@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO ledger_entries (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)\n         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Uuid",
+        "Int8",
+        "Bpchar",
+        "Timestamptz"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1d5e46665059eccdd9f2ffdc7e4d0596a4dcd9c3702ca61e7b6fab4d024118a4"
+}

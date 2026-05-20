@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE payment_requests SET status = 'CANCELLED', updated_at = NOW()\n         WHERE id = $1 AND requester_id = $2 AND status = 'PENDING'\n         RETURNING id",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Uuid"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "4d18105e14d1aa55480b3a72ca41522f61b0082d8fe9d89a09d5101137090198"
+}
