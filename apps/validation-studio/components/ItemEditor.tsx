@@ -6,6 +6,7 @@ import type {
   ValidationCategory,
   ValidationStatus,
   ValidationPriority,
+  ValidationDomain,
   ValidationMethod,
   ValidationEvidence,
   EvidenceType,
@@ -15,23 +16,35 @@ import type {
 import {
   ALL_STATUSES,
   ALL_PRIORITIES,
+  ALL_DOMAINS,
   ALL_METHODS,
   ALL_EVIDENCE_TYPES,
   METHOD_LABELS,
   ALL_INVARIANT_STATUSES,
   INVARIANT_STATUS_LABELS,
   FINANCIAL_CRITICAL_CATEGORIES,
+  DOMAIN_LABELS,
+  CONFIDENCE_LEVEL_LABELS,
+  computeConfidence,
 } from '@/lib/types'
-import { getRequiresBlockers, isFinancialCritical } from '@/lib/governance'
+import { getRequiresBlockers, getAffectedItems, isFinancialCritical } from '@/lib/governance'
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
-  VALIDATED:    'Validado',
-  IMPLEMENTED:  'Implementado',
-  IN_PROGRESS:  'Em curso',
-  PLANNED:      'Planeado',
-  FUTURE:       'Futuro',
-  BLOCKED:      'Bloqueado',
-  NEEDS_REVIEW: 'Em revisão',
+  VALIDATED:             'Validado',
+  IMPLEMENTED:           'Implementado',
+  IN_PROGRESS:           'Em curso',
+  PLANNED:               'Planeado',
+  FUTURE:                'Futuro',
+  BLOCKED:               'Bloqueado',
+  NEEDS_REVIEW:          'Em revisão',
+  REVALIDATION_REQUIRED: 'Revalidação necessária',
+}
+
+const CONFIDENCE_BADGE_COLORS: Record<string, string> = {
+  VERY_HIGH: 'bg-emerald-50 text-emerald-700',
+  HIGH:      'bg-blue-50 text-blue-700',
+  MEDIUM:    'bg-amber-50 text-amber-700',
+  LOW:       'bg-slate-100 text-slate-600',
 }
 
 interface Props {
@@ -85,6 +98,8 @@ export function ItemEditor({
   const isFinancial = isFinancialCritical(item.categoryId)
   const requiresBlockers = getRequiresBlockers(item, allItems)
   const isLockedForValidated = item.status === 'VALIDATED' && requiresBlockers.length > 0
+  const affectedItems = getAffectedItems(item, allItems)
+  const liveConfidence = computeConfidence(item)
 
   const set = useCallback(
     <K extends keyof ValidationItem>(key: K, value: ValidationItem[K]) => {
@@ -215,18 +230,66 @@ export function ItemEditor({
           </div>
         </div>
 
-        {/* Category */}
+        {/* Category + Domain */}
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <div>
+            <Label>Categoria</Label>
+            <select
+              className={inputCls()}
+              value={item.categoryId}
+              onChange={(e) => set('categoryId', e.target.value)}
+            >
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <Label>Domínio</Label>
+            <select
+              className={inputCls()}
+              value={item.validationDomain ?? ''}
+              onChange={(e) => set('validationDomain', e.target.value as ValidationDomain)}
+            >
+              {ALL_DOMAINS.map((d) => (
+                <option key={d} value={d}>{d} — {DOMAIN_LABELS[d]}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Confidence score (computed, read-only) */}
         <Field>
-          <Label>Categoria</Label>
-          <select
-            className={inputCls()}
-            value={item.categoryId}
-            onChange={(e) => set('categoryId', e.target.value)}
-          >
-            {categories.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <Label>Confidence score</Label>
+          <div className="rounded-md border border-bz-border bg-bz-surface p-2.5">
+            <div className="flex items-center gap-2">
+              <span className={`rounded px-2 py-0.5 text-xs font-bold ${CONFIDENCE_BADGE_COLORS[liveConfidence.level] ?? 'bg-slate-100 text-slate-600'}`}>
+                {liveConfidence.score} / 100
+              </span>
+              <span className="text-xs text-bz-muted">{CONFIDENCE_LEVEL_LABELS[liveConfidence.level]}</span>
+            </div>
+            <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bz-surface border border-bz-border">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  liveConfidence.score >= 80 ? 'bg-emerald-500'
+                  : liveConfidence.score >= 60 ? 'bg-blue-500'
+                  : liveConfidence.score >= 40 ? 'bg-amber-500'
+                  : 'bg-slate-400'
+                }`}
+                style={{ width: `${liveConfidence.score}%` }}
+              />
+            </div>
+            <div className="mt-2 space-y-0.5">
+              {liveConfidence.basis.map((b, i) => (
+                <p key={i} className="font-mono text-[10px] text-bz-muted">+ {b}</p>
+              ))}
+            </div>
+            {item.status === 'VALIDATED' && liveConfidence.score < 80 && (
+              <p className="mt-1.5 text-[11px] font-semibold text-red-600">
+                ⚠ VALIDATED requer score ≥ 80
+              </p>
+            )}
+          </div>
         </Field>
 
         {/* Reference section */}
@@ -538,6 +601,56 @@ export function ItemEditor({
                 })}
               </div>
             )}
+          </Field>
+        )}
+
+        {/* Freeze reason — shown when REVALIDATION_REQUIRED */}
+        {item.status === 'REVALIDATION_REQUIRED' && (
+          <Field>
+            <Label>Motivo da revalidação</Label>
+            <textarea
+              className={`${inputCls()} resize-none border-orange-300 focus:border-orange-500`}
+              rows={2}
+              value={item.freezeReason ?? ''}
+              onChange={(e) => set('freezeReason', e.target.value || undefined)}
+              placeholder="Descrever o que mudou e porquê a revalidação é necessária…"
+            />
+          </Field>
+        )}
+
+        {/* Affects — downstream items */}
+        {affectedItems.length > 0 && (
+          <Field>
+            <Label>Afecta (dependentes)</Label>
+            <div className="space-y-1">
+              {affectedItems.map((dep) => (
+                <div
+                  key={dep.id}
+                  className="flex items-center gap-2 rounded-md bg-bz-surface px-2.5 py-1.5 text-xs text-bz-muted"
+                >
+                  <span className="font-mono font-semibold text-bz-text">{dep.id}</span>
+                  <span className="truncate">{dep.title}</span>
+                  <span className="ml-auto shrink-0 font-mono">{dep.status}</span>
+                </div>
+              ))}
+              <p className="text-[10px] text-bz-muted">
+                Estes itens podem necessitar revalidação se este item for alterado.
+              </p>
+            </div>
+          </Field>
+        )}
+
+        {/* Revalidate when changed — file patterns */}
+        {(item.revalidateWhenChanged ?? []).length > 0 && (
+          <Field>
+            <Label>Revalidar quando</Label>
+            <div className="flex flex-wrap gap-1">
+              {(item.revalidateWhenChanged ?? []).map((pattern, i) => (
+                <span key={i} className="rounded bg-bz-surface border border-bz-border px-2 py-0.5 font-mono text-[10px] text-bz-muted">
+                  {pattern}
+                </span>
+              ))}
+            </div>
           </Field>
         )}
 

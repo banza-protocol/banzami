@@ -1,17 +1,27 @@
 'use client'
 
-import type { ValidationItem, ValidationStatus, ValidationPriority } from '@/lib/types'
-import { ALL_STATUSES, ALL_PRIORITIES, FINANCIAL_CRITICAL_CATEGORIES } from '@/lib/types'
+import type {
+  ValidationItem,
+  ValidationStatus,
+  ValidationPriority,
+  ValidationDomain,
+  ConfidenceLevel,
+} from '@/lib/types'
+import {
+  ALL_STATUSES, ALL_PRIORITIES, ALL_DOMAINS,
+  FINANCIAL_CRITICAL_CATEGORIES, DOMAIN_LABELS, CONFIDENCE_LEVEL_LABELS,
+} from '@/lib/types'
 import { getRequiresBlockers } from '@/lib/governance'
 
 const STATUS_COLORS: Record<ValidationStatus, { dot: string; badge: string }> = {
-  VALIDATED:    { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
-  IMPLEMENTED:  { dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700' },
-  IN_PROGRESS:  { dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700' },
-  PLANNED:      { dot: 'bg-slate-400',   badge: 'bg-slate-50 text-slate-600' },
-  FUTURE:       { dot: 'bg-slate-300',   badge: 'bg-slate-50 text-slate-500' },
-  BLOCKED:      { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700' },
-  NEEDS_REVIEW: { dot: 'bg-purple-500',  badge: 'bg-purple-50 text-purple-700' },
+  VALIDATED:               { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
+  IMPLEMENTED:             { dot: 'bg-blue-500',    badge: 'bg-blue-50 text-blue-700' },
+  IN_PROGRESS:             { dot: 'bg-amber-500',   badge: 'bg-amber-50 text-amber-700' },
+  PLANNED:                 { dot: 'bg-slate-400',   badge: 'bg-slate-50 text-slate-600' },
+  FUTURE:                  { dot: 'bg-slate-300',   badge: 'bg-slate-50 text-slate-500' },
+  BLOCKED:                 { dot: 'bg-red-500',     badge: 'bg-red-50 text-red-700' },
+  NEEDS_REVIEW:            { dot: 'bg-purple-500',  badge: 'bg-purple-50 text-purple-700' },
+  REVALIDATION_REQUIRED:   { dot: 'bg-orange-500',  badge: 'bg-orange-50 text-orange-700' },
 }
 
 const PRIORITY_COLORS: Record<ValidationPriority, string> = {
@@ -22,13 +32,21 @@ const PRIORITY_COLORS: Record<ValidationPriority, string> = {
 }
 
 const STATUS_LABELS: Record<ValidationStatus, string> = {
-  VALIDATED:    'Validado',
-  IMPLEMENTED:  'Implementado',
-  IN_PROGRESS:  'Em curso',
-  PLANNED:      'Planeado',
-  FUTURE:       'Futuro',
-  BLOCKED:      'Bloqueado',
-  NEEDS_REVIEW: 'Em revisão',
+  VALIDATED:             'Validado',
+  IMPLEMENTED:           'Implementado',
+  IN_PROGRESS:           'Em curso',
+  PLANNED:               'Planeado',
+  FUTURE:                'Futuro',
+  BLOCKED:               'Bloqueado',
+  NEEDS_REVIEW:          'Em revisão',
+  REVALIDATION_REQUIRED: 'Revalidar',
+}
+
+const CONFIDENCE_COLORS: Record<ConfidenceLevel, string> = {
+  VERY_HIGH: 'text-emerald-700 bg-emerald-50',
+  HIGH:      'text-blue-700 bg-blue-50',
+  MEDIUM:    'text-amber-700 bg-amber-50',
+  LOW:       'text-slate-600 bg-slate-100',
 }
 
 interface Props {
@@ -38,9 +56,13 @@ interface Props {
   search: string
   filterStatus: ValidationStatus | null
   filterPriority: ValidationPriority | null
+  filterDomain: ValidationDomain | null
+  filterConfidence: ConfidenceLevel | null
   onSearchChange: (v: string) => void
   onStatusChange: (v: ValidationStatus | null) => void
   onPriorityChange: (v: ValidationPriority | null) => void
+  onDomainChange: (v: ValidationDomain | null) => void
+  onConfidenceChange: (v: ConfidenceLevel | null) => void
   onSelect: (id: string) => void
 }
 
@@ -57,9 +79,13 @@ export function ItemList({
   search,
   filterStatus,
   filterPriority,
+  filterDomain,
+  filterConfidence,
   onSearchChange,
   onStatusChange,
   onPriorityChange,
+  onDomainChange,
+  onConfidenceChange,
   onSelect,
 }: Props) {
   return (
@@ -67,7 +93,7 @@ export function ItemList({
       {/* Toolbar */}
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-bz-border bg-white px-4 py-2">
         {/* Search */}
-        <div className="relative flex-1">
+        <div className="relative min-w-[140px] flex-1">
           <svg
             className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-bz-muted"
             viewBox="0 0 16 16"
@@ -111,6 +137,31 @@ export function ItemList({
           ))}
         </select>
 
+        {/* Domain filter */}
+        <select
+          value={filterDomain ?? ''}
+          onChange={(e) => onDomainChange((e.target.value as ValidationDomain) || null)}
+          className="rounded-md border border-bz-border bg-bz-surface py-1.5 pl-2 pr-7 text-xs text-bz-text outline-none focus:border-bz-primary"
+        >
+          <option value="">Todos os domínios</option>
+          {ALL_DOMAINS.map((d) => (
+            <option key={d} value={d}>{DOMAIN_LABELS[d]}</option>
+          ))}
+        </select>
+
+        {/* Confidence filter */}
+        <select
+          value={filterConfidence ?? ''}
+          onChange={(e) => onConfidenceChange((e.target.value as ConfidenceLevel) || null)}
+          className="rounded-md border border-bz-border bg-bz-surface py-1.5 pl-2 pr-7 text-xs text-bz-text outline-none focus:border-bz-primary"
+        >
+          <option value="">Toda a confiança</option>
+          <option value="VERY_HIGH">Muito alta (≥80)</option>
+          <option value="HIGH">Alta (60–79)</option>
+          <option value="MEDIUM">Média (40–59)</option>
+          <option value="LOW">Baixa (&lt;40)</option>
+        </select>
+
         <span className="ml-auto shrink-0 text-xs text-bz-muted">
           {items.length} / {allItems.length}
         </span>
@@ -135,6 +186,8 @@ export function ItemList({
             const hasFailingInvariants = (item.invariants ?? []).some(inv => inv.status === 'FAIL')
             const hasUnrunInvariants = isFinancial && (item.invariants ?? []).some(inv => inv.status === 'NOT_RUN')
             const historyCount = (item.history ?? []).length
+            const confidence = item.confidence
+            const isRevalidation = item.status === 'REVALIDATION_REQUIRED'
 
             return (
               <button
@@ -143,6 +196,8 @@ export function ItemList({
                 className={`w-full border-b border-bz-border px-4 py-3 text-left transition-colors ${
                   isSelected
                     ? 'bg-bz-primary-light'
+                    : isRevalidation
+                    ? 'bg-orange-50/40 hover:bg-orange-50'
                     : 'bg-white hover:bg-bz-surface'
                 }`}
               >
@@ -163,6 +218,11 @@ export function ItemList({
                         <span className="shrink-0 rounded bg-bz-primary-light px-1.5 py-0.5 text-[10px] font-bold text-bz-primary">∑</span>
                       )}
                       {isLocked && LOCK_ICON}
+                      {isRevalidation && (
+                        <span className="shrink-0 rounded bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700">
+                          ↻ revalidar
+                        </span>
+                      )}
                       {missingEvidence && (
                         <span className="shrink-0 rounded bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700">
                           sem evidência
@@ -197,7 +257,17 @@ export function ItemList({
                         {item.priority}
                       </span>
                       <span>·</span>
-                      <span className="truncate">{item.ownerArea}</span>
+                      {/* Confidence badge */}
+                      {confidence && (
+                        <>
+                          <span className={`rounded px-1 py-0.5 font-mono font-bold ${CONFIDENCE_COLORS[confidence.level]}`}>
+                            {confidence.score}
+                          </span>
+                          <span>·</span>
+                        </>
+                      )}
+                      {/* Domain */}
+                      <span className="truncate text-bz-muted font-mono">{item.validationDomain}</span>
                       {item.dependencies.length > 0 && (
                         <>
                           <span>·</span>
