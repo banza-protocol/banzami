@@ -1,0 +1,391 @@
+openapi: "3.1.0"
+info:
+  title: Banza Consumer Wallet Onboarding API
+  version: "1.0"
+  description: |
+    Three-step consumer wallet onboarding flow:
+    1. **start** — submit phone number, receive OTP via SMS → `PENDING_OTP`
+    2. **verify-otp** — submit OTP code → `PENDING_PIN`
+    3. **complete** — choose @banza handle and set PIN → `ACTIVE` wallet
+
+    All endpoints are **unauthenticated** — the consumer does not have a JWT
+    before onboarding completes.
+
+    Rate limits are enforced per phone number:
+    - start: max 5 requests per 10 minutes
+    - verify-otp: max 10 attempts per 10 minutes
+    - complete: max 10 attempts per hour
+
+servers:
+  - url: https://api.banza.ao
+    description: Production
+  - url: https://sandbox.banza.ao
+    description: Sandbox
+
+tags:
+  - name: Onboarding
+    description: Consumer wallet onboarding lifecycle
+
+paths:
+  /v1/consumer/onboarding/start:
+    post:
+      operationId: startOnboarding
+      summary: Start onboarding — submit phone number
+      description: |
+        Creates a new `PENDING_OTP` onboarding session for the given phone number.
+        An OTP is dispatched to the phone via SMS.
+
+        One active session per phone number. A second call for the same phone
+        is idempotent and returns the existing session (without re-sending the OTP).
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StartOnboardingRequest"
+            example:
+              phone_number: "+244912345678"
+              currency: "AOA"
+      responses:
+        "201":
+          description: Session created — OTP dispatched to phone
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StartOnboardingResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "409":
+          description: A wallet already exists for this phone number
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: DUPLICATE_WALLET
+                  message: "a wallet already exists for this phone number"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/consumer/onboarding/verify-otp:
+    post:
+      operationId: verifyOtp
+      summary: Verify OTP — advance to PENDING_PIN
+      description: |
+        Verifies the OTP submitted by the consumer. On success the session
+        advances to `PENDING_PIN` and two provisional ledger accounts are
+        provisioned in the core ledger.
+
+        Max 5 consecutive incorrect OTP attempts before the session is invalidated.
+        OTP validity window: 5 minutes.
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/VerifyOtpRequest"
+            example:
+              session_id: "550e8400-e29b-41d4-a716-446655440000"
+              otp_code: "123456"
+      responses:
+        "200":
+          description: OTP verified — session now in PENDING_PIN state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/VerifyOtpResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Onboarding session not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ONBOARDING_NOT_FOUND
+                  message: "onboarding session not found"
+        "422":
+          description: OTP invalid or expired
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                otp_invalid:
+                  value:
+                    error:
+                      code: OTP_INVALID
+                      message: "OTP is invalid"
+                otp_expired:
+                  value:
+                    error:
+                      code: OTP_EXPIRED
+                      message: "OTP has expired — start a new onboarding session"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+  /v1/consumer/onboarding/complete:
+    post:
+      operationId: completeOnboarding
+      summary: Complete onboarding — set handle and PIN, activate wallet
+      description: |
+        Sets the `@banza` handle and PIN, then atomically:
+        - inserts a `consumers` record,
+        - inserts the `consumer_wallets` record (`ACTIVE`, both ledger accounts bound),
+        - deletes the transient onboarding session.
+
+        The wallet is immediately ready to transact on success.
+
+        PIN policy: 4–6 digits, no letters or special characters.
+
+        Handle policy: 3–20 characters, starts with a lowercase letter, may
+        contain `a-z`, `0-9`, and `_`. No consecutive underscores. No trailing
+        underscore.
+      tags: [Onboarding]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompleteOnboardingRequest"
+            example:
+              session_id: "550e8400-e29b-41d4-a716-446655440000"
+              banza_handle: "joao_silva"
+              pin: "1234"
+      responses:
+        "201":
+          description: Wallet activated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CompleteOnboardingResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          description: Session not found or already completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              example:
+                error:
+                  code: ONBOARDING_NOT_FOUND
+                  message: "onboarding session not found or already completed"
+        "409":
+          description: Handle already taken or duplicate wallet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                handle_taken:
+                  value:
+                    error:
+                      code: HANDLE_TAKEN
+                      message: "this handle is already taken — choose another"
+                duplicate_wallet:
+                  value:
+                    error:
+                      code: DUPLICATE_WALLET
+                      message: "a wallet already exists for this phone number"
+        "422":
+          description: Session expired or invalid lifecycle state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                otp_expired:
+                  value:
+                    error:
+                      code: OTP_EXPIRED
+                      message: "onboarding session has expired — start again"
+                invalid_state:
+                  value:
+                    error:
+                      code: INVALID_LIFECYCLE_STATE
+                      message: "session is not in the expected state"
+        "429":
+          $ref: "#/components/responses/RateLimited"
+        "500":
+          $ref: "#/components/responses/InternalError"
+
+components:
+  schemas:
+    StartOnboardingRequest:
+      type: object
+      required: [phone_number]
+      properties:
+        phone_number:
+          type: string
+          pattern: '^\+[1-9]\d{6,14}$'
+          description: E.164 formatted phone number
+          example: "+244912345678"
+        currency:
+          type: string
+          default: AOA
+          description: ISO 4217 currency code. Only AOA is supported.
+          example: "AOA"
+
+    StartOnboardingResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+          description: Onboarding session identifier — required for subsequent steps
+        phone_number:
+          type: string
+          description: The phone number the OTP was sent to
+        status:
+          type: string
+          enum: [PENDING_OTP]
+        message:
+          type: string
+          example: "OTP sent to your phone number"
+
+    VerifyOtpRequest:
+      type: object
+      required: [session_id, otp_code]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        otp_code:
+          type: string
+          minLength: 4
+          maxLength: 8
+          description: OTP received via SMS
+          example: "123456"
+
+    VerifyOtpResponse:
+      type: object
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [PENDING_PIN]
+        message:
+          type: string
+          example: "OTP verified — you may now set your handle and PIN"
+
+    CompleteOnboardingRequest:
+      type: object
+      required: [session_id, banza_handle, pin]
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        banza_handle:
+          type: string
+          pattern: '^[a-z][a-z0-9_]{2,19}$'
+          description: |
+            Desired @banza handle. Rules:
+            - 3–20 characters
+            - starts with a lowercase letter
+            - only a-z, 0-9, _
+            - no consecutive underscores
+            - no trailing underscore
+          example: "joao_silva"
+        pin:
+          type: string
+          pattern: '^\d{4,6}$'
+          description: 4–6 digit numeric PIN
+          example: "1234"
+
+    CompleteOnboardingResponse:
+      type: object
+      properties:
+        wallet_id:
+          type: string
+          format: uuid
+        consumer_id:
+          type: string
+          format: uuid
+        banza_handle:
+          type: string
+          example: "joao_silva"
+        currency:
+          type: string
+          example: "AOA"
+        status:
+          type: string
+          enum: [ACTIVE]
+        message:
+          type: string
+          example: "Wallet activated — welcome to Banza"
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code
+            message:
+              type: string
+              description: Human-readable error description
+
+  responses:
+    BadRequest:
+      description: Invalid request — missing or malformed fields
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          examples:
+            missing_field:
+              value:
+                error:
+                  code: MISSING_FIELD
+                  message: "phone_number is required"
+            invalid_field:
+              value:
+                error:
+                  code: INVALID_FIELD
+                  message: "phone_number must be in E.164 format (e.g. +244912345678)"
+            invalid_handle:
+              value:
+                error:
+                  code: INVALID_HANDLE
+                  message: "handle must be 3–20 characters, start with a letter, and contain only a–z, 0–9, and _"
+            pin_policy:
+              value:
+                error:
+                  code: PIN_POLICY_FAILED
+                  message: "PIN must be 4–6 digits"
+
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: RATE_LIMITED
+              message: "too many OTP requests for this number — try again in 10 minutes"
+
+    InternalError:
+      description: Unexpected server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            error:
+              code: INTERNAL_ERROR
+              message: "could not start onboarding"
