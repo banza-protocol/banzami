@@ -6,6 +6,7 @@ export type ValidationStatus =
   | 'FUTURE'
   | 'BLOCKED'
   | 'NEEDS_REVIEW'
+  | 'REVALIDATION_REQUIRED'
 
 export type ValidationPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 
@@ -34,16 +35,46 @@ export type EvidenceType =
   | 'adr'
   | 'config'
 
+export type ConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'
+
+export type ValidationDomain =
+  | 'DOM-FIN'
+  | 'DOM-IDENTITY'
+  | 'DOM-CONSUMER'
+  | 'DOM-MERCHANT'
+  | 'DOM-DEV'
+  | 'DOM-SEC'
+  | 'DOM-COMPLIANCE'
+  | 'DOM-OPS'
+  | 'DOM-OBS'
+  | 'DOM-INFRA'
+  | 'DOM-DOCS'
+
+export interface ConfidenceScore {
+  score: number
+  level: ConfidenceLevel
+  basis: string[]
+}
+
 export interface ValidationEvidence {
   type: EvidenceType
   label: string
   ref?: string
 }
 
+export interface ValidationInvariant {
+  id: string
+  name: string
+  rule: string
+  status: 'PASS' | 'FAIL' | 'UNKNOWN' | 'NOT_RUN'
+  lastChecked?: string
+}
+
 export interface ValidationItem {
   id: string
   title: string
   categoryId: string
+  validationDomain: ValidationDomain
   referenceSection: string
   description: string
   requirement: string
@@ -57,7 +88,15 @@ export interface ValidationItem {
   evidence: ValidationEvidence[]
   notes?: string
   dependencies: string[]
+  requires: string[]
+  affects: string[]
+  revalidateWhenChanged: string[]
   blockingIssues: string[]
+  invariants: ValidationInvariant[]
+  confidence: ConfidenceScore
+  freezeReason?: string
+  lastValidatedAt?: string
+  validatedAgainstCommit?: string
   lastUpdated: string
 }
 
@@ -90,6 +129,18 @@ export interface CategoryMetrics {
   completionPct: number
 }
 
+export interface DomainMetrics {
+  domain: ValidationDomain
+  label: string
+  total: number
+  validated: number
+  implemented: number
+  done: number
+  completionPct: number
+  avgConfidence: number
+  revalidationRequired: number
+}
+
 export interface ValidationMetrics {
   total: number
   validated: number
@@ -99,8 +150,25 @@ export interface ValidationMetrics {
   future: number
   blocked: number
   needsReview: number
+  revalidationRequired: number
   testCoverageCount: number
   testCoveragePct: number
   architectureIntegrityPct: number
+  avgConfidence: number
   byCategory: CategoryMetrics[]
+  byDomain: DomainMetrics[]
+}
+
+export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
+  'DOM-FIN':        'Financial Integrity',
+  'DOM-IDENTITY':   'Wallet & Identity',
+  'DOM-CONSUMER':   'Consumer Experience',
+  'DOM-MERCHANT':   'Merchant Experience',
+  'DOM-DEV':        'Developer Platform',
+  'DOM-SEC':        'Security',
+  'DOM-COMPLIANCE': 'Compliance',
+  'DOM-OPS':        'Operations',
+  'DOM-OBS':        'Observability',
+  'DOM-INFRA':      'Infrastructure',
+  'DOM-DOCS':       'Docs & Governance',
 }

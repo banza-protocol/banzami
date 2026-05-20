@@ -6,6 +6,7 @@ export type ValidationStatus =
   | 'FUTURE'
   | 'BLOCKED'
   | 'NEEDS_REVIEW'
+  | 'REVALIDATION_REQUIRED'
 
 export type ValidationPriority = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW'
 
@@ -23,6 +24,28 @@ export type ValidationMethod =
 export type EvidenceType = 'route' | 'component' | 'config' | 'adr' | 'test' | 'pr'
 
 export type InvariantStatus = 'PASS' | 'FAIL' | 'UNKNOWN' | 'NOT_RUN'
+
+export type ConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'
+
+// Official validation domains — see docs/validation/VALIDATION_DOMAINS.md
+export type ValidationDomain =
+  | 'DOM-FIN'        // Financial Integrity
+  | 'DOM-IDENTITY'   // Wallet & Identity
+  | 'DOM-CONSUMER'   // Consumer Experience
+  | 'DOM-MERCHANT'   // Merchant Experience
+  | 'DOM-DEV'        // Developer Platform
+  | 'DOM-SEC'        // Security
+  | 'DOM-COMPLIANCE' // Compliance
+  | 'DOM-OPS'        // Operations
+  | 'DOM-OBS'        // Observability
+  | 'DOM-INFRA'      // Infrastructure
+  | 'DOM-DOCS'       // Documentation & Governance
+
+export interface ConfidenceScore {
+  score: number          // 0-100
+  level: ConfidenceLevel // derived from score
+  basis: string[]        // what contributed to the score
+}
 
 export interface ValidationEvidence {
   type: EvidenceType
@@ -53,6 +76,7 @@ export interface ValidationItem {
   id: string
   title: string
   categoryId: string
+  validationDomain: ValidationDomain
   referenceSection: string
   description: string
   requirement: string
@@ -65,10 +89,16 @@ export interface ValidationItem {
   testCoverage: boolean
   evidence: ValidationEvidence[]
   notes?: string
-  dependencies: string[]      // informational — all known dependencies
-  requires: string[]          // enforcement — must be VALIDATED before this can be VALIDATED
+  dependencies: string[]          // informational — all known dependencies
+  requires: string[]              // enforcement — must be VALIDATED before this can be VALIDATED
+  affects: string[]               // items that should be revalidated if this item changes
+  revalidateWhenChanged: string[] // file glob patterns — if matched files change, trigger revalidation
   blockingIssues: string[]
   invariants: ValidationInvariant[]
+  confidence: ConfidenceScore
+  freezeReason?: string           // populated when status is REVALIDATION_REQUIRED
+  lastValidatedAt?: string        // ISO date of most recent VALIDATED transition
+  validatedAgainstCommit?: string // git commit hash at time of last VALIDATED transition
   history: ValidationHistory[]
   lastUpdated: string
 }
@@ -122,8 +152,71 @@ export const FINANCIAL_CRITICAL_CATEGORIES: ReadonlySet<string> = new Set([
   'cat-refunds',
 ])
 
+// Minimum confidence score required for VALIDATED status
+export const VALIDATED_CONFIDENCE_THRESHOLD = 80
+
+// Confidence level thresholds
+export const CONFIDENCE_LEVELS: { min: number; level: ConfidenceLevel }[] = [
+  { min: 80, level: 'VERY_HIGH' },
+  { min: 60, level: 'HIGH' },
+  { min: 40, level: 'MEDIUM' },
+  { min: 0,  level: 'LOW' },
+]
+
+export function confidenceLevelFromScore(score: number): ConfidenceLevel {
+  for (const { min, level } of CONFIDENCE_LEVELS) {
+    if (score >= min) return level
+  }
+  return 'LOW'
+}
+
+// Compute confidence score from item state
+export function computeConfidence(item: ValidationItem): ConfidenceScore {
+  const basis: string[] = []
+  let score = 0
+
+  if (item.evidence.length > 0) {
+    score += 20
+    basis.push('implementation evidence (+20)')
+  }
+  if (item.validationMethods.includes('unit_tests')) {
+    score += 15
+    basis.push('unit tests (+15)')
+  }
+  if (item.validationMethods.includes('integration_tests')) {
+    score += 20
+    basis.push('integration tests (+20)')
+  }
+  if (item.validationMethods.includes('e2e_tests') || item.validationMethods.includes('manual_ux')) {
+    score += 15
+    basis.push('E2E / manual UX (+15)')
+  }
+  if (item.validationMethods.includes('production_review') || item.validationMethods.includes('sandbox')) {
+    score += 10
+    basis.push('production / sandbox evidence (+10)')
+  }
+
+  // Invariant contribution: +20 if all pass (or none required)
+  const isFinancial = FINANCIAL_CRITICAL_CATEGORIES.has(item.categoryId)
+  if (isFinancial && item.invariants.length > 0) {
+    const allPass = item.invariants.every((inv) => inv.status === 'PASS')
+    if (allPass) {
+      score += 20
+      basis.push('all invariants PASS (+20)')
+    } else {
+      basis.push('invariants not all PASS (+0)')
+    }
+  } else if (!isFinancial) {
+    score += 20
+    basis.push('non-financial item (invariants not required, +20)')
+  }
+
+  return { score, level: confidenceLevelFromScore(score), basis }
+}
+
 export const ALL_STATUSES: ValidationStatus[] = [
-  'VALIDATED', 'IMPLEMENTED', 'IN_PROGRESS', 'PLANNED', 'FUTURE', 'BLOCKED', 'NEEDS_REVIEW',
+  'VALIDATED', 'IMPLEMENTED', 'IN_PROGRESS', 'PLANNED', 'FUTURE',
+  'BLOCKED', 'NEEDS_REVIEW', 'REVALIDATION_REQUIRED',
 ]
 
 export const ALL_PRIORITIES: ValidationPriority[] = ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']
@@ -138,6 +231,33 @@ export const ALL_EVIDENCE_TYPES: EvidenceType[] = [
 ]
 
 export const ALL_INVARIANT_STATUSES: InvariantStatus[] = ['PASS', 'FAIL', 'UNKNOWN', 'NOT_RUN']
+
+export const ALL_DOMAINS: ValidationDomain[] = [
+  'DOM-FIN', 'DOM-IDENTITY', 'DOM-CONSUMER', 'DOM-MERCHANT',
+  'DOM-DEV', 'DOM-SEC', 'DOM-COMPLIANCE', 'DOM-OPS', 'DOM-OBS',
+  'DOM-INFRA', 'DOM-DOCS',
+]
+
+export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
+  'DOM-FIN':        'Financial Integrity',
+  'DOM-IDENTITY':   'Wallet & Identity',
+  'DOM-CONSUMER':   'Consumer Experience',
+  'DOM-MERCHANT':   'Merchant Experience',
+  'DOM-DEV':        'Developer Platform',
+  'DOM-SEC':        'Security',
+  'DOM-COMPLIANCE': 'Compliance',
+  'DOM-OPS':        'Operations',
+  'DOM-OBS':        'Observability',
+  'DOM-INFRA':      'Infrastructure',
+  'DOM-DOCS':       'Docs & Governance',
+}
+
+export const CONFIDENCE_LEVEL_LABELS: Record<ConfidenceLevel, string> = {
+  LOW:       'Baixa',
+  MEDIUM:    'Média',
+  HIGH:      'Alta',
+  VERY_HIGH: 'Muito alta',
+}
 
 export const METHOD_LABELS: Record<ValidationMethod, string> = {
   unit_tests:          'Unit Tests',
@@ -156,4 +276,9 @@ export const INVARIANT_STATUS_LABELS: Record<InvariantStatus, string> = {
   FAIL:    'FAIL',
   UNKNOWN: 'UNKNOWN',
   NOT_RUN: 'NÃO EXECUTADO',
+}
+
+// Default confidence for items without one (safe fallback for migration)
+export function defaultConfidence(): ConfidenceScore {
+  return { score: 0, level: 'LOW', basis: [] }
 }
