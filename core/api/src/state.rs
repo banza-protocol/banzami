@@ -17,7 +17,7 @@ use banzami_compliance::{PostgresComplianceEngine, PostgresComplianceRepository}
 use banzami_reconciliation::{PostgresReconciliationRepository, StaticReconciliationEngine};
 use banzami_identity::{PostgresIdentityEngine, PostgresIdentityRepository};
 use banzami_consumer_wallets::{
-    PostgresConsumerWalletEngine, PostgresConsumerWalletRepository,
+    PostgresConsumerWalletEngine, PostgresConsumerWalletRepository, PostgresOnboardingRepository,
 };
 use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository};
 use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
@@ -40,7 +40,7 @@ pub type PayoutEng        = PostgresPayoutEngine<PostgresWalletRepository, Ledge
 pub type ComplianceEng    = PostgresComplianceEngine<PostgresComplianceRepository>;
 pub type ReconEng         = StaticReconciliationEngine<PostgresReconciliationRepository>;
 pub type IdentityEng      = PostgresIdentityEngine<PostgresIdentityRepository>;
-pub type ConsumerWalletEng = PostgresConsumerWalletEngine<LedgerRepo, PostgresConsumerWalletRepository>;
+pub type ConsumerWalletEng = PostgresConsumerWalletEngine<LedgerRepo, PostgresOnboardingRepository, PostgresConsumerWalletRepository>;
 pub type TransferEng      = PostgresTransferEngine<PostgresTransferRepository>;
 pub type QrEng            = PostgresQrEngine<PostgresQrRepository>;
 pub type PaymentLinksEng  = PostgresPaymentLinkEngine<PostgresPaymentLinkRepository>;
@@ -147,10 +147,12 @@ impl AppState {
         let identity      = Arc::new(PostgresIdentityEngine::new(identity_repo));
 
         // --- Consumer wallet engine ---
-        let cw_ledger = PostgresLedgerRepository::new(pool.clone());
-        let cw_repo   = PostgresConsumerWalletRepository::new(pool.clone());
+        let cw_ledger       = PostgresLedgerRepository::new(pool.clone());
+        let cw_onboard_repo = PostgresOnboardingRepository::new(pool.clone());
+        let cw_repo         = PostgresConsumerWalletRepository::new(pool.clone());
         let consumer_wallet = Arc::new(PostgresConsumerWalletEngine::new(
             Arc::new(cw_ledger),
+            cw_onboard_repo,
             cw_repo,
         ));
 

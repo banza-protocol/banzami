@@ -5,6 +5,7 @@ pub mod consumer_deposits;
 pub mod compliance;
 pub mod consumer_wallets;
 pub mod consumers;
+pub mod onboarding;
 pub mod disputes;
 pub mod merchant_profiles;
 pub mod merchants;
