@@ -43,7 +43,7 @@ GET /internal/v1/consumer-deposits/:id
 ### Process inbound callback (production EMIS)
 ```
 POST /internal/v1/consumer-deposits/callback
-Headers: X-Banzami-Signature: <hmac>
+Headers: Banza-Signature: <hmac>
 Body: <raw EMIS callback>
 ```
 

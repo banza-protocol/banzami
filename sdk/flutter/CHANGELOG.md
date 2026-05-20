@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.1.0] — 2026-05-15
 
 ### Added
-- `BanzamiClient` for merchant-side operations: `getMerchant`, `getMerchantBalance`, `listMerchantTransactions`, `createPaymentLink`
+- `BanzaClient` for merchant-side operations: `getMerchant`, `getMerchantBalance`, `listMerchantTransactions`, `createPaymentLink`
 - Automatic JWT exchange and silent token renewal (5 minutes before expiry) — no session management required by calling code
 - `ConsumerPublicClient` for consumer-side operations: `register`, `login`, `getBalance`, `sendByHandle`, `getPaymentLinkBySlug`, `payPaymentLink`, `decodeQrPayload`
 - `BanzamiApiException` with `statusCode`, `code`, and convenience flags: `isInsufficientFunds`, `isHandleTaken`, `isQrExpired`
@@ -24,8 +24,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BanzamiQrDisplay` widget with static and dynamic constructors; shows amount label and subtitle beneath the QR code in Banzami visual style
 - `BanzamiQrScanner` widget — full-screen camera scanner that fires `onDetected` once per scan with the raw QR string
 - `BanzamiTransferItem` list row widget — resolves debit/credit direction from `currentConsumerId` and colours the amount accordingly
-- Design token system: `BanzamiColors` (wine, gold, gray900, success, error), `BanzamiGradients`, `BanzamiTextStyles` (displayXl, headingMd, bodyMd, mono), `BanzamiSpacing` (sm, lg, xl), `BanzamiRadius` (mdAll, lgAll, fullAll), `BanzamiShadows` (card, cardElevated)
+- Design token system: `BanzaColors` (wine, gold, gray900, success, error), `BanzaGradients`, `BanzaTextStyles` (displayXl, headingMd, bodyMd, mono), `BanzaSpacing` (sm, lg, xl), `BanzaRadius` (mdAll, lgAll, fullAll), `BanzaShadows` (card, cardElevated)
 - `BanzamiTheme.light` — full `ThemeData` for use with `MaterialApp`
 - `formatMinor` utility: AOA integer kwanzas formatted with `pt_PT` locale; other currencies with two decimal places
 - Domain models: `Consumer`, `Merchant`, `MerchantBalance`, `MerchantTransaction`, `MerchantTransactionPage`, `WalletBalance`, `Transfer`, `TransferPage`, `PaymentLink`, `PaymentLinkPage`, `QrCode`, `QrResponse`, `ParsedQr`
-- Single barrel import via `package:banzami_sdk/banzami_sdk.dart`
+- Single barrel import via `package:banza_flutter/banza_flutter.dart`

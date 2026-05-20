@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import 'setup_pin_screen.dart';
 
@@ -62,29 +62,29 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title:           const Text('Criar conta', style: BanzamiTextStyles.headingSm),
+        title:           const Text('Criar conta', style: BanzaTextStyles.headingSm),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          padding: const EdgeInsets.all(BanzaSpacing.xl),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: BanzamiSpacing.md),
-                const Text('Escolha o seu @banza', style: BanzamiTextStyles.headingMd),
-                const SizedBox(height: BanzamiSpacing.xs),
+                const SizedBox(height: BanzaSpacing.md),
+                const Text('Escolha o seu @banza', style: BanzaTextStyles.headingMd),
+                const SizedBox(height: BanzaSpacing.xs),
                 Text(
                   'É o nome único que as pessoas usam para lhe enviar pagamentos.',
-                  style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                  style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
                 ),
-                const SizedBox(height: BanzamiSpacing.xl),
+                const SizedBox(height: BanzaSpacing.xl),
 
                 TextFormField(
                   controller:      _handleCtrl,
@@ -109,7 +109,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: BanzamiSpacing.lg),
+                const SizedBox(height: BanzaSpacing.lg),
 
                 TextFormField(
                   controller:         _nameCtrl,
@@ -122,27 +122,27 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   onFieldSubmitted:   (_) => _continue(),
                 ),
 
-                const SizedBox(height: BanzamiSpacing.xxl),
+                const SizedBox(height: BanzaSpacing.xxl),
 
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: _checking ? null : _continue,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: BanzamiColors.wine,
-                      foregroundColor: BanzamiColors.white,
+                      backgroundColor: BanzaColors.wine,
+                      foregroundColor: BanzaColors.white,
                       padding:         const EdgeInsets.symmetric(vertical: 16),
                       shape:           RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      textStyle: BanzamiTextStyles.headingSm,
+                      textStyle: BanzaTextStyles.headingSm,
                     ),
                     child: _checking
                         ? const SizedBox(
                             width:  20,
                             height: 20,
                             child:  CircularProgressIndicator(
-                              color:       BanzamiColors.white,
+                              color:       BanzaColors.white,
                               strokeWidth: 2,
                             ),
                           )

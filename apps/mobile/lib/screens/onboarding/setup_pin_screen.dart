@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
@@ -136,10 +136,10 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
         automaticallyImplyLeading: _step == _Step.enter && !_saving,
         leading: _step == _Step.confirm
@@ -162,14 +162,14 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                 children: [
                   const SizedBox(height: 24),
 
-                  Text(_title, style: BanzamiTextStyles.headingLg),
+                  Text(_title, style: BanzaTextStyles.headingLg),
                   const SizedBox(height: 8),
                   Text(
                     _subtitle,
-                    style: BanzamiTextStyles.bodyMd.copyWith(
+                    style: BanzaTextStyles.bodyMd.copyWith(
                       color: (_error || _apiError != null)
-                          ? BanzamiColors.error
-                          : BanzamiColors.gray400,
+                          ? BanzaColors.error
+                          : BanzaColors.gray400,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -177,7 +177,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                   const SizedBox(height: 40),
 
                   if (_saving)
-                    const CircularProgressIndicator(color: BanzamiColors.wine)
+                    const CircularProgressIndicator(color: BanzaColors.wine)
                   else
                     PinPad(
                       key:        ValueKey(_step),
@@ -205,27 +205,27 @@ class _BiometricsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzamiColors.wine),
-          const SizedBox(height: BanzamiSpacing.lg),
-          const Text('Activar biometria?', style: BanzamiTextStyles.headingMd),
-          const SizedBox(height: BanzamiSpacing.sm),
+          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzaColors.wine),
+          const SizedBox(height: BanzaSpacing.lg),
+          const Text('Activar biometria?', style: BanzaTextStyles.headingMd),
+          const SizedBox(height: BanzaSpacing.sm),
           Text(
             'Use Face ID ou impressão digital para entrar mais rapidamente.',
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+            style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: BanzamiSpacing.xl),
+          const SizedBox(height: BanzaSpacing.xl),
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
               onPressed: onEnable,
               style: ElevatedButton.styleFrom(
-                backgroundColor: BanzamiColors.wine,
-                foregroundColor: BanzamiColors.white,
+                backgroundColor: BanzaColors.wine,
+                foregroundColor: BanzaColors.white,
                 padding:         const EdgeInsets.symmetric(vertical: 14),
                 shape:           RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -234,13 +234,13 @@ class _BiometricsSheet extends StatelessWidget {
               child: const Text('Activar'),
             ),
           ),
-          const SizedBox(height: BanzamiSpacing.sm),
+          const SizedBox(height: BanzaSpacing.sm),
           TextButton(
             onPressed: onSkip,
             child: Text('Agora não',
-              style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
           ),
-          const SizedBox(height: BanzamiSpacing.md),
+          const SizedBox(height: BanzaSpacing.md),
         ],
       ),
     );

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'push_notification_service.dart';

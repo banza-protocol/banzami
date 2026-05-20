@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart' hide Consumer;
+import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'services/merchant_session_service.dart';
@@ -20,11 +20,11 @@ class BanzamiMerchantApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => MerchantSessionService()..initialize(),
         ),
-        ProxyProvider<MerchantSessionService, BanzamiClient>(
+        ProxyProvider<MerchantSessionService, BanzaClient>(
           update: (_, session, prev) {
             final apiKey = session.session?.apiKey ?? '';
             if (prev != null && apiKey == prev.apiKey) return prev;
-            return BanzamiClient(
+            return BanzaClient(
               baseUrl: AppConfig.gatewayUrl,
               apiKey:  apiKey,
             );
@@ -34,7 +34,7 @@ class BanzamiMerchantApp extends StatelessWidget {
       child: Consumer<MerchantSessionService>(
         builder: (context, session, _) {
           return MaterialApp(
-            title:                      'Banzami Business',
+            title:                      'Banza Business',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             home:                       _home(session),
@@ -54,8 +54,8 @@ class BanzamiMerchantApp extends StatelessWidget {
   ThemeData _buildTheme() {
     final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor:  BanzamiColors.wine,
-        primary:    BanzamiColors.wine,
+        seedColor:  BanzaColors.wine,
+        primary:    BanzaColors.wine,
         brightness: Brightness.light,
       ),
       useMaterial3: true,
@@ -68,36 +68,36 @@ class BanzamiMerchantApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled:      true,
-        fillColor:   BanzamiColors.gray100,
+        fillColor:   BanzaColors.gray100,
         border:      OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:   BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   const BorderSide(color: BanzaColors.wine, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderSide:   const BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
+          borderSide:   const BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       navigationBarTheme: NavigationBarThemeData(
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return BanzamiTextStyles.label.copyWith(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+          return BanzaTextStyles.label.copyWith(
+            color: selected ? BanzaColors.wine : BanzaColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzaColors.wine : BanzaColors.gray400,
             size:  24,
           );
         }),

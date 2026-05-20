@@ -12,7 +12,7 @@ The Banzami UI lives inside Doa's multi-step donation flow:
 DonateFlow
 └── Step 4: Payment method selection
     ├── MethodPicker          ← list of available methods (Stripe, Bank Transfer, Banzami)
-    └── BanzamiPanel          ← mounted when method = 'banzami'
+    └── BanzaPanel          ← mounted when method = 'banzami'
         ├── Sandbox badge     ← conditional, amber, top-right
         ├── Step instructions ← numbered list (open app → scan → confirm)
         ├── QR card           ← bordered container with generated QR image
@@ -24,10 +24,10 @@ All components are in `app/(public)/c/[slug]/doar/`.
 
 ---
 
-## BanzamiPanel Props
+## BanzaPanel Props
 
 ```typescript
-interface BanzamiPanelProps {
+interface BanzaPanelProps {
   payUrl:    string;   // e.g. "https://pay.banzami.org/abc123def"
   linkId:    string;   // e.g. "lnk_01jqx..." — used as &link_id param in status poll
   intentId:  string;   // donation_intent.id — used as &intent_id param in status poll
@@ -64,12 +64,12 @@ The `isSandbox` prop traces back to the API key stored in the server environment
 
 ```
 process.env.BANZAMI_API_KEY (bz_test_...)
-    → BanzamiProvider.sandbox = true         (lib/payments/providers/banzami.ts)
+    → BanzaProvider.sandbox = true         (lib/payments/providers/banzami.ts)
     → PaymentProvider.sandbox?: boolean      (lib/payments/provider.ts)
     → listPublicMethods() → PaymentMethodMeta.sandbox  (lib/payments/registry.ts)
     → DonateFlow props.methods[].sandbox     (app/(public)/c/[slug]/doar/donate-flow.tsx)
     → banzamiSandbox state variable
-    → BanzamiPanel isSandbox={true}
+    → BanzaPanel isSandbox={true}
     → "SANDBOX" badge rendered
 ```
 
@@ -173,7 +173,7 @@ These steps are rendered in Portuguese (pt-AO) — the primary language of Doa's
 </a>
 ```
 
-This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.org/{slug}` either in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
+This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.org/{slug}` either in the browser or, if the Banza app is installed and handles the URL scheme, directly in the app.
 
 `rel="noopener noreferrer"` prevents the opened tab from accessing `window.opener` — a standard security practice for `target="_blank"` links.
 
@@ -259,8 +259,8 @@ Relevant state in `donate-flow.tsx`:
 // Tracks if the active provider is in sandbox mode
 const [banzamiSandbox, setBanzamiSandbox] = useState(false);
 
-// Set when the donor clicks "Pay with Banzami" and initiate-payment succeeds
-// stage === 'banzami' triggers BanzamiPanel mount
+// Set when the donor clicks "Pay with Banza" and initiate-payment succeeds
+// stage === 'banzami' triggers BanzaPanel mount
 const [stage, setStage] = useState<'method' | 'banzami' | 'done'>('method');
 
 // The inline result from initiate-payment (payUrl + linkId)
@@ -276,7 +276,7 @@ When `submitMethod('banzami')` is called:
 2. `POST /api/donations/initiate-payment` → `{ result: { kind: 'inline', token, provider_ref } }`
 3. `setBanzamiInline({ token, provider_ref })`
 4. `setStage('banzami')`
-5. `BanzamiPanel` mounts with all required props
+5. `BanzaPanel` mounts with all required props
 
 ---
 
@@ -291,7 +291,7 @@ When `submitMethod('banzami')` is called:
 
 ## Branding Usage
 
-The panel uses the text label "Banzami" (or "Banzami (Sandbox)") as the method name. Banzami's logo is not embedded in the panel — only the name.
+The panel uses the text label "Banza" (or "Banza (Sandbox)") as the method name. Banzami's logo is not embedded in the panel — only the name.
 
 The QR code uses dark navy (`#0f172a`) ink on white background — high contrast for scanning and visually neutral (doesn't conflict with any Banzami brand colors or Doa's Tailwind palette).
 
@@ -299,6 +299,6 @@ The QR code uses dark navy (`#0f172a`) ink on white background — high contrast
 
 ## No Client-Side Banzami Credentials
 
-The `BanzamiPanel` never sees any Banzami API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.org/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
+The `BanzaPanel` never sees any Banzami API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.org/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
 
 All API calls to `api.banzami.org` are made from Next.js API routes, where credentials live in server-only environment variables.

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from banzami.models.transaction import Transaction, TransactionStatus
-from banzami.pagination import Page, auto_paginate
+from banza.models.transaction import Transaction, TransactionStatus
+from banza.pagination import Page, auto_paginate
 
 
 def _make_tx(id: str) -> dict:

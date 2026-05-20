@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../models/transfer.dart';
-import '../theme/banzami_theme.dart';
+import '../theme/banza_theme.dart';
 
 /// A single row in a transfer/transaction list.
 ///
 /// Shows direction (incoming/outgoing relative to [currentConsumerId]),
 /// amount, counterparty handle, and timestamp.
-class BanzamiTransferItem extends StatelessWidget {
+class BanzaTransferItem extends StatelessWidget {
   final Transfer transfer;
 
   /// The logged-in consumer's ID — used to determine debit/credit direction.
@@ -16,7 +16,7 @@ class BanzamiTransferItem extends StatelessWidget {
 
   final VoidCallback? onTap;
 
-  const BanzamiTransferItem({
+  const BanzaTransferItem({
     super.key,
     required this.transfer,
     required this.currentConsumerId,
@@ -28,21 +28,21 @@ class BanzamiTransferItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isOut      = _isOutgoing;
-    final amountColor = isOut ? BanzamiColors.gray900 : BanzamiColors.success;
+    final amountColor = isOut ? BanzaColors.gray900 : BanzaColors.success;
     final amountSign  = isOut ? '− ' : '+ ';
     final icon        = isOut
         ? Icons.arrow_upward_rounded
         : Icons.arrow_downward_rounded;
-    final iconColor   = isOut ? BanzamiColors.wine : BanzamiColors.success;
+    final iconColor   = isOut ? BanzaColors.wine : BanzaColors.success;
     final label       = isOut ? 'Enviado' : 'Recebido';
 
     return InkWell(
       onTap:         onTap,
-      borderRadius:  BanzamiRadius.mdAll,
+      borderRadius:  BanzaRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzamiSpacing.lg,
-          vertical:   BanzamiSpacing.md,
+          horizontal: BanzaSpacing.lg,
+          vertical:   BanzaSpacing.md,
         ),
         child: Row(
           children: [
@@ -52,22 +52,22 @@ class BanzamiTransferItem extends StatelessWidget {
               height:      40,
               decoration:  BoxDecoration(
                 color:        iconColor.withValues(alpha: 0.1),
-                borderRadius: BanzamiRadius.mdAll,
+                borderRadius: BanzaRadius.mdAll,
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
-            const SizedBox(width: BanzamiSpacing.md),
+            const SizedBox(width: BanzaSpacing.md),
 
             // Label + description
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: BanzamiTextStyles.headingSm),
+                  Text(label, style: BanzaTextStyles.headingSm),
                   if (transfer.description?.isNotEmpty == true)
                     Text(
                       transfer.description!,
-                      style: BanzamiTextStyles.bodySm,
+                      style: BanzaTextStyles.bodySm,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -81,7 +81,7 @@ class BanzamiTransferItem extends StatelessWidget {
               children: [
                 Text(
                   '$amountSign${transfer.amountFormatted}',
-                  style: BanzamiTextStyles.mono.copyWith(
+                  style: BanzaTextStyles.mono.copyWith(
                     color:      amountColor,
                     fontWeight: FontWeight.w600,
                     fontSize:   15,
@@ -90,7 +90,7 @@ class BanzamiTransferItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _formatDate(transfer.createdAt),
-                  style: BanzamiTextStyles.bodySm,
+                  style: BanzaTextStyles.bodySm,
                 ),
               ],
             ),

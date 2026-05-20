@@ -34,9 +34,9 @@ composer require banzami/sdk-php guzzlehttp/guzzle php-http/guzzle7-adapter
 ## Quick start
 
 ```php
-use Banzami\BanzamiClient;
+use Banzami\BanzaClient;
 
-$client = new BanzamiClient(
+$client = new BanzaClient(
     apiKey:      'bz_live_...',
     environment: 'live',   // or 'sandbox'
 );
@@ -246,7 +246,7 @@ match ($event['type']) {
 ### Signature format
 
 ```
-Banzami-Signature: t=<unix_timestamp>,v1=<hmac_sha256_hex>
+Banza-Signature: t=<unix_timestamp>,v1=<hmac_sha256_hex>
 ```
 
 The signed payload is `"${timestamp}.${raw_body}"`. Timestamps older than 5 minutes are rejected.

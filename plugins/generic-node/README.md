@@ -1,4 +1,4 @@
-# @banzami/node
+# @banza/node
 
 Official Node.js SDK for Banzami — payment links, transactions, wallets, payouts, and webhook verification.
 
@@ -13,7 +13,7 @@ Official Node.js SDK for Banzami — payment links, transactions, wallets, payou
 ## Installation
 
 ```bash
-npm install @banzami/node
+npm install @banza/node
 ```
 
 ---
@@ -21,9 +21,9 @@ npm install @banzami/node
 ## Quick Start
 
 ```ts
-import { BanzamiClient } from '@banzami/node';
+import { BanzaClient } from '@banza/node';
 
-const client = new BanzamiClient({
+const client = new BanzaClient({
   gatewayUrl: 'https://api.banzami.org',
   apiKey:     process.env.BANZAMI_API_KEY!,
 });
@@ -48,7 +48,7 @@ console.log(`https://pay.banzami.org/${link.slug}`);
 ### Constructor
 
 ```ts
-const client = new BanzamiClient({
+const client = new BanzaClient({
   gatewayUrl: string;  // Base URL of the Banzami API
   apiKey:     string;  // Secret API key from the Banzami dashboard
   timeout?:   number;  // Request timeout in ms (default: 30000)
@@ -174,7 +174,7 @@ Retrieves the current balance of a wallet.
 ```ts
 const balance = await client.getWalletBalance('wal_abc123');
 
-console.log(BanzamiClient.formatAmount(balance.available_minor, balance.currency));
+console.log(BanzaClient.formatAmount(balance.available_minor, balance.currency));
 // → "50 000 Kz"
 ```
 
@@ -236,7 +236,7 @@ Banzami signs all webhook payloads with HMAC-SHA256. Always verify the signature
 
 ```ts
 import express from 'express';
-import { parseWebhook } from '@banzami/node';
+import { parseWebhook } from '@banza/node';
 
 const app = express();
 
@@ -270,7 +270,7 @@ app.post('/banzami/webhook', express.raw({ type: '*/*' }), (req, res) => {
 
 ```ts
 // app/api/banzami/webhook/route.ts
-import { parseWebhook } from '@banzami/node';
+import { parseWebhook } from '@banza/node';
 import { NextRequest, NextResponse } from 'next/server';
 
 export const config = { api: { bodyParser: false } };
@@ -295,9 +295,9 @@ export async function POST(req: NextRequest) {
 #### Low-level signature verification
 
 ```ts
-import { BanzamiClient } from '@banzami/node';
+import { BanzaClient } from '@banza/node';
 
-const isValid = BanzamiClient.verifyWebhook(
+const isValid = BanzaClient.verifyWebhook(
   rawBody,                        // Buffer or string
   req.headers['x-banzami-signature'],
   process.env.BANZAMI_WEBHOOK_SECRET!,
@@ -308,39 +308,39 @@ const isValid = BanzamiClient.verifyWebhook(
 
 ### Money Helpers
 
-#### `BanzamiClient.formatAmount(amountMinor, currency): string`
+#### `BanzaClient.formatAmount(amountMinor, currency): string`
 
 Formats a minor-unit amount as a human-readable string.
 
 ```ts
-BanzamiClient.formatAmount(50000, 'AOA');  // "50 000 Kz"
-BanzamiClient.formatAmount(1000,  'USD');  // "$10.00"
+BanzaClient.formatAmount(50000, 'AOA');  // "50 000 Kz"
+BanzaClient.formatAmount(1000,  'USD');  // "$10.00"
 ```
 
 AOA uses no sub-unit (1 Kz = 1 minor unit). USD and other currencies use 100 minor units per major unit.
 
-#### `BanzamiClient.toMinorUnits(total, currency): number`
+#### `BanzaClient.toMinorUnits(total, currency): number`
 
 Converts a human-readable amount to minor units.
 
 ```ts
-BanzamiClient.toMinorUnits(50000, 'AOA');  // 50000
-BanzamiClient.toMinorUnits(9.99,  'USD');  // 999
+BanzaClient.toMinorUnits(50000, 'AOA');  // 50000
+BanzaClient.toMinorUnits(9.99,  'USD');  // 999
 ```
 
 ---
 
 ### Error Handling
 
-All API errors throw a `BanzamiError`.
+All API errors throw a `BanzaError`.
 
 ```ts
-import { BanzamiClient, BanzamiError } from '@banzami/node';
+import { BanzaClient, BanzaError } from '@banza/node';
 
 try {
   await client.createTransaction({ ... });
 } catch (err) {
-  if (err instanceof BanzamiError) {
+  if (err instanceof BanzaError) {
     console.log(err.message);  // Human-readable error message
     console.log(err.code);     // Machine-readable code, e.g. 'INSUFFICIENT_FUNDS'
     console.log(err.status);   // HTTP status code
@@ -389,13 +389,13 @@ The package ships both ESM and CommonJS builds.
 **ESM (recommended)**
 
 ```ts
-import { BanzamiClient } from '@banzami/node';
+import { BanzaClient } from '@banza/node';
 ```
 
 **CommonJS**
 
 ```js
-const { BanzamiClient } = require('@banzami/node');
+const { BanzaClient } = require('@banza/node');
 ```
 
 ---

@@ -5,7 +5,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Banzami\WebhookHandler;
+use Banza\WebhookHandler;
 
 $rawBody = file_get_contents('php://input');
 $sig     = $_SERVER['HTTP_X_BANZAMI_SIGNATURE'] ?? '';

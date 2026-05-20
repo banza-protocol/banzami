@@ -98,7 +98,7 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 		apierror.Respond(w, r, http.StatusBadRequest, "READ_ERROR", "could not read request body")
 		return
 	}
-	signature := r.Header.Get("X-Banzami-Signature")
+	signature := r.Header.Get("Banza-Signature")
 
 	payment, err := h.svc.ProcessCallback(r.Context(), rawBody, signature)
 	if err != nil {

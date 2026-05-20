@@ -12,7 +12,7 @@ import httpx
 from .auth import APIKeyAuth
 from .config import BanzamiConfig
 from .exceptions import (
-    BanzamiNetworkError,
+    BanzaNetworkError,
     BanzamiTimeoutError,
     api_error_from_response,
 )
@@ -36,7 +36,7 @@ logger = logging.getLogger("banzami")
 # ---------------------------------------------------------------------------
 
 @dataclass
-class BanzamiHooks:
+class BanzaHooks:
     """Optional callbacks for logging, tracing, and monitoring.
 
     All callbacks are synchronous. For async hooks, schedule them with
@@ -58,7 +58,7 @@ class BanzamiHooks:
 # Client
 # ---------------------------------------------------------------------------
 
-class BanzamiClient:
+class BanzaClient:
     """Async HTTP client for the Banzami API.
 
     All network operations are async. Use this client with ``async with``
@@ -67,7 +67,7 @@ class BanzamiClient:
     Example
     -------
     ```python
-    async with BanzamiClient(api_key="bz_live_...") as client:
+    async with BanzaClient(api_key="bz_live_...") as client:
         tx = await client.transactions.create(amount=50000, currency="AOA")
         print(tx.id)
     ```
@@ -82,7 +82,7 @@ class BanzamiClient:
         max_retries: int | None = None,
         retry_delay: float | None = None,
         webhook_secret: str | None = None,
-        hooks: BanzamiHooks | None = None,
+        hooks: BanzaHooks | None = None,
         http_client: httpx.AsyncClient | None = None,
     ) -> None:
         overrides: dict[str, Any] = {}
@@ -96,7 +96,7 @@ class BanzamiClient:
             overrides["retry_delay"] = retry_delay
 
         self._config = BanzamiConfig(**overrides)
-        self._hooks  = hooks or BanzamiHooks()
+        self._hooks  = hooks or BanzaHooks()
 
         self._retry_policy = build_retry_policy(
             self._config.max_retries,
@@ -128,7 +128,7 @@ class BanzamiClient:
     # Context manager support
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "BanzamiClient":
+    async def __aenter__(self) -> "BanzaClient":
         return self
 
     async def __aexit__(self, *_: object) -> None:
@@ -207,7 +207,7 @@ class BanzamiClient:
             self._hooks.on_error and self._hooks.on_error(method, path, err, attempt)
             raise err from exc
         except httpx.NetworkError as exc:
-            err = BanzamiNetworkError(str(exc))
+            err = BanzaNetworkError(str(exc))
             self._hooks.on_error and self._hooks.on_error(method, path, err, attempt)
             raise err from exc
 
@@ -259,4 +259,4 @@ def _is_retryable_status(status: int) -> bool:
 # Convenience alias
 # ---------------------------------------------------------------------------
 
-Banzami = BanzamiClient
+Banzami = BanzaClient

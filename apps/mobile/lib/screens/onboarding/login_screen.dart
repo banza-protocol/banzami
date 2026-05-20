@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
@@ -107,12 +107,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title:           const Text('Entrar', style: BanzamiTextStyles.headingSm),
+        title:           const Text('Entrar', style: BanzaTextStyles.headingSm),
       ),
       body: SafeArea(
         child: _step == _LoginStep.handle ? _buildHandleStep() : _buildPinStep(),
@@ -122,26 +122,26 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildHandleStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
+      padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: BanzamiSpacing.md),
-            const Text('O seu @banza', style: BanzamiTextStyles.headingMd),
-            const SizedBox(height: BanzamiSpacing.xs),
+            const SizedBox(height: BanzaSpacing.md),
+            const Text('O seu @banza', style: BanzaTextStyles.headingMd),
+            const SizedBox(height: BanzaSpacing.xs),
             Text(
               'É o nome único que usa para receber pagamentos.',
-              style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
             ),
-            const SizedBox(height: BanzamiSpacing.xl),
+            const SizedBox(height: BanzaSpacing.xl),
             if (_error != null) ...[
               Text(
                 _error!,
-                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.error),
+                style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.error),
               ),
-              const SizedBox(height: BanzamiSpacing.sm),
+              const SizedBox(height: BanzaSpacing.sm),
             ],
             TextFormField(
               controller:      _handleCtrl,
@@ -160,19 +160,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 return null;
               },
             ),
-            const SizedBox(height: BanzamiSpacing.xxl),
+            const SizedBox(height: BanzaSpacing.xxl),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
                 onPressed: _loading ? null : _continueToPin,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: BanzamiColors.wine,
-                  foregroundColor: BanzamiColors.white,
+                  backgroundColor: BanzaColors.wine,
+                  foregroundColor: BanzaColors.white,
                   padding:         const EdgeInsets.symmetric(vertical: 16),
                   shape:           RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  textStyle: BanzamiTextStyles.headingSm,
+                  textStyle: BanzaTextStyles.headingSm,
                 ),
                 child: const Text('Continuar'),
               ),
@@ -193,18 +193,18 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 24),
-              const Text('Introduza o PIN', style: BanzamiTextStyles.headingLg),
+              const Text('Introduza o PIN', style: BanzaTextStyles.headingLg),
               const SizedBox(height: 8),
               Text(
                 _error ?? '@${_handleCtrl.text.trim().toLowerCase()}',
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: _error != null ? BanzamiColors.error : BanzamiColors.gray400,
+                style: BanzaTextStyles.bodyMd.copyWith(
+                  color: _error != null ? BanzaColors.error : BanzaColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
               if (_loading)
-                const CircularProgressIndicator(color: BanzamiColors.wine)
+                const CircularProgressIndicator(color: BanzaColors.wine)
               else
                 PinPad(
                   onChanged:  (v) => setState(() { _pin = v; _error = null; }),

@@ -7,7 +7,7 @@ export default function Home() {
         >
           <span className="text-2xl font-bold text-white">B</span>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900">Banzami Pay</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Banza Pay</h1>
         <p className="mt-2 text-gray-400">
           Para pagar, aceda ao link enviado pelo comerciante.
         </p>

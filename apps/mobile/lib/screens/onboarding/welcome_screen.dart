@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import 'create_account_screen.dart';
 import 'login_screen.dart';
@@ -10,7 +10,7 @@ class WelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.wine,
+      backgroundColor: BanzaColors.wine,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -28,17 +28,17 @@ class WelcomeScreen extends StatelessWidget {
 
               // Headline
               Text(
-                'Banzami',
-                style: BanzamiTextStyles.displayLg.copyWith(
-                  color:      BanzamiColors.white,
+                'Banza',
+                style: BanzaTextStyles.displayLg.copyWith(
+                  color:      BanzaColors.white,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 12),
               Text(
                 'Envie e receba dinheiro\ninstantaneamente em Angola.',
-                style: BanzamiTextStyles.headingSm.copyWith(
-                  color:      BanzamiColors.white.withValues(alpha: 0.85),
+                style: BanzaTextStyles.headingSm.copyWith(
+                  color:      BanzaColors.white.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w400,
                   height:     1.5,
                 ),
@@ -54,10 +54,10 @@ class WelcomeScreen extends StatelessWidget {
               ].map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Row(children: [
-                  Icon(item.$1, color: BanzamiColors.white.withValues(alpha: 0.8), size: 20),
+                  Icon(item.$1, color: BanzaColors.white.withValues(alpha: 0.8), size: 20),
                   const SizedBox(width: 12),
-                  Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
-                    color: BanzamiColors.white.withValues(alpha: 0.8),
+                  Text(item.$2, style: BanzaTextStyles.bodyMd.copyWith(
+                    color: BanzaColors.white.withValues(alpha: 0.8),
                   )),
                 ]),
               )),
@@ -72,11 +72,11 @@ class WelcomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const CreateAccountScreen()),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BanzamiColors.white,
-                    foregroundColor: BanzamiColors.wine,
+                    backgroundColor: BanzaColors.white,
+                    foregroundColor: BanzaColors.wine,
                     padding:         const EdgeInsets.symmetric(vertical: 16),
                     shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle:       BanzamiTextStyles.headingSm,
+                    textStyle:       BanzaTextStyles.headingSm,
                   ),
                   child: const Text('Criar conta'),
                 ),
@@ -91,11 +91,11 @@ class WelcomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   ),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: BanzamiColors.white,
-                    side:            BorderSide(color: BanzamiColors.white.withValues(alpha: 0.5), width: 1.5),
+                    foregroundColor: BanzaColors.white,
+                    side:            BorderSide(color: BanzaColors.white.withValues(alpha: 0.5), width: 1.5),
                     padding:         const EdgeInsets.symmetric(vertical: 16),
                     shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle:       BanzamiTextStyles.headingSm,
+                    textStyle:       BanzaTextStyles.headingSm,
                   ),
                   child: const Text('Já tenho conta'),
                 ),

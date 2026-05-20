@@ -1,4 +1,4 @@
-# @banzami/sdk
+# @banza/sdk
 
 Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
@@ -15,7 +15,7 @@ Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
 ## Installation
 
 ```bash
-npm install @banzami/sdk
+npm install @banza/sdk
 ```
 
 ---
@@ -23,9 +23,9 @@ npm install @banzami/sdk
 ## Quick start
 
 ```typescript
-import { BanzamiClient } from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
-const client = new BanzamiClient({
+const client = new BanzaClient({
   baseUrl: 'https://api.banzami.org',
   apiKey:  'bz_live_...',
 });
@@ -59,7 +59,7 @@ if (consumer.status !== 'ACTIVE') {
 ## P2P transfers
 
 ```typescript
-import { BanzamiClient, BanzamiApiError, formatMinor } from '@banzami/sdk';
+import { BanzaClient, BanzaApiError, formatMinor } from '@banza/sdk';
 
 const transfer = await client.sendTransfer({
   senderId:    'cns_sender_id',
@@ -78,7 +78,7 @@ console.log(`Sent ${formatMinor(transfer.amount.amount_minor, transfer.amount.cu
 try {
   await client.sendTransfer({ ... });
 } catch (err) {
-  if (err instanceof BanzamiApiError) {
+  if (err instanceof BanzaApiError) {
     if (err.isInsufficientFunds)  console.error('Saldo insuficiente');
     if (err.isWalletNotFound)     console.error('Carteira não encontrada');
     if (err.isWalletNotActive)    console.error('Carteira suspensa');
@@ -333,7 +333,7 @@ await client.revokeApiKey('mch_...', keys[0].id);
 ## Money utilities
 
 ```typescript
-import { formatMinor, addMinor, subtractMinor } from '@banzami/sdk/money';
+import { formatMinor, addMinor, subtractMinor } from '@banza/sdk/money';
 
 formatMinor(50_000, 'AOA');  // "50.000 Kz"
 formatMinor(1099,   'USD');  // "USD 10.99"
@@ -347,7 +347,7 @@ subtractMinor(10_000, 3000); // 7000
 ## Theme tokens (web/Tailwind)
 
 ```typescript
-import { colors, tailwindTokens, cssVariables } from '@banzami/sdk/theme';
+import { colors, tailwindTokens, cssVariables } from '@banza/sdk/theme';
 
 // In tailwind.config.ts:
 export default {
@@ -370,7 +370,7 @@ export default {
 | `WALLET_NOT_ACTIVE`   | Wallet is suspended or closed            |
 | `LINK_NOT_ACTIVE`     | Payment link is already used, cancelled, or expired |
 
-All errors are instances of `BanzamiApiError` with `.status` (HTTP) and `.code` (domain) properties.
+All errors are instances of `BanzaApiError` with `.status` (HTTP) and `.code` (domain) properties.
 
 ---
 

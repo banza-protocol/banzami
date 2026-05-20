@@ -2,7 +2,7 @@
  * Banzami Webhook Handler — Node.js example
  *
  * Uses `banzami.webhooks.constructEvent()` which handles:
- *   - Banzami-Signature header parsing (t=<unix>,v1=<hex>)
+ *   - Banza-Signature header parsing (t=<unix>,v1=<hex>)
  *   - HMAC-SHA256 verification with timestamp in the signed payload
  *   - 300-second replay-attack protection window
  *   - Constant-time comparison
@@ -11,12 +11,12 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { BanzamiClient, BanzamiWebhookSignatureError, SIGNATURE_HEADER } from '../src/index.js';
+import { BanzaClient, BanzamiWebhookSignatureError, SIGNATURE_HEADER } from '../src/index.js';
 import type { WebhookEvent } from '../src/index.js';
 
-const banzami = new BanzamiClient({
-  apiKey:        process.env.BANZAMI_API_KEY!,
-  webhookSecret: process.env.BANZAMI_WEBHOOK_SECRET!,
+const banzami = new BanzaClient({
+  apiKey:        process.env.BANZA_API_KEY!,
+  webhookSecret: process.env.BANZA_WEBHOOK_SECRET!,
 });
 
 createServer((req: IncomingMessage, res: ServerResponse) => {
@@ -30,7 +30,7 @@ createServer((req: IncomingMessage, res: ServerResponse) => {
   req.on('end', () => {
     const rawBody        = Buffer.concat(chunks);
     // Header name lookup is case-insensitive in Node.js; the canonical name is
-    // SIGNATURE_HEADER = 'Banzami-Signature'.
+    // SIGNATURE_HEADER = 'Banza-Signature'.
     const signatureHeader = (req.headers[SIGNATURE_HEADER.toLowerCase()] as string) ?? '';
 
     let event: WebhookEvent;

@@ -1,6 +1,6 @@
 # Doa × Banzami — QR Payments
 
-QR is the primary payment modality for Angola. This document covers every aspect of how Doa implements the Banzami QR payment experience.
+QR is the primary payment modality for Angola. This document covers every aspect of how Doa implements the Banza QR payment experience.
 
 ---
 
@@ -10,7 +10,7 @@ Banzami payment links use a **merchant-presented QR** model:
 
 1. The merchant (Doa) creates a payment link and renders its URL as a QR code.
 2. The customer (donor) scans with the Banzami consumer app.
-3. The Banzami app resolves the link, shows the amount and merchant name.
+3. The Banza app resolves the link, shows the amount and merchant name.
 4. The customer confirms with PIN or biometrics.
 5. The link transitions from `ACTIVE` to `USED`.
 6. The merchant detects confirmation via polling or webhook.
@@ -90,7 +90,7 @@ The QR panel always renders an external link:
 </a>
 ```
 
-This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.org/{slug}` in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
+This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.org/{slug}` in the browser or, if the Banza app is installed and handles the URL scheme, directly in the app.
 
 ---
 
@@ -204,14 +204,14 @@ BanzamiPanel renders:
   │   │                      │  │
   │   └──────────────────────┘  │
   │                              │
-  │   Ou abre o link →           │  ← mobile tap → opens Banzami app
+  │   Ou abre o link →           │  ← mobile tap → opens Banza app
   │                              │
   │  ● A aguardar confirmação…   │  ← pulsing dot
   └─────────────────────────────┘
 
 Donor taps "Ou abre o link"
-  → Banzami app opens at pay.banzami.org/abc123def
-  → Shows: "Banzami Business — 1,500.00 AOA"
+  → Banza app opens at pay.banzami.org/abc123def
+  → Shows: "Banza Business — 1,500.00 AOA"
   → Donor enters PIN
   → Banzami confirms
 
@@ -230,10 +230,10 @@ Donor is on a laptop visiting doadoa.app
 BanzamiPanel renders:
   [Same layout — QR code prominent]
 
-Donor opens Banzami app on their phone:
+Donor opens Banza app on their phone:
   → App → Pagar → QR scanner
   → Points phone camera at laptop screen
-  → Banzami app opens payment confirmation
+  → Banza app opens payment confirmation
   → Donor confirms with PIN
 
 Desktop browser's poll detects USED within 3 s:

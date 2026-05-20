@@ -127,7 +127,7 @@ curl -X POST https://sandbox-api.banzami.org/v1/payment-links/{link_id}/mark-use
   -H "Authorization: Bearer $SANDBOX_JWT"
 ```
 
-This is equivalent to a donor scanning the QR and confirming in the Banzami app.
+This is equivalent to a donor scanning the QR and confirming in the Banza app.
 
 ### Method 3: Sandbox simulate endpoint
 

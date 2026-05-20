@@ -127,7 +127,7 @@ pub async fn initiate_payment(
 // ---------------------------------------------------------------------------
 // POST /internal/v1/acquiring/callbacks/emis
 // Receives and processes a raw EMIS / simulated provider callback.
-// The raw body and X-Banzami-Signature header are forwarded verbatim.
+// The raw body and Banza-Signature header are forwarded verbatim.
 // ---------------------------------------------------------------------------
 
 pub async fn emis_callback(
@@ -136,7 +136,7 @@ pub async fn emis_callback(
     body:         Bytes,
 ) -> ApiResult<Json<AcquiringPaymentResponse>> {
     let signature = headers
-        .get("X-Banzami-Signature")
+        .get("Banza-Signature")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 

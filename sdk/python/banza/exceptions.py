@@ -1,25 +1,25 @@
 """Banzami exception hierarchy.
 
-All exceptions raised by the SDK inherit from BanzamiError, so callers
+All exceptions raised by the SDK inherit from BanzaError, so callers
 can either catch specific sub-classes or handle everything in one place.
 """
 
 from __future__ import annotations
 
 
-class BanzamiError(Exception):
+class BanzaError(Exception):
     """Base class for all Banzami SDK errors."""
 
 
-class BanzamiNetworkError(BanzamiError):
+class BanzaNetworkError(BanzaError):
     """Raised when a network-level failure occurs (connection refused, DNS, TLS)."""
 
 
-class BanzamiTimeoutError(BanzamiNetworkError):
+class BanzamiTimeoutError(BanzaNetworkError):
     """Raised when the HTTP request exceeds the configured timeout."""
 
 
-class BanzamiAPIError(BanzamiError):
+class BanzaAPIError(BanzaError):
     """Raised when the API returns a structured error response (HTTP 4xx / 5xx)."""
 
     def __init__(
@@ -44,39 +44,39 @@ class BanzamiAPIError(BanzamiError):
         )
 
 
-class BanzamiAuthenticationError(BanzamiAPIError):
+class BanzamiAuthenticationError(BanzaAPIError):
     """HTTP 401 — the API key is missing or invalid."""
 
 
-class BanzamiPermissionError(BanzamiAPIError):
+class BanzamiPermissionError(BanzaAPIError):
     """HTTP 403 — the API key lacks permission for this operation."""
 
 
-class BanzamiNotFoundError(BanzamiAPIError):
+class BanzamiNotFoundError(BanzaAPIError):
     """HTTP 404 — the requested resource does not exist."""
 
 
-class BanzamiConflictError(BanzamiAPIError):
+class BanzamiConflictError(BanzaAPIError):
     """HTTP 409 — a conflict with an existing resource (e.g. duplicate idempotency key)."""
 
 
-class BanzamiValidationError(BanzamiAPIError):
+class BanzamiValidationError(BanzaAPIError):
     """HTTP 422 — the request body failed server-side validation."""
 
 
-class BanzamiRateLimitError(BanzamiAPIError):
+class BanzamiRateLimitError(BanzaAPIError):
     """HTTP 429 — too many requests; the SDK will retry automatically."""
 
 
-class BanzamiInsufficientFundsError(BanzamiAPIError):
+class BanzamiInsufficientFundsError(BanzaAPIError):
     """Insufficient funds to complete the financial operation."""
 
 
-class BanzamiServerError(BanzamiAPIError):
+class BanzamiServerError(BanzaAPIError):
     """HTTP 5xx — a transient server-side error; the SDK will retry automatically."""
 
 
-class BanzamiWebhookSignatureError(BanzamiError):
+class BanzaWebhookSignatureError(BanzaError):
     """Raised when a webhook payload fails HMAC-SHA256 signature verification."""
 
 
@@ -84,7 +84,7 @@ class BanzamiWebhookSignatureError(BanzamiError):
 # Factory
 # ---------------------------------------------------------------------------
 
-_STATUS_MAP: dict[int, type[BanzamiAPIError]] = {
+_STATUS_MAP: dict[int, type[BanzaAPIError]] = {
     401: BanzamiAuthenticationError,
     403: BanzamiPermissionError,
     404: BanzamiNotFoundError,
@@ -99,11 +99,11 @@ def api_error_from_response(
     code: str,
     message: str,
     request_id: str | None = None,
-) -> BanzamiAPIError:
-    """Return the most specific BanzamiAPIError subclass for a given HTTP status."""
+) -> BanzaAPIError:
+    """Return the most specific BanzaAPIError subclass for a given HTTP status."""
     if code == "INSUFFICIENT_FUNDS":
         return BanzamiInsufficientFundsError(status_code, code, message, request_id)
     if status_code >= 500:
         return BanzamiServerError(status_code, code, message, request_id)
-    cls = _STATUS_MAP.get(status_code, BanzamiAPIError)
+    cls = _STATUS_MAP.get(status_code, BanzaAPIError)
     return cls(status_code, code, message, request_id)

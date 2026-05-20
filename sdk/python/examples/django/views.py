@@ -20,8 +20,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_POST
 
-from banzami import Banzami, BanzamiWebhookSignatureError
-from banzami.utils.money import to_minor
+from banza import Banzami, BanzaWebhookSignatureError
+from banza.utils.money import to_minor
 
 
 def _get_client() -> Banzami:
@@ -76,7 +76,7 @@ def banzami_webhook(request):
 
     try:
         event = client.webhooks.construct_event(raw, signature, webhook_secret=webhook_secret)
-    except BanzamiWebhookSignatureError:
+    except BanzaWebhookSignatureError:
         return JsonResponse({"error": "invalid signature"}, status=400)
     except ValueError as exc:
         return JsonResponse({"error": str(exc)}, status=400)

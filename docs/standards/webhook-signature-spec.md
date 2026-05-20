@@ -10,7 +10,7 @@ This document is the single authoritative specification for Banzami webhook sign
 
 ## Overview
 
-Every webhook HTTP request from Banzami carries a `Banzami-Signature` header containing an HMAC-SHA256 signature over the timestamp and raw request body. Merchants verify this signature to confirm that the request originated from Banzami and has not been tampered with.
+Every webhook HTTP request from Banzami carries a `Banza-Signature` header containing an HMAC-SHA256 signature over the timestamp and raw request body. Merchants verify this signature to confirm that the request originated from Banzami and has not been tampered with.
 
 The timestamp in the signed payload is also used for replay attack prevention — requests older than 300 seconds are rejected.
 
@@ -19,7 +19,7 @@ The timestamp in the signed payload is also used for replay attack prevention �
 ## Header Format
 
 ```
-Banzami-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>
+Banza-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>
 ```
 
 | Field | Type | Description |
@@ -32,7 +32,7 @@ The `v1` prefix allows Banzami to introduce additional signature schemes in futu
 ### Example header
 
 ```
-Banzami-Signature: t=1716000000,v1=a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd
+Banza-Signature: t=1716000000,v1=a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd
 ```
 
 ---
@@ -86,7 +86,7 @@ A verifier MUST perform all of the following steps in order:
 
 ### Step 1 — Parse the header
 
-Split the `Banzami-Signature` header value on `,` and extract:
+Split the `Banza-Signature` header value on `,` and extract:
 - `t`: parse as a 64-bit signed integer (Unix seconds)
 - `v1`: the hex HMAC digest string
 
@@ -210,7 +210,7 @@ These vectors can be used to validate SDK implementations. All use:
 ### Vector 1 — Valid signature
 
 ```
-Banzami-Signature: t=1716000000,v1=bc45ad8c20c8c52d0f1ee01a9eec37c43cece3d8fb4d9cad6c1e0c09278fde24
+Banza-Signature: t=1716000000,v1=bc45ad8c20c8c52d0f1ee01a9eec37c43cece3d8fb4d9cad6c1e0c09278fde24
 ```
 
 Reconstructed signed payload (as bytes):
@@ -244,7 +244,7 @@ Header value `sha256=abc123` (missing `t=` and `v1=`) — MUST raise a parse err
 
 | Mistake | Consequence | Correct approach |
 |---------|-------------|-----------------|
-| Reading `X-Banzami-Signature` | Header not found — fails silently | Read `Banzami-Signature` |
+| Reading `X-Banza-Signature` | Header not found — fails silently | Read `Banza-Signature` |
 | Using `sha256=<hmac>` format | Never matches Banzami output | Parse `t=<ts>,v1=<hmac>` |
 | Signing only the body (no timestamp) | Signatures never match | Sign `"{ts}.{body}"` |
 | Parsing JSON before verification | Body bytes differ from HMAC input | Read raw bytes first, then verify, then parse |
@@ -255,9 +255,9 @@ Header value `sha256=abc123` (missing `t=` and `v1=`) — MUST raise a parse err
 
 ## SDK Conformance Requirement
 
-Every official Banzami SDK MUST:
+Every official Banza SDK MUST:
 
-1. Use the header name `Banzami-Signature` (case-insensitive lookup, canonical name as written)
+1. Use the header name `Banza-Signature` (case-insensitive lookup, canonical name as written)
 2. Parse both `t` and `v1` fields from the comma-separated header
 3. Reject requests where `|now - t| > 300 seconds`
 4. Sign `"{timestamp}.{raw_body}"` (not just `"{raw_body}"`)

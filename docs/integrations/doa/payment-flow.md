@@ -122,7 +122,7 @@ Donor browser                    Doa server                     Banzami API
     │  │ ◀───────────────────────────│                               │ │
     │  └───────────────────────────────────────────────────────────┘ │
     │                                │                               │
-    │  [Donor scans QR with Banzami app and confirms payment]        │
+    │  [Donor scans QR with Banza app and confirms payment]        │
     │                                │               Donor pays ────▶│
     │                                │               link → USED     │
     │                                │                               │
@@ -297,7 +297,7 @@ Authorization: Bearer <JWT>
 
 ### Donor pays and browser is closed
 
-**Cause**: Donor pays in the Banzami app but closes the Doa tab before the poll fires.
+**Cause**: Donor pays in the Banza app but closes the Doa tab before the poll fires.
 
 **Doa behavior**: The poll never runs. If `BANZAMI_WEBHOOK_SECRET` is configured, the webhook fires independently and records `payment_confirmed`. If not, the payment is confirmed in Banzami's system but Doa's ledger has no record.
 

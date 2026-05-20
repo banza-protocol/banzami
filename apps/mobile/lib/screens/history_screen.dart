@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/session_service.dart';
 
@@ -96,16 +96,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
     final consumerId = context.read<SessionService>().session!.consumerId;
 
     return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
+      backgroundColor: BanzaColors.offWhite,
       appBar: AppBar(
-        backgroundColor:        BanzamiColors.offWhite,
-        foregroundColor:        BanzamiColors.gray900,
+        backgroundColor:        BanzaColors.offWhite,
+        foregroundColor:        BanzaColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
-        title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
+        title: const Text('Histórico', style: BanzaTextStyles.headingMd),
       ),
       body: RefreshIndicator(
-        color:     BanzamiColors.wine,
+        color:     BanzaColors.wine,
         onRefresh: () => _load(refresh: true),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -113,7 +113,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             // Filter tabs
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzamiSpacing.lg, 0, BanzamiSpacing.lg, BanzamiSpacing.md,
+                BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.md,
               ),
               child: Row(
                 children: [
@@ -122,13 +122,13 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     selected: _filter == _HistoryFilter.all,
                     onTap:    () => setState(() => _filter = _HistoryFilter.all),
                   ),
-                  const SizedBox(width: BanzamiSpacing.sm),
+                  const SizedBox(width: BanzaSpacing.sm),
                   _FilterPill(
                     label:    'Recebidas',
                     selected: _filter == _HistoryFilter.received,
                     onTap:    () => setState(() => _filter = _HistoryFilter.received),
                   ),
-                  const SizedBox(width: BanzamiSpacing.sm),
+                  const SizedBox(width: BanzaSpacing.sm),
                   _FilterPill(
                     label:    'Enviadas',
                     selected: _filter == _HistoryFilter.sent,
@@ -147,16 +147,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildBody(String consumerId) {
     if (_loading && _transfers.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
     }
 
     if (_error != null && _transfers.isEmpty) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
-          const SizedBox(height: BanzamiSpacing.md),
-          Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
-          const SizedBox(height: BanzamiSpacing.lg),
+          const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
+          const SizedBox(height: BanzaSpacing.md),
+          Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
+          const SizedBox(height: BanzaSpacing.lg),
           TextButton(onPressed: _load, child: const Text('Tentar novamente')),
         ]),
       );
@@ -170,28 +170,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
           Container(
             width: 64, height: 64,
             decoration: const BoxDecoration(
-              color: BanzamiColors.gray200,
+              color: BanzaColors.gray200,
               shape: BoxShape.circle,
             ),
             child: const Icon(
               Icons.receipt_long_outlined,
               size:  28,
-              color: BanzamiColors.gray400,
+              color: BanzaColors.gray400,
             ),
           ),
-          const SizedBox(height: BanzamiSpacing.md),
+          const SizedBox(height: BanzaSpacing.md),
           Text(
             _filter == _HistoryFilter.all
                 ? 'Nenhuma transacção ainda'
                 : _filter == _HistoryFilter.received
                     ? 'Nenhum pagamento recebido'
                     : 'Nenhum pagamento enviado',
-            style: BanzamiTextStyles.headingSm,
+            style: BanzaTextStyles.headingSm,
           ),
-          const SizedBox(height: BanzamiSpacing.xs),
+          const SizedBox(height: BanzaSpacing.xs),
           Text(
             'As suas actividades aparecerão aqui',
-            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
           ),
         ]),
       );
@@ -201,7 +201,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return ListView.builder(
       padding:   const EdgeInsets.fromLTRB(
-        BanzamiSpacing.lg, 0, BanzamiSpacing.lg, BanzamiSpacing.page,
+        BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.page,
       ),
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
@@ -209,8 +209,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(BanzamiSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+            padding: EdgeInsets.all(BanzaSpacing.xl),
+            child:   Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
           );
         }
 
@@ -220,12 +220,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
         if (item is String) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(
-              BanzamiSpacing.xs, BanzamiSpacing.lg, BanzamiSpacing.xs, BanzamiSpacing.sm,
+              BanzaSpacing.xs, BanzaSpacing.lg, BanzaSpacing.xs, BanzaSpacing.sm,
             ),
             child: Text(
               item,
-              style: BanzamiTextStyles.label.copyWith(
-                color:         BanzamiColors.gray400,
+              style: BanzaTextStyles.label.copyWith(
+                color:         BanzaColors.gray400,
                 letterSpacing: 0.4,
               ),
             ),
@@ -241,27 +241,27 @@ class _HistoryScreenState extends State<HistoryScreen> {
         final isFirst = prev == null || prev is String;
         final isLast  = next == null || next is String;
 
-        final topRadius    = isFirst ? BanzamiRadius.xl : 0.0;
-        final bottomRadius = isLast  ? BanzamiRadius.xl : 0.0;
+        final topRadius    = isFirst ? BanzaRadius.xl : 0.0;
+        final bottomRadius = isLast  ? BanzaRadius.xl : 0.0;
 
         return Container(
           decoration: BoxDecoration(
-            color: BanzamiColors.white,
+            color: BanzaColors.white,
             borderRadius: BorderRadius.vertical(
               top:    Radius.circular(topRadius),
               bottom: Radius.circular(bottomRadius),
             ),
-            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
+            boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              BanzamiTransferItem(
+              BanzaTransferItem(
                 transfer:          transfer,
                 currentConsumerId: consumerId,
               ),
               if (!isLast)
-                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
+                const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
             ],
           ),
         );
@@ -294,14 +294,14 @@ class _FilterPill extends StatelessWidget {
         curve:    Curves.easeInOut,
         padding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color:        selected ? BanzamiColors.wine : BanzamiColors.white,
-          borderRadius: BanzamiRadius.fullAll,
-          boxShadow:    selected ? BanzamiShadows.none : BanzamiShadows.card,
+          color:        selected ? BanzaColors.wine : BanzaColors.white,
+          borderRadius: BanzaRadius.fullAll,
+          boxShadow:    selected ? BanzaShadows.none : BanzaShadows.card,
         ),
         child: Text(
           label,
-          style: BanzamiTextStyles.label.copyWith(
-            color: selected ? BanzamiColors.white : BanzamiColors.gray600,
+          style: BanzaTextStyles.label.copyWith(
+            color: selected ? BanzaColors.white : BanzaColors.gray600,
           ),
         ),
       ),

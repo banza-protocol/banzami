@@ -1,16 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BanzamiClient, BanzamiError } from '../src/client.js';
+import { BanzaClient, BanzaError } from '../src/client.js';
 
 const BASE = 'https://api.banzami.org';
 const KEY  = 'bz_test_key';
 
-function makeClient(): BanzamiClient {
-  return new BanzamiClient({ gatewayUrl: BASE, apiKey: KEY });
+function makeClient(): BanzaClient {
+  return new BanzaClient({ gatewayUrl: BASE, apiKey: KEY });
 }
 
 // retryDelay=0 so retry tests complete instantly in CI
-function makeRetryClient(): BanzamiClient {
-  return new BanzamiClient({ gatewayUrl: BASE, apiKey: KEY, retryDelay: 0 });
+function makeRetryClient(): BanzaClient {
+  return new BanzaClient({ gatewayUrl: BASE, apiKey: KEY, retryDelay: 0 });
 }
 
 function mockFetch(status: number, body: unknown): void {
@@ -105,13 +105,13 @@ describe('createTransaction', () => {
     expect(result).toEqual(tx);
   });
 
-  it('throws BanzamiError with isInsufficientFunds on 422 INSUFFICIENT_FUNDS', async () => {
+  it('throws BanzaError with isInsufficientFunds on 422 INSUFFICIENT_FUNDS', async () => {
     mockFetch(422, { error: { message: 'Not enough funds', code: 'INSUFFICIENT_FUNDS' } });
 
     const client = makeClient();
     await expect(
       client.createTransaction({ wallet_id: 'w_1', amount_minor: 9999999, currency: 'AOA' }),
-    ).rejects.toSatisfy((e: unknown) => e instanceof BanzamiError && e.isInsufficientFunds);
+    ).rejects.toSatisfy((e: unknown) => e instanceof BanzaError && e.isInsufficientFunds);
   });
 });
 
@@ -129,12 +129,12 @@ describe('listTransactions', () => {
 });
 
 describe('getTransaction', () => {
-  it('throws BanzamiError with isNotFound on 404', async () => {
+  it('throws BanzaError with isNotFound on 404', async () => {
     mockFetch(404, { error: { message: 'Not found', code: 'NOT_FOUND' } });
 
     const client = makeClient();
     await expect(client.getTransaction('tx_missing')).rejects.toSatisfy(
-      (e: unknown) => e instanceof BanzamiError && e.isNotFound,
+      (e: unknown) => e instanceof BanzaError && e.isNotFound,
     );
   });
 });
@@ -264,10 +264,10 @@ describe('resolvePaymentLink', () => {
 });
 
 // ---------------------------------------------------------------------------
-// BanzamiClient.verifyWebhook
+// BanzaClient.verifyWebhook
 // ---------------------------------------------------------------------------
 
-describe('BanzamiClient.verifyWebhook', () => {
+describe('BanzaClient.verifyWebhook', () => {
   const secret = 'test_webhook_secret';
   const body   = Buffer.from('{"type":"payment_link.used"}');
 
@@ -275,31 +275,31 @@ describe('BanzamiClient.verifyWebhook', () => {
     // Compute expected signature the same way the SDK does
     const { createHmac } = require('node:crypto');
     const sig = 'sha256=' + createHmac('sha256', secret).update(body).digest('hex');
-    expect(BanzamiClient.verifyWebhook(body, sig, secret)).toBe(true);
+    expect(BanzaClient.verifyWebhook(body, sig, secret)).toBe(true);
   });
 
   it('returns false for an invalid signature', () => {
-    expect(BanzamiClient.verifyWebhook(body, 'sha256=badhash', secret)).toBe(false);
+    expect(BanzaClient.verifyWebhook(body, 'sha256=badhash', secret)).toBe(false);
   });
 
   it('returns false for an empty signature', () => {
-    expect(BanzamiClient.verifyWebhook(body, '', secret)).toBe(false);
+    expect(BanzaClient.verifyWebhook(body, '', secret)).toBe(false);
   });
 });
 
 // ---------------------------------------------------------------------------
-// BanzamiClient.formatAmount
+// BanzaClient.formatAmount
 // ---------------------------------------------------------------------------
 
-describe('BanzamiClient.formatAmount', () => {
+describe('BanzaClient.formatAmount', () => {
   it('formats AOA amounts with Kz suffix', () => {
-    const result = BanzamiClient.formatAmount(50000, 'AOA');
+    const result = BanzaClient.formatAmount(50000, 'AOA');
     expect(result).toContain('Kz');
     expect(result).toContain('50');
   });
 
   it('formats USD amounts using Intl currency format', () => {
-    const result = BanzamiClient.formatAmount(1000, 'USD');
+    const result = BanzaClient.formatAmount(1000, 'USD');
     // 1000 minor units = $10.00
     expect(result).toContain('10');
     expect(result).not.toContain('Kz');
@@ -307,16 +307,16 @@ describe('BanzamiClient.formatAmount', () => {
 });
 
 // ---------------------------------------------------------------------------
-// BanzamiClient.toMinorUnits
+// BanzaClient.toMinorUnits
 // ---------------------------------------------------------------------------
 
-describe('BanzamiClient.toMinorUnits', () => {
+describe('BanzaClient.toMinorUnits', () => {
   it('returns the integer for AOA (no cent subdivision)', () => {
-    expect(BanzamiClient.toMinorUnits(1500, 'AOA')).toBe(1500);
+    expect(BanzaClient.toMinorUnits(1500, 'AOA')).toBe(1500);
   });
 
   it('multiplies by 100 for USD', () => {
-    expect(BanzamiClient.toMinorUnits(9.99, 'USD')).toBe(999);
+    expect(BanzaClient.toMinorUnits(9.99, 'USD')).toBe(999);
   });
 });
 
@@ -352,7 +352,7 @@ describe('retry logic', () => {
     const client = makeRetryClient();
     await expect(
       client.createTransaction({ wallet_id: 'w_1', amount_minor: 100, currency: 'AOA' }),
-    ).rejects.toBeInstanceOf(BanzamiError);
+    ).rejects.toBeInstanceOf(BanzaError);
 
     expect(callCount).toBe(1);
   });

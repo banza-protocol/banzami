@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
@@ -52,7 +52,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     setState(() { _loading = true; _error = null; });
 
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzamiClient>();
+    final client  = context.read<BanzaClient>();
 
     try {
       final qr = await client.createStaticQr(
@@ -78,11 +78,11 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle:        const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.wine,
+          color:    BanzaColors.wine,
         ),
         dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
-          color:           BanzamiColors.gray900,
+          color:           BanzaColors.gray900,
         ),
         embeddedImage:      _logoImage,
         embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(80, 80)),
@@ -119,23 +119,23 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     final session = context.read<MerchantSessionService>().session!;
 
     return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
+      backgroundColor: BanzaColors.offWhite,
       appBar: AppBar(
-        backgroundColor:        BanzamiColors.offWhite,
-        foregroundColor:        BanzamiColors.gray900,
+        backgroundColor:        BanzaColors.offWhite,
+        foregroundColor:        BanzaColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
-        title: const Text('Receber', style: BanzamiTextStyles.headingSm),
+        title: const Text('Receber', style: BanzaTextStyles.headingSm),
         actions: [
           IconButton(
-            icon:      const Icon(Icons.refresh_rounded, color: BanzamiColors.gray400),
+            icon:      const Icon(Icons.refresh_rounded, color: BanzaColors.gray400),
             onPressed: _loadQr,
             tooltip:   'Regenerar QR',
           ),
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
+          ? const Center(child: CircularProgressIndicator(color: BanzaColors.wine))
           : _error != null
               ? _buildError()
               : _buildBody(session),
@@ -144,9 +144,9 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
 
   Widget _buildError() {
     return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+      const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
       const SizedBox(height: 12),
-      Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+      Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
       const SizedBox(height: 16),
       TextButton(onPressed: _loadQr, child: const Text('Tentar novamente')),
     ]));
@@ -155,23 +155,23 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   Widget _buildBody(MerchantSession session) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.xl,
-        vertical:   BanzamiSpacing.lg,
+        horizontal: BanzaSpacing.xl,
+        vertical:   BanzaSpacing.lg,
       ),
       child: Column(children: [
         Text(
           'Mostre este QR ao cliente para receber pagamentos.',
-          style:     BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          style:     BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         Container(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          padding: const EdgeInsets.all(BanzaSpacing.xl),
           decoration: const BoxDecoration(
-            color:        BanzamiColors.white,
-            borderRadius: BanzamiRadius.xxlAll,
-            boxShadow:    BanzamiShadows.card,
+            color:        BanzaColors.white,
+            borderRadius: BanzaRadius.xxlAll,
+            boxShadow:    BanzaShadows.card,
           ),
           child: Column(children: [
             QrImageView(
@@ -181,30 +181,30 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
               errorCorrectionLevel: QrErrorCorrectLevel.H,
               eyeStyle:        const QrEyeStyle(
                 eyeShape: QrEyeShape.square,
-                color:    BanzamiColors.wine,
+                color:    BanzaColors.wine,
               ),
               dataModuleStyle: const QrDataModuleStyle(
                 dataModuleShape: QrDataModuleShape.square,
-                color:           BanzamiColors.gray900,
+                color:           BanzaColors.gray900,
               ),
               embeddedImage:      const AssetImage('assets/images/banzami_icon.png'),
               embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(48, 48)),
             ),
-            const SizedBox(height: BanzamiSpacing.lg),
+            const SizedBox(height: BanzaSpacing.lg),
             Text(
               session.merchantName,
-              style:     BanzamiTextStyles.headingSm,
+              style:     BanzaTextStyles.headingSm,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 4),
             Text(
               'Qualquer valor · AOA',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
             ),
           ]),
         ),
 
-        const SizedBox(height: BanzamiSpacing.xl),
+        const SizedBox(height: BanzaSpacing.xl),
 
         SizedBox(
           width: double.infinity,
@@ -214,21 +214,21 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
             icon:  _sharing
                 ? const SizedBox(
                     width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.white),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: BanzaColors.white),
                   )
                 : const Icon(Icons.share_rounded),
             label: const Text('Partilhar QR'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: BanzamiColors.wine,
-              foregroundColor: BanzamiColors.white,
+              backgroundColor: BanzaColors.wine,
+              foregroundColor: BanzaColors.white,
               padding:         const EdgeInsets.symmetric(vertical: 16),
-              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-              textStyle:       BanzamiTextStyles.headingSm,
+              shape:           const RoundedRectangleBorder(borderRadius: BanzaRadius.lgAll),
+              textStyle:       BanzaTextStyles.headingSm,
               elevation:       0,
             ),
           ),
         ),
-        const SizedBox(height: BanzamiSpacing.md),
+        const SizedBox(height: BanzaSpacing.md),
 
         SizedBox(
           width: double.infinity,
@@ -239,16 +239,16 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
             icon:  const Icon(Icons.add_rounded),
             label: const Text('Cobrança com valor fixo'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.wine,
-              side:            const BorderSide(color: BanzamiColors.wine),
+              foregroundColor: BanzaColors.wine,
+              side:            const BorderSide(color: BanzaColors.wine),
               padding:         const EdgeInsets.symmetric(vertical: 16),
-              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-              textStyle:       BanzamiTextStyles.headingSm,
+              shape:           const RoundedRectangleBorder(borderRadius: BanzaRadius.lgAll),
+              textStyle:       BanzaTextStyles.headingSm,
             ),
           ),
         ),
 
-        const SizedBox(height: BanzamiSpacing.page),
+        const SizedBox(height: BanzaSpacing.page),
       ]),
     );
   }

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 
@@ -34,7 +34,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
     if (refresh) { _links.clear(); _cursor = null; _hasMore = true; }
 
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzamiClient>();
+    final client  = context.read<BanzaClient>();
 
     try {
       final page = await client.listPaymentLinks(
@@ -57,12 +57,12 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
+      backgroundColor: BanzaColors.offWhite,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
-        title: const Text('Histórico', style: BanzamiTextStyles.headingSm),
+        title: const Text('Histórico', style: BanzaTextStyles.headingSm),
         actions: [
           IconButton(
             icon:      const Icon(Icons.refresh_rounded),
@@ -71,7 +71,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
         ],
       ),
       body: RefreshIndicator(
-        color:     BanzamiColors.wine,
+        color:     BanzaColors.wine,
         onRefresh: () => _load(refresh: true),
         child:     _buildBody(),
       ),
@@ -80,13 +80,13 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
 
   Widget _buildBody() {
     if (_loading && _links.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
     }
     if (_error != null && _links.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+        const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
         const SizedBox(height: 12),
-        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+        Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
         const SizedBox(height: 16),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]));
@@ -94,7 +94,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
     if (_links.isEmpty) {
       return Center(child: Text(
         'Nenhuma cobrança ainda.',
-        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+        style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
       ));
     }
 
@@ -107,7 +107,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(24),
-            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+            child:   Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
           );
         }
         return _PaymentLinkTile(link: _links[i]);
@@ -123,14 +123,14 @@ class _PaymentLinkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (link.status) {
-      PaymentLinkStatus.active    => (BanzamiColors.success,  'Activo',    Icons.hourglass_top_rounded),
-      PaymentLinkStatus.used      => (BanzamiColors.wine,     'Pago',      Icons.check_circle_rounded),
-      PaymentLinkStatus.expired   => (BanzamiColors.gray400,  'Expirado',  Icons.timer_off_rounded),
-      PaymentLinkStatus.cancelled => (BanzamiColors.error,    'Cancelado', Icons.cancel_rounded),
+      PaymentLinkStatus.active    => (BanzaColors.success,  'Activo',    Icons.hourglass_top_rounded),
+      PaymentLinkStatus.used      => (BanzaColors.wine,     'Pago',      Icons.check_circle_rounded),
+      PaymentLinkStatus.expired   => (BanzaColors.gray400,  'Expirado',  Icons.timer_off_rounded),
+      PaymentLinkStatus.cancelled => (BanzaColors.error,    'Cancelado', Icons.cancel_rounded),
     };
 
     return ListTile(
-      tileColor: BanzamiColors.white,
+      tileColor: BanzaColors.white,
       leading: Container(
         width: 40, height: 40,
         decoration: BoxDecoration(
@@ -141,7 +141,7 @@ class _PaymentLinkTile extends StatelessWidget {
       ),
       title: Text(
         link.description ?? 'Cobrança',
-        style: BanzamiTextStyles.bodyMd,
+        style: BanzaTextStyles.bodyMd,
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -149,7 +149,7 @@ class _PaymentLinkTile extends StatelessWidget {
         link.amountMinor != null
             ? formatMinor(link.amountMinor!, link.currency)
             : 'Valor livre',
-        style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+        style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
       ),
       trailing: Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -157,7 +157,7 @@ class _PaymentLinkTile extends StatelessWidget {
           color:        color.withValues(alpha: 0.12),
           borderRadius: BorderRadius.circular(20),
         ),
-        child: Text(label, style: BanzamiTextStyles.label.copyWith(color: color)),
+        child: Text(label, style: BanzaTextStyles.label.copyWith(color: color)),
       ),
     );
   }

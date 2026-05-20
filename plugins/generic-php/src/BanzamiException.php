@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banzami;
+namespace Banza;
 
 class BanzamiException extends \RuntimeException
 {

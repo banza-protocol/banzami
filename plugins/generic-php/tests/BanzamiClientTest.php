@@ -2,26 +2,26 @@
 
 declare(strict_types=1);
 
-namespace Banzami\Tests;
+namespace Banza\Tests;
 
-use Banzami\BanzamiClient;
-use Banzami\BanzamiException;
+use Banza\BanzaClient;
+use Banza\BanzamiException;
 use PHPUnit\Framework\TestCase;
 
-class BanzamiClientTest extends TestCase
+class BanzaClientTest extends TestCase
 {
-    private function makeClient(int $status, array $responseBody): BanzamiClient
+    private function makeClient(int $status, array $responseBody): BanzaClient
     {
         $handler = function (string $method, string $url, array $headers, ?string $body) use ($status, $responseBody): array {
             return ['status' => $status, 'body' => json_encode($responseBody)];
         };
-        return new BanzamiClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
+        return new BanzaClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
     }
 
-    private function makeClientWithHandler(callable $handler): BanzamiClient
+    private function makeClientWithHandler(callable $handler): BanzaClient
     {
         // retryDelayMs=0 so retry tests complete instantly
-        return new BanzamiClient('https://api.banzami.ao', 'bz_test', 30, $handler, 3, 0);
+        return new BanzaClient('https://api.banzami.ao', 'bz_test', 30, $handler, 3, 0);
     }
 
     // -------------------------------------------------------------------------
@@ -144,7 +144,7 @@ class BanzamiClientTest extends TestCase
             $capturedUrl = $url;
             return ['status' => 200, 'body' => json_encode($fixture)];
         };
-        $client = new BanzamiClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
+        $client = new BanzaClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
 
         $result = $client->listTransactions('merch_1', 10, 'cursor_prev');
 
@@ -207,7 +207,7 @@ class BanzamiClientTest extends TestCase
             $capturedUrl = $url;
             return ['status' => 200, 'body' => json_encode($fixture)];
         };
-        $client = new BanzamiClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
+        $client = new BanzaClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
 
         $result = $client->listPayouts('merch_1', 5);
 
@@ -242,7 +242,7 @@ class BanzamiClientTest extends TestCase
             $capturedHeaders = $headers;
             return ['status' => 200, 'body' => json_encode(['slug' => 'abc123', 'amount' => ['minor' => 5000, 'currency' => 'AOA']])];
         };
-        $client = new BanzamiClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
+        $client = new BanzaClient('https://api.banzami.ao', 'bz_test_key', 30, $handler);
 
         $result = $client->resolvePaymentLink('abc123');
 
@@ -258,26 +258,26 @@ class BanzamiClientTest extends TestCase
 
     public function testFormatAmountAOA(): void
     {
-        $this->assertSame('1.500 Kz', BanzamiClient::formatAmount(1500, 'AOA'));
-        $this->assertSame('50.000 Kz', BanzamiClient::formatAmount(50000, 'AOA'));
+        $this->assertSame('1.500 Kz', BanzaClient::formatAmount(1500, 'AOA'));
+        $this->assertSame('50.000 Kz', BanzaClient::formatAmount(50000, 'AOA'));
     }
 
     public function testFormatAmountUSD(): void
     {
-        $this->assertSame('15,00 USD', BanzamiClient::formatAmount(1500, 'USD'));
-        $this->assertSame('500,00 USD', BanzamiClient::formatAmount(50000, 'USD'));
+        $this->assertSame('15,00 USD', BanzaClient::formatAmount(1500, 'USD'));
+        $this->assertSame('500,00 USD', BanzaClient::formatAmount(50000, 'USD'));
     }
 
     public function testToMinorUnitsAOA(): void
     {
-        $this->assertSame(1500, BanzamiClient::toMinorUnits(1500.0, 'AOA'));
-        $this->assertSame(1500, BanzamiClient::toMinorUnits(1499.6, 'AOA'));
+        $this->assertSame(1500, BanzaClient::toMinorUnits(1500.0, 'AOA'));
+        $this->assertSame(1500, BanzaClient::toMinorUnits(1499.6, 'AOA'));
     }
 
     public function testToMinorUnitsUSD(): void
     {
-        $this->assertSame(1500, BanzamiClient::toMinorUnits(15.00, 'USD'));
-        $this->assertSame(999, BanzamiClient::toMinorUnits(9.99, 'USD'));
+        $this->assertSame(1500, BanzaClient::toMinorUnits(15.00, 'USD'));
+        $this->assertSame(999, BanzaClient::toMinorUnits(9.99, 'USD'));
     }
 
     // -------------------------------------------------------------------------
@@ -290,7 +290,7 @@ class BanzamiClientTest extends TestCase
         $body    = '{"type":"transaction.completed","payload":{}}';
         $sig     = 'sha256=' . hash_hmac('sha256', $body, $secret);
 
-        $this->assertTrue(BanzamiClient::verifyWebhookSignature($body, $sig, $secret));
+        $this->assertTrue(BanzaClient::verifyWebhookSignature($body, $sig, $secret));
     }
 
     public function testVerifyWebhookSignatureInvalid(): void
@@ -299,12 +299,12 @@ class BanzamiClientTest extends TestCase
         $body   = '{"type":"transaction.completed","payload":{}}';
         $sig    = 'sha256=invalidsignature';
 
-        $this->assertFalse(BanzamiClient::verifyWebhookSignature($body, $sig, $secret));
+        $this->assertFalse(BanzaClient::verifyWebhookSignature($body, $sig, $secret));
     }
 
     public function testVerifyWebhookSignatureEmpty(): void
     {
-        $this->assertFalse(BanzamiClient::verifyWebhookSignature('body', '', 'secret'));
+        $this->assertFalse(BanzaClient::verifyWebhookSignature('body', '', 'secret'));
     }
 
     // -------------------------------------------------------------------------

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../services/push_notification_service.dart';
@@ -11,7 +11,7 @@ import '../../services/push_notification_service.dart';
 /// Start with [startPolling] when the merchant session is active.
 /// Stop with [stopPolling] on logout or app background.
 class PaymentNotificationService {
-  final BanzamiClient _client;
+  final BanzaClient _client;
 
   PaymentNotificationService(this._client);
 

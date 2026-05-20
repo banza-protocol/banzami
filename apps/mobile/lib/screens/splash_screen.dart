@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,7 +29,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.wine,
+      backgroundColor: BanzaColors.wine,
       body: FadeTransition(
         opacity: _fade,
         child: const Center(

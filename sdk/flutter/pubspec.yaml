@@ -1,4 +1,4 @@
-name: banzami_sdk
+name: banza_flutter
 description: >
   Banzami Flutter SDK — payment widgets, API client, and screens for
   integrating instant P2P transfers and QR payments into Flutter applications.

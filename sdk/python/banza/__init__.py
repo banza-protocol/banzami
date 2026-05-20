@@ -2,29 +2,29 @@
 
 Quick start:
 
-    from banzami import Banzami
+    from banza import Banzami
 
     async with Banzami(api_key="bz_live_...") as client:
         tx = await client.transactions.create(amount=50000, currency="AOA")
         print(tx.id)
 """
 
-from .client import Banzami, BanzamiClient, BanzamiHooks
+from .client import Banzami, BanzaClient, BanzaHooks
 from .config import BanzamiConfig
 from .exceptions import (
-    BanzamiAPIError,
+    BanzaAPIError,
     BanzamiAuthenticationError,
     BanzamiConflictError,
-    BanzamiError,
+    BanzaError,
     BanzamiInsufficientFundsError,
-    BanzamiNetworkError,
+    BanzaNetworkError,
     BanzamiNotFoundError,
     BanzamiPermissionError,
     BanzamiRateLimitError,
     BanzamiServerError,
     BanzamiTimeoutError,
     BanzamiValidationError,
-    BanzamiWebhookSignatureError,
+    BanzaWebhookSignatureError,
 )
 from .models import (
     ApiKey,
@@ -53,12 +53,12 @@ __version__ = "0.1.0"
 __all__ = [
     # Primary entry point
     "Banzami",
-    "BanzamiClient",
+    "BanzaClient",
     "BanzamiConfig",
-    "BanzamiHooks",
+    "BanzaHooks",
     # Exceptions
-    "BanzamiError",
-    "BanzamiAPIError",
+    "BanzaError",
+    "BanzaAPIError",
     "BanzamiAuthenticationError",
     "BanzamiPermissionError",
     "BanzamiNotFoundError",
@@ -67,9 +67,9 @@ __all__ = [
     "BanzamiRateLimitError",
     "BanzamiInsufficientFundsError",
     "BanzamiServerError",
-    "BanzamiNetworkError",
+    "BanzaNetworkError",
     "BanzamiTimeoutError",
-    "BanzamiWebhookSignatureError",
+    "BanzaWebhookSignatureError",
     # Models
     "Transaction",
     "TransactionStatus",

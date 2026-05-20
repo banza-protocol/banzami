@@ -10,7 +10,7 @@ import '../models/qr_code.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
-import 'banzami_environment.dart';
+import 'banza_environment.dart';
 
 /// HTTP client for the Banzami Go api-gateway.
 ///
@@ -19,26 +19,26 @@ import 'banzami_environment.dart';
 ///
 /// Usage — production:
 /// ```dart
-/// final client = BanzamiClient(
+/// final client = BanzaClient(
 ///   apiKey:      'bz_live_...',
-///   environment: BanzamiEnvironment.production,
+///   environment: BanzaEnvironment.production,
 /// );
 /// ```
 ///
 /// Usage — sandbox / integration testing:
 /// ```dart
-/// final client = BanzamiClient(
+/// final client = BanzaClient(
 ///   apiKey:      'bz_test_...',
-///   environment: BanzamiEnvironment.sandbox,
+///   environment: BanzaEnvironment.sandbox,
 /// );
 /// ```
 typedef OnRequestHook  = void Function(String method, String path, int attempt);
 typedef OnResponseHook = void Function(String method, String path, int status, int durationMs);
 typedef OnErrorHook    = void Function(String method, String path, Object error, int attempts);
 
-class BanzamiClient {
+class BanzaClient {
   final String apiKey;
-  final BanzamiEnvironment environment;
+  final BanzaEnvironment environment;
   final String baseUrl;
   final http.Client _http;
   final Uuid _uuid;
@@ -58,9 +58,9 @@ class BanzamiClient {
   bool get isSandbox    => environment.isSandbox;
   bool get isProduction => environment.isLive;
 
-  BanzamiClient({
+  BanzaClient({
     required this.apiKey,
-    this.environment = BanzamiEnvironment.production,
+    this.environment = BanzaEnvironment.production,
     String? baseUrl,
     http.Client? httpClient,
     this.maxRetries = 3,

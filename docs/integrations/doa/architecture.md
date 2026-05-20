@@ -13,8 +13,8 @@ The Doa integration sits entirely within the **merchant application** tier. Doa 
 │  ┌─────────────────────┐   ┌──────────────────────────────────────┐ │
 │  │  Frontend           │   │  Backend (Next.js Server / API Routes)│ │
 │  │  (React, browser)   │   │                                      │ │
-│  │                     │   │  BanzamiProvider.initiate()          │ │
-│  │  BanzamiPanel       │   │  → POST /v1/payment-links            │ │
+│  │                     │   │  BanzaProvider.initiate()          │ │
+│  │  BanzaPanel       │   │  → POST /v1/payment-links            │ │
 │  │  QR display         │   │                                      │ │
 │  │  Polling loop       │   │  banzami-status route                │ │
 │  │  Sandbox badge      │   │  → GET  /v1/payment-links/{id}       │ │
@@ -51,7 +51,7 @@ The Doa integration sits entirely within the **merchant application** tier. Doa 
 
 The Doa frontend (React, browser) owns:
 
-- Rendering the `BanzamiPanel` component when the donor selects Banzami
+- Rendering the `BanzaPanel` component when the donor selects Banzami
 - Generating the QR image client-side from the pay URL
 - Running the polling loop (calls `/api/donations/banzami-status` every 3 s)
 - Displaying the sandbox badge when `provider.sandbox = true`
@@ -92,7 +92,7 @@ donation_intent created
   payload: { provider: 'banzami', provider_ref: 'lnk_...', initiate: {...} }
        │
        ▼
-Donor pays in Banzami app
+Donor pays in Banza app
        │
        ├── Poll path: banzami-status detects USED
        │         ─OR─
@@ -118,9 +118,9 @@ Doa detects the environment from the API key prefix:
 ```typescript
 const IS_SANDBOX = API_KEY.startsWith('bz_test_');
 
-class BanzamiProvider implements PaymentProvider {
+class BanzaProvider implements PaymentProvider {
   readonly sandbox      = IS_SANDBOX;
-  readonly display_name = IS_SANDBOX ? 'Banzami (Sandbox)' : 'Banzami';
+  readonly display_name = IS_SANDBOX ? 'Banza (Sandbox)' : 'Banza';
   readonly available    = !!(GATEWAY_URL && API_KEY && MERCHANT_ID && WALLET_ID);
 }
 ```
@@ -128,11 +128,11 @@ class BanzamiProvider implements PaymentProvider {
 This detection happens at module initialization time. The `sandbox` field is propagated from:
 
 ```
-BanzamiProvider.sandbox
+BanzaProvider.sandbox
     → listPublicMethods() → PaymentMethodMeta.sandbox
     → DonateFlow props.methods[].sandbox
     → submitMethod() → setBanzamiSandbox(true)
-    → BanzamiPanel isSandbox={true}
+    → BanzaPanel isSandbox={true}
     → "SANDBOX" badge rendered
 ```
 
@@ -159,9 +159,9 @@ The target architecture after SDK migration:
 
 ```typescript
 // lib/payments/providers/banzami.ts — after migration
-import Banzami from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
-const banzami = new Banzami({ apiKey: process.env.BANZAMI_API_KEY });
+const banzami = new BanzaClient({ apiKey: process.env.BANZA_API_KEY });
 // banzami.isSandbox → true when bz_test_ key — replaces IS_SANDBOX detection
 
 // Payment link creation
@@ -181,7 +181,7 @@ The SDK provides:
 - automatic environment routing (`bz_test_` → sandbox gateway, `bz_live_` → live gateway)
 - built-in idempotency key management and reuse across retries
 - exponential backoff on `429`/`5xx` responses
-- typed response models — no manual `as BanzamiPaymentLink` casts
+- typed response models — no manual `as BanzaPaymentLink` casts
 - `banzami.webhooks.constructEvent()` — replaces the manual `verifySignature()` implementation
 - `banzami.isSandbox` — replaces the `API_KEY.startsWith('bz_test_')` detection
 
@@ -192,7 +192,7 @@ The SDK provides:
 ```
                          Internet
                             │
-               Banzami-Signature: t=...,v1=...
+               Banza-Signature: t=...,v1=...
                             │
                             ▼
                POST /api/webhooks/banzami
@@ -236,7 +236,7 @@ The SDK provides:
 ## QR Payment Orchestration
 
 ```
-BanzamiProvider.initiate()
+BanzaProvider.initiate()
     │
     └─► POST /v1/payment-links
         { merchant_id, wallet_id, amount_minor, currency, description }
@@ -246,7 +246,7 @@ BanzamiProvider.initiate()
         payUrl = BANZAMI_PAY_BASE_URL + '/' + slug
         provider_ref = id
 
-BanzamiPanel mounts:
+BanzaPanel mounts:
     │
     ├─► Dynamic import('qrcode') → generate QR from payUrl
     │

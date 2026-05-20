@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 import '../widgets/pin_pad.dart';
@@ -59,7 +59,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     final session = context.read<MerchantSessionService>().session;
 
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -67,15 +67,15 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
             children: [
               const Spacer(flex: 2),
               Text(
-                session?.merchantName ?? 'Banzami',
-                style: BanzamiTextStyles.headingMd,
+                session?.merchantName ?? 'Banza',
+                style: BanzaTextStyles.headingMd,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 _error ? 'PIN incorrecto. Tente novamente.' : 'Introduza o PIN',
-                style: BanzamiTextStyles.bodyMd.copyWith(
-                  color: _error ? BanzamiColors.error : BanzamiColors.gray400,
+                style: BanzaTextStyles.bodyMd.copyWith(
+                  color: _error ? BanzaColors.error : BanzaColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -89,9 +89,9 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
               if (session?.biometricsEnabled == true)
                 TextButton.icon(
                   onPressed: _tryBiometrics,
-                  icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
+                  icon:  const Icon(Icons.fingerprint_rounded, color: BanzaColors.wine),
                   label: Text('Usar biometria',
-                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
+                      style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.wine)),
                 ),
               const SizedBox(height: 24),
             ],

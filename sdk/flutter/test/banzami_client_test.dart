@@ -19,15 +19,15 @@ final _jwtBody = jsonEncode({
   'expires_at': DateTime.now().add(const Duration(hours: 24)).toIso8601String(),
 });
 
-/// Builds a [BanzamiClient] whose HTTP transport is a [MockClient] that:
+/// Builds a [BanzaClient] whose HTTP transport is a [MockClient] that:
 ///   1. Returns a valid JWT for the first call to /v1/auth/token.
 ///   2. Returns [body] with [status] for every subsequent request.
-BanzamiClient _makeClient(
+BanzaClient _makeClient(
   int status,
   Map<String, dynamic> body,
 ) {
   var callCount = 0;
-  return BanzamiClient(
+  return BanzaClient(
     apiKey:     _apiKey,
     baseUrl:    _baseUrl,
     httpClient: MockClient((request) async {
@@ -48,7 +48,7 @@ BanzamiClient _makeClient(
 // ---------------------------------------------------------------------------
 
 void main() {
-  group('BanzamiClient.getMerchant', () {
+  group('BanzaClient.getMerchant', () {
     test('happy path — returns correct merchant fields', () async {
       final now = DateTime.now().toUtc();
       final client = _makeClient(200, {
@@ -102,7 +102,7 @@ void main() {
     });
   });
 
-  group('BanzamiClient.getMerchantBalance', () {
+  group('BanzaClient.getMerchantBalance', () {
     test('happy path — returns correct balance fields', () async {
       final now    = DateTime.now().toUtc();
       final client = _makeClient(200, {
@@ -124,7 +124,7 @@ void main() {
     });
   });
 
-  group('BanzamiClient.listMerchantTransactions', () {
+  group('BanzaClient.listMerchantTransactions', () {
     test('happy path — returns list with pagination', () async {
       final now    = DateTime.now().toUtc();
       final client = _makeClient(200, {
@@ -177,7 +177,7 @@ void main() {
     });
   });
 
-  group('BanzamiClient.createPaymentLink', () {
+  group('BanzaClient.createPaymentLink', () {
     test('happy path — returns PaymentLink with correct fields', () async {
       final now    = DateTime.now().toUtc();
       final client = _makeClient(200, {

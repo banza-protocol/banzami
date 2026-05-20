@@ -110,20 +110,20 @@ The design language is **Space Cherry + Warm White** — a high-contrast palette
 
 | Token | Hex | Usage |
 |---|---|---|
-| `BanzamiColors.wine` | `#990011` | Primary — buttons, icons, active states |
-| `BanzamiColors.wineDark` | `#6B000B` | Gradient deep end, pressed states |
-| `BanzamiColors.wineLight` | `#B5001A` | Gradient light end, hover |
-| `BanzamiColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
-| `BanzamiColors.white` | `#FFFFFF` | Card / surface background |
-| `BanzamiColors.gray100` | `#F5EEED` | Form fills, chips |
-| `BanzamiColors.gray200` | `#EBE3E2` | Borders, dividers |
-| `BanzamiColors.gray400` | `#9C8483` | Secondary / placeholder text |
-| `BanzamiColors.gray600` | `#534040` | Tertiary text |
-| `BanzamiColors.gray900` | `#1C0D0D` | Primary text (warm black) |
-| `BanzamiColors.success` | `#166534` | Completed transactions |
-| `BanzamiColors.error` | `#DC2626` | Errors, destructive actions |
-| `BanzamiColors.warning` | `#92400E` | Pending / caution states |
-| `BanzamiColors.info` | `#1E3A8A` | Informational states |
+| `BanzaColors.wine` | `#990011` | Primary — buttons, icons, active states |
+| `BanzaColors.wineDark` | `#6B000B` | Gradient deep end, pressed states |
+| `BanzaColors.wineLight` | `#B5001A` | Gradient light end, hover |
+| `BanzaColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
+| `BanzaColors.white` | `#FFFFFF` | Card / surface background |
+| `BanzaColors.gray100` | `#F5EEED` | Form fills, chips |
+| `BanzaColors.gray200` | `#EBE3E2` | Borders, dividers |
+| `BanzaColors.gray400` | `#9C8483` | Secondary / placeholder text |
+| `BanzaColors.gray600` | `#534040` | Tertiary text |
+| `BanzaColors.gray900` | `#1C0D0D` | Primary text (warm black) |
+| `BanzaColors.success` | `#166534` | Completed transactions |
+| `BanzaColors.error` | `#DC2626` | Errors, destructive actions |
+| `BanzaColors.warning` | `#92400E` | Pending / caution states |
+| `BanzaColors.info` | `#1E3A8A` | Informational states |
 
 All grays are warm-tinted (slight red undertone) to pair harmoniously with the cherry primary.
 
@@ -131,8 +131,8 @@ All grays are warm-tinted (slight red undertone) to pair harmoniously with the c
 
 | Token | Direction | Usage |
 |---|---|---|
-| `BanzamiGradients.wine` | `#990011 → #6B000B` | Balance card headers, key surfaces |
-| `BanzamiGradients.wineLight` | `#990011 → #B5001A` | Secondary gradient surfaces |
+| `BanzaGradients.wine` | `#990011 → #6B000B` | Balance card headers, key surfaces |
+| `BanzaGradients.wineLight` | `#990011 → #B5001A` | Secondary gradient surfaces |
 
 ### Typography
 
@@ -152,11 +152,11 @@ Font family: **Inter** (applied via `google_fonts`). Monospace: **JetBrains Mono
 
 ### ThemeData
 
-`BanzamiTheme.light` is the single source of truth for `ThemeData`. Both merchant and consumer `app.dart` files use:
+`BanzaTheme.light` is the single source of truth for `ThemeData`. Both merchant and consumer `app.dart` files use:
 
 ```dart
 ThemeData _buildTheme() {
-  final base = BanzamiTheme.light;
+  final base = BanzaTheme.light;
   return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
 }
 ```
@@ -181,6 +181,6 @@ Background: `#FCF6F5` · Text: `#1C0D0D` · Primary: `#990011`
 
 The `banzami_sdk` package lives at `../../sdk/flutter` and is referenced via a local path dependency. It exposes:
 
-- `BanzamiClient` — HTTP client with automatic JWT exchange (raw API key → 24 h JWT, renewed 5 min before expiry)
+- `BanzaClient` — HTTP client with automatic JWT exchange (raw API key → 24 h JWT, renewed 5 min before expiry)
 - All domain models: `MerchantBalance`, `MerchantTransaction`, `PaymentLink`, `QrResponse`, etc.
-- Theme: `BanzamiColors`, `BanzamiGradients`, `BanzamiTextStyles`, `BanzamiSpacing`, `BanzamiRadius`, `BanzamiShadows`, `BanzamiTheme`
+- Theme: `BanzaColors`, `BanzaGradients`, `BanzaTextStyles`, `BanzaSpacing`, `BanzaRadius`, `BanzaShadows`, `BanzaTheme`

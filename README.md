@@ -402,8 +402,8 @@ banzami/
 │   ├── pay/                       Consumer pay page — payment links (Next.js, :3003)
 │   ├── checkout/                  Hosted checkout — QR-first payment UX (Next.js, :3004)
 │   ├── mobile/                    Flutter multi-flavor mobile app
-│   │   ├── lib/main_consumer.dart Consumer entry point (Banzami app)
-│   │   ├── lib/main_merchant.dart Merchant entry point (Banzami Business)
+│   │   ├── lib/main_consumer.dart Consumer entry point (Banza app)
+│   │   ├── lib/main_merchant.dart Merchant entry point (Banza Business)
 │   │   ├── lib/merchant/          Merchant screens and session service
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
@@ -413,18 +413,18 @@ banzami/
 │
 ├── sdk/
 │   ├── flutter/                   Flutter SDK — mobile runtime (iOS + Android)
-│   │   ├── lib/client/            BanzamiClient (HTTP, auth, retry, idempotency, hooks)
+│   │   ├── lib/client/            BanzaClient (HTTP, auth, retry, idempotency, hooks)
 │   │   ├── lib/models/            Typed response models
 │   │   ├── test/                  Unit + integration tests (MockClient)
 │   │   └── CHANGELOG.md
 │   ├── typescript/                TypeScript SDK — Node.js, Next.js, browser
-│   │   ├── src/client.ts          BanzamiClient (ESM + CJS, retry, hooks, idempotency)
+│   │   ├── src/client.ts          BanzaClient (ESM + CJS, retry, hooks, idempotency)
 │   │   ├── src/types.ts           Pydantic-style response type definitions
 │   │   ├── examples/              next-api-route, node-webhook, browser-checkout
 │   │   └── CHANGELOG.md
 │   └── python/                    Python SDK — async-first (Django, FastAPI, Flask)
 │       ├── banzami/               Package root
-│       │   ├── client.py          BanzamiClient + BanzamiHooks
+│       │   ├── client.py          BanzaClient + BanzamiHooks
 │       │   ├── resources/         transactions, qr_payments, transfers, payouts, …
 │       │   ├── models/            Pydantic v2 response models
 │       │   ├── exceptions.py      Clean exception hierarchy
@@ -436,13 +436,13 @@ banzami/
 ├── plugins/
 │   ├── woocommerce/               WooCommerce payment gateway plugin
 │   ├── generic-php/               PHP adapter (no external dependencies)
-│   │   ├── src/BanzamiClient.php  Full API surface + retry + hooks
+│   │   ├── src/BanzaClient.php  Full API surface + retry + hooks
 │   │   ├── examples/              payment-link, webhook-handler, wallet-and-payout
 │   │   └── CHANGELOG.md
 │   ├── generic-laravel/           Laravel service provider + facades
 │   │   └── CHANGELOG.md
 │   └── generic-node/              Node.js adapter
-│       ├── src/client.ts          BanzamiClient + BanzamiHooks
+│       ├── src/client.ts          BanzaClient + BanzamiHooks
 │       ├── examples/              payment-link, webhook-express, wallet-payout
 │       └── CHANGELOG.md
 │
@@ -636,7 +636,7 @@ Reference implementations that demonstrate correct, production-grade Banzami mer
 - Next.js `server-only` credential isolation
 - Poll-and-webhook dual-path payment confirmation
 
-> Doa's current implementation uses direct `fetch()` — a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to `@banzami/sdk` to become the complete canonical SDK example. See [`docs/integrations/doa/`](docs/integrations/doa/).
+> Doa's current implementation uses direct `fetch()` — a transitional state from before the TypeScript SDK reached production readiness. Doa must migrate to `@banza/sdk` to become the complete canonical SDK example. See [`docs/integrations/doa/`](docs/integrations/doa/).
 
 Full documentation: [`docs/integrations/doa/`](docs/integrations/doa/)
 
@@ -1226,10 +1226,10 @@ The banner is driven by the `environment` field stored in the session at login t
 **TypeScript**
 
 ```typescript
-import { BanzamiClient } from '@banzami/sdk';
+import { BanzaClient } from '@banza/sdk';
 
-const sandbox = new BanzamiClient({ apiKey: 'bz_test_…', environment: 'sandbox' });
-const live    = new BanzamiClient({ apiKey: 'bz_live_…', environment: 'live' });
+const sandbox = new BanzaClient({ apiKey: 'bz_test_…', environment: 'sandbox' });
+const live    = new BanzaClient({ apiKey: 'bz_live_…', environment: 'live' });
 
 sandbox.isSandbox;    // true
 sandbox.isProduction; // false
@@ -1242,7 +1242,7 @@ The SDK automatically routes to the correct base URL and handles JWT exchange an
 ```dart
 import 'package:banzami_sdk/banzami_sdk.dart';
 
-final client = BanzamiClient(
+final client = BanzaClient(
   apiKey:      'bz_test_…',
   environment: BanzamiEnvironment.sandbox,
 );
@@ -1672,7 +1672,7 @@ make stack-up       # start everything (applies migrations automatically)
 
 ### Mobile Apps (Flutter)
 
-`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banzami) and **merchant** (Banzami Business) — built and published to the App Store and Play Store separately.
+`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banza) and **merchant** (Banza Business) — built and published to the App Store and Play Store separately.
 
 **Run in development:**
 
@@ -1724,8 +1724,8 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 
 | Flavor   | iOS Bundle ID            | Android Application ID   | Display Name         |
 |----------|--------------------------|--------------------------|----------------------|
-| consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banzami              |
-| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banzami Business  |
+| consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banza                |
+| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banza Business    |
 
 **iOS schemes** are at `apps/mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/`:
 - `consumer.xcscheme` — Debug-consumer / Release-consumer configurations

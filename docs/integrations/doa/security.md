@@ -45,7 +45,7 @@ Every inbound webhook request must pass HMAC-SHA256 verification before any payl
 ### Signature Header Format
 
 ```
-Banzami-Signature: t=1716033007,v1=a1b2c3d4e5f6...
+Banza-Signature: t=1716033007,v1=a1b2c3d4e5f6...
 ```
 
 | Component | Description |
@@ -143,7 +143,7 @@ A `bz_test_` API key cannot be used against the live gateway, and vice versa. Th
 |----------|---------|
 | `bz_test_` key → `api.banzami.org` | `403 SANDBOX_KEY_REJECTED` |
 | `bz_live_` key → `sandbox-api.banzami.org` | `403 LIVE_ONLY` |
-| Sandbox payment link in live Banzami app | Link marked as environment-incompatible |
+| Sandbox payment link in live Banza app | Link marked as environment-incompatible |
 | Sandbox webhook → live endpoint | Banzami filters at dispatch — never delivered |
 
 Doa's visual SANDBOX badge reinforces this — it makes environment mismatches immediately visible during development and QA. The badge is driven by the key prefix and disappears automatically when the live key is set.
@@ -221,7 +221,7 @@ Log the minimum needed to diagnose issues: event type, event ID, intent ID, and 
 
 ## PCI-Conscious Practices
 
-Banzami QR payments do not involve card data. The Doa integration handles only:
+Banza QR payments do not involve card data. The Doa integration handles only:
 - Payment amounts (integer centavos)
 - Banzami payment link IDs
 - Donor intent IDs (Doa-internal UUIDs)

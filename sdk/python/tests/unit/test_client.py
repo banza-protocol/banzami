@@ -6,8 +6,8 @@ import httpx
 import pytest
 import respx
 
-from banzami import Banzami, BanzamiHooks
-from banzami.exceptions import (
+from banza import Banzami, BanzaHooks
+from banza.exceptions import (
     BanzamiAuthenticationError,
     BanzamiNotFoundError,
     BanzamiServerError,
@@ -176,7 +176,7 @@ async def test_on_request_hook_fires():
 
     with respx.mock(base_url=BASE) as mock:
         mock.get("/v1/transactions/tx_001").mock(return_value=httpx.Response(200, json=TX_PAYLOAD))
-        hooks = BanzamiHooks(on_request=lambda m, p, a: calls.append((m, p, a)))
+        hooks = BanzaHooks(on_request=lambda m, p, a: calls.append((m, p, a)))
         async with Banzami(api_key="bz_test", base_url=BASE, hooks=hooks) as c:
             await c.transactions.retrieve("tx_001")
 
@@ -192,7 +192,7 @@ async def test_on_error_hook_fires_on_4xx():
         mock.get("/v1/transactions/bad").mock(
             return_value=httpx.Response(404, json={"code": "NOT_FOUND", "message": "x"})
         )
-        hooks = BanzamiHooks(on_error=lambda m, p, e, a: errors.append((m, p, e, a)))
+        hooks = BanzaHooks(on_error=lambda m, p, e, a: errors.append((m, p, e, a)))
         async with Banzami(api_key="bz_test", base_url=BASE, hooks=hooks) as c:
             with pytest.raises(BanzamiNotFoundError):
                 await c.transactions.retrieve("bad")

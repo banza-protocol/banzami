@@ -4,11 +4,11 @@ import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
-import '../theme/banzami_theme.dart';
+import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
-import '../widgets/banzami_amount_input.dart';
-import '../widgets/banzami_button.dart';
-import '../widgets/banzami_qr_scanner.dart';
+import '../widgets/banza_amount_input.dart';
+import '../widgets/banza_button.dart';
+import '../widgets/banza_qr_scanner.dart';
 
 enum _ScanStep { scanning, resolving, confirm, error, success }
 
@@ -164,14 +164,14 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   Widget build(BuildContext context) {
     final bool cameraActive = _step == _ScanStep.scanning || _step == _ScanStep.resolving;
     return Scaffold(
-      backgroundColor: cameraActive ? Colors.black : BanzamiColors.offWhite,
+      backgroundColor: cameraActive ? Colors.black : BanzaColors.offWhite,
       body: switch (_step) {
-        _ScanStep.scanning  => BanzamiQrScanner(
+        _ScanStep.scanning  => BanzaQrScanner(
             onDetected: _onScanned,
             onCancel:   () => Navigator.of(context).pop(),
           ),
         _ScanStep.resolving => const Center(
-            child: CircularProgressIndicator(color: BanzamiColors.wine),
+            child: CircularProgressIndicator(color: BanzaColors.wine),
           ),
         _ScanStep.confirm   => _buildConfirm(),
         _ScanStep.error     => _buildError(),
@@ -199,99 +199,99 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
     return SafeArea(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(BanzamiSpacing.xl),
+        padding: const EdgeInsets.all(BanzaSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: BanzamiSpacing.xl),
+            const SizedBox(height: BanzaSpacing.xl),
 
             // Header card
             Container(
               padding:    const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.xl,
-                vertical:   BanzamiSpacing.xxl,
+                horizontal: BanzaSpacing.xl,
+                vertical:   BanzaSpacing.xxl,
               ),
               decoration: const BoxDecoration(
-                gradient:     BanzamiGradients.wine,
-                borderRadius: BanzamiRadius.xlAll,
+                gradient:     BanzaGradients.wine,
+                borderRadius: BanzaRadius.xlAll,
               ),
               child: Column(children: [
                 Icon(
                   p is _HandlePayload ? Icons.person_rounded : Icons.link_rounded,
                   size:  40,
-                  color: BanzamiColors.white,
+                  color: BanzaColors.white,
                 ),
-                const SizedBox(height: BanzamiSpacing.md),
+                const SizedBox(height: BanzaSpacing.md),
                 Text(
                   title,
-                  style:     BanzamiTextStyles.headingMd.copyWith(color: BanzamiColors.white),
+                  style:     BanzaTextStyles.headingMd.copyWith(color: BanzaColors.white),
                   textAlign: TextAlign.center,
                 ),
                 if (subtitle != null) ...[
-                  const SizedBox(height: BanzamiSpacing.xs),
+                  const SizedBox(height: BanzaSpacing.xs),
                   Text(
                     subtitle,
-                    style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white.withValues(alpha: 0.75)),
+                    style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.white.withValues(alpha: 0.75)),
                     textAlign: TextAlign.center,
                   ),
                 ],
                 if (fixedLabel != null) ...[
-                  const SizedBox(height: BanzamiSpacing.lg),
+                  const SizedBox(height: BanzaSpacing.lg),
                   Text(
                     fixedLabel,
-                    style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.white),
+                    style: BanzaTextStyles.displayMd.copyWith(color: BanzaColors.white),
                   ),
                 ],
               ]),
             ),
 
-            const SizedBox(height: BanzamiSpacing.xl),
+            const SizedBox(height: BanzaSpacing.xl),
 
             // Amount input for open links/transfers
             if (needsAmount) ...[
               Container(
-                padding:    const EdgeInsets.all(BanzamiSpacing.xl),
+                padding:    const EdgeInsets.all(BanzaSpacing.xl),
                 decoration: const BoxDecoration(
-                  color:        BanzamiColors.white,
-                  borderRadius: BanzamiRadius.lgAll,
-                  boxShadow:    BanzamiShadows.card,
+                  color:        BanzaColors.white,
+                  borderRadius: BanzaRadius.lgAll,
+                  boxShadow:    BanzaShadows.card,
                 ),
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  const Text('Montante', style: BanzamiTextStyles.headingSm),
-                  const SizedBox(height: BanzamiSpacing.md),
-                  BanzamiAmountInput(onChanged: (v) => setState(() => _enteredAmount = v)),
+                  const Text('Montante', style: BanzaTextStyles.headingSm),
+                  const SizedBox(height: BanzaSpacing.md),
+                  BanzaAmountInput(onChanged: (v) => setState(() => _enteredAmount = v)),
                 ]),
               ),
-              const SizedBox(height: BanzamiSpacing.xl),
+              const SizedBox(height: BanzaSpacing.xl),
             ],
 
             // Error banner
             if (_error != null) ...[
               Container(
-                padding:    const EdgeInsets.all(BanzamiSpacing.md),
+                padding:    const EdgeInsets.all(BanzaSpacing.md),
                 decoration: const BoxDecoration(
-                  color:        BanzamiColors.errorBg,
-                  borderRadius: BanzamiRadius.mdAll,
+                  color:        BanzaColors.errorBg,
+                  borderRadius: BanzaRadius.mdAll,
                 ),
                 child: Text(
                   _error!,
-                  style:     BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+                  style:     BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
                   textAlign: TextAlign.center,
                 ),
               ),
-              const SizedBox(height: BanzamiSpacing.lg),
+              const SizedBox(height: BanzaSpacing.lg),
             ],
 
             Row(children: [
               Expanded(
-                child: BanzamiButton.secondary(
+                child: BanzaButton.secondary(
                   label:     'Cancelar',
                   onPressed: _rescan,
                 ),
               ),
-              const SizedBox(width: BanzamiSpacing.md),
+              const SizedBox(width: BanzaSpacing.md),
               Expanded(
-                child: BanzamiButton(
+                child: BanzaButton(
                   label:     'Confirmar',
                   isLoading: _processing,
                   onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
@@ -308,32 +308,32 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     return SafeArea(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          padding: const EdgeInsets.all(BanzaSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 72, height: 72,
                 decoration: const BoxDecoration(
-                  color:        BanzamiColors.errorBg,
-                  borderRadius: BanzamiRadius.fullAll,
+                  color:        BanzaColors.errorBg,
+                  borderRadius: BanzaRadius.fullAll,
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded, color: BanzamiColors.error, size: 36),
+                child: const Icon(Icons.qr_code_scanner_rounded, color: BanzaColors.error, size: 36),
               ),
-              const SizedBox(height: BanzamiSpacing.xl),
+              const SizedBox(height: BanzaSpacing.xl),
               Text(
                 _error ?? 'Código QR inválido',
-                style:     BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
+                style:     BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: BanzamiSpacing.sm),
+              const SizedBox(height: BanzaSpacing.sm),
               Text(
                 'Verifique o código e tente novamente.',
-                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: BanzamiSpacing.xxl),
-              BanzamiButton(
+              const SizedBox(height: BanzaSpacing.xxl),
+              BanzaButton(
                 label:     'Tentar novamente',
                 onPressed: _rescan,
               ),
@@ -365,31 +365,31 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     return SafeArea(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          padding: const EdgeInsets.all(BanzaSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 80, height: 80,
                 decoration: const BoxDecoration(
-                  color:        BanzamiColors.successBg,
-                  borderRadius: BanzamiRadius.fullAll,
+                  color:        BanzaColors.successBg,
+                  borderRadius: BanzaRadius.fullAll,
                 ),
-                child: const Icon(Icons.check_rounded, color: BanzamiColors.success, size: 40),
+                child: const Icon(Icons.check_rounded, color: BanzaColors.success, size: 40),
               ),
-              const SizedBox(height: BanzamiSpacing.xl),
+              const SizedBox(height: BanzaSpacing.xl),
               Text(
                 amountLabel,
-                style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.gray900),
+                style: BanzaTextStyles.displayMd.copyWith(color: BanzaColors.gray900),
               ),
-              const SizedBox(height: BanzamiSpacing.xs),
+              const SizedBox(height: BanzaSpacing.xs),
               Text(
                 'Pagamento enviado para $subtitle',
-                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+                style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: BanzamiSpacing.xxl),
-              BanzamiButton(
+              const SizedBox(height: BanzaSpacing.xxl),
+              BanzaButton(
                 label:     'Fechar',
                 onPressed: () => widget.onSuccess(_result),
               ),

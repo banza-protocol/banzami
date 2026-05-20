@@ -6,7 +6,7 @@ Complete reference for Banzami webhook integration, including signature verifica
 
 ## Overview
 
-Banzami webhooks deliver signed HTTP POST requests to a merchant-registered endpoint when domain events occur. For Doa, the only event type currently handled is `payment_link.paid`, which fires when a donor completes payment in the Banzami app.
+Banzami webhooks deliver signed HTTP POST requests to a merchant-registered endpoint when domain events occur. For Doa, the only event type currently handled is `payment_link.paid`, which fires when a donor completes payment in the Banza app.
 
 Doa's webhook endpoint: `POST /api/webhooks/banzami`
 
@@ -48,10 +48,10 @@ Save `secret` as `BANZAMI_WEBHOOK_SECRET` in your environment. **It is returned 
 
 ## Signature Header
 
-Every Banzami webhook includes a `Banzami-Signature` header:
+Every Banzami webhook includes a `Banza-Signature` header:
 
 ```
-Banzami-Signature: t=1716033007,v1=a1b2c3d4e5f6...
+Banza-Signature: t=1716033007,v1=a1b2c3d4e5f6...
 ```
 
 | Component | Value | Description |

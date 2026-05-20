@@ -55,7 +55,7 @@ There is no Angola-native payment SDK. Developers building Angolan applications 
 
 Make QR payments the normal expectation for Angolan consumers and merchants, the same way Pix normalized QR in Brazil and UPI in India.
 
-A cantina owner prints a Banzami QR. A customer scans it. Payment is instant and confirmed on both sides. No WhatsApp. No manual check. No waiting.
+A cantina owner prints a Banza QR. A customer scans it. Payment is instant and confirmed on both sides. No WhatsApp. No manual check. No waiting.
 
 This is the target. It is achievable. It requires focus on Angola.
 
@@ -96,7 +96,7 @@ Angolan mobile users (Android and iOS) who want to:
 
 1. **QR point-of-sale** — merchant displays static or dynamic QR; consumer scans and pays instantly
 2. **Payment links** — merchant shares a link; consumer opens in browser and pays
-3. **In-app payments via SDK** — any Angolan app integrates Banzami SDK and accepts instant AOA
+3. **In-app payments via SDK** — any Angolan app integrates Banza SDK and accepts instant AOA
 4. **P2P transfers** — consumer sends money to another via @handle
 
 ### Tier 2 — Growth (follows network density)

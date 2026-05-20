@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 const int kPinLength = 6;
 
@@ -16,7 +16,7 @@ class PinDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = error ? BanzamiColors.error : BanzamiColors.wine;
+    final color = error ? BanzaColors.error : BanzaColors.wine;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(kPinLength, (i) {
@@ -30,7 +30,7 @@ class PinDots extends StatelessWidget {
             shape: BoxShape.circle,
             color: isFilled ? color : Colors.transparent,
             border: Border.all(
-              color: isFilled ? color : BanzamiColors.gray200,
+              color: isFilled ? color : BanzaColors.gray200,
               width: 2,
             ),
           ),
@@ -189,7 +189,7 @@ class _PinPadInnerState extends State<_PinPadInner> {
                 icon: const Icon(
                   Icons.backspace_outlined,
                   size:  22,
-                  color: BanzamiColors.gray600,
+                  color: BanzaColors.gray600,
                 ),
               ),
             ),
@@ -228,7 +228,7 @@ class _DigitKey extends StatelessWidget {
           child: Ink(
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: BanzamiColors.gray100,
+              color: BanzaColors.gray100,
             ),
             child: Center(
               child: Text(
@@ -237,7 +237,7 @@ class _DigitKey extends StatelessWidget {
                   fontFamily:  'Inter',
                   fontSize:    26,
                   fontWeight:  FontWeight.w400,
-                  color:       BanzamiColors.black,
+                  color:       BanzaColors.black,
                   height:      1,
                 ),
               ),

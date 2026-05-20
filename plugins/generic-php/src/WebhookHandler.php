@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Banzami;
+namespace Banza;
 
 /**
  * Helper for processing Banzami webhook events.
@@ -46,7 +46,7 @@ class WebhookHandler
      */
     public function parse(string $rawBody, string $signature): array
     {
-        if (!BanzamiClient::verifyWebhookSignature($rawBody, $signature, $this->secret)) {
+        if (!BanzaClient::verifyWebhookSignature($rawBody, $signature, $this->secret)) {
             throw new BanzamiException('Invalid webhook signature', 401);
         }
 

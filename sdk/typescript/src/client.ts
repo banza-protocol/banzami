@@ -1,4 +1,4 @@
-import { BanzamiApiError } from './errors.js';
+import { BanzaApiError } from './errors.js';
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
@@ -42,7 +42,7 @@ export interface BanzamiHooks {
   onError?:    (method: string, path: string, error: Error, attempts: number) => void;
 }
 
-export interface BanzamiClientOptions {
+export interface BanzaClientOptions {
   /** API key for this client. Prefix determines environment:
    *  - `bz_live_…` → live (production money)
    *  - `bz_test_…` → sandbox (virtual funds) */
@@ -65,7 +65,7 @@ export interface BanzamiClientOptions {
   webhookSecret?: string;
 }
 
-export class BanzamiClient {
+export class BanzaClient {
   private readonly base:        string;
   private readonly apiKey:      string;
   readonly environment:         BanzamiEnvironment;
@@ -93,7 +93,7 @@ export class BanzamiClient {
     retryDelay = 500,
     hooks = {},
     webhookSecret,
-  }: BanzamiClientOptions) {
+  }: BanzaClientOptions) {
     this.apiKey      = apiKey;
     this.environment = environment;
     this.base        = (baseUrl ?? DEFAULT_BASE_URLS[environment]).replace(/\/$/, '');
@@ -126,7 +126,7 @@ export class BanzamiClient {
         code = body.code    ?? code;
         msg  = body.message ?? msg;
       } catch { /* non-JSON body */ }
-      throw new BanzamiApiError(res.status, code, msg);
+      throw new BanzaApiError(res.status, code, msg);
     }
     const data = await res.json() as { token: string; expires_at: string };
     this.jwt       = data.token;
@@ -167,7 +167,7 @@ export class BanzamiClient {
         code    = body.code    ?? code;
         message = body.message ?? message;
       } catch { /* non-JSON error body */ }
-      throw new BanzamiApiError(response.status, code, message);
+      throw new BanzaApiError(response.status, code, message);
     }
 
     this.hooks.onResponse?.(method, path, response.status, Date.now() - t0);
@@ -185,7 +185,7 @@ export class BanzamiClient {
     const method         = (init?.method ?? 'GET').toUpperCase();
     const isPost         = method === 'POST';
     const idempotencyKey = isPost ? crypto.randomUUID() : undefined;
-    let lastErr: BanzamiApiError | undefined;
+    let lastErr: BanzaApiError | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) {
@@ -194,7 +194,7 @@ export class BanzamiClient {
       try {
         return await this.executeOnce<T>(path, init, idempotencyKey, attempt);
       } catch (err) {
-        if (err instanceof BanzamiApiError && this.shouldRetry(err.status, attempt)) {
+        if (err instanceof BanzaApiError && this.shouldRetry(err.status, attempt)) {
           lastErr = err;
           continue;
         }

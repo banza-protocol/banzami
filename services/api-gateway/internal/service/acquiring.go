@@ -100,7 +100,7 @@ func (s *CoreApiAcquiringService) ProcessCallback(
 	}
 	req.Header.Set("Content-Type", "application/json")
 	if signature != "" {
-		req.Header.Set("X-Banzami-Signature", signature)
+		req.Header.Set("Banza-Signature", signature)
 	}
 
 	resp, err := s.client.httpClient.Do(req)

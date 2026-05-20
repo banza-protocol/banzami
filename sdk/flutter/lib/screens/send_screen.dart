@@ -6,9 +6,9 @@ import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
-import '../theme/banzami_theme.dart';
-import '../widgets/banzami_amount_input.dart';
-import '../widgets/banzami_button.dart';
+import '../theme/banza_theme.dart';
+import '../widgets/banza_amount_input.dart';
+import '../widgets/banza_button.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
 ///
@@ -159,21 +159,21 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.white,
+      backgroundColor: BanzaColors.white,
       appBar: AppBar(
         title:           const Text('Enviar'),
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
+        backgroundColor: BanzaColors.white,
+        foregroundColor: BanzaColors.gray900,
         elevation:       0,
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(BanzamiSpacing.xl),
+          padding: const EdgeInsets.all(BanzaSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Para quem?', style: BanzamiTextStyles.headingSm),
-              const SizedBox(height: BanzamiSpacing.sm),
+              const Text('Para quem?', style: BanzaTextStyles.headingSm),
+              const SizedBox(height: BanzaSpacing.sm),
               TextField(
                 controller:      _handleCtrl,
                 focusNode:       _handleFocus,
@@ -204,17 +204,17 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                   onTap:       _selectSuggestion,
                 ),
 
-              const SizedBox(height: BanzamiSpacing.xl),
-              const Text('Quanto?', style: BanzamiTextStyles.headingSm),
-              const SizedBox(height: BanzamiSpacing.sm),
-              BanzamiAmountInput(
+              const SizedBox(height: BanzaSpacing.xl),
+              const Text('Quanto?', style: BanzaTextStyles.headingSm),
+              const SizedBox(height: BanzaSpacing.sm),
+              BanzaAmountInput(
                 onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
                 errorText:  _amountError,
               ),
 
-              const SizedBox(height: BanzamiSpacing.xl),
-              const Text('Descrição (opcional)', style: BanzamiTextStyles.headingSm),
-              const SizedBox(height: BanzamiSpacing.sm),
+              const SizedBox(height: BanzaSpacing.xl),
+              const Text('Descrição (opcional)', style: BanzaTextStyles.headingSm),
+              const SizedBox(height: BanzaSpacing.sm),
               TextField(
                 controller:      _descCtrl,
                 decoration: const InputDecoration(hintText: 'Ex: jantar de ontem'),
@@ -223,15 +223,15 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               ),
 
               if (_sendError != null) ...[
-                const SizedBox(height: BanzamiSpacing.lg),
+                const SizedBox(height: BanzaSpacing.lg),
                 Text(
                   _sendError!,
-                  style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.error),
+                  style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.error),
                 ),
               ],
 
-              const SizedBox(height: BanzamiSpacing.xxl),
-              BanzamiButton(
+              const SizedBox(height: BanzaSpacing.xxl),
+              BanzaButton(
                 label:     'Enviar',
                 isLoading: _sending,
                 onPressed: _send,
@@ -253,11 +253,11 @@ class _SuggestionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: BanzamiSpacing.xs),
+      margin: const EdgeInsets.only(top: BanzaSpacing.xs),
       decoration: BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BorderRadius.circular(BanzamiRadius.md),
-        border:       Border.all(color: BanzamiColors.gray200),
+        color:        BanzaColors.white,
+        borderRadius: BorderRadius.circular(BanzaRadius.md),
+        border:       Border.all(color: BanzaColors.gray200),
         boxShadow: [
           BoxShadow(
             color:      Colors.black.withValues(alpha: 0.06),
@@ -270,35 +270,35 @@ class _SuggestionList extends StatelessWidget {
         children: suggestions.map((s) {
           return InkWell(
             onTap:        () => onTap(s),
-            borderRadius: BorderRadius.circular(BanzamiRadius.md),
+            borderRadius: BorderRadius.circular(BanzaRadius.md),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.lg,
-                vertical:   BanzamiSpacing.md,
+                horizontal: BanzaSpacing.lg,
+                vertical:   BanzaSpacing.md,
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius:          18,
-                    backgroundColor: BanzamiColors.gray100,
+                    backgroundColor: BanzaColors.gray100,
                     child: Text(
                       s.handle[0].toUpperCase(),
-                      style: BanzamiTextStyles.bodySm.copyWith(
-                        color:      BanzamiColors.wine,
+                      style: BanzaTextStyles.bodySm.copyWith(
+                        color:      BanzaColors.wine,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const SizedBox(width: BanzamiSpacing.md),
+                  const SizedBox(width: BanzaSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('@${s.handle}',
-                            style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                            style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
                         if (s.displayName != null)
                           Text(s.displayName!,
-                              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
                       ],
                     ),
                   ),

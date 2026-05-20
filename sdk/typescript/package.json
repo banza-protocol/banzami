@@ -1,5 +1,5 @@
 {
-  "name": "@banzami/sdk",
+  "name": "@banza/sdk",
   "version": "0.1.0",
   "description": "Official JavaScript/TypeScript SDK for the Banzami payment platform",
   "license": "UNLICENSED",

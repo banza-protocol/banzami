@@ -17,7 +17,7 @@
 | Statement | Meaning |
 |-----------|---------|
 | Angola's QR-native instant payment network | QR codes are the primary merchant payment surface; settlement is instant, not delayed |
-| The first Angola-native SDK payment infrastructure | Any Angolan app integrates Banzami SDK and accepts AOA instantly — this infrastructure did not exist before |
+| The first Angola-native SDK payment infrastructure | Any Angolan app integrates Banza SDK and accepts AOA instantly — this infrastructure did not exist before |
 | The wallet layer for Angolan digital commerce | Every account is a wallet; every payment is a wallet transfer; not card-centric |
 | The payment API for Angolan applications | Taxi apps, delivery platforms, ecommerce, donation platforms — all use Banzami as their payment engine |
 | The replacement for cash and WhatsApp payment confirmation | The explicit product target: eliminate manual transfer confirmation in Angolan commerce |
@@ -122,7 +122,7 @@ Banzami is explicitly NOT modeled on:
 >
 > Banzami is Angola's QR-native instant payment network. A merchant prints a QR. A customer scans it. Money moves instantly — confirmed on both sides, no WhatsApp, no waiting, no reconciliation.
 >
-> For developers, we provide the first Angola-native SDK: any taxi app, delivery platform, or ecommerce site integrates Banzami in hours and starts accepting instant Kwanza payments inside their product.
+> For developers, we provide the first Angola-native SDK: any taxi app, delivery platform, or ecommerce site integrates Banza in hours and starts accepting instant Kwanza payments inside their product.
 >
 > We're building what Pix did for Brazil — but for Angola. Angola first, then the region.
 

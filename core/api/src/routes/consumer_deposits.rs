@@ -277,7 +277,7 @@ pub async fn callback(
     body:         Bytes,
 ) -> ApiResult<Json<ConsumerDepositResponse>> {
     let signature = headers
-        .get("X-Banzami-Signature")
+        .get("Banza-Signature")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
@@ -498,7 +498,7 @@ pub async fn test_confirm(
     // Reuse the callback handler logic by constructing fake HeaderMap + Bytes.
     let mut headers = HeaderMap::new();
     headers.insert(
-        "X-Banzami-Signature",
+        "Banza-Signature",
         signature.parse().map_err(|_| ApiError::internal("invalid signature header"))?,
     );
     callback(State(state), headers, Bytes::from(raw_body)).await
