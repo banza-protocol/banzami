@@ -31,6 +31,15 @@ var (
 	ErrTransferWalletNotFound    = errors.New("sender or recipient wallet not found")
 	ErrPaymentLinkNotFound       = errors.New("payment link not found")
 	ErrPaymentLinkNotActive      = errors.New("payment link is no longer active")
+
+	// Onboarding domain errors
+	ErrOtpInvalid          = errors.New("OTP is invalid or expired")
+	ErrOtpExpired          = errors.New("onboarding session has expired")
+	ErrOnboardingNotFound  = errors.New("onboarding session not found")
+	ErrInvalidHandle       = errors.New("handle format is invalid")
+	ErrDuplicateWallet     = errors.New("consumer already has an active wallet in this currency")
+	ErrPinPolicyFailed     = errors.New("PIN does not meet policy requirements")
+	ErrInvalidLifecycle    = errors.New("invalid lifecycle state transition")
 )
 
 // CorePublicClient is a thin HTTP client over the Rust core-api internal endpoints.
@@ -378,6 +387,105 @@ func (c *CorePublicClient) MarkPaymentLinkUsed(ctx context.Context, id string) (
 		return nil, mapPaymentLinkError(err)
 	}
 	return &out, nil
+}
+
+// ---------------------------------------------------------------------------
+// Consumer onboarding operations
+// ---------------------------------------------------------------------------
+
+// OnboardingSession is returned by StartOnboarding.
+type OnboardingSession struct {
+	SessionID   string `json:"session_id"`
+	PhoneNumber string `json:"phone_number"`
+	Status      string `json:"status"`
+}
+
+// OnboardingVerifyResponse is returned by VerifyOtp.
+type OnboardingVerifyResponse struct {
+	SessionID                       string `json:"session_id"`
+	Status                          string `json:"status"`
+	ProvisionalAvailableAccountID   string `json:"provisional_available_account_id"`
+	ProvisionalReservedAccountID    string `json:"provisional_reserved_account_id"`
+}
+
+// OnboardingWallet is returned by CompleteOnboarding.
+type OnboardingWallet struct {
+	WalletID    string `json:"wallet_id"`
+	ConsumerID  string `json:"consumer_id"`
+	BanzaHandle string `json:"banza_handle"`
+	Currency    string `json:"currency"`
+	Status      string `json:"status"`
+}
+
+// StartOnboarding creates a new PENDING_OTP onboarding session.
+// One active session per phone number — a second call for the same phone is idempotent.
+func (c *CorePublicClient) StartOnboarding(ctx context.Context, phoneNumber, currency string, otpForTest *string) (*OnboardingSession, error) {
+	body := map[string]any{
+		"phone_number": phoneNumber,
+		"currency":     currency,
+	}
+	if otpForTest != nil {
+		body["otp_plaintext_for_test"] = *otpForTest
+	}
+	var out OnboardingSession
+	if err := c.post(ctx, "/internal/v1/consumer/onboarding/start", body, &out); err != nil {
+		return nil, mapOnboardingError(err)
+	}
+	return &out, nil
+}
+
+// VerifyOtp advances the onboarding session from PENDING_OTP to PENDING_PIN.
+func (c *CorePublicClient) VerifyOtp(ctx context.Context, sessionID, otpCode string) (*OnboardingVerifyResponse, error) {
+	body := map[string]any{
+		"session_id": sessionID,
+		"otp_code":   otpCode,
+	}
+	var out OnboardingVerifyResponse
+	if err := c.post(ctx, "/internal/v1/consumer/onboarding/verify-otp", body, &out); err != nil {
+		return nil, mapOnboardingError(err)
+	}
+	return &out, nil
+}
+
+// CompleteOnboarding sets the handle and PIN, atomically activating the wallet.
+func (c *CorePublicClient) CompleteOnboarding(ctx context.Context, sessionID, banzaHandle, pin string) (*OnboardingWallet, error) {
+	body := map[string]any{
+		"session_id":   sessionID,
+		"banza_handle": banzaHandle,
+		"pin":          pin,
+	}
+	var out OnboardingWallet
+	if err := c.post(ctx, "/internal/v1/consumer/onboarding/complete", body, &out); err != nil {
+		return nil, mapOnboardingError(err)
+	}
+	return &out, nil
+}
+
+func mapOnboardingError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	switch {
+	case contains(msg, "OTP_INVALID"):
+		return ErrOtpInvalid
+	case contains(msg, "OTP_EXPIRED"):
+		return ErrOtpExpired
+	case contains(msg, "ONBOARDING_NOT_FOUND") || (contains(msg, "404") && contains(msg, "onboarding")):
+		return ErrOnboardingNotFound
+	case contains(msg, "HANDLE_TAKEN"):
+		return ErrHandleTaken
+	case contains(msg, "INVALID_HANDLE"):
+		return ErrInvalidHandle
+	case contains(msg, "DUPLICATE_WALLET"):
+		return ErrDuplicateWallet
+	case contains(msg, "PIN_POLICY_FAILED"):
+		return ErrPinPolicyFailed
+	case contains(msg, "INVALID_LIFECYCLE_STATE"):
+		return ErrInvalidLifecycle
+	default:
+		return err
+	}
 }
 
 // ---------------------------------------------------------------------------
