@@ -133,6 +133,7 @@
       "id": "DOC-001",
       "title": "Site de documentação Banzami",
       "categoryId": "cat-docs",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§15.2 (ADR-015)",
       "description": "Site de documentação público em Next.js servindo como interface visual para o documento de referência oficial BANZAMI_REFERENCE.md.",
       "requirement": "O site deve renderizar o documento de referência e estar acessível publicamente. Conteúdo derivado exclusivamente de BANZAMI_REFERENCE.md.",
@@ -169,16 +170,35 @@
         }
       ],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/docs/**",
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "DOC-002",
       "title": "Renderização de BANZAMI_REFERENCE.md",
       "categoryId": "cat-docs",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
       "description": "Motor de parsing que lê BANZAMI_REFERENCE.md em build time e produz estrutura de secções tipada para renderização no site.",
       "requirement": "Parsing determinístico de todas as 20 secções do documento de referência, com metadados, subsecções e slugs de rota.",
@@ -215,16 +235,35 @@
         }
       ],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/docs/**",
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "DOC-003",
       "title": "Navegação por secções individuais",
       "categoryId": "cat-docs",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
       "description": "Rotas individuais por secção do documento de referência, com hero, conteúdo markdown, componentes visuais e navegação prev/next.",
       "requirement": "Cada secção acessível em /{slug}, com conteúdo completo e navegação contextual.",
@@ -262,16 +301,34 @@
       "dependencies": [
         "DOC-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/docs/**",
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "DOC-004",
       "title": "Plataforma de validação e execução (/validacao)",
       "categoryId": "cat-docs",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
       "description": "Sistema de controlo de implementação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação.",
       "requirement": "Página /validacao com matriz completa de implementação, filtros, pesquisa, métricas globais e rastreabilidade ao documento de referência.",
@@ -311,16 +368,35 @@
       "dependencies": [
         "DOC-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/docs/**",
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-20",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "IDT-001",
       "title": "Documento de referência oficial (BANZAMI_REFERENCE.md)",
       "categoryId": "cat-identity",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1 — §20",
       "description": "Fonte única de verdade para todo o ecossistema Banzami — definição canónica de produto, arquitectura, filosofia, UX e posicionamento.",
       "requirement": "Documento completo, coerente e actualizado cobrindo todas as 20 secções do ecossistema. Nada pode aparecer no site sem existir primeiro aqui.",
@@ -352,16 +428,36 @@
         }
       ],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "core/consumer-wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "IDT-002",
       "title": "Arquitectura de marca Banzami/Banza",
       "categoryId": "cat-identity",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1 — §16 (CLAUDE.md)",
       "description": "Regras vinculativas de marca: Banzami = organização/infraestrutura, Banza = produto principal. Género gramatical, hierarquia de produto e nomenclatura SDK.",
       "requirement": "Todas as superfícies públicas (site, SDKs, documentação, código) devem seguir a arquitectura de marca definida. Banzami e Banza nunca confundidos.",
@@ -394,16 +490,35 @@
       "dependencies": [
         "IDT-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "core/consumer-wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "IDT-003",
       "title": "Posicionamento como rede de pagamentos QR-native de Angola",
       "categoryId": "cat-identity",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1.5 (CLAUDE.md)",
       "description": "Posicionamento público do Banzami como construtor da infraestrutura angolana de pagamentos digitais, com Banza como produto principal QR-native.",
       "requirement": "Toda a comunicação pública deve ser consistente com o posicionamento definido. Nenhuma descrição incorrecta (pan-africano, Stripe para África, etc.) deve aparecer.",
@@ -436,16 +551,35 @@
         "IDT-001",
         "IDT-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "core/consumer-wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WAL-001",
       "title": "Criação e onboarding de Banza Wallet",
       "categoryId": "cat-wallet",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§6.2, §13.2",
       "description": "Fluxo de onboarding de consumidor: número de telemóvel → verificação OTP → escolha de @banza → definir PIN → carteira pronta.",
       "requirement": "Onboarding completo em menos de 2 minutos. Carteira pronta para receber dinheiro imediatamente após onboarding.",
@@ -470,12 +604,23 @@
       "dependencies": [
         "HDL-001"
       ],
+      "requires": [],
+      "affects": [
+        "WAL-003",
+        "WAL-004",
+        "QR-001",
+        "QR-003",
+        "QR-005",
+        "P2P-001"
+      ],
+      "revalidateWhenChanged": [
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [
         "Autenticação por SMS não implementada",
         "Infraestrutura de wallets não iniciada"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-WAL-001-1",
@@ -484,12 +629,27 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WAL-002",
       "title": "Saldo disponível vs. reservado em tempo real",
       "categoryId": "cat-wallet",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§6.2",
       "description": "Carteira com dois estados de saldo: disponível (gastável imediatamente) e reservado (operações pendentes). Ambos exactos e em tempo real.",
       "requirement": "Saldo disponível e reservado sempre exactos. Sem atraso de actualização. Sem inconsistência eventual.",
@@ -514,11 +674,20 @@
         "LED-001",
         "LED-003"
       ],
+      "requires": [
+        "LED-001",
+        "LED-003"
+      ],
+      "affects": [
+        "PAY-001"
+      ],
+      "revalidateWhenChanged": [
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [
         "Motor de carteiras em Rust não iniciado"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-WAL-002-1",
@@ -533,15 +702,26 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "LED-001",
-        "LED-003"
-      ]
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WAL-003",
       "title": "Histórico de transacções da carteira",
       "categoryId": "cat-wallet",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§13.7",
       "description": "Lista de todas as transacções — enviadas e recebidas — com timestamps, valores, @banza da contraparte e estado.",
       "requirement": "Histórico completo, imutável e pesquisável. Cada transacção identificável individualmente.",
@@ -565,19 +745,36 @@
         "WAL-001",
         "LED-001"
       ],
-      "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "WAL-001",
         "LED-001"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WAL-004",
       "title": "Carregamento de carteira (depósito)",
       "categoryId": "cat-wallet",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§6.2, §10.3",
       "description": "Mecanismo de carregamento da Banza Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
       "requirement": "Consumidor pode adicionar fundos à carteira a partir do sistema bancário angolano. Saldo actualiza após confirmação.",
@@ -602,21 +799,38 @@
         "EMS-001",
         "LED-001"
       ],
-      "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001"
-      ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "WAL-001",
         "LED-001"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [
+        "Integração EMIS bloqueada — ver EMS-001"
+      ],
+      "invariants": [],
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "HDL-001",
       "title": "Sistema @banza — registo e unicidade",
       "categoryId": "cat-handle",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "Sistema de identidade de pagamento @banza — handle único e legível por humanos para cada conta. Registo, validação de formato e garantia de unicidade.",
       "requirement": "@banza único em toda a rede, alfanumérico com pontos permitidos, imutável após confirmação.",
@@ -637,16 +851,34 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "HDL-002",
       "title": "Resolução de @banza para carteira",
       "categoryId": "cat-handle",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "API que resolve um @banza para a carteira correspondente em tempo real, usada em transferências, QR e pedidos de pagamento.",
       "requirement": "Resolução em menos de 100ms. Erro claro para @banza inexistente.",
@@ -669,16 +901,34 @@
       "dependencies": [
         "HDL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "HDL-003",
       "title": "Pesquisa e sugestão de @banza",
       "categoryId": "cat-handle",
+      "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "Funcionalidade de pesquisa de @banza na app do consumidor — sugestões durante digitação, verificação de disponibilidade em tempo real.",
       "requirement": "Pesquisa responsiva durante onboarding e ao iniciar transferências. Feedback imediato sobre disponibilidade.",
@@ -700,16 +950,33 @@
         "HDL-001",
         "HDL-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/identity/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "QR-001",
       "title": "QR Estático — geração permanente para comerciante",
       "categoryId": "cat-qr",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§9.1",
       "description": "Geração de QR estático codificando banza://@banza do comerciante. Permanente, imprimível, válido indefinidamente.",
       "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprimível em alta resolução.",
@@ -735,9 +1002,18 @@
         "HDL-001",
         "WAL-001"
       ],
+      "requires": [
+        "WAL-001"
+      ],
+      "affects": [
+        "QR-002",
+        "QR-003"
+      ],
+      "revalidateWhenChanged": [
+        "core/qr/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-QR-001-1",
@@ -746,14 +1022,27 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "WAL-001"
-      ]
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "QR-002",
       "title": "QR Dinâmico — por transacção com valor e expiração",
       "categoryId": "cat-qr",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§9.2",
       "description": "QR gerado por transacção com valor pré-definido, referência e expiração. O consumidor só precisa de confirmar — valor pré-preenchido.",
       "requirement": "QR dinâmico expira após uso ou timeout. Valor e referência correctos ao resolver.",
@@ -779,9 +1068,19 @@
         "QR-001",
         "LED-003"
       ],
+      "requires": [
+        "QR-001",
+        "LED-003"
+      ],
+      "affects": [
+        "QR-003",
+        "P2P-002"
+      ],
+      "revalidateWhenChanged": [
+        "core/qr/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-QR-002-1",
@@ -796,15 +1095,26 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "QR-001",
-        "LED-003"
-      ]
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "QR-003",
       "title": "Scan e resolução de QR na app Banza",
       "categoryId": "cat-qr",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.4",
       "description": "Experiência de scan de QR na app Banza — câmara, descodificação, ecrã de confirmação, PIN/biometria e confirmação de pagamento.",
       "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especificação §6.4.",
@@ -831,20 +1141,40 @@
         "QR-002",
         "WAL-001"
       ],
-      "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "QR-001",
         "QR-002",
         "WAL-001"
-      ]
+      ],
+      "affects": [
+        "QR-005",
+        "P2P-002"
+      ],
+      "revalidateWhenChanged": [
+        "core/qr/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 25,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "QR-004",
       "title": "Loja QR pública do comerciante",
       "categoryId": "cat-qr",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§9.3, §11.6",
       "description": "Página pública por comerciante em pay.banzami.org/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
       "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
@@ -869,16 +1199,33 @@
         "QR-001",
         "HDL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/qr/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "QR-005",
       "title": "QR P2P — consumidor para consumidor",
       "categoryId": "cat-qr",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§9.4",
       "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou família — mesmo fluxo que comerciante, wallet-to-wallet.",
       "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo idêntico ao pagamento a comerciante.",
@@ -902,19 +1249,36 @@
         "QR-003",
         "WAL-001"
       ],
-      "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "QR-003",
         "WAL-001"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/qr/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 25,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "P2P-001",
       "title": "Transferência P2P por @banza",
       "categoryId": "cat-p2p",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§13.4",
       "description": "Envio de dinheiro de uma carteira para outra via @banza — sem dados bancários, sem IBAN, liquidação instantânea.",
       "requirement": "Transferência de carteira-para-carteira por @banza, confirmada e liquidada instantaneamente.",
@@ -941,9 +1305,16 @@
         "WAL-001",
         "LED-003"
       ],
+      "requires": [
+        "WAL-001",
+        "LED-003"
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/transfers/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-P2P-001-1",
@@ -958,15 +1329,26 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "WAL-001",
-        "LED-003"
-      ]
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "P2P-002",
       "title": "Divisão de conta por QR (split payments)",
       "categoryId": "cat-p2p",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§8.8, §13.8",
       "description": "QR dinâmico de grupo gerado para total de mesa. Cada pessoa faz scan e paga a sua parte. Mesa liquidada quando total atingido.",
       "requirement": "Múltiplos consumidores pagam partes de um total via QR. Sistema reconcilia total automaticamente.",
@@ -990,19 +1372,36 @@
         "QR-002",
         "QR-003"
       ],
-      "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "QR-002",
         "QR-003"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/transfers/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PL-001",
       "title": "Criação de links de pagamento",
       "categoryId": "cat-paylinks",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.5, §7",
       "description": "API e interface para criar links de pagamento configuráveis — montante, descrição, expiração, referência de encomenda.",
       "requirement": "Link de pagamento criável via SDK, API e Banza Business. URL partilhável gerada imediatamente.",
@@ -1027,16 +1426,34 @@
         "LED-001",
         "WH-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payment-links/**",
+        "apps/pay/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PL-002",
       "title": "Página pública de pagamento (pay.banzami.org)",
       "categoryId": "cat-paylinks",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.5",
       "description": "Página pública acessível por qualquer utilizador — exibe comerciante, valor e botão de pagamento. Funciona sem app instalada.",
       "requirement": "Página acessível sem conta, exibe todas as informações do link, permite pagamento com app Banza.",
@@ -1060,16 +1477,33 @@
       "dependencies": [
         "PL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payment-links/**",
+        "apps/pay/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PL-003",
       "title": "Liquidação via link de pagamento e webhooks",
       "categoryId": "cat-paylinks",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.5, §12.6",
       "description": "Quando consumidor paga via link, liquidação acontece instantaneamente e webhook é enviado ao comerciante dentro de 2 segundos.",
       "requirement": "Liquidação de link de pagamento instantânea. Webhook entregue em menos de 2 segundos.",
@@ -1095,16 +1529,34 @@
         "WH-001",
         "LED-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payment-links/**",
+        "apps/pay/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PR-001",
       "title": "Criação e envio de pedido de pagamento",
       "categoryId": "cat-payrequests",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.6, §7",
       "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
       "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
@@ -1128,16 +1580,33 @@
         "HDL-002",
         "WAL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payment-links/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PR-002",
       "title": "Pagamento e recusa de pedido de pagamento",
       "categoryId": "cat-payrequests",
+      "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.6, §13.6",
       "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
       "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
@@ -1163,16 +1632,33 @@
         "LED-003",
         "WH-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payment-links/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BM-001",
       "title": "Interface móvel Banza Business — operação diária",
       "categoryId": "cat-biz-mobile",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.1",
       "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
       "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
@@ -1198,16 +1684,34 @@
         "QR-001",
         "QR-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/mobile/**",
+        "apps/merchant/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BM-002",
       "title": "Notificações de pagamento em tempo real",
       "categoryId": "cat-biz-mobile",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.1",
       "description": "Push notification instantânea ao comerciante quando um pagamento é recebido — valor, @banza do pagador e timestamp.",
       "requirement": "Notificação entregue em menos de 2 segundos após liquidação. Mesmo com app em background.",
@@ -1231,16 +1735,34 @@
         "LED-003",
         "WH-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/mobile/**",
+        "apps/merchant/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BM-003",
       "title": "Geração de QR estático e dinâmico na interface móvel",
       "categoryId": "cat-biz-mobile",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.4",
       "description": "Comerciante gera QR estático (imprimir uma vez) e QR dinâmico (por transacção com valor) directamente na app móvel.",
       "requirement": "QR gerado instantaneamente na app, partilhável e imprimível.",
@@ -1263,16 +1785,33 @@
         "QR-001",
         "QR-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/mobile/**",
+        "apps/merchant/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BW-001",
       "title": "Dashboard web Banza Business",
       "categoryId": "cat-biz-web",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
       "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
@@ -1296,16 +1835,33 @@
         "WAL-002",
         "WAL-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/dashboard/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BW-002",
       "title": "Análises e relatórios no Banza Business",
       "categoryId": "cat-biz-web",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Volume diário/mensal, contagens de transacções, horas de pico e tendências para o comerciante.",
       "requirement": "Análises precisas derivadas do ledger. Filtráveis por período. Exportáveis.",
@@ -1327,16 +1883,32 @@
       "dependencies": [
         "BW-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/dashboard/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BW-003",
       "title": "Gestão de chaves API no Banza Business",
       "categoryId": "cat-biz-web",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2, §12",
       "description": "Interface para gerar, listar e revogar chaves API de sandbox e produção. Chave bruta visível apenas uma vez após criação.",
       "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revogação imediata.",
@@ -1359,16 +1931,32 @@
       "dependencies": [
         "SEC-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/dashboard/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "BW-004",
       "title": "Gestão de equipa e permissões",
       "categoryId": "cat-biz-web",
+      "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
       "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
@@ -1391,16 +1979,33 @@
       "dependencies": [
         "BW-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "apps/dashboard/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SDK-001",
       "title": "TypeScript SDK (@banza/sdk)",
       "categoryId": "cat-sdk",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.2, §12.3",
       "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempotência automática, retry com backoff exponencial e verificação de webhooks.",
       "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das operações da API. Documentação completa.",
@@ -1427,18 +2032,36 @@
         "API-001",
         "WH-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/**"
+      ],
       "blockingIssues": [
         "API REST não implementada ainda"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SDK-002",
       "title": "PHP SDK (banza/sdk-php)",
       "categoryId": "cat-sdk",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.2, §12.4",
       "description": "SDK PHP compatível com PSR-18, com BanzaClient e integração Laravel nativa.",
       "requirement": "SDK publicado no Packagist. Compatível com Laravel. Cobertura de API completa.",
@@ -1462,18 +2085,36 @@
       "dependencies": [
         "API-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/**"
+      ],
       "blockingIssues": [
         "API REST não implementada ainda"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SDK-003",
       "title": "Flutter SDK (banza_flutter / BanzaPay)",
       "categoryId": "cat-sdk",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.2, §12.5",
       "description": "SDK Flutter para fluxos de pagamento in-app e comércio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
       "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementação de lógica de pagamento na app anfitriã.",
@@ -1499,18 +2140,36 @@
         "API-001",
         "QR-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/**"
+      ],
       "blockingIssues": [
         "API REST não implementada ainda"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SDK-004",
       "title": "Go SDK (banza-go)",
       "categoryId": "cat-sdk",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.2",
       "description": "Cliente Go nativo com propagação de contexto, erros estruturados e idempotência automática.",
       "requirement": "Módulo Go publicado. Propagação de contexto correcta. Erros estruturados.",
@@ -1534,16 +2193,34 @@
       "dependencies": [
         "API-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SDK-005",
       "title": "Python SDK (banza-python)",
       "categoryId": "cat-sdk",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.2",
       "description": "SDK async-first com Pydantic v2 e suporte Django/FastAPI.",
       "requirement": "SDK publicado no PyPI. async-first. Pydantic v2 para validação de tipos.",
@@ -1567,16 +2244,34 @@
       "dependencies": [
         "API-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "API-001",
       "title": "API REST — transacções, carteiras e transferências",
       "categoryId": "cat-api",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.8",
       "description": "Endpoints REST para operações core — criar/capturar/anular transacções, obter saldo de carteiras, listar transacções e criar transferências.",
       "requirement": "API versionada, idempotente, com autenticação por chave API. Erros estruturados. Paginação.",
@@ -1603,18 +2298,37 @@
         "LED-001",
         "SEC-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**",
+        "services/public-api/**",
+        "services/admin-api/**"
+      ],
       "blockingIssues": [
         "Core Rust + API Go em desenvolvimento"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "API-002",
       "title": "API REST — QR, links de pagamento e pedidos",
       "categoryId": "cat-api",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
       "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
@@ -1637,16 +2351,35 @@
       "dependencies": [
         "API-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**",
+        "services/public-api/**",
+        "services/admin-api/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "API-003",
       "title": "API REST — levantamentos, reembolsos e disputas",
       "categoryId": "cat-api",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
       "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
@@ -1670,18 +2403,36 @@
         "API-001",
         "EMS-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**",
+        "services/public-api/**",
+        "services/admin-api/**"
+      ],
       "blockingIssues": [
         "Integração EMIS necessária para levantamentos"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WH-001",
       "title": "Sistema de webhooks — entrega de eventos",
       "categoryId": "cat-webhooks",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.6, §18.4",
       "description": "Entrega de eventos em tempo real para endpoints registados — 9 tipos de evento, entrega garantida, retry automático.",
       "requirement": "Eventos entregues em menos de 2 segundos após acção desencadeadora. Retry com backoff. Rastreamento de entregas.",
@@ -1705,16 +2456,33 @@
       "dependencies": [
         "LED-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WH-002",
       "title": "Verificação de assinatura HMAC-SHA256",
       "categoryId": "cat-webhooks",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.6, §16",
       "description": "Cada webhook entregue com header banza-signature assinado por HMAC-SHA256 usando o segredo do endpoint.",
       "requirement": "Assinatura verificável em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
@@ -1738,16 +2506,32 @@
         "WH-001",
         "SEC-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "unit tests (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "WH-003",
       "title": "Retry automático com backoff exponencial",
       "categoryId": "cat-webhooks",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.6",
       "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo após falhas persistentes.",
       "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante após falha persistente.",
@@ -1769,16 +2553,32 @@
       "dependencies": [
         "WH-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SBX-001",
       "title": "Ambiente sandbox completamente isolado",
       "categoryId": "cat-sandbox",
+      "validationDomain": "DOM-DEV",
       "referenceSection": "§12.7, §16.7",
       "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superfície de API idêntica à produção.",
       "requirement": "Sandbox completamente isolado — diferentes chaves, diferentes dados, sem movimento de dinheiro real. API idêntica.",
@@ -1802,16 +2602,33 @@
       "dependencies": [
         "API-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/api-gateway/**",
+        "core/api/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "LED-001",
       "title": "Ledger de dupla entrada",
       "categoryId": "cat-ledger",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§16.1",
       "description": "Cada movimento monetário registado como par de entradas de ledger de dupla entrada — débito e crédito atomicamente. Líquido sempre zero.",
       "requirement": "Cada transacção cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
@@ -1833,11 +2650,22 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
+      "requires": [],
+      "affects": [
+        "WAL-002",
+        "WAL-003",
+        "WAL-004",
+        "LED-002",
+        "LED-003",
+        "LED-004"
+      ],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [
         "Core Rust em desenvolvimento inicial"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-LED-001-1",
@@ -1852,12 +2680,26 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "LED-002",
       "title": "Imutabilidade de entradas do ledger",
       "categoryId": "cat-ledger",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§16.2",
       "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Histórico financeiro completo e inviolável.",
       "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Histórico completamente reconstruível.",
@@ -1880,9 +2722,18 @@
       "dependencies": [
         "LED-001"
       ],
+      "requires": [
+        "LED-001"
+      ],
+      "affects": [
+        "LED-004",
+        "REF-001"
+      ],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-LED-002-1",
@@ -1891,14 +2742,24 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "LED-001"
-      ]
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "LED-003",
       "title": "Operações atómicas de pagamento",
       "categoryId": "cat-ledger",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§17.5",
       "description": "Todas as operações financeiras dentro de transacções PostgreSQL — ou tudo commit, ou tudo rollback. Sem estado intermédio.",
       "requirement": "Sem estado de pagamento intermédio visível. Transacção confirma ou falha — nunca parcialmente.",
@@ -1921,9 +2782,19 @@
       "dependencies": [
         "LED-001"
       ],
+      "requires": [
+        "LED-001"
+      ],
+      "affects": [
+        "WAL-002",
+        "QR-002",
+        "P2P-001"
+      ],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-LED-003-1",
@@ -1938,14 +2809,25 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "LED-001"
-      ]
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "LED-004",
       "title": "Reconciliação automática diária",
       "categoryId": "cat-ledger",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§16.8",
       "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com créditos bancários reais.",
       "requirement": "Reconciliação diária automática. Qualquer discrepância gera alerta. Zero discrepâncias não resolvidas permitidas.",
@@ -1971,21 +2853,35 @@
         "LED-002",
         "EMS-001"
       ],
-      "blockingIssues": [
-        "EMIS integration bloqueada"
-      ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "LED-001",
         "LED-002"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [
+        "EMIS integration bloqueada"
+      ],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": []
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "KYC-001",
       "title": "Verificação KYC de consumidores",
       "categoryId": "cat-kyc",
+      "validationDomain": "DOM-COMPLIANCE",
       "referenceSection": "§16.5",
       "description": "Verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Por níveis conforme volume.",
       "requirement": "KYC obrigatório antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
@@ -2010,19 +2906,37 @@
       "dependencies": [
         "WAL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/compliance/**",
+        "services/admin-api/**"
+      ],
       "blockingIssues": [
         "Decisão de parceiro KYC angolano pendente — acção não técnica, bloqueia todo o arranque KYC",
         "Sem parceiro seleccionado não é possível iniciar integração técnica"
       ],
-      "lastUpdated": "2026-05-20",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "KYC-002",
       "title": "Verificação KYB de comerciantes",
       "categoryId": "cat-kyc",
+      "validationDomain": "DOM-COMPLIANCE",
       "referenceSection": "§16.5",
       "description": "Verificação de negócio para comerciantes — NIF para entidades formais, verificação de identidade para individuais.",
       "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
@@ -2045,16 +2959,34 @@
       "dependencies": [
         "BM-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/compliance/**",
+        "services/admin-api/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RSK-001",
       "title": "Motor de risco em tempo real",
       "categoryId": "cat-risk",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.4",
       "description": "Triagem de transacções em tempo real antes de confirmar no ledger — velocidade, anomalias de valor, sinais de conta e dispositivo.",
       "requirement": "Motor de risco no caminho crítico. Transacções acima de limiares retidas ou recusadas antes do ledger.",
@@ -2079,18 +3011,34 @@
       "dependencies": [
         "LED-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/risk/**"
+      ],
       "blockingIssues": [
         "Core Rust em desenvolvimento"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RSK-002",
       "title": "Revisão e alertas de transacções suspeitas",
       "categoryId": "cat-risk",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.4",
       "description": "Fila de revisão para transacções sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolução.",
       "requirement": "Fila de revisão no painel admin. Alertas em tempo real. Resolução com trilho de auditoria.",
@@ -2113,16 +3061,33 @@
       "dependencies": [
         "RSK-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/risk/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 45,
+        "level": "MEDIUM",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SEC-001",
       "title": "TLS 1.3 em todas as comunicações",
       "categoryId": "cat-security",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.6",
       "description": "Toda a comunicação cliente-servidor e serviço-serviço usa TLS 1.3. Cloudflare como terminação TLS pública.",
       "requirement": "Zero comunicação não encriptada. TLS 1.3 obrigatório. Certificados geridos e renovados automaticamente.",
@@ -2145,16 +3110,34 @@
       "dependencies": [
         "ARC-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/**",
+        "core/api/**",
+        "infra/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SEC-002",
       "title": "Encriptação AES-256 em repouso",
       "categoryId": "cat-security",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.6",
       "description": "Dados sensíveis encriptados em repouso — documentos KYC, segredos de webhook e chaves API em hash SHA-256.",
       "requirement": "Dados sensíveis nunca em claro em disco. Chaves API hasheadas. Documentos KYC encriptados com log de acesso.",
@@ -2175,16 +3158,33 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/**",
+        "core/api/**",
+        "infra/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SEC-003",
       "title": "Idempotência de operações de pagamento",
       "categoryId": "cat-security",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.3",
       "description": "Cada operação de pagamento identificada por chave de idempotência única. Segundo submit retorna resultado original sem novo efeito.",
       "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobranças duplicadas por retry.",
@@ -2207,16 +3207,34 @@
       "dependencies": [
         "LED-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/**",
+        "core/api/**",
+        "infra/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "unit tests (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "SEC-004",
       "title": "Auditoria e trilhos de auditoria imutáveis",
       "categoryId": "cat-security",
+      "validationDomain": "DOM-SEC",
       "referenceSection": "§16.1, §16.2",
       "description": "Trilho de auditoria completo e imutável para cada operação financeira — quem fez, quando, com que resultado.",
       "requirement": "Cada acção financeira e de autenticação auditável. Trilho não editável. Disponível para reguladores.",
@@ -2239,16 +3257,33 @@
       "dependencies": [
         "LED-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/**",
+        "core/api/**",
+        "infra/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PAY-001",
       "title": "Levantamentos para conta bancária angolana",
       "categoryId": "cat-payouts",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§11.5, §7",
       "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta bancária angolana registada. Iniciado via interface móvel, web ou API.",
       "requirement": "Levantamento iniciado imediatamente. Transferência EMIS iniciada. Estado rastreável até confirmação.",
@@ -2274,11 +3309,19 @@
         "EMS-001",
         "WAL-002"
       ],
+      "requires": [
+        "WAL-002"
+      ],
+      "affects": [
+        "PAY-002"
+      ],
+      "revalidateWhenChanged": [
+        "core/payouts/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [
         "Integração EMIS bloqueada — ver EMS-001"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-PAY-001-1",
@@ -2287,14 +3330,25 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "WAL-002"
-      ]
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "PAY-002",
       "title": "Rastreamento de levantamentos e conciliação EMIS",
       "categoryId": "cat-payouts",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§11.5, §16.8",
       "description": "Cada levantamento rastreado desde a criação até à confirmação bancária. Reconciliação com extractos EMIS.",
       "requirement": "Estado de levantamento visível em tempo real. Reconciliação automática com confirmações EMIS.",
@@ -2317,20 +3371,34 @@
       "dependencies": [
         "EMS-002"
       ],
+      "requires": [
+        "PAY-001"
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/payouts/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [
         "Integração EMIS bloqueada — ver EMS-001 e EMS-002"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": [
-        "PAY-001"
-      ]
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": []
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "REF-001",
       "title": "Reembolsos parciais e totais",
       "categoryId": "cat-refunds",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§7, §16.2",
       "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banza Business ou via API. Nova entrada de ledger oposta criada.",
       "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
@@ -2355,9 +3423,18 @@
         "LED-002",
         "WH-001"
       ],
+      "requires": [
+        "LED-002"
+      ],
+      "affects": [
+        "REF-002"
+      ],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [
         {
           "id": "INV-REF-001-1",
@@ -2372,14 +3449,25 @@
           "status": "NOT_RUN"
         }
       ],
-      "requires": [
-        "LED-002"
-      ]
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "invariants not all PASS (+0)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "REF-002",
       "title": "Processo de resolução de disputas",
       "categoryId": "cat-refunds",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§7, §11.2.2",
       "description": "Consumidor abre disputa sobre uma transacção. Comerciante responde. Processo estruturado de resolução com trilho de auditoria.",
       "requirement": "Disputas abertas via app, com prazo de resposta, evidências e decisão documentada.",
@@ -2404,18 +3492,36 @@
         "REF-001",
         "WH-001"
       ],
-      "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
-      "invariants": [],
       "requires": [
         "REF-001"
-      ]
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/ledger/**",
+        "core/wallets/**",
+        "db/migrations/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "ARC-001",
       "title": "Core financeiro em Rust",
       "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§17.2 (CLAUDE.md §3.1)",
       "description": "Motor financeiro core em Rust — ledger, carteiras, transacções, liquidação, reconciliação, risco e conformidade.",
       "requirement": "Core financeiro implementado em Rust com segurança de memória, desempenho determinístico e sem GC no caminho de pagamento.",
@@ -2445,16 +3551,36 @@
         }
       ],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "unit tests (+15)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "ARC-002",
       "title": "Camada API em Go (gateway + APIs públicas/admin)",
       "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§17.2, §17.3 (CLAUDE.md §3.2)",
       "description": "API Gateway, API Pública e API Admin em Go — auth, rate limiting, routing, entrega de webhooks.",
       "requirement": "Camada API Go funcional com gateway, APIs públicas e admin. Autenticação e rate limiting operacionais.",
@@ -2484,16 +3610,35 @@
       "dependencies": [
         "ARC-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 70,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "ARC-003",
       "title": "Frontend TypeScript/Next.js",
       "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§17.2 (CLAUDE.md §3.3)",
       "description": "Frontend em TypeScript/Next.js para dashboard de comerciante, administração e documentação pública.",
       "requirement": "Frontend implementado em Next.js com TypeScript. Site de documentação em produção.",
@@ -2526,16 +3671,35 @@
       ],
       "notes": "Site de documentação em produção e validado. Dashboard de comerciante planeado.",
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 65,
+        "level": "HIGH",
+        "basis": [
+          "implementation evidence (+20)",
+          "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "ARC-004",
       "title": "Base de dados PostgreSQL como fonte única de verdade",
       "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§17.2 (CLAUDE.md §3.5)",
       "description": "PostgreSQL como única fonte de verdade financeira com garantias ACID. Sem outras fontes de verdade para dados financeiros.",
       "requirement": "PostgreSQL configurado com backups, replicação e índices optimizados para o caminho de pagamento.",
@@ -2557,16 +3721,33 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "ARC-005",
       "title": "Decisão de arquitectura: Monólito Modular",
       "categoryId": "cat-arch",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§17.6 (CLAUDE.md §2.3)",
       "description": "Arquitectura de monólito modular definida e documentada — módulos isolados internamente, fronteiras de domínio claras, deploy único.",
       "requirement": "Decisão arquitectural documentada em ADR. Estrutura de módulos conforme CLAUDE.md e referência técnica.",
@@ -2597,16 +3778,34 @@
         }
       ],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "implementation evidence (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "OBS-001",
       "title": "OpenTelemetry + Prometheus — métricas e traços",
       "categoryId": "cat-observability",
+      "validationDomain": "DOM-OBS",
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Instrumentação OpenTelemetry em todos os serviços, Prometheus para métricas e traços ponta-a-ponta desde gateway até ledger.",
       "requirement": "Cada serviço emite métricas e traços. Latências do caminho de pagamento rastreadas.",
@@ -2629,16 +3828,33 @@
         "ARC-001",
         "ARC-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "infra/monitoring/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "OBS-002",
       "title": "Painéis Grafana operacionais",
       "categoryId": "cat-observability",
+      "validationDomain": "DOM-OBS",
       "referenceSection": "§17.7",
       "description": "Três painéis Grafana — Pagamentos, Carteiras e Ledger, Liquidações e Levantamentos — conforme §17.7.",
       "requirement": "Três painéis Grafana operacionais com os indicadores definidos em §17.7.",
@@ -2660,16 +3876,33 @@
       "dependencies": [
         "OBS-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "infra/monitoring/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "OBS-003",
       "title": "Logs estruturados JSON em todos os serviços",
       "categoryId": "cat-observability",
+      "validationDomain": "DOM-OBS",
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Logs estruturados JSON com IDs de transacção, tipos de operação e resultados. Sem logs de texto livre em serviços de produção.",
       "requirement": "Todos os serviços emitem logs JSON com campos obrigatórios: transaction_id, operation_type, result, latency_ms.",
@@ -2692,16 +3925,33 @@
         "ARC-001",
         "ARC-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "infra/monitoring/**",
+        "services/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "EMS-001",
       "title": "Integração EMIS/Multicaixa Express",
       "categoryId": "cat-emis",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§6.7, §10.4",
       "description": "Integração com EMIS (Empresa Interbancária de Serviços) — infraestrutura de pagamentos interbancários de Angola — para liquidação e levantamentos.",
       "requirement": "Integração EMIS completa para carregamento de carteiras e liquidação de levantamentos. Conforme regulação BNA.",
@@ -2724,20 +3974,37 @@
       "testCoverage": false,
       "evidence": [],
       "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/acquiring/**"
+      ],
       "blockingIssues": [
         "Certificação de operador de pagamento BNA pendente",
         "Acordo com EMIS não formalizado",
         "Análise jurídica e de conformidade regulatória em curso"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "EMS-002",
       "title": "Liquidação interbancária via EMIS",
       "categoryId": "cat-emis",
+      "validationDomain": "DOM-INFRA",
       "referenceSection": "§6.7, §15.2",
       "description": "Liquidação de levantamentos de comerciantes e carregamentos de consumidores via rede interbancária EMIS/Multicaixa Express.",
       "requirement": "Dinheiro flui entre carteiras Banza e sistema bancário angolano de forma fiável e auditável via EMIS.",
@@ -2760,23 +4027,37 @@
       "dependencies": [
         "EMS-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/acquiring/**"
+      ],
       "blockingIssues": [
         "Bloqueado por EMS-001 — certificação BNA pendente"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RD-001",
       "title": "App móvel do consumidor Banza (Flutter)",
       "categoryId": "cat-roadmap",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§6.4, §13",
       "description": "App Flutter nativa para consumidores — carteira, scanner QR, transferências P2P, histórico e gestão de conta. Este é o produto principal do consumidor, não uma funcionalidade de roadmap.",
       "requirement": "App nativa disponível em Android e iOS. UX da §6.4 e §13 completamente implementada.",
       "status": "PLANNED",
-      "notes": "Reclassificado de FUTURE para PLANNED — a app do consumidor é o produto, não roadmap. Sem ela nenhum consumidor pode pagar via QR. Integração na Fase 4 do roadmap de execução.",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Dart",
@@ -2792,21 +4073,38 @@
       ],
       "testCoverage": false,
       "evidence": [],
+      "notes": "Reclassificado de FUTURE para PLANNED — a app do consumidor é o produto, não roadmap. Sem ela nenhum consumidor pode pagar via QR. Integração na Fase 4 do roadmap de execução.",
       "dependencies": [
         "API-001",
         "API-002",
         "QR-003"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-20",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 35,
+        "level": "LOW",
+        "basis": [
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "RD-002",
       "title": "Pagamentos recorrentes",
       "categoryId": "cat-roadmap",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§19 — Médio prazo",
       "description": "Pedidos de pagamento agendados para subscrições, propinas escolares e quotas periódicas.",
       "requirement": "Sistema de recorrência com frequência configurável, notificações automáticas e gestão de falhas.",
@@ -2827,16 +4125,32 @@
       "dependencies": [
         "PR-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RD-003",
       "title": "Plugin WooCommerce/WordPress",
       "categoryId": "cat-roadmap",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§18.3",
       "description": "Plugin de gateway de pagamento WooCommerce para lojas angolanas. Usa PHP SDK internamente.",
       "requirement": "Plugin publicado no repositório WordPress. Usa banza/sdk-php. Suporte a pagamentos QR e links.",
@@ -2859,16 +4173,33 @@
       "dependencies": [
         "SDK-002"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 55,
+        "level": "MEDIUM",
+        "basis": [
+          "integration tests (+20)",
+          "E2E / manual UX (+15)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RD-004",
       "title": "Carregamento de carteira por cartão de débito",
       "categoryId": "cat-roadmap",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§10.3, §19 — Longo prazo",
       "description": "Mecanismo para financiar Banza Wallet usando cartão de débito angolano. Cartão como via de financiamento — não modelo de pagamento.",
       "requirement": "Carregamento por cartão disponível como opcional. Cartão NUNCA usado para pagamentos directos — apenas para top-up de carteira.",
@@ -2893,16 +4224,31 @@
         "WAL-001",
         "EMS-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "docs/**"
+      ],
       "blockingIssues": [],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 20,
+        "level": "LOW",
+        "basis": [
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     },
     {
       "id": "RD-005",
       "title": "Expansão geográfica além de Angola",
       "categoryId": "cat-roadmap",
+      "validationDomain": "DOM-DOCS",
       "referenceSection": "§19 — Longo prazo",
       "description": "Após Angola atingir densidade de rede: aplicação do mesmo modelo a mercados vizinhos africanos.",
       "requirement": "Expansão apenas após rede angolana demonstrar density e operação estável. Arquitectura já preparada.",
@@ -2927,13 +4273,28 @@
         "KYC-001",
         "WAL-001"
       ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "docs/**"
+      ],
       "blockingIssues": [
         "Densidade de rede Angola não atingida"
       ],
-      "lastUpdated": "2026-05-19",
-      "history": [],
       "invariants": [],
-      "requires": []
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "production / sandbox evidence (+10)",
+          "non-financial item (invariants not required, +20)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [],
+      "lastUpdated": "2026-05-19"
     }
   ]
 }
