@@ -4,113 +4,113 @@
     "lastUpdated": "2026-05-20",
     "referenceVersion": "1.0",
     "referenceFile": "docs/BANZAMI_REFERENCE.md",
-    "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
+    "description": "Implementation and validation matrix for the Banzami ecosystem \u2014 derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
   },
   "categories": [
     {
       "id": "cat-docs",
-      "name": "Site & Documentação",
-      "description": "Plataforma de documentação pública, renderização do documento de referência e navegação."
+      "name": "Site & Documenta\u00e7\u00e3o",
+      "description": "Plataforma de documenta\u00e7\u00e3o p\u00fablica, renderiza\u00e7\u00e3o do documento de refer\u00eancia e navega\u00e7\u00e3o."
     },
     {
       "id": "cat-identity",
       "name": "Identidade & Posicionamento",
-      "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e definição do ecossistema."
+      "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e defini\u00e7\u00e3o do ecossistema."
     },
     {
       "id": "cat-wallet",
       "name": "Banza Wallet",
-      "description": "Carteiras digitais em Kwanza — criação, saldos, histórico e carregamento."
+      "description": "Carteiras digitais em Kwanza \u2014 cria\u00e7\u00e3o, saldos, hist\u00f3rico e carregamento."
     },
     {
       "id": "cat-handle",
       "name": "@banza",
-      "description": "Sistema de identidade de pagamento — registo, resolução e pesquisa de @banza."
+      "description": "Sistema de identidade de pagamento \u2014 registo, resolu\u00e7\u00e3o e pesquisa de @banza."
     },
     {
       "id": "cat-qr",
       "name": "Pagamentos QR",
-      "description": "QR estático, dinâmico, scan, resolução e loja QR pública do comerciante."
+      "description": "QR est\u00e1tico, din\u00e2mico, scan, resolu\u00e7\u00e3o e loja QR p\u00fablica do comerciante."
     },
     {
       "id": "cat-p2p",
-      "name": "Transferências P2P",
-      "description": "Transferências pessoa-a-pessoa por @banza e divisão de contas por QR."
+      "name": "Transfer\u00eancias P2P",
+      "description": "Transfer\u00eancias pessoa-a-pessoa por @banza e divis\u00e3o de contas por QR."
     },
     {
       "id": "cat-paylinks",
       "name": "Pay Links",
-      "description": "Links de pagamento partilháveis — criação, página pública e liquidação."
+      "description": "Links de pagamento partilh\u00e1veis \u2014 cria\u00e7\u00e3o, p\u00e1gina p\u00fablica e liquida\u00e7\u00e3o."
     },
     {
       "id": "cat-payrequests",
       "name": "Pedidos de Pagamento",
-      "description": "Facturas digitais enviadas directamente para carteiras — criar, notificar, pagar."
+      "description": "Facturas digitais enviadas directamente para carteiras \u2014 criar, notificar, pagar."
     },
     {
       "id": "cat-biz-mobile",
-      "name": "Banza Business (Móvel)",
-      "description": "Interface móvel para operação diária do comerciante — QR, notificações, saldo."
+      "name": "Banza Business (M\u00f3vel)",
+      "description": "Interface m\u00f3vel para opera\u00e7\u00e3o di\u00e1ria do comerciante \u2014 QR, notifica\u00e7\u00f5es, saldo."
     },
     {
       "id": "cat-biz-web",
       "name": "Banza Business (Web)",
-      "description": "Dashboard web para administração — analytics, chaves API, equipa, disputas."
+      "description": "Dashboard web para administra\u00e7\u00e3o \u2014 analytics, chaves API, equipa, disputas."
     },
     {
       "id": "cat-sdk",
       "name": "SDKs",
-      "description": "SDKs oficiais Banza — TypeScript, PHP, Go, Python, Flutter."
+      "description": "SDKs oficiais Banza \u2014 TypeScript, PHP, Go, Python, Flutter."
     },
     {
       "id": "cat-api",
       "name": "API REST",
-      "description": "API HTTP versionada e idempotente para todas as operações da plataforma."
+      "description": "API HTTP versionada e idempotente para todas as opera\u00e7\u00f5es da plataforma."
     },
     {
       "id": "cat-webhooks",
       "name": "Webhooks",
-      "description": "Entrega de eventos em tempo real — HMAC-SHA256, retry, catálogo de eventos."
+      "description": "Entrega de eventos em tempo real \u2014 HMAC-SHA256, retry, cat\u00e1logo de eventos."
     },
     {
       "id": "cat-sandbox",
       "name": "Sandbox",
-      "description": "Ambiente de teste completamente isolado da produção."
+      "description": "Ambiente de teste completamente isolado da produ\u00e7\u00e3o."
     },
     {
       "id": "cat-ledger",
       "name": "Ledger & Contabilidade",
-      "description": "Ledger de dupla entrada, imutabilidade, operações atómicas e reconciliação."
+      "description": "Ledger de dupla entrada, imutabilidade, opera\u00e7\u00f5es at\u00f3micas e reconcilia\u00e7\u00e3o."
     },
     {
       "id": "cat-kyc",
       "name": "KYC/KYB",
-      "description": "Verificação de identidade de consumidores e comerciantes conforme requisitos BNA."
+      "description": "Verifica\u00e7\u00e3o de identidade de consumidores e comerciantes conforme requisitos BNA."
     },
     {
       "id": "cat-risk",
       "name": "Motor de Risco",
-      "description": "Triagem de transacções em tempo real — fraude, velocidade, sinais de dispositivo."
+      "description": "Triagem de transac\u00e7\u00f5es em tempo real \u2014 fraude, velocidade, sinais de dispositivo."
     },
     {
       "id": "cat-security",
-      "name": "Segurança",
-      "description": "TLS, encriptação, idempotência, auditoria e segurança de credenciais."
+      "name": "Seguran\u00e7a",
+      "description": "TLS, encripta\u00e7\u00e3o, idempot\u00eancia, auditoria e seguran\u00e7a de credenciais."
     },
     {
       "id": "cat-payouts",
       "name": "Levantamentos",
-      "description": "Transferência de saldo de carteira para conta bancária angolana via EMIS."
+      "description": "Transfer\u00eancia de saldo de carteira para conta banc\u00e1ria angolana via EMIS."
     },
     {
       "id": "cat-refunds",
       "name": "Reembolsos & Disputas",
-      "description": "Reembolsos parciais/totais e processo de resolução de disputas."
+      "description": "Reembolsos parciais/totais e processo de resolu\u00e7\u00e3o de disputas."
     },
     {
       "id": "cat-arch",
       "name": "Arquitectura",
-      "description": "Decisões e implementação da arquitectura técnica — Rust, Go, PostgreSQL, Redis."
+      "description": "Decis\u00f5es e implementa\u00e7\u00e3o da arquitectura t\u00e9cnica \u2014 Rust, Go, PostgreSQL, Redis."
     },
     {
       "id": "cat-observability",
@@ -120,38 +120,38 @@
     {
       "id": "cat-emis",
       "name": "EMIS & Bancos",
-      "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano."
+      "description": "Integra\u00e7\u00e3o com EMIS/Multicaixa Express e sistema banc\u00e1rio angolano."
     },
     {
       "id": "cat-roadmap",
       "name": "Roadmap",
-      "description": "Funcionalidades futuras — médio e longo prazo, conforme §19 da referência."
+      "description": "Funcionalidades futuras \u2014 m\u00e9dio e longo prazo, conforme \u00a719 da refer\u00eancia."
     }
   ],
   "items": [
     {
       "id": "DOC-001",
-      "title": "Site de documentação Banzami",
+      "title": "Site de documenta\u00e7\u00e3o Banzami",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15.2 (ADR-015)",
-      "description": "Site de documentação público em Next.js servindo como interface visual para o documento de referência oficial BANZAMI_REFERENCE.md.",
-      "requirement": "O site deve renderizar o documento de referência e estar acessível publicamente. Conteúdo derivado exclusivamente de BANZAMI_REFERENCE.md.",
+      "referenceSection": "\u00a715.2 (ADR-015)",
+      "description": "Site de documenta\u00e7\u00e3o p\u00fablico em Next.js servindo como interface visual para o documento de refer\u00eancia oficial BANZAMI_REFERENCE.md.",
+      "requirement": "O site deve renderizar o documento de refer\u00eancia e estar acess\u00edvel publicamente. Conte\u00fado derivado exclusivamente de BANZAMI_REFERENCE.md.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js · TypeScript · Tailwind",
+      "technicalArea": "Next.js \u00b7 TypeScript \u00b7 Tailwind",
       "validationMethods": [
         "manual_ux",
         "production_review",
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "Site acessível e funcional em produção (banzami.org)",
-        "Conteúdo renderizado exclusivamente a partir de BANZAMI_REFERENCE.md",
-        "Navegação por secções operacional (20 rotas + sidebar)",
+        "Site acess\u00edvel e funcional em produ\u00e7\u00e3o (banzami.org)",
+        "Conte\u00fado renderizado exclusivamente a partir de BANZAMI_REFERENCE.md",
+        "Navega\u00e7\u00e3o por sec\u00e7\u00f5es operacional (20 rotas + sidebar)",
         "Design responsivo em mobile e desktop",
-        "Página /validacao integrada no mesmo site",
+        "P\u00e1gina /validacao integrada no mesmo site",
         "Parser reference.ts testado automaticamente (toSlug, getReference, getSection)"
       ],
       "testCoverage": true,
@@ -168,7 +168,7 @@
         },
         {
           "type": "config",
-          "label": "Configuração Tailwind",
+          "label": "Configura\u00e7\u00e3o Tailwind",
           "ref": "apps/docs/tailwind.config.ts"
         },
         {
@@ -213,7 +213,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "e6025bc3bd0b2bd6",
           "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts (51 testes) cobre toSlug, getReference, getSection, getAllSectionSlugs. Confidence 65 → 80 (VERY_HIGH).",
+          "reason": "Revalida\u00e7\u00e3o com unit_tests: reference.test.ts (51 testes) cobre toSlug, getReference, getSection, getAllSectionSlugs. Confidence 65 \u2192 80 (VERY_HIGH).",
           "evidence": [
             "apps/docs/lib/__tests__/reference.test.ts"
           ]
@@ -223,28 +223,28 @@
     },
     {
       "id": "DOC-002",
-      "title": "Renderização de BANZAMI_REFERENCE.md",
+      "title": "Renderiza\u00e7\u00e3o de BANZAMI_REFERENCE.md",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Motor de parsing que lê BANZAMI_REFERENCE.md em build time e produz estrutura de secções tipada para renderização no site.",
-      "requirement": "Parsing determinístico de todas as 20 secções do documento de referência, com metadados, subsecções e slugs de rota.",
+      "referenceSection": "\u00a715 (ADR-015)",
+      "description": "Motor de parsing que l\u00ea BANZAMI_REFERENCE.md em build time e produz estrutura de sec\u00e7\u00f5es tipada para renderiza\u00e7\u00e3o no site.",
+      "requirement": "Parsing determin\u00edstico de todas as 20 sec\u00e7\u00f5es do documento de refer\u00eancia, com metadados, subsec\u00e7\u00f5es e slugs de rota.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "TypeScript · Node.js fs",
+      "technicalArea": "TypeScript \u00b7 Node.js fs",
       "validationMethods": [
         "manual_ux",
         "production_review",
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "Todas as 20 secções parseadas correctamente",
-        "Metadados (versão, data, estado) extraídos e não vazios",
-        "Slugs únicos e URL-safe gerados para cada secção",
-        "Subsecções (H3) identificadas correctamente (≥100 total)",
-        "toSlug() produz slugs determinísticos sem diacríticos",
-        "Cada âncora segue o formato \"{n}-{slug}\""
+        "Todas as 20 sec\u00e7\u00f5es parseadas correctamente",
+        "Metadados (vers\u00e3o, data, estado) extra\u00eddos e n\u00e3o vazios",
+        "Slugs \u00fanicos e URL-safe gerados para cada sec\u00e7\u00e3o",
+        "Subsec\u00e7\u00f5es (H3) identificadas correctamente (\u2265100 total)",
+        "toSlug() produz slugs determin\u00edsticos sem diacr\u00edticos",
+        "Cada \u00e2ncora segue o formato \"{n}-{slug}\""
       ],
       "testCoverage": true,
       "evidence": [
@@ -255,12 +255,12 @@
         },
         {
           "type": "component",
-          "label": "Tipos de referência",
+          "label": "Tipos de refer\u00eancia",
           "ref": "apps/docs/lib/types.ts"
         },
         {
           "type": "route",
-          "label": "Página de referência",
+          "label": "P\u00e1gina de refer\u00eancia",
           "ref": "apps/docs/app/reference/page.tsx"
         },
         {
@@ -305,7 +305,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "f2ca1c795f6fa2bb",
           "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts testa parsing das 20 secções, metadados, slugs, subsecções e toSlug. Confidence 65 → 80 (VERY_HIGH).",
+          "reason": "Revalida\u00e7\u00e3o com unit_tests: reference.test.ts testa parsing das 20 sec\u00e7\u00f5es, metadados, slugs, subsec\u00e7\u00f5es e toSlug. Confidence 65 \u2192 80 (VERY_HIGH).",
           "evidence": [
             "apps/docs/lib/__tests__/reference.test.ts"
           ]
@@ -315,34 +315,34 @@
     },
     {
       "id": "DOC-003",
-      "title": "Navegação por secções individuais",
+      "title": "Navega\u00e7\u00e3o por sec\u00e7\u00f5es individuais",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Rotas individuais por secção do documento de referência, com hero, conteúdo markdown, componentes visuais e navegação prev/next.",
-      "requirement": "Cada secção acessível em /{slug}, com conteúdo completo e navegação contextual.",
+      "referenceSection": "\u00a715 (ADR-015)",
+      "description": "Rotas individuais por sec\u00e7\u00e3o do documento de refer\u00eancia, com hero, conte\u00fado markdown, componentes visuais e navega\u00e7\u00e3o prev/next.",
+      "requirement": "Cada sec\u00e7\u00e3o acess\u00edvel em /{slug}, com conte\u00fado completo e navega\u00e7\u00e3o contextual.",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js App Router · TypeScript",
+      "technicalArea": "Next.js App Router \u00b7 TypeScript",
       "validationMethods": [
         "manual_ux",
         "production_review",
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "20 rotas de secção funcionais em produção (/[slug])",
-        "Conteúdo completo por secção renderizado",
-        "Navegação prev/next entre secções operacional",
-        "Componentes visuais por secção disponíveis",
-        "getSection(slug) e getSectionByNumber(n) resolvem todas as 20 secções",
-        "getAllSectionSlugs() retorna 20 slugs únicos e URL-safe"
+        "20 rotas de sec\u00e7\u00e3o funcionais em produ\u00e7\u00e3o (/[slug])",
+        "Conte\u00fado completo por sec\u00e7\u00e3o renderizado",
+        "Navega\u00e7\u00e3o prev/next entre sec\u00e7\u00f5es operacional",
+        "Componentes visuais por sec\u00e7\u00e3o dispon\u00edveis",
+        "getSection(slug) e getSectionByNumber(n) resolvem todas as 20 sec\u00e7\u00f5es",
+        "getAllSectionSlugs() retorna 20 slugs \u00fanicos e URL-safe"
       ],
       "testCoverage": true,
       "evidence": [
         {
           "type": "route",
-          "label": "Rota de secção",
+          "label": "Rota de sec\u00e7\u00e3o",
           "ref": "apps/docs/app/[section]/page.tsx"
         },
         {
@@ -362,7 +362,7 @@
         },
         {
           "type": "route",
-          "label": "Site em produção (/[slug])",
+          "label": "Site em produ\u00e7\u00e3o (/[slug])",
           "ref": "apps/docs/app/[slug]/page.tsx"
         }
       ],
@@ -399,7 +399,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "62b7efe45b50706b",
           "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests + production_review: reference.test.ts testa getSection, getSectionByNumber e getAllSectionSlugs. Confidence 55 → 80 (VERY_HIGH).",
+          "reason": "Revalida\u00e7\u00e3o com unit_tests + production_review: reference.test.ts testa getSection, getSectionByNumber e getAllSectionSlugs. Confidence 55 \u2192 80 (VERY_HIGH).",
           "evidence": [
             "apps/docs/lib/__tests__/reference.test.ts"
           ]
@@ -409,16 +409,16 @@
     },
     {
       "id": "DOC-004",
-      "title": "Plataforma de validação e execução (/validacao)",
+      "title": "Plataforma de valida\u00e7\u00e3o e execu\u00e7\u00e3o (/validacao)",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Infraestrutura de governança de validação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação. Inclui página pública /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprovação por frases exactas, histórico imutável e testes automatizados da engine.",
-      "requirement": "Página /validacao com matriz completa de implementação, filtros por status/prioridade/categoria/domínio, pesquisa por palavra-chave, métricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZAMI_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determinístico, portas de aprovação humana com frases exactas, histórico append-only e suite de testes automatizados (≥80 casos).",
+      "referenceSection": "\u00a715 (ADR-015)",
+      "description": "Infraestrutura de governan\u00e7a de valida\u00e7\u00e3o que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execu\u00e7\u00e3o, evid\u00eancias e crit\u00e9rios de aceita\u00e7\u00e3o. Inclui p\u00e1gina p\u00fablica /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprova\u00e7\u00e3o por frases exactas, hist\u00f3rico imut\u00e1vel e testes automatizados da engine.",
+      "requirement": "P\u00e1gina /validacao com matriz completa de implementa\u00e7\u00e3o, filtros por status/prioridade/categoria/dom\u00ednio, pesquisa por palavra-chave, m\u00e9tricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZAMI_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determin\u00edstico, portas de aprova\u00e7\u00e3o humana com frases exactas, hist\u00f3rico append-only e suite de testes automatizados (\u226580 casos).",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js · TypeScript · JSON",
+      "technicalArea": "Next.js \u00b7 TypeScript \u00b7 JSON",
       "validationMethods": [
         "manual_ux",
         "production_review",
@@ -426,26 +426,26 @@
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Matriz JSON parseável e válida sem erros de schema",
-        "Página /validacao acessível em produção (banzami.org/validacao)",
+        "Matriz JSON parse\u00e1vel e v\u00e1lida sem erros de schema",
+        "P\u00e1gina /validacao acess\u00edvel em produ\u00e7\u00e3o (banzami.org/validacao)",
         "Todas as categorias do ecossistema representadas na matriz",
-        "Filtros por status, prioridade, categoria e domínio operacionais",
+        "Filtros por status, prioridade, categoria e dom\u00ednio operacionais",
         "Pesquisa por palavra-chave em tempo real funcional",
         "Rastreabilidade a BANZAMI_REFERENCE.md via campo referenceSection",
-        "Métricas globais exibidas e computadas correctamente",
-        "Validation Studio acessível localmente em localhost:3099",
-        "Governance engine cobre todas as regras §17 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
-        "Sistema de aprovação por frases exactas implementado nos comandos Claude",
+        "M\u00e9tricas globais exibidas e computadas correctamente",
+        "Validation Studio acess\u00edvel localmente em localhost:3099",
+        "Governance engine cobre todas as regras \u00a717 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
+        "Sistema de aprova\u00e7\u00e3o por frases exactas implementado nos comandos Claude",
         "Fingerprint computado deterministicamente e verificado antes de apply",
-        "Histórico de transições imutável (append-only)",
-        "Testes automatizados da engine de governança (≥80 casos)",
-        "Página /validacao é read-only — zero rotas de escrita no apps/docs"
+        "Hist\u00f3rico de transi\u00e7\u00f5es imut\u00e1vel (append-only)",
+        "Testes automatizados da engine de governan\u00e7a (\u226580 casos)",
+        "P\u00e1gina /validacao \u00e9 read-only \u2014 zero rotas de escrita no apps/docs"
       ],
       "testCoverage": true,
       "evidence": [
         {
           "type": "route",
-          "label": "Página /validacao",
+          "label": "P\u00e1gina /validacao",
           "ref": "apps/docs/app/validacao/page.tsx"
         },
         {
@@ -495,7 +495,7 @@
         },
         {
           "type": "test",
-          "label": "validation.test.ts — docs (28 testes)",
+          "label": "validation.test.ts \u2014 docs (28 testes)",
           "ref": "apps/docs/lib/__tests__/validation.test.ts"
         },
         {
@@ -510,7 +510,7 @@
         },
         {
           "type": "adr",
-          "label": "CLAUDE.md §17 Validation Governance",
+          "label": "CLAUDE.md \u00a717 Validation Governance",
           "ref": "CLAUDE.md"
         },
         {
@@ -566,26 +566,26 @@
     },
     {
       "id": "IDT-001",
-      "title": "Documento de referência oficial (BANZAMI_REFERENCE.md)",
+      "title": "Documento de refer\u00eancia oficial (BANZAMI_REFERENCE.md)",
       "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§1 — §20",
-      "description": "Fonte única de verdade para todo o ecossistema Banzami — definição canónica de produto, arquitectura, filosofia, UX e posicionamento.",
-      "requirement": "Documento completo, coerente e actualizado cobrindo todas as 20 secções do ecossistema. Nada pode aparecer no site sem existir primeiro aqui.",
+      "referenceSection": "\u00a71 \u2014 \u00a720",
+      "description": "Fonte \u00fanica de verdade para todo o ecossistema Banzami \u2014 defini\u00e7\u00e3o can\u00f3nica de produto, arquitectura, filosofia, UX e posicionamento.",
+      "requirement": "Documento completo, coerente e actualizado cobrindo todas as 20 sec\u00e7\u00f5es do ecossistema. Nada pode aparecer no site sem existir primeiro aqui.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Markdown · Git",
+      "ownerArea": "Organiza\u00e7\u00e3o Banzami",
+      "technicalArea": "Markdown \u00b7 Git",
       "validationMethods": [
         "manual_ux",
         "production_review",
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "20 secções completas, numeradas sequencialmente sem lacunas",
+        "20 sec\u00e7\u00f5es completas, numeradas sequencialmente sem lacunas",
         "Terminologia de marca consistente (Banzami/Banza)",
-        "Gramática portuguesa institucional correcta",
-        "Meta-dados (Version, Date, Author, Status) presentes e não vazios",
+        "Gram\u00e1tica portuguesa institucional correcta",
+        "Meta-dados (Version, Date, Author, Status) presentes e n\u00e3o vazios",
         "Status \"Official\" e Version \"1.0\" confirmados no documento",
         "Integridade estrutural validada por testes automatizados"
       ],
@@ -593,12 +593,12 @@
       "evidence": [
         {
           "type": "adr",
-          "label": "ADR-015 — Markdown-first",
+          "label": "ADR-015 \u2014 Markdown-first",
           "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
         },
         {
           "type": "component",
-          "label": "Ficheiro de referência",
+          "label": "Ficheiro de refer\u00eancia",
           "ref": "docs/BANZAMI_REFERENCE.md"
         },
         {
@@ -608,7 +608,7 @@
         },
         {
           "type": "adr",
-          "label": "CLAUDE.md §15 (source of truth)",
+          "label": "CLAUDE.md \u00a715 (source of truth)",
           "ref": "CLAUDE.md"
         },
         {
@@ -649,7 +649,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "8057a91c65ebefcf",
           "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts valida estrutura do documento (20 secções, meta, conteúdo, sequência). Confidence 65 → 80 (VERY_HIGH).",
+          "reason": "Revalida\u00e7\u00e3o com unit_tests: reference.test.ts valida estrutura do documento (20 sec\u00e7\u00f5es, meta, conte\u00fado, sequ\u00eancia). Confidence 65 \u2192 80 (VERY_HIGH).",
           "evidence": [
             "apps/docs/lib/__tests__/reference.test.ts"
           ]
@@ -662,13 +662,13 @@
       "title": "Arquitectura de marca Banzami/Banza",
       "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§1 — §16 (CLAUDE.md)",
-      "description": "Regras vinculativas de marca: Banzami = organização/infraestrutura, Banza = produto principal. Género gramatical, hierarquia de produto e nomenclatura SDK.",
-      "requirement": "Todas as superfícies públicas (site, SDKs, documentação, código) devem seguir a arquitectura de marca definida. Banzami e Banza nunca confundidos.",
+      "referenceSection": "\u00a71 \u2014 \u00a716 (CLAUDE.md)",
+      "description": "Regras vinculativas de marca: Banzami = organiza\u00e7\u00e3o/infraestrutura, Banza = produto principal. G\u00e9nero gramatical, hierarquia de produto e nomenclatura SDK.",
+      "requirement": "Todas as superf\u00edcies p\u00fablicas (site, SDKs, documenta\u00e7\u00e3o, c\u00f3digo) devem seguir a arquitectura de marca definida. Banzami e Banza nunca confundidos.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Documentação · Código",
+      "ownerArea": "Organiza\u00e7\u00e3o Banzami",
+      "technicalArea": "Documenta\u00e7\u00e3o \u00b7 C\u00f3digo",
       "validationMethods": [
         "manual_ux",
         "unit_tests",
@@ -677,7 +677,7 @@
       "acceptanceCriteria": [
         "Banzami usado apenas em contexto organizacional",
         "Banza usado em contexto de produto",
-        "Género masculino aplicado correctamente (o Banza, o Banzami)",
+        "G\u00e9nero masculino aplicado correctamente (o Banza, o Banzami)",
         "Nomenclatura SDK correcta (@banza/sdk, BanzaClient, etc.)"
       ],
       "testCoverage": false,
@@ -726,7 +726,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "b29613e4b004ec81",
           "commit": null,
-          "reason": "Phase 2 brand semantic stabilization — 270+ naming corrections across 55+ files, 23/23 compliance tests passing, all SDKs renamed to canonical Banza naming",
+          "reason": "Phase 2 brand semantic stabilization \u2014 270+ naming corrections across 55+ files, 23/23 compliance tests passing, all SDKs renamed to canonical Banza naming",
           "evidence": [
             "apps/docs/lib/__tests__/brand-naming.test.ts:23/23 passing",
             "sdk/typescript/package.json:name=@banza/sdk",
@@ -747,21 +747,21 @@
       "title": "Posicionamento como rede de pagamentos QR-native de Angola",
       "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§1.5 (CLAUDE.md)",
-      "description": "Posicionamento público do Banzami como construtor da infraestrutura angolana de pagamentos digitais, com Banza como produto principal QR-native.",
-      "requirement": "Toda a comunicação pública deve ser consistente com o posicionamento definido. Nenhuma descrição incorrecta (pan-africano, Stripe para África, etc.) deve aparecer.",
+      "referenceSection": "\u00a71.5 (CLAUDE.md)",
+      "description": "Posicionamento p\u00fablico do Banzami como construtor da infraestrutura angolana de pagamentos digitais, com Banza como produto principal QR-native.",
+      "requirement": "Toda a comunica\u00e7\u00e3o p\u00fablica deve ser consistente com o posicionamento definido. Nenhuma descri\u00e7\u00e3o incorrecta (pan-africano, Stripe para \u00c1frica, etc.) deve aparecer.",
       "status": "VALIDATED",
       "priority": "HIGH",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Documentação · Site",
+      "ownerArea": "Organiza\u00e7\u00e3o Banzami",
+      "technicalArea": "Documenta\u00e7\u00e3o \u00b7 Site",
       "validationMethods": [
         "manual_ux",
         "unit_tests",
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Site usa frases de posicionamento canónicas",
-        "Nenhuma descrição incorrecta no site público",
+        "Site usa frases de posicionamento can\u00f3nicas",
+        "Nenhuma descri\u00e7\u00e3o incorrecta no site p\u00fablico",
         "Foco em Angola primeiro em todos os contextos"
       ],
       "testCoverage": false,
@@ -806,7 +806,7 @@
           "approvedBy": "local-admin",
           "fingerprint": "a51cb88b7beefea2",
           "commit": null,
-          "reason": "QR-native positioning verified — no forbidden positioning language, correct Banza QR naming throughout codebase and docs, compliance tests passing",
+          "reason": "QR-native positioning verified \u2014 no forbidden positioning language, correct Banza QR naming throughout codebase and docs, compliance tests passing",
           "evidence": [
             "apps/docs/lib/__tests__/brand-naming.test.ts:208-221 pan-African/Stripe-for-Africa tests passing",
             "docs/product/positioning.md:Banza SDK, Banza QR corrected",
@@ -819,43 +819,49 @@
     },
     {
       "id": "WAL-001",
-      "title": "Criação e onboarding de Banza Wallet",
+      "title": "Cria\u00e7\u00e3o e onboarding de Banza Wallet",
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§6.2, §13.2",
-      "description": "Fluxo de onboarding de consumidor: número de telemóvel → verificação OTP → escolha de @banza → definir PIN → carteira pronta.",
-      "requirement": "Onboarding completo em menos de 2 minutos. Carteira pronta para receber dinheiro imediatamente após onboarding.",
+      "referenceSection": "\u00a76.2, \u00a713.2",
+      "description": "Fluxo de onboarding de consumidor: n\u00famero de telem\u00f3vel \u2192 verifica\u00e7\u00e3o OTP \u2192 escolha de @banza \u2192 definir PIN \u2192 carteira pronta.",
+      "requirement": "Onboarding completo em menos de 2 minutos. Carteira pronta para receber dinheiro imediatamente ap\u00f3s onboarding.",
       "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Consumer Platform",
-      "technicalArea": "Flutter · Go · PostgreSQL",
+      "technicalArea": "Flutter \u00b7 Go \u00b7 PostgreSQL",
       "validationMethods": [
         "unit_tests",
         "integration_tests"
       ],
       "acceptanceCriteria": [
         "Onboarding completo em menos de 2 minutos",
-        "Verificação OTP por SMS funcional",
-        "@banza único e reservado após registo",
+        "Verifica\u00e7\u00e3o OTP por SMS funcional",
+        "@banza \u00fanico e reservado ap\u00f3s registo",
         "Carteira criada e pronta para receber imediatamente",
         "PIN e biometria configurados correctamente"
       ],
       "testCoverage": true,
       "evidence": [
         "docs/adr/ADR-017-wallet-domain-architecture.md",
-        "core/consumer-wallets/src/wallet.rs — full 6-state lifecycle model",
-        "core/consumer-wallets/src/onboarding.rs — OnboardingSession type",
-        "core/consumer-wallets/src/repository.rs — PostgresOnboardingRepository, PostgresConsumerWalletRepository",
-        "core/consumer-wallets/src/engine.rs — PostgresConsumerWalletEngine with full onboarding flow",
-        "core/consumer-wallets/src/engine.rs — 16 unit tests: INV-WALLET-004/005/006/007/008 + OTP flow + PIN lockout",
-        "db/migrations/0031_consumer_wallet_onboarding.sql — consumer_onboarding table + consumer_wallets extensions",
-        "docs/validation/INVARIANT_TAXONOMY.md — INV-WALLET-004 through INV-WALLET-008",
-        "core/api/src/routes/onboarding.rs — Rust axum handlers: start, verify_otp, complete",
-        "core/api/src/state.rs — ConsumerWalletEng type alias fixed (3-generic)",
-        "services/public-api/internal/handler/onboarding.go — Go handler: rate limiting, E.164 validation, handle/PIN policy",
-        "services/public-api/internal/service/core_client.go — onboarding client methods: StartOnboarding, VerifyOtp, CompleteOnboarding",
-        "contracts/openapi/wallet-onboarding.yaml — OpenAPI 3.1 spec: start, verify-otp, complete endpoints",
-        "core/consumer-wallets/tests/integration.rs — 12 integration tests covering full PENDING_OTP→PENDING_PIN→ACTIVE flow + INV-WALLET-007/008 + PIN lockout"
+        "core/consumer-wallets/src/wallet.rs \u2014 full 6-state lifecycle model",
+        "core/consumer-wallets/src/onboarding.rs \u2014 OnboardingSession type",
+        "core/consumer-wallets/src/repository.rs \u2014 PostgresOnboardingRepository, PostgresConsumerWalletRepository",
+        "core/consumer-wallets/src/engine.rs \u2014 PostgresConsumerWalletEngine with full onboarding flow",
+        "core/consumer-wallets/src/engine.rs \u2014 16 unit tests: INV-WALLET-004/005/006/007/008 + OTP flow + PIN lockout",
+        "db/migrations/0031_consumer_wallet_onboarding.sql \u2014 consumer_onboarding table + consumer_wallets extensions",
+        "docs/validation/INVARIANT_TAXONOMY.md \u2014 INV-WALLET-004 through INV-WALLET-008",
+        "core/api/src/routes/onboarding.rs \u2014 Rust axum handlers: start, verify_otp, complete",
+        "core/api/src/state.rs \u2014 ConsumerWalletEng type alias fixed (3-generic)",
+        "services/public-api/internal/handler/onboarding.go \u2014 Go handler: rate limiting, E.164 validation, handle/PIN policy",
+        "services/public-api/internal/service/core_client.go \u2014 onboarding client methods: StartOnboarding, VerifyOtp, CompleteOnboarding",
+        "contracts/openapi/wallet-onboarding.yaml \u2014 OpenAPI 3.1 spec: start, verify-otp, complete endpoints",
+        "core/consumer-wallets/tests/integration.rs \u2014 12 integration tests covering full PENDING_OTP\u2192PENDING_PIN\u2192ACTIVE flow + INV-WALLET-007/008 + PIN lockout",
+        "core/consumer-wallets/tests/integration.rs \u2014 12/12 integration tests PASS against live PostgreSQL banzami_dev",
+        "SQL INV-WALLET-001 check \u2014 0 negative balance violations across all consumer_wallets",
+        "SQL INV-WALLET-004 check \u2014 0 duplicate active wallet violations per consumer+currency",
+        "SQL INV-WALLET-007 check \u2014 0 PENDING_OTP sessions with provisioned ledger accounts",
+        "SQL INV-WALLET-008 check \u2014 0 duplicate handle violations in consumers table",
+        "Full E2E HTTP validation: +244923400001 \u2192 handle pubapi_e2e_final, wallet 740e6295-92a5-42b5-bbf8-86f622a148d4 ACTIVE via public-api"
       ],
       "dependencies": [
         "HDL-001"
@@ -880,26 +886,26 @@
         {
           "id": "INV-WALLET-001",
           "name": "No negative available balance",
-          "rule": "∀ wallet: available_balance >= 0",
-          "status": "NOT_RUN"
+          "rule": "\u2200 wallet: available_balance >= 0",
+          "status": "PASS"
         },
         {
           "id": "INV-WALLET-002",
           "name": "Balance derived from ledger",
-          "rule": "wallet.available == Σ(ledger credits − debits on available_account)",
+          "rule": "wallet.available == \u03a3(ledger credits \u2212 debits on available_account)",
           "status": "NOT_RUN"
         },
         {
           "id": "INV-WALLET-003",
           "name": "Reserve/release symmetry",
-          "rule": "∀ reserve: ∃ exactly one {release | settle}",
+          "rule": "\u2200 reserve: \u2203 exactly one {release | settle}",
           "status": "NOT_RUN"
         },
         {
           "id": "INV-WALLET-004",
           "name": "Wallet-owner uniqueness",
-          "rule": "∀ consumer, currency: count(wallets where status != 'CLOSED') <= 1",
-          "status": "NOT_RUN"
+          "rule": "\u2200 consumer, currency: count(wallets where status != 'CLOSED') <= 1",
+          "status": "PASS"
         },
         {
           "id": "INV-WALLET-005",
@@ -910,33 +916,33 @@
         {
           "id": "INV-WALLET-006",
           "name": "Lifecycle state machine",
-          "rule": "∀ transition (from, to): (from, to) ∈ ALLOWED_TRANSITIONS",
+          "rule": "\u2200 transition (from, to): (from, to) \u2208 ALLOWED_TRANSITIONS",
           "status": "NOT_RUN"
         },
         {
           "id": "INV-WALLET-007",
           "name": "Active wallet has both ledger accounts",
-          "rule": "∀ wallet in consumer_wallets: available_account_id IS NOT NULL AND reserved_account_id IS NOT NULL",
-          "status": "NOT_RUN"
+          "rule": "\u2200 wallet in consumer_wallets: available_account_id IS NOT NULL AND reserved_account_id IS NOT NULL",
+          "status": "PASS"
         },
         {
           "id": "INV-WALLET-008",
           "name": "@banza handle globally unique",
-          "rule": "∀ handle h: count(consumers where handle == h AND status != 'CLOSED') <= 1",
-          "status": "NOT_RUN"
+          "rule": "\u2200 handle h: count(consumers where handle == h AND status != 'CLOSED') <= 1",
+          "status": "PASS"
         }
       ],
       "confidence": {
-        "score": 65,
+        "score": 70,
         "level": "HIGH",
         "basis": [
-          "evidence non-empty (+20): ADR-017, migration, domain code, 16 unit tests, API layer, OpenAPI contract",
-          "unit_tests in validationMethods (+15): 16 unit tests covering INV-WALLET-004/005/006/007/008 + OTP + PIN lockout",
-          "integration_tests in validationMethods (+20): 12 integration tests written + compiled (DB not running in current env: NOT_RUN)",
-          "WAL-001C API layer complete: Rust axum handlers, Go public-api handlers, rate limiting, E.164 + handle + PIN validation",
-          "OpenAPI 3.1 contract at contracts/openapi/wallet-onboarding.yaml",
-          "invariants defined but NOT_RUN without live DB (+0): run integration tests against dev DB to raise to VERY_HIGH",
-          "path to VALIDATED: run integration tests with DB → all invariants PASS → confidence >= 80 → propose"
+          "evidence non-empty (+20): ADR-017, migration 0031, domain code, 16 unit tests, API layer, OpenAPI contract, live DB SQL checks",
+          "unit_tests in validationMethods (+15): 16 unit tests confirmed passing",
+          "integration_tests in validationMethods (+20): 12/12 integration tests PASS against live PostgreSQL banzami_dev (10.18s runtime)",
+          "e2e_tests / manual_ux (+15): full E2E API flow validated via HTTP \u2014 core-api:8086 (internal) and Go public-api:8087",
+          "production_review or sandbox (+0): dev environment only",
+          "not all invariants PASS (+0): INV-WALLET-001/004/007/008 PASS; INV-WALLET-002/003/005/006 NOT_RUN (require payment flow phase)",
+          "path to VALIDATED: test INV-WALLET-002/003/005/006 in payment flow phase \u2192 all PASS \u2192 confidence reaches 80+"
         ]
       },
       "freezeReason": null,
@@ -964,7 +970,7 @@
           "approvedBy": "local-admin",
           "fingerprint": null,
           "commit": null,
-          "reason": "WAL-001B: persistence layer — migration 0031, consumer_onboarding table, two-table onboarding flow, PIN lockout, 16 unit tests, INV-WALLET-007/008 registered",
+          "reason": "WAL-001B: persistence layer \u2014 migration 0031, consumer_onboarding table, two-table onboarding flow, PIN lockout, 16 unit tests, INV-WALLET-007/008 registered",
           "evidence": [
             "db/migrations/0031_consumer_wallet_onboarding.sql",
             "core/consumer-wallets/src/onboarding.rs",
@@ -979,7 +985,7 @@
           "approvedBy": "local-admin",
           "fingerprint": null,
           "commit": null,
-          "reason": "WAL-001C: public API layer — Rust axum onboarding routes, Go public-api handlers with rate limiting + validation, OpenAPI 3.1 contract, 12 integration tests (compiled, pending DB run), state.rs 3-generic type alias fixed",
+          "reason": "WAL-001C: public API layer \u2014 Rust axum onboarding routes, Go public-api handlers with rate limiting + validation, OpenAPI 3.1 contract, 12 integration tests (compiled, pending DB run), state.rs 3-generic type alias fixed",
           "evidence": [
             "core/api/src/routes/onboarding.rs",
             "core/api/src/state.rs",
@@ -988,32 +994,49 @@
             "contracts/openapi/wallet-onboarding.yaml",
             "core/consumer-wallets/tests/integration.rs"
           ]
+        },
+        {
+          "timestamp": "2026-05-20T20:30:00Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "1da8dd5ec2c36b15",
+          "commit": null,
+          "reason": "WAL-001D: Live DB integration validation \u2014 12/12 integration tests pass against banzami_dev, INV-WALLET-001/004/007/008 verified PASS via SQL and integration tests, full E2E API flow validated (core-api internal + Go public-api), real Argon2id+SHA-256 crypto confirmed correct. Confidence 65\u219270. Remaining invariants (002/003/005/006) require payment flow phase.",
+          "evidence": [
+            "core/consumer-wallets/tests/integration.rs \u2014 12/12 tests PASS against live PostgreSQL",
+            "SQL: INV-WALLET-001 \u2014 0 negative balance violations",
+            "SQL: INV-WALLET-004 \u2014 0 duplicate wallet violations",
+            "SQL: INV-WALLET-007 \u2014 0 PENDING_OTP sessions with ledger accounts",
+            "SQL: INV-WALLET-008 \u2014 0 duplicate handle violations",
+            "API E2E: +244923400001 \u2192 pubapi_e2e_final (wallet 740e6295) \u2014 ACTIVE via public-api"
+          ]
         }
       ],
       "lastUpdated": "2026-05-20"
     },
     {
       "id": "WAL-002",
-      "title": "Saldo disponível vs. reservado em tempo real",
+      "title": "Saldo dispon\u00edvel vs. reservado em tempo real",
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§6.2",
-      "description": "Carteira com dois estados de saldo: disponível (gastável imediatamente) e reservado (operações pendentes). Ambos exactos e em tempo real.",
-      "requirement": "Saldo disponível e reservado sempre exactos. Sem atraso de actualização. Sem inconsistência eventual.",
+      "referenceSection": "\u00a76.2",
+      "description": "Carteira com dois estados de saldo: dispon\u00edvel (gast\u00e1vel imediatamente) e reservado (opera\u00e7\u00f5es pendentes). Ambos exactos e em tempo real.",
+      "requirement": "Saldo dispon\u00edvel e reservado sempre exactos. Sem atraso de actualiza\u00e7\u00e3o. Sem inconsist\u00eancia eventual.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "Saldo disponível actualiza imediatamente após cada transacção",
-        "Saldo reservado reflecte operações pendentes correctamente",
-        "Soma de disponível + reservado = total sempre correcto",
-        "Sem estado intermédio visível ao utilizador"
+        "Saldo dispon\u00edvel actualiza imediatamente ap\u00f3s cada transac\u00e7\u00e3o",
+        "Saldo reservado reflecte opera\u00e7\u00f5es pendentes correctamente",
+        "Soma de dispon\u00edvel + reservado = total sempre correcto",
+        "Sem estado interm\u00e9dio vis\u00edvel ao utilizador"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1033,7 +1056,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Motor de carteiras em Rust não iniciado"
+        "Motor de carteiras em Rust n\u00e3o iniciado"
       ],
       "invariants": [
         {
@@ -1066,25 +1089,25 @@
     },
     {
       "id": "WAL-003",
-      "title": "Histórico de transacções da carteira",
+      "title": "Hist\u00f3rico de transac\u00e7\u00f5es da carteira",
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§13.7",
-      "description": "Lista de todas as transacções — enviadas e recebidas — com timestamps, valores, @banza da contraparte e estado.",
-      "requirement": "Histórico completo, imutável e pesquisável. Cada transacção identificável individualmente.",
+      "referenceSection": "\u00a713.7",
+      "description": "Lista de todas as transac\u00e7\u00f5es \u2014 enviadas e recebidas \u2014 com timestamps, valores, @banza da contraparte e estado.",
+      "requirement": "Hist\u00f3rico completo, imut\u00e1vel e pesquis\u00e1vel. Cada transac\u00e7\u00e3o identific\u00e1vel individualmente.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Consumer Platform",
-      "technicalArea": "Go · PostgreSQL · Flutter",
+      "technicalArea": "Go \u00b7 PostgreSQL \u00b7 Flutter",
       "validationMethods": [
         "integration_tests",
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Todas as transacções listadas por ordem cronológica inversa",
-        "Cada transacção com timestamp, valor, contraparte e estado",
+        "Todas as transac\u00e7\u00f5es listadas por ordem cronol\u00f3gica inversa",
+        "Cada transac\u00e7\u00e3o com timestamp, valor, contraparte e estado",
         "Pesquisa e filtragem por data/tipo",
-        "Sem transacções em falta ou duplicadas"
+        "Sem transac\u00e7\u00f5es em falta ou duplicadas"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1119,26 +1142,26 @@
     },
     {
       "id": "WAL-004",
-      "title": "Carregamento de carteira (depósito)",
+      "title": "Carregamento de carteira (dep\u00f3sito)",
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§6.2, §10.3",
-      "description": "Mecanismo de carregamento da Banza Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
-      "requirement": "Consumidor pode adicionar fundos à carteira a partir do sistema bancário angolano. Saldo actualiza após confirmação.",
+      "referenceSection": "\u00a76.2, \u00a710.3",
+      "description": "Mecanismo de carregamento da Banza Wallet a partir de conta banc\u00e1ria angolana ou transfer\u00eancia interbanc\u00e1ria via EMIS.",
+      "requirement": "Consumidor pode adicionar fundos \u00e0 carteira a partir do sistema banc\u00e1rio angolano. Saldo actualiza ap\u00f3s confirma\u00e7\u00e3o.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / EMIS Integration",
-      "technicalArea": "Rust · Go · EMIS",
+      "technicalArea": "Rust \u00b7 Go \u00b7 EMIS",
       "validationMethods": [
         "integration_tests",
         "financial_invariant",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Transferência de conta bancária para carteira Banza funcional",
-        "Saldo actualizado após confirmação EMIS",
-        "Trilho de auditoria completo do depósito",
-        "Reconciliação com EMIS correcta"
+        "Transfer\u00eancia de conta banc\u00e1ria para carteira Banza funcional",
+        "Saldo actualizado ap\u00f3s confirma\u00e7\u00e3o EMIS",
+        "Trilho de auditoria completo do dep\u00f3sito",
+        "Reconcilia\u00e7\u00e3o com EMIS correcta"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1156,7 +1179,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001"
+        "Integra\u00e7\u00e3o EMIS bloqueada \u2014 ver EMS-001"
       ],
       "invariants": [],
       "confidence": {
@@ -1175,25 +1198,25 @@
     },
     {
       "id": "HDL-001",
-      "title": "Sistema @banza — registo e unicidade",
+      "title": "Sistema @banza \u2014 registo e unicidade",
       "categoryId": "cat-handle",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§6.3",
-      "description": "Sistema de identidade de pagamento @banza — handle único e legível por humanos para cada conta. Registo, validação de formato e garantia de unicidade.",
-      "requirement": "@banza único em toda a rede, alfanumérico com pontos permitidos, imutável após confirmação.",
+      "referenceSection": "\u00a76.3",
+      "description": "Sistema de identidade de pagamento @banza \u2014 handle \u00fanico e leg\u00edvel por humanos para cada conta. Registo, valida\u00e7\u00e3o de formato e garantia de unicidade.",
+      "requirement": "@banza \u00fanico em toda a rede, alfanum\u00e9rico com pontos permitidos, imut\u00e1vel ap\u00f3s confirma\u00e7\u00e3o.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Identity",
-      "technicalArea": "Go · PostgreSQL",
+      "technicalArea": "Go \u00b7 PostgreSQL",
       "validationMethods": [
         "unit_tests",
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "@banza único em toda a rede",
-        "Formato válido: alfanumérico + pontos",
+        "@banza \u00fanico em toda a rede",
+        "Formato v\u00e1lido: alfanum\u00e9rico + pontos",
         "Reservado atomicamente durante onboarding",
-        "Resolução de @banza para wallet_id correcta"
+        "Resolu\u00e7\u00e3o de @banza para wallet_id correcta"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1223,24 +1246,24 @@
     },
     {
       "id": "HDL-002",
-      "title": "Resolução de @banza para carteira",
+      "title": "Resolu\u00e7\u00e3o de @banza para carteira",
       "categoryId": "cat-handle",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§6.3",
-      "description": "API que resolve um @banza para a carteira correspondente em tempo real, usada em transferências, QR e pedidos de pagamento.",
-      "requirement": "Resolução em menos de 100ms. Erro claro para @banza inexistente.",
+      "referenceSection": "\u00a76.3",
+      "description": "API que resolve um @banza para a carteira correspondente em tempo real, usada em transfer\u00eancias, QR e pedidos de pagamento.",
+      "requirement": "Resolu\u00e7\u00e3o em menos de 100ms. Erro claro para @banza inexistente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API",
-      "technicalArea": "Go · Redis · PostgreSQL",
+      "technicalArea": "Go \u00b7 Redis \u00b7 PostgreSQL",
       "validationMethods": [
         "unit_tests",
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Resolução correcta para todos os @banza registados",
-        "Latência p99 < 100ms",
-        "Erro 404 estruturado para @banza não encontrado",
+        "Resolu\u00e7\u00e3o correcta para todos os @banza registados",
+        "Lat\u00eancia p99 < 100ms",
+        "Erro 404 estruturado para @banza n\u00e3o encontrado",
         "Cache Redis para handles frequentes"
       ],
       "testCoverage": false,
@@ -1273,21 +1296,21 @@
     },
     {
       "id": "HDL-003",
-      "title": "Pesquisa e sugestão de @banza",
+      "title": "Pesquisa e sugest\u00e3o de @banza",
       "categoryId": "cat-handle",
       "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§6.3",
-      "description": "Funcionalidade de pesquisa de @banza na app do consumidor — sugestões durante digitação, verificação de disponibilidade em tempo real.",
-      "requirement": "Pesquisa responsiva durante onboarding e ao iniciar transferências. Feedback imediato sobre disponibilidade.",
+      "referenceSection": "\u00a76.3",
+      "description": "Funcionalidade de pesquisa de @banza na app do consumidor \u2014 sugest\u00f5es durante digita\u00e7\u00e3o, verifica\u00e7\u00e3o de disponibilidade em tempo real.",
+      "requirement": "Pesquisa responsiva durante onboarding e ao iniciar transfer\u00eancias. Feedback imediato sobre disponibilidade.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Go",
+      "technicalArea": "Flutter \u00b7 Go",
       "validationMethods": [
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Sugestões em tempo real durante digitação",
+        "Sugest\u00f5es em tempo real durante digita\u00e7\u00e3o",
         "Indicador de disponibilidade por handle",
         "Sem falsos positivos ou negativos"
       ],
@@ -1321,16 +1344,16 @@
     },
     {
       "id": "QR-001",
-      "title": "QR Estático — geração permanente para comerciante",
+      "title": "QR Est\u00e1tico \u2014 gera\u00e7\u00e3o permanente para comerciante",
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§9.1",
-      "description": "Geração de QR estático codificando banza://@banza do comerciante. Permanente, imprimível, válido indefinidamente.",
-      "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprimível em alta resolução.",
+      "referenceSection": "\u00a79.1",
+      "description": "Gera\u00e7\u00e3o de QR est\u00e1tico codificando banza://@banza do comerciante. Permanente, imprim\u00edvel, v\u00e1lido indefinidamente.",
+      "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprim\u00edvel em alta resolu\u00e7\u00e3o.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
-      "technicalArea": "Go · Flutter",
+      "technicalArea": "Go \u00b7 Flutter",
       "validationMethods": [
         "integration_tests",
         "manual_ux",
@@ -1339,9 +1362,9 @@
       "acceptanceCriteria": [
         "QR codifica banza://@banza correctamente",
         "Resolve para carteira correcta ao ser scaneado",
-        "Disponível para download em alta resolução",
-        "Permanente — não expira",
-        "Funcional em app Banza e câmara nativa"
+        "Dispon\u00edvel para download em alta resolu\u00e7\u00e3o",
+        "Permanente \u2014 n\u00e3o expira",
+        "Funcional em app Banza e c\u00e2mara nativa"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1387,16 +1410,16 @@
     },
     {
       "id": "QR-002",
-      "title": "QR Dinâmico — por transacção com valor e expiração",
+      "title": "QR Din\u00e2mico \u2014 por transac\u00e7\u00e3o com valor e expira\u00e7\u00e3o",
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§9.2",
-      "description": "QR gerado por transacção com valor pré-definido, referência e expiração. O consumidor só precisa de confirmar — valor pré-preenchido.",
-      "requirement": "QR dinâmico expira após uso ou timeout. Valor e referência correctos ao resolver.",
+      "referenceSection": "\u00a79.2",
+      "description": "QR gerado por transac\u00e7\u00e3o com valor pr\u00e9-definido, refer\u00eancia e expira\u00e7\u00e3o. O consumidor s\u00f3 precisa de confirmar \u2014 valor pr\u00e9-preenchido.",
+      "requirement": "QR din\u00e2mico expira ap\u00f3s uso ou timeout. Valor e refer\u00eancia correctos ao resolver.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
-      "technicalArea": "Rust · Go",
+      "technicalArea": "Rust \u00b7 Go",
       "validationMethods": [
         "integration_tests",
         "financial_invariant",
@@ -1404,10 +1427,10 @@
       ],
       "acceptanceCriteria": [
         "QR codifica qrc_id correctamente",
-        "Valor e referência pré-preenchidos no consumidor",
-        "Expira após uso confirmado",
-        "Expira por timeout configurável",
-        "Não reutilizável após expiração"
+        "Valor e refer\u00eancia pr\u00e9-preenchidos no consumidor",
+        "Expira ap\u00f3s uso confirmado",
+        "Expira por timeout configur\u00e1vel",
+        "N\u00e3o reutiliz\u00e1vel ap\u00f3s expira\u00e7\u00e3o"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1438,7 +1461,7 @@
         {
           "id": "INV-QR-002-2",
           "name": "QR expiry invariant",
-          "rule": "Dynamic QR codes past their expiry must be rejected — no payment may settle against expired QR",
+          "rule": "Dynamic QR codes past their expiry must be rejected \u2014 no payment may settle against expired QR",
           "status": "NOT_RUN"
         }
       ],
@@ -1459,26 +1482,26 @@
     },
     {
       "id": "QR-003",
-      "title": "Scan e resolução de QR na app Banza",
+      "title": "Scan e resolu\u00e7\u00e3o de QR na app Banza",
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.4",
-      "description": "Experiência de scan de QR na app Banza — câmara, descodificação, ecrã de confirmação, PIN/biometria e confirmação de pagamento.",
-      "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especificação §6.4.",
+      "referenceSection": "\u00a76.4",
+      "description": "Experi\u00eancia de scan de QR na app Banza \u2014 c\u00e2mara, descodifica\u00e7\u00e3o, ecr\u00e3 de confirma\u00e7\u00e3o, PIN/biometria e confirma\u00e7\u00e3o de pagamento.",
+      "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especifica\u00e7\u00e3o \u00a76.4.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Go · Rust",
+      "technicalArea": "Flutter \u00b7 Go \u00b7 Rust",
       "validationMethods": [
         "manual_ux",
         "e2e_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Câmara abre instantaneamente ao tocar em 'Pagar'",
+        "C\u00e2mara abre instantaneamente ao tocar em 'Pagar'",
         "QR descodificado em menos de 1 segundo",
-        "Ecrã de confirmação mostra comerciante e valor",
-        "Confirmação com PIN ou biometria",
+        "Ecr\u00e3 de confirma\u00e7\u00e3o mostra comerciante e valor",
+        "Confirma\u00e7\u00e3o com PIN ou biometria",
         "Sucesso confirmado em menos de 3 segundos do scan"
       ],
       "testCoverage": false,
@@ -1519,26 +1542,26 @@
     },
     {
       "id": "QR-004",
-      "title": "Loja QR pública do comerciante",
+      "title": "Loja QR p\u00fablica do comerciante",
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§9.3, §11.6",
-      "description": "Página pública por comerciante em pay.banzami.org/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
-      "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
+      "referenceSection": "\u00a79.3, \u00a711.6",
+      "description": "P\u00e1gina p\u00fablica por comerciante em pay.banzami.org/profiles/@banza \u2014 perfil, QR, bot\u00e3o de pagamento. Partilh\u00e1vel via link.",
+      "requirement": "Cada comerciante tem uma loja QR p\u00fablica acess\u00edvel sem conta Banza. Qualquer utilizador pode pagar a partir da p\u00e1gina.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · Go",
+      "technicalArea": "Next.js \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Página acessível em pay.banzami.org/profiles/@banza",
-        "QR estático exibido correctamente",
-        "Informações do comerciante correctas",
-        "Botão 'Pagar agora' funcional",
-        "Partilhável via link, WhatsApp, Instagram"
+        "P\u00e1gina acess\u00edvel em pay.banzami.org/profiles/@banza",
+        "QR est\u00e1tico exibido correctamente",
+        "Informa\u00e7\u00f5es do comerciante correctas",
+        "Bot\u00e3o 'Pagar agora' funcional",
+        "Partilh\u00e1vel via link, WhatsApp, Instagram"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1570,25 +1593,25 @@
     },
     {
       "id": "QR-005",
-      "title": "QR P2P — consumidor para consumidor",
+      "title": "QR P2P \u2014 consumidor para consumidor",
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§9.4",
-      "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou família — mesmo fluxo que comerciante, wallet-to-wallet.",
-      "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo idêntico ao pagamento a comerciante.",
+      "referenceSection": "\u00a79.4",
+      "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou fam\u00edlia \u2014 mesmo fluxo que comerciante, wallet-to-wallet.",
+      "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo id\u00eantico ao pagamento a comerciante.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Go",
+      "technicalArea": "Flutter \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "QR pessoal exibível na app",
+        "QR pessoal exib\u00edvel na app",
         "Scan pelo pagante resolve para carteira correcta",
-        "Liquidação instantânea",
-        "Notificação ao receptor"
+        "Liquida\u00e7\u00e3o instant\u00e2nea",
+        "Notifica\u00e7\u00e3o ao receptor"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1623,26 +1646,26 @@
     },
     {
       "id": "P2P-001",
-      "title": "Transferência P2P por @banza",
+      "title": "Transfer\u00eancia P2P por @banza",
       "categoryId": "cat-p2p",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§13.4",
-      "description": "Envio de dinheiro de uma carteira para outra via @banza — sem dados bancários, sem IBAN, liquidação instantânea.",
-      "requirement": "Transferência de carteira-para-carteira por @banza, confirmada e liquidada instantaneamente.",
+      "referenceSection": "\u00a713.4",
+      "description": "Envio de dinheiro de uma carteira para outra via @banza \u2014 sem dados banc\u00e1rios, sem IBAN, liquida\u00e7\u00e3o instant\u00e2nea.",
+      "requirement": "Transfer\u00eancia de carteira-para-carteira por @banza, confirmada e liquidada instantaneamente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
-      "technicalArea": "Rust · Go · Flutter",
+      "technicalArea": "Rust \u00b7 Go \u00b7 Flutter",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Transferência de carteira A para carteira B correcta",
+        "Transfer\u00eancia de carteira A para carteira B correcta",
         "Ambos os saldos actualizados atomicamente",
-        "Liquidação em menos de 2 segundos",
-        "Notificação ao receptor imediata",
+        "Liquida\u00e7\u00e3o em menos de 2 segundos",
+        "Notifica\u00e7\u00e3o ao receptor imediata",
         "Erro claro se @banza inexistente ou saldo insuficiente"
       ],
       "testCoverage": false,
@@ -1666,7 +1689,7 @@
         {
           "id": "INV-P2P-001-1",
           "name": "Transfer conservation invariant",
-          "rule": "sender.balance_delta + receiver.balance_delta == 0 — no money is created or destroyed",
+          "rule": "sender.balance_delta + receiver.balance_delta == 0 \u2014 no money is created or destroyed",
           "status": "NOT_RUN"
         },
         {
@@ -1693,23 +1716,23 @@
     },
     {
       "id": "P2P-002",
-      "title": "Divisão de conta por QR (split payments)",
+      "title": "Divis\u00e3o de conta por QR (split payments)",
       "categoryId": "cat-p2p",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§8.8, §13.8",
-      "description": "QR dinâmico de grupo gerado para total de mesa. Cada pessoa faz scan e paga a sua parte. Mesa liquidada quando total atingido.",
-      "requirement": "Múltiplos consumidores pagam partes de um total via QR. Sistema reconcilia total automaticamente.",
+      "referenceSection": "\u00a78.8, \u00a713.8",
+      "description": "QR din\u00e2mico de grupo gerado para total de mesa. Cada pessoa faz scan e paga a sua parte. Mesa liquidada quando total atingido.",
+      "requirement": "M\u00faltiplos consumidores pagam partes de um total via QR. Sistema reconcilia total automaticamente.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Core / QR Platform",
-      "technicalArea": "Go · Rust · Flutter",
+      "technicalArea": "Go \u00b7 Rust \u00b7 Flutter",
       "validationMethods": [
         "integration_tests",
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "QR dinâmico gerado para total de grupo",
-        "Múltiplos scans aceites até ao total",
+        "QR din\u00e2mico gerado para total de grupo",
+        "M\u00faltiplos scans aceites at\u00e9 ao total",
         "Cada pagamento registado individualmente",
         "Comerciante notificado quando total atingido"
       ],
@@ -1746,26 +1769,26 @@
     },
     {
       "id": "PL-001",
-      "title": "Criação de links de pagamento",
+      "title": "Cria\u00e7\u00e3o de links de pagamento",
       "categoryId": "cat-paylinks",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.5, §7",
-      "description": "API e interface para criar links de pagamento configuráveis — montante, descrição, expiração, referência de encomenda.",
-      "requirement": "Link de pagamento criável via SDK, API e Banza Business. URL partilhável gerada imediatamente.",
+      "referenceSection": "\u00a76.5, \u00a77",
+      "description": "API e interface para criar links de pagamento configur\u00e1veis \u2014 montante, descri\u00e7\u00e3o, expira\u00e7\u00e3o, refer\u00eancia de encomenda.",
+      "requirement": "Link de pagamento cri\u00e1vel via SDK, API e Banza Business. URL partilh\u00e1vel gerada imediatamente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payment Links",
-      "technicalArea": "Go · Rust · TypeScript SDK",
+      "technicalArea": "Go \u00b7 Rust \u00b7 TypeScript SDK",
       "validationMethods": [
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Link criado via SDK com montante, descrição e expiração",
-        "URL partilhável gerada (pay.banzami.org/{slug})",
+        "Link criado via SDK com montante, descri\u00e7\u00e3o e expira\u00e7\u00e3o",
+        "URL partilh\u00e1vel gerada (pay.banzami.org/{slug})",
         "Link expira conforme configurado",
-        "Link marcado como pago após liquidação",
-        "Webhook disparado após pagamento"
+        "Link marcado como pago ap\u00f3s liquida\u00e7\u00e3o",
+        "Webhook disparado ap\u00f3s pagamento"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1798,26 +1821,26 @@
     },
     {
       "id": "PL-002",
-      "title": "Página pública de pagamento (pay.banzami.org)",
+      "title": "P\u00e1gina p\u00fablica de pagamento (pay.banzami.org)",
       "categoryId": "cat-paylinks",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.5",
-      "description": "Página pública acessível por qualquer utilizador — exibe comerciante, valor e botão de pagamento. Funciona sem app instalada.",
-      "requirement": "Página acessível sem conta, exibe todas as informações do link, permite pagamento com app Banza.",
+      "referenceSection": "\u00a76.5",
+      "description": "P\u00e1gina p\u00fablica acess\u00edvel por qualquer utilizador \u2014 exibe comerciante, valor e bot\u00e3o de pagamento. Funciona sem app instalada.",
+      "requirement": "P\u00e1gina acess\u00edvel sem conta, exibe todas as informa\u00e7\u00f5es do link, permite pagamento com app Banza.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · Go",
+      "technicalArea": "Next.js \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "e2e_tests"
       ],
       "acceptanceCriteria": [
-        "Página acessível sem autenticação",
-        "Nome do comerciante, valor e descrição exibidos",
+        "P\u00e1gina acess\u00edvel sem autentica\u00e7\u00e3o",
+        "Nome do comerciante, valor e descri\u00e7\u00e3o exibidos",
         "QR de pagamento exibido",
-        "Botão 'Pagar com Banza' funcional",
-        "Estado 'Pago' exibido após liquidação"
+        "Bot\u00e3o 'Pagar com Banza' funcional",
+        "Estado 'Pago' exibido ap\u00f3s liquida\u00e7\u00e3o"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1848,16 +1871,16 @@
     },
     {
       "id": "PL-003",
-      "title": "Liquidação via link de pagamento e webhooks",
+      "title": "Liquida\u00e7\u00e3o via link de pagamento e webhooks",
       "categoryId": "cat-paylinks",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.5, §12.6",
-      "description": "Quando consumidor paga via link, liquidação acontece instantaneamente e webhook é enviado ao comerciante dentro de 2 segundos.",
-      "requirement": "Liquidação de link de pagamento instantânea. Webhook entregue em menos de 2 segundos.",
+      "referenceSection": "\u00a76.5, \u00a712.6",
+      "description": "Quando consumidor paga via link, liquida\u00e7\u00e3o acontece instantaneamente e webhook \u00e9 enviado ao comerciante dentro de 2 segundos.",
+      "requirement": "Liquida\u00e7\u00e3o de link de pagamento instant\u00e2nea. Webhook entregue em menos de 2 segundos.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments",
-      "technicalArea": "Rust · Go",
+      "technicalArea": "Rust \u00b7 Go",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
@@ -1866,8 +1889,8 @@
       "acceptanceCriteria": [
         "Saldo do comerciante actualizado instantaneamente",
         "Webhook transaction.completed entregue em <2s",
-        "Link marcado como usado após primeiro pagamento",
-        "Sem dupla cobrança possível"
+        "Link marcado como usado ap\u00f3s primeiro pagamento",
+        "Sem dupla cobran\u00e7a poss\u00edvel"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1901,25 +1924,25 @@
     },
     {
       "id": "PR-001",
-      "title": "Criação e envio de pedido de pagamento",
+      "title": "Cria\u00e7\u00e3o e envio de pedido de pagamento",
       "categoryId": "cat-payrequests",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.6, §7",
-      "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
-      "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
+      "referenceSection": "\u00a76.6, \u00a77",
+      "description": "Comerciante ou sistema cria pedido de pagamento com valor, descri\u00e7\u00e3o e @banza do destinat\u00e1rio. Enviado como notifica\u00e7\u00e3o push.",
+      "requirement": "Pedido criado e entregue ao consumidor como notifica\u00e7\u00e3o push. Refer\u00eancia e valor correctos.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Payment Requests",
-      "technicalArea": "Go · FCM · Flutter",
+      "technicalArea": "Go \u00b7 FCM \u00b7 Flutter",
       "validationMethods": [
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Pedido criado via API/SDK com valor e descrição",
-        "Notificação push entregue ao consumidor",
-        "Pedido visível na app do consumidor",
-        "Expiração configurável"
+        "Pedido criado via API/SDK com valor e descri\u00e7\u00e3o",
+        "Notifica\u00e7\u00e3o push entregue ao consumidor",
+        "Pedido vis\u00edvel na app do consumidor",
+        "Expira\u00e7\u00e3o configur\u00e1vel"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -1954,13 +1977,13 @@
       "title": "Pagamento e recusa de pedido de pagamento",
       "categoryId": "cat-payrequests",
       "validationDomain": "DOM-CONSUMER",
-      "referenceSection": "§6.6, §13.6",
-      "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
-      "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
+      "referenceSection": "\u00a76.6, \u00a713.6",
+      "description": "Consumidor recebe pedido, v\u00ea detalhes, paga com um toque ou recusa. Liquida\u00e7\u00e3o instant\u00e2nea. Notifica\u00e7\u00e3o ao emissor.",
+      "requirement": "Consumidor pode pagar ou recusar com um toque. Liquida\u00e7\u00e3o instant\u00e2nea se pago. Notifica\u00e7\u00e3o ao emissor em ambos os casos.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Rust · Go",
+      "technicalArea": "Flutter \u00b7 Rust \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "financial_invariant",
@@ -1968,8 +1991,8 @@
       ],
       "acceptanceCriteria": [
         "Pagamento com um toque + biometria",
-        "Liquidação instantânea após confirmação",
-        "Notificação ao emissor: pago ou recusado",
+        "Liquida\u00e7\u00e3o instant\u00e2nea ap\u00f3s confirma\u00e7\u00e3o",
+        "Notifica\u00e7\u00e3o ao emissor: pago ou recusado",
         "Webhook payment_request.paid ou payment_request.declined disparado"
       ],
       "testCoverage": false,
@@ -2003,26 +2026,26 @@
     },
     {
       "id": "BM-001",
-      "title": "Interface móvel Banza Business — operação diária",
+      "title": "Interface m\u00f3vel Banza Business \u2014 opera\u00e7\u00e3o di\u00e1ria",
       "categoryId": "cat-biz-mobile",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.1",
-      "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
-      "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
+      "referenceSection": "\u00a711.2.1",
+      "description": "App m\u00f3vel para opera\u00e7\u00e3o di\u00e1ria do comerciante \u2014 notifica\u00e7\u00f5es, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
+      "requirement": "Interface m\u00f3vel completa cobrindo todos os fluxos de opera\u00e7\u00e3o di\u00e1ria. Sem necessidade de computador.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
-      "technicalArea": "Flutter · Go",
+      "technicalArea": "Flutter \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Notificações de pagamento em tempo real",
-        "Geração de QR estático e dinâmico",
-        "Visualização de saldo e transacções recentes",
+        "Notifica\u00e7\u00f5es de pagamento em tempo real",
+        "Gera\u00e7\u00e3o de QR est\u00e1tico e din\u00e2mico",
+        "Visualiza\u00e7\u00e3o de saldo e transac\u00e7\u00f5es recentes",
         "Pedidos de pagamento geridos na app",
-        "Levantamentos iniciáveis a partir da app"
+        "Levantamentos inici\u00e1veis a partir da app"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2056,25 +2079,25 @@
     },
     {
       "id": "BM-002",
-      "title": "Notificações de pagamento em tempo real",
+      "title": "Notifica\u00e7\u00f5es de pagamento em tempo real",
       "categoryId": "cat-biz-mobile",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.1",
-      "description": "Push notification instantânea ao comerciante quando um pagamento é recebido — valor, @banza do pagador e timestamp.",
-      "requirement": "Notificação entregue em menos de 2 segundos após liquidação. Mesmo com app em background.",
+      "referenceSection": "\u00a711.2.1",
+      "description": "Push notification instant\u00e2nea ao comerciante quando um pagamento \u00e9 recebido \u2014 valor, @banza do pagador e timestamp.",
+      "requirement": "Notifica\u00e7\u00e3o entregue em menos de 2 segundos ap\u00f3s liquida\u00e7\u00e3o. Mesmo com app em background.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
-      "technicalArea": "FCM · Go · Flutter",
+      "technicalArea": "FCM \u00b7 Go \u00b7 Flutter",
       "validationMethods": [
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Notificação push entregue em <2s após liquidação",
+        "Notifica\u00e7\u00e3o push entregue em <2s ap\u00f3s liquida\u00e7\u00e3o",
         "Funciona com app em background ou fechada",
-        "Valor e @banza do pagador correctos na notificação",
-        "Som de confirmação configurável"
+        "Valor e @banza do pagador correctos na notifica\u00e7\u00e3o",
+        "Som de confirma\u00e7\u00e3o configur\u00e1vel"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2107,24 +2130,24 @@
     },
     {
       "id": "BM-003",
-      "title": "Geração de QR estático e dinâmico na interface móvel",
+      "title": "Gera\u00e7\u00e3o de QR est\u00e1tico e din\u00e2mico na interface m\u00f3vel",
       "categoryId": "cat-biz-mobile",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.4",
-      "description": "Comerciante gera QR estático (imprimir uma vez) e QR dinâmico (por transacção com valor) directamente na app móvel.",
-      "requirement": "QR gerado instantaneamente na app, partilhável e imprimível.",
+      "referenceSection": "\u00a711.4",
+      "description": "Comerciante gera QR est\u00e1tico (imprimir uma vez) e QR din\u00e2mico (por transac\u00e7\u00e3o com valor) directamente na app m\u00f3vel.",
+      "requirement": "QR gerado instantaneamente na app, partilh\u00e1vel e imprim\u00edvel.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Flutter",
-      "technicalArea": "Flutter · Go",
+      "technicalArea": "Flutter \u00b7 Go",
       "validationMethods": [
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "QR estático disponível em alta resolução para impressão",
-        "QR dinâmico gerado com valor inserido pelo comerciante",
-        "QR partilhável via WhatsApp, SMS, etc.",
-        "QR funciona com câmara nativa e app Banza"
+        "QR est\u00e1tico dispon\u00edvel em alta resolu\u00e7\u00e3o para impress\u00e3o",
+        "QR din\u00e2mico gerado com valor inserido pelo comerciante",
+        "QR partilh\u00e1vel via WhatsApp, SMS, etc.",
+        "QR funciona com c\u00e2mara nativa e app Banza"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2159,22 +2182,22 @@
       "title": "Dashboard web Banza Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.2",
-      "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
-      "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
+      "referenceSection": "\u00a711.2.2",
+      "description": "Interface web avan\u00e7ada para comerciante \u2014 saldo, transac\u00e7\u00f5es, an\u00e1lises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
+      "requirement": "Dashboard web completo cobrindo todas as sec\u00e7\u00f5es descritas em \u00a711.2.2.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · TypeScript · Go",
+      "technicalArea": "Next.js \u00b7 TypeScript \u00b7 Go",
       "validationMethods": [
         "manual_ux",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Todas as secções da §11.2.2 implementadas",
+        "Todas as sec\u00e7\u00f5es da \u00a711.2.2 implementadas",
         "Saldo em tempo real no dashboard",
-        "Transacções listadas com filtros",
-        "Acções (reembolso, disputa, levantamento) funcionais"
+        "Transac\u00e7\u00f5es listadas com filtros",
+        "Ac\u00e7\u00f5es (reembolso, disputa, levantamento) funcionais"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2206,24 +2229,24 @@
     },
     {
       "id": "BW-002",
-      "title": "Análises e relatórios no Banza Business",
+      "title": "An\u00e1lises e relat\u00f3rios no Banza Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.2",
-      "description": "Volume diário/mensal, contagens de transacções, horas de pico e tendências para o comerciante.",
-      "requirement": "Análises precisas derivadas do ledger. Filtráveis por período. Exportáveis.",
+      "referenceSection": "\u00a711.2.2",
+      "description": "Volume di\u00e1rio/mensal, contagens de transac\u00e7\u00f5es, horas de pico e tend\u00eancias para o comerciante.",
+      "requirement": "An\u00e1lises precisas derivadas do ledger. Filtr\u00e1veis por per\u00edodo. Export\u00e1veis.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · PostgreSQL",
+      "technicalArea": "Next.js \u00b7 PostgreSQL",
       "validationMethods": [
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Volume diário e mensal correctos",
-        "Gráfico de horas de pico",
-        "Filtros por período funcionais",
-        "Exportação CSV ou PDF"
+        "Volume di\u00e1rio e mensal correctos",
+        "Gr\u00e1fico de horas de pico",
+        "Filtros por per\u00edodo funcionais",
+        "Exporta\u00e7\u00e3o CSV ou PDF"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2253,25 +2276,25 @@
     },
     {
       "id": "BW-003",
-      "title": "Gestão de chaves API no Banza Business",
+      "title": "Gest\u00e3o de chaves API no Banza Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.2, §12",
-      "description": "Interface para gerar, listar e revogar chaves API de sandbox e produção. Chave bruta visível apenas uma vez após criação.",
-      "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revogação imediata.",
+      "referenceSection": "\u00a711.2.2, \u00a712",
+      "description": "Interface para gerar, listar e revogar chaves API de sandbox e produ\u00e7\u00e3o. Chave bruta vis\u00edvel apenas uma vez ap\u00f3s cria\u00e7\u00e3o.",
+      "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revoga\u00e7\u00e3o imediata.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · Go · PostgreSQL",
+      "technicalArea": "Next.js \u00b7 Go \u00b7 PostgreSQL",
       "validationMethods": [
         "security_audit",
         "manual_ux"
       ],
       "acceptanceCriteria": [
-        "Chave gerada e mostrada uma única vez",
+        "Chave gerada e mostrada uma \u00fanica vez",
         "Listagem de chaves activas (sem valor bruto)",
-        "Revogação imediata e irreversível",
-        "Separação clara sandbox vs. produção"
+        "Revoga\u00e7\u00e3o imediata e irrevers\u00edvel",
+        "Separa\u00e7\u00e3o clara sandbox vs. produ\u00e7\u00e3o"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2301,24 +2324,24 @@
     },
     {
       "id": "BW-004",
-      "title": "Gestão de equipa e permissões",
+      "title": "Gest\u00e3o de equipa e permiss\u00f5es",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
-      "referenceSection": "§11.2.2",
-      "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
-      "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
+      "referenceSection": "\u00a711.2.2",
+      "description": "Comerciante pode adicionar membros de equipa com permiss\u00f5es controladas \u2014 acesso de leitura, acesso de opera\u00e7\u00e3o, etc.",
+      "requirement": "Gest\u00e3o de equipa funcional com pelo menos dois n\u00edveis de permiss\u00e3o distintos.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
-      "technicalArea": "Next.js · Go · PostgreSQL",
+      "technicalArea": "Next.js \u00b7 Go \u00b7 PostgreSQL",
       "validationMethods": [
         "manual_ux",
         "integration_tests"
       ],
       "acceptanceCriteria": [
         "Convite de membro de equipa por email",
-        "Permissões diferenciadas (leitura vs. operação)",
-        "Remoção de membro imediata",
+        "Permiss\u00f5es diferenciadas (leitura vs. opera\u00e7\u00e3o)",
+        "Remo\u00e7\u00e3o de membro imediata",
         "Log de acesso por membro"
       ],
       "testCoverage": false,
@@ -2353,13 +2376,13 @@
       "title": "TypeScript SDK (@banza/sdk)",
       "categoryId": "cat-sdk",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.2, §12.3",
-      "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempotência automática, retry com backoff exponencial e verificação de webhooks.",
-      "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das operações da API. Documentação completa.",
+      "referenceSection": "\u00a712.2, \u00a712.3",
+      "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempot\u00eancia autom\u00e1tica, retry com backoff exponencial e verifica\u00e7\u00e3o de webhooks.",
+      "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das opera\u00e7\u00f5es da API. Documenta\u00e7\u00e3o completa.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform / SDK",
-      "technicalArea": "TypeScript · Node.js",
+      "technicalArea": "TypeScript \u00b7 Node.js",
       "validationMethods": [
         "unit_tests",
         "integration_tests",
@@ -2367,11 +2390,11 @@
       ],
       "acceptanceCriteria": [
         "Publicado em npm como @banza/sdk",
-        "BanzaClient tipado para todas as operações",
-        "Idempotência automática em todos os POST",
+        "BanzaClient tipado para todas as opera\u00e7\u00f5es",
+        "Idempot\u00eancia autom\u00e1tica em todos os POST",
         "Retry com backoff exponencial",
-        "Verificação HMAC-SHA256 de webhooks",
-        "Isolamento sandbox/produção"
+        "Verifica\u00e7\u00e3o HMAC-SHA256 de webhooks",
+        "Isolamento sandbox/produ\u00e7\u00e3o"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2385,7 +2408,7 @@
         "sdk/**"
       ],
       "blockingIssues": [
-        "API REST não implementada ainda"
+        "API REST n\u00e3o implementada ainda"
       ],
       "invariants": [],
       "confidence": {
@@ -2409,13 +2432,13 @@
       "title": "PHP SDK (banza/sdk-php)",
       "categoryId": "cat-sdk",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.2, §12.4",
-      "description": "SDK PHP compatível com PSR-18, com BanzaClient e integração Laravel nativa.",
-      "requirement": "SDK publicado no Packagist. Compatível com Laravel. Cobertura de API completa.",
+      "referenceSection": "\u00a712.2, \u00a712.4",
+      "description": "SDK PHP compat\u00edvel com PSR-18, com BanzaClient e integra\u00e7\u00e3o Laravel nativa.",
+      "requirement": "SDK publicado no Packagist. Compat\u00edvel com Laravel. Cobertura de API completa.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
-      "technicalArea": "PHP · Laravel",
+      "technicalArea": "PHP \u00b7 Laravel",
       "validationMethods": [
         "unit_tests",
         "integration_tests",
@@ -2424,8 +2447,8 @@
       "acceptanceCriteria": [
         "Publicado em Packagist como banza/sdk-php",
         "BanzaClient PHP com as mesmas garantias do TypeScript SDK",
-        "Service provider Laravel incluído",
-        "Verificação de webhooks"
+        "Service provider Laravel inclu\u00eddo",
+        "Verifica\u00e7\u00e3o de webhooks"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2438,7 +2461,7 @@
         "sdk/**"
       ],
       "blockingIssues": [
-        "API REST não implementada ainda"
+        "API REST n\u00e3o implementada ainda"
       ],
       "invariants": [],
       "confidence": {
@@ -2462,13 +2485,13 @@
       "title": "Flutter SDK (banza_flutter / BanzaPay)",
       "categoryId": "cat-sdk",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.2, §12.5",
-      "description": "SDK Flutter para fluxos de pagamento in-app e comércio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
-      "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementação de lógica de pagamento na app anfitriã.",
+      "referenceSection": "\u00a712.2, \u00a712.5",
+      "description": "SDK Flutter para fluxos de pagamento in-app e com\u00e9rcio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
+      "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementa\u00e7\u00e3o de l\u00f3gica de pagamento na app anfitri\u00e3.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform / SDK",
-      "technicalArea": "Flutter · Dart",
+      "technicalArea": "Flutter \u00b7 Dart",
       "validationMethods": [
         "manual_ux",
         "integration_tests",
@@ -2479,7 +2502,7 @@
         "BanzaPay.confirm() funcional",
         "Folha de pagamento completa embebida",
         "Resultado tipado: PaymentStatus.completed, .failed",
-        "Sem dependência de WebView ou redirecionamento"
+        "Sem depend\u00eancia de WebView ou redirecionamento"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2493,7 +2516,7 @@
         "sdk/**"
       ],
       "blockingIssues": [
-        "API REST não implementada ainda"
+        "API REST n\u00e3o implementada ainda"
       ],
       "invariants": [],
       "confidence": {
@@ -2517,9 +2540,9 @@
       "title": "Go SDK (banza-go)",
       "categoryId": "cat-sdk",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.2",
-      "description": "Cliente Go nativo com propagação de contexto, erros estruturados e idempotência automática.",
-      "requirement": "Módulo Go publicado. Propagação de contexto correcta. Erros estruturados.",
+      "referenceSection": "\u00a712.2",
+      "description": "Cliente Go nativo com propaga\u00e7\u00e3o de contexto, erros estruturados e idempot\u00eancia autom\u00e1tica.",
+      "requirement": "M\u00f3dulo Go publicado. Propaga\u00e7\u00e3o de contexto correcta. Erros estruturados.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
@@ -2530,10 +2553,10 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Módulo Go publicado como banza-go",
-        "Propagação de contexto em todas as chamadas",
+        "M\u00f3dulo Go publicado como banza-go",
+        "Propaga\u00e7\u00e3o de contexto em todas as chamadas",
         "Erros estruturados com tipos Go",
-        "Idempotência automática"
+        "Idempot\u00eancia autom\u00e1tica"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2568,13 +2591,13 @@
       "title": "Python SDK (banza-python)",
       "categoryId": "cat-sdk",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.2",
+      "referenceSection": "\u00a712.2",
       "description": "SDK async-first com Pydantic v2 e suporte Django/FastAPI.",
-      "requirement": "SDK publicado no PyPI. async-first. Pydantic v2 para validação de tipos.",
+      "requirement": "SDK publicado no PyPI. async-first. Pydantic v2 para valida\u00e7\u00e3o de tipos.",
       "status": "PLANNED",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
-      "technicalArea": "Python · asyncio · Pydantic",
+      "technicalArea": "Python \u00b7 asyncio \u00b7 Pydantic",
       "validationMethods": [
         "unit_tests",
         "integration_tests",
@@ -2584,7 +2607,7 @@
         "Publicado no PyPI como banza-python",
         "API async com asyncio",
         "Tipos validados com Pydantic v2",
-        "Integração Django e FastAPI documentada"
+        "Integra\u00e7\u00e3o Django e FastAPI documentada"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2616,28 +2639,28 @@
     },
     {
       "id": "API-001",
-      "title": "API REST — transacções, carteiras e transferências",
+      "title": "API REST \u2014 transac\u00e7\u00f5es, carteiras e transfer\u00eancias",
       "categoryId": "cat-api",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.8",
-      "description": "Endpoints REST para operações core — criar/capturar/anular transacções, obter saldo de carteiras, listar transacções e criar transferências.",
-      "requirement": "API versionada, idempotente, com autenticação por chave API. Erros estruturados. Paginação.",
+      "referenceSection": "\u00a712.8",
+      "description": "Endpoints REST para opera\u00e7\u00f5es core \u2014 criar/capturar/anular transac\u00e7\u00f5es, obter saldo de carteiras, listar transac\u00e7\u00f5es e criar transfer\u00eancias.",
+      "requirement": "API versionada, idempotente, com autentica\u00e7\u00e3o por chave API. Erros estruturados. Pagina\u00e7\u00e3o.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
-      "technicalArea": "Go · PostgreSQL · Redis",
+      "technicalArea": "Go \u00b7 PostgreSQL \u00b7 Redis",
       "validationMethods": [
         "integration_tests",
         "financial_invariant",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Endpoints de transacção CRUD funcionais",
-        "Endpoints de carteira (saldo, histórico)",
-        "Idempotência por chave X-Idempotency-Key",
-        "Autenticação por Bearer token",
+        "Endpoints de transac\u00e7\u00e3o CRUD funcionais",
+        "Endpoints de carteira (saldo, hist\u00f3rico)",
+        "Idempot\u00eancia por chave X-Idempotency-Key",
+        "Autentica\u00e7\u00e3o por Bearer token",
         "Erros em formato estruturado JSON",
-        "Paginação cursor-based"
+        "Pagina\u00e7\u00e3o cursor-based"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2673,25 +2696,25 @@
     },
     {
       "id": "API-002",
-      "title": "API REST — QR, links de pagamento e pedidos",
+      "title": "API REST \u2014 QR, links de pagamento e pedidos",
       "categoryId": "cat-api",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.8",
-      "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
-      "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
+      "referenceSection": "\u00a712.8",
+      "description": "Endpoints para criar/descodificar QR est\u00e1tico e din\u00e2mico, gerir links de pagamento e pedidos de pagamento.",
+      "requirement": "APIs de QR e payment links funcionais com idempot\u00eancia. Links expiram conforme configurado.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
-      "technicalArea": "Go · Redis",
+      "technicalArea": "Go \u00b7 Redis",
       "validationMethods": [
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
         "POST /qr/static e /qr/dynamic funcionais",
-        "POST /payment-links com slug único",
+        "POST /payment-links com slug \u00fanico",
         "GET /payment-links/{slug}/status",
-        "POST /payment-requests com notificação"
+        "POST /payment-requests com notifica\u00e7\u00e3o"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2724,16 +2747,16 @@
     },
     {
       "id": "API-003",
-      "title": "API REST — levantamentos, reembolsos e disputas",
+      "title": "API REST \u2014 levantamentos, reembolsos e disputas",
       "categoryId": "cat-api",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.8",
-      "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
-      "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
+      "referenceSection": "\u00a712.8",
+      "description": "Endpoints para criar levantamentos banc\u00e1rios, emitir reembolsos parciais/totais e gerir disputas.",
+      "requirement": "APIs de opera\u00e7\u00f5es p\u00f3s-pagamento com idempot\u00eancia e trilhos de auditoria completos.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / API Layer",
-      "technicalArea": "Go · Rust",
+      "technicalArea": "Go \u00b7 Rust",
       "validationMethods": [
         "financial_invariant",
         "integration_tests"
@@ -2758,7 +2781,7 @@
         "services/admin-api/**"
       ],
       "blockingIssues": [
-        "Integração EMIS necessária para levantamentos"
+        "Integra\u00e7\u00e3o EMIS necess\u00e1ria para levantamentos"
       ],
       "invariants": [],
       "confidence": {
@@ -2777,26 +2800,26 @@
     },
     {
       "id": "WH-001",
-      "title": "Sistema de webhooks — entrega de eventos",
+      "title": "Sistema de webhooks \u2014 entrega de eventos",
       "categoryId": "cat-webhooks",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.6, §18.4",
-      "description": "Entrega de eventos em tempo real para endpoints registados — 9 tipos de evento, entrega garantida, retry automático.",
-      "requirement": "Eventos entregues em menos de 2 segundos após acção desencadeadora. Retry com backoff. Rastreamento de entregas.",
+      "referenceSection": "\u00a712.6, \u00a718.4",
+      "description": "Entrega de eventos em tempo real para endpoints registados \u2014 9 tipos de evento, entrega garantida, retry autom\u00e1tico.",
+      "requirement": "Eventos entregues em menos de 2 segundos ap\u00f3s ac\u00e7\u00e3o desencadeadora. Retry com backoff. Rastreamento de entregas.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Webhooks",
-      "technicalArea": "Go · Redis · PostgreSQL",
+      "technicalArea": "Go \u00b7 Redis \u00b7 PostgreSQL",
       "validationMethods": [
         "integration_tests",
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Entrega em <2s após trigger",
-        "Retry automático com backoff exponencial",
+        "Entrega em <2s ap\u00f3s trigger",
+        "Retry autom\u00e1tico com backoff exponencial",
         "Rastreamento de estado de entrega",
         "Todos os 9 tipos de evento implementados",
-        "Endpoint de inspecção de entregas"
+        "Endpoint de inspec\u00e7\u00e3o de entregas"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2827,23 +2850,23 @@
     },
     {
       "id": "WH-002",
-      "title": "Verificação de assinatura HMAC-SHA256",
+      "title": "Verifica\u00e7\u00e3o de assinatura HMAC-SHA256",
       "categoryId": "cat-webhooks",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.6, §16",
+      "referenceSection": "\u00a712.6, \u00a716",
       "description": "Cada webhook entregue com header banza-signature assinado por HMAC-SHA256 usando o segredo do endpoint.",
-      "requirement": "Assinatura verificável em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
+      "requirement": "Assinatura verific\u00e1vel em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
-      "technicalArea": "Go · Criptografia",
+      "technicalArea": "Go \u00b7 Criptografia",
       "validationMethods": [
         "unit_tests",
         "security_audit"
       ],
       "acceptanceCriteria": [
         "Header banza-signature presente em todos os webhooks",
-        "HMAC-SHA256 verificável com segredo configurado",
+        "HMAC-SHA256 verific\u00e1vel com segredo configurado",
         "BanzaWebhooks.constructEvent() no TypeScript SDK",
         "Segredo nunca em logs ou respostas de API"
       ],
@@ -2876,24 +2899,24 @@
     },
     {
       "id": "WH-003",
-      "title": "Retry automático com backoff exponencial",
+      "title": "Retry autom\u00e1tico com backoff exponencial",
       "categoryId": "cat-webhooks",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.6",
-      "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo após falhas persistentes.",
-      "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante após falha persistente.",
+      "referenceSection": "\u00a712.6",
+      "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo ap\u00f3s falhas persistentes.",
+      "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante ap\u00f3s falha persistente.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
-      "technicalArea": "Go · Redis",
+      "technicalArea": "Go \u00b7 Redis",
       "validationMethods": [
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Mínimo 5 tentativas de retry",
+        "M\u00ednimo 5 tentativas de retry",
         "Backoff exponencial (1s, 2s, 4s, 8s, 16s)",
-        "Estado de entrega rastreável por API",
-        "Alerta ao comerciante após N falhas consecutivas"
+        "Estado de entrega rastre\u00e1vel por API",
+        "Alerta ao comerciante ap\u00f3s N falhas consecutivas"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2926,23 +2949,23 @@
       "title": "Ambiente sandbox completamente isolado",
       "categoryId": "cat-sandbox",
       "validationDomain": "DOM-DEV",
-      "referenceSection": "§12.7, §16.7",
-      "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superfície de API idêntica à produção.",
-      "requirement": "Sandbox completamente isolado — diferentes chaves, diferentes dados, sem movimento de dinheiro real. API idêntica.",
+      "referenceSection": "\u00a712.7, \u00a716.7",
+      "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superf\u00edcie de API id\u00eantica \u00e0 produ\u00e7\u00e3o.",
+      "requirement": "Sandbox completamente isolado \u2014 diferentes chaves, diferentes dados, sem movimento de dinheiro real. API id\u00eantica.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform",
-      "technicalArea": "Go · PostgreSQL · Redis",
+      "technicalArea": "Go \u00b7 PostgreSQL \u00b7 Redis",
       "validationMethods": [
         "integration_tests",
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Chaves bz_sandbox_... não funcionam em produção",
+        "Chaves bz_sandbox_... n\u00e3o funcionam em produ\u00e7\u00e3o",
         "Dados sandbox completamente separados",
         "Sem movimento de dinheiro real em sandbox",
-        "API superfície idêntica à produção",
-        "Reset de dados sandbox disponível"
+        "API superf\u00edcie id\u00eantica \u00e0 produ\u00e7\u00e3o",
+        "Reset de dados sandbox dispon\u00edvel"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -2976,13 +2999,13 @@
       "title": "Ledger de dupla entrada",
       "categoryId": "cat-ledger",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§16.1",
-      "description": "Cada movimento monetário registado como par de entradas de ledger de dupla entrada — débito e crédito atomicamente. Líquido sempre zero.",
-      "requirement": "Cada transacção cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
+      "referenceSection": "\u00a716.1",
+      "description": "Cada movimento monet\u00e1rio registado como par de entradas de ledger de dupla entrada \u2014 d\u00e9bito e cr\u00e9dito atomicamente. L\u00edquido sempre zero.",
+      "requirement": "Cada transac\u00e7\u00e3o cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "unit_tests",
@@ -2991,8 +3014,8 @@
       "acceptanceCriteria": [
         "Cada pagamento gera par de entradas D/C",
         "Soma de todas as entradas = 0 sempre",
-        "Operação rejeitada se ledger ficaria desequilibrado",
-        "Entradas append-only — sem UPDATE ou DELETE"
+        "Opera\u00e7\u00e3o rejeitada se ledger ficaria desequilibrado",
+        "Entradas append-only \u2014 sem UPDATE ou DELETE"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3047,21 +3070,21 @@
       "title": "Imutabilidade de entradas do ledger",
       "categoryId": "cat-ledger",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§16.2",
-      "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Histórico financeiro completo e inviolável.",
-      "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Histórico completamente reconstruível.",
+      "referenceSection": "\u00a716.2",
+      "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Hist\u00f3rico financeiro completo e inviol\u00e1vel.",
+      "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Hist\u00f3rico completamente reconstru\u00edvel.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Zero operações de UPDATE/DELETE no ledger",
+        "Zero opera\u00e7\u00f5es de UPDATE/DELETE no ledger",
         "Reembolso cria entrada oposta",
-        "Histórico completo de qualquer carteira reconstruível",
+        "Hist\u00f3rico completo de qualquer carteira reconstru\u00edvel",
         "Constraints PostgreSQL aplicando imutabilidade"
       ],
       "testCoverage": false,
@@ -3104,25 +3127,25 @@
     },
     {
       "id": "LED-003",
-      "title": "Operações atómicas de pagamento",
+      "title": "Opera\u00e7\u00f5es at\u00f3micas de pagamento",
       "categoryId": "cat-ledger",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§17.5",
-      "description": "Todas as operações financeiras dentro de transacções PostgreSQL — ou tudo commit, ou tudo rollback. Sem estado intermédio.",
-      "requirement": "Sem estado de pagamento intermédio visível. Transacção confirma ou falha — nunca parcialmente.",
+      "referenceSection": "\u00a717.5",
+      "description": "Todas as opera\u00e7\u00f5es financeiras dentro de transac\u00e7\u00f5es PostgreSQL \u2014 ou tudo commit, ou tudo rollback. Sem estado interm\u00e9dio.",
+      "requirement": "Sem estado de pagamento interm\u00e9dio vis\u00edvel. Transac\u00e7\u00e3o confirma ou falha \u2014 nunca parcialmente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Falha após débito causa rollback do crédito",
-        "Sem 'half-committed' transactions visíveis",
-        "Idempotência: segundo submit retorna resultado original",
-        "Latência de transacção PostgreSQL <50ms p99"
+        "Falha ap\u00f3s d\u00e9bito causa rollback do cr\u00e9dito",
+        "Sem 'half-committed' transactions vis\u00edveis",
+        "Idempot\u00eancia: segundo submit retorna resultado original",
+        "Lat\u00eancia de transac\u00e7\u00e3o PostgreSQL <50ms p99"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3146,7 +3169,7 @@
         {
           "id": "INV-LED-003-1",
           "name": "Atomicity invariant",
-          "rule": "Debit and credit posts succeed or fail together — no partial ledger state is permitted",
+          "rule": "Debit and credit posts succeed or fail together \u2014 no partial ledger state is permitted",
           "status": "NOT_RUN"
         },
         {
@@ -3172,16 +3195,16 @@
     },
     {
       "id": "LED-004",
-      "title": "Reconciliação automática diária",
+      "title": "Reconcilia\u00e7\u00e3o autom\u00e1tica di\u00e1ria",
       "categoryId": "cat-ledger",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§16.8",
-      "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com créditos bancários reais.",
-      "requirement": "Reconciliação diária automática. Qualquer discrepância gera alerta. Zero discrepâncias não resolvidas permitidas.",
+      "referenceSection": "\u00a716.8",
+      "description": "Job di\u00e1rio que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com cr\u00e9ditos banc\u00e1rios reais.",
+      "requirement": "Reconcilia\u00e7\u00e3o di\u00e1ria autom\u00e1tica. Qualquer discrep\u00e2ncia gera alerta. Zero discrep\u00e2ncias n\u00e3o resolvidas permitidas.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Reconciliation (Rust)",
-      "technicalArea": "Rust · PostgreSQL · EMIS",
+      "technicalArea": "Rust \u00b7 PostgreSQL \u00b7 EMIS",
       "validationMethods": [
         "reconciliation",
         "financial_invariant"
@@ -3189,9 +3212,9 @@
       "acceptanceCriteria": [
         "Job executa automaticamente cada dia",
         "Soma de saldos de carteiras = soma de ledger",
-        "EMIS esperado = créditos bancários reais",
-        "Alerta imediato a qualquer discrepância",
-        "Relatório de reconciliação gerado"
+        "EMIS esperado = cr\u00e9ditos banc\u00e1rios reais",
+        "Alerta imediato a qualquer discrep\u00e2ncia",
+        "Relat\u00f3rio de reconcilia\u00e7\u00e3o gerado"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3226,16 +3249,16 @@
     },
     {
       "id": "KYC-001",
-      "title": "Verificação KYC de consumidores",
+      "title": "Verifica\u00e7\u00e3o KYC de consumidores",
       "categoryId": "cat-kyc",
       "validationDomain": "DOM-COMPLIANCE",
-      "referenceSection": "§16.5",
-      "description": "Verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Por níveis conforme volume.",
-      "requirement": "KYC obrigatório antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
+      "referenceSection": "\u00a716.5",
+      "description": "Verifica\u00e7\u00e3o de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condu\u00e7\u00e3o). Por n\u00edveis conforme volume.",
+      "requirement": "KYC obrigat\u00f3rio antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
       "status": "BLOCKED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
-      "technicalArea": "Go · Flutter · Parceiro KYC",
+      "technicalArea": "Go \u00b7 Flutter \u00b7 Parceiro KYC",
       "validationMethods": [
         "manual_ux",
         "security_audit",
@@ -3243,10 +3266,10 @@
       ],
       "acceptanceCriteria": [
         "Documentos angolanos aceites (B.I., Passaporte, Carta)",
-        "Verificação por OCR + revisão manual",
-        "Pagamentos bloqueados até KYC aprovado",
-        "Níveis de KYC conforme volume de transacções",
-        "Processo conforme regulação BNA"
+        "Verifica\u00e7\u00e3o por OCR + revis\u00e3o manual",
+        "Pagamentos bloqueados at\u00e9 KYC aprovado",
+        "N\u00edveis de KYC conforme volume de transac\u00e7\u00f5es",
+        "Processo conforme regula\u00e7\u00e3o BNA"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3260,8 +3283,8 @@
         "services/admin-api/**"
       ],
       "blockingIssues": [
-        "Decisão de parceiro KYC angolano pendente — acção não técnica, bloqueia todo o arranque KYC",
-        "Sem parceiro seleccionado não é possível iniciar integração técnica"
+        "Decis\u00e3o de parceiro KYC angolano pendente \u2014 ac\u00e7\u00e3o n\u00e3o t\u00e9cnica, bloqueia todo o arranque KYC",
+        "Sem parceiro seleccionado n\u00e3o \u00e9 poss\u00edvel iniciar integra\u00e7\u00e3o t\u00e9cnica"
       ],
       "invariants": [],
       "confidence": {
@@ -3281,25 +3304,25 @@
     },
     {
       "id": "KYC-002",
-      "title": "Verificação KYB de comerciantes",
+      "title": "Verifica\u00e7\u00e3o KYB de comerciantes",
       "categoryId": "cat-kyc",
       "validationDomain": "DOM-COMPLIANCE",
-      "referenceSection": "§16.5",
-      "description": "Verificação de negócio para comerciantes — NIF para entidades formais, verificação de identidade para individuais.",
-      "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
+      "referenceSection": "\u00a716.5",
+      "description": "Verifica\u00e7\u00e3o de neg\u00f3cio para comerciantes \u2014 NIF para entidades formais, verifica\u00e7\u00e3o de identidade para individuais.",
+      "requirement": "KYB obrigat\u00f3rio antes de activar liquida\u00e7\u00e3o em directo. Suporte a comerciantes formais e informais.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
-      "technicalArea": "Go · Merchant Platform",
+      "technicalArea": "Go \u00b7 Merchant Platform",
       "validationMethods": [
         "manual_ux",
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Verificação NIF para entidades formais",
-        "Verificação de identidade para comerciantes individuais",
-        "Liquidação bloqueada até KYB aprovado",
-        "QR estático disponível antes de KYB (modo restrito)"
+        "Verifica\u00e7\u00e3o NIF para entidades formais",
+        "Verifica\u00e7\u00e3o de identidade para comerciantes individuais",
+        "Liquida\u00e7\u00e3o bloqueada at\u00e9 KYB aprovado",
+        "QR est\u00e1tico dispon\u00edvel antes de KYB (modo restrito)"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3334,24 +3357,24 @@
       "title": "Motor de risco em tempo real",
       "categoryId": "cat-risk",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.4",
-      "description": "Triagem de transacções em tempo real antes de confirmar no ledger — velocidade, anomalias de valor, sinais de conta e dispositivo.",
-      "requirement": "Motor de risco no caminho crítico. Transacções acima de limiares retidas ou recusadas antes do ledger.",
+      "referenceSection": "\u00a716.4",
+      "description": "Triagem de transac\u00e7\u00f5es em tempo real antes de confirmar no ledger \u2014 velocidade, anomalias de valor, sinais de conta e dispositivo.",
+      "requirement": "Motor de risco no caminho cr\u00edtico. Transac\u00e7\u00f5es acima de limiares retidas ou recusadas antes do ledger.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Risk (Rust)",
-      "technicalArea": "Rust · Redis · PostgreSQL",
+      "technicalArea": "Rust \u00b7 Redis \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Verificação de velocidade de transacção por carteira",
-        "Detecção de valores anómalos",
+        "Verifica\u00e7\u00e3o de velocidade de transac\u00e7\u00e3o por carteira",
+        "Detec\u00e7\u00e3o de valores an\u00f3malos",
         "Sinais de conta e dispositivo verificados",
-        "Latência do motor de risco <50ms p99",
-        "Transacções recusadas com erro estruturado"
+        "Lat\u00eancia do motor de risco <50ms p99",
+        "Transac\u00e7\u00f5es recusadas com erro estruturado"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3383,25 +3406,25 @@
     },
     {
       "id": "RSK-002",
-      "title": "Revisão e alertas de transacções suspeitas",
+      "title": "Revis\u00e3o e alertas de transac\u00e7\u00f5es suspeitas",
       "categoryId": "cat-risk",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.4",
-      "description": "Fila de revisão para transacções sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolução.",
-      "requirement": "Fila de revisão no painel admin. Alertas em tempo real. Resolução com trilho de auditoria.",
+      "referenceSection": "\u00a716.4",
+      "description": "Fila de revis\u00e3o para transac\u00e7\u00f5es sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolu\u00e7\u00e3o.",
+      "requirement": "Fila de revis\u00e3o no painel admin. Alertas em tempo real. Resolu\u00e7\u00e3o com trilho de auditoria.",
       "status": "PLANNED",
       "priority": "HIGH",
-      "ownerArea": "Core / Risk · Admin Platform",
-      "technicalArea": "Go · Admin Dashboard",
+      "ownerArea": "Core / Risk \u00b7 Admin Platform",
+      "technicalArea": "Go \u00b7 Admin Dashboard",
       "validationMethods": [
         "manual_ux",
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Fila de revisão no admin com transacções sinalizadas",
-        "Alertas operacionais configuráveis",
-        "Aprovação e rejeição com auditoria completa",
-        "Tempo de resolução rastreado"
+        "Fila de revis\u00e3o no admin com transac\u00e7\u00f5es sinalizadas",
+        "Alertas operacionais configur\u00e1veis",
+        "Aprova\u00e7\u00e3o e rejei\u00e7\u00e3o com auditoria completa",
+        "Tempo de resolu\u00e7\u00e3o rastreado"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3432,25 +3455,25 @@
     },
     {
       "id": "SEC-001",
-      "title": "TLS 1.3 em todas as comunicações",
+      "title": "TLS 1.3 em todas as comunica\u00e7\u00f5es",
       "categoryId": "cat-security",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.6",
-      "description": "Toda a comunicação cliente-servidor e serviço-serviço usa TLS 1.3. Cloudflare como terminação TLS pública.",
-      "requirement": "Zero comunicação não encriptada. TLS 1.3 obrigatório. Certificados geridos e renovados automaticamente.",
+      "referenceSection": "\u00a716.6",
+      "description": "Toda a comunica\u00e7\u00e3o cliente-servidor e servi\u00e7o-servi\u00e7o usa TLS 1.3. Cloudflare como termina\u00e7\u00e3o TLS p\u00fablica.",
+      "requirement": "Zero comunica\u00e7\u00e3o n\u00e3o encriptada. TLS 1.3 obrigat\u00f3rio. Certificados geridos e renovados automaticamente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Infrastructure / Security",
-      "technicalArea": "Cloudflare · Docker · Go",
+      "technicalArea": "Cloudflare \u00b7 Docker \u00b7 Go",
       "validationMethods": [
         "security_audit",
         "production_review"
       ],
       "acceptanceCriteria": [
         "Todas as APIs servidas sobre HTTPS/TLS 1.3",
-        "Cloudflare como WAF e terminação TLS",
+        "Cloudflare como WAF e termina\u00e7\u00e3o TLS",
         "Certificados renovados automaticamente",
-        "Sem endpoints HTTP não encriptados"
+        "Sem endpoints HTTP n\u00e3o encriptados"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3482,16 +3505,16 @@
     },
     {
       "id": "SEC-002",
-      "title": "Encriptação AES-256 em repouso",
+      "title": "Encripta\u00e7\u00e3o AES-256 em repouso",
       "categoryId": "cat-security",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.6",
-      "description": "Dados sensíveis encriptados em repouso — documentos KYC, segredos de webhook e chaves API em hash SHA-256.",
-      "requirement": "Dados sensíveis nunca em claro em disco. Chaves API hasheadas. Documentos KYC encriptados com log de acesso.",
+      "referenceSection": "\u00a716.6",
+      "description": "Dados sens\u00edveis encriptados em repouso \u2014 documentos KYC, segredos de webhook e chaves API em hash SHA-256.",
+      "requirement": "Dados sens\u00edveis nunca em claro em disco. Chaves API hasheadas. Documentos KYC encriptados com log de acesso.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
-      "technicalArea": "PostgreSQL · Rust · Go",
+      "technicalArea": "PostgreSQL \u00b7 Rust \u00b7 Go",
       "validationMethods": [
         "security_audit"
       ],
@@ -3529,16 +3552,16 @@
     },
     {
       "id": "SEC-003",
-      "title": "Idempotência de operações de pagamento",
+      "title": "Idempot\u00eancia de opera\u00e7\u00f5es de pagamento",
       "categoryId": "cat-security",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.3",
-      "description": "Cada operação de pagamento identificada por chave de idempotência única. Segundo submit retorna resultado original sem novo efeito.",
-      "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobranças duplicadas por retry.",
+      "referenceSection": "\u00a716.3",
+      "description": "Cada opera\u00e7\u00e3o de pagamento identificada por chave de idempot\u00eancia \u00fanica. Segundo submit retorna resultado original sem novo efeito.",
+      "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobran\u00e7as duplicadas por retry.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments (Rust)",
-      "technicalArea": "Rust · Redis · PostgreSQL",
+      "technicalArea": "Rust \u00b7 Redis \u00b7 PostgreSQL",
       "validationMethods": [
         "unit_tests",
         "financial_invariant"
@@ -3547,7 +3570,7 @@
         "Header X-Idempotency-Key processado em todos os POST",
         "Segundo submit retorna resultado original",
         "Chave armazenada em Redis com TTL",
-        "Sem transacção duplicada em nenhum cenário de retry"
+        "Sem transac\u00e7\u00e3o duplicada em nenhum cen\u00e1rio de retry"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3579,25 +3602,25 @@
     },
     {
       "id": "SEC-004",
-      "title": "Auditoria e trilhos de auditoria imutáveis",
+      "title": "Auditoria e trilhos de auditoria imut\u00e1veis",
       "categoryId": "cat-security",
       "validationDomain": "DOM-SEC",
-      "referenceSection": "§16.1, §16.2",
-      "description": "Trilho de auditoria completo e imutável para cada operação financeira — quem fez, quando, com que resultado.",
-      "requirement": "Cada acção financeira e de autenticação auditável. Trilho não editável. Disponível para reguladores.",
+      "referenceSection": "\u00a716.1, \u00a716.2",
+      "description": "Trilho de auditoria completo e imut\u00e1vel para cada opera\u00e7\u00e3o financeira \u2014 quem fez, quando, com que resultado.",
+      "requirement": "Cada ac\u00e7\u00e3o financeira e de autentica\u00e7\u00e3o audit\u00e1vel. Trilho n\u00e3o edit\u00e1vel. Dispon\u00edvel para reguladores.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Cada transacção com timestamp, actor e resultado",
-        "Trilho não editável (append-only)",
-        "Qualquer transacção rastreável do início à liquidação",
-        "Exportável para auditoria regulatória"
+        "Cada transac\u00e7\u00e3o com timestamp, actor e resultado",
+        "Trilho n\u00e3o edit\u00e1vel (append-only)",
+        "Qualquer transac\u00e7\u00e3o rastre\u00e1vel do in\u00edcio \u00e0 liquida\u00e7\u00e3o",
+        "Export\u00e1vel para auditoria regulat\u00f3ria"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -3628,16 +3651,16 @@
     },
     {
       "id": "PAY-001",
-      "title": "Levantamentos para conta bancária angolana",
+      "title": "Levantamentos para conta banc\u00e1ria angolana",
       "categoryId": "cat-payouts",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§11.5, §7",
-      "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta bancária angolana registada. Iniciado via interface móvel, web ou API.",
-      "requirement": "Levantamento iniciado imediatamente. Transferência EMIS iniciada. Estado rastreável até confirmação.",
+      "referenceSection": "\u00a711.5, \u00a77",
+      "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta banc\u00e1ria angolana registada. Iniciado via interface m\u00f3vel, web ou API.",
+      "requirement": "Levantamento iniciado imediatamente. Transfer\u00eancia EMIS iniciada. Estado rastre\u00e1vel at\u00e9 confirma\u00e7\u00e3o.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Payouts",
-      "technicalArea": "Rust · Go · EMIS",
+      "technicalArea": "Rust \u00b7 Go \u00b7 EMIS",
       "validationMethods": [
         "financial_invariant",
         "integration_tests",
@@ -3646,8 +3669,8 @@
       "acceptanceCriteria": [
         "Levantamento criado via API/interface",
         "Saldo reservado imediatamente",
-        "Transferência EMIS iniciada automaticamente",
-        "Estado rastreável: pendente → processando → concluído",
+        "Transfer\u00eancia EMIS iniciada automaticamente",
+        "Estado rastre\u00e1vel: pendente \u2192 processando \u2192 conclu\u00eddo",
         "Webhook payout.completed entregue"
       ],
       "testCoverage": false,
@@ -3667,7 +3690,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001"
+        "Integra\u00e7\u00e3o EMIS bloqueada \u2014 ver EMS-001"
       ],
       "invariants": [
         {
@@ -3693,24 +3716,24 @@
     },
     {
       "id": "PAY-002",
-      "title": "Rastreamento de levantamentos e conciliação EMIS",
+      "title": "Rastreamento de levantamentos e concilia\u00e7\u00e3o EMIS",
       "categoryId": "cat-payouts",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§11.5, §16.8",
-      "description": "Cada levantamento rastreado desde a criação até à confirmação bancária. Reconciliação com extractos EMIS.",
-      "requirement": "Estado de levantamento visível em tempo real. Reconciliação automática com confirmações EMIS.",
+      "referenceSection": "\u00a711.5, \u00a716.8",
+      "description": "Cada levantamento rastreado desde a cria\u00e7\u00e3o at\u00e9 \u00e0 confirma\u00e7\u00e3o banc\u00e1ria. Reconcilia\u00e7\u00e3o com extractos EMIS.",
+      "requirement": "Estado de levantamento vis\u00edvel em tempo real. Reconcilia\u00e7\u00e3o autom\u00e1tica com confirma\u00e7\u00f5es EMIS.",
       "status": "BLOCKED",
       "priority": "HIGH",
       "ownerArea": "Core / Reconciliation",
-      "technicalArea": "Rust · EMIS",
+      "technicalArea": "Rust \u00b7 EMIS",
       "validationMethods": [
         "reconciliation",
         "financial_invariant"
       ],
       "acceptanceCriteria": [
-        "Estado do levantamento visível até confirmação bancária",
-        "Reconciliação automática com extractos EMIS",
-        "Alerta para levantamentos não confirmados",
+        "Estado do levantamento vis\u00edvel at\u00e9 confirma\u00e7\u00e3o banc\u00e1ria",
+        "Reconcilia\u00e7\u00e3o autom\u00e1tica com extractos EMIS",
+        "Alerta para levantamentos n\u00e3o confirmados",
         "Historial completo por levantamento"
       ],
       "testCoverage": false,
@@ -3727,7 +3750,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001 e EMS-002"
+        "Integra\u00e7\u00e3o EMIS bloqueada \u2014 ver EMS-001 e EMS-002"
       ],
       "invariants": [],
       "confidence": {
@@ -3746,20 +3769,20 @@
       "title": "Reembolsos parciais e totais",
       "categoryId": "cat-refunds",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§7, §16.2",
-      "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banza Business ou via API. Nova entrada de ledger oposta criada.",
-      "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
+      "referenceSection": "\u00a77, \u00a716.2",
+      "description": "Comerciante emite reembolso total ou parcial de uma transac\u00e7\u00e3o a partir do Banza Business ou via API. Nova entrada de ledger oposta criada.",
+      "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modifica\u00e7\u00e3o da transac\u00e7\u00e3o original.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
-      "technicalArea": "Rust · Go",
+      "technicalArea": "Rust \u00b7 Go",
       "validationMethods": [
         "financial_invariant",
         "integration_tests"
       ],
       "acceptanceCriteria": [
         "Reembolso cria nova entrada de ledger oposta",
-        "Transacção original não modificada",
+        "Transac\u00e7\u00e3o original n\u00e3o modificada",
         "Saldo do consumidor creditado instantaneamente",
         "Webhook refund.completed entregue",
         "Suporte a reembolso parcial (valor < original)"
@@ -3812,16 +3835,16 @@
     },
     {
       "id": "REF-002",
-      "title": "Processo de resolução de disputas",
+      "title": "Processo de resolu\u00e7\u00e3o de disputas",
       "categoryId": "cat-refunds",
       "validationDomain": "DOM-FIN",
-      "referenceSection": "§7, §11.2.2",
-      "description": "Consumidor abre disputa sobre uma transacção. Comerciante responde. Processo estruturado de resolução com trilho de auditoria.",
-      "requirement": "Disputas abertas via app, com prazo de resposta, evidências e decisão documentada.",
+      "referenceSection": "\u00a77, \u00a711.2.2",
+      "description": "Consumidor abre disputa sobre uma transac\u00e7\u00e3o. Comerciante responde. Processo estruturado de resolu\u00e7\u00e3o com trilho de auditoria.",
+      "requirement": "Disputas abertas via app, com prazo de resposta, evid\u00eancias e decis\u00e3o documentada.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Core / Disputes",
-      "technicalArea": "Go · Admin Platform",
+      "technicalArea": "Go \u00b7 Admin Platform",
       "validationMethods": [
         "manual_ux",
         "integration_tests"
@@ -3829,8 +3852,8 @@
       "acceptanceCriteria": [
         "Consumidor pode abrir disputa na app",
         "Comerciante notificado e pode responder",
-        "Prazo de resposta configurável",
-        "Decisão registada com trilho de auditoria",
+        "Prazo de resposta configur\u00e1vel",
+        "Decis\u00e3o registada com trilho de auditoria",
         "Webhook dispute.opened e dispute.resolved entregues"
       ],
       "testCoverage": false,
@@ -3869,13 +3892,13 @@
       "title": "Core financeiro em Rust",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.1)",
-      "description": "Motor financeiro core em Rust — ledger, carteiras, transacções, liquidação, reconciliação, risco e conformidade.",
-      "requirement": "Core financeiro implementado em Rust com segurança de memória, desempenho determinístico e sem GC no caminho de pagamento.",
+      "referenceSection": "\u00a717.2 (CLAUDE.md \u00a73.1)",
+      "description": "Motor financeiro core em Rust \u2014 ledger, carteiras, transac\u00e7\u00f5es, liquida\u00e7\u00e3o, reconcilia\u00e7\u00e3o, risco e conformidade.",
+      "requirement": "Core financeiro implementado em Rust com seguran\u00e7a de mem\u00f3ria, desempenho determin\u00edstico e sem GC no caminho de pagamento.",
       "status": "IN_PROGRESS",
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Rust",
-      "technicalArea": "Rust · PostgreSQL",
+      "technicalArea": "Rust \u00b7 PostgreSQL",
       "validationMethods": [
         "financial_invariant",
         "unit_tests",
@@ -3885,15 +3908,15 @@
       "acceptanceCriteria": [
         "Motor de ledger em Rust funcional",
         "Motor de carteiras em Rust funcional",
-        "Motor de transacções processando pagamentos",
-        "Sem alocações unsafe em código de pagamento",
+        "Motor de transac\u00e7\u00f5es processando pagamentos",
+        "Sem aloca\u00e7\u00f5es unsafe em c\u00f3digo de pagamento",
         "Testes de invariante financeiro passando"
       ],
       "testCoverage": false,
       "evidence": [
         {
           "type": "adr",
-          "label": "CLAUDE.md §3.1 — Rust para Core Financeiro",
+          "label": "CLAUDE.md \u00a73.1 \u2014 Rust para Core Financeiro",
           "ref": "CLAUDE.md"
         }
       ],
@@ -3925,24 +3948,24 @@
     },
     {
       "id": "ARC-002",
-      "title": "Camada API em Go (gateway + APIs públicas/admin)",
+      "title": "Camada API em Go (gateway + APIs p\u00fablicas/admin)",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2, §17.3 (CLAUDE.md §3.2)",
-      "description": "API Gateway, API Pública e API Admin em Go — auth, rate limiting, routing, entrega de webhooks.",
-      "requirement": "Camada API Go funcional com gateway, APIs públicas e admin. Autenticação e rate limiting operacionais.",
+      "referenceSection": "\u00a717.2, \u00a717.3 (CLAUDE.md \u00a73.2)",
+      "description": "API Gateway, API P\u00fablica e API Admin em Go \u2014 auth, rate limiting, routing, entrega de webhooks.",
+      "requirement": "Camada API Go funcional com gateway, APIs p\u00fablicas e admin. Autentica\u00e7\u00e3o e rate limiting operacionais.",
       "status": "IN_PROGRESS",
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Go",
-      "technicalArea": "Go · Redis · PostgreSQL",
+      "technicalArea": "Go \u00b7 Redis \u00b7 PostgreSQL",
       "validationMethods": [
         "integration_tests",
         "production_review"
       ],
       "acceptanceCriteria": [
         "API Gateway com auth e rate limiting",
-        "API Pública com endpoints de pagamento",
-        "API Admin com operações de liquidação e disputas",
+        "API P\u00fablica com endpoints de pagamento",
+        "API Admin com opera\u00e7\u00f5es de liquida\u00e7\u00e3o e disputas",
         "Rate limiting por chave API",
         "Entrega de webhooks pelo gateway"
       ],
@@ -3950,7 +3973,7 @@
       "evidence": [
         {
           "type": "adr",
-          "label": "CLAUDE.md §3.2 — Go para API Layer",
+          "label": "CLAUDE.md \u00a73.2 \u2014 Go para API Layer",
           "ref": "CLAUDE.md"
         }
       ],
@@ -3986,20 +4009,20 @@
       "title": "Frontend TypeScript/Next.js",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.3)",
-      "description": "Frontend em TypeScript/Next.js para dashboard de comerciante, administração e documentação pública.",
-      "requirement": "Frontend implementado em Next.js com TypeScript. Site de documentação em produção.",
+      "referenceSection": "\u00a717.2 (CLAUDE.md \u00a73.3)",
+      "description": "Frontend em TypeScript/Next.js para dashboard de comerciante, administra\u00e7\u00e3o e documenta\u00e7\u00e3o p\u00fablica.",
+      "requirement": "Frontend implementado em Next.js com TypeScript. Site de documenta\u00e7\u00e3o em produ\u00e7\u00e3o.",
       "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "TypeScript · Next.js · React",
+      "technicalArea": "TypeScript \u00b7 Next.js \u00b7 React",
       "validationMethods": [
         "manual_ux",
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Site de documentação em produção",
-        "TypeScript estrito em todo o código frontend",
+        "Site de documenta\u00e7\u00e3o em produ\u00e7\u00e3o",
+        "TypeScript estrito em todo o c\u00f3digo frontend",
         "Build sem erros",
         "Deploy automatizado via deploy.sh"
       ],
@@ -4007,16 +4030,16 @@
       "evidence": [
         {
           "type": "route",
-          "label": "apps/docs/ — site de documentação",
+          "label": "apps/docs/ \u2014 site de documenta\u00e7\u00e3o",
           "ref": "apps/docs"
         },
         {
           "type": "config",
-          "label": "tsconfig.json — TypeScript estrito",
+          "label": "tsconfig.json \u2014 TypeScript estrito",
           "ref": "apps/docs/tsconfig.json"
         }
       ],
-      "notes": "Site de documentação em produção e validado. Dashboard de comerciante planeado.",
+      "notes": "Site de documenta\u00e7\u00e3o em produ\u00e7\u00e3o e validado. Dashboard de comerciante planeado.",
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -4044,12 +4067,12 @@
     },
     {
       "id": "ARC-004",
-      "title": "Base de dados PostgreSQL como fonte única de verdade",
+      "title": "Base de dados PostgreSQL como fonte \u00fanica de verdade",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.5)",
-      "description": "PostgreSQL como única fonte de verdade financeira com garantias ACID. Sem outras fontes de verdade para dados financeiros.",
-      "requirement": "PostgreSQL configurado com backups, replicação e índices optimizados para o caminho de pagamento.",
+      "referenceSection": "\u00a717.2 (CLAUDE.md \u00a73.5)",
+      "description": "PostgreSQL como \u00fanica fonte de verdade financeira com garantias ACID. Sem outras fontes de verdade para dados financeiros.",
+      "requirement": "PostgreSQL configurado com backups, replica\u00e7\u00e3o e \u00edndices optimizados para o caminho de pagamento.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering / Database",
@@ -4059,10 +4082,10 @@
         "production_review"
       ],
       "acceptanceCriteria": [
-        "PostgreSQL em produção com backup automático",
-        "Replicação configurada",
-        "Índices em tabelas de transacção e carteiras",
-        "Sem queries analíticas no caminho de pagamento",
+        "PostgreSQL em produ\u00e7\u00e3o com backup autom\u00e1tico",
+        "Replica\u00e7\u00e3o configurada",
+        "\u00cdndices em tabelas de transac\u00e7\u00e3o e carteiras",
+        "Sem queries anal\u00edticas no caminho de pagamento",
         "RTO e RPO definidos e testados"
       ],
       "testCoverage": false,
@@ -4092,12 +4115,12 @@
     },
     {
       "id": "ARC-005",
-      "title": "Decisão de arquitectura: Monólito Modular",
+      "title": "Decis\u00e3o de arquitectura: Mon\u00f3lito Modular",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.6 (CLAUDE.md §2.3)",
-      "description": "Arquitectura de monólito modular definida e documentada — módulos isolados internamente, fronteiras de domínio claras, deploy único.",
-      "requirement": "Decisão arquitectural documentada em ADR. Estrutura de módulos conforme CLAUDE.md e referência técnica.",
+      "referenceSection": "\u00a717.6 (CLAUDE.md \u00a72.3)",
+      "description": "Arquitectura de mon\u00f3lito modular definida e documentada \u2014 m\u00f3dulos isolados internamente, fronteiras de dom\u00ednio claras, deploy \u00fanico.",
+      "requirement": "Decis\u00e3o arquitectural documentada em ADR. Estrutura de m\u00f3dulos conforme CLAUDE.md e refer\u00eancia t\u00e9cnica.",
       "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core Engineering",
@@ -4106,21 +4129,21 @@
         "production_review"
       ],
       "acceptanceCriteria": [
-        "ADR documentando a decisão",
-        "Estrutura de módulos definida",
-        "Fronteiras de domínio documentadas",
-        "Critérios de extracção para microserviços definidos"
+        "ADR documentando a decis\u00e3o",
+        "Estrutura de m\u00f3dulos definida",
+        "Fronteiras de dom\u00ednio documentadas",
+        "Crit\u00e9rios de extrac\u00e7\u00e3o para microservi\u00e7os definidos"
       ],
       "testCoverage": false,
       "evidence": [
         {
           "type": "adr",
-          "label": "CLAUDE.md §2.3 — Modular Monolith First",
+          "label": "CLAUDE.md \u00a72.3 \u2014 Modular Monolith First",
           "ref": "CLAUDE.md"
         },
         {
           "type": "config",
-          "label": "Estrutura de repositório CLAUDE.md §4",
+          "label": "Estrutura de reposit\u00f3rio CLAUDE.md \u00a74",
           "ref": "CLAUDE.md"
         }
       ],
@@ -4150,24 +4173,24 @@
     },
     {
       "id": "OBS-001",
-      "title": "OpenTelemetry + Prometheus — métricas e traços",
+      "title": "OpenTelemetry + Prometheus \u2014 m\u00e9tricas e tra\u00e7os",
       "categoryId": "cat-observability",
       "validationDomain": "DOM-OBS",
-      "referenceSection": "§17.7 (CLAUDE.md §3.7)",
-      "description": "Instrumentação OpenTelemetry em todos os serviços, Prometheus para métricas e traços ponta-a-ponta desde gateway até ledger.",
-      "requirement": "Cada serviço emite métricas e traços. Latências do caminho de pagamento rastreadas.",
+      "referenceSection": "\u00a717.7 (CLAUDE.md \u00a73.7)",
+      "description": "Instrumenta\u00e7\u00e3o OpenTelemetry em todos os servi\u00e7os, Prometheus para m\u00e9tricas e tra\u00e7os ponta-a-ponta desde gateway at\u00e9 ledger.",
+      "requirement": "Cada servi\u00e7o emite m\u00e9tricas e tra\u00e7os. Lat\u00eancias do caminho de pagamento rastreadas.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Infrastructure / Observability",
-      "technicalArea": "OpenTelemetry · Prometheus · Go · Rust",
+      "technicalArea": "OpenTelemetry \u00b7 Prometheus \u00b7 Go \u00b7 Rust",
       "validationMethods": [
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Instrumentação OTel em todos os serviços Go e Rust",
-        "Métricas Prometheus expostas em /metrics",
-        "Traços ponta-a-ponta de cada pagamento",
-        "Alertas de latência configurados"
+        "Instrumenta\u00e7\u00e3o OTel em todos os servi\u00e7os Go e Rust",
+        "M\u00e9tricas Prometheus expostas em /metrics",
+        "Tra\u00e7os ponta-a-ponta de cada pagamento",
+        "Alertas de lat\u00eancia configurados"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -4199,24 +4222,24 @@
     },
     {
       "id": "OBS-002",
-      "title": "Painéis Grafana operacionais",
+      "title": "Pain\u00e9is Grafana operacionais",
       "categoryId": "cat-observability",
       "validationDomain": "DOM-OBS",
-      "referenceSection": "§17.7",
-      "description": "Três painéis Grafana — Pagamentos, Carteiras e Ledger, Liquidações e Levantamentos — conforme §17.7.",
-      "requirement": "Três painéis Grafana operacionais com os indicadores definidos em §17.7.",
+      "referenceSection": "\u00a717.7",
+      "description": "Tr\u00eas pain\u00e9is Grafana \u2014 Pagamentos, Carteiras e Ledger, Liquida\u00e7\u00f5es e Levantamentos \u2014 conforme \u00a717.7.",
+      "requirement": "Tr\u00eas pain\u00e9is Grafana operacionais com os indicadores definidos em \u00a717.7.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
-      "technicalArea": "Grafana · Prometheus",
+      "technicalArea": "Grafana \u00b7 Prometheus",
       "validationMethods": [
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Painel Pagamentos com taxas, erros, latências",
+        "Painel Pagamentos com taxas, erros, lat\u00eancias",
         "Painel Carteiras e Ledger com volumes e percentis",
-        "Painel Liquidações com taxas de levantamento",
-        "Alertas configurados em todos os painéis"
+        "Painel Liquida\u00e7\u00f5es com taxas de levantamento",
+        "Alertas configurados em todos os pain\u00e9is"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -4247,24 +4270,24 @@
     },
     {
       "id": "OBS-003",
-      "title": "Logs estruturados JSON em todos os serviços",
+      "title": "Logs estruturados JSON em todos os servi\u00e7os",
       "categoryId": "cat-observability",
       "validationDomain": "DOM-OBS",
-      "referenceSection": "§17.7 (CLAUDE.md §3.7)",
-      "description": "Logs estruturados JSON com IDs de transacção, tipos de operação e resultados. Sem logs de texto livre em serviços de produção.",
-      "requirement": "Todos os serviços emitem logs JSON com campos obrigatórios: transaction_id, operation_type, result, latency_ms.",
+      "referenceSection": "\u00a717.7 (CLAUDE.md \u00a73.7)",
+      "description": "Logs estruturados JSON com IDs de transac\u00e7\u00e3o, tipos de opera\u00e7\u00e3o e resultados. Sem logs de texto livre em servi\u00e7os de produ\u00e7\u00e3o.",
+      "requirement": "Todos os servi\u00e7os emitem logs JSON com campos obrigat\u00f3rios: transaction_id, operation_type, result, latency_ms.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
-      "technicalArea": "Go · Rust · Docker",
+      "technicalArea": "Go \u00b7 Rust \u00b7 Docker",
       "validationMethods": [
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Logs JSON em todos os serviços",
+        "Logs JSON em todos os servi\u00e7os",
         "transaction_id em logs de pagamento",
-        "Sem dados sensíveis em logs",
-        "Logs agregáveis e pesquisáveis"
+        "Sem dados sens\u00edveis em logs",
+        "Logs agreg\u00e1veis e pesquis\u00e1veis"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -4296,27 +4319,27 @@
     },
     {
       "id": "EMS-001",
-      "title": "Integração EMIS/Multicaixa Express",
+      "title": "Integra\u00e7\u00e3o EMIS/Multicaixa Express",
       "categoryId": "cat-emis",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§6.7, §10.4",
-      "description": "Integração com EMIS (Empresa Interbancária de Serviços) — infraestrutura de pagamentos interbancários de Angola — para liquidação e levantamentos.",
-      "requirement": "Integração EMIS completa para carregamento de carteiras e liquidação de levantamentos. Conforme regulação BNA.",
+      "referenceSection": "\u00a76.7, \u00a710.4",
+      "description": "Integra\u00e7\u00e3o com EMIS (Empresa Interbanc\u00e1ria de Servi\u00e7os) \u2014 infraestrutura de pagamentos interbanc\u00e1rios de Angola \u2014 para liquida\u00e7\u00e3o e levantamentos.",
+      "requirement": "Integra\u00e7\u00e3o EMIS completa para carregamento de carteiras e liquida\u00e7\u00e3o de levantamentos. Conforme regula\u00e7\u00e3o BNA.",
       "status": "BLOCKED",
       "priority": "CRITICAL",
       "ownerArea": "Core / EMIS Integration",
-      "technicalArea": "Rust · Go · EMIS API",
+      "technicalArea": "Rust \u00b7 Go \u00b7 EMIS API",
       "validationMethods": [
         "integration_tests",
         "reconciliation",
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Conexão ao EMIS estabelecida e certificada",
-        "Transferências interbancárias funcionais",
-        "Reconciliação com extractos EMIS",
-        "Conforme requisitos técnicos BNA",
-        "Certificação de operador de pagamento obtida"
+        "Conex\u00e3o ao EMIS estabelecida e certificada",
+        "Transfer\u00eancias interbanc\u00e1rias funcionais",
+        "Reconcilia\u00e7\u00e3o com extractos EMIS",
+        "Conforme requisitos t\u00e9cnicos BNA",
+        "Certifica\u00e7\u00e3o de operador de pagamento obtida"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -4327,9 +4350,9 @@
         "core/acquiring/**"
       ],
       "blockingIssues": [
-        "Certificação de operador de pagamento BNA pendente",
-        "Acordo com EMIS não formalizado",
-        "Análise jurídica e de conformidade regulatória em curso"
+        "Certifica\u00e7\u00e3o de operador de pagamento BNA pendente",
+        "Acordo com EMIS n\u00e3o formalizado",
+        "An\u00e1lise jur\u00eddica e de conformidade regulat\u00f3ria em curso"
       ],
       "invariants": [],
       "confidence": {
@@ -4349,16 +4372,16 @@
     },
     {
       "id": "EMS-002",
-      "title": "Liquidação interbancária via EMIS",
+      "title": "Liquida\u00e7\u00e3o interbanc\u00e1ria via EMIS",
       "categoryId": "cat-emis",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§6.7, §15.2",
-      "description": "Liquidação de levantamentos de comerciantes e carregamentos de consumidores via rede interbancária EMIS/Multicaixa Express.",
-      "requirement": "Dinheiro flui entre carteiras Banza e sistema bancário angolano de forma fiável e auditável via EMIS.",
+      "referenceSection": "\u00a76.7, \u00a715.2",
+      "description": "Liquida\u00e7\u00e3o de levantamentos de comerciantes e carregamentos de consumidores via rede interbanc\u00e1ria EMIS/Multicaixa Express.",
+      "requirement": "Dinheiro flui entre carteiras Banza e sistema banc\u00e1rio angolano de forma fi\u00e1vel e audit\u00e1vel via EMIS.",
       "status": "BLOCKED",
       "priority": "CRITICAL",
       "ownerArea": "Core / EMIS Integration",
-      "technicalArea": "Rust · EMIS",
+      "technicalArea": "Rust \u00b7 EMIS",
       "validationMethods": [
         "financial_invariant",
         "reconciliation"
@@ -4366,7 +4389,7 @@
       "acceptanceCriteria": [
         "Levantamentos liquidam via EMIS correctamente",
         "Carregamentos de carteira confirmados via EMIS",
-        "Reconciliação com créditos bancários reais",
+        "Reconcilia\u00e7\u00e3o com cr\u00e9ditos banc\u00e1rios reais",
         "Falhas EMIS tratadas com retry e alertas"
       ],
       "testCoverage": false,
@@ -4380,7 +4403,7 @@
         "core/acquiring/**"
       ],
       "blockingIssues": [
-        "Bloqueado por EMS-001 — certificação BNA pendente"
+        "Bloqueado por EMS-001 \u2014 certifica\u00e7\u00e3o BNA pendente"
       ],
       "invariants": [],
       "confidence": {
@@ -4398,16 +4421,16 @@
     },
     {
       "id": "RD-001",
-      "title": "App móvel do consumidor Banza (Flutter)",
+      "title": "App m\u00f3vel do consumidor Banza (Flutter)",
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§6.4, §13",
-      "description": "App Flutter nativa para consumidores — carteira, scanner QR, transferências P2P, histórico e gestão de conta. Este é o produto principal do consumidor, não uma funcionalidade de roadmap.",
-      "requirement": "App nativa disponível em Android e iOS. UX da §6.4 e §13 completamente implementada.",
+      "referenceSection": "\u00a76.4, \u00a713",
+      "description": "App Flutter nativa para consumidores \u2014 carteira, scanner QR, transfer\u00eancias P2P, hist\u00f3rico e gest\u00e3o de conta. Este \u00e9 o produto principal do consumidor, n\u00e3o uma funcionalidade de roadmap.",
+      "requirement": "App nativa dispon\u00edvel em Android e iOS. UX da \u00a76.4 e \u00a713 completamente implementada.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Dart",
+      "technicalArea": "Flutter \u00b7 Dart",
       "validationMethods": [
         "manual_ux",
         "e2e_tests"
@@ -4416,11 +4439,11 @@
         "App publicada em Google Play e App Store",
         "Onboarding completo em <2 minutos",
         "Scanner QR funcional",
-        "Transferências P2P funcionais"
+        "Transfer\u00eancias P2P funcionais"
       ],
       "testCoverage": false,
       "evidence": [],
-      "notes": "Reclassificado de FUTURE para PLANNED — a app do consumidor é o produto, não roadmap. Sem ela nenhum consumidor pode pagar via QR. Integração na Fase 4 do roadmap de execução.",
+      "notes": "Reclassificado de FUTURE para PLANNED \u2014 a app do consumidor \u00e9 o produto, n\u00e3o roadmap. Sem ela nenhum consumidor pode pagar via QR. Integra\u00e7\u00e3o na Fase 4 do roadmap de execu\u00e7\u00e3o.",
       "dependencies": [
         "API-001",
         "API-002",
@@ -4452,20 +4475,20 @@
       "title": "Pagamentos recorrentes",
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§19 — Médio prazo",
-      "description": "Pedidos de pagamento agendados para subscrições, propinas escolares e quotas periódicas.",
-      "requirement": "Sistema de recorrência com frequência configurável, notificações automáticas e gestão de falhas.",
+      "referenceSection": "\u00a719 \u2014 M\u00e9dio prazo",
+      "description": "Pedidos de pagamento agendados para subscri\u00e7\u00f5es, propinas escolares e quotas peri\u00f3dicas.",
+      "requirement": "Sistema de recorr\u00eancia com frequ\u00eancia configur\u00e1vel, notifica\u00e7\u00f5es autom\u00e1ticas e gest\u00e3o de falhas.",
       "status": "FUTURE",
       "priority": "MEDIUM",
       "ownerArea": "Core / Payment Requests",
-      "technicalArea": "Go · PostgreSQL",
+      "technicalArea": "Go \u00b7 PostgreSQL",
       "validationMethods": [
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Recorrência configurável: semanal, mensal, trimestral",
-        "Notificação automática antes da data",
-        "Gestão de falhas com retry"
+        "Recorr\u00eancia configur\u00e1vel: semanal, mensal, trimestral",
+        "Notifica\u00e7\u00e3o autom\u00e1tica antes da data",
+        "Gest\u00e3o de falhas com retry"
       ],
       "testCoverage": false,
       "evidence": [],
@@ -4498,20 +4521,20 @@
       "title": "Plugin WooCommerce/WordPress",
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§18.3",
+      "referenceSection": "\u00a718.3",
       "description": "Plugin de gateway de pagamento WooCommerce para lojas angolanas. Usa PHP SDK internamente.",
-      "requirement": "Plugin publicado no repositório WordPress. Usa banza/sdk-php. Suporte a pagamentos QR e links.",
+      "requirement": "Plugin publicado no reposit\u00f3rio WordPress. Usa banza/sdk-php. Suporte a pagamentos QR e links.",
       "status": "FUTURE",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / Plugins",
-      "technicalArea": "PHP · WooCommerce",
+      "technicalArea": "PHP \u00b7 WooCommerce",
       "validationMethods": [
         "manual_ux",
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Plugin publicado no repositório WordPress",
-        "Integração via banza/sdk-php",
+        "Plugin publicado no reposit\u00f3rio WordPress",
+        "Integra\u00e7\u00e3o via banza/sdk-php",
         "Checkout Banza funcional no WooCommerce",
         "Webhooks configurados automaticamente"
       ],
@@ -4544,29 +4567,29 @@
     },
     {
       "id": "RD-004",
-      "title": "Carregamento de carteira por cartão de débito",
+      "title": "Carregamento de carteira por cart\u00e3o de d\u00e9bito",
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§10.3, §19 — Longo prazo",
-      "description": "Mecanismo para financiar Banza Wallet usando cartão de débito angolano. Cartão como via de financiamento — não modelo de pagamento.",
-      "requirement": "Carregamento por cartão disponível como opcional. Cartão NUNCA usado para pagamentos directos — apenas para top-up de carteira.",
+      "referenceSection": "\u00a710.3, \u00a719 \u2014 Longo prazo",
+      "description": "Mecanismo para financiar Banza Wallet usando cart\u00e3o de d\u00e9bito angolano. Cart\u00e3o como via de financiamento \u2014 n\u00e3o modelo de pagamento.",
+      "requirement": "Carregamento por cart\u00e3o dispon\u00edvel como opcional. Cart\u00e3o NUNCA usado para pagamentos directos \u2014 apenas para top-up de carteira.",
       "status": "FUTURE",
       "priority": "LOW",
       "ownerArea": "Core / Funding",
-      "technicalArea": "Go · Card Processor",
+      "technicalArea": "Go \u00b7 Card Processor",
       "validationMethods": [
         "financial_invariant",
         "security_audit"
       ],
       "acceptanceCriteria": [
-        "Carregamento por cartão de débito angolano funcional",
-        "Cartão nunca exposto no fluxo de pagamento",
-        "Saldo Banza Wallet actualizado após confirmação",
+        "Carregamento por cart\u00e3o de d\u00e9bito angolano funcional",
+        "Cart\u00e3o nunca exposto no fluxo de pagamento",
+        "Saldo Banza Wallet actualizado ap\u00f3s confirma\u00e7\u00e3o",
         "Trilho de auditoria completo do carregamento"
       ],
       "testCoverage": false,
       "evidence": [],
-      "notes": "Cartão = via de financiamento APENAS. O pagamento continua a ser sempre wallet-to-wallet.",
+      "notes": "Cart\u00e3o = via de financiamento APENAS. O pagamento continua a ser sempre wallet-to-wallet.",
       "dependencies": [
         "WAL-001",
         "EMS-001"
@@ -4593,28 +4616,28 @@
     },
     {
       "id": "RD-005",
-      "title": "Expansão geográfica além de Angola",
+      "title": "Expans\u00e3o geogr\u00e1fica al\u00e9m de Angola",
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
-      "referenceSection": "§19 — Longo prazo",
-      "description": "Após Angola atingir densidade de rede: aplicação do mesmo modelo a mercados vizinhos africanos.",
-      "requirement": "Expansão apenas após rede angolana demonstrar density e operação estável. Arquitectura já preparada.",
+      "referenceSection": "\u00a719 \u2014 Longo prazo",
+      "description": "Ap\u00f3s Angola atingir densidade de rede: aplica\u00e7\u00e3o do mesmo modelo a mercados vizinhos africanos.",
+      "requirement": "Expans\u00e3o apenas ap\u00f3s rede angolana demonstrar density e opera\u00e7\u00e3o est\u00e1vel. Arquitectura j\u00e1 preparada.",
       "status": "FUTURE",
       "priority": "LOW",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Multi-tenant · Localização",
+      "ownerArea": "Organiza\u00e7\u00e3o Banzami",
+      "technicalArea": "Multi-tenant \u00b7 Localiza\u00e7\u00e3o",
       "validationMethods": [
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Densidade de rede Angola atingida (critérios a definir)",
+        "Densidade de rede Angola atingida (crit\u00e9rios a definir)",
         "Arquitectura multi-tenant testada",
         "Primeiro mercado externo seleccionado",
         "Parceiros locais identificados"
       ],
       "testCoverage": false,
       "evidence": [],
-      "notes": "O momento ainda não chegou. Angola vem primeiro.",
+      "notes": "O momento ainda n\u00e3o chegou. Angola vem primeiro.",
       "dependencies": [
         "EMS-001",
         "KYC-001",
@@ -4626,7 +4649,7 @@
         "docs/**"
       ],
       "blockingIssues": [
-        "Densidade de rede Angola não atingida"
+        "Densidade de rede Angola n\u00e3o atingida"
       ],
       "invariants": [],
       "confidence": {
@@ -4648,62 +4671,62 @@
       "title": "Repository layout freeze",
       "categoryId": "cat-arch",
       "validationDomain": "DOM-INFRA",
-      "referenceSection": "§20 (CLAUDE.md §20)",
-      "description": "Arquitectura do repositório estabilizada e congelada. Zonas semânticas definidas, diretórios obrigatórios criados, verificação automática de layout em CI.",
-      "requirement": "README actualizado com layout alvo. CLAUDE.md §20 com regras vinculativas. Diretórios contracts/, core/jobs/, infra/terraform/* criados. Check automático implementado e a passar. Sem diretórios de topo desconhecidos.",
+      "referenceSection": "\u00a720 (CLAUDE.md \u00a720)",
+      "description": "Arquitectura do reposit\u00f3rio estabilizada e congelada. Zonas sem\u00e2nticas definidas, diret\u00f3rios obrigat\u00f3rios criados, verifica\u00e7\u00e3o autom\u00e1tica de layout em CI.",
+      "requirement": "README actualizado com layout alvo. CLAUDE.md \u00a720 com regras vinculativas. Diret\u00f3rios contracts/, core/jobs/, infra/terraform/* criados. Check autom\u00e1tico implementado e a passar. Sem diret\u00f3rios de topo desconhecidos.",
       "status": "IMPLEMENTED",
       "priority": "HIGH",
-      "ownerArea": "Arquitectura / Governação",
-      "technicalArea": "Repository Structure · Node.js tooling · Documentation",
+      "ownerArea": "Arquitectura / Governa\u00e7\u00e3o",
+      "technicalArea": "Repository Structure \u00b7 Node.js tooling \u00b7 Documentation",
       "validationMethods": [
         "unit_tests",
         "production_review"
       ],
       "acceptanceCriteria": [
         "README.md actualizado com layout actual e alvo",
-        "CLAUDE.md §20 contém as 10 regras vinculativas",
-        "contracts/ e subdirectórios criados",
+        "CLAUDE.md \u00a720 cont\u00e9m as 10 regras vinculativas",
+        "contracts/ e subdirect\u00f3rios criados",
         "core/jobs/ criado com README",
-        "infra/terraform/ subdividido por provider/domínio",
+        "infra/terraform/ subdividido por provider/dom\u00ednio",
         "tools/check-repository-layout.mjs implementado",
         "make check-repo-layout passa sem falhas",
         "make check-all inclui o check de layout",
-        "Nenhum diretório de topo desconhecido detectado"
+        "Nenhum diret\u00f3rio de topo desconhecido detectado"
       ],
       "testCoverage": true,
       "evidence": [
         {
           "type": "file",
-          "label": "tools/check-repository-layout.mjs — layout compliance check",
+          "label": "tools/check-repository-layout.mjs \u2014 layout compliance check",
           "ref": "tools/check-repository-layout.mjs"
         },
         {
           "type": "file",
-          "label": "contracts/README.md — protocol contracts governance",
+          "label": "contracts/README.md \u2014 protocol contracts governance",
           "ref": "contracts/README.md"
         },
         {
           "type": "file",
-          "label": "core/jobs/README.md — background job home",
+          "label": "core/jobs/README.md \u2014 background job home",
           "ref": "core/jobs/README.md"
         },
         {
           "type": "config",
-          "label": "Makefile — check-repo-layout and check-all targets",
+          "label": "Makefile \u2014 check-repo-layout and check-all targets",
           "ref": "Makefile"
         },
         {
           "type": "docs",
-          "label": "CLAUDE.md §20 — Repository Layout Freeze",
+          "label": "CLAUDE.md \u00a720 \u2014 Repository Layout Freeze",
           "ref": "CLAUDE.md"
         },
         {
           "type": "docs",
-          "label": "README.md — Repository Layout section with target architecture",
+          "label": "README.md \u2014 Repository Layout section with target architecture",
           "ref": "README.md"
         }
       ],
-      "notes": "Diretórios físicos de alto risco (sdk/, plugins/, apps/docs, sdk-certification/) não foram movidos — Dockerfiles e deploy.sh dependem das paths actuais. Layout físico vs semântico documentado em README e CLAUDE.md §20.5.",
+      "notes": "Diret\u00f3rios f\u00edsicos de alto risco (sdk/, plugins/, apps/docs, sdk-certification/) n\u00e3o foram movidos \u2014 Dockerfiles e deploy.sh dependem das paths actuais. Layout f\u00edsico vs sem\u00e2ntico documentado em README e CLAUDE.md \u00a720.5.",
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -4720,8 +4743,8 @@
         "level": "HIGH",
         "basis": [
           "implementation evidence (+20)",
-          "unit_tests — check script passing (+15)",
-          "production_review — full audit (+10)",
+          "unit_tests \u2014 check script passing (+15)",
+          "production_review \u2014 full audit (+10)",
           "non-financial item (+20)"
         ]
       },

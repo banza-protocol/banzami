@@ -45,6 +45,7 @@ struct PayoutRow {
     wallet_id:           Uuid,
     idempotency_key:     String,
     status:              String,
+    environment:         String,
     amount_minor:        i64,
     currency:            String,
     bank_account_number: String,

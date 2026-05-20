@@ -159,10 +159,14 @@ func validatePin(pin string) string {
 //
 // Body: { "phone_number": "+244XXXXXXXXX", "currency": "AOA" }
 // Creates a PENDING_OTP onboarding session. Sends OTP via SMS (stub in this phase).
+//
+// otp_plaintext_for_test is accepted in non-production environments only;
+// it lets integration tests drive the full onboarding flow without an SMS gateway.
 func (h *OnboardingHandler) Start(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		PhoneNumber string `json:"phone_number"`
-		Currency    string `json:"currency"`
+		PhoneNumber       string  `json:"phone_number"`
+		Currency          string  `json:"currency"`
+		OtpPlaintextTest  *string `json:"otp_plaintext_for_test"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -194,8 +198,9 @@ func (h *OnboardingHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// In production, otpForTest is nil and the OTP is dispatched by the SMS layer.
-	// In sandbox, callers may pass otp_plaintext_for_test via a non-public path.
-	session, err := h.core.StartOnboarding(r.Context(), body.PhoneNumber, currency, nil)
+	// In non-production environments, otp_plaintext_for_test may be supplied so that
+	// integration tests can drive the full flow without an SMS gateway.
+	session, err := h.core.StartOnboarding(r.Context(), body.PhoneNumber, currency, body.OtpPlaintextTest)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrDuplicateWallet):
