@@ -173,14 +173,24 @@ where
         &self,
         req: StartOnboardingRequest,
     ) -> Result<OnboardingSession, ConsumerWalletError> {
+        // Idempotency: return any non-expired session for this phone number.
+        if let Some(existing) = self.onboard.find_session_by_phone(&req.phone_number).await? {
+            if !existing.is_expired() {
+                return Ok(existing);
+            }
+            // Expired session: delete it and create a fresh one.
+            let _ = self.onboard.delete_session(existing.id).await;
+        }
+
         let now         = Utc::now();
         let otp_expires = now + Duration::minutes(OTP_TTL_MINUTES);
         let session_exp = now + Duration::minutes(OTP_TTL_MINUTES + 1);
 
         // OTP generation and dispatch happens outside the domain layer (SMS service).
-        // Here we store only the hash. In production the caller provides the hash;
-        // we use a placeholder hash to keep this layer testable without SMS.
-        let otp_hash = sha256_hex_stub(&req.otp_plaintext_for_test.unwrap_or_default());
+        // Here we store the SHA-256 hash of the plaintext. In production the SMS layer
+        // generates the OTP and passes only the hash to the engine.
+        let otp_plaintext = req.otp_plaintext_for_test.unwrap_or_default();
+        let otp_hash = sha256_hex(&otp_plaintext);
 
         self.onboard
             .create_session(
@@ -211,7 +221,7 @@ where
         }
 
         // Verify OTP: compare SHA-256(submitted) against stored hash.
-        let submitted_hash = sha256_hex_stub(&req.otp_code);
+        let submitted_hash = sha256_hex(&req.otp_code);
         let stored_hash = session.otp_code_hash.as_deref().unwrap_or("");
         if submitted_hash != stored_hash {
             return Err(ConsumerWalletError::OtpInvalid);
@@ -467,30 +477,51 @@ fn validate_handle_format(handle: &str) -> Result<(), ConsumerWalletError> {
 }
 
 // ---------------------------------------------------------------------------
-// Argon2id wrappers (ADR-017 §7)
+// Argon2id — PIN hashing (ADR-017 §7)
 // ---------------------------------------------------------------------------
+//
+// Parameters: m=65536 KiB, t=3 iterations, p=4 threads.
+// Plaintext PIN is NEVER stored, logged, or returned after this call.
 
 fn argon2id_hash(pin: &str) -> Result<String, ConsumerWalletError> {
-    // Production: use the `argon2` crate with params m=65536, t=3, p=4.
-    // Stub implementation for compile-time correctness; replace before prod.
-    //
-    // NEVER log or persist the plaintext pin. The hash is the only persistent form.
-    Ok(format!("$argon2id$v=19$m=65536,t=3,p=4$STUB_SALT${}", pin.len()))
+    use argon2::{
+        password_hash::{PasswordHasher, SaltString},
+        Argon2, Params, Algorithm, Version,
+    };
+    use rand::rngs::OsRng;
+
+    let params = Params::new(65536, 3, 4, None)
+        .map_err(|e| ConsumerWalletError::Posting(format!("argon2 params: {e}")))?;
+    let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
+    let salt   = SaltString::generate(&mut OsRng);
+
+    argon2
+        .hash_password(pin.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|e| ConsumerWalletError::Posting(format!("argon2 hash: {e}")))
 }
 
 fn argon2id_verify(pin: &str, hash: &str) -> Result<bool, ConsumerWalletError> {
-    // Production: use `argon2::verify_encoded(hash, pin.as_bytes())`.
-    Ok(hash.ends_with(&format!("${}", pin.len())))
+    use argon2::{
+        password_hash::{PasswordHash, PasswordVerifier},
+        Argon2,
+    };
+
+    let parsed = PasswordHash::new(hash)
+        .map_err(|e| ConsumerWalletError::Posting(format!("argon2 parse: {e}")))?;
+
+    Ok(Argon2::default().verify_password(pin.as_bytes(), &parsed).is_ok())
 }
 
-fn sha256_hex_stub(input: &str) -> String {
-    // Production: use `sha2::Sha256` crate.
-    // Stub uses DefaultHasher — content-dependent and suitable for tests.
-    use std::collections::hash_map::DefaultHasher;
-    use std::hash::{Hash, Hasher};
-    let mut h = DefaultHasher::new();
-    input.hash(&mut h);
-    format!("sha256stub:{:016x}", h.finish())
+// ---------------------------------------------------------------------------
+// SHA-256 — OTP hashing
+// ---------------------------------------------------------------------------
+
+fn sha256_hex(input: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(input.as_bytes());
+    format!("{:x}", hasher.finalize())
 }
 
 // ---------------------------------------------------------------------------

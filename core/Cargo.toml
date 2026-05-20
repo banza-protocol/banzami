@@ -80,10 +80,12 @@ sqlx = { version = "0.7", features = [
 tracing            = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
-# Cryptography — API key hashing + QR signatures
+# Cryptography — API key hashing + QR signatures + PIN hashing
 sha2   = "0.10"
 hmac   = "0.12"
 base64 = { version = "0.22", features = ["alloc"] }
+argon2 = { version = "0.5", features = ["alloc"] }
+rand   = "0.8"
 
 # HTTP server — internal core-api
 axum   = "0.7"
