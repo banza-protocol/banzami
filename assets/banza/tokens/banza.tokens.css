@@ -1,0 +1,71 @@
+/**
+ * Banza Design Tokens — CSS Custom Properties
+ *
+ * Canonical visual identity for the Banza payment network.
+ * Import once at the root layout. Never redefine these values locally.
+ *
+ * Usage:
+ *   @import 'path/to/banza.tokens.css';
+ *   background: var(--banza-gradient-brand);
+ *   color: var(--banza-primary);
+ */
+
+:root {
+  /* ── Colors ─────────────────────────────────────────────────── */
+
+  /** Space Cherry — primary brand color */
+  --banza-primary:          #990011;
+
+  /** Cherry Highlight — hover states, gradients, elevated surfaces */
+  --banza-primary-highlight: #c21a2c;
+
+  /** Mid Cherry — gradient interpolation point */
+  --banza-primary-mid:      #7a000d;
+
+  /** Deep Shadow — pressed states, depth */
+  --banza-primary-shadow:   #5e000a;
+
+  /** Soft White — warm light surface, default page background */
+  --banza-surface-light:    #FCF6F5;
+
+  /** Soft Neutral Shadow — borders, dividers, muted text */
+  --banza-surface-neutral:  #d8d0cf;
+
+  /** Near Black — primary text color */
+  --banza-near-black:       #1a1a1a;
+
+  /* ── Gradients ───────────────────────────────────────────────── */
+
+  /**
+   * Brand Gradient — canonical Banza surface.
+   * Splash screens, hero sections, QR frames, payment confirmation.
+   */
+  --banza-gradient-brand: linear-gradient(
+    145deg,
+    #c21a2c 0%,
+    #990011 38%,
+    #7a000d 72%,
+    #5e000a 100%
+  );
+
+  /**
+   * Light Surface Gradient — canonical light mode panel surface.
+   * Card backs, modal backgrounds, dashboard panels.
+   */
+  --banza-gradient-surface: linear-gradient(
+    to bottom,
+    #ffffff 0%,
+    #FCF6F5 55%,
+    #d8d0cf 100%
+  );
+
+  /* ── Semantic aliases ────────────────────────────────────────── */
+
+  --banza-cta:          var(--banza-primary);
+  --banza-cta-hover:    var(--banza-primary-highlight);
+  --banza-cta-pressed:  var(--banza-primary-shadow);
+  --banza-page-bg:      var(--banza-surface-light);
+  --banza-border:       var(--banza-surface-neutral);
+  --banza-text:         var(--banza-near-black);
+  --banza-text-inverse: #ffffff;
+}
