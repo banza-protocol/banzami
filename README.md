@@ -343,6 +343,27 @@ The boundary between the Go services and the Rust core is the most important arc
 
 ## Repository Layout
 
+> **Architecture freeze:** The layout below reflects the frozen target architecture (CLAUDE.md §20). Some directories are physically in a transitional location — these are explicitly noted. No new top-level directory may be added without updating both README.md and CLAUDE.md §20.
+
+### Semantic Architecture
+
+The repository is organized into **eight semantic zones**:
+
+| Zone | Purpose |
+|------|---------|
+| `core/` | Rust financial core — all financial logic, invariants, and state. `core/jobs/` is the canonical home for background jobs. |
+| `services/` | Go orchestration services — APIs, auth, middleware, webhooks |
+| `apps/` | Product-facing applications — what merchants, consumers, and admins use |
+| `platforms/` | Operational/governance platforms — docs site, validation studio _(target: apps/docs and apps/validation-studio migrate here)_ |
+| `integrations/` | SDKs, plugins, adapters _(target: sdk/ and plugins/ merge here)_ |
+| `contracts/` | Protocol truth — OpenAPI, webhook schemas, QR specs, event contracts |
+| `db/` | PostgreSQL migrations |
+| `infra/` | Infrastructure as code, monitoring, deployment |
+| `docs/` | Technical documentation |
+| `tools/` | Developer tooling |
+
+### Current Physical Layout
+
 ```
 banzami/
 │
@@ -364,9 +385,11 @@ banzami/
 │   ├── qr/                        Static and dynamic QR payment codes
 │   ├── payment-links/             Shareable URL payments for informal commerce
 │   ├── acquiring/                 Multicaixa Express acquiring — initiation, callbacks, wallet settlement
-│   └── api/                       Axum HTTP server wiring all domains
+│   ├── api/                       Axum HTTP server wiring all domains
+│   └── jobs/                      [PLACEHOLDER] Background jobs owned by the financial core
+│                                   Current jobs live inside core/api/ — migrate here as the count grows
 │
-├── services/                      Go services
+├── services/                      Go orchestration services
 │   ├── api-gateway/               Merchant-facing API gateway (:8080)
 │   │   ├── cmd/gateway/           Entry point
 │   │   └── internal/
@@ -396,7 +419,8 @@ banzami/
 │           ├── service/           CorePublicClient + CredentialStore
 │           └── server/            Chi router and server construction
 │
-├── apps/                          Frontend and mobile applications
+├── apps/                          Product-facing applications + platforms (transitional)
+│   │                              Target: product apps only; platforms/ below for docs + studio
 │   ├── dashboard/                 Merchant dashboard (Next.js, :3010)
 │   ├── admin/                     Internal admin panel (Next.js, :3002)
 │   ├── pay/                       Consumer pay page — payment links (Next.js, :3003)
@@ -408,69 +432,114 @@ banzami/
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
 │   ├── merchant/                  Standalone Flutter merchant app (reference project)
-│   ├── docs/                      Developer documentation site
-│   └── validation-studio/         LOCAL-ONLY governance workstation (Next.js, :3099)
+│   ├── docs/          [→ platforms/docs]       Developer documentation site (banzami.org)
+│   └── validation-studio/ [→ platforms/validation-studio]  LOCAL-ONLY governance workstation (:3099)
 │
-├── sdk/
+│   ── platforms/ (semantic concept — physical home: apps/docs and apps/validation-studio)
+│      Operational and governance platforms, not product-facing applications.
+│      Not moved physically to avoid breaking Dockerfiles and deploy.sh.
+│
+├── sdk/               [→ integrations/sdk/]    Official Banzami SDKs (transitional top-level)
 │   ├── flutter/                   Flutter SDK — mobile runtime (iOS + Android)
 │   │   ├── lib/client/            BanzaClient (HTTP, auth, retry, idempotency, hooks)
 │   │   ├── lib/models/            Typed response models
 │   │   ├── test/                  Unit + integration tests (MockClient)
 │   │   └── CHANGELOG.md
-│   ├── typescript/                TypeScript SDK — Node.js, Next.js, browser
+│   ├── typescript/                TypeScript SDK — Node.js, Next.js, browser (@banza/sdk)
 │   │   ├── src/client.ts          BanzaClient (ESM + CJS, retry, hooks, idempotency)
-│   │   ├── src/types.ts           Pydantic-style response type definitions
+│   │   ├── src/webhooks.ts        Webhook signature verification (Banza-Signature)
 │   │   ├── examples/              next-api-route, node-webhook, browser-checkout
 │   │   └── CHANGELOG.md
-│   └── python/                    Python SDK — async-first (Django, FastAPI, Flask)
-│       ├── banzami/               Package root
-│       │   ├── client.py          BanzaClient + BanzamiHooks
-│       │   ├── resources/         transactions, qr_payments, transfers, payouts, …
-│       │   ├── models/            Pydantic v2 response models
-│       │   ├── exceptions.py      Clean exception hierarchy
-│       │   └── signature.py       HMAC-SHA256 webhook verification
-│       ├── examples/              fastapi, django, flask, qr_checkout, webhook_handler
-│       ├── tests/                 58 tests, 88% coverage
-│       └── CHANGELOG.md
+│   ├── python/                    Python SDK — async-first (Django, FastAPI, Flask) (banza-python)
+│   │   ├── banza/                 Package root
+│   │   │   ├── client.py          BanzaClient + BanzaHooks
+│   │   │   ├── resources/         transactions, qr_payments, transfers, payouts, …
+│   │   │   ├── models/            Pydantic v2 response models
+│   │   │   ├── exceptions.py      Clean exception hierarchy
+│   │   │   └── signature.py       HMAC-SHA256 webhook verification
+│   │   ├── examples/              fastapi, django, flask, qr_checkout, webhook_handler
+│   │   ├── tests/                 Unit + integration tests
+│   │   └── CHANGELOG.md
+│   ├── php/                       PHP SDK (banza/sdk-php)
+│   └── go/                        Go SDK (banza-go)
 │
-├── plugins/
-│   ├── woocommerce/               WooCommerce payment gateway plugin
-│   ├── generic-php/               PHP adapter (no external dependencies)
-│   │   ├── src/BanzaClient.php  Full API surface + retry + hooks
-│   │   ├── examples/              payment-link, webhook-handler, wallet-and-payout
-│   │   └── CHANGELOG.md
-│   ├── generic-laravel/           Laravel service provider + facades
-│   │   └── CHANGELOG.md
-│   └── generic-node/              Node.js adapter
-│       ├── src/client.ts          BanzaClient + BanzamiHooks
-│       ├── examples/              payment-link, webhook-express, wallet-payout
-│       └── CHANGELOG.md
+├── plugins/           [→ integrations/plugins/ and integrations/adapters/]
+│   ├── woocommerce/               [→ integrations/plugins/woocommerce]   WooCommerce payment gateway plugin
+│   ├── shopify/                   [→ integrations/plugins/shopify]        Shopify plugin (future)
+│   ├── generic-php/               [→ integrations/adapters/generic-php]  PHP adapter (no dependencies)
+│   ├── generic-laravel/           [→ integrations/adapters/generic-laravel]  Laravel service provider
+│   └── generic-node/              [→ integrations/adapters/generic-node] Node.js adapter
+│
+│   ── integrations/ (semantic concept — physical home: sdk/ and plugins/)
+│      SDKs (sdk/), commerce plugins (plugins/woocommerce, plugins/shopify),
+│      and runtime adapters (plugins/generic-*). Not physically merged yet.
+│
+├── contracts/                     Protocol truth — canonical contract definitions
+│   ├── openapi/                   OpenAPI 3.x specifications for the public REST API
+│   ├── webhooks/                  JSON Schema for all webhook event payloads
+│   ├── qr/                        QR payload format specification and encoding rules
+│   ├── events/                    Internal and external domain event schemas
+│   └── sdk-certification/         Canonical target for SDK certification vectors
+│                                   (currently at sdk-certification/ — migration pending)
+│
+├── sdk-certification/  [→ contracts/sdk-certification/]  SDK compliance test vectors (transitional top-level)
 │
 ├── db/
 │   └── migrations/                Global PostgreSQL migrations (0001–0023)
 │
 ├── infra/
 │   ├── docker/                    Docker Compose for local development
-│   ├── terraform/                 Infrastructure as code
+│   ├── terraform/                 Infrastructure as code — split by provider/domain
+│   │   ├── cloudflare/            Cloudflare DNS, WAF, SSL rules
+│   │   ├── ionos/                 IONOS VPS provisioning
+│   │   ├── monitoring/            Monitoring stack infrastructure
+│   │   └── networking/            Network topology and firewall rules
 │   ├── monitoring/                Prometheus scrape config + Grafana provisioning
 │   └── deployment/                Deployment scripts and runbooks
 │
 ├── docs/
 │   ├── adr/                       Architecture Decision Records (ADR-001 – ADR-016)
 │   ├── domains/                   Per-domain technical documentation
-│   │   ├── acquiring/             Acquiring flow, wallet settlement, EMIS integration
-│   │   └── consumer-deposits/     Consumer wallet top-up via Multicaixa Express
+│   ├── architecture/              Cross-cutting architecture documents
+│   ├── integrations/              Integration guides (Doa reference integration)
+│   ├── product/                   Product strategy and positioning
+│   ├── brand/                     Brand audit and naming rules
 │   ├── security/                  Security model and threat analysis
-│   ├── sandbox/                   Sandbox developer guide, env isolation, sandbox-vs-production
+│   ├── sandbox/                   Sandbox developer guide
 │   ├── runbooks/                  Operational runbooks
 │   ├── playbooks/                 Incident playbooks
 │   ├── api/                       API reference documentation
-│   └── validation/                Implementation matrix + governance model (BANZAMI_IMPLEMENTATION_MATRIX.json)
+│   └── validation/                Implementation matrix + governance (BANZAMI_IMPLEMENTATION_MATRIX.json)
 │
-├── tools/                         Internal developer tooling
-├── CLAUDE.md                      Engineering Constitution (mandatory reading)
+├── tools/                         Developer tooling
+│   ├── check-repository-layout.mjs  Layout compliance check (make check-repo-layout)
+│   └── seed.sh                    Test merchant + data seeder
+│
+├── CLAUDE.md                      Engineering Constitution — mandatory reading
 └── README.md                      This file
 ```
+
+### Migration Candidates
+
+These physical locations do not match the target semantic architecture. No move has been performed because the build, deploy scripts, and imports would break. Each is documented here until a safe migration plan is executed.
+
+| Current location | Target location | Blocker |
+|-----------------|----------------|---------|
+| `apps/docs/` | `platforms/docs/` | Dockerfile, deploy.sh hardcode `apps/docs/` |
+| `apps/validation-studio/` | `platforms/validation-studio/` | Makefile, dev.sh reference `apps/validation-studio/` |
+| `sdk/` | `integrations/sdk/` | pubspec.yaml, package.json, import paths in all SDKs |
+| `plugins/` | `integrations/plugins/` and `integrations/adapters/` | Documentation links, README cross-references |
+| `sdk-certification/` | `contracts/sdk-certification/` | Test runner import paths |
+
+### Layout Governance
+
+The `tools/check-repository-layout.mjs` script enforces structural rules:
+
+```bash
+make check-repo-layout
+```
+
+See CLAUDE.md §20 for the binding governance rules.
 
 ---
 
@@ -501,7 +570,7 @@ Kubernetes is intentionally deferred. The modular monolith approach provides sim
 Banzami maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
 
 - **Web / TypeScript:** [`sdk/typescript/src/theme/index.ts`](sdk/typescript/src/theme/index.ts)
-- **Mobile / Flutter:** [`sdk/flutter/lib/theme/banzami_theme.dart`](sdk/flutter/lib/theme/banzami_theme.dart)
+- **Mobile / Flutter:** [`sdk/flutter/lib/theme/banza_theme.dart`](sdk/flutter/lib/theme/banza_theme.dart)
 - **Tailwind config:** extended in each Next.js app from the shared token values
 
 ### Brand Colour Palette
@@ -1240,11 +1309,11 @@ The SDK automatically routes to the correct base URL and handles JWT exchange an
 **Flutter**
 
 ```dart
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 final client = BanzaClient(
   apiKey:      'bz_test_…',
-  environment: BanzamiEnvironment.sandbox,
+  environment: BanzaEnvironment.sandbox,
 );
 
 client.isSandbox;    // true
@@ -1796,7 +1865,7 @@ cd sdk/typescript && npm test
 # Python SDK (requires virtualenv)
 cd sdk/python && .venv/bin/pytest tests/ -v
 # or with coverage:
-cd sdk/python && .venv/bin/pytest tests/ --cov=banzami --cov-report=term-missing
+cd sdk/python && .venv/bin/pytest tests/ --cov=banza --cov-report=term-missing
 ```
 
 ### Continuous Integration
