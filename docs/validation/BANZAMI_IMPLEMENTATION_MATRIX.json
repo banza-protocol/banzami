@@ -1409,10 +1409,10 @@
       "referenceSection": "§6.3",
       "description": "API que resolve um @banza para a carteira correspondente em tempo real, usada em transferências, QR e pedidos de pagamento.",
       "requirement": "Resolução em menos de 100ms. Erro claro para @banza inexistente.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API",
-      "technicalArea": "Go · Redis · PostgreSQL",
+      "technicalArea": "Rust · PostgreSQL · Go",
       "validationMethods": [
         "unit_tests",
         "integration_tests"
@@ -1423,33 +1423,91 @@
         "Erro 404 estruturado para @banza não encontrado",
         "Cache Redis para handles frequentes"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "core/consumer-wallets/src/routing.rs — RoutingStatus enum (ROUTABLE/LOCKED/SUSPENDED/CLOSED/PENDING_KYC/UNREACHABLE), WalletRoutingDestination struct, routing_status_from_wallet()",
+        "core/consumer-wallets/src/wallet.rs — can_receive() added to ConsumerWalletStatus (ACTIVE + LOCKED return true)",
+        "core/consumer-wallets/src/repository.rs — find_by_handle_for_routing(handle, currency): currency-aware, includes c.status + c.display_name, deterministic ORDER BY created_at ASC",
+        "core/consumer-wallets/src/engine.rs — resolve_to_wallet(handle, currency): normalize → validate → DB lookup → identity status check → wallet status check → WalletRoutingDestination",
+        "core/consumer-wallets/src/engine.rs — resolve_many(handles, currency): batch resolution, independent results per handle",
+        "core/consumer-wallets/src/engine.rs — can_receive(wallet_id): per-wallet receive capability check",
+        "core/consumer-wallets/src/lib.rs — RoutingStatus, WalletRoutingDestination exported",
+        "core/api/src/routes/consumers.rs — resolve_handle() handler: GET /internal/v1/identity/resolve/:handle?currency=AOA",
+        "core/api/src/main.rs — route registered: /internal/v1/identity/resolve/:handle",
+        "db/migrations/0036_handle_routing_index.sql — routing index consumers_handle_status_idx + stale COMMENT fix",
+        "core/consumer-wallets/tests/routing_integration.rs — 10 integration tests covering all 5 invariants including concurrent resolution",
+        "docs/BANZAMI_REFERENCE.md §6.3 — 4-layer routing architecture diagram, routing state table, determinism rationale"
+      ],
       "dependencies": [
         "HDL-001"
       ],
-      "requires": [],
+      "requires": [
+        "HDL-001"
+      ],
       "affects": [],
       "revalidateWhenChanged": [
         "core/identity/**",
         "db/migrations/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-HDL-002-1",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-HDL-002-2",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-HDL-002-3",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-HDL-002-4",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-HDL-002-5",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "evidence non-empty (+20)",
+          "unit_tests (+15)",
+          "integration_tests (+20)",
+          "non-financial item (+20)",
+          "capped at 75 — no production_review or e2e yet"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-05-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "pending-build",
+          "commit": null,
+          "reason": "HDL-002 implemented: RoutingStatus, WalletRoutingDestination, resolve_to_wallet() + resolve_many() + can_receive() on ConsumerWalletEngine, currency-aware repository lookup with consumer identity status, routing index (migration 0036), /internal/v1/identity/resolve/:handle API route, 10 integration tests",
+          "evidence": [
+            "core/consumer-wallets/src/routing.rs",
+            "core/consumer-wallets/src/engine.rs",
+            "core/consumer-wallets/src/repository.rs",
+            "core/consumer-wallets/src/wallet.rs",
+            "core/api/src/routes/consumers.rs",
+            "db/migrations/0036_handle_routing_index.sql",
+            "core/consumer-wallets/tests/routing_integration.rs",
+            "docs/BANZAMI_REFERENCE.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
     },
     {
       "id": "HDL-003",

@@ -449,6 +449,75 @@ O @banza é a camada de routing humano da rede Banza. Em sistemas bancários tra
 
 Este design segue os modelos de sucesso do Pix (CPF/chave aleatória), UPI (VPA como `nome@upi`) e M-Pesa (número de telefone como endereço) — adaptado à realidade angolana com um identificador nativo da rede Banza.
 
+#### Como o routing @banza funciona
+
+O routing de um pagamento por @banza atravessa quatro camadas antes de qualquer dinheiro se mover. Cada camada tem uma responsabilidade precisa e falha explicitamente quando não consegue garantir a sua invariante.
+
+```
+INPUT: "@joao"
+         │
+         ▼
+┌─────────────────────────────────────────────────┐
+│  CAMADA 1 — IDENTIDADE                          │
+│  normalize("@joao") → "joao"                    │
+│  validate_handle("joao") → OK                   │
+│  Registo de identidade: handle → consumer_id    │
+│  Verificação: consumer.status == ACTIVE         │
+│  Falha: HANDLE_NOT_FOUND / SUSPENDED / CLOSED   │
+└───────────────────────┬─────────────────────────┘
+                        │ consumer_id confirmado
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  CAMADA 2 — ROUTING                             │
+│  consumer_id + currency → wallet_id             │
+│  Verificação: wallet.status ∈ {ACTIVE, LOCKED}  │
+│  routing_status = ROUTABLE | LOCKED             │
+│  Falha: WALLET_CANNOT_RECEIVE                   │
+└───────────────────────┬─────────────────────────┘
+                        │ WalletRoutingDestination
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  CAMADA 3 — CARTEIRA                            │
+│  Reserva de fundos na carteira de origem        │
+│  available_account → reserved_account (origem)  │
+│  Falha: INSUFFICIENT_FUNDS                      │
+└───────────────────────┬─────────────────────────┘
+                        │ reserva confirmada
+                        ▼
+┌─────────────────────────────────────────────────┐
+│  CAMADA 4 — LEDGER                              │
+│  Posting atómico de dupla entrada:              │
+│  DR reserved_account (origem)                   │
+│  CR available_account (destino)                 │
+│  Imutável, reconciliável, auditável             │
+└─────────────────────────────────────────────────┘
+                        │
+                        ▼
+              TRANSFERÊNCIA COMPLETA
+```
+
+**Estados de routing e o seu significado:**
+
+| Estado | Descrição | Pode receber? |
+|--------|-----------|:---:|
+| `ROUTABLE` | Identidade e carteira activas | Sim |
+| `LOCKED` | Carteira bloqueada (tentativas PIN excedidas) — pode receber, não pode enviar | Sim |
+| `SUSPENDED` | Identidade ou carteira suspensa por compliance | Não |
+| `CLOSED` | Carteira permanentemente encerrada | Não |
+| `PENDING_KYC` | KYC incompleto — recepção pode estar restrita | Condicional |
+| `UNREACHABLE` | Estado de onboarding sem footprint no ledger | Não |
+
+**Por que o routing tem de ser determinístico num sistema financeiro:**
+
+Um pagamento por @banza não é uma pesquisa de texto — é uma operação financeira com consequências imediatas. A ambiguidade é inaceitável:
+
+- Ambiguidade no destinatário → dinheiro enviado para a pessoa errada
+- Estado stale → pagamento aceite por uma carteira encerrada
+- Resultado não-determinístico → dois pagamentos simultâneos chegam a destinos diferentes
+- Bypass de estado → dinheiro entra numa conta suspensa por AML
+
+O pipeline de resolução implementa verificações sequenciais com falha imediata em cada etapa. A mesma entrada normalizada produz sempre o mesmo resultado enquanto o estado da base de dados não mudar. Esta propriedade é necessária para que transferências P2P, pagamentos QR e links de pagamento possam reutilizar a mesma primitiva de routing com garantias idênticas.
+
 ### 6.4 Pagamentos QR
 
 Um **código QR** é um endereço de pagamento visual — um atalho digitalizável para uma carteira. Fazer o scan informa a app do consumidor exactamente para onde o pagamento deve ir.

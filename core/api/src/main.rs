@@ -188,6 +188,9 @@ async fn main() {
         .route("/internal/v1/consumers/:id/close",         post(routes::consumers::close))
         .route("/internal/v1/consumers/handle/:handle",    get(routes::consumers::get_by_handle))
 
+        // Handle routing — deterministic @banza → active wallet resolution (HDL-002)
+        .route("/internal/v1/identity/resolve/:handle",    get(routes::consumers::resolve_handle))
+
         // Consumer wallets
         .route("/internal/v1/consumer-wallets",                   post(routes::consumer_wallets::create))
         .route("/internal/v1/consumer-wallets",                   get(routes::consumer_wallets::get_for_consumer))

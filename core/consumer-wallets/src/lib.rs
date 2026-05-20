@@ -2,9 +2,11 @@ pub mod engine;
 pub mod funding;
 pub mod onboarding;
 pub mod repository;
+pub mod routing;
 pub mod wallet;
 
 pub use engine::{ConsumerWalletEngine, PostgresConsumerWalletEngine};
+pub use routing::{RoutingStatus, WalletRoutingDestination};
 pub use funding::{
     CreateFundingSessionRequest, FundingEngine, FundingError, FundingProvider, FundingSession,
     FundingStatus, PostgresFundingEngine, ReceiveCallbackRequest, ReconcileRequest,
@@ -75,11 +77,26 @@ pub enum ConsumerWalletError {
         operation_currency: Currency,
     },
 
+    #[error("handle '{0}' not found")]
+    HandleNotFound(String),
+
     #[error("handle '{0}' is already taken")]
     HandleTaken(String),
 
     #[error("invalid handle: {0}")]
     InvalidHandle(&'static str),
+
+    #[error("identity for handle '{0}' is suspended")]
+    SuspendedIdentity(String),
+
+    #[error("identity for handle '{0}' is closed")]
+    ClosedIdentity(String),
+
+    #[error("wallet {0} cannot receive funds — status does not permit inbound transfers")]
+    WalletCannotReceive(ConsumerWalletId),
+
+    #[error("routing unavailable for handle '{0}'")]
+    RoutingUnavailable(String),
 
     #[error("PIN not set on wallet {0}")]
     PinNotSet(ConsumerWalletId),

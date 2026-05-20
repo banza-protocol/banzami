@@ -5,7 +5,9 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 
+use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError};
 use banzami_identity::{CreateConsumerRequest, IdentityEngine, IdentityError, VerificationBadge};
+use banzami_types::Currency;
 
 use crate::{error::{ApiError, ApiResult}, state::AppState};
 
@@ -34,6 +36,24 @@ pub struct SetBadgeBody {
 pub struct ListConsumersQuery {
     pub handle: Option<String>,
     pub limit:  Option<i64>,
+}
+
+#[derive(Deserialize)]
+pub struct ResolveHandleQuery {
+    /// ISO 4217 currency code. Defaults to AOA if omitted.
+    pub currency: Option<String>,
+}
+
+#[derive(Serialize)]
+pub struct RoutingResponse {
+    pub consumer_id:       String,
+    pub wallet_id:         String,
+    pub normalized_handle: String,
+    pub display_name:      Option<String>,
+    pub currency:          String,
+    pub routing_status:    String,
+    pub wallet_status:     String,
+    pub activated_at:      Option<String>,
 }
 
 #[derive(Serialize)]
@@ -231,4 +251,44 @@ pub async fn set_badge(
         })?;
 
     Ok(Json(serde_json::to_value(&identity).unwrap()))
+}
+
+// ---------------------------------------------------------------------------
+// GET /internal/v1/identity/resolve/:handle
+// ---------------------------------------------------------------------------
+
+pub async fn resolve_handle(
+    State(state): State<AppState>,
+    Path(handle):  Path<String>,
+    Query(q):      Query<ResolveHandleQuery>,
+) -> ApiResult<Json<RoutingResponse>> {
+    let currency_code = q.currency.as_deref().unwrap_or("AOA");
+    let currency = Currency::from_code(currency_code)
+        .ok_or_else(|| ApiError::bad_request(
+            &format!("unknown currency '{currency_code}'; expected AOA or another supported code"),
+        ))?;
+
+    let dest = state
+        .consumer_wallet
+        .resolve_to_wallet(&handle, currency)
+        .await
+        .map_err(|e| match e {
+            ConsumerWalletError::HandleNotFound(_)      => ApiError::not_found("handle not found"),
+            ConsumerWalletError::InvalidHandle(msg)     => ApiError::bad_request(msg),
+            ConsumerWalletError::SuspendedIdentity(_)   => ApiError::unprocessable("SUSPENDED", "identity is suspended"),
+            ConsumerWalletError::ClosedIdentity(_)      => ApiError::unprocessable("CLOSED", "identity is closed"),
+            ConsumerWalletError::WalletCannotReceive(_) => ApiError::unprocessable("WALLET_CANNOT_RECEIVE", "wallet cannot receive funds"),
+            other                                       => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok(Json(RoutingResponse {
+        consumer_id:       dest.consumer_id.to_string(),
+        wallet_id:         dest.wallet_id.to_string(),
+        normalized_handle: dest.normalized_handle,
+        display_name:      dest.display_name,
+        currency:          dest.currency.code().to_string(),
+        routing_status:    dest.routing_status.as_str().to_string(),
+        wallet_status:     dest.wallet_status.as_str().to_string(),
+        activated_at:      dest.activated_at.map(|t| t.to_rfc3339()),
+    }))
 }
