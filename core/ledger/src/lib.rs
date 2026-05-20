@@ -46,6 +46,9 @@ pub enum LedgerError {
     #[error("unknown entry type: {0}")]
     UnknownEntryType(String),
 
+    #[error("posting not found: {0}")]
+    PostingNotFound(banzami_types::LedgerPostingId),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 

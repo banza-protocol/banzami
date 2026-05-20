@@ -1033,7 +1033,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
     use std::collections::HashMap;
 
-    use banzami_ledger::{Account, AccountType, LedgerEngine, LedgerEntry, LedgerPosting};
+    use banzami_ledger::{Account, LedgerEngine, LedgerEntry, LedgerPosting};
     use banzami_types::{AccountId, ConsumerId, ConsumerWalletId, Currency, Money};
     use chrono::Utc;
     use uuid::Uuid;
@@ -1042,7 +1042,7 @@ mod tests {
     use crate::{
         onboarding::{CompletedOnboarding, OnboardingSession, OnboardingStatus},
         wallet::{
-            ChangePinRequest, ConsumerWallet, ConsumerWalletBalance, ConsumerWalletStatus,
+            ConsumerWallet, ConsumerWalletStatus,
             CreateConsumerWalletRequest, KycStatus, StartOnboardingRequest, VerifyOtpRequest,
             VerifyPinRequest,
         },
@@ -1102,6 +1102,31 @@ mod tests {
                 .filter(|e| e.account_id == account_id)
                 .cloned()
                 .collect())
+        }
+
+        async fn reverse(
+            &self,
+            original: &LedgerPosting,
+            description: impl Into<String> + Send,
+            new_idempotency_key: impl Into<String> + Send,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            use banzami_ledger::{EntryType, PostingBuilder};
+            let mut builder = PostingBuilder::new(description.into(), new_idempotency_key.into());
+            for entry in &original.entries {
+                builder = match entry.entry_type {
+                    EntryType::Debit  => builder.credit(entry.account_id, entry.amount),
+                    EntryType::Credit => builder.debit(entry.account_id, entry.amount),
+                };
+            }
+            let reversal = builder.build().map_err(|_| banzami_ledger::LedgerError::InsufficientEntries)?;
+            self.post(reversal).await
+        }
+
+        async fn get_posting(
+            &self,
+            _posting_id: banzami_types::LedgerPostingId,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            unimplemented!("MockLedger::get_posting not needed for consumer-wallet unit tests")
         }
     }
 
