@@ -194,6 +194,9 @@ async fn main() {
         .route("/internal/v1/consumer-wallets/test-credit",       post(routes::consumer_wallets::test_credit))
         .route("/internal/v1/consumer-wallets/:id",               get(routes::consumer_wallets::get))
         .route("/internal/v1/consumer-wallets/:id/balance",       get(routes::consumer_wallets::balance))
+        .route("/internal/v1/consumer-wallets/:id/reserve",       post(routes::consumer_wallets::reserve))
+        .route("/internal/v1/consumer-wallets/:id/release",       post(routes::consumer_wallets::release))
+        .route("/internal/v1/consumer-wallets/:id/commit-reserved", post(routes::consumer_wallets::commit_reserved))
 
         // Consumer onboarding (phone → OTP → PIN → ACTIVE wallet)
         .route("/internal/v1/consumer/onboarding/start",          post(routes::onboarding::start))

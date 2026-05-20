@@ -1,17 +1,19 @@
 use std::sync::Arc;
 
 use chrono::{Duration, Utc};
+use sqlx::PgPool;
 
 use banzami_ledger::{Account, AccountType, LedgerEngine};
-use banzami_types::{ConsumerId, ConsumerWalletId, Currency};
+use banzami_types::{ConsumerId, ConsumerWalletId, Currency, LedgerEntryId, LedgerPostingId, Money};
 
 use crate::{
     onboarding::{CompletedOnboarding, OnboardingSession},
     repository::{ConsumerWalletRepository, OnboardingRepository},
     wallet::{
-        ChangePinRequest, CompleteOnboardingRequest, ConsumerWallet, ConsumerWalletBalance,
-        ConsumerWalletStatus, CreateConsumerWalletRequest, KycStatus, StartOnboardingRequest,
-        VerifyOtpRequest, VerifyPinRequest,
+        ChangePinRequest, CommitReservedRequest, CompleteOnboardingRequest, ConsumerWallet,
+        ConsumerWalletBalance, ConsumerWalletStatus, CreateConsumerWalletRequest, KycStatus,
+        ReleaseRequest, ReservationStatus, ReserveRequest, StartOnboardingRequest,
+        VerifyOtpRequest, VerifyPinRequest, WalletReservation,
     },
     ConsumerWalletError,
 };
@@ -93,6 +95,36 @@ pub trait ConsumerWalletEngine: Send + Sync {
         wallet_id: ConsumerWalletId,
     ) -> Result<ConsumerWalletBalance, ConsumerWalletError>;
 
+    // ── Balance engine (WAL-002) ───────────────────────────────────────────
+
+    /// Move `amount` from available to reserved.
+    ///
+    /// Atomically: checks available balance, posts DR available / CR reserved,
+    /// records the reservation. Idempotent on `req.idempotency_key`.
+    /// Returns `InsufficientFunds` if available < amount.
+    async fn reserve(
+        &self,
+        req: ReserveRequest,
+    ) -> Result<WalletReservation, ConsumerWalletError>;
+
+    /// Reverse a reservation — moves funds back from reserved to available.
+    ///
+    /// Posts DR reserved / CR available. Marks the reservation RELEASED.
+    /// Only ACTIVE reservations can be released.
+    async fn release(
+        &self,
+        req: ReleaseRequest,
+    ) -> Result<(), ConsumerWalletError>;
+
+    /// Commit a reservation to a target account — consumes the reservation.
+    ///
+    /// Posts DR reserved / CR target_account_id. Marks the reservation COMMITTED.
+    /// Only ACTIVE reservations can be committed.
+    async fn commit_reserved(
+        &self,
+        req: CommitReservedRequest,
+    ) -> Result<(), ConsumerWalletError>;
+
     // ── Legacy / internal ──────────────────────────────────────────────────
 
     /// Direct wallet creation for internal/test use only.
@@ -119,9 +151,11 @@ where
     OR: OnboardingRepository,
     WR: ConsumerWalletRepository,
 {
-    ledger:   Arc<L>,
-    onboard:  OR,
-    wallets:  WR,
+    /// Present only in production wiring. None in unit-test mocks.
+    pool:    Option<PgPool>,
+    ledger:  Arc<L>,
+    onboard: OR,
+    wallets: WR,
 }
 
 impl<L, OR, WR> PostgresConsumerWalletEngine<L, OR, WR>
@@ -130,8 +164,55 @@ where
     OR: OnboardingRepository,
     WR: ConsumerWalletRepository,
 {
+    /// Unit-test constructor — no pool; reserve/release/commit will return an error.
     pub fn new(ledger: Arc<L>, onboard: OR, wallets: WR) -> Self {
-        Self { ledger, onboard, wallets }
+        Self { pool: None, ledger, onboard, wallets }
+    }
+
+    /// Production constructor — includes pool for transactional reserve/release/commit.
+    pub fn with_pool(pool: PgPool, ledger: Arc<L>, onboard: OR, wallets: WR) -> Self {
+        Self { pool: Some(pool), ledger, onboard, wallets }
+    }
+
+    fn require_pool(&self) -> Result<&PgPool, ConsumerWalletError> {
+        self.pool.as_ref().ok_or_else(|| {
+            ConsumerWalletError::Posting("pool not configured for transactional operations".into())
+        })
+    }
+
+    async fn fetch_reservation(
+        &self,
+        pool:           &PgPool,
+        reservation_id: uuid::Uuid,
+    ) -> Result<WalletReservation, ConsumerWalletError> {
+        let row: ReservationFetchRow = sqlx::query_as(
+            "SELECT id, wallet_id, amount_minor, currency, reason, status,
+                    reserve_posting_id, idempotency_key,
+                    created_at, released_at, committed_at
+             FROM wallet_reservations WHERE id = $1",
+        )
+        .bind(reservation_id)
+        .fetch_one(pool)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        let currency = Currency::from_code(&row.currency)
+            .ok_or_else(|| ConsumerWalletError::UnknownCurrency(row.currency.clone()))?;
+        let status = ReservationStatus::try_from_str(&row.status)
+            .ok_or_else(|| ConsumerWalletError::UnknownStatus(row.status.clone()))?;
+
+        Ok(WalletReservation {
+            id:                 row.id,
+            wallet_id:          ConsumerWalletId::from_uuid(row.wallet_id),
+            amount:             Money::new(row.amount_minor, currency),
+            reason:             row.reason,
+            status,
+            reserve_posting_id: LedgerPostingId::from_uuid(row.reserve_posting_id),
+            idempotency_key:    row.idempotency_key,
+            created_at:         row.created_at,
+            released_at:        row.released_at,
+            committed_at:       row.committed_at,
+        })
     }
 
     async fn provision_ledger_accounts(
@@ -393,6 +474,385 @@ where
         })
     }
 
+    // ── Balance engine (WAL-002) ───────────────────────────────────────────
+
+    async fn reserve(
+        &self,
+        req: ReserveRequest,
+    ) -> Result<WalletReservation, ConsumerWalletError> {
+        let pool = self.require_pool()?;
+
+        if !req.amount.is_positive() {
+            return Err(ConsumerWalletError::Posting(
+                "reserve amount must be positive".into(),
+            ));
+        }
+
+        let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
+
+        // Idempotency check: return existing reservation if key already processed.
+        let existing: Option<uuid::Uuid> = sqlx::query_scalar(
+            "SELECT id FROM wallet_reservations WHERE idempotency_key = $1",
+        )
+        .bind(&req.idempotency_key)
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        if let Some(id) = existing {
+            tx.rollback().await.ok();
+            return self.fetch_reservation(pool, id).await;
+        }
+
+        // Lock the wallet row to serialize concurrent reserves on the same wallet.
+        let locked = sqlx::query_as::<_, WalletLockRow>(
+            "SELECT available_account_id, reserved_account_id, currency, status
+             FROM consumer_wallets WHERE id = $1 FOR UPDATE",
+        )
+        .bind(req.wallet_id.as_uuid())
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?
+        .ok_or(ConsumerWalletError::NotFound(req.wallet_id))?;
+
+        if locked.status != "ACTIVE" {
+            tx.rollback().await.ok();
+            return Err(ConsumerWalletError::NotActive(req.wallet_id));
+        }
+
+        let currency = Currency::from_code(&locked.currency)
+            .ok_or_else(|| ConsumerWalletError::UnknownCurrency(locked.currency.clone()))?;
+
+        if req.amount.currency != currency {
+            tx.rollback().await.ok();
+            return Err(ConsumerWalletError::CurrencyMismatch {
+                wallet_currency:    currency,
+                operation_currency: req.amount.currency,
+            });
+        }
+
+        // Compute available balance within the same TX (consistent read under lock).
+        // LIABILITY account: net = SUM(DEBIT) - SUM(CREDIT); available = -net.
+        let net_minor: i64 = sqlx::query_scalar(
+            "SELECT COALESCE(
+                 SUM(CASE WHEN entry_type = 'DEBIT' THEN amount_minor ELSE -amount_minor END),
+                 0
+             )::BIGINT
+             FROM ledger_entries WHERE account_id = $1",
+        )
+        .bind(locked.available_account_id)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        let available_minor = -net_minor; // negate: LIABILITY normal balance is CREDIT
+
+        if req.amount.amount_minor() > available_minor {
+            tx.rollback().await.ok();
+            return Err(ConsumerWalletError::InsufficientFunds {
+                available: Money::new(available_minor, currency),
+                requested: req.amount,
+            });
+        }
+
+        // Post the ledger entry: DR available / CR reserved (balanced).
+        let posting_id = LedgerPostingId::new();
+        let now        = Utc::now();
+
+        sqlx::query(
+            "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+             VALUES ($1, $2, $3, $4)",
+        )
+        .bind(posting_id.as_uuid())
+        .bind(format!("Reserve: {}", req.reason))
+        .bind(format!("reserve-{}", req.idempotency_key))
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // DR available_account — decreases the LIABILITY (consumer spends availability).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(locked.available_account_id)
+        .bind(req.amount.amount_minor())
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // CR reserved_account — increases the LIABILITY (funds now held in reserve).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(locked.reserved_account_id)
+        .bind(req.amount.amount_minor())
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // Record the reservation.
+        let reservation_id: uuid::Uuid = sqlx::query_scalar(
+            "INSERT INTO wallet_reservations
+             (wallet_id, amount_minor, currency, reason, status,
+              reserve_posting_id, idempotency_key, created_at)
+             VALUES ($1, $2, $3, $4, 'ACTIVE', $5, $6, $7)
+             RETURNING id",
+        )
+        .bind(req.wallet_id.as_uuid())
+        .bind(req.amount.amount_minor())
+        .bind(currency.code())
+        .bind(&req.reason)
+        .bind(posting_id.as_uuid())
+        .bind(&req.idempotency_key)
+        .bind(now)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        tx.commit().await.map_err(ConsumerWalletError::Database)?;
+
+        tracing::info!(
+            wallet_id       = %req.wallet_id,
+            reservation_id  = %reservation_id,
+            amount_minor    = req.amount.amount_minor(),
+            currency        = currency.code(),
+            "wallet reservation created"
+        );
+
+        Ok(WalletReservation {
+            id:                 reservation_id,
+            wallet_id:          req.wallet_id,
+            amount:             req.amount,
+            reason:             req.reason,
+            status:             ReservationStatus::Active,
+            reserve_posting_id: posting_id,
+            idempotency_key:    req.idempotency_key,
+            created_at:         now,
+            released_at:        None,
+            committed_at:       None,
+        })
+    }
+
+    async fn release(
+        &self,
+        req: ReleaseRequest,
+    ) -> Result<(), ConsumerWalletError> {
+        let pool = self.require_pool()?;
+        let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
+
+        // Fetch and lock the reservation.
+        let res = sqlx::query_as::<_, ReservationRow>(
+            "SELECT r.id, r.wallet_id, r.amount_minor, r.currency, r.status,
+                    w.available_account_id, w.reserved_account_id
+             FROM wallet_reservations r
+             JOIN consumer_wallets    w ON w.id = r.wallet_id
+             WHERE r.id = $1 AND r.wallet_id = $2
+             FOR UPDATE",
+        )
+        .bind(req.reserve_id)
+        .bind(req.wallet_id.as_uuid())
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?
+        .ok_or(ConsumerWalletError::ReservationNotFound(req.reserve_id))?;
+
+        if res.status != "ACTIVE" {
+            tx.rollback().await.ok();
+            return Err(ConsumerWalletError::ReservationNotActive(req.reserve_id));
+        }
+
+        let currency = Currency::from_code(&res.currency)
+            .ok_or_else(|| ConsumerWalletError::UnknownCurrency(res.currency.clone()))?;
+
+        // Post the reversal: DR reserved / CR available.
+        let posting_id = LedgerPostingId::new();
+        let now        = Utc::now();
+
+        sqlx::query(
+            "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+             VALUES ($1, $2, $3, $4)",
+        )
+        .bind(posting_id.as_uuid())
+        .bind(format!("Release reservation {}", req.reserve_id))
+        .bind(format!("release-{}", req.reserve_id))
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // DR reserved_account — decreases the LIABILITY (funds leaving reserve).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(res.reserved_account_id)
+        .bind(res.amount_minor)
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // CR available_account — increases the LIABILITY (funds back to available).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(res.available_account_id)
+        .bind(res.amount_minor)
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // Mark the reservation as RELEASED.
+        sqlx::query(
+            "UPDATE wallet_reservations
+             SET status = 'RELEASED', released_at = $2
+             WHERE id = $1",
+        )
+        .bind(req.reserve_id)
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        tx.commit().await.map_err(ConsumerWalletError::Database)?;
+
+        tracing::info!(
+            wallet_id      = %req.wallet_id,
+            reservation_id = %req.reserve_id,
+            amount_minor   = res.amount_minor,
+            "wallet reservation released"
+        );
+
+        Ok(())
+    }
+
+    async fn commit_reserved(
+        &self,
+        req: CommitReservedRequest,
+    ) -> Result<(), ConsumerWalletError> {
+        let pool = self.require_pool()?;
+        let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
+
+        // Fetch and lock the reservation.
+        let res = sqlx::query_as::<_, ReservationRow>(
+            "SELECT r.id, r.wallet_id, r.amount_minor, r.currency, r.status,
+                    w.available_account_id, w.reserved_account_id
+             FROM wallet_reservations r
+             JOIN consumer_wallets    w ON w.id = r.wallet_id
+             WHERE r.id = $1 AND r.wallet_id = $2
+             FOR UPDATE",
+        )
+        .bind(req.reserve_id)
+        .bind(req.wallet_id.as_uuid())
+        .fetch_optional(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?
+        .ok_or(ConsumerWalletError::ReservationNotFound(req.reserve_id))?;
+
+        if res.status != "ACTIVE" {
+            tx.rollback().await.ok();
+            return Err(ConsumerWalletError::ReservationNotActive(req.reserve_id));
+        }
+
+        let currency = Currency::from_code(&res.currency)
+            .ok_or_else(|| ConsumerWalletError::UnknownCurrency(res.currency.clone()))?;
+
+        // Post the commit: DR reserved / CR target_account (balanced).
+        let posting_id = LedgerPostingId::new();
+        let now        = Utc::now();
+
+        sqlx::query(
+            "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
+             VALUES ($1, $2, $3, $4)",
+        )
+        .bind(posting_id.as_uuid())
+        .bind(format!("Commit reservation {}", req.reserve_id))
+        .bind(format!("commit-{}", req.reserve_id))
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // DR reserved_account — decreases the LIABILITY (funds leaving reserve permanently).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(res.reserved_account_id)
+        .bind(res.amount_minor)
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // CR target_account — credit the destination (merchant wallet, transit, etc.).
+        sqlx::query(
+            "INSERT INTO ledger_entries
+             (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
+             VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)",
+        )
+        .bind(LedgerEntryId::new().as_uuid())
+        .bind(posting_id.as_uuid())
+        .bind(req.target_account_id.as_uuid())
+        .bind(res.amount_minor)
+        .bind(currency.code())
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        // Mark the reservation as COMMITTED.
+        sqlx::query(
+            "UPDATE wallet_reservations
+             SET status = 'COMMITTED', committed_at = $2
+             WHERE id = $1",
+        )
+        .bind(req.reserve_id)
+        .bind(now)
+        .execute(&mut *tx)
+        .await
+        .map_err(ConsumerWalletError::Database)?;
+
+        tx.commit().await.map_err(ConsumerWalletError::Database)?;
+
+        tracing::info!(
+            wallet_id         = %req.wallet_id,
+            reservation_id    = %req.reserve_id,
+            target_account_id = %req.target_account_id,
+            amount_minor      = res.amount_minor,
+            "wallet reservation committed"
+        );
+
+        Ok(())
+    }
+
     // ── Legacy / internal ──────────────────────────────────────────────────
 
     async fn create(
@@ -438,6 +898,46 @@ where
         }
         self.create(CreateConsumerWalletRequest { consumer_id, currency }).await
     }
+}
+
+// ---------------------------------------------------------------------------
+// Row structs used by transactional reserve/release/commit operations
+// ---------------------------------------------------------------------------
+
+#[derive(sqlx::FromRow)]
+struct WalletLockRow {
+    available_account_id: uuid::Uuid,
+    reserved_account_id:  uuid::Uuid,
+    currency:             String,
+    status:               String,
+}
+
+#[derive(sqlx::FromRow)]
+struct ReservationRow {
+    #[allow(dead_code)]
+    id:                   uuid::Uuid,
+    #[allow(dead_code)]
+    wallet_id:            uuid::Uuid,
+    amount_minor:         i64,
+    currency:             String,
+    status:               String,
+    available_account_id: uuid::Uuid,
+    reserved_account_id:  uuid::Uuid,
+}
+
+#[derive(sqlx::FromRow)]
+struct ReservationFetchRow {
+    id:                  uuid::Uuid,
+    wallet_id:           uuid::Uuid,
+    amount_minor:        i64,
+    currency:            String,
+    reason:              String,
+    status:              String,
+    reserve_posting_id:  uuid::Uuid,
+    idempotency_key:     String,
+    created_at:          chrono::DateTime<Utc>,
+    released_at:         Option<chrono::DateTime<Utc>>,
+    committed_at:        Option<chrono::DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------

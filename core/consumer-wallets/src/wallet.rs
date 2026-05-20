@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use banzami_types::{AccountId, ConsumerId, ConsumerWalletId, Currency, Money};
+use banzami_types::{AccountId, ConsumerId, ConsumerWalletId, Currency, LedgerPostingId, Money};
 
 /// Full onboarding + operational lifecycle of a consumer wallet.
 ///
@@ -238,20 +238,91 @@ pub struct CreateConsumerWalletRequest {
     pub currency:    Currency,
 }
 
-pub struct ReserveRequest {
-    pub wallet_id: ConsumerWalletId,
-    pub amount:    Money,
-    pub reference: String,
+// ---------------------------------------------------------------------------
+// Reservation types — WAL-002 balance engine
+// ---------------------------------------------------------------------------
+
+/// Lifecycle of a wallet fund reservation.
+///
+/// Transitions: ACTIVE → RELEASED (funds returned to available)
+///              ACTIVE → COMMITTED (funds consumed by a completed payment)
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(serde::Serialize, serde::Deserialize)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+pub enum ReservationStatus {
+    /// Funds are locked in the reserved account. Not yet released or committed.
+    Active,
+    /// Reservation cancelled — funds returned to available.
+    Released,
+    /// Reservation consumed by a completed payment. Funds left the wallet.
+    Committed,
 }
 
+impl ReservationStatus {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            ReservationStatus::Active    => "ACTIVE",
+            ReservationStatus::Released  => "RELEASED",
+            ReservationStatus::Committed => "COMMITTED",
+        }
+    }
+
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "ACTIVE"    => Some(ReservationStatus::Active),
+            "RELEASED"  => Some(ReservationStatus::Released),
+            "COMMITTED" => Some(ReservationStatus::Committed),
+            _           => None,
+        }
+    }
+}
+
+/// An individual fund reservation against a consumer wallet.
+///
+/// Created by `reserve()`. Tracks which ledger posting created it and its
+/// current lifecycle state. The ledger remains the financial source of truth;
+/// this struct is an operational projection.
+#[derive(Debug, Clone)]
+#[derive(serde::Serialize, serde::Deserialize)]
+pub struct WalletReservation {
+    pub id:                 uuid::Uuid,
+    pub wallet_id:          ConsumerWalletId,
+    /// Reserved amount. Always positive.
+    pub amount:             Money,
+    pub reason:             String,
+    pub status:             ReservationStatus,
+    /// The DR available / CR reserved posting that created this reservation.
+    pub reserve_posting_id: LedgerPostingId,
+    /// Caller-supplied idempotency key.
+    pub idempotency_key:    String,
+    pub created_at:         DateTime<Utc>,
+    pub released_at:        Option<DateTime<Utc>>,
+    pub committed_at:       Option<DateTime<Utc>>,
+}
+
+/// Reserve funds in a consumer wallet (available → reserved).
+pub struct ReserveRequest {
+    pub wallet_id:       ConsumerWalletId,
+    /// Amount to reserve. Must be positive, must match wallet currency.
+    pub amount:          Money,
+    /// Human-readable reason (e.g. "QR payment qr_xxx"). Stored on the reservation.
+    pub reason:          String,
+    /// Caller-supplied idempotency key. Re-submitting returns the existing reservation.
+    pub idempotency_key: String,
+}
+
+/// Release an active reservation (reserved → available). Reverses the reservation.
 pub struct ReleaseRequest {
     pub wallet_id:  ConsumerWalletId,
-    pub amount:     Money,
+    /// ID of the reservation to release (from `WalletReservation.id`).
     pub reserve_id: uuid::Uuid,
 }
 
-pub struct SettleRequest {
-    pub wallet_id:  ConsumerWalletId,
-    pub amount:     Money,
-    pub reserve_id: uuid::Uuid,
+/// Commit a reservation to a target account (reserved → target). Consumes the reservation.
+pub struct CommitReservedRequest {
+    pub wallet_id:         ConsumerWalletId,
+    /// ID of the reservation to commit (from `WalletReservation.id`).
+    pub reserve_id:        uuid::Uuid,
+    /// Ledger account to credit. Caller's responsibility (merchant wallet, transit, etc.).
+    pub target_account_id: AccountId,
 }
