@@ -47,7 +47,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   const reference = getReference()
 
   return (
-    <html lang="pt-AO" suppressHydrationWarning>
+    <html lang="pt-AO" suppressHydrationWarning className="overflow-x-hidden">
       <body className={`${inter.variable} bg-bz-bg text-bz-text antialiased font-sans overflow-x-hidden`}>
 
         {/* Top navigation */}
@@ -108,7 +108,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </aside>
 
           {/* Main content area */}
-          <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
+          <main className="min-w-0 flex-1">{children}</main>
         </div>
 
         {/* Footer */}
