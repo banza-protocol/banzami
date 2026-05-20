@@ -7,6 +7,8 @@ import type {
   ValidationItem,
   ValidationStatus,
   ValidationPriority,
+  ValidationDomain,
+  ConfidenceLevel,
   GovernanceIssue,
   ItemChange,
 } from '@/lib/types'
@@ -43,7 +45,10 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
   const [filterStatus, setFilterStatus] = useState<ValidationStatus | null>(null)
   const [filterPriority, setFilterPriority] = useState<ValidationPriority | null>(null)
   const [filterCategory, setFilterCategory] = useState<string | null>(null)
+  const [filterDomain, setFilterDomain] = useState<ValidationDomain | null>(null)
+  const [filterConfidence, setFilterConfidence] = useState<ConfidenceLevel | null>(null)
   const [filterMissingEvidence, setFilterMissingEvidence] = useState(false)
+  const [filterRevalidation, setFilterRevalidation] = useState(false)
 
   // Modal state
   const [showDiff, setShowDiff] = useState(false)
@@ -78,7 +83,10 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
       if (filterCategory && item.categoryId !== filterCategory) return false
       if (filterStatus && item.status !== filterStatus) return false
       if (filterPriority && item.priority !== filterPriority) return false
+      if (filterDomain && item.validationDomain !== filterDomain) return false
+      if (filterConfidence && item.confidence?.level !== filterConfidence) return false
       if (filterMissingEvidence && item.evidence.length > 0) return false
+      if (filterRevalidation && item.status !== 'REVALIDATION_REQUIRED') return false
       if (search) {
         const q = search.toLowerCase()
         return (
@@ -90,7 +98,7 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
       }
       return true
     })
-  }, [liveMatrix, filterCategory, filterStatus, filterPriority, filterMissingEvidence, search])
+  }, [liveMatrix, filterCategory, filterStatus, filterPriority, filterDomain, filterConfidence, filterMissingEvidence, filterRevalidation, search])
 
   // Category metrics for sidebar
   const categoryMetrics = useMemo(() => {
@@ -110,8 +118,12 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
       implemented: items.filter((i) => i.status === 'IMPLEMENTED').length,
       inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
       blocked: items.filter((i) => i.status === 'BLOCKED').length,
+      revalidationRequired: items.filter((i) => i.status === 'REVALIDATION_REQUIRED').length,
       missingEvidence: items.filter(
         (i) => ['VALIDATED', 'IMPLEMENTED'].includes(i.status) && i.evidence.length === 0,
+      ).length,
+      lowConfidence: items.filter(
+        (i) => ['VALIDATED', 'IMPLEMENTED'].includes(i.status) && (i.confidence?.score ?? 0) < 60,
       ).length,
     }
   }, [liveMatrix])
@@ -244,6 +256,12 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
           <span>{donePct}% completo</span>
           <span className="text-bz-border">·</span>
           <span>{metrics.total} itens</span>
+          {metrics.revalidationRequired > 0 && (
+            <>
+              <span className="text-bz-border">·</span>
+              <span className="font-semibold text-orange-600">{metrics.revalidationRequired} revalidação</span>
+            </>
+          )}
           {metrics.blocked > 0 && (
             <>
               <span className="text-bz-border">·</span>
@@ -268,7 +286,7 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
 
       {/* Body */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar — categories */}
+        {/* Left sidebar — categories + filters */}
         <aside className="scrollbar-thin flex w-56 shrink-0 flex-col overflow-y-auto border-r border-bz-border bg-white py-4">
           {/* Progress */}
           <div className="mb-4 px-4">
@@ -328,9 +346,21 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
             <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-bz-muted">
               Filtros rápidos
             </div>
+            {metrics.revalidationRequired > 0 && (
+              <button
+                onClick={() => setFilterRevalidation((v) => !v)}
+                className={`w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+                  filterRevalidation
+                    ? 'bg-orange-50 font-semibold text-orange-700'
+                    : 'text-bz-muted hover:bg-bz-surface'
+                }`}
+              >
+                ↻ Revalidação ({metrics.revalidationRequired})
+              </button>
+            )}
             <button
               onClick={() => setFilterMissingEvidence((v) => !v)}
-              className={`w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+              className={`mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
                 filterMissingEvidence
                   ? 'bg-amber-50 font-semibold text-amber-700'
                   : 'text-bz-muted hover:bg-bz-surface'
@@ -348,6 +378,18 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
             >
               ✕ Bloqueadas ({metrics.blocked})
             </button>
+            {metrics.lowConfidence > 0 && (
+              <button
+                onClick={() => setFilterConfidence(filterConfidence === 'LOW' ? null : 'LOW')}
+                className={`mt-1 w-full rounded-md px-2 py-1.5 text-left text-xs transition-colors ${
+                  filterConfidence === 'LOW'
+                    ? 'bg-slate-100 font-semibold text-slate-700'
+                    : 'text-bz-muted hover:bg-bz-surface'
+                }`}
+              >
+                ↓ Confiança baixa ({metrics.lowConfidence})
+              </button>
+            )}
           </div>
         </aside>
 
@@ -364,9 +406,13 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
             search={search}
             filterStatus={filterStatus}
             filterPriority={filterPriority}
+            filterDomain={filterDomain}
+            filterConfidence={filterConfidence}
             onSearchChange={setSearch}
             onStatusChange={setFilterStatus}
             onPriorityChange={setFilterPriority}
+            onDomainChange={setFilterDomain}
+            onConfidenceChange={setFilterConfidence}
             onSelect={handleSelect}
           />
         </div>
