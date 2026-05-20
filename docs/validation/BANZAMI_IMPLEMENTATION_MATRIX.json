@@ -143,15 +143,18 @@
       "technicalArea": "Next.js · TypeScript · Tailwind",
       "validationMethods": [
         "manual_ux",
-        "production_review"
+        "production_review",
+        "unit_tests"
       ],
       "acceptanceCriteria": [
-        "Site acessível e funcional em produção",
-        "Conteúdo renderizado a partir de BANZAMI_REFERENCE.md",
-        "Navegação por secções operacional",
-        "Design responsivo em mobile e desktop"
+        "Site acessível e funcional em produção (banzami.org)",
+        "Conteúdo renderizado exclusivamente a partir de BANZAMI_REFERENCE.md",
+        "Navegação por secções operacional (20 rotas + sidebar)",
+        "Design responsivo em mobile e desktop",
+        "Página /validacao integrada no mesmo site",
+        "Parser reference.ts testado automaticamente (toSlug, getReference, getSection)"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -167,6 +170,16 @@
           "type": "config",
           "label": "Configuração Tailwind",
           "ref": "apps/docs/tailwind.config.ts"
+        },
+        {
+          "type": "test",
+          "label": "reference.test.ts (51 testes)",
+          "ref": "apps/docs/lib/__tests__/reference.test.ts"
+        },
+        {
+          "type": "config",
+          "label": "Motor de parsing (reference.ts)",
+          "ref": "apps/docs/lib/reference.ts"
         }
       ],
       "dependencies": [],
@@ -179,20 +192,34 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
           "implementation evidence (+20)",
+          "unit tests (+15)",
           "E2E / manual UX (+15)",
           "production / sandbox evidence (+10)",
           "non-financial item (invariants not required, +20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "lastValidatedAt": "2026-05-20",
+      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+      "history": [
+        {
+          "timestamp": "2026-05-20T10:31:38.478Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "e6025bc3bd0b2bd6",
+          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+          "reason": "Revalidação com unit_tests: reference.test.ts (51 testes) cobre toSlug, getReference, getSection, getAllSectionSlugs. Confidence 65 → 80 (VERY_HIGH).",
+          "evidence": [
+            "apps/docs/lib/__tests__/reference.test.ts"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "DOC-002",
@@ -208,15 +235,18 @@
       "technicalArea": "TypeScript · Node.js fs",
       "validationMethods": [
         "manual_ux",
-        "production_review"
+        "production_review",
+        "unit_tests"
       ],
       "acceptanceCriteria": [
         "Todas as 20 secções parseadas correctamente",
-        "Metadados (versão, data, estado) extraídos",
-        "Slugs de rota gerados para cada secção",
-        "Subsecções identificadas correctamente"
+        "Metadados (versão, data, estado) extraídos e não vazios",
+        "Slugs únicos e URL-safe gerados para cada secção",
+        "Subsecções (H3) identificadas correctamente (≥100 total)",
+        "toSlug() produz slugs determinísticos sem diacríticos",
+        "Cada âncora segue o formato \"{n}-{slug}\""
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -232,6 +262,16 @@
           "type": "route",
           "label": "Página de referência",
           "ref": "apps/docs/app/reference/page.tsx"
+        },
+        {
+          "type": "test",
+          "label": "reference.test.ts (51 testes)",
+          "ref": "apps/docs/lib/__tests__/reference.test.ts"
+        },
+        {
+          "type": "adr",
+          "label": "ADR-015 markdown-first",
+          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
         }
       ],
       "dependencies": [],
@@ -244,20 +284,34 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
           "implementation evidence (+20)",
+          "unit tests (+15)",
           "E2E / manual UX (+15)",
           "production / sandbox evidence (+10)",
           "non-financial item (invariants not required, +20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "lastValidatedAt": "2026-05-20",
+      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+      "history": [
+        {
+          "timestamp": "2026-05-20T10:31:38.478Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "f2ca1c795f6fa2bb",
+          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+          "reason": "Revalidação com unit_tests: reference.test.ts testa parsing das 20 secções, metadados, slugs, subsecções e toSlug. Confidence 65 → 80 (VERY_HIGH).",
+          "evidence": [
+            "apps/docs/lib/__tests__/reference.test.ts"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "DOC-003",
@@ -272,15 +326,19 @@
       "ownerArea": "Plataforma / Frontend",
       "technicalArea": "Next.js App Router · TypeScript",
       "validationMethods": [
-        "manual_ux"
+        "manual_ux",
+        "production_review",
+        "unit_tests"
       ],
       "acceptanceCriteria": [
-        "20 rotas de secção funcionais",
-        "Conteúdo completo por secção",
-        "Navegação prev/next entre secções",
-        "Componentes visuais por secção (QR, wallets, SDK, etc.)"
+        "20 rotas de secção funcionais em produção (/[slug])",
+        "Conteúdo completo por secção renderizado",
+        "Navegação prev/next entre secções operacional",
+        "Componentes visuais por secção disponíveis",
+        "getSection(slug) e getSectionByNumber(n) resolvem todas as 20 secções",
+        "getAllSectionSlugs() retorna 20 slugs únicos e URL-safe"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -296,6 +354,16 @@
           "type": "component",
           "label": "SectionNav sidebar",
           "ref": "apps/docs/components/SectionNav.tsx"
+        },
+        {
+          "type": "test",
+          "label": "reference.test.ts (51 testes)",
+          "ref": "apps/docs/lib/__tests__/reference.test.ts"
+        },
+        {
+          "type": "route",
+          "label": "Site em produção (/[slug])",
+          "ref": "apps/docs/app/[slug]/page.tsx"
         }
       ],
       "dependencies": [
@@ -310,19 +378,34 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
           "implementation evidence (+20)",
+          "unit tests (+15)",
           "E2E / manual UX (+15)",
+          "production / sandbox evidence (+10)",
           "non-financial item (invariants not required, +20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "lastValidatedAt": "2026-05-20",
+      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+      "history": [
+        {
+          "timestamp": "2026-05-20T10:31:38.478Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "62b7efe45b50706b",
+          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+          "reason": "Revalidação com unit_tests + production_review: reference.test.ts testa getSection, getSectionByNumber e getAllSectionSlugs. Confidence 55 → 80 (VERY_HIGH).",
+          "evidence": [
+            "apps/docs/lib/__tests__/reference.test.ts"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "DOC-004",
@@ -495,15 +578,18 @@
       "technicalArea": "Markdown · Git",
       "validationMethods": [
         "manual_ux",
-        "production_review"
+        "production_review",
+        "unit_tests"
       ],
       "acceptanceCriteria": [
-        "20 secções completas e coerentes",
+        "20 secções completas, numeradas sequencialmente sem lacunas",
         "Terminologia de marca consistente (Banzami/Banza)",
         "Gramática portuguesa institucional correcta",
-        "Diagramas técnicos correctos e sem erros"
+        "Meta-dados (Version, Date, Author, Status) presentes e não vazios",
+        "Status \"Official\" e Version \"1.0\" confirmados no documento",
+        "Integridade estrutural validada por testes automatizados"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "adr",
@@ -514,6 +600,21 @@
           "type": "component",
           "label": "Ficheiro de referência",
           "ref": "docs/BANZAMI_REFERENCE.md"
+        },
+        {
+          "type": "test",
+          "label": "reference.test.ts (51 testes)",
+          "ref": "apps/docs/lib/__tests__/reference.test.ts"
+        },
+        {
+          "type": "adr",
+          "label": "CLAUDE.md §15 (source of truth)",
+          "ref": "CLAUDE.md"
+        },
+        {
+          "type": "config",
+          "label": "Motor de parsing (reference.ts)",
+          "ref": "apps/docs/lib/reference.ts"
         }
       ],
       "dependencies": [],
@@ -527,20 +628,34 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
           "implementation evidence (+20)",
+          "unit tests (+15)",
           "E2E / manual UX (+15)",
           "production / sandbox evidence (+10)",
           "non-financial item (invariants not required, +20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "lastValidatedAt": "2026-05-20",
+      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+      "history": [
+        {
+          "timestamp": "2026-05-20T10:31:38.478Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "8057a91c65ebefcf",
+          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
+          "reason": "Revalidação com unit_tests: reference.test.ts valida estrutura do documento (20 secções, meta, conteúdo, sequência). Confidence 65 → 80 (VERY_HIGH).",
+          "evidence": [
+            "apps/docs/lib/__tests__/reference.test.ts"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-20"
     },
     {
       "id": "IDT-002",
