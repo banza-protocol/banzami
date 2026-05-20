@@ -1,9 +1,14 @@
 pub mod engine;
+pub mod onboarding;
 pub mod repository;
 pub mod wallet;
 
 pub use engine::{ConsumerWalletEngine, PostgresConsumerWalletEngine};
-pub use repository::{ConsumerWalletRepository, PostgresConsumerWalletRepository};
+pub use onboarding::{CompletedOnboarding, OnboardingSession, OnboardingStatus};
+pub use repository::{
+    ConsumerWalletRepository, OnboardingRepository,
+    PostgresConsumerWalletRepository, PostgresOnboardingRepository,
+};
 pub use wallet::{
     ChangePinRequest,
     CompleteOnboardingRequest,
@@ -21,6 +26,7 @@ pub use wallet::{
 };
 
 use thiserror::Error;
+use uuid::Uuid;
 
 use banzami_types::{ConsumerId, ConsumerWalletId, Currency, MoneyError};
 
@@ -28,6 +34,9 @@ use banzami_types::{ConsumerId, ConsumerWalletId, Currency, MoneyError};
 pub enum ConsumerWalletError {
     #[error("consumer wallet {0} not found")]
     NotFound(ConsumerWalletId),
+
+    #[error("onboarding session {0} not found")]
+    OnboardingNotFound(Uuid),
 
     #[error("no active wallet for consumer {consumer_id} in {currency}")]
     NoWalletForConsumer {
@@ -43,6 +52,9 @@ pub enum ConsumerWalletError {
         from: ConsumerWalletStatus,
         to:   ConsumerWalletStatus,
     },
+
+    #[error("duplicate wallet: consumer already has an active wallet in this currency")]
+    DuplicateWallet,
 
     #[error("insufficient funds: available {available}, requested {requested}")]
     InsufficientFunds {
@@ -74,7 +86,10 @@ pub enum ConsumerWalletError {
     #[error("OTP is invalid or expired")]
     OtpInvalid,
 
-    #[error("onboarding session expired for wallet {0}")]
+    #[error("onboarding session {0} has expired")]
+    OnboardingExpiredSession(Uuid),
+
+    #[error("onboarding session for wallet {0} has expired")]
     OnboardingExpired(ConsumerWalletId),
 
     #[error("unknown currency code: {0}")]
