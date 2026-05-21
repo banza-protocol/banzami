@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart' hide isZero;
 
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 void main() {
   group('formatMinor — AOA (Kwanza)', () {

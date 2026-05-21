@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
@@ -61,6 +62,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Future<void> _switchFilter(_HistoryFilter f) async {
     if (f == _filter) return;
+    HapticFeedback.selectionClick();
     setState(() { _filter = f; _items.clear(); _cursor = null; _hasMore = true; });
     await _load();
   }
@@ -98,22 +100,23 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BanzaColors.offWhite,
-      appBar: AppBar(
-        backgroundColor:        BanzaColors.offWhite,
-        foregroundColor:        BanzaColors.gray900,
-        elevation:              0,
-        scrolledUnderElevation: 0,
-        title: const Text('Histórico', style: BanzaTextStyles.headingMd),
-      ),
-      body: RefreshIndicator(
-        color:     BanzaColors.wine,
-        onRefresh: () => _load(refresh: true),
+      body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── App bar ────────────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(
-                BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.md,
+                BanzaSpacing.xl, BanzaSpacing.lg,
+                BanzaSpacing.xl, BanzaSpacing.md,
+              ),
+              child: const Text('Histórico', style: BanzaTextStyles.headingMd),
+            ),
+
+            // ── Filter pills ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.md,
               ),
               child: Row(
                 children: [
@@ -138,7 +141,14 @@ class _HistoryScreenState extends State<HistoryScreen> {
               ),
             ),
 
-            Expanded(child: _buildBody()),
+            // ── Body ───────────────────────────────────────────────────────
+            Expanded(
+              child: RefreshIndicator(
+                color:     BanzaColors.wine,
+                onRefresh: () => _load(refresh: true),
+                child:     _buildBody(),
+              ),
+            ),
           ],
         ),
       ),
@@ -147,7 +157,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
   Widget _buildBody() {
     if (_loading && _items.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
+      return const Center(
+        child: CircularProgressIndicator(color: BanzaColors.wine, strokeWidth: 2),
+      );
     }
 
     if (_error != null && _items.isEmpty) {
@@ -166,9 +178,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
-            width: 64, height: 64,
+            width:  64,
+            height: 64,
             decoration: const BoxDecoration(
-              color: BanzaColors.gray200,
+              color: BanzaColors.gray100,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -179,11 +192,11 @@ class _HistoryScreenState extends State<HistoryScreen> {
           ),
           const SizedBox(height: BanzaSpacing.md),
           Text(
-            _filter == _HistoryFilter.all
-                ? 'Nenhuma transacção ainda'
-                : _filter == _HistoryFilter.received
-                    ? 'Nenhum pagamento recebido'
-                    : 'Nenhum pagamento enviado',
+            switch (_filter) {
+              _HistoryFilter.all      => 'Nenhuma transacção ainda',
+              _HistoryFilter.received => 'Nenhum pagamento recebido',
+              _HistoryFilter.sent     => 'Nenhum pagamento enviado',
+            },
             style: BanzaTextStyles.headingSm,
           ),
           const SizedBox(height: BanzaSpacing.xs),
@@ -199,20 +212,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
     return ListView.builder(
       padding:   const EdgeInsets.fromLTRB(
-        BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.page,
+        BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.page,
       ),
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
+        // Load-more sentinel
         if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(BanzaSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
+            child:   Center(child: CircularProgressIndicator(
+              color: BanzaColors.wine, strokeWidth: 2,
+            )),
           );
         }
 
         final row = grouped[i];
 
+        // Date header
         if (row is String) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(
@@ -228,10 +245,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
 
-        final item = row as ActivityItem;
-        final prev = i > 0 ? grouped[i - 1] : null;
-        final next = i < grouped.length - 1 ? grouped[i + 1] : null;
-
+        final item  = row as ActivityItem;
+        final prev  = i > 0 ? grouped[i - 1] : null;
+        final next  = i < grouped.length - 1 ? grouped[i + 1] : null;
         final isFirst = prev == null || prev is String;
         final isLast  = next == null || next is String;
 
@@ -247,13 +263,159 @@ class _HistoryScreenState extends State<HistoryScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              BanzaTransferItem(item: item),
+              _HistoryRow(item: item),
               if (!isLast)
-                const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
+                const Divider(height: 1, indent: 68, color: BanzaColors.gray100),
             ],
           ),
         );
       },
+    );
+  }
+}
+
+// =============================================================================
+// History row — richer than BanzaTransferItem
+// =============================================================================
+
+class _HistoryRow extends StatelessWidget {
+  final ActivityItem item;
+  const _HistoryRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCredit = item.isIncoming;
+    final amount   = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
+    final title    = item.counterpartyDisplayName ??
+                     (item.counterpartyHandle != null
+                         ? '@${item.counterpartyHandle}'
+                         : _typeLabel(item.itemType));
+    final subtitle = _subtitle(item.itemType);
+    final time     = _formatTime(item.createdAt);
+    final initial  = (item.counterpartyDisplayName ?? item.counterpartyHandle ?? item.itemType)[0];
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzaSpacing.lg,
+        vertical:   BanzaSpacing.md,
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          _Avatar(type: item.itemType, initial: initial, isCredit: isCredit),
+          const SizedBox(width: BanzaSpacing.md),
+          // Text
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:       MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: BanzaTextStyles.bodyMd.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color:      BanzaColors.gray900,
+                  ),
+                  maxLines:  1,
+                  overflow:  TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  subtitle,
+                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: BanzaSpacing.md),
+          // Amount + time
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize:       MainAxisSize.min,
+            children: [
+              Text(
+                amount,
+                style: BanzaTextStyles.bodyMd.copyWith(
+                  color:      isCredit ? BanzaColors.success : BanzaColors.gray900,
+                  fontWeight: FontWeight.w700,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                time,
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _subtitle(String type) {
+    if (type == 'P2P_SENT')     return 'Enviado';
+    if (type == 'P2P_RECEIVED') return 'Recebido';
+    if (type == 'WALLET_FUNDED') return 'Carregamento';
+    return type;
+  }
+
+  String _typeLabel(String type) {
+    if (type == 'WALLET_FUNDED') return 'Multicaixa';
+    return type;
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '';
+    final now  = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) {
+      return '${_pad(dt.hour)}:${_pad(dt.minute)}';
+    } else if (diff.inDays == 1) {
+      return 'Ontem';
+    }
+    return '${dt.day}/${dt.month}';
+  }
+
+  String _pad(int n) => n.toString().padLeft(2, '0');
+}
+
+class _Avatar extends StatelessWidget {
+  final String type;
+  final String initial;
+  final bool   isCredit;
+
+  const _Avatar({required this.type, required this.initial, required this.isCredit});
+
+  @override
+  Widget build(BuildContext context) {
+    if (type == 'WALLET_FUNDED') {
+      return Container(
+        width:  44,
+        height: 44,
+        decoration: const BoxDecoration(
+          color: BanzaColors.successBg,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.account_balance_rounded, color: BanzaColors.success, size: 20),
+      );
+    }
+    return Container(
+      width:  44,
+      height: 44,
+      decoration: const BoxDecoration(
+        gradient: BanzaGradients.wine,
+        shape:    BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial.toUpperCase(),
+          style: BanzaTextStyles.headingSm.copyWith(
+            color:      BanzaColors.white,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -278,18 +440,19 @@ class _FilterPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         curve:    Curves.easeInOut,
         padding:  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color:        selected ? BanzaColors.wine : BanzaColors.white,
           borderRadius: BanzaRadius.fullAll,
-          boxShadow:    selected ? BanzaShadows.none : BanzaShadows.card,
+          boxShadow:    selected ? [] : BanzaShadows.card,
         ),
         child: Text(
           label,
           style: BanzaTextStyles.label.copyWith(
-            color: selected ? BanzaColors.white : BanzaColors.gray600,
+            color:      selected ? BanzaColors.white : BanzaColors.gray600,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
           ),
         ),
       ),

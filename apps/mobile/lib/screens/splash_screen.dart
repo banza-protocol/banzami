@@ -48,12 +48,26 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(24),
-      child: Image.asset(
-        'assets/images/banza_icon.png',
-        width: 120,
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Image.asset(
+            'assets/images/banza_icon.png',
+            width: 100,
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Banza',
+          style: BanzaTextStyles.displayMd.copyWith(
+            color:      BanzaColors.white,
+            fontWeight: FontWeight.w700,
+            letterSpacing: -0.5,
+          ),
+        ),
+      ],
     );
   }
 }

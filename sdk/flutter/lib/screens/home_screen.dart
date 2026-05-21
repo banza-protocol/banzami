@@ -167,22 +167,22 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                     child: Row(
                       children: [
                         BanzaActionTile(
-                          icon:    Icons.arrow_upward_rounded,
-                          label:   'Enviar',
-                          onTap:   _onSend,
+                          icon:    Icons.qr_code_rounded,
+                          label:   'QR Code',
+                          onTap:   _onScan,
                           primary: true,
+                        ),
+                        const SizedBox(width: BanzaSpacing.md),
+                        BanzaActionTile(
+                          icon:  Icons.arrow_upward_rounded,
+                          label: 'Enviar',
+                          onTap: _onSend,
                         ),
                         const SizedBox(width: BanzaSpacing.md),
                         BanzaActionTile(
                           icon:  Icons.arrow_downward_rounded,
                           label: 'Receber',
                           onTap: _onReceive,
-                        ),
-                        const SizedBox(width: BanzaSpacing.md),
-                        BanzaActionTile(
-                          icon:  Icons.qr_code_rounded,
-                          label: 'QR Code',
-                          onTap: _onScan,
                         ),
                       ],
                     ),
