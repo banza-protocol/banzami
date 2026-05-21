@@ -4,13 +4,10 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
+import '../main_screen.dart';
 
 enum _LoginStep { handle, pin }
 
-/// Login screen for returning consumers — enter @handle then PIN.
-///
-/// Calls POST /v1/auth/token on the public-api. On success fetches the
-/// consumer profile and wallet, stores everything in [SessionService].
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -52,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
       setState(() { _step = _LoginStep.pin; _loading = false; });
-    } catch (e) {
+    } catch (_) {
       if (!mounted) return;
       setState(() {
         _error   = 'Erro de ligação. Verifique a internet e tente novamente.';
@@ -76,17 +73,25 @@ class _LoginScreenState extends State<LoginScreen> {
       final badge = badgeStr == 'CONSUMER' ? VerificationBadgeType.consumer
                   : badgeStr == 'MERCHANT' ? VerificationBadgeType.merchant
                   : null;
+
       await svc.createSession(
-        consumerId:         result.consumer.id,
-        walletId:           result.walletId,
-        handle:             handle,
-        displayName:        result.consumer.displayName,
-        pin:                _pin,
-        token:              result.token,
-        verificationBadge:  badge,
+        consumerId:        result.consumer.id,
+        walletId:          result.walletId,
+        handle:            handle,
+        displayName:       result.consumer.displayName,
+        pin:               _pin,
+        token:             result.token,
+        verificationBadge: badge,
       );
       if (!mounted) return;
-      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.of(context).pushAndRemoveUntil(
+        PageRouteBuilder(
+          pageBuilder:              (_, __, ___) => const MainScreen(),
+          transitionDuration:        Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+        (_) => false,
+      );
     } on BanzamiApiException catch (e) {
       setState(() {
         _error   = e.code == 'INVALID_CREDENTIALS'
@@ -107,13 +112,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-        title:           const Text('Entrar', style: BanzaTextStyles.headingSm),
-      ),
+      backgroundColor: BanzaColors.offWhite,
+      appBar: const BanzaAppBar(title: 'Entrar'),
       body: SafeArea(
         child: _step == _LoginStep.handle ? _buildHandleStep() : _buildPinStep(),
       ),
@@ -122,61 +122,66 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Widget _buildHandleStep() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzaSpacing.xl),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Form(
         key: _formKey,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: BanzaSpacing.md),
-            const Text('O seu @banza', style: BanzaTextStyles.headingMd),
-            const SizedBox(height: BanzaSpacing.xs),
+            const SizedBox(height: 40),
+
+            ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Image.asset(
+                'assets/images/banza_icon.png',
+                height: 48,
+                width:  48,
+                fit:    BoxFit.cover,
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            const Text('O seu @banza', style: BanzaTextStyles.displayMd),
+            const SizedBox(height: 8),
             Text(
               'É o nome único que usa para receber pagamentos.',
-              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
-            ),
-            const SizedBox(height: BanzaSpacing.xl),
-            if (_error != null) ...[
-              Text(
-                _error!,
-                style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.error),
+              style: BanzaTextStyles.bodyMd.copyWith(
+                color:  BanzaColors.gray400,
+                height: 1.5,
               ),
-              const SizedBox(height: BanzaSpacing.sm),
+            ),
+
+            const SizedBox(height: 32),
+
+            if (_error != null) ...[
+              BanzaErrorBanner(message: _error!),
+              const SizedBox(height: 16),
             ],
+
             TextFormField(
               controller:      _handleCtrl,
-              decoration:      const InputDecoration(
-                labelText:  '@banza',
-                prefixText: '@',
-                hintText:   'joaosilva',
-              ),
+              decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
+              style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
+              cursorColor:     BanzaColors.wine,
               keyboardType:    TextInputType.visiblePassword,
               textInputAction: TextInputAction.done,
               autocorrect:     false,
               onFieldSubmitted: (_) => _continueToPin(),
               validator: (v) {
-                final val = v?.trim() ?? '';
-                if (val.isEmpty) return 'O @banza é obrigatório';
+                if ((v?.trim() ?? '').isEmpty) return 'O @banza é obrigatório';
                 return null;
               },
             ),
-            const SizedBox(height: BanzaSpacing.xxl),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _loading ? null : _continueToPin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: BanzaColors.wine,
-                  foregroundColor: BanzaColors.white,
-                  padding:         const EdgeInsets.symmetric(vertical: 16),
-                  shape:           RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  textStyle: BanzaTextStyles.headingSm,
-                ),
-                child: const Text('Continuar'),
-              ),
+
+            const SizedBox(height: 28),
+
+            BanzaPrimaryButton(
+              label:     'Continuar',
+              isLoading: _loading,
+              onPressed: _loading ? null : _continueToPin,
             ),
+
+            const SizedBox(height: 32),
           ],
         ),
       ),
@@ -217,4 +222,35 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
+  InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
+      InputDecoration(
+        hintText:       hint,
+        prefixText:     prefix,
+        filled:         true,
+        fillColor:      BanzaColors.gray100,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide.none,
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide.none,
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
+        ),
+        errorBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+        ),
+        hintStyle:  BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray400),
+        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+      );
 }

@@ -4,11 +4,6 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import 'setup_pin_screen.dart';
 
-/// Step 1 of onboarding: choose a @handle and optional display name.
-///
-/// Checks handle availability before navigating to [SetupPinScreen] so the
-/// user gets immediate feedback instead of failing after the full PIN flow.
-/// [SetupPinScreen] still handles HANDLE_TAKEN as a safety net.
 class CreateAccountScreen extends StatefulWidget {
   const CreateAccountScreen({super.key});
 
@@ -54,45 +49,54 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
 
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => SetupPinScreen(handle: handle, displayName: name),
+    Navigator.of(context).push(BanzaPageRoute(
+      page: SetupPinScreen(handle: handle, displayName: name),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-        title:           const Text('Criar conta', style: BanzaTextStyles.headingSm),
-      ),
+      backgroundColor: BanzaColors.offWhite,
+      appBar: const BanzaAppBar(title: 'Criar conta'),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(BanzaSpacing.xl),
+          padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: BanzaSpacing.md),
-                const Text('Escolha o seu @banza', style: BanzaTextStyles.headingMd),
-                const SizedBox(height: BanzaSpacing.xs),
+                const SizedBox(height: 40),
+
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.asset(
+                    'assets/images/banza_icon.png',
+                    height: 48,
+                    width:  48,
+                    fit:    BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                const Text('Escolha o seu @banza', style: BanzaTextStyles.displayMd),
+                const SizedBox(height: 8),
                 Text(
                   'É o nome único que as pessoas usam para lhe enviar pagamentos.',
-                  style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+                  style: BanzaTextStyles.bodyMd.copyWith(
+                    color:  BanzaColors.gray400,
+                    height: 1.5,
+                  ),
                 ),
-                const SizedBox(height: BanzaSpacing.xl),
+
+                const SizedBox(height: 32),
 
                 TextFormField(
                   controller:      _handleCtrl,
-                  decoration:      const InputDecoration(
-                    labelText:  '@banza',
-                    prefixText: '@',
-                    hintText:   'joaosilva',
-                  ),
+                  decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
+                  style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
+                  cursorColor:     BanzaColors.wine,
                   keyboardType:    TextInputType.visiblePassword,
                   textInputAction: TextInputAction.next,
                   autocorrect:     false,
@@ -109,46 +113,28 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: BanzaSpacing.lg),
+
+                const SizedBox(height: 16),
 
                 TextFormField(
                   controller:         _nameCtrl,
-                  decoration:         const InputDecoration(
-                    labelText: 'Nome (opcional)',
-                    hintText:  'João Silva',
-                  ),
+                  decoration:         _fieldDecoration(hint: 'Nome (opcional)'),
+                  style:              BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
+                  cursorColor:        BanzaColors.wine,
                   textCapitalization: TextCapitalization.words,
                   textInputAction:    TextInputAction.done,
                   onFieldSubmitted:   (_) => _continue(),
                 ),
 
-                const SizedBox(height: BanzaSpacing.xxl),
+                const SizedBox(height: 28),
 
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _checking ? null : _continue,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: BanzaColors.wine,
-                      foregroundColor: BanzaColors.white,
-                      padding:         const EdgeInsets.symmetric(vertical: 16),
-                      shape:           RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      textStyle: BanzaTextStyles.headingSm,
-                    ),
-                    child: _checking
-                        ? const SizedBox(
-                            width:  20,
-                            height: 20,
-                            child:  CircularProgressIndicator(
-                              color:       BanzaColors.white,
-                              strokeWidth: 2,
-                            ),
-                          )
-                        : const Text('Continuar'),
-                  ),
+                BanzaPrimaryButton(
+                  label:     'Continuar',
+                  isLoading: _checking,
+                  onPressed: _checking ? null : _continue,
                 ),
+
+                const SizedBox(height: 32),
               ],
             ),
           ),
@@ -156,4 +142,35 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
       ),
     );
   }
+
+  InputDecoration _fieldDecoration({required String hint, String? prefix}) =>
+      InputDecoration(
+        hintText:       hint,
+        prefixText:     prefix,
+        filled:         true,
+        fillColor:      BanzaColors.gray100,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        border: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide.none,
+        ),
+        enabledBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide.none,
+        ),
+        focusedBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
+        ),
+        errorBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+        ),
+        focusedErrorBorder: const OutlineInputBorder(
+          borderRadius: BanzaRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+        ),
+        hintStyle:  BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray400),
+        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+      );
 }
