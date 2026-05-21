@@ -40,10 +40,8 @@ export const metadata: Metadata = {
     type: 'website',
   },
   icons: {
-    icon: [
-      { url: '/images/banza/banzami-logo.png', sizes: 'any', type: 'image/png' },
-    ],
-    apple: { url: '/images/banza/banzami-logo.png', sizes: '1254x1254', type: 'image/png' },
+    icon:  [{ url: '/banza_icon_64.png', sizes: '64x64', type: 'image/png' }],
+    apple: [{ url: '/banza_icon_64.png', sizes: '64x64', type: 'image/png' }],
   },
   robots: { index: true, follow: true },
   authors: [{ name: 'Organização Banzami' }],
