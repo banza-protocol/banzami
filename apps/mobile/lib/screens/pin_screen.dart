@@ -4,6 +4,8 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/session_service.dart';
 import '../widgets/pin_pad.dart';
+import 'main_screen.dart';
+import 'onboarding/welcome_screen.dart';
 
 /// PIN entry screen — shown when the app is locked (foreground resume or cold start
 /// with an existing session).  Offers biometric unlock when enabled.
@@ -51,7 +53,16 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     }
 
     final ok = await svc.authenticateWithBiometrics();
-    if (ok && mounted) svc.unlock();
+    if (ok && mounted) {
+      svc.unlock();
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const MainScreen(),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ),
+      );
+    }
   }
 
   bool get _isLockedOut {
@@ -90,6 +101,15 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
         await svc.updateToken(result.token);
       } catch (_) {}
       svc.unlock();
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const MainScreen(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+      }
     } else {
       _failedAttempts += 1;
       if (_failedAttempts >= 5) {
@@ -128,6 +148,12 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     );
     if (confirmed == true && mounted) {
       await context.read<SessionService>().logout();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (_) => false,
+        );
+      }
     }
   }
 
