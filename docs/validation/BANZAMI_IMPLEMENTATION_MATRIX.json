@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-05-20",
+    "lastUpdated": "2026-05-21",
     "referenceVersion": "1.0",
     "referenceFile": "docs/BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
@@ -2200,6 +2200,106 @@
             "services/public-api/internal/handler/ratelimit.go",
             "services/public-api/internal/handler/transfers_test.go",
             "contracts/openapi/transfers.yaml"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
+    },
+    {
+      "id": "APP-001",
+      "title": "Aplicação móvel consumidor Banza — fluxo P2P completo",
+      "categoryId": "cat-p2p",
+      "validationDomain": "DOM-CONSUMER",
+      "referenceSection": "§12.2, §14.1",
+      "description": "App móvel Flutter para consumidores Banza: autenticação por PIN + biometria, saldo em tempo real, envio P2P com ecrã de confirmação obrigatório e comprovativo, feed de actividade. Wired to WAL-003 activity feed and P2P-003 canonical receipt.",
+      "requirement": "Consumidor completa o ciclo financeiro completo: login → saldo → enviar para @banza → confirmar → comprovativo → saldo actualizado. Ecrã de confirmação obrigatório antes do POST irreversível.",
+      "status": "IMPLEMENTED",
+      "priority": "CRITICAL",
+      "ownerArea": "Consumer Platform / Flutter",
+      "technicalArea": "Flutter · Dart",
+      "validationMethods": [
+        "integration_tests",
+        "manual_ux"
+      ],
+      "acceptanceCriteria": [
+        "App compila sem erros (dart analyze: 0 errors)",
+        "Ecrã de confirmação inserido antes do POST irreversível /v1/transfers",
+        "Ecrã de comprovativo mostrado após transferência bem-sucedida",
+        "Comprovativo inclui: destinatário, montante, data/hora, referência (8 chars uppercased)",
+        "Chave de idempotência gerada uma vez no SendScreen e reutilizada em retentativas",
+        "Dupla submissão impossível (guarda _sending + botão desactivado)",
+        "Saldo actualizado após Concluído",
+        "Feed de actividade actualizado após Concluído",
+        "14+ widget tests a passar"
+      ],
+      "testCoverage": true,
+      "evidence": [
+        "sdk/flutter/lib/screens/confirm_screen.dart — BanzamiConfirmScreen: review obrigatório antes do POST",
+        "sdk/flutter/lib/screens/receipt_screen.dart — BanzamiReceiptScreen: comprovativo com ref, data, montante",
+        "sdk/flutter/lib/screens/send_screen.dart — navegação para confirm, UUID de idempotência gerado uma vez",
+        "apps/mobile/test/widget_test.dart — 14/14 widget tests passing (flutter test)",
+        "commit 64adb88 — feat(app): APP-001 — wire Flutter SDK and app to WAL-003 + P2P-003 APIs",
+        "commit ddb81f0 — feat(app): APP-001A — transfer confirm + receipt UX and widget tests"
+      ],
+      "dependencies": [
+        "P2P-001",
+        "P2P-003",
+        "WAL-003"
+      ],
+      "requires": [
+        "P2P-003",
+        "WAL-003"
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "sdk/flutter/**",
+        "apps/mobile/**"
+      ],
+      "blockingIssues": [
+        "Runtime não verificado em dispositivo real — obrigatório antes de VALIDATED",
+        "Sem testes de integração contra API sandbox — pendente APP-001B",
+        "Acoplamento de navegação: home_screen.dart:88 pop() redundante com popUntil(isFirst) — cleanup recomendado",
+        "_sendError campo morto em send_screen.dart — cleanup pendente"
+      ],
+      "invariants": [
+        {
+          "id": "INV-IDEM-001",
+          "name": "Replay safety",
+          "rule": "∀ send attempt: UUID gerado uma vez em BanzamiSendScreen._send(); reutilizado sem alteração em toda a sessão BanzamiConfirmScreen",
+          "status": "PASS"
+        }
+      ],
+      "confidence": {
+        "score": 60,
+        "level": "HIGH",
+        "basis": [
+          "evidence non-empty (+20): 6 evidence items (confirm_screen, receipt_screen, send_screen, widget_test, 2 commits)",
+          "integration_tests in validationMethods (+20): 14/14 widget tests pass (flutter test)",
+          "manual_ux (+0): declarado como método futuro; não executado ainda (APP-001B)",
+          "production_review or sandbox (+0): não realizado",
+          "INV-IDEM-001 PASS (+20): todos os invariants PASS",
+          "path to VALIDATED: sandbox API test (+10) + manual UX em dispositivo real (+15) → score 85 → VALIDATED elegível"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-05-21T00:00:00Z",
+          "from": "(new)",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "e4657c1720b34b6d",
+          "commit": "ddb81f0",
+          "reason": "APP-001 formalizado após auditoria pós-APP-001A. Ciclo financeiro P2P completo: confirm screen antes do POST irreversível, receipt screen com prova (destinatário, montante, timestamp, ref 8 chars), idempotency key gerada uma vez no SendScreen e reutilizada, anti-double-submit implementado. 14/14 widget tests a passar. Confidence 60 HIGH. Runtime em dispositivo real e testes sandbox pendentes para transição VALIDATED (APP-001B).",
+          "evidence": [
+            "sdk/flutter/lib/screens/confirm_screen.dart",
+            "sdk/flutter/lib/screens/receipt_screen.dart",
+            "sdk/flutter/lib/screens/send_screen.dart",
+            "apps/mobile/test/widget_test.dart — 14/14 passing",
+            "commit 64adb88",
+            "commit ddb81f0"
           ]
         }
       ],
