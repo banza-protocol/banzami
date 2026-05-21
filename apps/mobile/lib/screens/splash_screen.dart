@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -29,11 +28,6 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-
-    // Remove the native splash overlay FIRST so the Flutter engine
-    // resumes normal frame scheduling. With preserve() active, the
-    // engine may throttle frames, preventing AnimationController ticks.
-    FlutterNativeSplash.remove();
 
     _ctrl = AnimationController(
       vsync:    this,
