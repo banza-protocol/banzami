@@ -9,8 +9,6 @@ import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 import 'config.dart';
 import 'services/session_service.dart';
 import 'screens/splash_screen.dart';
-import 'screens/pin_screen.dart';
-import 'screens/main_screen.dart';
 import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 
@@ -28,20 +26,11 @@ class BanzamiApp extends StatefulWidget {
 class _BanzamiAppState extends State<BanzamiApp> {
   StreamSubscription<Uri>? _linkSub;
 
-  // Ensures the splash animation (1200ms) finishes before transitioning.
-  // Session loads in the background; we wait for BOTH to be ready.
-  bool _splashDone = false;
-
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1500), () {
-      if (mounted) setState(() => _splashDone = true);
-    });
     final appLinks = AppLinks();
-    // Cold start: app launched by tapping the deep link
     appLinks.getInitialLink().then((uri) { if (uri != null) _handleLink(uri); });
-    // Warm start: app already running when link is opened
     _linkSub = appLinks.uriLinkStream.listen(_handleLink);
   }
 
@@ -67,7 +56,8 @@ class _BanzamiAppState extends State<BanzamiApp> {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => SessionService()..initialize()),
+        // Session is NOT auto-initialized here — SplashScreen owns bootstrap.
+        ChangeNotifierProvider(create: (_) => SessionService()),
         Provider(create: (_) => ConsumerPublicClient(
           baseUrl:    AppConfig.publicApiUrl,
           httpClient: widget.pinnedClient,
@@ -79,25 +69,24 @@ class _BanzamiAppState extends State<BanzamiApp> {
           if (session.session != null) {
             client.setToken(session.session!.token);
           }
-          // Auto-logout on 401: clears session and returns to WelcomeScreen.
-          client.onUnauthorized = () => context.read<SessionService>().logout();
+          // Auto-logout on 401: clear session and return to WelcomeScreen.
+          client.onUnauthorized = () {
+            context.read<SessionService>().logout();
+            _navigatorKey.currentState?.pushAndRemoveUntil(
+              MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+              (_) => false,
+            );
+          };
           return MaterialApp(
             title:                      'Banza',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,
-            home:                       _home(session),
+            home:                       const SplashScreen(),
           );
         },
       ),
     );
-  }
-
-  Widget _home(SessionService session) {
-    if (!session.initialized || !_splashDone) return const SplashScreen();
-    if (!session.hasSession)  return const WelcomeScreen();
-    if (session.isLocked)     return const PinScreen();
-    return const MainScreen();
   }
 
   ThemeData _buildTheme() {

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:banza_flutter/banza_flutter.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_crashlytics/firebase_crashlytics.dart';
@@ -11,6 +13,28 @@ import 'services/transfer_notification_service.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Slow services run in background — must not block runApp.
+  // iOS holds the native launch screen until Flutter paints its first frame,
+  // so every await here is a blank red screen from the user's perspective.
+  unawaited(_initBackgroundServices());
+
+  final pinnedClient = await PinnedHttpClient.create();
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor:          Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    statusBarBrightness:     Brightness.dark,
+  ));
+
+  runApp(BanzamiApp(pinnedClient: pinnedClient));
+}
+
+Future<void> _initBackgroundServices() async {
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
   } catch (_) {}
@@ -35,19 +59,4 @@ void main() async {
     await TransferNotificationService.initialize()
         .timeout(const Duration(seconds: 5));
   } catch (_) {}
-
-  final pinnedClient = await PinnedHttpClient.create();
-
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor:          Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    statusBarBrightness:     Brightness.dark,
-  ));
-
-  runApp(BanzamiApp(pinnedClient: pinnedClient));
 }
