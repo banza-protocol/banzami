@@ -4,6 +4,8 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../widgets/tab_screen_header.dart';
+
 enum _HistoryFilter { all, received, sent }
 
 class HistoryScreen extends StatefulWidget {
@@ -124,7 +126,11 @@ class _HistoryScreenState extends State<HistoryScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _HistoryHeader(itemCount: _items.isEmpty ? null : _items.length),
+            TabScreenHeader(
+              title:    'Histórico',
+              subtitle: 'As suas movimentações',
+              trailing: _items.isEmpty ? null : _CountBadge(count: _items.length),
+            ),
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.lg,
@@ -238,63 +244,28 @@ class _HistoryScreenState extends State<HistoryScreen>
 }
 
 // =============================================================================
-// Header
+// Count badge — trailing widget for TabScreenHeader
 // =============================================================================
 
-class _HistoryHeader extends StatelessWidget {
-  final int? itemCount;
-  const _HistoryHeader({this.itemCount});
+class _CountBadge extends StatelessWidget {
+  final int count;
+  const _CountBadge({required this.count});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl,
-        BanzaSpacing.xl,
-        BanzaSpacing.xl,
-        BanzaSpacing.lg,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color:        BanzaColors.wine.withValues(alpha: 0.08),
+        borderRadius: BanzaRadius.fullAll,
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Histórico',
-                  style: BanzaTextStyles.displayMd.copyWith(
-                    fontWeight:    FontWeight.w700,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'As suas movimentações',
-                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
-                ),
-              ],
-            ),
-          ),
-          if (itemCount != null && itemCount! > 0) ...[
-            const SizedBox(width: BanzaSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color:        BanzaColors.wine.withValues(alpha: 0.08),
-                borderRadius: BanzaRadius.fullAll,
-              ),
-              child: Text(
-                '$itemCount',
-                style: BanzaTextStyles.label.copyWith(
-                  color:      BanzaColors.wine,
-                  fontWeight: FontWeight.w700,
-                  fontSize:   11,
-                ),
-              ),
-            ),
-          ],
-        ],
+      child: Text(
+        '$count',
+        style: BanzaTextStyles.label.copyWith(
+          color:      BanzaColors.wine,
+          fontWeight: FontWeight.w700,
+          fontSize:   11,
+        ),
       ),
     );
   }

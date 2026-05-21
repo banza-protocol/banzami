@@ -43,7 +43,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
         children: [
 
           // ── PIN section ──────────────────────────────────────────────────
-          _SectionLabel(label: 'PIN'),
+          const _SectionLabel(label: 'PIN'),
           const SizedBox(height: BanzaSpacing.sm),
           _SettingsCard(children: [
             _RowChevron(
@@ -56,7 +56,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
           const SizedBox(height: BanzaSpacing.xl),
 
           // ── Session section ──────────────────────────────────────────────
-          _SectionLabel(label: 'Sessão'),
+          const _SectionLabel(label: 'Sessão'),
           const SizedBox(height: BanzaSpacing.sm),
           FutureBuilder<bool>(
             future: _canUseBio,
@@ -87,7 +87,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
           const SizedBox(height: BanzaSpacing.xl),
 
           // ── Notifications section ─────────────────────────────────────────
-          _SectionLabel(label: 'Alertas'),
+          const _SectionLabel(label: 'Alertas'),
           const SizedBox(height: BanzaSpacing.sm),
           _SettingsCard(children: [
             _RowToggle(

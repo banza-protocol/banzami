@@ -29,9 +29,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: ListView(
           padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
           children: [
-            const SizedBox(height: BanzaSpacing.lg),
+            const SizedBox(height: BanzaSpacing.xl),
 
-            const Text('Perfil', style: BanzaTextStyles.headingMd),
+            Text(
+              'Perfil',
+              style: BanzaTextStyles.displayMd.copyWith(
+                fontWeight:    FontWeight.w700,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              'O seu perfil e definições',
+              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+            ),
 
             const SizedBox(height: BanzaSpacing.lg),
 
@@ -50,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: BanzaSpacing.xl),
 
             // ── Settings section label ─────────────────────────────────────
-            _SectionLabel('Definições'),
+            const _SectionLabel('Definições'),
             const SizedBox(height: BanzaSpacing.sm),
 
             _SettingsCard(children: [
@@ -85,7 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: BanzaSpacing.xl),
 
             // ── Account section ────────────────────────────────────────────
-            _SectionLabel('Conta'),
+            const _SectionLabel('Conta'),
             const SizedBox(height: BanzaSpacing.sm),
 
             _SettingsCard(children: [

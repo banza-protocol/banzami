@@ -38,7 +38,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         children: [
 
           // ── Transacções ──────────────────────────────────────────────────
-          _SectionLabel('Transacções'),
+          const _SectionLabel('Transacções'),
           const SizedBox(height: BanzaSpacing.sm),
           _Card(children: [
             _ToggleRow(
@@ -63,7 +63,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
           const SizedBox(height: BanzaSpacing.xl),
 
           // ── Outras ───────────────────────────────────────────────────────
-          _SectionLabel('Outras'),
+          const _SectionLabel('Outras'),
           const SizedBox(height: BanzaSpacing.sm),
           _Card(children: [
             _ToggleRow(

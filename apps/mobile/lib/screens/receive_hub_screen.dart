@@ -9,6 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/session_service.dart';
+import '../widgets/tab_screen_header.dart';
 
 /// Bottom-nav "Receber" hub: QR card at top + received transactions list below.
 class ReceiveHubScreen extends StatefulWidget {
@@ -58,10 +59,12 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final page   = await client.getActivity(limit: 50, directionFilter: 'INCOMING');
       if (mounted) setState(() { _received = page.items; _loadingTransfers = false; });
     } catch (_) {
-      if (mounted) setState(() {
-        _transferError    = 'Não foi possível carregar os pagamentos.';
-        _loadingTransfers = false;
-      });
+      if (mounted) {
+        setState(() {
+          _transferError    = 'Não foi possível carregar os pagamentos.';
+          _loadingTransfers = false;
+        });
+      }
     }
   }
 
@@ -202,32 +205,33 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
     return Scaffold(
       backgroundColor: BanzaColors.offWhite,
-      appBar: AppBar(
-        backgroundColor:        BanzaColors.offWhite,
-        foregroundColor:        BanzaColors.gray900,
-        elevation:              0,
-        scrolledUnderElevation: 0,
-        title: const Text('Receber com QR', style: BanzaTextStyles.headingMd),
-        actions: [
-          IconButton(
-            icon:      const Icon(Icons.refresh_rounded, size: 22),
-            onPressed: _loadReceived,
-            tooltip:   'Actualizar',
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        color:     BanzaColors.wine,
-        onRefresh: _loadReceived,
-        child: CustomScrollView(
-          slivers: [
+      body: SafeArea(
+        child: RefreshIndicator(
+          color:     BanzaColors.wine,
+          onRefresh: _loadReceived,
+          child: CustomScrollView(
+            slivers: [
 
-            // ── QR card ────────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(
-                  BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.sm,
+              // ── Header ──────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: TabScreenHeader(
+                  title:    'Receber',
+                  subtitle: 'QR Code e ligação de pagamento',
+                  trailing: IconButton(
+                    icon:    const Icon(Icons.refresh_rounded, size: 20),
+                    color:   BanzaColors.gray400,
+                    tooltip: 'Actualizar',
+                    onPressed: _loadReceived,
+                  ),
                 ),
+              ),
+
+              // ── QR card ────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.sm,
+                  ),
                 child: BanzaCard(
                   shadow: BanzaShadows.cardElevated,
                   padding: EdgeInsets.zero,
@@ -259,7 +263,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                                   horizontal: BanzaSpacing.lg,
                                   vertical:   BanzaSpacing.sm,
                                 ),
-                                decoration: BoxDecoration(
+                                decoration: const BoxDecoration(
                                   color:        BanzaColors.gray100,
                                   borderRadius: BanzaRadius.fullAll,
                                 ),
@@ -398,7 +402,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.lg,
+                    horizontal: BanzaSpacing.xl,
                   ),
                   child: BanzaCard(
                     padding: const EdgeInsets.all(BanzaSpacing.xl),
@@ -432,7 +436,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.lg),
+                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
                 sliver: SliverToBoxAdapter(
                   child: BanzaCard(
                     padding: EdgeInsets.zero,
@@ -452,6 +456,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
             const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
           ],
+          ),
         ),
       ),
     );
