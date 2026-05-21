@@ -13,17 +13,30 @@ void main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  await Firebase.initializeApp();
+  try {
+    await Firebase.initializeApp().timeout(const Duration(seconds: 10));
+  } catch (_) {}
 
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
     FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
     return true;
   };
-  await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(!kDebugMode);
+  try {
+    await FirebaseCrashlytics.instance
+        .setCrashlyticsCollectionEnabled(!kDebugMode)
+        .timeout(const Duration(seconds: 5));
+  } catch (_) {}
 
-  await PushNotificationService.initialize();
-  await TransferNotificationService.initialize();
+  try {
+    await PushNotificationService.initialize()
+        .timeout(const Duration(seconds: 10));
+  } catch (_) {}
+
+  try {
+    await TransferNotificationService.initialize()
+        .timeout(const Duration(seconds: 5));
+  } catch (_) {}
 
   final pinnedClient = await PinnedHttpClient.create();
 

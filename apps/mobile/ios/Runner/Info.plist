@@ -94,5 +94,12 @@
 				<string>org.banza.app</string>
 			</dict>
 		</array>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>Necessário para depuração e desenvolvimento da aplicação.</string>
+		<key>NSBonjourServices</key>
+		<array>
+			<string>_dartobservatory._tcp</string>
+			<string>_dartVmService._tcp</string>
+		</array>
 	</dict>
 </plist>

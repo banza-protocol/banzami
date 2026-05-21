@@ -119,6 +119,16 @@ class SessionService extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> initialize() async {
+    try {
+      await _loadFromKeychain().timeout(const Duration(seconds: 8));
+    } catch (e) {
+      debugPrint('SessionService.initialize: $e');
+    }
+    _initialized = true;
+    notifyListeners();
+  }
+
+  Future<void> _loadFromKeychain() async {
     final consumerId  = await _store.read(key: _kConsumerId);
     final walletId    = await _store.read(key: _kWalletId);
     final handle      = await _store.read(key: _kHandle);
@@ -138,8 +148,6 @@ class SessionService extends ChangeNotifier {
         verificationBadge: _parseBadge(badgeRaw),
       );
     }
-    _initialized = true;
-    notifyListeners();
   }
 
   // ---------------------------------------------------------------------------
