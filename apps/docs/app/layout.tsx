@@ -41,11 +41,9 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: '/banza_icon_32.png',  sizes: '32x32',  type: 'image/png' },
-      { url: '/banza_icon_64.png',  sizes: '64x64',  type: 'image/png' },
-      { url: '/banza_icon_512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/images/banza/banzami-logo.png', sizes: 'any', type: 'image/png' },
     ],
-    apple: { url: '/banza_icon_180.png', sizes: '180x180', type: 'image/png' },
+    apple: { url: '/images/banza/banzami-logo.png', sizes: '1254x1254', type: 'image/png' },
   },
   robots: { index: true, follow: true },
   authors: [{ name: 'Organização Banzami' }],
