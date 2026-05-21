@@ -219,8 +219,9 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         sqlx::query(
             "INSERT INTO transfers
              (id, idempotency_key, sender_id, recipient_id, amount_minor, currency,
-              status, description, failure_reason, ledger_posting_id, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, NULL, $8, $9, $9)",
+              status, description, failure_reason, ledger_posting_id, recipient_handle,
+              created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, NULL, $8, $9, $10, $10)",
         )
         .bind(transfer_id.as_uuid())
         .bind(&req.idempotency_key)
@@ -230,6 +231,7 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         .bind(req.currency.code())
         .bind(&req.description)
         .bind(posting_id.as_uuid())
+        .bind(req.recipient_handle.as_deref())
         .bind(now)
         .execute(&mut *db_tx)
         .await

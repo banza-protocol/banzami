@@ -206,10 +206,13 @@ async fn main() {
         .route("/internal/v1/consumer/onboarding/verify-otp",     post(routes::onboarding::verify_otp))
         .route("/internal/v1/consumer/onboarding/complete",       post(routes::onboarding::complete))
 
-        // Transfers
+        // Transfers — internal UUID-based
         .route("/internal/v1/transfers",        post(routes::transfers::send))
         .route("/internal/v1/transfers",        get(routes::transfers::list))
         .route("/internal/v1/transfers/:id",    get(routes::transfers::get))
+
+        // Transfers — consumer @handle-to-@handle P2P (P2P-001)
+        .route("/internal/v1/consumer/transfers", post(routes::transfers::send_p2p))
 
         // QR codes
         .route("/internal/v1/qr/static",        post(routes::qr::create_static))
