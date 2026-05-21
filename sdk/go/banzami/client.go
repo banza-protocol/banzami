@@ -11,7 +11,6 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -54,12 +53,9 @@ type ClientOptions struct {
 //	    APIKey: "bz_live_...",
 //	})
 type Client struct {
-	opts    ClientOptions
-	base    string
-	http    *http.Client
-	mu      sync.Mutex
-	jwt     string
-	jwtExp  time.Time
+	opts ClientOptions
+	base string
+	http *http.Client
 
 	// Webhooks exposes signature verification and test helpers.
 	Webhooks *WebhooksClient
@@ -115,49 +111,6 @@ func (c *Client) IsSandbox() bool {
 }
 
 // ---------------------------------------------------------------------------
-// JWT management
-// ---------------------------------------------------------------------------
-
-func (c *Client) ensureJWT(ctx context.Context) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-
-	if c.jwt != "" && time.Now().Add(5*time.Minute).Before(c.jwtExp) {
-		return c.jwt, nil
-	}
-
-	body, _ := json.Marshal(map[string]string{"api_key": c.opts.APIKey})
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.base+"/v1/auth/token", bytes.NewReader(body))
-	if err != nil {
-		return "", err
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "banzami-go/"+sdkVersion)
-
-	resp, err := c.http.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("banzami: auth request failed: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return "", c.parseAPIError(resp)
-	}
-
-	var result struct {
-		Token     string    `json:"token"`
-		ExpiresAt time.Time `json:"expires_at"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return "", fmt.Errorf("banzami: failed to decode auth response: %w", err)
-	}
-
-	c.jwt    = result.Token
-	c.jwtExp = result.ExpiresAt
-	return c.jwt, nil
-}
-
-// ---------------------------------------------------------------------------
 // Core request methods
 // ---------------------------------------------------------------------------
 
@@ -189,11 +142,6 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body, out a
 }
 
 func (c *Client) executeOnce(ctx context.Context, method, path string, body, out any, idempotencyKey string) error {
-	jwt, err := c.ensureJWT(ctx)
-	if err != nil {
-		return err
-	}
-
 	var reqBody io.Reader
 	if body != nil {
 		b, err := json.Marshal(body)
@@ -209,7 +157,7 @@ func (c *Client) executeOnce(ctx context.Context, method, path string, body, out
 	}
 
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Authorization", "Bearer "+jwt)
+	req.Header.Set("Authorization", "Bearer "+c.opts.APIKey)
 	req.Header.Set("User-Agent", "banzami-go/"+sdkVersion)
 	if idempotencyKey != "" {
 		req.Header.Set("Idempotency-Key", idempotencyKey)
