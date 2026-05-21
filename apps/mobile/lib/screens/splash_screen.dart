@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:banza_flutter/banza_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -72,25 +71,37 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: const Color(0xFF5E000A),
       body: Stack(
         children: [
-          // ── Background gradient ─────────────────────────────────────────
-          const SizedBox.expand(
-            child: DecoratedBox(decoration: BoxDecoration(gradient: BanzaGradients.wine)),
+          // ── Background gradient — top light, bottom dark ─────────────────
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin:  Alignment.topLeft,
+                end:    Alignment.bottomRight,
+                colors: [
+                  Color(0xFFC21A2C),
+                  Color(0xFF990011),
+                  Color(0xFF7A000D),
+                  Color(0xFF5E000A),
+                ],
+                stops: [0.0, 0.38, 0.72, 1.0],
+              ),
+            ),
           ),
 
-          // ── Top-left radial bloom ───────────────────────────────────────
+          // ── Top-left radial light bloom ─────────────────────────────────
           Positioned(
             top:  -100,
-            left: -60,
+            left: -80,
             child: IgnorePointer(
               child: Container(
-                width:  360,
-                height: 360,
-                decoration: BoxDecoration(
+                width:  440,
+                height: 440,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFC21A2C).withValues(alpha: 0.40),
-                      const Color(0xFFC21A2C).withValues(alpha: 0.0),
+                      Color(0x55E83050), // bright rose bloom
+                      Color(0x00E83050),
                     ],
                   ),
                 ),
@@ -98,20 +109,20 @@ class _SplashScreenState extends State<SplashScreen>
             ),
           ),
 
-          // ── Bottom-right vignette ───────────────────────────────────────
+          // ── Bottom-right dark vignette ──────────────────────────────────
           Positioned(
-            bottom: -70,
-            right:  -70,
+            bottom: -80,
+            right:  -80,
             child: IgnorePointer(
               child: Container(
-                width:  260,
-                height: 260,
-                decoration: BoxDecoration(
+                width:  320,
+                height: 320,
+                decoration: const BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFF000000).withValues(alpha: 0.22),
-                      const Color(0xFF000000).withValues(alpha: 0.0),
+                      Color(0x55000000),
+                      Color(0x00000000),
                     ],
                   ),
                 ),
@@ -129,7 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
                   opacity: _iconFade,
                   child: ScaleTransition(
                     scale: _iconScale,
-                    child: _FloatingIcon(),
+                    child: const _AppIcon(),
                   ),
                 ),
 
@@ -138,12 +149,12 @@ class _SplashScreenState extends State<SplashScreen>
                 // Title
                 FadeTransition(
                   opacity: _titleFade,
-                  child: Text(
+                  child: const Text(
                     'Banza',
-                    style: BanzaTextStyles.displayMd.copyWith(
-                      color:         BanzaColors.white,
-                      fontWeight:    FontWeight.w700,
+                    style: TextStyle(
+                      color:         Colors.white,
                       fontSize:      36,
+                      fontWeight:    FontWeight.w700,
                       letterSpacing: -0.5,
                     ),
                   ),
@@ -154,13 +165,13 @@ class _SplashScreenState extends State<SplashScreen>
                 // Subtitle
                 FadeTransition(
                   opacity: _subtitleFade,
-                  child: Text(
+                  child: const Text(
                     'Envie e receba dinheiro\ninstantaneamente em Angola.',
                     textAlign: TextAlign.center,
-                    style: BanzaTextStyles.bodyMd.copyWith(
-                      color:      BanzaColors.white.withValues(alpha: 0.70),
-                      fontSize:   15,
-                      height:     1.45,
+                    style: TextStyle(
+                      color:  Color(0xB3FFFFFF), // white 70%
+                      fontSize: 15,
+                      height:   1.45,
                     ),
                   ),
                 ),
@@ -171,7 +182,7 @@ class _SplashScreenState extends State<SplashScreen>
                 FadeTransition(
                   opacity: _loaderFade,
                   child: const CupertinoActivityIndicator(
-                    color:  Color(0x99FFFFFF),
+                    color:  Color(0x99FFFFFF), // white 60%
                     radius: 11,
                   ),
                 ),
@@ -184,34 +195,60 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-class _FloatingIcon extends StatelessWidget {
+// ---------------------------------------------------------------------------
+// App icon — rounded container matching the welcome screen treatment
+// ---------------------------------------------------------------------------
+
+class _AppIcon extends StatelessWidget {
+  const _AppIcon();
+
   @override
   Widget build(BuildContext context) {
     return Container(
+      width:  88,
+      height: 88,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
+        // DecorationImage clips to borderRadius — no separate ClipRRect needed,
+        // which means no square-edge artefact on non-transparent PNGs.
+        image: const DecorationImage(
+          image: AssetImage('assets/images/banza_icon.png'),
+          fit:   BoxFit.cover,
+        ),
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFF000000).withValues(alpha: 0.35),
-            blurRadius:   40,
-            offset:       const Offset(0, 16),
-            spreadRadius: -4,
+            color:        const Color(0x66000000),
+            blurRadius:   28,
+            offset:       const Offset(0, 12),
+            spreadRadius: -6,
           ),
           BoxShadow(
-            color:        const Color(0xFFC21A2C).withValues(alpha: 0.28),
-            blurRadius:   24,
+            color:        const Color(0x44C21A2C),
+            blurRadius:   18,
             offset:       const Offset(0, 4),
-            spreadRadius: -2,
           ),
         ],
       ),
+      // Subtle glossy highlight at the top of the icon
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
-        child: Image.asset(
-          'assets/images/banza_icon.png',
-          width:  84,
-          height: 84,
-          fit:    BoxFit.cover,
+        child: const Align(
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            height: 32,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin:  Alignment.topCenter,
+                  end:    Alignment.bottomCenter,
+                  colors: [
+                    Color(0x22FFFFFF),
+                    Color(0x00FFFFFF),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );
