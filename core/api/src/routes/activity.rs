@@ -83,8 +83,7 @@ WITH activity AS (
         'COMPLETED'::text        AS status,
         t.created_at,
         t.created_at             AS completed_at,
-        ('@' || COALESCE(t.recipient_handle, c_r.handle))
-                                 AS counterparty_handle,
+        ('@' || c_r.handle)      AS counterparty_handle,
         c_r.display_name         AS counterparty_display_name,
         t.description            AS note,
         t.id::text               AS transfer_id,
