@@ -688,6 +688,75 @@ Invariants over the @banza handle registration and resolution system.
 
 ---
 
+## INV-P2P-002 — Public Consumer Transfer API
+
+### INV-P2P-002-1
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-002-1` |
+| **name** | Sender identity from JWT invariant |
+| **domain** | P2P / Security |
+| **description** | The sender's identity is always taken from the verified JWT, never from any client-supplied field in the request body. A caller cannot spoof a different sender. |
+| **rule** | `transfer.sender == resolve_handle(jwt.consumer_id)` — the JWT consumer_id is the authoritative source for sender routing |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Unit test: TestSend_Success in transfers_test.go — confirms sender resolved from injected JWT consumer (not from body), no spoofing path exists |
+
+### INV-P2P-002-2
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-002-2` |
+| **name** | Idempotency key mandatory invariant |
+| **domain** | P2P / Idempotency |
+| **description** | Every POST /v1/transfers request must carry an idempotency_key (body or Idempotency-Key header). Requests without one are rejected before any ledger work begins. |
+| **rule** | `idempotency_key != ""` — enforced at public API layer before core delegation |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Unit test: TestSend_MissingIdempotencyKey in transfers_test.go — asserts 400 MISSING_FIELD when key absent; TestSend_IdempotencyPassthrough — asserts header value takes precedence over body field |
+
+### INV-P2P-002-3
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-002-3` |
+| **name** | No internal identifiers in public response invariant |
+| **domain** | P2P / Security |
+| **description** | Public transfer receipts must never expose internal system identifiers: no ledger_posting_id, no sender_id/recipient_id UUIDs, no available_account_id, no reserved_account_id. Only the public transfer_id (UUID) and @banza handles are returned. |
+| **rule** | `response !contains { ledger_posting_id, sender_id, recipient_id, available_account_id, reserved_account_id }` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Unit test: TestSend_NoInternalIDsInResponse in transfers_test.go — enumerates all forbidden keys and asserts none are present in the 201 response body |
+
+### INV-P2P-002-4
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-002-4` |
+| **name** | Rate limit enforcement invariant |
+| **domain** | P2P / Reliability |
+| **description** | A single authenticated consumer cannot exceed 20 transfer attempts per minute through the public API. Requests beyond the limit are rejected with 429 RATE_LIMITED before any core delegation occurs. |
+| **rule** | `count(transfers, consumer_id, window=1min) <= 20` — enforced by fixed-window limiter before body parsing |
+| **severity** | `MEDIUM` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Unit test: TestSend_RateLimited in transfers_test.go — exhausts limiter to limit, asserts 21st attempt returns 429; rate limiter state is per-consumer and resets on new window |
+
+### INV-P2P-002-5
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-002-5` |
+| **name** | Transfer atomicity from consumer perspective invariant |
+| **domain** | P2P / UX |
+| **description** | The public API exposes no PENDING state. Every transfer is either COMPLETED or FAILED. completed_at equals created_at for all successful transfers, reflecting the atomic nature of the underlying ledger operation. |
+| **rule** | `transfer.status in {"COMPLETED", "FAILED"} && (status == "COMPLETED" => completed_at == created_at)` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Unit test: TestSend_Success in transfers_test.go — asserts status is COMPLETED and completed_at equals created_at in response; OpenAPI spec documents the same contract |
+
+---
+
 ## Invariant Status Values
 
 | Status | Meaning |
