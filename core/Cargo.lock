@@ -236,6 +236,7 @@ dependencies = [
  "banzami-transfers",
  "banzami-types",
  "banzami-wallets",
+ "base64 0.22.1",
  "chrono",
  "serde",
  "serde_json",
@@ -417,6 +418,7 @@ name = "banzami-transfers"
 version = "0.1.0"
 dependencies = [
  "banzami-consumer-wallets",
+ "banzami-ledger",
  "banzami-types",
  "chrono",
  "serde",

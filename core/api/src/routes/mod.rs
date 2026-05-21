@@ -1,4 +1,5 @@
 pub mod acquiring;
+pub mod activity;
 pub mod admin;
 pub mod risk;
 pub mod consumer_deposits;
