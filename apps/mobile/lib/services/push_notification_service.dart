@@ -108,8 +108,8 @@ class PushNotificationService {
     if (notification == null) return;
 
     final data      = message.data;
-    final channelId = data['channel_id'] as String? ?? 'banzami_push';
-    final channelName = data['channel_name'] as String? ?? 'Banzami';
+    final channelId = data['channel_id'] as String? ?? 'banza_push';
+    final channelName = data['channel_name'] as String? ?? 'Banza';
 
     await _localPlugin.show(
       notification.hashCode,

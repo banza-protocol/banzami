@@ -91,7 +91,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         consumerId:    session.consumerId,
         handle:        session.handle,
         displayName:   session.displayName,
-        logoAssetPath: 'assets/images/banzami_icon.png',
+        logoAssetPath: 'assets/images/banza_icon.png',
       ),
       const HistoryScreen(),
       ReceiveHubScreen(

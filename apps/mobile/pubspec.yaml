@@ -1,5 +1,5 @@
 name: banza_mobile
-description: Banzami — pagamentos instantâneos para Angola
+description: Banza — pagamentos instantâneos para Angola
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -27,7 +27,7 @@ dependencies:
   # State management
   provider: ^6.1.2
 
-  # Deep links (banzami://)
+  # Deep links (banza://)
   app_links: ^6.3.3
 
   # QR generation (merchant flavor)
@@ -60,7 +60,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.3
 
 flutter_launcher_icons:
-  image_path: "assets/images/banzami_icon.png"
+  image_path: "assets/images/banza_icon.png"
   android: true
   ios: true
   remove_alpha_ios: true
@@ -68,7 +68,7 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#B30012"
-  image: assets/images/banzami_splash.png
+  image: assets/images/banza_splash.png
   android: true
   ios: true
   web: false
@@ -76,7 +76,7 @@ flutter_native_splash:
   ios_content_mode: center
   android_12:
     color: "#B30012"
-    image: assets/images/banzami_splash.png
+    image: assets/images/banza_splash.png
     icon_background_color: "#B30012"
 
 flutter:

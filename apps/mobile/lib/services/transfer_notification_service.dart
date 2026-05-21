@@ -73,7 +73,7 @@ class TransferNotificationService {
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'banzami_transfers',
+          'banza_transfers',
           'Transferências',
           channelDescription: 'Alertas de transferências recebidas',
           importance: Importance.high,

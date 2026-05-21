@@ -81,7 +81,7 @@ class PaymentNotificationService {
       description,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'banzami_payments',
+          'banza_payments',
           'Pagamentos',
           channelDescription: 'Alertas de novos pagamentos recebidos',
           importance: Importance.high,

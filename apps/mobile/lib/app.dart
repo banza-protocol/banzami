@@ -46,7 +46,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _handleLink(Uri uri) {
-    // banzami://pay/link/{slug}
+    // banza://pay/link/{slug}
     if (uri.host == 'pay' &&
         uri.pathSegments.length >= 2 &&
         uri.pathSegments[0] == 'link') {

@@ -100,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             Center(
               child: Text(
-                'Banzami v1.0',
+                'Banza v1.0',
                 style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
               ),
             ),
