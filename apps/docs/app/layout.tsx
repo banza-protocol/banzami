@@ -61,16 +61,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-5 md:px-8">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-2.5">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-bz-primary">
-                <svg viewBox="0 0 20 20" fill="none" className="h-4 w-4">
-                  <rect x="2" y="2" width="7" height="7" rx="1.5" fill="white" />
-                  <rect x="11" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
-                  <rect x="2" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
-                  <rect x="14" y="14" width="4" height="4" rx="1" fill="white" />
-                </svg>
-              </div>
-              <span className="text-base font-bold tracking-tight text-bz-text">Banzami</span>
+            <Link href="/" className="flex items-center">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-8 w-auto object-contain" />
             </Link>
 
             {/* Desktop nav */}
@@ -123,18 +116,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="mx-auto max-w-screen-2xl px-6 py-10">
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                <div className="flex items-center gap-2">
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-bz-primary">
-                    <svg viewBox="0 0 20 20" fill="none" className="h-3.5 w-3.5">
-                      <rect x="2" y="2" width="7" height="7" rx="1.5" fill="white" />
-                      <rect x="11" y="2" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
-                      <rect x="2" y="11" width="7" height="7" rx="1.5" fill="white" opacity="0.6" />
-                      <rect x="14" y="14" width="4" height="4" rx="1" fill="white" />
-                    </svg>
-                  </div>
-                  <span className="font-bold text-bz-text">Banzami</span>
-                </div>
-                <p className="mt-1 text-xs text-bz-muted">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-7 w-auto object-contain" />
+                <p className="mt-2 text-xs text-bz-muted">
                   Banza — Rede Angolana de Pagamentos Instantâneos por QR Code
                 </p>
               </div>
