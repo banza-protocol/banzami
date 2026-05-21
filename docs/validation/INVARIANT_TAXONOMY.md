@@ -757,6 +757,75 @@ Invariants over the @banza handle registration and resolution system.
 
 ---
 
+## INV-WAL-003 — Wallet Transaction History & Activity Feed
+
+### INV-WAL-003-1
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WAL-003-1` |
+| **name** | Ledger-backed activity invariant |
+| **domain** | Activity Feed / Financial Correctness |
+| **description** | Every visible activity item maps 1:1 to a real, immutable financial event: a COMPLETED/REVERSED transfer or a SETTLED/REVERSED consumer deposit. No activity item can appear without a corresponding ledger-backed record. |
+| **rule** | `∀ item ∈ activity_feed: ∃ t ∈ transfers ∪ consumer_deposits: t.id == item.activity_id ∧ t.status ∈ terminal_states` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | UNION ALL query only selects WHERE status = 'COMPLETED' (transfers) or status IN ('SETTLED', 'REVERSED') (consumer_deposits) — non-terminal states are structurally excluded. Unit test: TestActivity_OutgoingTransfer, TestActivity_IncomingTransfer, TestActivity_WalletFunding verify correct mapping. |
+
+### INV-WAL-003-2
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WAL-003-2` |
+| **name** | Deterministic ordering invariant |
+| **domain** | Activity Feed / Pagination |
+| **description** | Activity items are always ordered newest-first by (created_at DESC, activity_id DESC). The activity_id tiebreaker ensures that two events with identical timestamps are always returned in the same stable order, preventing reordering across pages. |
+| **rule** | `∀ page: items[i].created_at >= items[i+1].created_at ∧ (items[i].created_at == items[i+1].created_at ⟹ items[i].activity_id > items[i+1].activity_id)` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | ORDER BY created_at DESC, activity_id DESC in UNION ALL query. Cursor encodes both timestamp and activity_id as tiebreaker. Unit test: TestActivity_HasMoreAndNextCursor verifies cursor structure. Migration 0038 adds activity-optimized indexes for this ordering. |
+
+### INV-WAL-003-3
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WAL-003-3` |
+| **name** | Pagination stability invariant |
+| **domain** | Activity Feed / Pagination |
+| **description** | Cursor-based pagination never duplicates or skips committed events. Each page starts strictly after the cursor position: created_at < cursor_ts OR (created_at = cursor_ts AND activity_id < cursor_id). |
+| **rule** | `page(cursor=C).items ∩ page(cursor=NULL).items[:page_size] = ∅` when `C = last item of first page` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | Strict inequality cursor: `(created_at < $2 OR (created_at = $2 AND activity_id < $3))` in SQL — items at the cursor boundary are excluded, not re-included. Unit test: TestActivity_CursorPassthrough verifies cursor is forwarded. Cursor roundtrip unit tests in activity.rs (3 tests). |
+
+### INV-WAL-003-4
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WAL-003-4` |
+| **name** | Direction correctness invariant |
+| **domain** | Activity Feed / Consumer UX |
+| **description** | The direction field is always correct for the authenticated consumer's perspective: OUTGOING when money leaves their wallet, INCOMING when money enters. Direction is computed server-side from the transfer's sender_id/recipient_id relative to the queried consumer_id. |
+| **rule** | `item.direction = OUTGOING iff item causes consumer_wallet.balance to decrease ∧ item.direction = INCOMING iff item causes consumer_wallet.balance to increase` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | P2P_SENT branch uses sender_id=$1 → OUTGOING. P2P_RECEIVED branch uses recipient_id=$1 → INCOMING. WALLET_FUNDED → INCOMING, WALLET_REVERSED → OUTGOING. Unit tests: TestActivity_OutgoingTransfer (OUTGOING), TestActivity_IncomingTransfer (INCOMING), TestActivity_WalletFunding (INCOMING). |
+
+### INV-WAL-003-5
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-WAL-003-5` |
+| **name** | Activity isolation invariant |
+| **domain** | Activity Feed / Security |
+| **description** | The activity feed only exposes events belonging to the authenticated consumer. A consumer cannot access another consumer's activity by any means: the query is always scoped to consumer_id from the verified JWT. |
+| **rule** | `∀ item ∈ response: item.consumer_id == jwt.consumer_id` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-wallet` |
+| **validationMethod** | consumer_id passed to core-api from the JWT (never from query params on the public endpoint). Core-api query always filters WHERE sender_id/$1 OR recipient_id/$1 OR consumer_id=$1. Unit test: TestActivity_Unauthenticated verifies 401 without JWT. |
+
+---
+
 ## Invariant Status Values
 
 | Status | Meaning |

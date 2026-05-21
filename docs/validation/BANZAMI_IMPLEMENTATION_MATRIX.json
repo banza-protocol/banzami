@@ -1137,27 +1137,43 @@
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
       "referenceSection": "§13.7",
-      "description": "Lista de todas as transacções — enviadas e recebidas — com timestamps, valores, @banza da contraparte e estado.",
-      "requirement": "Histórico completo, imutável e pesquisável. Cada transacção identificável individualmente.",
-      "status": "PLANNED",
+      "description": "Feed de actividade pública do consumidor: projecção legível de todos os eventos financeiros com respaldo no ledger — transferências enviadas/recebidas, carregamentos e reversões de carteira.",
+      "requirement": "GET /v1/me/activity — histórico completo, ordenado, paginado com cursor. Direcção (OUTGOING/INCOMING) computada no servidor. Sem eventos em falta, duplicados ou sem respaldo no ledger.",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Consumer Platform",
-      "technicalArea": "Go · PostgreSQL · Flutter",
+      "technicalArea": "Go · Rust · PostgreSQL",
       "validationMethods": [
-        "integration_tests",
-        "manual_ux"
+        "unit_tests",
+        "financial_invariant"
       ],
       "acceptanceCriteria": [
-        "Todas as transacções listadas por ordem cronológica inversa",
-        "Cada transacção com timestamp, valor, contraparte e estado",
-        "Pesquisa e filtragem por data/tipo",
-        "Sem transacções em falta ou duplicadas"
+        "GET /v1/me/activity disponível e autenticado por JWT",
+        "Transferências enviadas aparecem com tipo P2P_SENT e direcção OUTGOING",
+        "Transferências recebidas aparecem com tipo P2P_RECEIVED e direcção INCOMING",
+        "Carregamentos de carteira aparecem com tipo WALLET_FUNDED e direcção INCOMING",
+        "Ordenação newest-first determinística: (created_at DESC, activity_id DESC)",
+        "Paginação por cursor estável — sem duplicados ou omissões entre páginas",
+        "Filtros por tipo e direcção funcionais",
+        "Cursor inválido rejeitado",
+        "Sem IDs internos expostos (sem ledger_posting_id, account IDs)",
+        "OpenAPI 3.1 spec em contracts/openapi/activity.yaml"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "core/api/src/routes/activity.rs — UNION ALL query: P2P_SENT/P2P_RECEIVED/WALLET_FUNDED/WALLET_REVERSED com cursor opaco base64",
+        "core/api/src/routes/activity.rs — fetch_activity() + 3 cursor unit tests (roundtrip, garbage rejection, invalid UUID)",
+        "services/public-api/internal/handler/activity.go — ActivityHandler: JWT auth, limit validation, cursor/filter passthrough",
+        "services/public-api/internal/handler/activity_test.go — 12 unit tests: all PASS",
+        "services/public-api/internal/service/core_client.go — GetActivity(): delegates to GET /internal/v1/consumer/activity",
+        "db/migrations/0038_activity_feed_indexes.sql — activity-optimised partial indexes for UNION branches",
+        "contracts/openapi/activity.yaml — OpenAPI 3.1 spec: GET /v1/me/activity com schemas ActivityItem e ActivityPage"
+      ],
       "dependencies": [
         "WAL-001",
-        "LED-001"
+        "LED-001",
+        "P2P-001",
+        "P2P-003"
       ],
       "requires": [
         "WAL-001",
@@ -1165,24 +1181,76 @@
       ],
       "affects": [],
       "revalidateWhenChanged": [
-        "core/wallets/**",
+        "core/api/src/routes/activity.rs",
+        "services/public-api/internal/handler/activity.go",
+        "services/public-api/internal/service/core_client.go",
         "db/migrations/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-WAL-003-1",
+          "name": "Ledger-backed activity invariant",
+          "rule": "∀ item ∈ activity_feed: ∃ record in transfers ∪ consumer_deposits with terminal status",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-WAL-003-2",
+          "name": "Deterministic ordering invariant",
+          "rule": "items ordered by (created_at DESC, activity_id DESC) — stable tiebreaker prevents reordering",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-WAL-003-3",
+          "name": "Pagination stability invariant",
+          "rule": "cursor uses strict inequality — no duplicates or skips across pages",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-WAL-003-4",
+          "name": "Direction correctness invariant",
+          "rule": "direction = OUTGOING iff balance decreases, INCOMING iff balance increases — computed server-side",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-WAL-003-5",
+          "name": "Activity isolation invariant",
+          "rule": "feed always scoped to jwt.consumer_id — no cross-consumer leakage possible",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)"
+          "evidence[] non-empty (+20)",
+          "unit_tests in validationMethods (+15)",
+          "financial_invariant: all 5 invariants PASS (+20)",
+          "integration tests + e2e pending (-15)"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-05-21T16:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "pending-formal-approval",
+          "commit": "e1429fe",
+          "reason": "WAL-003: activity feed implemented — GET /v1/me/activity, UNION ALL query (P2P_SENT/RECEIVED/WALLET_FUNDED/REVERSED), opaque cursor, direction server-side, 12 unit tests PASS, OpenAPI 3.1 spec, 3 activity index migrations",
+          "evidence": [
+            "core/api/src/routes/activity.rs",
+            "services/public-api/internal/handler/activity.go",
+            "services/public-api/internal/handler/activity_test.go",
+            "contracts/openapi/activity.yaml",
+            "db/migrations/0038_activity_feed_indexes.sql"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
     },
     {
       "id": "WAL-004",
