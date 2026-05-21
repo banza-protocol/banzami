@@ -56,11 +56,13 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
       );
       // Merge merchant_name from the pre-loaded link since payPaymentLink
       // returns the updated status but may drop enriched fields on older servers.
-      if (mounted) setState(() {
-        _link = updated;
-        _paid = true;
-        _processing = false;
-      });
+      if (mounted) {
+        setState(() {
+          _link = updated;
+          _paid = true;
+          _processing = false;
+        });
+      }
     } on BanzamiApiException catch (e) {
       setState(() {
         _error = switch (e.code) {

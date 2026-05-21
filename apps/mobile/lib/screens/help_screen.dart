@@ -27,7 +27,7 @@ class HelpScreen extends StatelessWidget {
         children: [
 
           // ── Support ───────────────────────────────────────────────────────
-          _SectionLabel('Suporte'),
+          const _SectionLabel('Suporte'),
           const SizedBox(height: BanzaSpacing.sm),
           _Card(children: [
             _Row(
@@ -52,7 +52,7 @@ class HelpScreen extends StatelessWidget {
           const SizedBox(height: BanzaSpacing.xl),
 
           // ── Legal ─────────────────────────────────────────────────────────
-          _SectionLabel('Legal'),
+          const _SectionLabel('Legal'),
           const SizedBox(height: BanzaSpacing.sm),
           _Card(children: [
             _Row(
