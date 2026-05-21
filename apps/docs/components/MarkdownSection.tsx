@@ -111,6 +111,20 @@ export function MarkdownSection({ content, className = '' }: Props) {
             )
           },
 
+          // ── Images — responsive, centered, rounded ───────────────────────
+          img({ src, alt, ...rest }) {
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt={alt ?? ''}
+                className="w-full max-w-3xl mx-auto rounded-2xl shadow-lg block my-8"
+                loading="lazy"
+                {...rest}
+              />
+            )
+          },
+
           // ── External links → new tab ─────────────────────────────────────
           a({ href, children, ...rest }) {
             const isExternal = href?.startsWith('http')
