@@ -40,7 +40,6 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   int     _amountMinor  = 0;
   String? _handleError;
   String? _amountError;
-  String? _sendError;
 
   bool    _handleFocused    = false;
   List<ConsumerSuggestion> _suggestions = [];
@@ -72,7 +71,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   }
 
   void _onHandleChanged(String value) {
-    setState(() { _handleError = null; _sendError = null; _handleConfirmed = false; _selectedSuggestion = null; });
+    setState(() { _handleError = null; _handleConfirmed = false; _selectedSuggestion = null; });
 
     _debounce?.cancel();
     final q = value.trim().replaceAll('@', '');
@@ -216,14 +215,6 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                 textInputAction: TextInputAction.done,
                 onSubmitted:     (_) => _send(),
               ),
-
-              if (_sendError != null) ...[
-                const SizedBox(height: BanzaSpacing.lg),
-                Text(
-                  _sendError!,
-                  style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.error),
-                ),
-              ],
 
               const SizedBox(height: BanzaSpacing.xxl),
               BanzaButton(
