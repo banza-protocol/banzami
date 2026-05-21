@@ -51,6 +51,12 @@ func GetConsumer(ctx context.Context) (*Consumer, bool) {
 	return c, ok
 }
 
+// InjectConsumer sets the authenticated consumer in a context.
+// Used by the Auth middleware and by handler tests to simulate authentication.
+func InjectConsumer(ctx context.Context, c *Consumer) context.Context {
+	return context.WithValue(ctx, consumerKey{}, c)
+}
+
 // NewConsumerToken mints a signed JWT for the given consumer.
 // The returned expiresAt string is RFC3339, suitable for API responses.
 func NewConsumerToken(secret, consumerID string, scopes []string, ttl time.Duration) (token, expiresAt string, err error) {

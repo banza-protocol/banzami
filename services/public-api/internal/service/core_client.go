@@ -29,6 +29,9 @@ var (
 	ErrTransferInvalidAmount     = errors.New("amount must be positive")
 	ErrTransferInsufficientFunds = errors.New("insufficient funds")
 	ErrTransferWalletNotFound    = errors.New("sender or recipient wallet not found")
+	ErrTransferWalletLocked      = errors.New("sender wallet is locked — PIN reset required")
+	ErrTransferRecipientNotFound = errors.New("recipient handle not found")
+	ErrTransferRecipientUnavailable = errors.New("recipient cannot receive funds")
 	ErrPaymentLinkNotFound       = errors.New("payment link not found")
 	ErrPaymentLinkNotActive      = errors.New("payment link is no longer active")
 
@@ -327,6 +330,79 @@ func (c *CorePublicClient) ListTransfers(ctx context.Context, consumerID string,
 		HasMore:    result.HasMore,
 		NextCursor: nextCursor,
 	}, nil
+}
+
+// ---------------------------------------------------------------------------
+// P2P-001/P2P-002 — handle-to-handle consumer transfer (public-facing)
+// ---------------------------------------------------------------------------
+
+// SendP2pTransferRequest is the payload for the handle-based P2P transfer route.
+type SendP2pTransferRequest struct {
+	Sender         string
+	Recipient      string
+	AmountMinor    int64
+	Currency       string
+	Note           string
+	IdempotencyKey string
+}
+
+// P2pTransferResponse is the canonical receipt returned by /internal/v1/consumer/transfers.
+// It contains @banza handles, not internal UUIDs.
+type P2pTransferResponse struct {
+	ID             string    `json:"id"`
+	Sender         string    `json:"sender"`
+	Recipient      string    `json:"recipient"`
+	AmountMinor    int64     `json:"amount_minor"`
+	Currency       string    `json:"currency"`
+	Status         string    `json:"status"`
+	Note           *string   `json:"note"`
+	IdempotencyKey string    `json:"idempotency_key"`
+	CreatedAt      time.Time `json:"created_at"`
+}
+
+// SendP2pTransfer routes money from @sender to @recipient via the P2P-001 handle engine.
+// The core validates handles, routing status, and balance in a single atomic transaction.
+func (c *CorePublicClient) SendP2pTransfer(ctx context.Context, req SendP2pTransferRequest) (*P2pTransferResponse, error) {
+	body := map[string]any{
+		"idempotency_key": req.IdempotencyKey,
+		"sender":          req.Sender,
+		"recipient":       req.Recipient,
+		"amount_minor":    req.AmountMinor,
+		"currency":        req.Currency,
+	}
+	if req.Note != "" {
+		body["note"] = req.Note
+	}
+	var out P2pTransferResponse
+	if err := c.post(ctx, "/internal/v1/consumer/transfers", body, &out); err != nil {
+		return nil, mapP2pTransferError(err)
+	}
+	return &out, nil
+}
+
+func mapP2pTransferError(err error) error {
+	if err == nil {
+		return nil
+	}
+	msg := err.Error()
+	switch {
+	case contains(msg, "SELF_TRANSFER") || contains(msg, "cannot transfer to yourself"):
+		return ErrTransferSelfTransfer
+	case contains(msg, "INVALID_AMOUNT") || contains(msg, "amount_minor must be positive"):
+		return ErrTransferInvalidAmount
+	case contains(msg, "INSUFFICIENT_FUNDS"):
+		return ErrTransferInsufficientFunds
+	case contains(msg, "SENDER_WALLET_NOT_ACTIVE"):
+		return ErrTransferWalletLocked
+	case contains(msg, "RECIPIENT_NOT_FOUND") || contains(msg, "not found"):
+		return ErrTransferRecipientNotFound
+	case contains(msg, "RECIPIENT_NOT_ROUTABLE") || contains(msg, "cannot receive"):
+		return ErrTransferRecipientUnavailable
+	case contains(msg, "INVALID_HANDLE") || contains(msg, "invalid handle"):
+		return ErrInvalidHandle
+	default:
+		return err
+	}
 }
 
 // SandboxCreditConsumer injects virtual funds into a consumer's available ledger account.
