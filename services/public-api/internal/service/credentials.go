@@ -57,6 +57,24 @@ func (s *CredentialStore) Save(ctx context.Context, consumerID, handle, rawPin s
 	return nil
 }
 
+// GetHandle returns the @banza handle for a given consumer ID.
+// Used by the transfer handler to resolve the sender's handle from the JWT claim.
+// Returns ErrInvalidCredentials when the consumer is not in the credential store.
+func (s *CredentialStore) GetHandle(ctx context.Context, consumerID string) (string, error) {
+	var handle string
+	err := s.pool.QueryRow(ctx,
+		`SELECT handle FROM public_api_credentials WHERE consumer_id = $1`,
+		consumerID,
+	).Scan(&handle)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrInvalidCredentials
+		}
+		return "", fmt.Errorf("credential handle lookup: %w", err)
+	}
+	return handle, nil
+}
+
 // Exists reports whether a handle is registered.
 func (s *CredentialStore) Exists(ctx context.Context, handle string) (bool, error) {
 	var found bool

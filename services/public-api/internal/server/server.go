@@ -17,6 +17,11 @@ import (
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
+// transferRateLimit: 20 transfers per minute per consumer.
+// Configurable via rate limiter constructor; exported as constant for clarity.
+const transferRateLimit = 20
+const transferRateWindow = time.Minute
+
 // Dependencies groups all external dependencies for the server.
 type Dependencies struct {
 	CoreClient  *service.CorePublicClient
@@ -42,10 +47,12 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	r.Get("/health", handler.Liveness)
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
+	transferLimiter := handler.NewTransferRateLimiter(transferRateLimit, transferRateWindow)
+
 	authH        := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
 	consumerH    := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
 	meH          := handler.NewMeHandler(deps.CoreClient)
-	transferH    := handler.NewTransferHandler(deps.CoreClient)
+	transferH    := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
 	sandboxH     := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH  := handler.NewOnboardingHandler(deps.CoreClient)

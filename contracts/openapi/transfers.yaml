@@ -1,0 +1,349 @@
+openapi: 3.1.0
+
+info:
+  title: Banza Transfer API
+  version: 1.0
+  description: |
+    Public consumer-facing API for @banza to @banza instant transfers.
+
+    ## Authentication
+    All transfer endpoints require a Bearer JWT issued by `POST /v1/auth/token`.
+    The JWT encodes the sender's identity — the caller never provides `sender` explicitly.
+
+    ## Idempotency
+    Every `POST /v1/transfers` request MUST include an `idempotency_key` in the body
+    or an `Idempotency-Key` header. Re-submitting the same key returns the original
+    transfer without creating a new ledger posting.
+
+    ## Rate Limiting
+    Consumers are limited to 20 transfer attempts per minute.
+    Exceeding the limit returns `429 RATE_LIMITED`.
+
+    ## Currency
+    Only `AOA` (Angolan Kwanza) is supported. Amounts are always in integer minor units (cêntimos).
+
+servers:
+  - url: https://api.banza.ao
+    description: Production
+  - url: https://sandbox.banza.ao
+    description: Sandbox
+
+paths:
+  /v1/transfers:
+    post:
+      operationId: sendTransfer
+      summary: Send money to a @banza handle
+      description: |
+        Initiates an instant P2P transfer from the authenticated consumer's wallet
+        to the recipient's wallet identified by their @banza handle.
+
+        The transfer is atomic — it either succeeds completely (COMPLETED) or fails
+        without any partial state. No PENDING state is exposed to the caller.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: false
+          description: |
+            Client-generated unique key for this request. If provided in the header,
+            it overrides the body `idempotency_key` field.
+          schema:
+            type: string
+            example: "550e8400-e29b-41d4-a716-446655440000"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendTransferRequest'
+            example:
+              recipient: "@ana"
+              amount_minor: 200000
+              currency: "AOA"
+              note: "almoço"
+              idempotency_key: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        "201":
+          description: Transfer completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferReceipt'
+              example:
+                transfer_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                status: "COMPLETED"
+                sender: "@joao"
+                recipient: "@ana"
+                amount_minor: 200000
+                currency: "AOA"
+                note: "almoço"
+                created_at: "2026-05-21T14:00:00Z"
+                completed_at: "2026-05-21T14:00:00Z"
+                trace_id: "req-abc123"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                missing_field:
+                  value: { code: "MISSING_FIELD", message: "recipient is required" }
+                invalid_amount:
+                  value: { code: "INVALID_AMOUNT", message: "amount_minor must be a positive integer" }
+                invalid_recipient:
+                  value: { code: "INVALID_RECIPIENT", message: "recipient handle format is invalid" }
+                self_transfer:
+                  value: { code: "SELF_TRANSFER_NOT_ALLOWED", message: "you cannot transfer money to yourself" }
+                unsupported_currency:
+                  value: { code: "UNSUPPORTED_CURRENCY", message: "only AOA is supported at this time" }
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "UNAUTHORIZED"
+                message: "authentication required"
+        "403":
+          description: Sender wallet locked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "WALLET_LOCKED"
+                message: "your wallet is locked — contact support to unlock it"
+        "404":
+          description: Recipient handle not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "RECIPIENT_NOT_FOUND"
+                message: "recipient handle does not exist"
+        "422":
+          description: Transfer cannot be processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                insufficient_funds:
+                  value:
+                    code: "INSUFFICIENT_FUNDS"
+                    message: "your available balance is too low for this transfer"
+                recipient_unavailable:
+                  value:
+                    code: "RECIPIENT_UNAVAILABLE"
+                    message: "recipient cannot receive funds at this time"
+        "429":
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "RATE_LIMITED"
+                message: "too many transfers — please wait before sending again"
+        "500":
+          description: Transfer could not be processed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "TRANSFER_FAILED"
+                message: "transfer could not be processed — please try again"
+
+    get:
+      operationId: listTransfers
+      summary: List the authenticated consumer's transfers
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: cursor
+          in: query
+          description: Opaque cursor for pagination (value of `next_cursor` from previous response)
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Transfer history page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferPage'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+
+  /v1/transfers/{id}:
+    get:
+      operationId: getTransfer
+      summary: Get a single transfer by ID
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Transfer record
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransferReceipt'
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT issued by POST /v1/auth/token
+
+  schemas:
+    SendTransferRequest:
+      type: object
+      required:
+        - recipient
+        - amount_minor
+        - currency
+        - idempotency_key
+      properties:
+        recipient:
+          type: string
+          description: Recipient's @banza handle. The @ prefix is optional and is stripped before routing.
+          example: "@ana"
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Amount in integer minor units (cêntimos). Must be positive.
+          example: 200000
+        currency:
+          type: string
+          description: Currency code. Only AOA is supported.
+          enum: ["AOA"]
+          example: "AOA"
+        note:
+          type: string
+          description: Optional consumer-visible note (max 140 characters).
+          maxLength: 140
+          example: "almoço"
+        idempotency_key:
+          type: string
+          description: |
+            Client-generated key that makes this request idempotent.
+            Re-submitting the same key returns the original transfer without
+            creating a duplicate ledger posting. Must be unique per transfer.
+          example: "550e8400-e29b-41d4-a716-446655440000"
+
+    TransferReceipt:
+      type: object
+      description: |
+        Canonical public receipt for a completed transfer.
+        Internal identifiers (ledger account IDs, posting IDs) are never exposed.
+      properties:
+        transfer_id:
+          type: string
+          format: uuid
+          description: Stable transfer ID. Use for GET /v1/transfers/{id}.
+        status:
+          type: string
+          enum: ["COMPLETED", "FAILED"]
+          description: Transfers are atomic — COMPLETED or FAILED, no PENDING state.
+        sender:
+          type: string
+          description: Sender's @banza handle (always includes @ prefix).
+          example: "@joao"
+        recipient:
+          type: string
+          description: Recipient's @banza handle (always includes @ prefix).
+          example: "@ana"
+        amount_minor:
+          type: integer
+          format: int64
+          description: Amount transferred in minor units (cêntimos).
+        currency:
+          type: string
+          example: "AOA"
+        note:
+          type: string
+          nullable: true
+          description: Consumer's note, if provided.
+        created_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          description: When the transfer was finalized. Equal to created_at for atomic transfers.
+        trace_id:
+          type: string
+          description: Request trace ID for support and debugging.
+
+    TransferPage:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/TransferReceipt'
+        has_more:
+          type: boolean
+        next_cursor:
+          type: string
+          nullable: true
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+          example: "INSUFFICIENT_FUNDS"
+        message:
+          type: string
+          description: Human-readable explanation.
+        request_id:
+          type: string
+          description: Request ID for support reference.
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "authentication required"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "NOT_FOUND"
+            message: "transfer not found"
