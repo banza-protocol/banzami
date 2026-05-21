@@ -75,7 +75,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     // Wait for the longer of: minimum visual duration OR session load.
     await Future.wait([
-      Future.delayed(const Duration(milliseconds: 1500)),
+      Future.delayed(const Duration(milliseconds: 1200)),
       session.initialize(),
     ]);
 
