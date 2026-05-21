@@ -10,7 +10,7 @@ fn make_engine(pool: PgPool) -> PostgresIdentityEngine<PostgresIdentityRepositor
 
 // ── 1. Valid handle registers successfully ────────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn valid_handle_registers(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
@@ -27,7 +27,7 @@ async fn valid_handle_registers(pool: PgPool) {
 
 // ── 2. Duplicate handle is rejected ─────────────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn duplicate_handle_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     eng.create(CreateConsumerRequest { handle: "carlos".into(), display_name: None })
@@ -44,7 +44,7 @@ async fn duplicate_handle_rejected(pool: PgPool) {
 
 // ── 3. Normalization collision rejected ──────────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn normalization_collision_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     eng.create(CreateConsumerRequest { handle: "@Carlos".into(), display_name: None })
@@ -62,7 +62,7 @@ async fn normalization_collision_rejected(pool: PgPool) {
 
 // ── 4. Reserved handle rejected ──────────────────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn reserved_handle_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     for reserved in &["admin", "banza", "emis", "multicaixa", "bna"] {
@@ -79,19 +79,20 @@ async fn reserved_handle_rejected(pool: PgPool) {
 
 // ── 5. Invalid syntax rejected ───────────────────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn invalid_syntax_rejected(pool: PgPool) {
     let eng = make_engine(pool);
+    let too_long = "a".repeat(21);
     let bad_handles = vec![
-        "ab",           // too short
-        &"a".repeat(21), // too long (21 chars)
-        "1abc",         // starts with digit
-        "_foo",         // starts with underscore
-        "foo__bar",     // consecutive underscores
-        "foo_",         // trailing underscore
-        "Abc",          // uppercase
-        "@handle",      // raw @ prefix (not normalized)
-        "héros",        // non-ASCII
+        "ab",              // too short (2 chars)
+        too_long.as_str(), // too long (21 chars)
+        "1abc",            // starts with digit
+        "_foo",            // starts with underscore
+        "foo__bar",        // consecutive underscores
+        "foo_",            // trailing underscore
+        "héros",           // non-ASCII characters
+        // Note: "Abc" normalizes to "abc" (valid) — uppercase is normalized, not rejected
+        // Note: "@handle" normalizes to "handle" (valid) — @ prefix is stripped, not rejected
     ];
 
     for handle in bad_handles {
@@ -108,7 +109,7 @@ async fn invalid_syntax_rejected(pool: PgPool) {
 
 // ── 6. Handle resolves correctly for active consumer ─────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn handle_resolves_for_active_consumer(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
@@ -128,7 +129,7 @@ async fn handle_resolves_for_active_consumer(pool: PgPool) {
 
 // ── 7. Suspended consumer not returned by resolve_handle ─────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn suspended_consumer_not_resolved(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
@@ -144,7 +145,7 @@ async fn suspended_consumer_not_resolved(pool: PgPool) {
 
 // ── 8. Closed consumer not returned by resolve_handle ────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn closed_consumer_not_resolved(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
@@ -160,7 +161,7 @@ async fn closed_consumer_not_resolved(pool: PgPool) {
 
 // ── 9. Unknown handle returns HandleNotFound ──────────────────────────────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn unknown_handle_returns_not_found(pool: PgPool) {
     let eng = make_engine(pool);
     let err = eng.resolve_handle("nobody").await.unwrap_err();
@@ -169,7 +170,7 @@ async fn unknown_handle_returns_not_found(pool: PgPool) {
 
 // ── 10. Concurrent same-handle registration creates exactly one owner ─────────
 
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn concurrent_registration_creates_one_owner(pool: PgPool) {
     use std::sync::Arc;
     use tokio::task::JoinSet;

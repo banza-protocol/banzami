@@ -209,7 +209,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use banzami_ledger::{Account, AccountType, LedgerEngine, LedgerEntry, LedgerPosting};
-    use banzami_types::{AccountId, Currency, MerchantId, Money, WalletId};
+    use banzami_types::{AccountId, Currency, LedgerPostingId, MerchantId, Money, WalletId};
 
     use super::*;
     use crate::{repository::WalletRepository, Wallet, WalletError, WalletStatus};
@@ -266,6 +266,22 @@ mod tests {
         ) -> Result<Vec<LedgerEntry>, banzami_ledger::LedgerError> {
             let entries = self.entries.lock().unwrap();
             Ok(entries.iter().filter(|e| e.account_id == account_id).cloned().collect())
+        }
+
+        async fn reverse(
+            &self,
+            _original: &LedgerPosting,
+            _description: impl Into<String> + Send,
+            _new_idempotency_key: impl Into<String> + Send,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            unimplemented!("reverse not needed in wallet unit tests")
+        }
+
+        async fn get_posting(
+            &self,
+            _posting_id: LedgerPostingId,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            unimplemented!("get_posting not needed in wallet unit tests")
         }
     }
 

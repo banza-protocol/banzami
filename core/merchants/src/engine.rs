@@ -263,6 +263,17 @@ mod tests {
             m.updated_at = Utc::now();
             Ok(m.clone())
         }
+
+        async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError> {
+            let mut rows = self.rows.lock().unwrap();
+            let m = rows
+                .iter_mut()
+                .find(|r| r.id == id)
+                .ok_or(MerchantError::NotFound(id))?;
+            m.verified   = verified;
+            m.updated_at = Utc::now();
+            Ok(m.clone())
+        }
     }
 
     struct MockApiKeyRepo {
