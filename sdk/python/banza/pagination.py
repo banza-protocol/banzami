@@ -2,15 +2,15 @@
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator
-from typing import Any, Callable, Generic, TypeVar
+from collections.abc import AsyncIterator, Callable
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
 T = TypeVar("T", bound=BaseModel)
 
 
-class Page(BaseModel, Generic[T]):
+class Page[T: BaseModel](BaseModel):
     """A single page of results from a list endpoint."""
 
     data: list[T]

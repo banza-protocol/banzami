@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from banza.models.transaction import Transaction, TransactionStatus
+from banza.models.transaction import Transaction
 from banza.pagination import Page, auto_paginate
 
 

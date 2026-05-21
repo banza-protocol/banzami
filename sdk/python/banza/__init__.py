@@ -9,21 +9,21 @@ Quick start:
         print(tx.id)
 """
 
-from .client import Banzami, BanzaClient, BanzaHooks
+from .client import BanzaClient, BanzaHooks, Banzami
 from .config import BanzamiConfig
 from .exceptions import (
     BanzaAPIError,
+    BanzaError,
     BanzamiAuthenticationError,
     BanzamiConflictError,
-    BanzaError,
     BanzamiInsufficientFundsError,
-    BanzaNetworkError,
     BanzamiNotFoundError,
     BanzamiPermissionError,
     BanzamiRateLimitError,
     BanzamiServerError,
     BanzamiTimeoutError,
     BanzamiValidationError,
+    BanzaNetworkError,
     BanzaWebhookSignatureError,
 )
 from .models import (

@@ -11,7 +11,7 @@ if TYPE_CHECKING:
 class AsyncResource:
     """Thin wrapper that delegates HTTP calls back to the root client."""
 
-    def __init__(self, client: "BanzaClient") -> None:
+    def __init__(self, client: BanzaClient) -> None:
         self._client = client
 
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:

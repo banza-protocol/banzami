@@ -16,8 +16,6 @@ import hashlib
 import hmac
 import time
 
-import pytest
-
 from banza.signature import (
     SIGNATURE_HEADER,
     TOLERANCE_SECONDS,
@@ -167,7 +165,7 @@ def test_missing_t_field_rejected():
 
 def test_malformed_timestamp_rejected():
     mac = hmac.new(SECRET.encode(), digestmod=hashlib.sha256)
-    mac.update(f"notanumber.".encode())
+    mac.update(b"notanumber.")
     mac.update(PAYLOAD)
     assert verify_signature(PAYLOAD, f"t=notanumber,v1={mac.hexdigest()}", SECRET, current_timestamp=TIMESTAMP) is False
 

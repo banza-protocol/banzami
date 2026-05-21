@@ -13,7 +13,7 @@ from .base import AsyncResource
 
 
 class WebhooksResource(AsyncResource):
-    def __init__(self, client: "object", webhook_secret: str | None = None) -> None:  # type: ignore[override]
+    def __init__(self, client: object, webhook_secret: str | None = None) -> None:
         super().__init__(client)  # type: ignore[arg-type]
         self._webhook_secret = webhook_secret
 
