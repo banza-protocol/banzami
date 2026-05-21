@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -12,8 +12,8 @@ import httpx
 from .auth import APIKeyAuth
 from .config import BanzamiConfig
 from .exceptions import (
-    BanzaNetworkError,
     BanzamiTimeoutError,
+    BanzaNetworkError,
     api_error_from_response,
 )
 from .resources import (
@@ -128,7 +128,7 @@ class BanzaClient:
     # Context manager support
     # ------------------------------------------------------------------
 
-    async def __aenter__(self) -> "BanzaClient":
+    async def __aenter__(self) -> BanzaClient:
         return self
 
     async def __aexit__(self, *_: object) -> None:
@@ -203,7 +203,7 @@ class BanzaClient:
                 headers=headers,
             )
         except httpx.TimeoutException as exc:
-            err = BanzamiTimeoutError(str(exc))
+            err: BanzaNetworkError = BanzamiTimeoutError(str(exc))
             self._hooks.on_error and self._hooks.on_error(method, path, err, attempt)
             raise err from exc
         except httpx.NetworkError as exc:

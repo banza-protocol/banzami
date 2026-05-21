@@ -6,7 +6,7 @@ import httpx
 import pytest
 import respx
 
-from banza import Banzami, BanzaHooks
+from banza import BanzaHooks, Banzami
 from banza.exceptions import (
     BanzamiAuthenticationError,
     BanzamiNotFoundError,

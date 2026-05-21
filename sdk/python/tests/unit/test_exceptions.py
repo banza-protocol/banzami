@@ -1,6 +1,5 @@
 """Exception hierarchy and factory tests."""
 
-import pytest
 
 from banza.exceptions import (
     BanzaAPIError,
