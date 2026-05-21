@@ -19,10 +19,13 @@ class WelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              // Official logo
-              Image.asset(
-                'assets/images/banza_logo.png',
-                height: 80,
+              // App icon — rounded to match launcher icon treatment
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  'assets/images/banza_icon.png',
+                  height: 56,
+                ),
               ),
               const SizedBox(height: 24),
 

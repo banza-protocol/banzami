@@ -15,7 +15,7 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 700));
     _fade = CurvedAnimation(parent: _ctrl, curve: Curves.easeIn);
     _ctrl.forward();
   }
@@ -29,11 +29,14 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.wine,
-      body: FadeTransition(
-        opacity: _fade,
-        child: const Center(
-          child: _Logo(),
+      backgroundColor: BanzaColors.wineDark,
+      body: Container(
+        width:      double.infinity,
+        height:     double.infinity,
+        decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+        child: FadeTransition(
+          opacity: _fade,
+          child: const Center(child: _Logo()),
         ),
       ),
     );
@@ -45,9 +48,12 @@ class _Logo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Image.asset(
-      'assets/images/banza_splash.png',
-      width: 80,
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(24),
+      child: Image.asset(
+        'assets/images/banza_icon.png',
+        width: 120,
+      ),
     );
   }
 }

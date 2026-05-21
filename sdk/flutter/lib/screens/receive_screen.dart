@@ -40,9 +40,9 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
   String get _qrPayload {
     if (_amountSet && _amountMinor > 0) {
-      return 'banzami:@${widget.handle}?amount=$_amountMinor&currency=AOA';
+      return 'banza:@${widget.handle}?amount=$_amountMinor&currency=AOA';
     }
-    return 'banzami:@${widget.handle}';
+    return 'banza:@${widget.handle}';
   }
 
   @override
@@ -127,7 +127,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(
         _shareUrl,
-        subject:             'Pagar @${widget.handle} via Banzami',
+        subject:             'Pagar @${widget.handle} via Banza',
         sharePositionOrigin: origin,
       );
     } catch (e) {

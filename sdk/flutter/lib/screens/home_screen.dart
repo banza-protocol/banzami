@@ -331,22 +331,22 @@ class _BalanceHeader extends StatelessWidget {
             Row(
               children: [
                 _ActionButton(
-                  icon:    Icons.qr_code_scanner_rounded,
-                  label:   'Scan',
-                  onTap:   onScan,
+                  icon:    Icons.arrow_upward_rounded,
+                  label:   'Enviar',
+                  onTap:   onSend,
                   primary: true,
-                ),
-                const SizedBox(width: BanzaSpacing.md),
-                _ActionButton(
-                  icon:  Icons.arrow_upward_rounded,
-                  label: 'Enviar',
-                  onTap: onSend,
                 ),
                 const SizedBox(width: BanzaSpacing.md),
                 _ActionButton(
                   icon:  Icons.arrow_downward_rounded,
                   label: 'Receber',
                   onTap: onReceive,
+                ),
+                const SizedBox(width: BanzaSpacing.md),
+                _ActionButton(
+                  icon:  Icons.qr_code_scanner_rounded,
+                  label: 'QR Code',
+                  onTap: onScan,
                 ),
               ],
             ),

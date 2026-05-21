@@ -181,6 +181,38 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
 
               const Spacer(),
 
+              // Irreversibility warning
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzaSpacing.lg,
+                  vertical:   BanzaSpacing.sm,
+                ),
+                decoration: const BoxDecoration(
+                  color:        BanzaColors.gray100,
+                  borderRadius: BanzaRadius.lgAll,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.info_outline_rounded,
+                      size:  16,
+                      color: BanzaColors.gray400,
+                    ),
+                    const SizedBox(width: BanzaSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                        style: BanzaTextStyles.bodySm.copyWith(
+                          color: BanzaColors.gray400,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: BanzaSpacing.xl),
+
               if (_error != null) ...[
                 Text(
                   _error!,
