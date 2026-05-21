@@ -1,5 +1,11 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+
+import '../services/session_service.dart';
+import 'onboarding/welcome_screen.dart';
+import 'pin_screen.dart';
+import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -58,6 +64,39 @@ class _SplashScreenState extends State<SplashScreen>
     );
 
     _ctrl.forward();
+
+    // Bootstrap runs after the first frame so context is valid and
+    // the animation is already ticking.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+  }
+
+  Future<void> _bootstrap() async {
+    final session = context.read<SessionService>();
+
+    // Wait for the longer of: minimum visual duration OR session load.
+    await Future.wait([
+      Future.delayed(const Duration(milliseconds: 1500)),
+      session.initialize(),
+    ]);
+
+    if (!mounted) return;
+
+    final Widget target;
+    if (!session.hasSession) {
+      target = const WelcomeScreen();
+    } else if (session.isLocked) {
+      target = const PinScreen();
+    } else {
+      target = const MainScreen();
+    }
+
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder(
+        pageBuilder:              (_, __, ___) => target,
+        transitionDuration:        Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
   }
 
   @override
@@ -73,18 +112,20 @@ class _SplashScreenState extends State<SplashScreen>
       body: Stack(
         children: [
           // ── Background gradient — top light, bottom dark ─────────────────
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin:  Alignment.topLeft,
-                end:    Alignment.bottomRight,
-                colors: [
-                  Color(0xFFC21A2C),
-                  Color(0xFF990011),
-                  Color(0xFF7A000D),
-                  Color(0xFF5E000A),
-                ],
-                stops: [0.0, 0.38, 0.72, 1.0],
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin:  Alignment.topLeft,
+                  end:    Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFC21A2C),
+                    Color(0xFF990011),
+                    Color(0xFF7A000D),
+                    Color(0xFF5E000A),
+                  ],
+                  stops: [0.0, 0.38, 0.72, 1.0],
+                ),
               ),
             ),
           ),
@@ -101,7 +142,7 @@ class _SplashScreenState extends State<SplashScreen>
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      Color(0x55E83050), // bright rose bloom
+                      Color(0x55E83050),
                       Color(0x00E83050),
                     ],
                   ),
@@ -170,7 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
                     'Envie e receba dinheiro\ninstantaneamente em Angola.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color:  Color(0xB3FFFFFF), // white 70%
+                      color:    Color(0xB3FFFFFF),
                       fontSize: 15,
                       height:   1.45,
                     ),
@@ -183,7 +224,7 @@ class _SplashScreenState extends State<SplashScreen>
                 FadeTransition(
                   opacity: _loaderFade,
                   child: const CupertinoActivityIndicator(
-                    color:  Color(0x99FFFFFF), // white 60%
+                    color:  Color(0x99FFFFFF),
                     radius: 11,
                   ),
                 ),
@@ -197,7 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 // ---------------------------------------------------------------------------
-// App icon — rounded container matching the welcome screen treatment
+// App icon
 // ---------------------------------------------------------------------------
 
 class _AppIcon extends StatelessWidget {
@@ -210,27 +251,24 @@ class _AppIcon extends StatelessWidget {
       height: 88,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        // DecorationImage clips to borderRadius — no separate ClipRRect needed,
-        // which means no square-edge artefact on non-transparent PNGs.
         image: const DecorationImage(
           image: AssetImage('assets/images/banza_icon.png'),
           fit:   BoxFit.cover,
         ),
-        boxShadow: [
+        boxShadow: const [
           BoxShadow(
-            color:        const Color(0x66000000),
+            color:        Color(0x66000000),
             blurRadius:   28,
-            offset:       const Offset(0, 12),
+            offset:       Offset(0, 12),
             spreadRadius: -6,
           ),
           BoxShadow(
-            color:        const Color(0x44C21A2C),
+            color:        Color(0x44C21A2C),
             blurRadius:   18,
-            offset:       const Offset(0, 4),
+            offset:       Offset(0, 4),
           ),
         ],
       ),
-      // Subtle glossy highlight at the top of the icon
       child: ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: const Align(
