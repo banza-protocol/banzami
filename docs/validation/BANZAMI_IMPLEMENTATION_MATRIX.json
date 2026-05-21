@@ -2025,6 +2025,119 @@
       "lastUpdated": "2026-05-19"
     },
     {
+      "id": "P2P-003",
+      "title": "API pública de transferência P2P para consumidores",
+      "categoryId": "cat-p2p",
+      "validationDomain": "DOM-FIN",
+      "referenceSection": "§13.4",
+      "description": "Endpoint público autenticado por JWT que expõe a transferência P2P ao consumidor: POST /v1/transfers com rate limiting, idempotência obrigatória, identidade do remetente derivada do token, receipt canónico sem identificadores internos.",
+      "requirement": "POST /v1/transfers funcional com auth JWT, idempotência, rate limiting (20/min), mapeamento de erros completo, sem exposição de IDs internos. GET /v1/transfers e GET /v1/transfers/{id} disponíveis.",
+      "status": "IMPLEMENTED",
+      "priority": "CRITICAL",
+      "ownerArea": "Public API / Consumer Payments",
+      "technicalArea": "Go · Rust",
+      "validationMethods": [
+        "unit_tests",
+        "financial_invariant"
+      ],
+      "acceptanceCriteria": [
+        "POST /v1/transfers aceita recipient, amount_minor, currency, idempotency_key",
+        "Identidade do remetente sempre derivada do JWT — nunca do body",
+        "idempotency_key obrigatório — 400 se ausente",
+        "Rate limiter: 20 tentativas/min por consumidor — 429 se excedido",
+        "Receipt canónico: transfer_id, status, sender, recipient, amount_minor, currency, note, created_at, completed_at, trace_id",
+        "Sem IDs internos expostos: ledger_posting_id, sender_id, recipient_id proibidos",
+        "OpenAPI 3.1 spec em contracts/openapi/transfers.yaml"
+      ],
+      "testCoverage": true,
+      "evidence": [
+        "services/public-api/internal/handler/transfers.go — Send() handler: JWT auth, rate limit, validate, resolve handle, delegate to P2P-001 engine",
+        "services/public-api/internal/handler/ratelimit.go — TransferRateLimiter: fixed-window 20/min per consumer",
+        "services/public-api/internal/handler/transfers_test.go — 12 unit tests: success, auth, validation, error mapping, idempotency, rate limit, no internal IDs",
+        "services/public-api/internal/service/core_client.go — SendP2pTransfer(): delegates to POST /internal/v1/consumer/transfers",
+        "services/public-api/internal/service/credentials.go — GetHandle(): resolves consumer_id → @banza handle from public_api_credentials",
+        "contracts/openapi/transfers.yaml — OpenAPI 3.1 spec: POST /v1/transfers, GET /v1/transfers, GET /v1/transfers/{id}"
+      ],
+      "dependencies": [
+        "P2P-001",
+        "WAL-001"
+      ],
+      "requires": [
+        "P2P-001"
+      ],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "services/public-api/internal/handler/transfers.go",
+        "services/public-api/internal/handler/ratelimit.go",
+        "services/public-api/internal/service/core_client.go",
+        "contracts/openapi/transfers.yaml"
+      ],
+      "blockingIssues": [],
+      "invariants": [
+        {
+          "id": "INV-P2P-002-1",
+          "name": "Sender identity from JWT invariant",
+          "rule": "transfer.sender == resolve_handle(jwt.consumer_id) — caller cannot spoof sender",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-002-2",
+          "name": "Idempotency key mandatory invariant",
+          "rule": "idempotency_key != \"\" — enforced before any core delegation",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-002-3",
+          "name": "No internal identifiers in public response invariant",
+          "rule": "response !contains { ledger_posting_id, sender_id, recipient_id, available_account_id, reserved_account_id }",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-002-4",
+          "name": "Rate limit enforcement invariant",
+          "rule": "count(transfers, consumer_id, window=1min) <= 20 — enforced before body parsing",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-002-5",
+          "name": "Transfer atomicity from consumer perspective invariant",
+          "rule": "transfer.status in {COMPLETED, FAILED} && (status == COMPLETED => completed_at == created_at)",
+          "status": "PASS"
+        }
+      ],
+      "confidence": {
+        "score": 70,
+        "level": "HIGH",
+        "basis": [
+          "evidence[] non-empty (+20)",
+          "unit_tests in validationMethods (+15)",
+          "financial_invariant: all 5 invariants PASS (+20)",
+          "sandbox pending (-15)"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-05-21T14:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "pending-formal-approval",
+          "commit": "a55b017",
+          "reason": "P2P-003: public consumer transfer API implemented — POST /v1/transfers with JWT auth, mandatory idempotency, fixed-window rate limiter (20/min), canonical receipt, 12 unit tests PASS, OpenAPI 3.1 spec",
+          "evidence": [
+            "services/public-api/internal/handler/transfers.go",
+            "services/public-api/internal/handler/ratelimit.go",
+            "services/public-api/internal/handler/transfers_test.go",
+            "contracts/openapi/transfers.yaml"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
+    },
+    {
       "id": "PL-001",
       "title": "Criação de links de pagamento",
       "categoryId": "cat-paylinks",
