@@ -1560,6 +1560,93 @@ A história da adopção pelo consumidor não é sobre adopção de tecnologia. 
 
 ---
 
+### 13.9 Sistema Visual da App Banza
+
+O Banza é uma aplicação financeira. A confiança começa na aparência.
+
+A interface do consumidor segue um sistema visual dedicado — construído para transmitir segurança, familiaridade e poder de pagamento instantâneo. Este sistema é a referência canónica para qualquer trabalho de UI no Banza.
+
+![Banza App Design System — mockup oficial das 16 ecrãs do consumidor](/images/banza/banza-app-design-system-mockup.png)
+
+#### O mockup oficial é a referência canónica
+
+O mockup acima documenta as 16 ecrãs aprovadas da app Banza. Qualquer trabalho de UI na app do consumidor — novas funcionalidades, iterações, revisões de design — deve alinhar com este sistema visual. Não pode divergir sem revisão explícita.
+
+#### Ecrãs oficiais
+
+| # | Ecrã |
+|---|------|
+| 1 | Splash |
+| 2 | Onboarding / Welcome |
+| 3 | Criar PIN |
+| 4 | Home |
+| 5 | Enviar dinheiro |
+| 6 | Confirmar transferência |
+| 7 | Estado de envio (animação) |
+| 8 | Recibo |
+| 9 | Receber com QR |
+| 10 | Receber com link |
+| 11 | Histórico |
+| 12 | Filtrar histórico |
+| 13 | Perfil |
+| 14 | Segurança |
+| 15 | Notificações |
+| 16 | Ajuda & Suporte |
+
+#### Regra da ecrã Home — ordem de acção obrigatória
+
+Na ecrã Home, a ordem das acções é:
+
+1. **QR Code** — primeira, sempre
+2. **Enviar**
+3. **Receber**
+
+O QR Code é a acção primária porque o Banza é QR-native. O QR é o modelo de interacção principal do ecossistema. Esta ordem não é negociável e reflecte a identidade do produto.
+
+Não usar: Enviar / Receber / QR Code.
+
+#### Tokens visuais oficiais
+
+**Paleta de cores:**
+
+| Nome | Hex |
+|------|-----|
+| Primary Space Cherry | `#990011` |
+| Cherry Highlight | `#C21A2C` |
+| Mid Wine | `#7A000D` |
+| Deep Shadow | `#5E000A` |
+| Soft White | `#FCF6F5` |
+| Soft Neutral Shadow | `#D8D0CF` |
+| Near Black | `#1A1A1A` |
+
+**Gradiente primário (cartão de identidade, superfícies cherry):**
+
+```
+linear-gradient(145deg, #C21A2C 0%, #990011 38%, #7A000D 72%, #5E000A 100%)
+```
+
+**Gradiente de superfície clara (fundo de ecrã):**
+
+```
+linear-gradient(to bottom, #FFFFFF 0%, #FCF6F5 55%, #D8D0CF 100%)
+```
+
+#### Princípios visuais
+
+- **Geometria arredondada** — raios de 16/20/24/28 px; sem superfícies rectangulares afiadas
+- **Profundidade física suave** — sombras flutuantes, não planas
+- **Cards flutuantes** — o conteúdo financeiro vive em cartões elevados
+- **Espaçamento generoso** — hierarquia clara, sem compressão
+- **Alta legibilidade** — contraste financeiro, não decorativo
+- **Hierarquia financeira calma** — o dinheiro é o protagonista, não a interface
+- **Premium mas contido** — refinamento sem ostentação
+- **Identidade QR-native** — QR é sempre a acção primária visível
+- **Sem aspecto Flutter genérico** — sem Material Design padrão; visual proprietário
+- **Sem vermelho inconsistente** — toda a superfície vermelha usa os tokens oficiais acima
+- **Sem branding antigo** — a marca Banzami não aparece na interface do consumidor
+
+---
+
 ## 14. O Motor de Crescimento do Banza
 
 Uma rede de pagamentos não é um produto que se constrói e lança. É uma rede que se faz crescer — e o seu valor compõe-se à medida que cresce.
