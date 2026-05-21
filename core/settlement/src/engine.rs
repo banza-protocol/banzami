@@ -235,7 +235,7 @@ mod tests {
     use std::sync::{Arc, Mutex};
 
     use banzami_ledger::{LedgerEngine, LedgerError, Account, LedgerEntry, LedgerPosting};
-    use banzami_types::{AccountId, Currency, MerchantId, Money, SettlementId, WalletId};
+    use banzami_types::{AccountId, Currency, LedgerPostingId, MerchantId, Money, SettlementId, WalletId};
 
     use super::*;
     use crate::{repository::SettlementRepository, Settlement, SettlementError, SettlementStatus};
@@ -278,6 +278,22 @@ mod tests {
             _: AccountId,
         ) -> Result<Vec<LedgerEntry>, LedgerError> {
             Ok(vec![])
+        }
+
+        async fn reverse(
+            &self,
+            _original: &LedgerPosting,
+            _description: impl Into<String> + Send,
+            _new_idempotency_key: impl Into<String> + Send,
+        ) -> Result<LedgerPosting, LedgerError> {
+            unimplemented!("reverse not needed in settlement unit tests")
+        }
+
+        async fn get_posting(
+            &self,
+            _posting_id: LedgerPostingId,
+        ) -> Result<LedgerPosting, LedgerError> {
+            unimplemented!("get_posting not needed in settlement unit tests")
         }
     }
 
