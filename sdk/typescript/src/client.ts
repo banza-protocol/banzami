@@ -79,9 +79,6 @@ export class BanzaClient {
    */
   readonly webhooks: WebhooksClient;
 
-  private jwt:       string | null = null;
-  private jwtExpiry: Date   | null = null;
-
   get isSandbox():    boolean { return this.environment === 'sandbox'; }
   get isProduction(): boolean { return this.environment === 'live'; }
 
@@ -104,42 +101,10 @@ export class BanzaClient {
   }
 
   // ---------------------------------------------------------------------------
-  // JWT management — exchange the raw API key for a short-lived Bearer token.
-  // Cached transparently; renewed 5 minutes before expiry.
-  // ---------------------------------------------------------------------------
-
-  private async ensureJwt(): Promise<void> {
-    const bufferMs = 5 * 60 * 1000;
-    if (this.jwt && this.jwtExpiry && Date.now() < this.jwtExpiry.getTime() - bufferMs) {
-      return;
-    }
-    const res = await fetch(`${this.base}/v1/auth/token`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ api_key: this.apiKey }),
-    });
-    if (!res.ok) {
-      let code = 'AUTH_FAILED';
-      let msg  = 'API key exchange failed';
-      try {
-        const body = await res.json() as { code?: string; message?: string };
-        code = body.code    ?? code;
-        msg  = body.message ?? msg;
-      } catch { /* non-JSON body */ }
-      throw new BanzaApiError(res.status, code, msg);
-    }
-    const data = await res.json() as { token: string; expires_at: string };
-    this.jwt       = data.token;
-    this.jwtExpiry = new Date(data.expires_at);
-  }
-
-  // ---------------------------------------------------------------------------
   // Internal helpers
   // ---------------------------------------------------------------------------
 
   private async executeOnce<T>(path: string, init?: RequestInit, idempotencyKey?: string, attempt = 0): Promise<T> {
-    await this.ensureJwt();
-
     const extraHeaders: Record<string, string> = {};
     if (idempotencyKey !== undefined) {
       extraHeaders['Idempotency-Key'] = idempotencyKey;
@@ -153,7 +118,7 @@ export class BanzaClient {
       ...init,
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': `Bearer ${this.jwt}`,
+        'Authorization': `Bearer ${this.apiKey}`,
         ...(init?.headers ?? {}),
         ...extraHeaders,
       },
