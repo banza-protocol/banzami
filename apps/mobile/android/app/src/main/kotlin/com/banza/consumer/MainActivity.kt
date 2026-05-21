@@ -1,4 +1,4 @@
-package com.banzami.banzami_mobile
+package com.banza.consumer
 
 import io.flutter.embedding.android.FlutterActivity
 
