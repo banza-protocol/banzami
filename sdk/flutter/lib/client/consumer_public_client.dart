@@ -208,16 +208,17 @@ class ConsumerPublicClient {
     required int amountMinor,
     String currency = 'AOA',
     String? note,
+    String? idempotencyKey,
   }) async {
     final json = await _call(
       method: 'POST',
       path: '/v1/transfers',
       body: {
-        'recipient': recipientHandle,
-        'amount_minor': amountMinor,
-        'currency': currency,
+        'recipient':       recipientHandle,
+        'amount_minor':    amountMinor,
+        'currency':        currency,
         if (note != null) 'note': note,
-        'idempotency_key': _uuid.v4(),
+        'idempotency_key': idempotencyKey ?? _uuid.v4(),
       },
     );
     return Transfer.fromJson(json);

@@ -1,14 +1,15 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
-import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../widgets/banza_amount_input.dart';
 import '../widgets/banza_button.dart';
+import 'confirm_screen.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
 ///
@@ -37,13 +38,13 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   final _handleFocus = FocusNode();
 
   int     _amountMinor  = 0;
-  bool    _sending      = false;
   String? _handleError;
   String? _amountError;
   String? _sendError;
 
   bool    _handleFocused    = false;
   List<ConsumerSuggestion> _suggestions = [];
+  ConsumerSuggestion? _selectedSuggestion;
   bool    _searching        = false;
   bool    _validatingHandle = false;
   bool    _handleConfirmed  = false; // true once handle is known to exist
@@ -71,7 +72,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   }
 
   void _onHandleChanged(String value) {
-    setState(() { _handleError = null; _sendError = null; _handleConfirmed = false; });
+    setState(() { _handleError = null; _sendError = null; _handleConfirmed = false; _selectedSuggestion = null; });
 
     _debounce?.cancel();
     final q = value.trim().replaceAll('@', '');
@@ -95,7 +96,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   void _selectSuggestion(ConsumerSuggestion s) {
     _handleCtrl.text = s.handle;
     _handleFocus.unfocus();
-    setState(() { _suggestions = []; _handleError = null; _handleConfirmed = true; });
+    setState(() { _suggestions = []; _handleError = null; _handleConfirmed = true; _selectedSuggestion = s; });
   }
 
   Future<void> _validateHandleOnBlur() async {
@@ -131,29 +132,23 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       setState(() => _amountError = 'Introduza um montante válido');
       return;
     }
-    setState(() { _sending = true; _sendError = null; _handleError = null; _amountError = null; });
+    if (!mounted) return;
 
-    try {
-      final transfer = await widget.client.sendByHandle(
-        recipientHandle: handle,
-        amountMinor:     _amountMinor,
-        note:            _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
-      );
-      widget.onSuccess(transfer);
-    } on BanzamiApiException catch (e) {
-      setState(() => _sendError = switch (e.code) {
-        'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente',
-        'RECIPIENT_NOT_FOUND' => '@banza não encontrado',
-        'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa',
-        'SELF_TRANSFER'       => 'Não pode enviar para si mesmo',
-        'INVALID_AMOUNT'      => 'Montante inválido',
-        _                     => 'Erro de envio. Tente novamente.',
-      });
-    } catch (_) {
-      setState(() => _sendError = 'Erro de ligação. Tente novamente.');
-    } finally {
-      if (mounted) setState(() => _sending = false);
-    }
+    final idempotencyKey = const Uuid().v4();
+    final note = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
+
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => BanzamiConfirmScreen(
+        client:               widget.client,
+        recipientHandle:      handle,
+        recipientDisplayName: _selectedSuggestion?.displayName,
+        amountMinor:          _amountMinor,
+        note:                 note,
+        idempotencyKey:       idempotencyKey,
+        ownHandle:            widget.ownHandle,
+        onSuccess:            widget.onSuccess,
+      ),
+    ));
   }
 
   @override
@@ -233,7 +228,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               const SizedBox(height: BanzaSpacing.xxl),
               BanzaButton(
                 label:     'Enviar',
-                isLoading: _sending,
+                isLoading: _validatingHandle,
                 onPressed: _send,
               ),
             ],

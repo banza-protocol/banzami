@@ -52,6 +52,8 @@ export 'widgets/banza_transfer_item.dart';
 // Screens
 export 'screens/home_screen.dart';
 export 'screens/send_screen.dart';
+export 'screens/confirm_screen.dart';
+export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
 export 'screens/checkout_screen.dart';
