@@ -32,7 +32,7 @@ async fn make_consumer_with_balance(pool: &PgPool, balance_minor: i64) -> Consum
          VALUES ($1, $2, 'ACTIVE', NOW(), NOW())",
     )
     .bind(consumer_id.as_uuid())
-    .bind(format!("consumer-{}", consumer_id.as_uuid()))
+    .bind(format!("usr{}", &consumer_id.as_uuid().to_string().replace('-', "")[..17]))
     .execute(pool)
     .await
     .unwrap();
@@ -118,6 +118,7 @@ async fn send_transfer_succeeds_and_produces_completed_status(pool: PgPool) -> s
         amount_minor:    50_000,
         currency:        Currency::AOA,
         description:     Some("test payment".into()),
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -143,6 +144,7 @@ async fn get_returns_stored_transfer(pool: PgPool) -> sqlx::Result<()> {
         amount_minor:    50_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -172,6 +174,7 @@ async fn idempotent_send_returns_original_transfer(pool: PgPool) -> sqlx::Result
         amount_minor:    50_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     };
 
     let first  = eng.send(req()).await.unwrap();
@@ -199,6 +202,7 @@ async fn zero_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             amount_minor:    0,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         })
         .await
         .unwrap_err();
@@ -221,6 +225,7 @@ async fn negative_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             amount_minor:    -1,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         })
         .await
         .unwrap_err();
@@ -242,6 +247,7 @@ async fn self_transfer_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             amount_minor:    1_000,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         })
         .await
         .unwrap_err();
@@ -264,6 +270,7 @@ async fn insufficient_funds_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             amount_minor:    10_000,  // more than the 1_000 available
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         })
         .await
         .unwrap_err();
@@ -290,6 +297,7 @@ async fn transfer_with_unknown_sender_is_rejected(pool: PgPool) -> sqlx::Result<
             amount_minor:    1_000,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         })
         .await
         .unwrap_err();
@@ -320,6 +328,7 @@ async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
         amount_minor:    30_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -329,7 +338,7 @@ async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
         "SELECT COALESCE(SUM(CASE entry_type
              WHEN 'DEBIT'  THEN -amount_minor
              WHEN 'CREDIT' THEN  amount_minor
-             END), 0)
+             END)::BIGINT, 0::BIGINT)
          FROM ledger_entries le
          JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
          WHERE cw.consumer_id = $1",
@@ -366,6 +375,7 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
             amount_minor:    6_000,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         }),
         e2.send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-conc-2".into(),
@@ -374,6 +384,7 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
             amount_minor:    6_000,
             currency:        Currency::AOA,
             description:     None,
+            recipient_handle: None,
         }),
     );
 
@@ -389,7 +400,7 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
         "SELECT COALESCE(SUM(CASE entry_type
              WHEN 'DEBIT'  THEN -amount_minor
              WHEN 'CREDIT' THEN  amount_minor
-             END), 0)
+             END)::BIGINT, 0::BIGINT)
          FROM ledger_entries le
          JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
          WHERE cw.consumer_id = $1",
@@ -424,6 +435,7 @@ async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
         amount_minor:    30_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -435,7 +447,7 @@ async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
                 "SELECT COALESCE(SUM(CASE entry_type
                      WHEN 'DEBIT'  THEN -amount_minor
                      WHEN 'CREDIT' THEN  amount_minor
-                     END), 0)
+                     END)::BIGINT, 0::BIGINT)
                  FROM ledger_entries le
                  JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
                  WHERE cw.consumer_id = $1",
@@ -479,6 +491,7 @@ async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Resul
         amount_minor:    45_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -487,7 +500,7 @@ async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Resul
         "SELECT COALESCE(SUM(CASE entry_type
              WHEN 'DEBIT'  THEN -amount_minor
              WHEN 'CREDIT' THEN  amount_minor
-             END), 0)
+             END)::BIGINT, 0::BIGINT)
          FROM ledger_entries le
          JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
          WHERE cw.consumer_id = $1",
@@ -520,6 +533,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
         amount_minor:    60_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -532,6 +546,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
         amount_minor:    40_000,
         currency:        Currency::AOA,
         description:     None,
+            recipient_handle: None,
     })
     .await
     .unwrap();
@@ -540,7 +555,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
         "SELECT COALESCE(SUM(CASE entry_type
              WHEN 'DEBIT'  THEN -amount_minor
              WHEN 'CREDIT' THEN  amount_minor
-             END), 0)
+             END)::BIGINT, 0::BIGINT)
          FROM ledger_entries le
          JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
          WHERE cw.consumer_id = ANY($1)",
