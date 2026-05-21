@@ -619,6 +619,75 @@ Invariants over the @banza handle registration and resolution system.
 
 ---
 
+## INV-P2P-001 — P2P Transfer Correctness
+
+### INV-P2P-001-1
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-001-1` |
+| **name** | Transfer conservation invariant |
+| **domain** | P2P / Ledger |
+| **description** | A completed P2P transfer debits the sender's available account and credits the recipient's available account by the same amount. No money is created or destroyed. |
+| **rule** | `sender.balance_delta + recipient.balance_delta == 0` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-p2p`, `cat-ledger` |
+| **validationMethod** | Integration tests: sender_balance_reduced, recipient_balance_increased, zero_sum_ledger_invariant in p2p_integration.rs |
+
+### INV-P2P-001-2
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-001-2` |
+| **name** | Transfer-ledger backing invariant |
+| **domain** | P2P / Ledger |
+| **description** | Every COMPLETED P2P transfer record is backed by exactly one LedgerPosting with two balanced LedgerEntries (one DEBIT, one CREDIT). |
+| **rule** | `transfer.status == COMPLETED ⟹ ∃! posting ∧ sum(signed_entries) == 0` |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-p2p`, `cat-ledger` |
+| **validationMethod** | Integration test: zero_sum_ledger_invariant in p2p_integration.rs — queries ledger_entries for the transfer's posting_id and asserts signed sum == 0 |
+
+### INV-P2P-001-3
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-001-3` |
+| **name** | Concurrent overdraft prevention invariant |
+| **domain** | P2P / Concurrency |
+| **description** | Concurrent P2P transfers from the same sender cannot collectively debit more than the sender's available balance. SELECT FOR UPDATE on the sender wallet row serializes concurrent sends. |
+| **rule** | `sum(completed_transfers[sender]) <= initial_balance[sender]` under concurrent execution |
+| **severity** | `CRITICAL` |
+| **appliesToCategories** | `cat-p2p`, `cat-wallet` |
+| **validationMethod** | Integration test: concurrent_sends_cannot_overdraw in p2p_integration.rs — JoinSet of 2 × 6k sends against 10k balance; asserts exactly one succeeds |
+
+### INV-P2P-001-4
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-001-4` |
+| **name** | Transfer idempotency invariant |
+| **domain** | P2P / Idempotency |
+| **description** | Re-submitting the same idempotency_key returns the original transfer record without creating a new ledger posting or modifying any balance. |
+| **rule** | `send(key) → T ∧ send(key) → T (same T, no new ledger entries)` |
+| **severity** | `HIGH` |
+| **appliesToCategories** | `cat-p2p`, `cat-ledger` |
+| **validationMethod** | Integration test: idempotency_returns_original in p2p_integration.rs — calls p2p_send twice with the same key; asserts same transfer id and balance decremented only once |
+
+### INV-P2P-001-5
+
+| Field | Value |
+|-------|-------|
+| **id** | `INV-P2P-001-5` |
+| **name** | Recipient handle audit snapshot invariant |
+| **domain** | P2P / Audit |
+| **description** | The normalized @banza handle used to route a P2P transfer is snapshotted atomically on the transfers record for audit trail. The snapshot is immutable after the transfer is created. |
+| **rule** | `transfer.recipient_handle == normalize(routing_input)` for all handle-routed transfers |
+| **severity** | `MEDIUM` |
+| **appliesToCategories** | `cat-p2p` |
+| **validationMethod** | Integration test: recipient_handle_snapshotted in p2p_integration.rs — sends with @ANA_SNAP (uppercase), asserts transfer.recipient_handle == "ana_snap" |
+
+---
+
 ## Invariant Status Values
 
 | Status | Meaning |
