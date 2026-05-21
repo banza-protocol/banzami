@@ -77,7 +77,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   void _onScan() => Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => BanzamiScanScreen(
       client:    widget.client,
-      onSuccess: (_) { Navigator.of(context).pop(); _load(); },
+      onSuccess: (_) => _load(),
     ),
   ));
 
@@ -85,7 +85,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
     builder: (_) => BanzamiSendScreen(
       client:    widget.client,
       ownHandle: widget.handle,
-      onSuccess: (_) { Navigator.of(context).pop(); _load(); },
+      onSuccess: (_) => _load(),
     ),
   ));
 
