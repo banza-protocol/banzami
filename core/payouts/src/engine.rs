@@ -322,6 +322,20 @@ mod tests {
             self.entries.lock().unwrap().extend(p.entries.clone());
             Ok(p)
         }
+        async fn reverse(
+            &self,
+            _original: &LedgerPosting,
+            _description: impl Into<String> + Send,
+            _new_idempotency_key: impl Into<String> + Send,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            unimplemented!("reverse not needed in payout unit tests")
+        }
+        async fn get_posting(
+            &self,
+            _posting_id: LedgerPostingId,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            unimplemented!("get_posting not needed in payout unit tests")
+        }
         async fn balance(&self, account_id: AccountId) -> Result<Money, banzami_ledger::LedgerError> {
             let accounts = self.accounts.lock().unwrap();
             let account  = accounts

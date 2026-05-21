@@ -231,22 +231,22 @@ async fn routing_object_has_canonical_fields(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn concurrent_resolution_is_deterministic(pool: PgPool) {
     use std::collections::HashSet;
-    use tokio::task::JoinSet;
 
     let eng = Arc::new(engine(pool));
     activate_wallet(&*eng, "+244911000110", "concur_target").await;
 
-    let mut set = JoinSet::new();
-    for _ in 0..10 {
-        let eng = Arc::clone(&eng);
-        set.spawn(async move {
-            eng.resolve_to_wallet("@concur_target", Currency::AOA).await
-        });
-    }
+    let futures: Vec<_> = (0..10)
+        .map(|_| {
+            let eng = Arc::clone(&eng);
+            async move { eng.resolve_to_wallet("@concur_target", Currency::AOA).await }
+        })
+        .collect();
+
+    let results = futures::future::join_all(futures).await;
 
     let mut wallet_ids = HashSet::new();
-    while let Some(result) = set.join_next().await {
-        let dest = result.unwrap().expect("all resolutions must succeed");
+    for result in results {
+        let dest = result.expect("all resolutions must succeed");
         wallet_ids.insert(dest.wallet_id);
     }
 

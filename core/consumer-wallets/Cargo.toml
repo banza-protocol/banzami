@@ -24,5 +24,6 @@ rand           = { workspace = true }
 sha2           = { workspace = true }
 
 [dev-dependencies]
-sqlx  = { workspace = true }
-tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+sqlx    = { workspace = true }
+tokio   = { workspace = true, features = ["macros", "rt-multi-thread"] }
+futures = "0.3"

@@ -1,7 +1,7 @@
 //! Integration tests for the WAL-004 wallet funding engine.
 //!
 //! Each test runs against a real PostgreSQL database with migrations applied
-//! via `#[sqlx::test(migrations = "../db/migrations")]`.
+//! via `#[sqlx::test(migrations = "../../db/migrations")]`.
 //!
 //! Invariants tested:
 //!   INV-WAL-004-1  External callback alone never changes wallet balance.
@@ -37,7 +37,7 @@ async fn make_engine(pool: PgPool) -> (PostgresFundingEngine<PostgresLedgerRepos
             id:           transit_id,
             account_type: AccountType::Asset,
             name:         "test-transit".into(),
-            currency:     Currency::Aoa,
+            currency:     Currency::AOA,
             created_at:   Utc::now(),
         })
         .await
@@ -57,21 +57,20 @@ async fn make_wallet(pool: &PgPool, ledger: &PostgresLedgerRepository) -> (Consu
     // Ledger accounts
     ledger.create_account(Account {
         id: avail_id, account_type: AccountType::Liability,
-        name: "avail".into(), currency: Currency::Aoa, created_at: Utc::now(),
+        name: "avail".into(), currency: Currency::AOA, created_at: Utc::now(),
     }).await.unwrap();
     ledger.create_account(Account {
         id: rsrv_id, account_type: AccountType::Liability,
-        name: "rsrv".into(), currency: Currency::Aoa, created_at: Utc::now(),
+        name: "rsrv".into(), currency: Currency::AOA, created_at: Utc::now(),
     }).await.unwrap();
 
     // consumers row
     sqlx::query(
-        "INSERT INTO consumers (id, phone_number, handle, created_at)
-         VALUES ($1, $2, $3, NOW())"
+        "INSERT INTO consumers (id, handle, status, created_at, updated_at)
+         VALUES ($1, $2, 'ACTIVE', NOW(), NOW())"
     )
     .bind(consumer_id.as_uuid())
-    .bind(format!("+244900{}", &consumer_id.as_uuid().to_string()[..6]))
-    .bind(format!("@test-{}", &consumer_id.as_uuid().to_string()[..8]))
+    .bind(format!("tst{}", &consumer_id.as_uuid().to_string().replace('-', "")[..17]))
     .execute(pool)
     .await
     .unwrap();
@@ -98,7 +97,7 @@ fn funding_req(consumer_id: ConsumerId, wallet_id: ConsumerWalletId) -> CreateFu
         consumer_id,
         wallet_id,
         provider:        FundingProvider::Simulated,
-        amount:          Money::new(10_000_00, Currency::Aoa),
+        amount:          Money::new(10_000_00, Currency::AOA),
         external_ref:    format!("REF-{}", Uuid::new_v4()),
         idempotency_key: format!("idem-{}", Uuid::new_v4()),
         expires_at:      Utc::now() + Duration::hours(1),
@@ -108,7 +107,7 @@ fn funding_req(consumer_id: ConsumerId, wallet_id: ConsumerWalletId) -> CreateFu
 // ---------------------------------------------------------------------------
 // SCENARIO A — happy path: create → received → callback → reconcile → SETTLED
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn happy_path_full_funding_flow(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -166,7 +165,7 @@ async fn happy_path_full_funding_flow(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // INV-WAL-004-1 — callback alone never changes wallet balance
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn inv_wal_004_1_callback_alone_does_not_credit_wallet(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, _transit) = make_engine(pool.clone()).await;
@@ -199,7 +198,7 @@ async fn inv_wal_004_1_callback_alone_does_not_credit_wallet(pool: PgPool) {
 // INV-WAL-004-3 — duplicate provider callbacks cannot duplicate the credit
 // SCENARIO C — duplicate callback from bank
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn inv_wal_004_3_duplicate_callback_rejected(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, _transit) = make_engine(pool.clone()).await;
@@ -225,7 +224,7 @@ async fn inv_wal_004_3_duplicate_callback_rejected(pool: PgPool) {
         consumer_id,
         wallet_id,
         provider:        FundingProvider::Simulated,
-        amount:          Money::new(5_000_00, Currency::Aoa),
+        amount:          Money::new(5_000_00, Currency::AOA),
         external_ref:    format!("REF2-{}", Uuid::new_v4()),
         idempotency_key: format!("idem2-{}", Uuid::new_v4()),
         expires_at:      Utc::now() + Duration::hours(1),
@@ -258,7 +257,7 @@ async fn inv_wal_004_3_duplicate_callback_rejected(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // SCENARIO B — delayed settlement (callback arrives late, wallet stays pending)
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn delayed_callback_settles_eventually(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -306,7 +305,7 @@ async fn delayed_callback_settles_eventually(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // SCENARIO D — reversal after settlement (INV-WAL-004-4)
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn inv_wal_004_4_reversal_preserves_audit_trail(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -383,7 +382,7 @@ async fn inv_wal_004_4_reversal_preserves_audit_trail(pool: PgPool) {
 // SCENARIO E — expired session cannot be settled
 // INV-WAL-004-5 — expired operations are never spendable
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn inv_wal_004_5_expired_session_cannot_be_settled(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -394,7 +393,7 @@ async fn inv_wal_004_5_expired_session_cannot_be_settled(pool: PgPool) {
         consumer_id,
         wallet_id,
         provider:        FundingProvider::Simulated,
-        amount:          Money::new(1_000_00, Currency::Aoa),
+        amount:          Money::new(1_000_00, Currency::AOA),
         external_ref:    format!("REF-{}", Uuid::new_v4()),
         idempotency_key: format!("idem-{}", Uuid::new_v4()),
         expires_at:      Utc::now() - Duration::minutes(5), // already expired
@@ -418,7 +417,7 @@ async fn inv_wal_004_5_expired_session_cannot_be_settled(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // Reconcile idempotency — calling reconcile twice returns same session
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn reconcile_is_idempotent(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -466,7 +465,7 @@ async fn reconcile_is_idempotent(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // Invalid state transition is rejected
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn invalid_state_transition_is_rejected(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, transit) = make_engine(pool.clone()).await;
@@ -492,7 +491,7 @@ async fn invalid_state_transition_is_rejected(pool: PgPool) {
 // ---------------------------------------------------------------------------
 // create_session is idempotent on idempotency_key
 // ---------------------------------------------------------------------------
-#[sqlx::test(migrations = "../db/migrations")]
+#[sqlx::test(migrations = "../../db/migrations")]
 async fn create_session_is_idempotent(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let (engine, _transit) = make_engine(pool.clone()).await;
@@ -503,7 +502,7 @@ async fn create_session_is_idempotent(pool: PgPool) {
         consumer_id,
         wallet_id,
         provider:        FundingProvider::Simulated,
-        amount:          Money::new(2_000_00, Currency::Aoa),
+        amount:          Money::new(2_000_00, Currency::AOA),
         external_ref:    format!("REF-{}", Uuid::new_v4()),
         idempotency_key: idem_key.clone(),
         expires_at:      Utc::now() + Duration::hours(1),
