@@ -224,19 +224,21 @@ abstract class BanzaSpacing {
 // ---------------------------------------------------------------------------
 
 abstract class BanzaRadius {
-  static const double sm   = 4;
-  static const double md   = 8;
-  static const double lg   = 12;
-  static const double xl   = 16;
-  static const double xxl  = 24;
-  static const double full = 999;
+  static const double sm    = 4;
+  static const double md    = 8;
+  static const double lg    = 12;
+  static const double xl    = 16;
+  static const double field = 20;  // inputs, auth CTAs
+  static const double xxl   = 24;
+  static const double full  = 999;
 
-  static const BorderRadius smAll   = BorderRadius.all(Radius.circular(sm));
-  static const BorderRadius mdAll   = BorderRadius.all(Radius.circular(md));
-  static const BorderRadius lgAll   = BorderRadius.all(Radius.circular(lg));
-  static const BorderRadius xlAll   = BorderRadius.all(Radius.circular(xl));
-  static const BorderRadius xxlAll  = BorderRadius.all(Radius.circular(xxl));
-  static const BorderRadius fullAll = BorderRadius.all(Radius.circular(full));
+  static const BorderRadius smAll    = BorderRadius.all(Radius.circular(sm));
+  static const BorderRadius mdAll    = BorderRadius.all(Radius.circular(md));
+  static const BorderRadius lgAll    = BorderRadius.all(Radius.circular(lg));
+  static const BorderRadius xlAll    = BorderRadius.all(Radius.circular(xl));
+  static const BorderRadius fieldAll = BorderRadius.all(Radius.circular(field));
+  static const BorderRadius xxlAll   = BorderRadius.all(Radius.circular(xxl));
+  static const BorderRadius fullAll  = BorderRadius.all(Radius.circular(full));
 
   BanzaRadius._();
 }
@@ -390,27 +392,27 @@ abstract class BanzaTheme {
         filled:     true,
         fillColor:  BanzaColors.gray100,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.lg,
-          vertical:   BanzaSpacing.md,
+          horizontal: BanzaSpacing.lg + 4,
+          vertical:   BanzaSpacing.md + 6,
         ),
         border: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         hintStyle:  BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),

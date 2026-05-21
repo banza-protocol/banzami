@@ -4,6 +4,7 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
+import '../main_screen.dart';
 
 enum _Step { enter, confirm }
 
@@ -88,11 +89,12 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
       final canBio = await svc.canUseBiometrics();
       if (!mounted) return;
 
-      // Pop the entire onboarding stack — app.dart has already rebuilt with
-      // MainScreen as home now that the session exists.
-      Navigator.of(context).popUntil((route) => route.isFirst);
-
-      if (canBio) _showBiometricsPrompt();
+      if (canBio) {
+        // Biometrics prompt handles navigation to MainScreen internally.
+        _showBiometricsPrompt();
+      } else {
+        _goToMain();
+      }
     } on BanzamiApiException catch (e) {
       setState(() {
         _apiError   = e.code == 'HANDLE_TAKEN'
@@ -114,8 +116,18 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     }
   }
 
+  void _goToMain() {
+    Navigator.of(context).pushAndRemoveUntil(
+      PageRouteBuilder(
+        pageBuilder:              (_, __, ___) => const MainScreen(),
+        transitionDuration:        Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+      (_) => false,
+    );
+  }
+
   void _showBiometricsPrompt() {
-    // Capture svc before popUntil removes this widget from the tree.
     final svc = context.read<SessionService>();
     showModalBottomSheet<void>(
       context:       context,
@@ -127,8 +139,12 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
         onEnable: () async {
           Navigator.pop(sheetCtx);
           await svc.enableBiometrics();
+          if (mounted) _goToMain();
         },
-        onSkip: () => Navigator.pop(sheetCtx),
+        onSkip: () {
+          Navigator.pop(sheetCtx);
+          if (mounted) _goToMain();
+        },
       ),
     );
   }

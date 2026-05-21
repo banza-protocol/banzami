@@ -189,6 +189,7 @@ class BanzaPrimaryButton extends StatefulWidget {
   final Color? backgroundColor;
   final Color? foregroundColor;
   final double height;
+  final LinearGradient? gradient;
 
   const BanzaPrimaryButton({
     super.key,
@@ -199,7 +200,8 @@ class BanzaPrimaryButton extends StatefulWidget {
     this.icon,
     this.backgroundColor,
     this.foregroundColor,
-    this.height       = 52,
+    this.height       = 56,
+    this.gradient,
   });
 
   @override
@@ -242,8 +244,19 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
 
   @override
   Widget build(BuildContext context) {
-    final bg = widget.backgroundColor ?? BanzaColors.wine;
-    final fg = widget.foregroundColor ?? BanzaColors.white;
+    final isDisabled  = widget.onPressed == null || widget.isLoading;
+    final hasCustomBg = widget.backgroundColor != null;
+    final fg          = widget.foregroundColor ?? BanzaColors.white;
+
+    final LinearGradient? gradient = (!hasCustomBg && !isDisabled)
+        ? (widget.gradient ?? BanzaGradients.wine)
+        : null;
+
+    final Color? flatColor = hasCustomBg
+        ? (isDisabled
+              ? widget.backgroundColor!.withValues(alpha: 0.5)
+              : widget.backgroundColor)
+        : (isDisabled ? BanzaColors.wine.withValues(alpha: 0.40) : null);
 
     return ScaleTransition(
       scale: _scale,
@@ -256,10 +269,19 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
           height: widget.height,
           width:  widget.fullWidth ? double.infinity : null,
           decoration: BoxDecoration(
-            color:        widget.onPressed == null || widget.isLoading
-                ? bg.withValues(alpha: 0.5)
-                : bg,
-            borderRadius: BanzaRadius.lgAll,
+            color:        flatColor,
+            gradient:     gradient,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow:    isDisabled
+                ? null
+                : [
+                    BoxShadow(
+                      color:        BanzaColors.wine.withValues(alpha: 0.32),
+                      blurRadius:   16,
+                      offset:       const Offset(0, 4),
+                      spreadRadius: -2,
+                    ),
+                  ],
           ),
           alignment: Alignment.center,
           child: widget.isLoading
@@ -272,7 +294,7 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
                   ),
                 )
               : Row(
-                  mainAxisSize:     MainAxisSize.min,
+                  mainAxisSize:      MainAxisSize.min,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     if (widget.icon != null) ...[
@@ -493,10 +515,10 @@ class _BanzaActionTileState extends State<BanzaActionTile>
                   blurRadius: 12,
                   offset:     const Offset(0, 4),
                 ),
-                BoxShadow(
-                  color:      const Color(0x08000000),
+                const BoxShadow(
+                  color:      Color(0x08000000),
                   blurRadius: 2,
-                  offset:     const Offset(0, 1),
+                  offset:     Offset(0, 1),
                 ),
               ],
             ),
@@ -715,23 +737,23 @@ class BanzaTextField extends StatelessWidget {
           vertical:   BanzaSpacing.md + 2,
         ),
         border: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.lgAll,
+          borderRadius: BanzaRadius.fieldAll,
           borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
         ),
         hintStyle:  BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
