@@ -1409,9 +1409,130 @@ A escola do seu filho envia um pedido de pagamento. A sua app mostra:
 
 Um toque. Pago. A escola regista-o imediatamente.
 
-### 13.7 A sua carteira é o seu registo
+### 13.7 Como funciona o histórico da carteira
 
-A app Banza mostra cada transacção — enviada e recebida — com timestamps, valores e o @banza da outra parte. Sem cobranças misteriosas. Sem dinheiro físico por contabilizar. Visibilidade completa sobre a sua actividade financeira.
+O histórico de actividade da carteira não é uma lista de notificações. É a **projecção legível de eventos financeiros imutáveis** — o registo permanente e cronológico de tudo o que aconteceu à sua carteira.
+
+#### O princípio fundamental
+
+Cada item visível no seu histórico corresponde a exatamente um evento real registado no ledger financeiro. Não há entradas sem fundamento. Não há pagamentos que desaparecem. Não há duplicados. O que o ledger registou, o histórico mostra — na mesma ordem, com os mesmos valores, permanentemente.
+
+```
+Evento no ledger
+     ↓
+Projecção de actividade
+     ↓
+Feed do consumidor
+```
+
+#### Por que o histórico tem de ser determinístico
+
+Um extracto bancário em papel tem uma propriedade que as pessoas assumem como garantida: a mesma transacção aparece sempre no mesmo lugar, com o mesmo valor, na mesma ordem. Se o extracto for diferente a cada vez que o abrir, o banco quebrou a confiança fundamental.
+
+O Banza mantém a mesma garantia:
+
+- **Imutável** — uma vez registado, um evento não se altera. Não é possível editar o valor de uma transferência passada.
+- **Ordenação determinística** — os eventos aparecem sempre pela mesma ordem: mais recente primeiro, com ordenação estável por identificador único em caso de timestamps idênticos.
+- **Sem duplicados entre páginas** — a paginação usa cursores baseados na posição exacta no tempo, não em offsets. Uma transacção nunca aparece duas vezes.
+- **Sem omissões** — cada transferência completada e cada carregamento liquidado é visível. Não existe transferência "invisível".
+
+#### Tipos de actividade
+
+| Tipo | Direcção | Quando aparece |
+|------|----------|----------------|
+| `P2P_SENT` | SAÍDA | Enviou dinheiro a outro @banza |
+| `P2P_RECEIVED` | ENTRADA | Recebeu dinheiro de outro @banza |
+| `WALLET_FUNDED` | ENTRADA | Carregou a carteira via Multicaixa Express |
+| `WALLET_REVERSED` | SAÍDA | Um carregamento anterior foi revertido |
+
+A direcção (`ENTRADA` / `SAÍDA`) é sempre calculada pelo sistema a partir da sua perspectiva. A app nunca precisa de inferir quem pagou a quem.
+
+#### Exemplos reais
+
+**"Enviaste 2.000 Kz para @ana"**
+```
+Tipo:         P2P_SENT
+Direcção:     SAÍDA
+Montante:     2.000 Kz
+Contraparte:  @ana
+Nota:         almoço
+Estado:       COMPLETO
+Data:         21 Maio 2026, 14h00
+```
+
+O que aconteceu no ledger:
+```
+DR  carteira_@joao:disponível   2.000 Kz  (deve menos ao João)
+CR  carteira_@ana:disponível    2.000 Kz  (deve mais à Ana)
+```
+
+**"Recebeste 5.000 Kz de @joao"**
+```
+Tipo:         P2P_RECEIVED
+Direcção:     ENTRADA
+Montante:     5.000 Kz
+Contraparte:  @joao
+Nota:         —
+Estado:       COMPLETO
+Data:         21 Maio 2026, 10h00
+```
+
+**"Carteira carregada com 10.000 Kz"**
+```
+Tipo:         WALLET_FUNDED
+Direcção:     ENTRADA
+Montante:     10.000 Kz
+Contraparte:  —
+Estado:       COMPLETO
+Data:         20 Maio 2026, 09h05
+```
+
+#### A API de actividade
+
+```
+GET /v1/me/activity
+Authorization: Bearer {token}
+
+Parâmetros opcionais:
+  ?limit=20          (1–100, predefinição: 20)
+  ?cursor=...        (token opaco da resposta anterior)
+  ?type=P2P_SENT     (filtro por tipo)
+  ?direction=OUTGOING (filtro por direcção)
+```
+
+Resposta:
+```json
+{
+  "items": [
+    {
+      "activity_id": "a1b2c3d4-...",
+      "item_type": "P2P_SENT",
+      "direction": "OUTGOING",
+      "amount_minor": 200000,
+      "currency": "AOA",
+      "status": "COMPLETED",
+      "created_at": "2026-05-21T14:00:00Z",
+      "completed_at": "2026-05-21T14:00:00Z",
+      "counterparty_handle": "@ana",
+      "counterparty_display_name": "Ana Silva",
+      "note": "almoço",
+      "transfer_id": "a1b2c3d4-..."
+    }
+  ],
+  "next_cursor": "MjAyNi0w...",
+  "has_more": true
+}
+```
+
+#### Garantias do histórico
+
+Cada item de actividade visível:
+
+1. Tem um `activity_id` único e estável
+2. Mapeia para um registo real na base de dados financeira
+3. Tem direcção calculada pelo servidor — nunca pelo cliente
+4. Preserva a nota/memo original
+5. Nunca expõe identificadores internos do ledger
 
 ---
 
