@@ -1,44 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-import '../models/transfer.dart';
+import '../models/activity_item.dart';
 import '../theme/banza_theme.dart';
 
-/// A single row in a transfer/transaction list.
+/// A single row in the consumer activity feed.
 ///
-/// Shows direction (incoming/outgoing relative to [currentConsumerId]),
-/// amount, counterparty handle, and timestamp.
+/// Direction (OUTGOING / INCOMING) is computed server-side and read from
+/// [ActivityItem.direction] — no consumer-ID comparison needed here.
 class BanzaTransferItem extends StatelessWidget {
-  final Transfer transfer;
-
-  /// The logged-in consumer's ID — used to determine debit/credit direction.
-  final String currentConsumerId;
-
+  final ActivityItem item;
   final VoidCallback? onTap;
 
   const BanzaTransferItem({
     super.key,
-    required this.transfer,
-    required this.currentConsumerId,
+    required this.item,
     this.onTap,
   });
 
-  bool get _isOutgoing => transfer.senderId == currentConsumerId;
-
   @override
   Widget build(BuildContext context) {
-    final isOut      = _isOutgoing;
+    final isOut = item.isOutgoing;
+
     final amountColor = isOut ? BanzaColors.gray900 : BanzaColors.success;
     final amountSign  = isOut ? '− ' : '+ ';
-    final icon        = isOut
-        ? Icons.arrow_upward_rounded
-        : Icons.arrow_downward_rounded;
     final iconColor   = isOut ? BanzaColors.wine : BanzaColors.success;
-    final label       = isOut ? 'Enviado' : 'Recebido';
+
+    final (icon, label) = switch (item.itemType) {
+      'P2P_SENT'       => (Icons.arrow_upward_rounded,   'Enviado'),
+      'P2P_RECEIVED'   => (Icons.arrow_downward_rounded, 'Recebido'),
+      'WALLET_FUNDED'  => (Icons.add_rounded,            'Carregamento'),
+      'WALLET_REVERSED'=> (Icons.remove_rounded,         'Estorno'),
+      _                => (Icons.swap_horiz_rounded,     'Transacção'),
+    };
+
+    final subtitle = item.counterpartyHandle != null
+        ? item.counterpartyDisplayName ?? item.counterpartyHandle!
+        : item.note;
 
     return InkWell(
-      onTap:         onTap,
-      borderRadius:  BanzaRadius.mdAll,
+      onTap:        onTap,
+      borderRadius: BanzaRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(
           horizontal: BanzaSpacing.lg,
@@ -46,28 +48,26 @@ class BanzaTransferItem extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Direction icon
             Container(
               width:       40,
               height:      40,
               decoration:  BoxDecoration(
-                color:        iconColor.withValues(alpha: 0.1),
+                color:        iconColor.withValues(alpha: 0.10),
                 borderRadius: BanzaRadius.mdAll,
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
             const SizedBox(width: BanzaSpacing.md),
 
-            // Label + description
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(label, style: BanzaTextStyles.headingSm),
-                  if (transfer.description?.isNotEmpty == true)
+                  if (subtitle != null && subtitle.isNotEmpty)
                     Text(
-                      transfer.description!,
-                      style: BanzaTextStyles.bodySm,
+                      subtitle,
+                      style:    BanzaTextStyles.bodySm,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -75,12 +75,11 @@ class BanzaTransferItem extends StatelessWidget {
               ),
             ),
 
-            // Amount + date
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  '$amountSign${transfer.amountFormatted}',
+                  '$amountSign${item.amountFormatted}',
                   style: BanzaTextStyles.mono.copyWith(
                     color:      amountColor,
                     fontWeight: FontWeight.w600,
@@ -89,7 +88,7 @@ class BanzaTransferItem extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _formatDate(transfer.createdAt),
+                  _formatDate(item.createdAt),
                   style: BanzaTextStyles.bodySm,
                 ),
               ],
@@ -103,9 +102,9 @@ class BanzaTransferItem extends StatelessWidget {
   String _formatDate(DateTime dt) {
     final now  = DateTime.now();
     final diff = now.difference(dt);
-    if (diff.inDays == 0)  return DateFormat.Hm().format(dt);
-    if (diff.inDays == 1)  return 'Ontem';
-    if (diff.inDays < 7)   return DateFormat.EEEE('pt_PT').format(dt);
+    if (diff.inDays == 0) return DateFormat.Hm().format(dt);
+    if (diff.inDays == 1) return 'Ontem';
+    if (diff.inDays < 7)  return DateFormat.EEEE('pt_PT').format(dt);
     return DateFormat('dd/MM/yy').format(dt);
   }
 }

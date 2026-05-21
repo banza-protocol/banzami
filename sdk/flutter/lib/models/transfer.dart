@@ -1,76 +1,51 @@
 import '../utils/money_format.dart';
 
+/// P2P transfer receipt — returned by POST /v1/transfers.
+///
+/// Uses @handle identity for sender/recipient (no internal UUIDs exposed).
 class Transfer {
-  final String id;
-  final String idempotencyKey;
-  final String senderId;
-  final String recipientId;
+  final String transferId;
+  final String sender;
+  final String recipient;
   final int amountMinor;
   final String currency;
   final String status;
-  final String? description;
-  final String? failureReason;
+  final String? note;
   final DateTime createdAt;
-  final DateTime updatedAt;
+  final DateTime? completedAt;
+  final String? traceId;
 
   const Transfer({
-    required this.id,
-    required this.idempotencyKey,
-    required this.senderId,
-    required this.recipientId,
+    required this.transferId,
+    required this.sender,
+    required this.recipient,
     required this.amountMinor,
     required this.currency,
     required this.status,
-    this.description,
-    this.failureReason,
+    this.note,
     required this.createdAt,
-    required this.updatedAt,
+    this.completedAt,
+    this.traceId,
   });
 
   bool get isCompleted => status == 'COMPLETED';
-  bool get isFailed    => status == 'FAILED';
-  bool get isPending   => status == 'PENDING';
 
   String get amountFormatted => formatMinor(amountMinor, currency);
 
   factory Transfer.fromJson(Map<String, dynamic> json) {
-    final amount = json['amount'] as Map<String, dynamic>? ?? {};
     return Transfer(
-      id:             json['id'] as String,
-      idempotencyKey: json['idempotency_key'] as String,
-      senderId:       json['sender_id']   as String,
-      recipientId:    json['recipient_id'] as String,
-      amountMinor:    (amount['amount_minor'] as num?)?.toInt()
-                      ?? (json['amount_minor'] as num?)?.toInt()
-                      ?? 0,
-      currency:       (amount['currency'] as String?) ?? (json['currency'] as String? ?? ''),
-      status:         json['status'] as String,
-      description:    json['description'] as String?,
-      failureReason:  json['failure_reason'] as String?,
-      createdAt:      DateTime.parse(json['created_at'] as String),
-      updatedAt:      DateTime.parse(json['updated_at'] as String),
-    );
-  }
-}
-
-class TransferPage {
-  final List<Transfer> data;
-  final bool hasMore;
-  final String? nextCursor;
-
-  const TransferPage({
-    required this.data,
-    required this.hasMore,
-    this.nextCursor,
-  });
-
-  factory TransferPage.fromJson(Map<String, dynamic> json) {
-    return TransferPage(
-      data:       (json['data'] as List<dynamic>)
-                      .map((e) => Transfer.fromJson(e as Map<String, dynamic>))
-                      .toList(),
-      hasMore:    json['has_more'] as bool? ?? false,
-      nextCursor: json['next_cursor'] as String?,
+      transferId:  json['transfer_id'] as String,
+      sender:      json['sender']      as String,
+      recipient:   json['recipient']   as String,
+      amountMinor: (json['amount_minor'] as num).toInt(),
+      currency:    json['currency']    as String,
+      status:      json['status']      as String,
+      note:        json['note']        as String?,
+      createdAt:   DateTime.parse(json['created_at'] as String),
+      completedAt: json['completed_at'] != null
+                       ? DateTime.parse(json['completed_at'] as String)
+                       : null,
+      traceId:     json['trace_id']    as String?,
     );
   }
 }

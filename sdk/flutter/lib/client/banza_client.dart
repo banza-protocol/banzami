@@ -7,7 +7,6 @@ import '../models/consumer.dart';
 import '../models/merchant.dart';
 import '../models/payment_link.dart';
 import '../models/qr_code.dart';
-import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
 import 'banza_environment.dart';
@@ -127,7 +126,7 @@ class BanzaClient {
   // Transfers
   // ---------------------------------------------------------------------------
 
-  Future<Transfer> sendTransfer({
+  Future<Map<String, dynamic>> sendTransfer({
     required String senderId,
     required String recipientId,
     required int amountMinor,
@@ -135,7 +134,7 @@ class BanzaClient {
     String? description,
     String? idempotencyKey,
   }) async {
-    final json = await _postWithRetry('/v1/transfers', {
+    return _postWithRetry('/v1/transfers', {
       'idempotency_key': idempotencyKey ?? _uuid.v4(),
       'sender_id':       senderId,
       'recipient_id':    recipientId,
@@ -143,23 +142,20 @@ class BanzaClient {
       'currency':        currency,
       if (description != null) 'description': description,
     }, idempotencyKey: idempotencyKey);
-    return Transfer.fromJson(json);
   }
 
-  Future<Transfer> getTransfer(String id) async {
-    final json = await _get('/v1/transfers/$id');
-    return Transfer.fromJson(json);
+  Future<Map<String, dynamic>> getTransfer(String id) async {
+    return _get('/v1/transfers/$id');
   }
 
-  Future<TransferPage> listTransfers({
+  Future<Map<String, dynamic>> listTransfers({
     required String consumerId,
     int limit = 20,
     String? cursor,
   }) async {
     var path = '/v1/transfers?consumer_id=$consumerId&limit=$limit';
     if (cursor != null) path += '&cursor=$cursor';
-    final json = await _get(path);
-    return TransferPage.fromJson(json);
+    return _get(path);
   }
 
   // ---------------------------------------------------------------------------
