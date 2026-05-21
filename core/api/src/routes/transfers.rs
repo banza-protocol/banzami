@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::Deserialize;
 
+use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError, RoutingStatus};
 use banzami_transfers::{SendTransferRequest, TransferEngine, TransferError};
 use banzami_types::{Currency, TransferId};
 
@@ -56,12 +57,13 @@ pub async fn send(
     let transfer = state
         .transfer
         .send(SendTransferRequest {
-            idempotency_key: body.idempotency_key,
+            idempotency_key:  body.idempotency_key,
             sender_id,
             recipient_id,
-            amount_minor: body.amount_minor,
+            amount_minor:     body.amount_minor,
             currency,
-            description: body.description,
+            description:      body.description,
+            recipient_handle: None, // UUID-based internal route — no handle snapshot
         })
         .await
         .map_err(|e| match e {
@@ -135,4 +137,125 @@ pub async fn list(
         "data":     transfers,
         "has_more": has_more,
     })))
+}
+
+// ---------------------------------------------------------------------------
+// P2P-001 — @banza handle-to-handle consumer transfer
+// ---------------------------------------------------------------------------
+
+/// Consumer-facing P2P request: sender and recipient are @banza handles.
+#[derive(Deserialize)]
+pub struct SendP2pBody {
+    pub idempotency_key: String,
+    /// Sender's @banza handle (with or without @). Resolved to a consumer_id.
+    pub sender:          String,
+    /// Recipient's @banza handle (with or without @). Resolved via HDL-002.
+    pub recipient:       String,
+    pub amount_minor:    i64,
+    pub currency:        String,
+    /// Consumer-visible memo (stored as description on the transfer).
+    pub note:            Option<String>,
+}
+
+/// POST /internal/v1/consumer/transfers
+///
+/// Resolves sender + recipient @banza handles, verifies routing status,
+/// then atomically posts the double-entry ledger transfer.
+pub async fn send_p2p(
+    State(state): State<AppState>,
+    Json(body):   Json<SendP2pBody>,
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    let currency = Currency::from_code(&body.currency)
+        .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
+
+    // Resolve sender handle → routing destination (gives us consumer_id + routing status).
+    let sender_dest = state
+        .consumer_wallet
+        .resolve_to_wallet(&body.sender, currency)
+        .await
+        .map_err(|e| match e {
+            ConsumerWalletError::HandleNotFound(_)
+            | ConsumerWalletError::InvalidHandle(_)      => ApiError::bad_request("invalid or unknown sender handle"),
+            ConsumerWalletError::SuspendedIdentity(_)
+            | ConsumerWalletError::ClosedIdentity(_)
+            | ConsumerWalletError::WalletCannotReceive(_) => {
+                ApiError::unprocessable("SENDER_WALLET_NOT_ACTIVE", "sender wallet is not active")
+            }
+            other => ApiError::internal(other.to_string()),
+        })?;
+
+    // Sender must be fully ACTIVE — LOCKED wallets may receive but not send.
+    if sender_dest.routing_status != RoutingStatus::Routable {
+        return Err(ApiError::unprocessable(
+            "SENDER_WALLET_NOT_ACTIVE",
+            "sender wallet is not active",
+        ));
+    }
+
+    // Resolve recipient handle → routing destination (HDL-002 full pipeline).
+    let recipient_dest = state
+        .consumer_wallet
+        .resolve_to_wallet(&body.recipient, currency)
+        .await
+        .map_err(|e| match e {
+            ConsumerWalletError::HandleNotFound(h) => {
+                ApiError::not_found(format!("recipient @{h} not found"))
+            }
+            ConsumerWalletError::InvalidHandle(m) => ApiError::bad_request(m),
+            ConsumerWalletError::SuspendedIdentity(h)
+            | ConsumerWalletError::ClosedIdentity(h) => ApiError::unprocessable(
+                "RECIPIENT_NOT_ROUTABLE",
+                format!("recipient @{h} cannot receive funds"),
+            ),
+            ConsumerWalletError::WalletCannotReceive(_) => {
+                ApiError::unprocessable("RECIPIENT_NOT_ROUTABLE", "recipient wallet cannot receive funds")
+            }
+            other => ApiError::internal(other.to_string()),
+        })?;
+
+    // Self-transfer guard at the identity level (before the DB transaction).
+    if sender_dest.consumer_id == recipient_dest.consumer_id {
+        return Err(ApiError::bad_request("cannot transfer to yourself"));
+    }
+
+    let transfer = state
+        .transfer
+        .send(SendTransferRequest {
+            idempotency_key:  body.idempotency_key,
+            sender_id:        sender_dest.consumer_id,
+            recipient_id:     recipient_dest.consumer_id,
+            amount_minor:     body.amount_minor,
+            currency,
+            description:      body.note,
+            recipient_handle: Some(recipient_dest.normalized_handle.clone()),
+        })
+        .await
+        .map_err(|e| match e {
+            TransferError::SelfTransfer   => ApiError::bad_request("cannot transfer to yourself"),
+            TransferError::InvalidAmount  => ApiError::bad_request("amount_minor must be positive"),
+            TransferError::InsufficientFunds { available, requested } => ApiError::unprocessable(
+                "INSUFFICIENT_FUNDS",
+                format!("available {available}, requested {requested}"),
+            ),
+            TransferError::WalletNotFound { .. }
+            | TransferError::WalletNotActive(_) => {
+                ApiError::unprocessable("SENDER_WALLET_NOT_ACTIVE", "sender wallet is not active")
+            }
+            other => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({
+            "id":              transfer.id,
+            "sender":          format!("@{}", sender_dest.normalized_handle),
+            "recipient":       format!("@{}", recipient_dest.normalized_handle),
+            "amount_minor":    transfer.amount.amount_minor(),
+            "currency":        transfer.currency.code(),
+            "status":          transfer.status.as_str(),
+            "note":            transfer.description,
+            "idempotency_key": transfer.idempotency_key,
+            "created_at":      transfer.created_at,
+        })),
+    ))
 }

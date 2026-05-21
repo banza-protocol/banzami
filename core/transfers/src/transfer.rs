@@ -75,6 +75,9 @@ pub struct Transfer {
     pub failure_reason:   Option<String>,
     /// Ledger posting that backs this transfer — set when status = COMPLETED.
     pub ledger_posting_id: Option<banzami_types::LedgerPostingId>,
+    /// Normalized @banza handle used to route the transfer. Snapshotted at send time
+    /// for audit trail. None for transfers routed via UUID (internal/merchant flows).
+    pub recipient_handle: Option<String>,
     pub created_at:       DateTime<Utc>,
     pub updated_at:       DateTime<Utc>,
 }
@@ -85,10 +88,13 @@ pub struct Transfer {
 
 /// Initiate and atomically execute an instant P2P transfer.
 pub struct SendTransferRequest {
-    pub idempotency_key: String,
-    pub sender_id:       ConsumerId,
-    pub recipient_id:    ConsumerId,
-    pub amount_minor:    i64,
-    pub currency:        Currency,
-    pub description:     Option<String>,
+    pub idempotency_key:  String,
+    pub sender_id:        ConsumerId,
+    pub recipient_id:     ConsumerId,
+    pub amount_minor:     i64,
+    pub currency:         Currency,
+    pub description:      Option<String>,
+    /// Normalized @banza handle of the recipient (no @). Snapshotted for audit trail.
+    /// None for internal/merchant flows that route by UUID.
+    pub recipient_handle: Option<String>,
 }

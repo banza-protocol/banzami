@@ -38,6 +38,7 @@ pub(crate) struct TransferRow {
     pub description:       Option<String>,
     pub failure_reason:    Option<String>,
     pub ledger_posting_id: Option<Uuid>,
+    pub recipient_handle:  Option<String>,
     pub created_at:        DateTime<Utc>,
     pub updated_at:        DateTime<Utc>,
 }
@@ -58,7 +59,8 @@ impl PostgresTransferRepository {
 
 pub(crate) const SELECT: &str =
     "SELECT id, idempotency_key, sender_id, recipient_id, amount_minor, currency,
-            status, description, failure_reason, ledger_posting_id, created_at, updated_at
+            status, description, failure_reason, ledger_posting_id, recipient_handle,
+            created_at, updated_at
      FROM transfers";
 
 impl TransferRepository for PostgresTransferRepository {
@@ -148,6 +150,7 @@ pub(crate) fn transfer_from_row(row: TransferRow) -> Result<Transfer, TransferEr
         description:       row.description,
         failure_reason:    row.failure_reason,
         ledger_posting_id: row.ledger_posting_id.map(LedgerPostingId::from_uuid),
+        recipient_handle:  row.recipient_handle,
         created_at:        row.created_at,
         updated_at:        row.updated_at,
     })

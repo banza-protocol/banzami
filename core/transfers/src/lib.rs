@@ -36,6 +36,15 @@ pub enum TransferError {
     #[error("wallet for consumer {0} is not active")]
     WalletNotActive(ConsumerId),
 
+    /// Recipient @banza handle does not exist or identity not found.
+    #[error("recipient handle not found: {0}")]
+    RecipientNotFound(String),
+
+    /// Recipient handle resolves to an identity/wallet that cannot receive funds
+    /// (suspended, closed, or pending onboarding).
+    #[error("recipient {0} cannot receive funds")]
+    RecipientNotRoutable(String),
+
     #[error("duplicate idempotency key: {0}")]
     DuplicateIdempotencyKey(String),
 
