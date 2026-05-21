@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
 
+import '../models/activity_item.dart';
 import '../models/consumer.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/payment_link.dart';
@@ -206,27 +207,34 @@ class ConsumerPublicClient {
     required String recipientHandle,
     required int amountMinor,
     String currency = 'AOA',
-    String? description,
+    String? note,
   }) async {
     final json = await _call(
       method: 'POST',
       path: '/v1/transfers',
       body: {
-        'recipient_handle': recipientHandle,
+        'recipient': recipientHandle,
         'amount_minor': amountMinor,
         'currency': currency,
-        if (description != null) 'description': description,
+        if (note != null) 'note': note,
         'idempotency_key': _uuid.v4(),
       },
     );
     return Transfer.fromJson(json);
   }
 
-  Future<TransferPage> listTransfers({int limit = 20, String? cursor}) async {
-    var path = '/v1/transfers?limit=$limit';
-    if (cursor != null) path += '&cursor=$cursor';
+  Future<ActivityPage> getActivity({
+    int limit = 20,
+    String? cursor,
+    String? typeFilter,
+    String? directionFilter,
+  }) async {
+    var path = '/v1/me/activity?limit=$limit';
+    if (cursor          != null) path += '&cursor=${Uri.encodeQueryComponent(cursor)}';
+    if (typeFilter      != null) path += '&type=${Uri.encodeQueryComponent(typeFilter)}';
+    if (directionFilter != null) path += '&direction=${Uri.encodeQueryComponent(directionFilter)}';
     final json = await _call(method: 'GET', path: path);
-    return TransferPage.fromJson(json);
+    return ActivityPage.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------

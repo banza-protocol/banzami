@@ -3,8 +3,6 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
-import '../services/session_service.dart';
-
 enum _HistoryFilter { all, received, sent }
 
 class HistoryScreen extends StatefulWidget {
@@ -15,12 +13,12 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  final List<Transfer> _transfers = [];
+  final List<ActivityItem> _items = [];
   String?        _cursor;
-  bool           _loading  = false;
-  bool           _hasMore  = true;
+  bool           _loading = false;
+  bool           _hasMore = true;
   String?        _error;
-  _HistoryFilter _filter   = _HistoryFilter.all;
+  _HistoryFilter _filter  = _HistoryFilter.all;
 
   static const int _pageSize = 50;
 
@@ -35,16 +33,24 @@ class _HistoryScreenState extends State<HistoryScreen> {
     if (!_hasMore && !refresh) return;
 
     setState(() { _loading = true; _error = null; });
-    if (refresh) { _transfers.clear(); _cursor = null; _hasMore = true; }
+    if (refresh) { _items.clear(); _cursor = null; _hasMore = true; }
 
     final client = context.read<ConsumerPublicClient>();
 
     try {
-      final page = await client.listTransfers(limit: _pageSize, cursor: _cursor);
+      final page = await client.getActivity(
+        limit:           _pageSize,
+        cursor:          _cursor,
+        directionFilter: switch (_filter) {
+          _HistoryFilter.received => 'INCOMING',
+          _HistoryFilter.sent     => 'OUTGOING',
+          _HistoryFilter.all      => null,
+        },
+      );
       setState(() {
-        _transfers.addAll(page.data);
+        _items.addAll(page.items);
         _cursor  = page.nextCursor;
-        _hasMore = page.nextCursor != null;
+        _hasMore = page.hasMore;
       });
     } catch (_) {
       setState(() => _error = 'Não foi possível carregar o histórico.');
@@ -53,25 +59,22 @@ class _HistoryScreenState extends State<HistoryScreen> {
     }
   }
 
-  List<Transfer> _filtered(String consumerId) {
-    return switch (_filter) {
-      _HistoryFilter.received => _transfers.where((t) => t.recipientId == consumerId).toList(),
-      _HistoryFilter.sent     => _transfers.where((t) => t.senderId    == consumerId).toList(),
-      _HistoryFilter.all      => List.of(_transfers),
-    };
+  Future<void> _switchFilter(_HistoryFilter f) async {
+    if (f == _filter) return;
+    setState(() { _filter = f; _items.clear(); _cursor = null; _hasMore = true; });
+    await _load();
   }
 
-  // Returns a list of [String] (date headers) and [Transfer] (items) in order.
-  List<dynamic> _grouped(List<Transfer> transfers) {
+  List<dynamic> _grouped(List<ActivityItem> items) {
     final now       = DateTime.now();
     final today     = DateUtils.dateOnly(now);
     final yesterday = today.subtract(const Duration(days: 1));
 
-    final items = <dynamic>[];
+    final grouped = <dynamic>[];
     String? lastKey;
 
-    for (final t in transfers) {
-      final date = DateUtils.dateOnly(t.createdAt);
+    for (final item in items) {
+      final date = DateUtils.dateOnly(item.createdAt);
       final String key;
       if (date == today) {
         key = 'Hoje';
@@ -82,19 +85,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
 
       if (key != lastKey) {
-        items.add(key);
+        grouped.add(key);
         lastKey = key;
       }
-      items.add(t);
+      grouped.add(item);
     }
 
-    return items;
+    return grouped;
   }
 
   @override
   Widget build(BuildContext context) {
-    final consumerId = context.read<SessionService>().session!.consumerId;
-
     return Scaffold(
       backgroundColor: BanzaColors.offWhite,
       appBar: AppBar(
@@ -110,7 +111,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Filter tabs
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.md,
@@ -120,37 +120,37 @@ class _HistoryScreenState extends State<HistoryScreen> {
                   _FilterPill(
                     label:    'Todas',
                     selected: _filter == _HistoryFilter.all,
-                    onTap:    () => setState(() => _filter = _HistoryFilter.all),
+                    onTap:    () => _switchFilter(_HistoryFilter.all),
                   ),
                   const SizedBox(width: BanzaSpacing.sm),
                   _FilterPill(
                     label:    'Recebidas',
                     selected: _filter == _HistoryFilter.received,
-                    onTap:    () => setState(() => _filter = _HistoryFilter.received),
+                    onTap:    () => _switchFilter(_HistoryFilter.received),
                   ),
                   const SizedBox(width: BanzaSpacing.sm),
                   _FilterPill(
                     label:    'Enviadas',
                     selected: _filter == _HistoryFilter.sent,
-                    onTap:    () => setState(() => _filter = _HistoryFilter.sent),
+                    onTap:    () => _switchFilter(_HistoryFilter.sent),
                   ),
                 ],
               ),
             ),
 
-            Expanded(child: _buildBody(consumerId)),
+            Expanded(child: _buildBody()),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBody(String consumerId) {
-    if (_loading && _transfers.isEmpty) {
+  Widget _buildBody() {
+    if (_loading && _items.isEmpty) {
       return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
     }
 
-    if (_error != null && _transfers.isEmpty) {
+    if (_error != null && _items.isEmpty) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
@@ -162,9 +162,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
 
-    final filtered = _filtered(consumerId);
-
-    if (filtered.isEmpty) {
+    if (_items.isEmpty) {
       return Center(
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           Container(
@@ -197,7 +195,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       );
     }
 
-    final grouped = _grouped(filtered);
+    final grouped = _grouped(_items);
 
     return ListView.builder(
       padding:   const EdgeInsets.fromLTRB(
@@ -205,7 +203,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
       ),
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
-        // Load more sentinel
         if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
@@ -214,16 +211,15 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
 
-        final item = grouped[i];
+        final row = grouped[i];
 
-        // Date header
-        if (item is String) {
+        if (row is String) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(
               BanzaSpacing.xs, BanzaSpacing.lg, BanzaSpacing.xs, BanzaSpacing.sm,
             ),
             child: Text(
-              item,
+              row,
               style: BanzaTextStyles.label.copyWith(
                 color:         BanzaColors.gray400,
                 letterSpacing: 0.4,
@@ -232,34 +228,26 @@ class _HistoryScreenState extends State<HistoryScreen> {
           );
         }
 
-        final transfer = item as Transfer;
-
-        // Determine card borders (round top/bottom of first/last in each group)
+        final item = row as ActivityItem;
         final prev = i > 0 ? grouped[i - 1] : null;
         final next = i < grouped.length - 1 ? grouped[i + 1] : null;
 
         final isFirst = prev == null || prev is String;
         final isLast  = next == null || next is String;
 
-        final topRadius    = isFirst ? BanzaRadius.xl : 0.0;
-        final bottomRadius = isLast  ? BanzaRadius.xl : 0.0;
-
         return Container(
           decoration: BoxDecoration(
             color: BanzaColors.white,
             borderRadius: BorderRadius.vertical(
-              top:    Radius.circular(topRadius),
-              bottom: Radius.circular(bottomRadius),
+              top:    Radius.circular(isFirst ? BanzaRadius.xl : 0.0),
+              bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0.0),
             ),
             boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              BanzaTransferItem(
-                transfer:          transfer,
-                currentConsumerId: consumerId,
-              ),
+              BanzaTransferItem(item: item),
               if (!isLast)
                 const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
             ],

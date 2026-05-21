@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../client/banza_environment.dart';
 import '../client/consumer_public_client.dart';
-import '../models/transfer.dart';
+import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banza_theme.dart';
 import '../widgets/banza_transfer_item.dart';
@@ -39,12 +39,12 @@ class BanzamiHomeScreen extends StatefulWidget {
 }
 
 class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
-  WalletBalance? _balance;
-  List<Transfer> _transfers     = [];
-  bool           _loadingBalance   = true;
-  bool           _loadingTransfers = true;
-  bool           _balanceVisible   = true;
-  String?        _error;
+  WalletBalance?    _balance;
+  List<ActivityItem> _activity        = [];
+  bool               _loadingBalance   = true;
+  bool               _loadingActivity  = true;
+  bool               _balanceVisible   = true;
+  String?            _error;
 
   @override
   void initState() {
@@ -53,7 +53,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
   }
 
   Future<void> _load() async {
-    await Future.wait([_loadBalance(), _loadTransfers()]);
+    await Future.wait([_loadBalance(), _loadActivity()]);
   }
 
   Future<void> _loadBalance() async {
@@ -65,12 +65,12 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
     }
   }
 
-  Future<void> _loadTransfers() async {
+  Future<void> _loadActivity() async {
     try {
-      final page = await widget.client.listTransfers(limit: 20);
-      if (mounted) setState(() { _transfers = page.data; _loadingTransfers = false; });
+      final page = await widget.client.getActivity(limit: 20);
+      if (mounted) setState(() { _activity = page.items; _loadingActivity = false; });
     } catch (_) {
-      if (mounted) setState(() { _loadingTransfers = false; });
+      if (mounted) setState(() { _loadingActivity = false; });
     }
   }
 
@@ -137,7 +137,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
               ),
             ),
 
-            if (_loadingTransfers)
+            if (_loadingActivity)
               const SliverToBoxAdapter(
                 child: Center(
                   child: Padding(
@@ -146,7 +146,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                   ),
                 ),
               )
-            else if (_transfers.isEmpty)
+            else if (_activity.isEmpty)
               SliverToBoxAdapter(child: _EmptyActivity())
             else
               SliverPadding(
@@ -155,7 +155,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                   delegate: SliverChildBuilderDelegate(
                     (context, i) {
                       final isFirst = i == 0;
-                      final isLast  = i == _transfers.length - 1;
+                      final isLast  = i == _activity.length - 1;
                       return Container(
                         decoration: BoxDecoration(
                           color: BanzaColors.white,
@@ -168,17 +168,14 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            BanzaTransferItem(
-                              transfer:          _transfers[i],
-                              currentConsumerId: widget.consumerId,
-                            ),
+                            BanzaTransferItem(item: _activity[i]),
                             if (!isLast)
                               const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
                           ],
                         ),
                       );
                     },
-                    childCount: _transfers.length,
+                    childCount: _activity.length,
                   ),
                 ),
               ),

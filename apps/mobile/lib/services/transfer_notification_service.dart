@@ -5,19 +5,16 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'push_notification_service.dart';
 
-/// Polls for new incoming transfers and fires local notifications.
+/// Polls for new incoming activity and fires local notifications.
 /// Used as a foreground fallback — real push notifications arrive via FCM.
 ///
 /// Start with [startPolling] when the consumer session is active.
 /// Stop with [stopPolling] on logout or app background.
 class TransferNotificationService {
   final ConsumerPublicClient _client;
-  final String _consumerId;
 
-  TransferNotificationService(this._client, {required String consumerId})
-      : _consumerId = consumerId;
+  TransferNotificationService(this._client, {required String consumerId});
 
-  // Delegates initialisation to PushNotificationService (single plugin instance).
   static final _plugin = FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() =>
@@ -40,36 +37,34 @@ class TransferNotificationService {
 
   Future<void> _poll() async {
     try {
-      final page = await _client.listTransfers(limit: 10);
-      if (page.data.isEmpty) return;
+      final page = await _client.getActivity(limit: 10, directionFilter: 'INCOMING');
+      if (page.items.isEmpty) return;
 
       if (_latestSeenId == null) {
-        _latestSeenId = page.data.first.id;
+        _latestSeenId = page.items.first.activityId;
         return;
       }
 
-      final newIncoming = <Transfer>[];
-      for (final tx in page.data) {
-        if (tx.id == _latestSeenId) break;
-        if (tx.recipientId == _consumerId && tx.isCompleted) {
-          newIncoming.add(tx);
-        }
+      final newIncoming = <ActivityItem>[];
+      for (final item in page.items) {
+        if (item.activityId == _latestSeenId) break;
+        newIncoming.add(item);
       }
 
-      _latestSeenId = page.data.first.id;
+      _latestSeenId = page.items.first.activityId;
 
-      for (final tx in newIncoming) {
-        await _notify(tx);
+      for (final item in newIncoming) {
+        await _notify(item);
       }
     } catch (_) {
       // Non-critical — swallow all errors.
     }
   }
 
-  Future<void> _notify(Transfer tx) async {
-    final amount = formatMinor(tx.amountMinor, tx.currency);
-    final body   = tx.description?.isNotEmpty == true
-        ? tx.description!
+  Future<void> _notify(ActivityItem item) async {
+    final amount = formatMinor(item.amountMinor, item.currency);
+    final body   = item.note?.isNotEmpty == true
+        ? item.note!
         : 'Transferência recebida';
 
     await _plugin.show(

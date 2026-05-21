@@ -73,7 +73,7 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.13.1"
-  banzami_sdk:
+  banza_flutter:
     dependency: "direct main"
     description:
       path: "../../sdk/flutter"

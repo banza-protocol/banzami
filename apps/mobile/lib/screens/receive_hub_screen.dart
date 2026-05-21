@@ -26,8 +26,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   bool      _sharing     = false;
   ui.Image? _logoUiImage;
 
-  List<Transfer> _received         = [];
-  bool           _loadingTransfers = false;
+  List<ActivityItem> _received         = [];
+  bool               _loadingTransfers = false;
   String?        _transferError;
 
   final _shareLinkKey = GlobalKey();
@@ -54,13 +54,9 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     if (_loadingTransfers) return;
     setState(() { _loadingTransfers = true; _transferError = null; });
     try {
-      final client     = context.read<ConsumerPublicClient>();
-      final consumerId = context.read<SessionService>().session!.consumerId;
-      final page       = await client.listTransfers(limit: 50);
-      final received   = page.data
-          .where((t) => t.recipientId == consumerId && t.isCompleted)
-          .toList();
-      if (mounted) setState(() { _received = received; _loadingTransfers = false; });
+      final client = context.read<ConsumerPublicClient>();
+      final page   = await client.getActivity(limit: 50, directionFilter: 'INCOMING');
+      if (mounted) setState(() { _received = page.items; _loadingTransfers = false; });
     } catch (_) {
       if (mounted) {
         setState(() {
@@ -200,9 +196,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final session    = context.read<SessionService>().session!;
-    final handle     = session.handle;
-    final consumerId = session.consumerId;
+    final session = context.read<SessionService>().session!;
+    final handle  = session.handle;
 
     return Scaffold(
       backgroundColor: BanzaColors.offWhite,
@@ -499,10 +494,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            BanzaTransferItem(
-                              transfer:          _received[i],
-                              currentConsumerId: consumerId,
-                            ),
+                            BanzaTransferItem(item: _received[i]),
                             if (!isLast)
                               const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
                           ],

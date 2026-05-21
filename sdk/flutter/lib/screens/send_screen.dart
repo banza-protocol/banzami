@@ -137,7 +137,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       final transfer = await widget.client.sendByHandle(
         recipientHandle: handle,
         amountMinor:     _amountMinor,
-        description:     _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
+        note:            _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim(),
       );
       widget.onSuccess(transfer);
     } on BanzamiApiException catch (e) {

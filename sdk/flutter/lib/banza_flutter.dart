@@ -28,6 +28,7 @@ export 'client/pinned_http_client.dart';
 export 'client/api_exception.dart';
 
 // Models
+export 'models/activity_item.dart';
 export 'models/consumer.dart';
 export 'models/merchant.dart';
 export 'models/wallet_balance.dart';
