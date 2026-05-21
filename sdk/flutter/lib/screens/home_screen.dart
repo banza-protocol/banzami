@@ -5,23 +5,20 @@ import '../client/consumer_public_client.dart';
 import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banza_theme.dart';
-import '../widgets/banza_transfer_item.dart';
+import '../utils/money_format.dart';
+import '../widgets/banza_components.dart';
 import 'receive_screen.dart';
 import 'scan_screen.dart';
 import 'send_screen.dart';
 
-/// The main payment hub screen for consumer accounts.
-///
-/// Shows a personalised greeting, available balance with visibility toggle,
-/// quick-action buttons (Scan, Send, Receive) and a list of recent transfers.
 class BanzamiHomeScreen extends StatefulWidget {
   final ConsumerPublicClient client;
-  final String consumerId;
-  final String handle;
-  final String? displayName;
-  final String? logoAssetPath;
-  final VoidCallback? onNotifications;
-  final BanzaEnvironment environment;
+  final String               consumerId;
+  final String               handle;
+  final String?              displayName;
+  final String?              logoAssetPath;
+  final VoidCallback?        onNotifications;
+  final BanzaEnvironment     environment;
 
   const BanzamiHomeScreen({
     super.key,
@@ -38,18 +35,40 @@ class BanzamiHomeScreen extends StatefulWidget {
   State<BanzamiHomeScreen> createState() => _BanzamiHomeScreenState();
 }
 
-class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
-  WalletBalance?    _balance;
+class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
+    with SingleTickerProviderStateMixin {
+  WalletBalance?     _balance;
   List<ActivityItem> _activity        = [];
-  bool               _loadingBalance   = true;
-  bool               _loadingActivity  = true;
-  bool               _balanceVisible   = true;
+  bool               _loadingBalance  = true;
+  bool               _loadingActivity = true;
+  bool               _balanceVisible  = true;
   String?            _error;
+
+  late final AnimationController _entryCtrl;
+  late final Animation<double>   _entryFade;
+  late final Animation<Offset>   _entrySlide;
 
   @override
   void initState() {
     super.initState();
+    _entryCtrl = AnimationController(
+      vsync:    this,
+      duration: BanzaMotion.slow,
+    );
+    _entryFade  = CurvedAnimation(parent: _entryCtrl, curve: BanzaMotion.decelerate);
+    _entrySlide = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end:   Offset.zero,
+    ).animate(CurvedAnimation(parent: _entryCtrl, curve: BanzaMotion.decelerate));
+
     _load();
+    _entryCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _entryCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -67,30 +86,27 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
 
   Future<void> _loadActivity() async {
     try {
-      final page = await widget.client.getActivity(limit: 20);
+      final page = await widget.client.getActivity(limit: 10);
       if (mounted) setState(() { _activity = page.items; _loadingActivity = false; });
     } catch (_) {
       if (mounted) setState(() { _loadingActivity = false; });
     }
   }
 
-  void _onScan() => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BanzamiScanScreen(
-      client:    widget.client,
-      onSuccess: (_) => _load(),
-    ),
+  void _onScan() => Navigator.of(context).push(BanzaPageRoute(
+    page: BanzamiScanScreen(client: widget.client, onSuccess: (_) => _load()),
   ));
 
-  void _onSend() => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BanzamiSendScreen(
+  void _onSend() => Navigator.of(context).push(BanzaPageRoute(
+    page: BanzamiSendScreen(
       client:    widget.client,
       ownHandle: widget.handle,
       onSuccess: (_) => _load(),
     ),
   ));
 
-  void _onReceive() => Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BanzamiReceiveScreen(
+  void _onReceive() => Navigator.of(context).push(BanzaPageRoute(
+    page: BanzamiReceiveScreen(
       handle:        widget.handle,
       logoAssetPath: widget.logoAssetPath,
     ),
@@ -98,90 +114,147 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+    final topPad = MediaQuery.of(context).padding.top;
+
+    return BanzaScaffold(
       body: RefreshIndicator(
-        color:     BanzaColors.wine,
-        onRefresh: _load,
-        child: CustomScrollView(
-          slivers: [
-            _BalanceHeader(
-              balance:         _balance,
-              loading:         _loadingBalance,
-              error:           _error,
-              handle:          widget.handle,
-              displayName:     widget.displayName,
-              balanceVisible:  _balanceVisible,
-              onToggleBalance: () => setState(() => _balanceVisible = !_balanceVisible),
-              onNotifications: widget.onNotifications,
-              onScan:          _onScan,
-              onSend:          _onSend,
-              onReceive:       _onReceive,
-            ),
+        color:        BanzaColors.wine,
+        displacement: 60,
+        onRefresh:    _load,
+        child: FadeTransition(
+          opacity: _entryFade,
+          child: SlideTransition(
+            position: _entrySlide,
+            child: CustomScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              slivers: [
 
-            if (widget.environment.isSandbox)
-              SliverToBoxAdapter(
-                child: _SandboxFundPanel(
-                  client:   widget.client,
-                  onFunded: _load,
-                ),
-              ),
-
-            const SliverToBoxAdapter(
-              child: Padding(
-                padding: EdgeInsets.fromLTRB(
-                  BanzaSpacing.lg, BanzaSpacing.xl,
-                  BanzaSpacing.lg, BanzaSpacing.sm,
-                ),
-                child: Text('Actividade recente', style: BanzaTextStyles.headingSm),
-              ),
-            ),
-
-            if (_loadingActivity)
-              const SliverToBoxAdapter(
-                child: Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(BanzaSpacing.xl),
-                    child: CircularProgressIndicator(color: BanzaColors.wine),
+                // ── Top bar ───────────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: _TopBar(
+                    handle:          widget.handle,
+                    displayName:     widget.displayName,
+                    topPad:          topPad,
+                    onNotifications: widget.onNotifications,
                   ),
                 ),
-              )
-            else if (_activity.isEmpty)
-              SliverToBoxAdapter(child: _EmptyActivity())
-            else
-              SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.lg),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final isFirst = i == 0;
-                      final isLast  = i == _activity.length - 1;
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: BanzaColors.white,
-                          borderRadius: BorderRadius.vertical(
-                            top:    Radius.circular(isFirst ? BanzaRadius.xl : 0),
-                            bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0),
-                          ),
-                          boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
+
+                // ── Balance card ──────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      BanzaSpacing.xl, BanzaSpacing.sm,
+                      BanzaSpacing.xl, BanzaSpacing.xl,
+                    ),
+                    child: _BalanceCard(
+                      balance:         _balance,
+                      loading:         _loadingBalance,
+                      error:           _error,
+                      balanceVisible:  _balanceVisible,
+                      onToggle: () => setState(
+                        () => _balanceVisible = !_balanceVisible,
+                      ),
+                    ),
+                  ),
+                ),
+
+                // ── Quick actions ─────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: BanzaSpacing.xl,
+                    ),
+                    child: Row(
+                      children: [
+                        BanzaActionTile(
+                          icon:    Icons.arrow_upward_rounded,
+                          label:   'Enviar',
+                          onTap:   _onSend,
+                          primary: true,
                         ),
+                        const SizedBox(width: BanzaSpacing.md),
+                        BanzaActionTile(
+                          icon:  Icons.arrow_downward_rounded,
+                          label: 'Receber',
+                          onTap: _onReceive,
+                        ),
+                        const SizedBox(width: BanzaSpacing.md),
+                        BanzaActionTile(
+                          icon:  Icons.qr_code_rounded,
+                          label: 'QR Code',
+                          onTap: _onScan,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.xxl)),
+
+                // ── Sandbox panel ─────────────────────────────────────────
+                if (widget.environment.isSandbox)
+                  SliverToBoxAdapter(
+                    child: _SandboxFundPanel(
+                      client:   widget.client,
+                      onFunded: _load,
+                    ),
+                  ),
+
+                // ── Section header ────────────────────────────────────────
+                SliverToBoxAdapter(
+                  child: BanzaSectionTitle(
+                    title:  'Actividade recente',
+                    action: 'Ver tudo',
+                  ),
+                ),
+
+                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.md)),
+
+                // ── Activity list ─────────────────────────────────────────
+                if (_loadingActivity)
+                  const SliverToBoxAdapter(
+                    child: Padding(
+                      padding: EdgeInsets.all(BanzaSpacing.xxl),
+                      child: Center(
+                        child: CircularProgressIndicator(
+                          color: BanzaColors.wine,
+                          strokeWidth: 2,
+                        ),
+                      ),
+                    ),
+                  )
+                else if (_activity.isEmpty)
+                  SliverToBoxAdapter(child: _EmptyActivity())
+                else
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: BanzaSpacing.xl,
+                      ),
+                      child: BanzaCard(
+                        padding: EdgeInsets.zero,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            BanzaTransferItem(item: _activity[i]),
-                            if (!isLast)
-                              const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
+                            for (int i = 0; i < _activity.length; i++) ...[
+                              _ActivityRow(item: _activity[i]),
+                              if (i < _activity.length - 1)
+                                const Divider(
+                                  height: 1,
+                                  indent: BanzaSpacing.xl + 44 + BanzaSpacing.md,
+                                  color:  BanzaColors.gray100,
+                                ),
+                            ],
                           ],
                         ),
-                      );
-                    },
-                    childCount: _activity.length,
+                      ),
+                    ),
                   ),
-                ),
-              ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
-          ],
+                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -189,207 +262,287 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen> {
 }
 
 // =============================================================================
-// Balance header
+// Top bar
 // =============================================================================
 
-class _BalanceHeader extends StatelessWidget {
+class _TopBar extends StatelessWidget {
+  final String  handle;
+  final String? displayName;
+  final double  topPad;
+  final VoidCallback? onNotifications;
+
+  const _TopBar({
+    required this.handle,
+    required this.displayName,
+    required this.topPad,
+    this.onNotifications,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final initials = displayName != null
+        ? displayName!.split(' ').take(2).map((w) => w[0]).join().toUpperCase()
+        : handle[0].toUpperCase();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        BanzaSpacing.xl,
+        topPad + BanzaSpacing.md,
+        BanzaSpacing.xl,
+        BanzaSpacing.sm,
+      ),
+      child: Row(
+        children: [
+          // Avatar
+          Container(
+            width:  40,
+            height: 40,
+            decoration: const BoxDecoration(
+              gradient: BanzaGradients.wine,
+              shape:    BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                initials,
+                style: BanzaTextStyles.bodySm.copyWith(
+                  color:      BanzaColors.white,
+                  fontWeight: FontWeight.w700,
+                  fontSize:   14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: BanzaSpacing.md),
+          // Greeting
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:       MainAxisSize.min,
+              children: [
+                Text(
+                  'Olá, ${displayName?.split(' ').first ?? '@$handle'}',
+                  style: BanzaTextStyles.headingSm.copyWith(
+                    color:      BanzaColors.gray900,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Notifications
+          GestureDetector(
+            onTap: onNotifications,
+            child: Container(
+              width:  40,
+              height: 40,
+              decoration: BoxDecoration(
+                color:        BanzaColors.white,
+                shape:        BoxShape.circle,
+                boxShadow:    BanzaShadows.card,
+              ),
+              child: const Icon(
+                Icons.notifications_none_rounded,
+                color: BanzaColors.gray600,
+                size:  20,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// Balance card — light floating card
+// =============================================================================
+
+class _BalanceCard extends StatelessWidget {
   final WalletBalance? balance;
   final bool           loading;
   final String?        error;
-  final String         handle;
-  final String?        displayName;
   final bool           balanceVisible;
-  final VoidCallback   onToggleBalance;
-  final VoidCallback?  onNotifications;
-  final VoidCallback   onScan;
-  final VoidCallback   onSend;
-  final VoidCallback   onReceive;
+  final VoidCallback   onToggle;
 
-  const _BalanceHeader({
+  const _BalanceCard({
     required this.balance,
     required this.loading,
     required this.error,
-    required this.handle,
-    required this.displayName,
     required this.balanceVisible,
-    required this.onToggleBalance,
-    required this.onNotifications,
-    required this.onScan,
-    required this.onSend,
-    required this.onReceive,
+    required this.onToggle,
   });
 
   @override
   Widget build(BuildContext context) {
-    final firstName = displayName?.split(' ').first ?? '@$handle';
-
-    return SliverToBoxAdapter(
-      child: Container(
-        decoration: const BoxDecoration(gradient: BanzaGradients.wine),
-        padding: EdgeInsets.fromLTRB(
-          BanzaSpacing.xl,
-          MediaQuery.of(context).padding.top + BanzaSpacing.lg,
-          BanzaSpacing.xl,
-          BanzaSpacing.xxl,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Greeting row
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Olá, $firstName',
-                    style: BanzaTextStyles.headingMd.copyWith(
-                      color:      BanzaColors.white,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: onNotifications,
-                  child: Container(
-                    width:  38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color:  BanzaColors.white.withValues(alpha: 0.15),
-                      shape:  BoxShape.circle,
-                      border: Border.all(
-                        color: BanzaColors.white.withValues(alpha: 0.20),
-                        width: 1,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.notifications_none_rounded,
-                      color: BanzaColors.white,
-                      size:  20,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: BanzaSpacing.lg),
-
-            // Balance label + toggle
-            Row(
-              children: [
-                Text(
-                  'Saldo disponível',
-                  style: BanzaTextStyles.bodySm.copyWith(
-                    color: BanzaColors.white.withValues(alpha: 0.65),
-                  ),
-                ),
-                const SizedBox(width: BanzaSpacing.xs),
-                GestureDetector(
-                  onTap: onToggleBalance,
-                  child: Icon(
-                    balanceVisible
-                        ? Icons.visibility_outlined
-                        : Icons.visibility_off_outlined,
-                    color: BanzaColors.white.withValues(alpha: 0.55),
-                    size:  16,
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: BanzaSpacing.xs),
-
-            // Balance amount
-            if (loading)
-              const SizedBox(
-                height: 48,
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: SizedBox(
-                    width: 24, height: 24,
-                    child: CircularProgressIndicator(
-                      color: BanzaColors.white, strokeWidth: 2,
-                    ),
-                  ),
-                ),
-              )
-            else
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: Text(
-                  balanceVisible
-                      ? (balance?.availableFormatted ?? '— Kz')
-                      : '• • • • •',
-                  key:   ValueKey(balanceVisible),
-                  style: BanzaTextStyles.displayLg.copyWith(
-                    color: BanzaColors.white,
-                  ),
+    return BanzaCard(
+      shadow: BanzaShadows.cardElevated,
+      padding: const EdgeInsets.fromLTRB(
+        BanzaSpacing.xl, BanzaSpacing.xl,
+        BanzaSpacing.xl, BanzaSpacing.xl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize:       MainAxisSize.min,
+        children: [
+          // Label + eye
+          Row(
+            children: [
+              Text(
+                'Saldo disponível',
+                style: BanzaTextStyles.bodySm.copyWith(
+                  color:      BanzaColors.gray400,
+                  fontWeight: FontWeight.w500,
+                  fontSize:   13,
                 ),
               ),
-
-            const SizedBox(height: BanzaSpacing.xl),
-
-            // Quick actions
-            Row(
-              children: [
-                _ActionButton(
-                  icon:    Icons.arrow_upward_rounded,
-                  label:   'Enviar',
-                  onTap:   onSend,
-                  primary: true,
+              const SizedBox(width: BanzaSpacing.sm),
+              GestureDetector(
+                onTap: onToggle,
+                child: Icon(
+                  balanceVisible
+                      ? Icons.visibility_outlined
+                      : Icons.visibility_off_outlined,
+                  color: BanzaColors.gray400,
+                  size:  18,
                 ),
-                const SizedBox(width: BanzaSpacing.md),
-                _ActionButton(
-                  icon:  Icons.arrow_downward_rounded,
-                  label: 'Receber',
-                  onTap: onReceive,
+              ),
+            ],
+          ),
+          const SizedBox(height: BanzaSpacing.sm),
+          // Amount
+          if (loading)
+            Container(
+              height: 48,
+              width:  160,
+              decoration: BoxDecoration(
+                color:        BanzaColors.gray100,
+                borderRadius: BanzaRadius.smAll,
+              ),
+            )
+          else
+            AnimatedSwitcher(
+              duration:       BanzaMotion.normal,
+              switchInCurve:  BanzaMotion.decelerate,
+              switchOutCurve: BanzaMotion.accelerate,
+              child: Text(
+                key: ValueKey(balanceVisible),
+                balanceVisible
+                    ? (balance?.availableFormatted ?? (error != null ? '— Kz' : '0,00 Kz'))
+                    : '• • • • •',
+                style: TextStyle(
+                  fontFamily:   'JetBrains Mono',
+                  fontSize:     32,
+                  fontWeight:   FontWeight.w700,
+                  color:        BanzaColors.gray900,
+                  height:       1.1,
+                  fontFeatures: const [FontFeature.tabularFigures()],
                 ),
-                const SizedBox(width: BanzaSpacing.md),
-                _ActionButton(
-                  icon:  Icons.qr_code_scanner_rounded,
-                  label: 'QR Code',
-                  onTap: onScan,
-                ),
-              ],
+              ),
             ),
-          ],
-        ),
+          if (error != null && !loading)
+            Padding(
+              padding: const EdgeInsets.only(top: BanzaSpacing.xs),
+              child: Text(
+                error!,
+                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+              ),
+            ),
+        ],
       ),
     );
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData     icon;
-  final String       label;
-  final VoidCallback onTap;
-  final bool         primary;
+// =============================================================================
+// Activity row
+// =============================================================================
 
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-    this.primary = false,
+class _ActivityRow extends StatelessWidget {
+  final ActivityItem item;
+  const _ActivityRow({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCredit = item.isIncoming;
+    final amountFormatted = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
+    final subtitle = _subtitle(item);
+    final initial = (item.counterpartyDisplayName ?? item.counterpartyHandle ?? item.itemType)[0];
+
+    return BanzaActivityRow(
+      title:    item.counterpartyDisplayName ??
+                (item.counterpartyHandle != null ? '@${item.counterpartyHandle}' : _typeLabel(item.itemType)),
+      subtitle: subtitle,
+      amount:   amountFormatted,
+      time:     _formatTime(item.createdAt),
+      isCredit: isCredit,
+      leading:  _ActivityIcon(type: item.itemType, initial: initial, isCredit: isCredit),
+    );
+  }
+
+  String _subtitle(ActivityItem item) {
+    if (item.itemType == 'P2P_SENT')      return 'Enviado';
+    if (item.itemType == 'P2P_RECEIVED')  return 'Recebido';
+    if (item.itemType == 'WALLET_FUNDED') return 'Carregamento';
+    return item.itemType;
+  }
+
+  String _typeLabel(String type) {
+    if (type == 'WALLET_FUNDED') return 'Multicaixa';
+    return type;
+  }
+
+  String _formatTime(DateTime? dt) {
+    if (dt == null) return '';
+    final now  = DateTime.now();
+    final diff = now.difference(dt);
+    if (diff.inDays == 0) {
+      return 'Hoje, ${_pad(dt.hour)}:${_pad(dt.minute)}';
+    } else if (diff.inDays == 1) {
+      return 'Ontem, ${_pad(dt.hour)}:${_pad(dt.minute)}';
+    }
+    return '${dt.day}/${dt.month}';
+  }
+
+  String _pad(int n) => n.toString().padLeft(2, '0');
+}
+
+class _ActivityIcon extends StatelessWidget {
+  final String type;
+  final String initial;
+  final bool   isCredit;
+
+  const _ActivityIcon({
+    required this.type,
+    required this.initial,
+    required this.isCredit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bg = primary ? BanzaColors.white : BanzaColors.white.withValues(alpha: 0.15);
-    final fg = primary ? BanzaColors.wine  : BanzaColors.white;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding:    const EdgeInsets.symmetric(vertical: BanzaSpacing.md),
-          decoration: BoxDecoration(
-            color:        bg,
-            borderRadius: BanzaRadius.lgAll,
-          ),
-          child: Column(
-            children: [
-              Icon(icon, color: fg, size: 24),
-              const SizedBox(height: BanzaSpacing.xs),
-              Text(label, style: BanzaTextStyles.label.copyWith(color: fg)),
-            ],
+    if (type == 'WALLET_FUNDED') {
+      return Container(
+        width:  44,
+        height: 44,
+        decoration: BoxDecoration(
+          color: BanzaColors.successBg,
+          shape: BoxShape.circle,
+        ),
+        child: const Icon(Icons.add_rounded, color: BanzaColors.success, size: 22),
+      );
+    }
+    return Container(
+      width:  44,
+      height: 44,
+      decoration: const BoxDecoration(
+        gradient: BanzaGradients.wine,
+        shape:    BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial.toUpperCase(),
+          style: BanzaTextStyles.headingSm.copyWith(
+            color:      BanzaColors.white,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),
@@ -405,42 +558,42 @@ class _EmptyActivity extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, BanzaSpacing.xxl,
-        BanzaSpacing.xl, BanzaSpacing.xl,
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzaSpacing.xl,
+        vertical:   BanzaSpacing.xxl,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width:  64,
-            height: 64,
-            decoration: const BoxDecoration(
-              color:  BanzaColors.gray200,
-              shape:  BoxShape.circle,
+      child: BanzaCard(
+        padding: const EdgeInsets.all(BanzaSpacing.xxl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width:  56,
+              height: 56,
+              decoration: const BoxDecoration(
+                color: BanzaColors.gray100,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.receipt_long_outlined,
+                size:  24,
+                color: BanzaColors.gray400,
+              ),
             ),
-            child: const Icon(
-              Icons.receipt_long_outlined,
-              size:  28,
-              color: BanzaColors.gray400,
+            const SizedBox(height: BanzaSpacing.md),
+            Text(
+              'Nenhuma transacção ainda',
+              style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: BanzaSpacing.md),
-          Text(
-            'Nenhuma transacção ainda',
-            style: BanzaTextStyles.headingSm.copyWith(
-              color: BanzaColors.gray900,
+            const SizedBox(height: BanzaSpacing.xs),
+            Text(
+              'As suas actividades aparecerão aqui',
+              style: BanzaTextStyles.bodySm,
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: BanzaSpacing.xs),
-          Text(
-            'As suas actividades aparecerão aqui',
-            style: BanzaTextStyles.bodySm.copyWith(
-              color: BanzaColors.gray400,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -453,7 +606,6 @@ class _EmptyActivity extends StatelessWidget {
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
   final VoidCallback         onFunded;
-
   const _SandboxFundPanel({required this.client, required this.onFunded});
 
   @override
@@ -478,7 +630,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       final result = await widget.client.sandboxFund(amountMinor: amountMinor);
       if (!mounted) return;
       setState(() {
-        _success = 'Adicionados ${result.creditedMinor ~/ 100} Kz (saldo: ${result.newBalance ~/ 100} Kz)';
+        _success = 'Adicionados ${result.creditedMinor ~/ 100} Kz';
       });
       widget.onFunded();
     } catch (e) {
@@ -490,68 +642,56 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin:  const EdgeInsets.fromLTRB(
-        BanzaSpacing.lg, BanzaSpacing.lg, BanzaSpacing.lg, 0,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.xl,
       ),
-      padding: const EdgeInsets.all(BanzaSpacing.lg),
-      decoration: BoxDecoration(
-        color:        const Color(0xFFFEF3C7),
-        borderRadius: BorderRadius.circular(BanzaRadius.md),
-        border:       Border.all(color: const Color(0xFFF59E0B)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(children: [
-            const Icon(Icons.science_rounded, size: 16, color: Color(0xFF92400E)),
-            const SizedBox(width: BanzaSpacing.xs),
-            Text(
-              'Modo Sandbox — adicionar fundos',
-              style: BanzaTextStyles.bodySm.copyWith(
+      child: Container(
+        padding: const EdgeInsets.all(BanzaSpacing.lg),
+        decoration: BoxDecoration(
+          color:        const Color(0xFFFEF3C7),
+          borderRadius: BanzaRadius.lgAll,
+          border:       Border.all(color: const Color(0xFFF59E0B)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              const Icon(Icons.science_rounded, size: 14, color: Color(0xFF92400E)),
+              const SizedBox(width: BanzaSpacing.xs),
+              Text('Sandbox', style: BanzaTextStyles.bodySm.copyWith(
                 color:      const Color(0xFF92400E),
                 fontWeight: FontWeight.w600,
-              ),
-            ),
-          ]),
-          const SizedBox(height: BanzaSpacing.md),
-          Wrap(
-            spacing:    BanzaSpacing.sm,
-            runSpacing: BanzaSpacing.sm,
-            children:   _presets.map((p) {
-              return OutlinedButton(
+              )),
+            ]),
+            const SizedBox(height: BanzaSpacing.md),
+            Wrap(
+              spacing:    BanzaSpacing.sm,
+              runSpacing: BanzaSpacing.sm,
+              children: _presets.map((p) => OutlinedButton(
                 onPressed: _loading ? null : () => _fund(p.minor),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF92400E),
                   side: const BorderSide(color: Color(0xFFF59E0B)),
                   padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.md,
-                    vertical:   BanzaSpacing.xs,
+                    horizontal: BanzaSpacing.md, vertical: BanzaSpacing.xs,
                   ),
-                  textStyle:      BanzaTextStyles.bodySm,
-                  tapTargetSize:  MaterialTapTargetSize.shrinkWrap,
+                  textStyle:     BanzaTextStyles.bodySm,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
-                child: _loading
-                    ? const SizedBox(
-                        width: 12, height: 12,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 1.5,
-                          color:       Color(0xFF92400E),
-                        ),
-                      )
-                    : Text(p.label),
-              );
-            }).toList(),
-          ),
-          if (_success != null) ...[
-            const SizedBox(height: BanzaSpacing.sm),
-            Text(_success!, style: BanzaTextStyles.bodySm.copyWith(color: const Color(0xFF166534))),
+                child: Text(p.label),
+              )).toList(),
+            ),
+            if (_success != null) ...[
+              const SizedBox(height: BanzaSpacing.sm),
+              Text(_success!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.success)),
+            ],
+            if (_error != null) ...[
+              const SizedBox(height: BanzaSpacing.sm),
+              Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
+            ],
           ],
-          if (_error != null) ...[
-            const SizedBox(height: BanzaSpacing.sm),
-            Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
-          ],
-        ],
+        ),
       ),
     );
   }

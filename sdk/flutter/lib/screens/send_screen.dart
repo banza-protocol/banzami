@@ -8,7 +8,7 @@ import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../widgets/banza_amount_input.dart';
-import '../widgets/banza_button.dart';
+import '../widgets/banza_components.dart';
 import 'confirm_screen.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
@@ -136,8 +136,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final idempotencyKey = const Uuid().v4();
     final note = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
 
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => BanzamiConfirmScreen(
+    await Navigator.of(context).push(BanzaPageRoute(
+      page: BanzamiConfirmScreen(
         client:               widget.client,
         recipientHandle:      handle,
         recipientDisplayName: _selectedSuggestion?.displayName,
@@ -152,21 +152,18 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        title:           const Text('Enviar'),
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-      ),
+    return BanzaScaffold(
+      appBar: const BanzaAppBar(title: 'Enviar'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(BanzaSpacing.xl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Para quem?', style: BanzaTextStyles.headingSm),
+              Text(
+                'Para quem?',
+                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+              ),
               const SizedBox(height: BanzaSpacing.sm),
               TextField(
                 controller:      _handleCtrl,
@@ -199,7 +196,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                 ),
 
               const SizedBox(height: BanzaSpacing.xl),
-              const Text('Quanto?', style: BanzaTextStyles.headingSm),
+              Text(
+                'Quanto?',
+                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+              ),
               const SizedBox(height: BanzaSpacing.sm),
               BanzaAmountInput(
                 onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
@@ -207,7 +207,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               ),
 
               const SizedBox(height: BanzaSpacing.xl),
-              const Text('Descrição (opcional)', style: BanzaTextStyles.headingSm),
+              Text(
+                'Descrição (opcional)',
+                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+              ),
               const SizedBox(height: BanzaSpacing.sm),
               TextField(
                 controller:      _descCtrl,
@@ -217,8 +220,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               ),
 
               const SizedBox(height: BanzaSpacing.xxl),
-              BanzaButton(
-                label:     'Enviar',
+              BanzaPrimaryButton(
+                label:     'Continuar',
                 isLoading: _validatingHandle,
                 onPressed: _send,
               ),
