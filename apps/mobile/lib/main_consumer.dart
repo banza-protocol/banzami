@@ -52,4 +52,10 @@ void main() async {
   ));
 
   runApp(BanzamiApp(pinnedClient: pinnedClient));
+
+  // Remove the native splash AFTER the first Flutter frame is committed so
+  // the overlay fades out onto already-painted Flutter content, not blank.
+  WidgetsBinding.instance.addPostFrameCallback(
+    (_) => FlutterNativeSplash.remove(),
+  );
 }
