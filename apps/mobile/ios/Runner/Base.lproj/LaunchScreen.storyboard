@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="12121" systemVersion="16G29" targetRuntime="iOS.CocoaTouch" propertyAccessible="none" useAutolayout="YES" launchScreen="YES" colorMatched="YES" initialViewController="01J-lp-oVM">
     <dependencies>
         <deployment identifier="iOS"/>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="12089"/>
@@ -16,19 +16,24 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
+                            <!-- Full-screen cherry background -->
                             <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchBackground" translatesAutoresizingMaskIntoConstraints="NO" id="tWc-Dq-wcI"/>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4"></imageView>
+                            <!-- Small centered icon: 80×80 pt, scaleAspectFit -->
+                            <imageView opaque="NO" clipsSubviews="YES" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4"/>
                         </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <!-- Deep cherry background to avoid white flash -->
+                        <color key="backgroundColor" red="0.600" green="0.000" blue="0.004" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="3T2-ad-Qdv"/>
-                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="RPx-PI-7Xg"/>
-                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="SdS-ul-q2q"/>
+                            <!-- LaunchBackground fills screen -->
+                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="top"      secondItem="Ze5-6b-2t3" secondAttribute="top"      id="SdS-ul-q2q"/>
+                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="bottom"   secondItem="Ze5-6b-2t3" secondAttribute="bottom"   id="RPx-PI-7Xg"/>
+                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="leading"  secondItem="Ze5-6b-2t3" secondAttribute="leading"  id="kV7-tw-vXt"/>
                             <constraint firstAttribute="trailing" secondItem="tWc-Dq-wcI" secondAttribute="trailing" id="Swv-Gf-Rwn"/>
-                            <constraint firstAttribute="trailing" secondItem="YRO-k0-Ey4" secondAttribute="trailing" id="TQA-XW-tRk"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="bottom" secondItem="Ze5-6b-2t3" secondAttribute="bottom" id="duK-uY-Gun"/>
-                            <constraint firstItem="tWc-Dq-wcI" firstAttribute="leading" secondItem="Ze5-6b-2t3" secondAttribute="leading" id="kV7-tw-vXt"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="top" secondItem="Ze5-6b-2t3" secondAttribute="top" id="xPn-NY-SIU"/>
+                            <!-- Icon: 80×80 pt, centered in view -->
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="cXa-Iz-9kL"/>
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="b2B-7g-KPk"/>
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="width"   constant="80"            id="Wk3-Hn-M2P"/>
+                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="height"  constant="80"            id="Zq5-Vj-9Rt"/>
                         </constraints>
                     </view>
                 </viewController>
@@ -38,7 +43,7 @@
         </scene>
     </scenes>
     <resources>
-        <image name="LaunchImage" width="1254" height="1254"/>
-        <image name="LaunchBackground" width="1" height="1"/>
+        <image name="LaunchImage"     width="80"  height="80"/>
+        <image name="LaunchBackground" width="1"  height="1"/>
     </resources>
 </document>
