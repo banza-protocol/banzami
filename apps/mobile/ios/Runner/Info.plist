@@ -31,7 +31,7 @@
 		<key>NSCameraUsageDescription</key>
 		<string>A câmara é usada para ler códigos QR de pagamento.</string>
 		<key>NSFaceIDUsageDescription</key>
-		<string>Use o Face ID para entrar na Banzami de forma segura.</string>
+		<string>Use o Face ID para entrar no Banza de forma segura.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>A biblioteca de fotos é usada para guardar e partilhar códigos QR de pagamento.</string>
 		<key>UIApplicationSceneManifest</key>
@@ -88,10 +88,10 @@
 			<dict>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>banzami</string>
+					<string>banza</string>
 				</array>
 				<key>CFBundleURLName</key>
-				<string>org.banzami.app</string>
+				<string>org.banza.app</string>
 			</dict>
 		</array>
 	</dict>

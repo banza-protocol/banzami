@@ -140,7 +140,7 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
               borderRadius: BanzaRadius.xlAll),
           child: Column(children: [
             Text(
-              link.description ?? 'Pagamento Banzami',
+              link.description ?? 'Pagamento Banza',
               style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.white.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),

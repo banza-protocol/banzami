@@ -87,8 +87,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
     setState(() => _sharing = true);
     try {
       final subject = link.amountMinor != null
-          ? 'Pagamento Banzami — ${formatMinor(link.amountMinor!, link.currency)}'
-          : 'Pagamento Banzami';
+          ? 'Pagamento Banza — ${formatMinor(link.amountMinor!, link.currency)}'
+          : 'Pagamento Banza';
       final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(_payUrl, subject: subject, sharePositionOrigin: origin);
@@ -258,7 +258,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               dataModuleShape: QrDataModuleShape.square,
               color:           BanzaColors.gray900,
             ),
-            embeddedImage:      const AssetImage('assets/images/banzami_icon.png'),
+            embeddedImage:      const AssetImage('assets/images/banza_icon.png'),
             embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),

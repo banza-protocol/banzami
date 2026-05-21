@@ -41,7 +41,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load('assets/images/banzami_icon.png');
+    final data  = await rootBundle.load('assets/images/banza_icon.png');
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth: 160, targetHeight: 160,
@@ -69,9 +69,9 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   String _qrPayload(String handle) {
     if (_amountSet && _amountMinor > 0) {
-      return 'banzami:@$handle?amount=$_amountMinor&currency=AOA';
+      return 'banza:@$handle?amount=$_amountMinor&currency=AOA';
     }
-    return 'banzami:@$handle';
+    return 'banza:@$handle';
   }
 
   String _shareUrl(String handle) {
@@ -143,7 +143,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(
         _shareUrl(handle),
-        subject:             'Pagar @$handle via Banzami',
+        subject:             'Pagar @$handle via Banza',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -248,7 +248,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                                   ? formatMinor(_amountMinor, 'AOA')
                                   : null,
                               size:          180,
-                              embeddedImage: const AssetImage('assets/images/banzami_icon.png'),
+                              embeddedImage: const AssetImage('assets/images/banza_icon.png'),
                             ),
                             const SizedBox(height: BanzaSpacing.lg),
                             // Handle + copy row

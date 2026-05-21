@@ -19,13 +19,13 @@ class MerchantWelcomeScreen extends StatelessWidget {
               const Spacer(flex: 2),
 
               Image.asset(
-                'assets/images/banzami_logo.png',
+                'assets/images/banza_logo.png',
                 height: 80,
               ),
               const SizedBox(height: 24),
 
               Text(
-                'Banzami\nBusiness',
+                'Banza\nBusiness',
                 style: BanzaTextStyles.displayLg.copyWith(
                   color:      BanzaColors.white,
                   fontWeight: FontWeight.w800,
