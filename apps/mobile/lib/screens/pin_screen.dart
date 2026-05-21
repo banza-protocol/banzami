@@ -41,16 +41,10 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   Future<void> _tryBiometrics() async {
     final svc = context.read<SessionService>();
     if (svc.session?.biometricsEnabled != true) return;
+    // Local expiry check is sufficient — calling checkAuth() here fires
+    // onUnauthorized on 401, which logs the user out while they are still
+    // on the PIN screen (race with PIN entry).
     if (svc.isTokenExpired) return;
-
-    final client = context.read<ConsumerPublicClient>();
-    try {
-      await client.checkAuth();
-    } on BanzamiApiException catch (e) {
-      if (e.statusCode == 401) return;
-    } catch (_) {
-      // Network error — allow offline biometric unlock
-    }
 
     final ok = await svc.authenticateWithBiometrics();
     if (ok && mounted) {
