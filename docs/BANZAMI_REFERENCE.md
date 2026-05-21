@@ -1722,7 +1722,7 @@ O Banzami não é uma empresa de produto único — é um ecossistema de partici
 │                                                             │
 │  ┌──────────────┐    paga    ┌──────────────────────────┐   │
 │  │  Consumidores│───────────>│  Comerciantes            │   │
-│  │  (carteiras) │<───────────│  (Banza Business)      │   │
+│  │  (carteiras) │<───────────│  (Banza Business)        │   │
 │  └──────────────┘   recebe   └──────────────────────────┘   │
 │         │                              │                    │
 │         v                              v                    │
