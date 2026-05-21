@@ -9,7 +9,7 @@ import 'package:share_plus/share_plus.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
 import '../widgets/banza_amount_input.dart';
-import '../widgets/banza_button.dart';
+import '../widgets/banza_components.dart';
 import '../widgets/banza_qr_display.dart';
 
 class BanzamiReceiveScreen extends StatefulWidget {
@@ -35,7 +35,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   bool      _sharing     = false;
   ui.Image? _logoUiImage;
 
-  final _shareButtonKey = GlobalKey();
+  final _shareButtonKey     = GlobalKey();
   final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
@@ -81,7 +81,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
           MediaQuery.of(ctx).viewInsets.bottom + BanzaSpacing.xl,
         ),
         child: Column(
-          mainAxisSize:      MainAxisSize.min,
+          mainAxisSize:       MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
@@ -90,14 +90,14 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
             const SizedBox(height: BanzaSpacing.lg),
             Row(children: [
               Expanded(
-                child: BanzaButton.secondary(
+                child: BanzaSecondaryButton(
                   label:     'Cancelar',
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
               const SizedBox(width: BanzaSpacing.sm),
               Expanded(
-                child: BanzaButton(
+                child: BanzaPrimaryButton(
                   label:     'Aplicar',
                   onPressed: () {
                     if (draft > 0) Navigator.pop(ctx, draft);
@@ -122,6 +122,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   }
 
   Future<void> _shareLink() async {
+    HapticFeedback.lightImpact();
     try {
       final box    = _shareLinkButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
@@ -141,13 +142,14 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
   Future<void> _shareQr() async {
     if (_sharing) return;
+    HapticFeedback.lightImpact();
     setState(() => _sharing = true);
     try {
       final painter = QrPainter(
         data:                 _qrPayload,
         version:              QrVersions.auto,
         errorCorrectionLevel: QrErrorCorrectLevel.H,
-        eyeStyle:        const QrEyeStyle(
+        eyeStyle: const QrEyeStyle(
           eyeShape: QrEyeShape.square,
           color:    BanzaColors.wine,
         ),
@@ -189,133 +191,118 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        title:           const Text('Receber'),
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-      ),
+    return BanzaScaffold(
+      appBar: const BanzaAppBar(title: 'Receber'),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final qrSize =
-                (constraints.maxHeight - 236).clamp(120.0, 240.0);
+            final qrSize = (constraints.maxHeight - 280).clamp(120.0, 220.0);
 
             return SingleChildScrollView(
               child: ConstrainedBox(
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
-                  padding: const EdgeInsets.all(BanzaSpacing.xl),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: BanzaSpacing.xl,
+                    vertical:   BanzaSpacing.lg,
+                  ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      BanzaQrDisplay(
-                        payload:       _qrPayload,
-                        amountLabel:   (_amountSet && _amountMinor > 0)
-                            ? formatMinor(_amountMinor, 'AOA')
-                            : null,
-                        subtitle:      '@${widget.handle}',
-                        size:          qrSize,
-                        embeddedImage: widget.logoAssetPath != null
-                            ? AssetImage(widget.logoAssetPath!)
-                            : null,
-                      ),
+                      // QR card — clean white card with subtle shadow
+                      BanzaCard(
+                        padding: const EdgeInsets.all(BanzaSpacing.xl),
+                        shadow: BanzaShadows.cardElevated,
+                        child: Column(
+                          children: [
+                            BanzaQrDisplay(
+                              payload:       _qrPayload,
+                              amountLabel:   (_amountSet && _amountMinor > 0)
+                                  ? formatMinor(_amountMinor, 'AOA')
+                                  : null,
+                              subtitle:      '@${widget.handle}',
+                              size:          qrSize,
+                              embeddedImage: widget.logoAssetPath != null
+                                  ? AssetImage(widget.logoAssetPath!)
+                                  : null,
+                            ),
 
-                      const SizedBox(height: BanzaSpacing.lg),
+                            const SizedBox(height: BanzaSpacing.md),
 
-                      TextButton.icon(
-                        onPressed: () async {
-                          await Clipboard.setData(
-                              ClipboardData(text: '@${widget.handle}'));
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('@handle copiado')),
-                            );
-                          }
-                        },
-                        icon:  const Icon(Icons.copy_rounded, size: 16,
-                            color: BanzaColors.gray400),
-                        label: Text(
-                          '@${widget.handle}',
-                          style: BanzaTextStyles.bodyMd
-                              .copyWith(color: BanzaColors.gray400),
+                            // Handle copy row
+                            GestureDetector(
+                              onTap: () async {
+                                HapticFeedback.selectionClick();
+                                await Clipboard.setData(
+                                    ClipboardData(text: '@${widget.handle}'));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('@handle copiado')),
+                                  );
+                                }
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: BanzaSpacing.lg,
+                                  vertical:   BanzaSpacing.sm,
+                                ),
+                                decoration: BoxDecoration(
+                                  color:        BanzaColors.gray100,
+                                  borderRadius: BanzaRadius.fullAll,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.copy_rounded, size: 14, color: BanzaColors.gray400),
+                                    const SizedBox(width: BanzaSpacing.xs),
+                                    Text(
+                                      '@${widget.handle}',
+                                      style: BanzaTextStyles.bodyMd.copyWith(
+                                        color: BanzaColors.gray600,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
                       const SizedBox(height: BanzaSpacing.xl),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          key:      _shareLinkButtonKey,
-                          onPressed: _shareLink,
-                          icon:  const Icon(Icons.link_rounded),
-                          label: const Text('Partilhar link'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: BanzaColors.wine,
-                            foregroundColor: BanzaColors.white,
-                            padding:   const EdgeInsets.symmetric(vertical: 14),
-                            shape:     RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            textStyle: BanzaTextStyles.headingSm,
-                          ),
-                        ),
+                      // Primary action
+                      BanzaPrimaryButton(
+                        key:       _shareLinkButtonKey,
+                        label:     'Partilhar link',
+                        icon:      Icons.link_rounded,
+                        onPressed: _shareLink,
                       ),
 
                       const SizedBox(height: BanzaSpacing.sm),
 
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          key:       _shareButtonKey,
-                          onPressed: _sharing ? null : _shareQr,
-                          icon: _sharing
-                              ? const SizedBox(
-                                  width: 18, height: 18,
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2, color: BanzaColors.wine))
-                              : const Icon(Icons.share_rounded),
-                          label: const Text('Partilhar QR'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: BanzaColors.wine,
-                            side:    const BorderSide(color: BanzaColors.wine),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape:   RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14)),
-                            textStyle: BanzaTextStyles.headingSm,
+                      // Secondary actions row
+                      Row(children: [
+                        Expanded(
+                          child: BanzaSecondaryButton(
+                            label:     _sharing ? 'A partilhar…' : 'Partilhar QR',
+                            onPressed: _sharing ? null : _shareQr,
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: BanzaSpacing.md),
-
-                      if (_amountSet)
-                        SizedBox(
-                          width: double.infinity,
-                          child: BanzaButton.secondary(
-                            label:     'Remover montante',
-                            onPressed: _clearAmount,
-                          ),
-                        )
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _showAmountSheet,
-                            icon:  const Icon(Icons.add_rounded),
-                            label: const Text('Definir montante fixo'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: BanzaColors.wine,
-                              side:    const BorderSide(color: BanzaColors.wine),
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape:   RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(14)),
-                              textStyle: BanzaTextStyles.headingSm,
-                            ),
-                          ),
+                        const SizedBox(width: BanzaSpacing.sm),
+                        Expanded(
+                          child: _amountSet
+                              ? BanzaSecondaryButton(
+                                  label:     'Remover montante',
+                                  onPressed: _clearAmount,
+                                )
+                              : BanzaSecondaryButton(
+                                  label:     'Definir montante',
+                                  onPressed: _showAmountSheet,
+                                ),
                         ),
+                      ]),
 
                       const SizedBox(height: BanzaSpacing.lg),
                     ],

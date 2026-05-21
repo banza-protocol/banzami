@@ -48,6 +48,7 @@ export 'widgets/banza_amount_input.dart';
 export 'widgets/banza_qr_display.dart';
 export 'widgets/banza_qr_scanner.dart';
 export 'widgets/banza_transfer_item.dart';
+export 'widgets/banza_components.dart';
 
 // Screens
 export 'screens/home_screen.dart';

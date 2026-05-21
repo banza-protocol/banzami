@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
-import '../widgets/banza_button.dart';
+import '../widgets/banza_components.dart';
 import 'receipt_screen.dart';
 
 /// Review screen shown between [BanzamiSendScreen] and the actual transfer.
@@ -47,6 +48,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
 
   Future<void> _confirm() async {
     if (_sending) return;
+    HapticFeedback.mediumImpact();
     setState(() { _sending = true; _error = null; });
 
     try {
@@ -61,8 +63,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
       if (!mounted) return;
       setState(() => _sending = false);
 
-      await Navigator.of(context).push(MaterialPageRoute(
-        builder: (_) => BanzamiReceiptScreen(
+      await Navigator.of(context).push(BanzaPageRoute(
+        page: BanzamiReceiptScreen(
           transfer:  transfer,
           ownHandle: widget.ownHandle,
           onDone:    widget.onSuccess,
@@ -70,6 +72,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
       ));
     } on BanzamiApiException catch (e) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
         _error   = switch (e.code) {
@@ -83,6 +86,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
       });
     } catch (_) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() { _sending = false; _error = 'Erro de ligação. Tente novamente.'; });
     }
   }
@@ -94,14 +98,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
     final initial     = (displayName ?? handle)[0].toUpperCase();
     final amount      = formatMinor(widget.amountMinor, widget.currency);
 
-    return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        title:           const Text('Confirmar envio', style: BanzaTextStyles.headingSm),
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-      ),
+    return BanzaScaffold(
+      appBar: const BanzaAppBar(title: 'Confirmar envio'),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
@@ -111,9 +109,9 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
 
               // Recipient avatar
               Container(
-                width:       72,
-                height:      72,
-                decoration:  const BoxDecoration(
+                width:  80,
+                height: 80,
+                decoration: const BoxDecoration(
                   gradient: BanzaGradients.wine,
                   shape:    BoxShape.circle,
                 ),
@@ -122,7 +120,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
                     initial,
                     style: BanzaTextStyles.headingLg.copyWith(
                       color:      BanzaColors.white,
-                      fontSize:   28,
+                      fontSize:   30,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -146,100 +144,65 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen> {
 
               const Spacer(),
 
-              // Amount
-              Text(
-                'Vai enviar',
-                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
-              ),
-              const SizedBox(height: BanzaSpacing.xs),
-              Text(
-                amount,
-                style: BanzaTextStyles.mono.copyWith(
-                  fontSize:   42,
-                  fontWeight: FontWeight.w700,
-                  color:      BanzaColors.gray900,
+              // Amount block
+              BanzaCard(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzaSpacing.xl,
+                  vertical:   BanzaSpacing.lg,
+                ),
+                color: BanzaColors.gray100,
+                shadow: BanzaShadows.none,
+                child: Column(
+                  children: [
+                    Text(
+                      'Vai enviar',
+                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                    ),
+                    const SizedBox(height: BanzaSpacing.xs),
+                    Text(
+                      amount,
+                      style: BanzaTextStyles.monoLg.copyWith(
+                        color: BanzaColors.gray900,
+                      ),
+                    ),
+                    if (widget.note != null && widget.note!.isNotEmpty) ...[
+                      const SizedBox(height: BanzaSpacing.sm),
+                      Divider(height: 1, color: BanzaColors.gray200),
+                      const SizedBox(height: BanzaSpacing.sm),
+                      Text(
+                        widget.note!,
+                        style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray600),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ],
                 ),
               ),
-
-              if (widget.note != null && widget.note!.isNotEmpty) ...[
-                const SizedBox(height: BanzaSpacing.md),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.lg,
-                    vertical:   BanzaSpacing.sm,
-                  ),
-                  decoration: const BoxDecoration(
-                    color:        BanzaColors.gray100,
-                    borderRadius: BanzaRadius.fullAll,
-                  ),
-                  child: Text(
-                    widget.note!,
-                    style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray600),
-                  ),
-                ),
-              ],
 
               const Spacer(),
 
-              // Irreversibility warning
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: BanzaSpacing.lg,
-                  vertical:   BanzaSpacing.sm,
-                ),
-                decoration: const BoxDecoration(
-                  color:        BanzaColors.gray100,
-                  borderRadius: BanzaRadius.lgAll,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.info_outline_rounded,
-                      size:  16,
-                      color: BanzaColors.gray400,
-                    ),
-                    const SizedBox(width: BanzaSpacing.sm),
-                    Expanded(
-                      child: Text(
-                        'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
-                        style: BanzaTextStyles.bodySm.copyWith(
-                          color: BanzaColors.gray400,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              // Warning banner
+              const BanzaWarningBanner(
+                message: 'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
               ),
 
               const SizedBox(height: BanzaSpacing.xl),
 
               if (_error != null) ...[
-                Text(
-                  _error!,
-                  style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.error),
-                  textAlign: TextAlign.center,
-                ),
+                BanzaErrorBanner(message: _error!),
                 const SizedBox(height: BanzaSpacing.md),
               ],
 
-              BanzaButton(
-                label:     'Confirmar',
+              BanzaPrimaryButton(
+                label:     'Confirmar envio',
                 isLoading: _sending,
                 onPressed: _confirm,
               ),
               const SizedBox(height: BanzaSpacing.sm),
 
-              SizedBox(
-                width: double.infinity,
-                child: TextButton(
-                  onPressed: _sending ? null : () => Navigator.of(context).pop(),
-                  child: Text(
-                    'Cancelar',
-                    style: BanzaTextStyles.bodyMd.copyWith(
-                      color: _sending ? BanzaColors.gray400 : BanzaColors.gray600,
-                    ),
-                  ),
-                ),
+              BanzaGhostButton(
+                label:     'Cancelar',
+                onPressed: _sending ? null : () => Navigator.of(context).pop(),
               ),
 
               const SizedBox(height: BanzaSpacing.xl),
