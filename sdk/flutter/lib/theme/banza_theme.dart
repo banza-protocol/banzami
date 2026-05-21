@@ -5,30 +5,32 @@ import 'package:flutter/material.dart';
 // ---------------------------------------------------------------------------
 
 abstract class BanzaColors {
-  // Primary — Space Cherry
-  static const Color wine      = Color(0xFFB30012); // primary identity
-  static const Color wineDark  = Color(0xFF4A0005); // gradient deep / pressed
-  static const Color wineLight = Color(0xFF8E000D); // gradient end / hover
+  // Primary — Space Cherry (official Banza brand palette)
+  static const Color wine        = Color(0xFF990011); // Primary Space Cherry — brand identity
+  static const Color wineLight   = Color(0xFFC21A2C); // Cherry Highlight — hover, QR centres, secondary fills
+  static const Color wineDark    = Color(0xFF5E000A); // Deep Shadow — gradient terminus, pressed state
+  static const Color wineMid     = Color(0xFF7A000D); // Mid gradient stop
 
   // Secondary — Wine Rose
-  static const Color wineRose  = Color(0xFFA63A50); // secondary — badges, tags, accents
+  static const Color wineRose    = Color(0xFFA63A50); // secondary — badges, tags, accents
 
   // Accent — Savanna Gold
-  static const Color gold      = Color(0xFFC89B3C); // accent — highlights, positive emphasis
-  static const Color goldLight = Color(0xFFD4AF5C); // gold hover / light variant
+  static const Color gold        = Color(0xFFC89B3C); // accent — highlights, positive emphasis
+  static const Color goldLight   = Color(0xFFD4AF5C); // gold hover / light variant
 
   // Brand Black
-  static const Color black    = Color(0xFF1A1A1A); // brand black — high-contrast surfaces, dark mode base
+  static const Color black       = Color(0xFF1A1A1A); // Near Black — primary text, dark surfaces
 
   // Neutrals — warm-tinted to pair with cherry
-  static const Color white    = Color(0xFFFFFFFF);
-  static const Color offWhite = Color(0xFFF5F3F1); // Warm White — main background
-  static const Color gray100  = Color(0xFFF5EEED); // form fills, chips
-  static const Color gray200  = Color(0xFFE7E2DE); // borders, dividers
-  static const Color gray400  = Color(0xFF9C8483); // secondary text
-  static const Color gray600  = Color(0xFF534040); // tertiary text
-  static const Color gray700  = Color(0xFF534040); // alias → gray600
-  static const Color gray900  = black;              // primary text
+  static const Color white       = Color(0xFFFFFFFF);
+  static const Color offWhite    = Color(0xFFFCF6F5); // Soft White — main background
+  static const Color softNeutral = Color(0xFFD8D0CF); // Soft Neutral Shadow — surface gradient end
+  static const Color gray100     = Color(0xFFF5EEED); // form fills, chips
+  static const Color gray200     = Color(0xFFE7E2DE); // borders, dividers
+  static const Color gray400     = Color(0xFF9C8483); // secondary text
+  static const Color gray600     = Color(0xFF534040); // tertiary text
+  static const Color gray700     = Color(0xFF534040); // alias → gray600
+  static const Color gray900     = black;              // primary text
 
   // Semantic
   static const Color success   = Color(0xFF166534);
@@ -48,18 +50,40 @@ abstract class BanzaColors {
 // ---------------------------------------------------------------------------
 
 abstract class BanzaGradients {
-  /// Primary cherry gradient — balance card, key headers.
+  /// Primary Banza gradient — balance card, key headers, confirm screen avatar.
+  /// 4-stop deep cherry at ~145°.
   static const LinearGradient wine = LinearGradient(
-    colors: [Color(0xFFB30012), Color(0xFF4A0005)],
-    begin:  Alignment.topLeft,
-    end:    Alignment.bottomRight,
+    begin:  Alignment(-0.57, -0.82),
+    end:    Alignment(0.57, 0.82),
+    colors: [
+      Color(0xFFC21A2C), // Cherry Highlight — 0%
+      Color(0xFF990011), // Primary Space Cherry — 38%
+      Color(0xFF7A000D), // Mid — 72%
+      Color(0xFF5E000A), // Deep Shadow — 100%
+    ],
+    stops: [0.0, 0.38, 0.72, 1.0],
   );
 
-  /// Cherry to lighter — secondary surfaces.
+  /// Light surface gradient — page backgrounds, card fills.
+  static const LinearGradient surface = LinearGradient(
+    begin:  Alignment.topCenter,
+    end:    Alignment.bottomCenter,
+    colors: [
+      Color(0xFFFFFFFF), // Pure white — 0%
+      Color(0xFFFCF6F5), // Soft White — 55%
+      Color(0xFFD8D0CF), // Soft Neutral Shadow — 100%
+    ],
+    stops: [0.0, 0.55, 1.0],
+  );
+
+  /// Cherry highlight gradient — secondary CTAs, outlined fills.
   static const LinearGradient wineLight = LinearGradient(
-    colors: [Color(0xFFB30012), Color(0xFF8E000D)],
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
+    colors: [
+      Color(0xFFC21A2C), // Cherry Highlight
+      Color(0xFF990011), // Primary Space Cherry
+    ],
   );
 
   BanzaGradients._();
