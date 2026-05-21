@@ -29,9 +29,16 @@ class BanzamiApp extends StatefulWidget {
 class _BanzamiAppState extends State<BanzamiApp> {
   StreamSubscription<Uri>? _linkSub;
 
+  // Ensures the splash animation (1200ms) finishes before transitioning.
+  // Session loads in the background; we wait for BOTH to be ready.
+  bool _splashDone = false;
+
   @override
   void initState() {
     super.initState();
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (mounted) setState(() => _splashDone = true);
+    });
     final appLinks = AppLinks();
     // Cold start: app launched by tapping the deep link
     appLinks.getInitialLink().then((uri) { if (uri != null) _handleLink(uri); });
@@ -88,7 +95,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   Widget _home(SessionService session) {
-    if (!session.initialized) return const SplashScreen();
+    if (!session.initialized || !_splashDone) return const SplashScreen();
     FlutterNativeSplash.remove();
     if (!session.hasSession)  return const WelcomeScreen();
     if (session.isLocked)     return const PinScreen();
