@@ -43,6 +43,7 @@ export const metadata: Metadata = {
     icon: [
       { url: '/banza_icon_32.png',  sizes: '32x32',  type: 'image/png' },
       { url: '/banza_icon_64.png',  sizes: '64x64',  type: 'image/png' },
+      { url: '/banza_icon_512.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: { url: '/banza_icon_180.png', sizes: '180x180', type: 'image/png' },
   },
@@ -62,8 +63,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-5 md:px-8">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-7 w-auto object-contain" />
+              <span className="inline-block h-7 w-7 shrink-0 overflow-hidden rounded-[9px]">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-full w-full object-cover" />
+              </span>
               <span className="text-base font-bold tracking-tight text-bz-text">Banzami</span>
             </Link>
 
@@ -118,8 +121,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
               <div>
                 <div className="flex items-center gap-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-6 w-auto object-contain" />
+                  <span className="inline-block h-6 w-6 shrink-0 overflow-hidden rounded-[8px]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-full w-full object-cover" />
+                  </span>
                   <span className="font-bold text-bz-text">Banzami</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
