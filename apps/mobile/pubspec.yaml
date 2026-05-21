@@ -67,17 +67,12 @@ flutter_launcher_icons:
   min_sdk_android: 24
 
 flutter_native_splash:
-  color: "#B30012"
-  image: assets/images/banza_splash.png
+  color: "#990011"
   android: true
   ios: true
   web: false
-  android_gravity: center
-  ios_content_mode: center
   android_12:
-    color: "#B30012"
-    image: assets/images/banza_splash.png
-    icon_background_color: "#B30012"
+    color: "#990011"
 
 flutter:
   uses-material-design: true

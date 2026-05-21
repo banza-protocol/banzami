@@ -12,36 +12,51 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  late final Animation<double>   _fade;
-  late final Animation<double>   _scale;
-  late final Animation<Offset>   _slide;
+
+  // Icon: 0 ms — fade + scale
+  late final Animation<double> _iconFade;
+  late final Animation<double> _iconScale;
+
+  // Title: 300 ms
+  late final Animation<double> _titleFade;
+
+  // Subtitle: 500 ms
+  late final Animation<double> _subtitleFade;
+
+  // Loader: 650 ms
+  late final Animation<double> _loaderFade;
 
   @override
   void initState() {
     super.initState();
     _ctrl = AnimationController(
       vsync:    this,
-      duration: const Duration(milliseconds: 1000),
+      duration: const Duration(milliseconds: 1200),
     );
-    _fade = CurvedAnimation(
+
+    _iconFade = CurvedAnimation(
       parent: _ctrl,
-      curve:  const Interval(0.0, 0.55, curve: Curves.easeOut),
+      curve:  const Interval(0.00, 0.45, curve: Curves.easeOut),
     );
-    _scale = Tween<double>(begin: 0.86, end: 1.0).animate(
+    _iconScale = Tween<double>(begin: 0.94, end: 1.0).animate(
       CurvedAnimation(
         parent: _ctrl,
-        curve:  const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
+        curve:  const Interval(0.00, 0.42, curve: Curves.easeOutCubic),
       ),
     );
-    _slide = Tween<Offset>(
-      begin: const Offset(0, 0.07),
-      end:   Offset.zero,
-    ).animate(
-      CurvedAnimation(
-        parent: _ctrl,
-        curve:  const Interval(0.0, 0.65, curve: Curves.easeOutCubic),
-      ),
+    _titleFade = CurvedAnimation(
+      parent: _ctrl,
+      curve:  const Interval(0.25, 0.60, curve: Curves.easeOut),
     );
+    _subtitleFade = CurvedAnimation(
+      parent: _ctrl,
+      curve:  const Interval(0.40, 0.70, curve: Curves.easeOut),
+    );
+    _loaderFade = CurvedAnimation(
+      parent: _ctrl,
+      curve:  const Interval(0.55, 0.80, curve: Curves.easeOut),
+    );
+
     _ctrl.forward();
   }
 
@@ -64,17 +79,17 @@ class _SplashScreenState extends State<SplashScreen>
 
           // ── Top-left radial bloom ───────────────────────────────────────
           Positioned(
-            top:  -110,
-            left: -70,
+            top:  -100,
+            left: -60,
             child: IgnorePointer(
               child: Container(
-                width:  380,
-                height: 380,
+                width:  360,
+                height: 360,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      const Color(0xFFC21A2C).withValues(alpha: 0.38),
+                      const Color(0xFFC21A2C).withValues(alpha: 0.40),
                       const Color(0xFFC21A2C).withValues(alpha: 0.0),
                     ],
                   ),
@@ -85,12 +100,12 @@ class _SplashScreenState extends State<SplashScreen>
 
           // ── Bottom-right vignette ───────────────────────────────────────
           Positioned(
-            bottom: -80,
-            right:  -80,
+            bottom: -70,
+            right:  -70,
             child: IgnorePointer(
               child: Container(
-                width:  280,
-                height: 280,
+                width:  260,
+                height: 260,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
@@ -105,16 +120,62 @@ class _SplashScreenState extends State<SplashScreen>
           ),
 
           // ── Animated content ────────────────────────────────────────────
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fade,
-              child: SlideTransition(
-                position: _slide,
-                child: ScaleTransition(
-                  scale: _scale,
-                  child: const Center(child: _SplashContent()),
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Icon
+                FadeTransition(
+                  opacity: _iconFade,
+                  child: ScaleTransition(
+                    scale: _iconScale,
+                    child: _FloatingIcon(),
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 28),
+
+                // Title
+                FadeTransition(
+                  opacity: _titleFade,
+                  child: Text(
+                    'Banza',
+                    style: BanzaTextStyles.displayMd.copyWith(
+                      color:         BanzaColors.white,
+                      fontWeight:    FontWeight.w700,
+                      fontSize:      36,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+
+                // Subtitle
+                FadeTransition(
+                  opacity: _subtitleFade,
+                  child: Text(
+                    'Envie e receba dinheiro\ninstantaneamente em Angola.',
+                    textAlign: TextAlign.center,
+                    style: BanzaTextStyles.bodyMd.copyWith(
+                      color:      BanzaColors.white.withValues(alpha: 0.70),
+                      fontSize:   15,
+                      height:     1.45,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 40),
+
+                // Loader
+                FadeTransition(
+                  opacity: _loaderFade,
+                  child: const CupertinoActivityIndicator(
+                    color:  Color(0x99FFFFFF),
+                    radius: 11,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -123,78 +184,36 @@ class _SplashScreenState extends State<SplashScreen>
   }
 }
 
-// =============================================================================
-// Content — floating icon + wordmark + indicator
-// =============================================================================
-
-class _SplashContent extends StatelessWidget {
-  const _SplashContent();
-
+class _FloatingIcon extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ── Floating icon ─────────────────────────────────────────────────
-        Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color:       const Color(0xFF000000).withValues(alpha: 0.32),
-                blurRadius:  36,
-                offset:      const Offset(0, 14),
-                spreadRadius: -4,
-              ),
-              BoxShadow(
-                color:       const Color(0xFFC21A2C).withValues(alpha: 0.30),
-                blurRadius:  24,
-                offset:      const Offset(0, 4),
-                spreadRadius: -2,
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color:        const Color(0xFF000000).withValues(alpha: 0.35),
+            blurRadius:   40,
+            offset:       const Offset(0, 16),
+            spreadRadius: -4,
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(22),
-            child: Image.asset(
-              'assets/images/banza_icon.png',
-              width:  80,
-              height: 80,
-            ),
+          BoxShadow(
+            color:        const Color(0xFFC21A2C).withValues(alpha: 0.28),
+            blurRadius:   24,
+            offset:       const Offset(0, 4),
+            spreadRadius: -2,
           ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Image.asset(
+          'assets/images/banza_icon.png',
+          width:  84,
+          height: 84,
+          fit:    BoxFit.cover,
         ),
-
-        const SizedBox(height: 28),
-
-        // ── Wordmark ──────────────────────────────────────────────────────
-        Text(
-          'Banza',
-          style: BanzaTextStyles.displayMd.copyWith(
-            color:         BanzaColors.white,
-            fontWeight:    FontWeight.w700,
-            letterSpacing: -0.5,
-          ),
-        ),
-
-        const SizedBox(height: 8),
-
-        // ── Tagline ───────────────────────────────────────────────────────
-        Text(
-          'Pagamentos instantâneos em Angola',
-          style: BanzaTextStyles.bodyMd.copyWith(
-            color:         BanzaColors.white.withValues(alpha: 0.50),
-            letterSpacing: 0.1,
-          ),
-        ),
-
-        const SizedBox(height: 52),
-
-        // ── Loading indicator ─────────────────────────────────────────────
-        const CupertinoActivityIndicator(
-          color:  Color(0x55FFFFFF),
-          radius: 9,
-        ),
-      ],
+      ),
     );
   }
 }
