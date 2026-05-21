@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 
-import 'package:banzami_sdk/banzami_sdk.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
 // ---------------------------------------------------------------------------
 // Helpers

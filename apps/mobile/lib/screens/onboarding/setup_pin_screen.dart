@@ -133,23 +133,18 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
     );
   }
 
+  void _backToEnter() => setState(() {
+    _step = _Step.enter; _firstPin = ''; _currentPin = ''; _error = false;
+  });
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BanzaScaffold(
       backgroundColor: BanzaColors.white,
-      appBar: AppBar(
+      appBar: BanzaAppBar(
         backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-        automaticallyImplyLeading: _step == _Step.enter && !_saving,
-        leading: _step == _Step.confirm
-            ? IconButton(
-                icon:      const Icon(Icons.arrow_back_rounded),
-                onPressed: () => setState(() {
-                  _step = _Step.enter; _firstPin = ''; _currentPin = ''; _error = false;
-                }),
-              )
-            : null,
+        showBack: !_saving,
+        onBack:   _step == _Step.confirm ? _backToEnter : null,
       ),
       body: SafeArea(
         child: LayoutBuilder(
@@ -219,27 +214,9 @@ class _BiometricsSheet extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: BanzaSpacing.xl),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: onEnable,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BanzaColors.wine,
-                foregroundColor: BanzaColors.white,
-                padding:         const EdgeInsets.symmetric(vertical: 14),
-                shape:           RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text('Activar'),
-            ),
-          ),
+          BanzaPrimaryButton(label: 'Activar', onPressed: onEnable),
           const SizedBox(height: BanzaSpacing.sm),
-          TextButton(
-            onPressed: onSkip,
-            child: Text('Agora não',
-              style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
-          ),
+          BanzaGhostButton(label: 'Agora não', onPressed: onSkip),
           const SizedBox(height: BanzaSpacing.md),
         ],
       ),

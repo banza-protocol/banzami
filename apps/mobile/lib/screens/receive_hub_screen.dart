@@ -28,7 +28,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   List<ActivityItem> _received         = [];
   bool               _loadingTransfers = false;
-  String?        _transferError;
+  String?            _transferError;
 
   final _shareLinkKey = GlobalKey();
   final _shareQrKey   = GlobalKey();
@@ -58,12 +58,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final page   = await client.getActivity(limit: 50, directionFilter: 'INCOMING');
       if (mounted) setState(() { _received = page.items; _loadingTransfers = false; });
     } catch (_) {
-      if (mounted) {
-        setState(() {
-          _transferError    = 'Não foi possível carregar os pagamentos.';
-          _loadingTransfers = false;
-        });
-      }
+      if (mounted) setState(() {
+        _transferError    = 'Não foi possível carregar os pagamentos.';
+        _loadingTransfers = false;
+      });
     }
   }
 
@@ -83,6 +81,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   void _clearAmount() => setState(() { _amountSet = false; _amountMinor = 0; });
 
   Future<void> _copyHandle(String handle) async {
+    HapticFeedback.selectionClick();
     await Clipboard.setData(ClipboardData(text: '@$handle'));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -98,7 +97,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       isScrollControlled: true,
       backgroundColor:    BanzaColors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (ctx) => Padding(
         padding: EdgeInsets.fromLTRB(
@@ -115,15 +114,15 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
             const SizedBox(height: BanzaSpacing.lg),
             Row(children: [
               Expanded(
-                child: BanzaButton.secondary(
-                  label: 'Cancelar',
+                child: BanzaSecondaryButton(
+                  label:     'Cancelar',
                   onPressed: () => Navigator.pop(ctx),
                 ),
               ),
               const SizedBox(width: BanzaSpacing.sm),
               Expanded(
-                child: BanzaButton(
-                  label: 'Aplicar',
+                child: BanzaPrimaryButton(
+                  label:     'Aplicar',
                   onPressed: () { if (draft > 0) Navigator.pop(ctx, draft); },
                 ),
               ),
@@ -138,6 +137,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   Future<void> _shareLink(String handle) async {
+    HapticFeedback.lightImpact();
     try {
       final box    = _shareLinkKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
@@ -157,6 +157,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   Future<void> _shareQr(String handle) async {
     if (_sharing) return;
+    HapticFeedback.lightImpact();
     setState(() => _sharing = true);
     try {
       final painter = QrPainter(
@@ -206,10 +207,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
         foregroundColor:        BanzaColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
-        title: const Text('Receber', style: BanzaTextStyles.headingMd),
+        title: const Text('Receber com QR', style: BanzaTextStyles.headingMd),
         actions: [
           IconButton(
-            icon:      const Icon(Icons.refresh_rounded),
+            icon:      const Icon(Icons.refresh_rounded, size: 22),
             onPressed: _loadReceived,
             tooltip:   'Actualizar',
           ),
@@ -220,25 +221,23 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
         onRefresh: _loadReceived,
         child: CustomScrollView(
           slivers: [
-            // ---- QR card ------------------------------------------------
+
+            // ── QR card ────────────────────────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                   BanzaSpacing.lg, 0, BanzaSpacing.lg, BanzaSpacing.sm,
                 ),
-                child: Container(
-                  decoration: const BoxDecoration(
-                    color:        BanzaColors.white,
-                    borderRadius: BanzaRadius.xlAll,
-                    boxShadow:    BanzaShadows.card,
-                  ),
+                child: BanzaCard(
+                  shadow: BanzaShadows.cardElevated,
+                  padding: EdgeInsets.zero,
                   child: Column(
                     children: [
-                      // QR + handle
+                      // QR area
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
                           BanzaSpacing.xl, BanzaSpacing.xl,
-                          BanzaSpacing.xl, BanzaSpacing.md,
+                          BanzaSpacing.xl, BanzaSpacing.lg,
                         ),
                         child: Column(
                           children: [
@@ -247,21 +246,22 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               amountLabel:   (_amountSet && _amountMinor > 0)
                                   ? formatMinor(_amountMinor, 'AOA')
                                   : null,
-                              size:          180,
+                              size:          190,
                               embeddedImage: const AssetImage('assets/images/banza_icon.png'),
                             ),
                             const SizedBox(height: BanzaSpacing.lg),
-                            // Handle + copy row
+
+                            // Handle pill
                             GestureDetector(
                               onTap: () => _copyHandle(handle),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: BanzaSpacing.md,
+                                  horizontal: BanzaSpacing.lg,
                                   vertical:   BanzaSpacing.sm,
                                 ),
-                                decoration: const BoxDecoration(
+                                decoration: BoxDecoration(
                                   color:        BanzaColors.gray100,
-                                  borderRadius: BanzaRadius.lgAll,
+                                  borderRadius: BanzaRadius.fullAll,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
@@ -286,7 +286,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             ),
                             const SizedBox(height: BanzaSpacing.xs),
                             Text(
-                              'O seu endereço de pagamento',
+                              'Mostre este QR para receber pagamentos',
                               style: BanzaTextStyles.bodySm.copyWith(
                                 color: BanzaColors.gray400,
                               ),
@@ -295,92 +295,41 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                         ),
                       ),
 
-                      const Divider(height: 1, color: BanzaColors.gray200),
+                      const Divider(height: 1, color: BanzaColors.gray100),
 
                       // Action buttons
                       Padding(
                         padding: const EdgeInsets.all(BanzaSpacing.lg),
                         child: Column(
                           children: [
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                key:      _shareLinkKey,
-                                onPressed: () => _shareLink(handle),
-                                icon:  const Icon(Icons.link_rounded),
-                                label: const Text('Partilhar link'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: BanzaColors.wine,
-                                  foregroundColor: BanzaColors.white,
-                                  padding:   const EdgeInsets.symmetric(vertical: 14),
-                                  shape:     const RoundedRectangleBorder(
-                                    borderRadius: BanzaRadius.lgAll,
-                                  ),
-                                  textStyle: BanzaTextStyles.headingSm,
-                                  elevation: 0,
-                                ),
-                              ),
+                            BanzaPrimaryButton(
+                              key:       _shareLinkKey,
+                              label:     'Partilhar link',
+                              icon:      Icons.link_rounded,
+                              onPressed: () => _shareLink(handle),
                             ),
                             const SizedBox(height: BanzaSpacing.sm),
-                            SizedBox(
-                              width: double.infinity,
-                              child: OutlinedButton.icon(
-                                key:      _shareQrKey,
-                                onPressed: _sharing ? null : () => _shareQr(handle),
-                                icon: _sharing
-                                    ? const SizedBox(
-                                        width: 16, height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color:       BanzaColors.wine,
-                                        ),
+                            Row(children: [
+                              Expanded(
+                                child: BanzaSecondaryButton(
+                                  key:       _shareQrKey,
+                                  label:     _sharing ? 'A partilhar…' : 'Partilhar QR',
+                                  onPressed: _sharing ? null : () => _shareQr(handle),
+                                ),
+                              ),
+                              const SizedBox(width: BanzaSpacing.sm),
+                              Expanded(
+                                child: _amountSet
+                                    ? BanzaSecondaryButton(
+                                        label:     'Remover montante',
+                                        onPressed: _clearAmount,
                                       )
-                                    : const Icon(Icons.share_rounded),
-                                label: const Text('Partilhar QR'),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: BanzaColors.wine,
-                                  side:    const BorderSide(color: BanzaColors.wine),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape:   const RoundedRectangleBorder(
-                                    borderRadius: BanzaRadius.lgAll,
-                                  ),
-                                  textStyle: BanzaTextStyles.headingSm,
-                                ),
+                                    : BanzaSecondaryButton(
+                                        label:     'Definir montante',
+                                        onPressed: _showAmountSheet,
+                                      ),
                               ),
-                            ),
-                            const SizedBox(height: BanzaSpacing.sm),
-                            SizedBox(
-                              width: double.infinity,
-                              child: _amountSet
-                                  ? OutlinedButton.icon(
-                                      onPressed: _clearAmount,
-                                      icon:  const Icon(Icons.close_rounded),
-                                      label: const Text('Remover montante'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: BanzaColors.gray600,
-                                        side:    const BorderSide(color: BanzaColors.gray200),
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
-                                        shape:   const RoundedRectangleBorder(
-                                          borderRadius: BanzaRadius.lgAll,
-                                        ),
-                                        textStyle: BanzaTextStyles.headingSm,
-                                      ),
-                                    )
-                                  : OutlinedButton.icon(
-                                      onPressed: _showAmountSheet,
-                                      icon:  const Icon(Icons.add_rounded),
-                                      label: const Text('Definir montante fixo'),
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: BanzaColors.wine,
-                                        side:    const BorderSide(color: BanzaColors.wine),
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
-                                        shape:   const RoundedRectangleBorder(
-                                          borderRadius: BanzaRadius.lgAll,
-                                        ),
-                                        textStyle: BanzaTextStyles.headingSm,
-                                      ),
-                                    ),
-                            ),
+                            ]),
                           ],
                         ),
                       ),
@@ -390,28 +339,29 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               ),
             ),
 
-            // ---- Received payments header --------------------------------
+            // ── Received payments header ───────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzaSpacing.lg, BanzaSpacing.sm,
-                  BanzaSpacing.md, BanzaSpacing.sm,
+                  BanzaSpacing.xl, BanzaSpacing.lg,
+                  BanzaSpacing.xl, BanzaSpacing.sm,
                 ),
                 child: Row(
                   children: [
-                    const Text('Pagamentos recebidos', style: BanzaTextStyles.headingSm),
+                    Text(
+                      'Pagamentos recebidos',
+                      style: BanzaTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+                    ),
                     const Spacer(),
                     if (widget.onViewAll != null)
-                      TextButton(
-                        onPressed: widget.onViewAll,
-                        style: TextButton.styleFrom(
-                          foregroundColor: BanzaColors.wine,
-                          padding:         EdgeInsets.zero,
-                          tapTargetSize:   MaterialTapTargetSize.shrinkWrap,
-                        ),
+                      GestureDetector(
+                        onTap: widget.onViewAll,
                         child: Text(
                           'Ver todos',
-                          style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.wine),
+                          style: BanzaTextStyles.label.copyWith(
+                            color:   BanzaColors.wine,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                   ],
@@ -419,14 +369,12 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               ),
             ),
 
-            // ---- Received list -------------------------------------------
+            // ── Received list ──────────────────────────────────────────────
             if (_loadingTransfers)
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(BanzaSpacing.xl),
-                  child: Center(
-                    child: CircularProgressIndicator(color: BanzaColors.wine),
-                  ),
+                  child: Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
                 ),
               )
             else if (_transferError != null && _received.isEmpty)
@@ -435,17 +383,13 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                   padding: const EdgeInsets.all(BanzaSpacing.xl),
                   child: Center(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.error_outline_rounded,
-                          color: BanzaColors.error, size: 36),
+                      const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 36),
                       const SizedBox(height: BanzaSpacing.sm),
                       Text(_transferError!,
-                          style: BanzaTextStyles.bodyMd
-                              .copyWith(color: BanzaColors.gray400),
+                          style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
                           textAlign: TextAlign.center),
                       const SizedBox(height: BanzaSpacing.md),
-                      TextButton(
-                          onPressed: _loadReceived,
-                          child: const Text('Tentar novamente')),
+                      TextButton(onPressed: _loadReceived, child: const Text('Tentar novamente')),
                     ]),
                   ),
                 ),
@@ -455,21 +399,33 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: BanzaSpacing.lg,
-                    vertical:   BanzaSpacing.lg,
                   ),
-                  child: Container(
+                  child: BanzaCard(
                     padding: const EdgeInsets.all(BanzaSpacing.xl),
-                    decoration: const BoxDecoration(
-                      color:        BanzaColors.white,
-                      borderRadius: BanzaRadius.xlAll,
-                      boxShadow:    BanzaShadows.card,
-                    ),
                     child: Center(
-                      child: Text(
-                        'Nenhum pagamento recebido ainda.',
-                        style: BanzaTextStyles.bodyMd
-                            .copyWith(color: BanzaColors.gray400),
-                      ),
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Container(
+                          width:  52,
+                          height: 52,
+                          decoration: const BoxDecoration(
+                            color: BanzaColors.gray100,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.qr_code_rounded,
+                            size:  24,
+                            color: BanzaColors.gray400,
+                          ),
+                        ),
+                        const SizedBox(height: BanzaSpacing.md),
+                        const Text('Nenhum pagamento recebido', style: BanzaTextStyles.headingSm),
+                        const SizedBox(height: BanzaSpacing.xs),
+                        Text(
+                          'Partilhe o seu QR ou link para receber',
+                          style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                          textAlign: TextAlign.center,
+                        ),
+                      ]),
                     ),
                   ),
                 ),
@@ -477,38 +433,24 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
             else
               SliverPadding(
                 padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.lg),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) {
-                      final isFirst = i == 0;
-                      final isLast  = i == _received.length - 1;
-                      return Container(
-                        decoration: BoxDecoration(
-                          color: BanzaColors.white,
-                          borderRadius: BorderRadius.vertical(
-                            top:    Radius.circular(isFirst ? BanzaRadius.xl : 0),
-                            bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0),
-                          ),
-                          boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BanzaTransferItem(item: _received[i]),
-                            if (!isLast)
-                              const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
-                          ],
-                        ),
-                      );
-                    },
-                    childCount: _received.length,
+                sliver: SliverToBoxAdapter(
+                  child: BanzaCard(
+                    padding: EdgeInsets.zero,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (int i = 0; i < _received.length; i++) ...[
+                          BanzaTransferItem(item: _received[i]),
+                          if (i < _received.length - 1)
+                            const Divider(height: 1, indent: 68, color: BanzaColors.gray100),
+                        ],
+                      ],
+                    ),
                   ),
                 ),
               ),
 
-            const SliverToBoxAdapter(
-              child: SizedBox(height: BanzaSpacing.page),
-            ),
+            const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
           ],
         ),
       ),
