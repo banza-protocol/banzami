@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-05-21",
+    "lastUpdated": "2026-05-22",
     "referenceVersion": "1.0",
     "referenceFile": "docs/BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
@@ -1378,13 +1378,14 @@
       "referenceSection": "§6.3",
       "description": "Sistema de identidade de pagamento @banza — handle único e legível por humanos para cada conta. Registo, validação de formato e garantia de unicidade.",
       "requirement": "@banza único em toda a rede, alfanumérico com pontos permitidos, imutável após confirmação.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Identity",
       "technicalArea": "Rust · PostgreSQL",
       "validationMethods": [
         "unit_tests",
-        "integration_tests"
+        "integration_tests",
+        "e2e_tests"
       ],
       "acceptanceCriteria": [
         "@banza único em toda a rede",
@@ -1403,7 +1404,10 @@
         "db/migrations/0035_handle_format_constraint.sql — DB-level CHECK constraint enforces format at storage layer",
         "core/consumer-wallets/src/engine.rs — validate_handle_format() now delegates to banzami_identity::validate_handle() (single source of truth)",
         "core/identity/tests/integration.rs — 10 integration tests including: valid registration, duplicate rejection, normalization collision, reserved handles, invalid syntax, resolve active, suspended not resolved, closed not resolved, unknown handle, concurrent registration (1 of 5 wins)",
-        "docs/BANZAMI_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale"
+        "docs/BANZAMI_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale",
+        "core/identity/tests/integration.rs — 10/10 integration tests PASS against live PostgreSQL banzami_dev (6.18s runtime, 2026-05-22)",
+        "SQL INV-IDENTITY-001 check — 0 duplicate active handles across 7 consumers in banzami_dev",
+        "E2E handle validation: full HTTP onboarding flow — handle pubapi_e2e_final registered ACTIVE through Go public-api → Rust core-api → banzami_identity → DB (from WAL-001D E2E)"
       ],
       "dependencies": [],
       "requires": [],
@@ -1436,19 +1440,19 @@
         }
       ],
       "confidence": {
-        "score": 75,
-        "level": "HIGH",
+        "score": 90,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence non-empty (+20)",
           "unit_tests (+15)",
-          "integration_tests (+20)",
-          "non-financial item — no financial invariants required (+20)",
-          "capped at 75 — no production_review or e2e yet"
+          "integration_tests (+20): 10/10 PASS against live PostgreSQL banzami_dev (6.18s runtime)",
+          "e2e_tests (+15): full HTTP onboarding flow exercised through Go public-api → Rust core-api → banzami_identity → DB",
+          "all invariants PASS (+20): INV-IDENTITY-001..005 all PASS, SQL confirms 0 duplicate handles in live DB"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-05-22T00:00:00Z",
+      "validatedAgainstCommit": "266c9d44fb2d052e34581e5ba3a27d96cb426d77",
       "history": [
         {
           "timestamp": "2026-05-21T00:00:00Z",
@@ -1465,9 +1469,23 @@
             "core/identity/tests/integration.rs",
             "docs/BANZAMI_REFERENCE.md"
           ]
+        },
+        {
+          "timestamp": "2026-05-22T00:00:00Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "a25b22c1f1715fbe",
+          "commit": "266c9d44fb2d052e34581e5ba3a27d96cb426d77",
+          "reason": "10/10 integration tests PASS against live PostgreSQL. All 5 INV-IDENTITY invariants verified PASS. SQL confirms 0 duplicate handles across 7 consumers. E2E handle flow validated through full HTTP stack (public-api→core-api→banzami_identity). Confidence 75→90 (VERY_HIGH) after adding e2e evidence.",
+          "evidence": [
+            "core/identity/tests/integration.rs — 10/10 PASS (6.18s)",
+            "SQL INV-IDENTITY-001 — 0 duplicate active handles in banzami_dev",
+            "E2E: handle pubapi_e2e_final via public-api → core-api → banzami_identity"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-21"
+      "lastUpdated": "2026-05-22"
     },
     {
       "id": "HDL-002",
