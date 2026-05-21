@@ -4,7 +4,6 @@ import 'package:intl/intl.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
-import '../widgets/banza_button.dart';
 
 /// Final screen of the P2P send flow — shown after a successful transfer.
 ///
@@ -33,82 +32,149 @@ class BanzamiReceiptScreen extends StatelessWidget {
         : transfer.transferId.toUpperCase();
 
     return Scaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: AppBar(
-        title:           const Text('Comprovativo', style: BanzaTextStyles.headingSm),
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
-        elevation:       0,
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+      backgroundColor: BanzaColors.wineDark,
+      body: Container(
+        width:     double.infinity,
+        height:    double.infinity,
+        decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+        child: SafeArea(
           child: Column(
             children: [
+              // ---- top bar ------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzaSpacing.lg,
+                  vertical:   BanzaSpacing.md,
+                ),
+                child: Text(
+                  'Comprovativo',
+                  style: BanzaTextStyles.headingSm.copyWith(
+                    color: BanzaColors.white.withValues(alpha: 0.75),
+                  ),
+                ),
+              ),
+
               const Spacer(),
 
-              // Success mark
+              // ---- success mark -------------------------------------------
               Container(
-                width:       80,
-                height:      80,
-                decoration: const BoxDecoration(
-                  color: BanzaColors.successBg,
-                  shape: BoxShape.circle,
+                width:  80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color:  BanzaColors.white.withValues(alpha: 0.15),
+                  shape:  BoxShape.circle,
+                  border: Border.all(
+                    color: BanzaColors.white.withValues(alpha: 0.30),
+                    width: 1.5,
+                  ),
                 ),
                 child: const Icon(
                   Icons.check_rounded,
-                  color: BanzaColors.success,
+                  color: BanzaColors.white,
                   size:  44,
                 ),
               ),
 
               const SizedBox(height: BanzaSpacing.md),
-              const Text('Enviado!', style: BanzaTextStyles.headingLg),
-              const SizedBox(height: BanzaSpacing.xs),
+
+              Text(
+                'Enviado com sucesso',
+                style: BanzaTextStyles.headingSm.copyWith(
+                  color: BanzaColors.white.withValues(alpha: 0.80),
+                ),
+              ),
+
+              const SizedBox(height: BanzaSpacing.sm),
+
               Text(
                 amount,
                 style: BanzaTextStyles.mono.copyWith(
                   fontSize:   42,
                   fontWeight: FontWeight.w700,
-                  color:      BanzaColors.gray900,
+                  color:      BanzaColors.white,
+                ),
+              ),
+
+              const SizedBox(height: BanzaSpacing.xs),
+
+              Text(
+                'para @${transfer.recipient}',
+                style: BanzaTextStyles.bodyMd.copyWith(
+                  color: BanzaColors.white.withValues(alpha: 0.60),
                 ),
               ),
 
               const Spacer(),
 
-              // Details card
-              Container(
-                width:       double.infinity,
-                padding: const EdgeInsets.all(BanzaSpacing.lg),
-                decoration: BoxDecoration(
-                  color:        BanzaColors.gray100,
-                  borderRadius: BorderRadius.circular(BanzaRadius.lg),
+              // ---- details card -------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+                child: Container(
+                  width:   double.infinity,
+                  padding: const EdgeInsets.all(BanzaSpacing.lg),
+                  decoration: BoxDecoration(
+                    color:        BanzaColors.white.withValues(alpha: 0.12),
+                    borderRadius: const BorderRadius.all(Radius.circular(BanzaRadius.xl)),
+                    border:       Border.all(
+                      color: BanzaColors.white.withValues(alpha: 0.18),
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      if (ownHandle != null || transfer.sender.isNotEmpty)
+                        _Row(label: 'De', value: '@${ownHandle ?? transfer.sender}'),
+                      if (transfer.note != null && transfer.note!.isNotEmpty)
+                        _Row(label: 'Nota', value: transfer.note!),
+                      _Row(label: 'Data',     value: date),
+                      _Row(label: 'Ref',      value: ref),
+                      const _Row(label: 'Método',   value: 'Saldo Banza', isLast: true),
+                    ],
+                  ),
                 ),
+              ),
+
+              const Spacer(),
+
+              // ---- CTAs ---------------------------------------------------
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
                 child: Column(
                   children: [
-                    _Row(label: 'Para',  value: '@${transfer.recipient}'),
-                    if (ownHandle != null || transfer.sender.isNotEmpty)
-                      _Row(label: 'De',   value: '@${ownHandle ?? transfer.sender}'),
-                    if (transfer.note != null && transfer.note!.isNotEmpty)
-                      _Row(label: 'Nota', value: transfer.note!),
-                    _Row(label: 'Data',  value: date),
-                    _Row(label: 'Ref',   value: ref, isLast: true),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          onDone(transfer);
+                          Navigator.of(context).popUntil((route) => route.isFirst);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: BanzaColors.white,
+                          foregroundColor: BanzaColors.wine,
+                          minimumSize:     const Size(double.infinity, 52),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BanzaRadius.lgAll,
+                          ),
+                          elevation: 0,
+                          textStyle: BanzaTextStyles.label.copyWith(
+                            fontSize:   15,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: const Text('Concluído'),
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {},
+                      style: TextButton.styleFrom(
+                        foregroundColor: BanzaColors.white.withValues(alpha: 0.55),
+                      ),
+                      child: const Text('Partilhar comprovativo'),
+                    ),
                   ],
                 ),
               ),
 
-              const Spacer(),
-
-              BanzaButton(
-                label:     'Concluído',
-                onPressed: () {
-                  onDone(transfer);
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-              ),
-
-              const SizedBox(height: BanzaSpacing.xl),
+              const SizedBox(height: BanzaSpacing.lg),
             ],
           ),
         ),
@@ -116,6 +182,10 @@ class BanzamiReceiptScreen extends StatelessWidget {
     );
   }
 }
+
+// =============================================================================
+// Detail row — white on dark
+// =============================================================================
 
 class _Row extends StatelessWidget {
   final String label;
@@ -135,7 +205,9 @@ class _Row extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                style: BanzaTextStyles.bodySm.copyWith(
+                  color: BanzaColors.white.withValues(alpha: 0.55),
+                ),
               ),
               const SizedBox(width: BanzaSpacing.md),
               Flexible(
@@ -143,7 +215,7 @@ class _Row extends StatelessWidget {
                   value,
                   style: BanzaTextStyles.bodyMd.copyWith(
                     fontWeight: FontWeight.w600,
-                    color:      BanzaColors.gray900,
+                    color:      BanzaColors.white,
                   ),
                   textAlign: TextAlign.end,
                 ),
@@ -152,7 +224,7 @@ class _Row extends StatelessWidget {
           ),
         ),
         if (!isLast)
-          const Divider(height: 1, color: BanzaColors.gray200),
+          Divider(height: 1, color: BanzaColors.white.withValues(alpha: 0.12)),
       ],
     );
   }

@@ -218,8 +218,8 @@ void main() {
         ownHandle: 'fm65',
         onDone:    (_) {},
       )));
-      expect(find.text('Enviado!'),  findsOneWidget);
-      expect(find.text('Concluído'), findsOneWidget);
+      expect(find.text('Enviado com sucesso'), findsOneWidget);
+      expect(find.text('Concluído'),           findsOneWidget);
     });
 
     testWidgets('shows recipient handle in details card', (tester) async {
@@ -228,7 +228,7 @@ void main() {
         ownHandle: 'fm65',
         onDone:    (_) {},
       )));
-      expect(find.text('@joao'), findsOneWidget);
+      expect(find.textContaining('@joao'), findsOneWidget);
     });
 
     testWidgets('shows note when transfer has a note', (tester) async {
