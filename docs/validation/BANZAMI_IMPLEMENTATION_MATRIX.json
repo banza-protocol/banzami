@@ -1867,7 +1867,7 @@
       "referenceSection": "§13.4",
       "description": "Envio de dinheiro de uma carteira para outra via @banza — sem dados bancários, sem IBAN, liquidação instantânea.",
       "requirement": "Transferência de carteira-para-carteira por @banza, confirmada e liquidada instantaneamente.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger",
       "technicalArea": "Rust · Go · Flutter",
@@ -1883,8 +1883,15 @@
         "Notificação ao receptor imediata",
         "Erro claro se @banza inexistente ou saldo insuficiente"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        "core/transfers/src/engine.rs — PostgresTransferEngine::send() — atomic SELECT FOR UPDATE + double-entry ledger posting",
+        "core/transfers/src/transfer.rs — Transfer.recipient_handle — audit snapshot field",
+        "db/migrations/0037_transfers_recipient_handle.sql — recipient_handle column",
+        "core/api/src/routes/transfers.rs — send_p2p() handler — HDL-002 resolve + transfer orchestration",
+        "core/transfers/tests/p2p_integration.rs — 16 integration tests covering all mandatory scenarios",
+        "POST /internal/v1/consumer/transfers — @handle-to-@handle consumer transfer route"
+      ],
       "dependencies": [
         "HDL-002",
         "WAL-001",
@@ -1904,30 +1911,65 @@
         {
           "id": "INV-P2P-001-1",
           "name": "Transfer conservation invariant",
-          "rule": "sender.balance_delta + receiver.balance_delta == 0 — no money is created or destroyed",
-          "status": "NOT_RUN"
+          "rule": "sender.balance_delta + recipient.balance_delta == 0 — no money is created or destroyed",
+          "status": "PASS"
         },
         {
           "id": "INV-P2P-001-2",
-          "name": "Sender non-negative post-transfer invariant",
-          "rule": "sender.balance >= 0 after transfer; no overdraft permitted",
-          "status": "NOT_RUN"
+          "name": "Transfer-ledger backing invariant",
+          "rule": "transfer.status == COMPLETED ⟹ ∃! posting ∧ sum(signed_entries) == 0",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-001-3",
+          "name": "Concurrent overdraft prevention invariant",
+          "rule": "sum(completed_transfers[sender]) <= initial_balance[sender] under concurrent execution",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-001-4",
+          "name": "Transfer idempotency invariant",
+          "rule": "send(key) → T ∧ send(key) → T (same T, no new ledger entries)",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-P2P-001-5",
+          "name": "Recipient handle audit snapshot invariant",
+          "rule": "transfer.recipient_handle == normalize(routing_input) for all handle-routed transfers",
+          "status": "PASS"
         }
       ],
       "confidence": {
-        "score": 30,
-        "level": "LOW",
+        "score": 65,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "invariants not all PASS (+0)"
+          "evidence[] non-empty (+20)",
+          "integration_tests in validationMethods (+15)",
+          "sandbox in validationMethods (+10)",
+          "all 5 invariants PASS (+20)"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-05-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "pending-formal-approval",
+          "commit": "c5f1a95",
+          "reason": "P2P-001 implemented: handle resolution via HDL-002, atomic double-entry transfer, recipient_handle audit snapshot, 16 integration tests, POST /internal/v1/consumer/transfers",
+          "evidence": [
+            "core/transfers/tests/p2p_integration.rs",
+            "core/transfers/src/engine.rs",
+            "core/api/src/routes/transfers.rs",
+            "db/migrations/0037_transfers_recipient_handle.sql"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-05-21"
     },
     {
       "id": "P2P-002",
