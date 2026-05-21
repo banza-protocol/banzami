@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
@@ -96,7 +95,6 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
   Widget _home(SessionService session) {
     if (!session.initialized || !_splashDone) return const SplashScreen();
-    FlutterNativeSplash.remove();
     if (!session.hasSession)  return const WelcomeScreen();
     if (session.isLocked)     return const PinScreen();
     return const MainScreen();

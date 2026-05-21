@@ -4,14 +4,12 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'app.dart';
 import 'services/push_notification_service.dart';
 import 'services/transfer_notification_service.dart';
 
 void main() async {
-  final binding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: binding);
+  WidgetsFlutterBinding.ensureInitialized();
 
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
@@ -52,10 +50,4 @@ void main() async {
   ));
 
   runApp(BanzamiApp(pinnedClient: pinnedClient));
-
-  // Remove the native splash AFTER the first Flutter frame is committed so
-  // the overlay fades out onto already-painted Flutter content, not blank.
-  WidgetsBinding.instance.addPostFrameCallback(
-    (_) => FlutterNativeSplash.remove(),
-  );
 }
