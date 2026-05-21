@@ -61,9 +61,12 @@ export function SectionNav({ sections }: Props) {
     <nav className="flex flex-col gap-0.5">
       {/* Logo mark */}
       <div className="mb-4 px-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-7 w-auto object-contain" />
-        <div className="mt-1 text-[10px] text-bz-muted">Documentação oficial</div>
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-6 w-auto object-contain" />
+          <div className="text-xs font-bold tracking-widest text-bz-primary uppercase">Banzami</div>
+        </div>
+        <div className="mt-0.5 text-[10px] text-bz-muted">Documentação oficial</div>
       </div>
 
       {navLink('/', 'Início')}

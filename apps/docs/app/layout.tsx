@@ -61,9 +61,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="sticky top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-5 md:px-8">
             {/* Logo */}
-            <Link href="/" className="flex items-center">
+            <Link href="/" className="flex items-center gap-2.5">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-8 w-auto object-contain" />
+              <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-7 w-auto object-contain" />
+              <span className="text-base font-bold tracking-tight text-bz-text">Banzami</span>
             </Link>
 
             {/* Desktop nav */}
@@ -116,9 +117,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <div className="mx-auto max-w-screen-2xl px-6 py-10">
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
               <div>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-7 w-auto object-contain" />
-                <p className="mt-2 text-xs text-bz-muted">
+                <div className="flex items-center gap-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-6 w-auto object-contain" />
+                  <span className="font-bold text-bz-text">Banzami</span>
+                </div>
+                <p className="mt-1 text-xs text-bz-muted">
                   Banza — Rede Angolana de Pagamentos Instantâneos por QR Code
                 </p>
               </div>
