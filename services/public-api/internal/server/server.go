@@ -53,6 +53,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	consumerH    := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
 	meH          := handler.NewMeHandler(deps.CoreClient)
 	transferH    := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter)
+	activityH    := handler.NewActivityHandler(deps.CoreClient)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
 	sandboxH     := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH  := handler.NewOnboardingHandler(deps.CoreClient)
@@ -82,6 +83,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Get("/v1/me",                meH.Profile)
 		r.Get("/v1/me/wallet",         meH.Wallet)
 		r.Get("/v1/me/wallet/balance",  meH.Balance)
+		r.Get("/v1/me/activity",        activityH.Activity)
 
 		// Transfers
 		r.Post("/v1/transfers",       transferH.Send)

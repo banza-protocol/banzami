@@ -565,6 +565,66 @@ func mapOnboardingError(err error) error {
 }
 
 // ---------------------------------------------------------------------------
+// WAL-003 — Consumer activity feed
+// ---------------------------------------------------------------------------
+
+// ActivityItem is one entry in the consumer's activity feed.
+// It is the public projection of a ledger-backed financial event —
+// either a P2P transfer or a wallet funding/reversal.
+type ActivityItem struct {
+	ActivityID              string     `json:"activity_id"`
+	Type                    string     `json:"item_type"`
+	Direction               string     `json:"direction"`
+	AmountMinor             int64      `json:"amount_minor"`
+	Currency                string     `json:"currency"`
+	Status                  string     `json:"status"`
+	CreatedAt               time.Time  `json:"created_at"`
+	CompletedAt             *time.Time `json:"completed_at"`
+	CounterpartyHandle      *string    `json:"counterparty_handle"`
+	CounterpartyDisplayName *string    `json:"counterparty_display_name"`
+	Note                    *string    `json:"note"`
+	TransferID              *string    `json:"transfer_id"`
+	FundingID               *string    `json:"funding_id"`
+}
+
+// ActivityPage is the paginated response for GET /v1/me/activity.
+type ActivityPage struct {
+	Items      []ActivityItem `json:"items"`
+	NextCursor *string        `json:"next_cursor"`
+	HasMore    bool           `json:"has_more"`
+}
+
+// GetActivity returns the consumer's merged activity feed.
+// cursor, typeFilter, and directionFilter are optional (pass "" to omit).
+func (c *CorePublicClient) GetActivity(
+	ctx             context.Context,
+	consumerID      string,
+	limit           int,
+	cursor          string,
+	typeFilter      string,
+	directionFilter string,
+) (*ActivityPage, error) {
+	p := url.Values{}
+	p.Set("consumer_id", consumerID)
+	p.Set("limit", strconv.Itoa(limit))
+	if cursor != "" {
+		p.Set("cursor", cursor)
+	}
+	if typeFilter != "" {
+		p.Set("type", typeFilter)
+	}
+	if directionFilter != "" {
+		p.Set("direction", directionFilter)
+	}
+
+	var out ActivityPage
+	if err := c.get(ctx, "/internal/v1/consumer/activity?"+p.Encode(), &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+// ---------------------------------------------------------------------------
 // Internal response types
 // ---------------------------------------------------------------------------
 

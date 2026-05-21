@@ -1,0 +1,311 @@
+openapi: 3.1.0
+
+info:
+  title: Banza Activity Feed API
+  version: 1.0
+  description: |
+    Consumer wallet activity feed — the human-readable projection of
+    immutable ledger events for the authenticated consumer.
+
+    ## What is the activity feed?
+
+    The activity feed is NOT a chat timeline. It is the consumer-readable
+    projection of immutable financial truth. Every item maps 1:1 to a
+    real ledger-backed financial event:
+
+    - **P2P_SENT** — money you sent to another @banza handle
+    - **P2P_RECEIVED** — money received from another @banza handle
+    - **WALLET_FUNDED** — your wallet was topped up via Multicaixa Express or
+      another funding provider
+    - **WALLET_REVERSED** — a previously settled top-up was reversed
+
+    ## Ordering
+    Items are returned newest-first, ordered by `(created_at DESC, activity_id DESC)`.
+    This ordering is deterministic — the same item always occupies the same
+    position within its time window.
+
+    ## Pagination
+    Use cursor-based pagination. Pass the `next_cursor` value from the previous
+    response as the `cursor` query parameter for the next page. Cursors are
+    opaque — do not parse or construct them.
+
+    ## Authentication
+    All endpoints require a Bearer JWT issued by `POST /v1/auth/token`.
+
+servers:
+  - url: https://api.banza.ao
+    description: Production
+  - url: https://sandbox.banza.ao
+    description: Sandbox
+
+paths:
+  /v1/me/activity:
+    get:
+      operationId: listActivity
+      summary: List the authenticated consumer's activity feed
+      description: |
+        Returns a time-ordered, cursor-paginated feed of all ledger-backed
+        financial events for the authenticated consumer: P2P transfers sent
+        and received, wallet fundings, and reversals.
+
+        The direction of each item is computed server-side — the client never
+        needs to infer whether a transfer was sent or received.
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          description: |
+            Opaque pagination cursor from the `next_cursor` field of a
+            previous response. Do not construct or parse this value.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          description: Maximum number of items to return (1–100, default 20).
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: type
+          in: query
+          required: false
+          description: |
+            Filter by activity type. One of:
+            `P2P_SENT`, `P2P_RECEIVED`, `WALLET_FUNDED`, `WALLET_REVERSED`.
+          schema:
+            type: string
+            enum:
+              - P2P_SENT
+              - P2P_RECEIVED
+              - WALLET_FUNDED
+              - WALLET_REVERSED
+        - name: direction
+          in: query
+          required: false
+          description: Filter by direction. One of `OUTGOING`, `INCOMING`.
+          schema:
+            type: string
+            enum:
+              - OUTGOING
+              - INCOMING
+      responses:
+        "200":
+          description: Activity feed page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityPage'
+              example:
+                items:
+                  - activity_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    item_type: "P2P_SENT"
+                    direction: "OUTGOING"
+                    amount_minor: 200000
+                    currency: "AOA"
+                    status: "COMPLETED"
+                    created_at: "2026-05-21T14:00:00Z"
+                    completed_at: "2026-05-21T14:00:00Z"
+                    counterparty_handle: "@ana"
+                    counterparty_display_name: "Ana Silva"
+                    note: "almoço"
+                    transfer_id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+                    funding_id: null
+                  - activity_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                    item_type: "P2P_RECEIVED"
+                    direction: "INCOMING"
+                    amount_minor: 500000
+                    currency: "AOA"
+                    status: "COMPLETED"
+                    created_at: "2026-05-21T10:00:00Z"
+                    completed_at: "2026-05-21T10:00:00Z"
+                    counterparty_handle: "@joao"
+                    counterparty_display_name: null
+                    note: null
+                    transfer_id: "b2c3d4e5-f6a7-8901-bcde-f12345678901"
+                    funding_id: null
+                  - activity_id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+                    item_type: "WALLET_FUNDED"
+                    direction: "INCOMING"
+                    amount_minor: 1000000
+                    currency: "AOA"
+                    status: "COMPLETED"
+                    created_at: "2026-05-20T09:00:00Z"
+                    completed_at: "2026-05-20T09:05:00Z"
+                    counterparty_handle: null
+                    counterparty_display_name: null
+                    note: null
+                    transfer_id: null
+                    funding_id: "c3d4e5f6-a7b8-9012-cdef-123456789012"
+                next_cursor: "MjAyNi0wNS0yMFQwOTowMDowMFp8YzNkNGU1ZjYtYTdiOC05MDEyLWNkZWYtMTIzNDU2Nzg5MDEy"
+                has_more: true
+        "400":
+          description: Invalid query parameter
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_limit:
+                  value: { code: "INVALID_PARAM", message: "limit must be between 1 and 100" }
+                invalid_cursor:
+                  value: { code: "INVALID_CURSOR", message: "cursor is malformed" }
+        "401":
+          $ref: '#/components/responses/Unauthorized'
+        "500":
+          description: Internal error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                code: "INTERNAL_ERROR"
+                message: "could not fetch activity"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT issued by POST /v1/auth/token
+
+  schemas:
+    ActivityItem:
+      type: object
+      description: |
+        One financial event in the consumer's activity feed. Maps 1:1 to a
+        real ledger-backed event — a P2P transfer or a wallet funding/reversal.
+      required:
+        - activity_id
+        - item_type
+        - direction
+        - amount_minor
+        - currency
+        - status
+        - created_at
+        - has_more
+      properties:
+        activity_id:
+          type: string
+          format: uuid
+          description: |
+            Stable, unique identifier for this activity item.
+            For P2P transfers: equals the `transfer_id`.
+            For fundings: equals the `funding_id`.
+        item_type:
+          type: string
+          description: The type of financial event.
+          enum:
+            - P2P_SENT
+            - P2P_RECEIVED
+            - WALLET_FUNDED
+            - WALLET_REVERSED
+        direction:
+          type: string
+          description: |
+            Whether this event represents money leaving (OUTGOING) or entering
+            (INCOMING) the consumer's wallet. Always computed server-side.
+          enum:
+            - OUTGOING
+            - INCOMING
+            - SYSTEM
+        amount_minor:
+          type: integer
+          format: int64
+          description: Transaction amount in integer minor units (cêntimos). Always positive.
+          example: 200000
+        currency:
+          type: string
+          example: "AOA"
+        status:
+          type: string
+          description: |
+            Consumer-visible status. COMPLETED means the ledger posting
+            is confirmed. Activity items are only shown when the underlying
+            event is in a terminal state.
+          enum:
+            - COMPLETED
+            - REVERSED
+        created_at:
+          type: string
+          format: date-time
+          description: When the event was initiated.
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+          description: When the event reached its terminal state.
+        counterparty_handle:
+          type: string
+          nullable: true
+          description: |
+            The @banza handle of the other party. Present for P2P events.
+            Null for wallet fundings (no counterparty).
+          example: "@ana"
+        counterparty_display_name:
+          type: string
+          nullable: true
+          description: Optional display name of the counterparty, if set.
+          example: "Ana Silva"
+        note:
+          type: string
+          nullable: true
+          description: Consumer-provided note. Present for P2P transfers if a note was included.
+          example: "almoço"
+        transfer_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Reference to the transfer record. Present for P2P events.
+        funding_id:
+          type: string
+          format: uuid
+          nullable: true
+          description: Reference to the wallet funding record. Present for WALLET_FUNDED/WALLET_REVERSED.
+
+    ActivityPage:
+      type: object
+      description: One page of the consumer activity feed.
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ActivityItem'
+          description: Activity items, newest first.
+        next_cursor:
+          type: string
+          nullable: true
+          description: |
+            Opaque cursor for the next page. Pass as `cursor` in the next request.
+            Null when this is the last page.
+        has_more:
+          type: boolean
+          description: Whether more items exist beyond this page.
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code.
+        message:
+          type: string
+          description: Human-readable explanation.
+        request_id:
+          type: string
+          description: Request ID for support reference.
+
+  responses:
+    Unauthorized:
+      description: Authentication required or token invalid
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            code: "UNAUTHORIZED"
+            message: "authentication required"

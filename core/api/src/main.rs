@@ -214,6 +214,9 @@ async fn main() {
         // Transfers — consumer @handle-to-@handle P2P (P2P-001)
         .route("/internal/v1/consumer/transfers", post(routes::transfers::send_p2p))
 
+        // Activity feed — consumer-visible transaction history (WAL-003)
+        .route("/internal/v1/consumer/activity", get(routes::activity::list))
+
         // QR codes
         .route("/internal/v1/qr/static",        post(routes::qr::create_static))
         .route("/internal/v1/qr/dynamic",       post(routes::qr::create_dynamic))
