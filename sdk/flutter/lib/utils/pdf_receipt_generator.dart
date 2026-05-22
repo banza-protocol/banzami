@@ -33,8 +33,6 @@ class BanzaPdfReceiptGenerator {
     String?           logoAssetPath,
     bool              isSandbox = false,
   }) async {
-    // Load Inter TTF fonts — fixes all Portuguese accent + special-char issues.
-    // Helvetica (PDF default) is Latin-1 only and mangles ✓ / — / ã / etc.
     final regData  = await rootBundle.load(
         'packages/banza_flutter/assets/fonts/Inter-Regular.ttf');
     final boldData = await rootBundle.load(
@@ -90,6 +88,10 @@ class BanzaPdfReceiptGenerator {
   }
 
   // ── Page ──────────────────────────────────────────────────────────────────
+  //
+  // pw.Spacer() requires a bounded height constraint from its parent.
+  // pw.Container alone doesn't provide one — BoxConstraints.expand() anchors
+  // the outer box to the full A4 height so Spacer distributes correctly.
 
   static pw.Widget _buildPage(
     pw.Context ctx, {
@@ -104,13 +106,14 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle    bold,
   }) {
     return pw.Container(
-      color:   _kWhite,
-      padding: const pw.EdgeInsets.symmetric(horizontal: 52, vertical: 56),
+      color:       _kWhite,
+      constraints: const pw.BoxConstraints.expand(),
+      padding:     const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
           _buildHeader(logoImage: logoImage, isSandbox: isSandbox, reg: reg, bold: bold),
-          pw.SizedBox(height: 40),
+          pw.SizedBox(height: 36),
           _buildHero(amount: amount, recipient: transfer.recipient, reg: reg, bold: bold),
           pw.SizedBox(height: 36),
           _buildDetailsCard(
@@ -122,12 +125,13 @@ class BanzaPdfReceiptGenerator {
             reg:       reg,
             bold:      bold,
           ),
+          // Push footer to bottom; disclaimer sits just above it.
           pw.Spacer(),
           if (isSandbox) ...[
             _buildSandboxDisclaimer(reg: reg, bold: bold),
-            pw.SizedBox(height: 16),
+            pw.SizedBox(height: 32),
           ],
-          _buildFooter(ref8: ref8, reg: reg, bold: bold),
+          _buildFooter(ref8: ref8, isSandbox: isSandbox, reg: reg, bold: bold),
         ],
       ),
     );
@@ -145,17 +149,36 @@ class BanzaPdfReceiptGenerator {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         if (logoImage != null)
-          pw.Center(child: pw.Image(logoImage, height: 76, fit: pw.BoxFit.contain))
+          pw.Center(child: pw.Image(logoImage, height: 60, fit: pw.BoxFit.contain))
         else
           pw.Center(
-            child: pw.Text(
-              isSandbox ? 'BANZA SANDBOX' : 'BANZA',
-              style: bold.copyWith(color: _kWine, fontSize: 28),
+            child: pw.Container(
+              width: 60, height: 60,
+              decoration: const pw.BoxDecoration(
+                color: _kWine, shape: pw.BoxShape.circle,
+              ),
+              child: pw.Center(
+                child: pw.Text('B', style: bold.copyWith(color: _kWhite, fontSize: 28)),
+              ),
             ),
           ),
-        pw.SizedBox(height: 14),
+        pw.SizedBox(height: 10),
+        pw.Center(
+          child: pw.Text(
+            'Banza',
+            style: bold.copyWith(color: _kGray900, fontSize: 18),
+          ),
+        ),
+        pw.SizedBox(height: 3),
+        pw.Center(
+          child: pw.Text(
+            'Comprovativo de pagamento',
+            style: reg.copyWith(color: _kGray400, fontSize: 9),
+          ),
+        ),
+        pw.SizedBox(height: 10),
         pw.Center(child: _buildEnvBadge(isSandbox, reg: reg, bold: bold)),
-        pw.SizedBox(height: 32),
+        pw.SizedBox(height: 22),
         pw.Divider(color: _kGray200, thickness: 0.5),
       ],
     );
@@ -168,7 +191,7 @@ class BanzaPdfReceiptGenerator {
   }) {
     if (isSandbox) {
       return pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
         decoration: pw.BoxDecoration(
           color:        _kAmberBg,
           borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
@@ -176,12 +199,12 @@ class BanzaPdfReceiptGenerator {
         ),
         child: pw.Text(
           'SANDBOX  •  Ambiente de teste',
-          style: bold.copyWith(color: _kAmberDk, fontSize: 9, letterSpacing: 0.4),
+          style: bold.copyWith(color: _kAmberDk, fontSize: 8, letterSpacing: 0.4),
         ),
       );
     }
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: pw.BoxDecoration(
         color:        _kGray100,
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
@@ -189,7 +212,7 @@ class BanzaPdfReceiptGenerator {
       ),
       child: pw.Text(
         'Banza  •  Comprovativo verificado',
-        style: bold.copyWith(color: _kGray600, fontSize: 9, letterSpacing: 0.3),
+        style: bold.copyWith(color: _kGray600, fontSize: 8, letterSpacing: 0.3),
       ),
     );
   }
@@ -206,37 +229,36 @@ class BanzaPdfReceiptGenerator {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Center(child: _buildCheckIcon()),
-        pw.SizedBox(height: 20),
+        pw.SizedBox(height: 16),
         pw.Center(
           child: pw.Text(
             'Transferência concluída',
-            style: reg.copyWith(color: _kGray400, fontSize: 12),
+            style: reg.copyWith(color: _kGray400, fontSize: 11),
           ),
         ),
-        pw.SizedBox(height: 10),
+        pw.SizedBox(height: 8),
         pw.Center(
           child: pw.Text(
             amount,
-            style: bold.copyWith(color: _kGray900, fontSize: 48),
+            style: bold.copyWith(color: _kGray900, fontSize: 42),
           ),
         ),
-        pw.SizedBox(height: 6),
+        pw.SizedBox(height: 5),
         pw.Center(
           child: pw.Text(
             'para @$recipient',
-            style: reg.copyWith(color: _kGray600, fontSize: 13),
+            style: reg.copyWith(color: _kGray600, fontSize: 12),
           ),
         ),
       ],
     );
   }
 
-  // Geometric checkmark — avoids all font encoding issues.
-  // Wine gradient circle + white V-stroke drawn via PDF canvas.
+  // Geometric checkmark — no font glyph dependency, always renders correctly.
   static pw.Widget _buildCheckIcon() {
     return pw.Container(
-      width:  60,
-      height: 60,
+      width:  54,
+      height: 54,
       decoration: const pw.BoxDecoration(
         gradient: pw.LinearGradient(
           colors: [_kWine, _kWineDark],
@@ -247,16 +269,16 @@ class BanzaPdfReceiptGenerator {
       ),
       child: pw.Center(
         child: pw.CustomPaint(
-          size: const PdfPoint(26, 20),
+          size: const PdfPoint(24, 19),
           painter: (canvas, size) {
             // PDF Y-axis: 0 = bottom, size.y = top.
-            // Check shape: left-tip → valley (bottom) → right-tip (top-right).
+            // left-tip → valley (near bottom) → right-tip (near top).
             canvas
               ..setStrokeColor(PdfColors.white)
-              ..setLineWidth(2.8)
+              ..setLineWidth(2.6)
               ..setLineCap(PdfLineCap.round)
               ..setLineJoin(PdfLineJoin.round)
-              ..moveTo(1,            size.y * 0.50)
+              ..moveTo(1,             size.y * 0.50)
               ..lineTo(size.x * 0.30, size.y * 0.05)
               ..lineTo(size.x - 1,   size.y - 2)
               ..strokePath();
@@ -280,10 +302,10 @@ class BanzaPdfReceiptGenerator {
     return pw.Container(
       decoration: pw.BoxDecoration(
         color:        _kOffWhite,
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(16)),
+        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(14)),
         border:       pw.Border.all(color: _kGray200, width: 0.75),
       ),
-      padding: const pw.EdgeInsets.symmetric(horizontal: 28, vertical: 6),
+      padding: const pw.EdgeInsets.symmetric(horizontal: 24, vertical: 4),
       child: pw.Column(
         children: [
           _detailRow('De',     '@$ownHandle',   reg: reg, bold: bold),
@@ -298,7 +320,7 @@ class BanzaPdfReceiptGenerator {
           _divider(),
           _detailRow('Ref',    ref8,            reg: reg, bold: bold),
           _divider(),
-          _detailRow('Método', 'Saldo Banza', reg: reg, bold: bold),
+          _detailRow('Método', 'Saldo Banza',   reg: reg, bold: bold),
         ],
       ),
     );
@@ -311,7 +333,7 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle bold,
   }) {
     return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 11),
+      padding: const pw.EdgeInsets.symmetric(vertical: 9),
       child: pw.Row(
         mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
         children: [
@@ -332,7 +354,7 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle bold,
   }) {
     return pw.Container(
-      padding: const pw.EdgeInsets.all(14),
+      padding: const pw.EdgeInsets.all(13),
       decoration: pw.BoxDecoration(
         color:        _kAmberBg,
         borderRadius: const pw.BorderRadius.all(pw.Radius.circular(12)),
@@ -342,7 +364,7 @@ class BanzaPdfReceiptGenerator {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           pw.Padding(
-            padding: const pw.EdgeInsets.only(top: 1.5, right: 8),
+            padding: const pw.EdgeInsets.only(top: 2, right: 8),
             child: pw.Container(
               width:  6,
               height: 6,
@@ -377,6 +399,7 @@ class BanzaPdfReceiptGenerator {
 
   static pw.Widget _buildFooter({
     required String       ref8,
+    required bool         isSandbox,
     required pw.TextStyle reg,
     required pw.TextStyle bold,
   }) {
@@ -384,14 +407,14 @@ class BanzaPdfReceiptGenerator {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         pw.Divider(color: _kGray200, thickness: 0.5),
-        pw.SizedBox(height: 16),
+        pw.SizedBox(height: 14),
         pw.Center(
           child: pw.Text(
             'Comprovativo Banza',
-            style: bold.copyWith(color: _kGray900, fontSize: 10),
+            style: bold.copyWith(color: _kGray900, fontSize: 9),
           ),
         ),
-        pw.SizedBox(height: 4),
+        pw.SizedBox(height: 3),
         pw.Center(
           child: pw.Text(
             'Verificável quando partilhado',
@@ -405,6 +428,15 @@ class BanzaPdfReceiptGenerator {
             style: reg.copyWith(color: _kGray400, fontSize: 8),
           ),
         ),
+        if (isSandbox) ...[
+          pw.SizedBox(height: 3),
+          pw.Center(
+            child: pw.Text(
+              'Documento de teste  •  sem valor financeiro real',
+              style: reg.copyWith(color: _kAmberDk, fontSize: 8),
+            ),
+          ),
+        ],
       ],
     );
   }
