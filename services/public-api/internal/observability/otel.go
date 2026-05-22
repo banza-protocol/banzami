@@ -19,11 +19,14 @@ import (
 type ShutdownFunc func(context.Context) error
 
 // Setup initialises the global OTel tracer and meter providers.
-func Setup(ctx context.Context, serviceName, version, otlpEndpoint string) (ShutdownFunc, error) {
+// environment is attached to every trace and metric as deployment.environment
+// so sandbox traffic is filterable in Grafana without a separate collector.
+func Setup(ctx context.Context, serviceName, version, environment, otlpEndpoint string) (ShutdownFunc, error) {
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName(serviceName),
 			semconv.ServiceVersion(version),
+			semconv.DeploymentEnvironmentKey.String(environment),
 		),
 		resource.WithHost(),
 		resource.WithProcess(),

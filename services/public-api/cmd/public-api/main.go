@@ -28,7 +28,7 @@ func main() {
 	initLogger(cfg)
 
 	ctx := context.Background()
-	shutdownOTel, err := observability.Setup(ctx, "public-api", "0.1.0", cfg.OTLPEndpoint)
+	shutdownOTel, err := observability.Setup(ctx, "public-api", "0.1.0", cfg.Environment, cfg.OTLPEndpoint)
 	if err != nil {
 		slog.Error("otel setup error", "error", err)
 		os.Exit(1)

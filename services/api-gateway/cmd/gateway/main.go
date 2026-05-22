@@ -32,7 +32,7 @@ func main() {
 	// Initialise OpenTelemetry. Metrics are always active (Prometheus);
 	// tracing is active only when OTLP_ENDPOINT is set.
 	ctx := context.Background()
-	shutdownOTel, err := observability.Setup(ctx, "api-gateway", "0.1.0", cfg.OTLPEndpoint)
+	shutdownOTel, err := observability.Setup(ctx, "api-gateway", "0.1.0", cfg.Environment, cfg.OTLPEndpoint)
 	if err != nil {
 		slog.Error("otel setup error", "error", err)
 		os.Exit(1)

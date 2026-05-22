@@ -23,11 +23,13 @@ type ShutdownFunc func(context.Context) error
 // Metrics are always active (Prometheus pull model — /metrics endpoint).
 // Tracing is active only when otlpEndpoint is non-empty; otherwise spans
 // are recorded to the no-op provider and produce zero overhead.
-func Setup(ctx context.Context, serviceName, version, otlpEndpoint string) (ShutdownFunc, error) {
+// environment is stamped on every trace and metric as deployment.environment.
+func Setup(ctx context.Context, serviceName, version, environment, otlpEndpoint string) (ShutdownFunc, error) {
 	res, err := resource.New(ctx,
 		resource.WithAttributes(
 			semconv.ServiceName(serviceName),
 			semconv.ServiceVersion(version),
+			semconv.DeploymentEnvironmentKey.String(environment),
 		),
 		resource.WithHost(),
 		resource.WithProcess(),
