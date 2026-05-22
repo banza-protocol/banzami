@@ -60,7 +60,7 @@ dev_dependencies:
   flutter_launcher_icons: ^0.14.3
 
 flutter_launcher_icons:
-  image_path: "assets/images/banza_icon.png"
+  image_path: "assets/branding/live/icon.png"
   android: true
   ios: true
   remove_alpha_ios: true
@@ -68,18 +68,20 @@ flutter_launcher_icons:
 
 flutter_native_splash:
   color: "#990011"
-  image: assets/images/banza_splash_native.png
+  image: assets/branding/live/splash_native.png
   android: true
   ios: true
   web: false
   android_12:
     color: "#990011"
-    image: assets/images/banza_splash_native.png
+    image: assets/branding/live/splash_native.png
 
 flutter:
   uses-material-design: true
   assets:
     - assets/images/
+    - assets/branding/live/
+    - assets/branding/sandbox/
     - assets/fonts/
     - assets/certs/
   fonts:

@@ -8,6 +8,8 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
+
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 
@@ -37,7 +39,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load('assets/images/banza_icon.png');
+    final data  = await rootBundle.load(BrandingAssets.icon);
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth:  160,
@@ -187,7 +189,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                 dataModuleShape: QrDataModuleShape.square,
                 color:           BanzaColors.gray900,
               ),
-              embeddedImage:      const AssetImage('assets/images/banza_icon.png'),
+              embeddedImage:      AssetImage(BrandingAssets.icon),
               embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(48, 48)),
             ),
             const SizedBox(height: BanzaSpacing.lg),

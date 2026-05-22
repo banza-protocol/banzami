@@ -1,14 +1,24 @@
 #!/usr/bin/env bash
-# gen-icons-sandbox.sh — generate sandbox app icons (amber "S" badge on production icon).
+# gen-icons-sandbox.sh — DEPRECATED.
 #
-# Run this before building a TestFlight IPA to swap in the sandbox icon.
-# Run with --restore to revert to the production icon afterwards.
+# Sandbox icons are now permanent, prebuilt assets in:
+#   apps/mobile/assets/branding/sandbox/
+#   apps/mobile/ios/Runner/Assets.xcassets/AppIconSandbox.appiconset/
 #
-# Usage:
-#   ./tools/gen-icons-sandbox.sh           # generate sandbox icons in-tree
-#   ./tools/gen-icons-sandbox.sh --restore # restore production icons
+# The consumer_sandbox Xcode flavor selects AppIconSandbox automatically via
+#   ASSETCATALOG_COMPILER_APPICON_NAME = AppIconSandbox
+# No icon mutation before/after builds is required.
 #
-# SAFETY: only modifies icon files under apps/mobile/. No database or API access.
+# Build command (replaces the old generate+build+restore sequence):
+#   flutter build ipa --flavor consumer_sandbox -t lib/main_consumer.dart \
+#     --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+#     --dart-define=ENVIRONMENT=sandbox
+#
+# This script is kept for historical reference. It will exit immediately.
+
+echo "gen-icons-sandbox.sh is deprecated — sandbox icons are now static prebuilt assets." >&2
+echo "Use: flutter build ipa --flavor consumer_sandbox ..." >&2
+exit 0
 
 set -euo pipefail
 

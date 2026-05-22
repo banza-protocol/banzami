@@ -8,6 +8,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
@@ -44,7 +45,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load('assets/images/banza_icon.png');
+    final data  = await rootBundle.load(BrandingAssets.icon);
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth: 160, targetHeight: 160,
@@ -257,7 +258,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                                   ? formatMinor(_amountMinor, 'AOA')
                                   : null,
                               size:          190,
-                              embeddedImage: const AssetImage('assets/images/banza_icon.png'),
+                              embeddedImage: AssetImage(BrandingAssets.icon),
                             ),
                             if (AppConfig.isSandbox) ...[
                               const SizedBox(height: BanzaSpacing.sm),

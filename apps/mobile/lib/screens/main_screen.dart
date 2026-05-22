@@ -4,6 +4,7 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 
+import '../branding_assets.dart';
 import '../config.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
@@ -93,7 +94,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         consumerId:    session.consumerId,
         handle:        session.handle,
         displayName:   session.displayName,
-        logoAssetPath: 'assets/images/banza_icon.png',
+        logoAssetPath: BrandingAssets.icon,
       ),
       const HistoryScreen(),
       ReceiveHubScreen(

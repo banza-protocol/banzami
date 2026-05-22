@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
 import 'setup_pin_screen.dart';
 
 class CreateAccountScreen extends StatefulWidget {
@@ -72,7 +73,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ClipRRect(
                   borderRadius: BorderRadius.circular(14),
                   child: Image.asset(
-                    'assets/images/banza_icon.png',
+                    BrandingAssets.icon,
                     height: 48,
                     width:  48,
                     fit:    BoxFit.cover,

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# DEPRECATED — sandbox icons are now permanent prebuilt assets in
+# apps/mobile/assets/branding/sandbox/. This script is no longer used.
 """Composite an amber 'S' badge onto the production icon → banza_icon_sandbox.png."""
 import os
 from PIL import Image, ImageDraw

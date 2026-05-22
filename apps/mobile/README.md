@@ -71,21 +71,16 @@ Verifica o ambiente de staging antes de cada build:
 ./tools/testflight-readiness.sh
 ```
 
-Gera o ícone sandbox e constrói o IPA:
+Constrói o IPA sandbox (sem mutação de ícones — flavor `consumer_sandbox` selecciona `AppIconSandbox` automaticamente):
 
 ```bash
-# Gerar ícone sandbox (ponto âmbar "S" sobre o ícone de produção)
-./tools/gen-icons-sandbox.sh
-
-# Consumer sandbox
-flutter build ipa --flavor consumer -t lib/main_consumer.dart \
+flutter build ipa --flavor consumer_sandbox -t lib/main_consumer.dart \
   --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
   --dart-define=ENVIRONMENT=sandbox \
   --export-options-plist=ios/ExportOptions.plist
-
-# Restaurar ícone de produção após o build
-./tools/gen-icons-sandbox.sh --restore
 ```
+
+O ícone sandbox (`AppIconSandbox.appiconset`) é um asset permanente em `ios/Runner/Assets.xcassets/`. Nenhuma geração dinâmica ou restauração é necessária.
 
 ## Merchant features
 
