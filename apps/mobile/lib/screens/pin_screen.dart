@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
 import '../services/session_service.dart';
+import '../widgets/banza_premium_dialog.dart';
 import '../widgets/pin_pad.dart';
 import 'main_screen.dart';
 import 'onboarding/welcome_screen.dart';
@@ -119,26 +120,14 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _confirmLogout() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Usar outra conta?'),
-        content: const Text(
-          'Vai sair e apagar todos os dados desta conta neste dispositivo. '
-          'Pode entrar novamente quando quiser.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: BanzaColors.error),
-            child: const Text('Remover'),
-          ),
-        ],
-      ),
+    final confirmed = await showBanzaDialog(
+      context:      context,
+      icon:         Icons.manage_accounts_rounded,
+      title:        'Usar outra conta?',
+      description:  'Vai sair desta conta neste dispositivo.\nPode entrar novamente quando quiser.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Continuar',
+      variant:      BanzaDialogVariant.warning,
     );
     if (confirmed == true && mounted) {
       await context.read<SessionService>().logout();
