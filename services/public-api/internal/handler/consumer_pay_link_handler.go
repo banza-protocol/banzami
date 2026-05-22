@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -13,13 +14,24 @@ import (
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
+// consumerPayLinkExecutor is satisfied by *service.CorePublicClient and by test fakes.
+type consumerPayLinkExecutor interface {
+	GetConsumerPayLinkByCode(ctx context.Context, code string) (*service.ConsumerPayLink, error)
+	CreateConsumerPayLink(ctx context.Context, req service.CreateConsumerPayLinkRequest) (*service.ConsumerPayLink, error)
+	PayConsumerPayLink(ctx context.Context, code string, req service.PayConsumerPayLinkRequest) (*service.ConsumerPayLink, error)
+}
+
 // ConsumerPayLinkHandler handles consumer-facing pay link operations.
 type ConsumerPayLinkHandler struct {
-	core *service.CorePublicClient
+	core consumerPayLinkExecutor
 }
 
 func NewConsumerPayLinkHandler(core *service.CorePublicClient) *ConsumerPayLinkHandler {
 	return &ConsumerPayLinkHandler{core: core}
+}
+
+func newConsumerPayLinkHandlerWithFakes(exec consumerPayLinkExecutor) *ConsumerPayLinkHandler {
+	return &ConsumerPayLinkHandler{core: exec}
 }
 
 // GET /v1/consumer-pay-links/:code
