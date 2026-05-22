@@ -11,6 +11,7 @@ import { SDKArchitectureVisual } from '@/components/SDKArchitectureVisual'
 import { SecurityPipelineVisual } from '@/components/SecurityPipelineVisual'
 import { MobilePaymentMockup } from '@/components/MobilePaymentMockup'
 import { SectionCard } from '@/components/SectionCard'
+import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
   title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
@@ -44,6 +45,7 @@ export default function HomePage() {
 
   return (
     <div className="overflow-x-hidden">
+      <BackToTop />
 
       {/* ─── 1. HERO ──────────────────────────────────────────────────────── */}
       <div className="px-5 md:px-8 lg:px-12">
