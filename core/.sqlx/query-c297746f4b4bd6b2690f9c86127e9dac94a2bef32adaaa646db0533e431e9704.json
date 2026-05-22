@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE consumer_pay_links\n        SET status = 'PAID', payer_consumer_id = $1, transfer_id = $2, paid_at = $3\n        WHERE link_code = $4 AND status = 'ACTIVE'\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Timestamptz",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "c297746f4b4bd6b2690f9c86127e9dac94a2bef32adaaa646db0533e431e9704"
+}
