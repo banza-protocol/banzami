@@ -832,7 +832,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
             begin:  Alignment.topLeft,
             end:    Alignment.bottomRight,
           ),
-          borderRadius: const BorderRadius.all(Radius.circular(28)),
+          borderRadius: const BorderRadius.all(Radius.circular(22)),
           border: Border.all(color: const Color(0xFFF7C65A)),
           boxShadow: [
             BoxShadow(
@@ -848,18 +848,18 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 
             // ── Header ──────────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Row(
                 children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 30, height: 30,
                     decoration: const BoxDecoration(
                       color:        Color(0xFFFDE68A),
-                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                      borderRadius: BorderRadius.all(Radius.circular(8)),
                     ),
-                    child: const Icon(Icons.science_rounded, size: 18, color: Color(0xFF92400E)),
+                    child: const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   const Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -867,33 +867,33 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                         Text(
                           'Adicionar dinheiro de teste',
                           style: TextStyle(
-                            fontSize:   13,
+                            fontSize:   12,
                             fontWeight: FontWeight.w700,
                             color:      Color(0xFF78350F),
                             height:     1.2,
                           ),
                         ),
-                        SizedBox(height: 2),
+                        SizedBox(height: 1),
                         Text(
-                          'Crédito instantâneo na sua carteira sandbox',
+                          'Crédito instantâneo sandbox',
                           style: TextStyle(
-                            fontSize:   11,
+                            fontSize:   10,
                             fontWeight: FontWeight.w400,
                             color:      Color(0xFFB45309),
-                            height:     1.35,
+                            height:     1.3,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFD97706)),
+                  const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFD97706)),
                 ],
               ),
             ),
 
             // ── Amount selector ──────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
               child: Row(
                 children: [
                   _SandboxCircleBtn(
@@ -922,18 +922,18 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontFamily:  'JetBrains Mono',
-                              fontSize:    26,
+                              fontSize:    22,
                               fontWeight:  FontWeight.w700,
                               color:       Color(0xFF78350F),
                               height:      1.1,
                             ),
                           ),
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         const Text(
                           'Valor atual',
                           style: TextStyle(
-                            fontSize:   11,
+                            fontSize:   10,
                             color:      Color(0xFFB45309),
                             fontWeight: FontWeight.w400,
                           ),
@@ -952,10 +952,10 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 
             // ── Quick chips ──────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Wrap(
-                spacing:    8,
-                runSpacing: 8,
+                spacing:    6,
+                runSpacing: 6,
                 children: _chips.map((kz) => _SandboxChip(
                   label: '+${_fmtKz(kz)}',
                   onTap: _loading ? null : () => _addChip(kz),
@@ -965,13 +965,13 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
 
             // ── CTA button ───────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
               child: _loading
                   ? const Center(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(vertical: 18),
+                        padding: EdgeInsets.symmetric(vertical: 14),
                         child: SizedBox(
-                          width: 22, height: 22,
+                          width: 20, height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
                             valueColor: AlwaysStoppedAnimation(Color(0xFF92400E)),
@@ -1003,17 +1003,17 @@ class _SandboxCircleBtn extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 42, height: 42,
+        width: 34, height: 34,
         decoration: BoxDecoration(
           color: enabled ? BanzaColors.white : const Color(0xFFFDE68A),
           shape: BoxShape.circle,
           boxShadow: enabled
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 2))]
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 1))]
               : null,
         ),
         child: Icon(
           icon,
-          size:  20,
+          size:  16,
           color: enabled ? const Color(0xFF92400E) : const Color(0xFFD97706),
         ),
       ),
@@ -1031,16 +1031,16 @@ class _SandboxChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
         decoration: BoxDecoration(
           color:        const Color(0xFFFFF4D6),
           borderRadius: const BorderRadius.all(Radius.circular(20)),
-          border:       Border.all(color: const Color(0xFFF7C65A)),
+          border:       Border.all(color: const Color(0xFFF7C65A), width: 0.75),
         ),
         child: Text(
           label,
           style: const TextStyle(
-            fontSize:   12,
+            fontSize:   11,
             fontWeight: FontWeight.w600,
             color:      Color(0xFF92400E),
           ),
@@ -1059,31 +1059,31 @@ class _SandboxFundButton extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
             colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
             begin:  Alignment.centerLeft,
             end:    Alignment.centerRight,
           ),
-          borderRadius: const BorderRadius.all(Radius.circular(16)),
+          borderRadius: const BorderRadius.all(Radius.circular(14)),
           boxShadow: [
             BoxShadow(
-              color:      const Color(0xFFF59E0B).withValues(alpha: 0.35),
-              blurRadius: 12,
-              offset:     const Offset(0, 4),
+              color:      const Color(0xFFF59E0B).withValues(alpha: 0.28),
+              blurRadius: 8,
+              offset:     const Offset(0, 3),
             ),
           ],
         ),
         child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 18),
-            SizedBox(width: 8),
+            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 16),
+            SizedBox(width: 6),
             Text(
               'Adicionar ao saldo',
               style: TextStyle(
-                fontSize:   15,
+                fontSize:   13,
                 fontWeight: FontWeight.w700,
                 color:      Colors.white,
               ),
