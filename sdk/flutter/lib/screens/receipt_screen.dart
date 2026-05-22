@@ -280,6 +280,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   late final Animation<double>   _markScale;
   late final Animation<double>   _fade;
 
+  // Key used to compute the share button's on-screen position for iOS
+  // UIActivityViewController anchor (required on iPad, good practice on iPhone).
+  final _shareKey = GlobalKey();
+
   @override
   void initState() {
     super.initState();
@@ -333,17 +337,29 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
-  void _share() {
-    Share.share(
-      'Comprovativo Banza\n'
-      'Transferência concluída\n'
-      'Montante: $_amount\n'
-      'De: @$_from\n'
-      'Para: @${widget.transfer.recipient}\n'
-      'Data: $_dateShort\n'
-      'Ref: $_ref\n'
-      'Método: Saldo Banza',
-    );
+  Future<void> _share() async {
+    final box = _shareKey.currentContext?.findRenderObject() as RenderBox?;
+    final origin = box == null
+        ? null
+        : box.localToGlobal(Offset.zero) & box.size;
+    try {
+      await Share.share(
+        'Comprovativo Banza\n'
+        'Transferência concluída\n'
+        'Montante: $_amount\n'
+        'De: @$_from\n'
+        'Para: @${widget.transfer.recipient}\n'
+        'Data: $_dateShort\n'
+        'Ref: $_ref\n'
+        'Método: Saldo Banza',
+        sharePositionOrigin: origin,
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível partilhar.')),
+      );
+    }
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -523,6 +539,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
                       // ── Partilhar comprovativo ─────────────────────────
                       SizedBox(
+                        key:    _shareKey,
                         width:  double.infinity,
                         height: 58,
                         child: OutlinedButton(
