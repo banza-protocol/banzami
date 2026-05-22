@@ -89,10 +89,11 @@ class BanzaPdfReceiptGenerator {
 
   // ── Page ──────────────────────────────────────────────────────────────────
   //
-  // pw.BoxConstraints.expand() in the pdf package sets min/max to infinity
-  // (unlike Flutter where it tightens to parent constraints), which makes
-  // pw.Spacer() inflate to infinity and push content off-page.
-  // Fixed layout: explicit vertical gaps only — no Spacer() needed.
+  // pw.Stack fills the tight A4 constraints from the pw.Page build context.
+  // pw.Positioned pins the footer to the page bottom independently of the
+  // main Column height — it cannot be clipped by Column overflow.
+  // Avoid pw.Spacer(): pw.BoxConstraints.expand() in the pdf package sets
+  // min/max to infinity (unlike Flutter), which breaks Spacer layout.
 
   static pw.Widget _buildPage(
     pw.Context ctx, {
@@ -106,33 +107,43 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle    reg,
     required pw.TextStyle    bold,
   }) {
-    return pw.Container(
-      color:   _kWhite,
-      padding: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
-      child: pw.Column(
-        crossAxisAlignment: pw.CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(logoImage: logoImage, isSandbox: isSandbox, reg: reg, bold: bold),
-          pw.SizedBox(height: 36),
-          _buildHero(amount: amount, recipient: transfer.recipient, reg: reg, bold: bold),
-          pw.SizedBox(height: 36),
-          _buildDetailsCard(
-            ownHandle: ownHandle,
-            recipient: transfer.recipient,
-            note:      transfer.note,
-            dateStr:   dateStr,
-            ref8:      ref8,
-            reg:       reg,
-            bold:      bold,
+    return pw.Stack(
+      children: [
+        // Main content — bottom padding reserves space so content never
+        // overlaps the footer (footer height ≈ 70pt + 40pt margin = 110pt).
+        pw.Padding(
+          padding: const pw.EdgeInsets.fromLTRB(48, 40, 48, 110),
+          child: pw.Column(
+            crossAxisAlignment: pw.CrossAxisAlignment.stretch,
+            children: [
+              _buildHeader(logoImage: logoImage, isSandbox: isSandbox, reg: reg, bold: bold),
+              pw.SizedBox(height: 32),
+              _buildHero(amount: amount, recipient: transfer.recipient, reg: reg, bold: bold),
+              pw.SizedBox(height: 32),
+              _buildDetailsCard(
+                ownHandle: ownHandle,
+                recipient: transfer.recipient,
+                note:      transfer.note,
+                dateStr:   dateStr,
+                ref8:      ref8,
+                reg:       reg,
+                bold:      bold,
+              ),
+              if (isSandbox) ...[
+                pw.SizedBox(height: 32),
+                _buildSandboxDisclaimer(reg: reg, bold: bold),
+              ],
+            ],
           ),
-          pw.SizedBox(height: 36),
-          if (isSandbox) ...[
-            _buildSandboxDisclaimer(reg: reg, bold: bold),
-            pw.SizedBox(height: 28),
-          ],
-          _buildFooter(ref8: ref8, isSandbox: isSandbox, reg: reg, bold: bold),
-        ],
-      ),
+        ),
+        // Footer — always anchored to the page bottom, never clipped.
+        pw.Positioned(
+          bottom: 40,
+          left:   48,
+          right:  48,
+          child: _buildFooter(ref8: ref8, isSandbox: isSandbox, reg: reg, bold: bold),
+        ),
+      ],
     );
   }
 
