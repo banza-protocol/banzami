@@ -1157,13 +1157,15 @@
       "referenceSection": "§13.7",
       "description": "Feed de actividade pública do consumidor: projecção legível de todos os eventos financeiros com respaldo no ledger — transferências enviadas/recebidas, carregamentos e reversões de carteira.",
       "requirement": "GET /v1/me/activity — histórico completo, ordenado, paginado com cursor. Direcção (OUTGOING/INCOMING) computada no servidor. Sem eventos em falta, duplicados ou sem respaldo no ledger.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Consumer Platform",
       "technicalArea": "Go · Rust · PostgreSQL",
       "validationMethods": [
         "unit_tests",
-        "financial_invariant"
+        "financial_invariant",
+        "integration_tests",
+        "e2e_tests"
       ],
       "acceptanceCriteria": [
         "GET /v1/me/activity disponível e autenticado por JWT",
@@ -1185,7 +1187,15 @@
         "services/public-api/internal/handler/activity_test.go — 12 unit tests: all PASS",
         "services/public-api/internal/service/core_client.go — GetActivity(): delegates to GET /internal/v1/consumer/activity",
         "db/migrations/0038_activity_feed_indexes.sql — activity-optimised partial indexes for UNION branches",
-        "contracts/openapi/activity.yaml — OpenAPI 3.1 spec: GET /v1/me/activity com schemas ActivityItem e ActivityPage"
+        "contracts/openapi/activity.yaml — OpenAPI 3.1 spec: GET /v1/me/activity com schemas ActivityItem e ActivityPage",
+        "E2E Tests A-H — sender/recipient feed, direction, amount/counterparty, ordering, duplicate check via core-api:8081 (2026-05-22)",
+        "Pagination walk — 5 pages x 5 items, 0 duplicates, 0 skips, boundary strict-inequality confirmed (banzami_dev, 2026-05-22)",
+        "SQL — 33 completed P2P transfers, 0 duplicate activity_ids, deterministic ORDER BY confirmed (banzami_dev, 2026-05-22)",
+        "SQL — P2P-001/WAL-003 consistency: 0 transfers with sender_rows!=1 or recipient_rows!=1 (banzami_dev, 2026-05-22)",
+        "SQL — No internal IDs in response: ledger_posting_id, account_id, available_account_id absent from ActivityItem (2026-05-22)",
+        "Concurrency — 10 parallel transfers in 0.16s; feed immediately consistent: 33 items, all unique, newest-first (2026-05-22)",
+        "Latency — internal feed p50=3.0ms, p99=13.8ms; paginated p99=2.2ms over 20/15 requests (2026-05-22)",
+        "User isolation — wallettest99=0 items; testuser123 P2P_SENT=0, P2P_RECEIVED=33; fm65 sees only @testuser123 as counterparty (2026-05-22)"
       ],
       "dependencies": [
         "WAL-001",
@@ -1238,18 +1248,20 @@
         }
       ],
       "confidence": {
-        "score": 70,
-        "level": "HIGH",
+        "score": 90,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence[] non-empty (+20)",
-          "unit_tests in validationMethods (+15)",
-          "financial_invariant: all 5 invariants PASS (+20)",
-          "integration tests + e2e pending (-15)"
+          "unit_tests in validationMethods (+15): 12 Go handler tests + 3 Rust cursor tests, all PASS",
+          "integration_tests in validationMethods (+20): live SQL integration against banzami_dev — 33 transfers, 0 duplicates, deterministic ordering confirmed",
+          "e2e_tests in validationMethods (+15): full HTTP E2E via core-api:8081 — pagination walk, filter validation, isolation checks, concurrency test",
+          "production_review or sandbox (+0): dev environment only",
+          "all 5 invariants PASS (+20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-05-22T08:20:56Z",
+      "validatedAgainstCommit": "9c03f707c9cec2cfd024a5c6c38a827373e3237b",
       "history": [
         {
           "timestamp": "2026-05-21T16:00:00Z",
@@ -1266,9 +1278,24 @@
             "contracts/openapi/activity.yaml",
             "db/migrations/0038_activity_feed_indexes.sql"
           ]
+        },
+        {
+          "timestamp": "2026-05-22T08:20:56Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "9c2c450679b73bf6",
+          "reason": "Full financial-grade E2E: all 10 acceptance criteria PASS. 5-page pagination walk zero duplicates/skips; 10 concurrent transfers in 0.16s, feed immediately consistent; 5/5 invariants PASS; p99=13.8ms. User isolation confirmed across 3 consumers. No internal IDs exposed. OpenAPI 3.1 spec present.",
+          "evidence": [
+            "E2E Tests A-H via core-api:8081 — all pass",
+            "Pagination walk: 5 pages, 0 duplicates, 0 skips",
+            "SQL: 33 transfers, 0 duplicate activity_ids, deterministic ordering",
+            "Concurrency: 10 parallel transfers, feed consistent",
+            "Latency: p99=13.8ms internal, p99=2.2ms paginated"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-21"
+      "lastUpdated": "2026-05-22"
     },
     {
       "id": "WAL-004",
