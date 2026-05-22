@@ -99,9 +99,11 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 
   void _onSend() => Navigator.of(context).push(BanzaPageRoute(
     page: BanzamiSendScreen(
-      client:    widget.client,
-      ownHandle: widget.handle,
-      onSuccess: (_) => _load(),
+      client:        widget.client,
+      ownHandle:     widget.handle,
+      onSuccess:     (_) => _load(),
+      isSandbox:     widget.environment.isSandbox,
+      logoAssetPath: widget.logoAssetPath,
     ),
   ));
 
