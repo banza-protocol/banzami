@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../config.dart';
+
 /// Opened when the app receives a deep link: banzami://pay/link/{slug}
 ///
 /// Loads the payment link, shows confirmation, and executes payment.
@@ -211,19 +213,40 @@ class _SuccessView extends StatelessWidget {
   Widget build(BuildContext context) {
     final amountLabel   = formatMinor(link.amountMinor ?? 0, link.currency);
     final merchantLabel = link.merchantName ?? link.description ?? link.slug;
+    final isSandbox     = AppConfig.isSandbox;
 
     return Center(child: Padding(
       padding: const EdgeInsets.all(BanzaSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Container(
           width: 80, height: 80,
-          decoration: const BoxDecoration(
-            color:        BanzaColors.successBg,
+          decoration: BoxDecoration(
+            color:        isSandbox ? const Color(0xFFFEF3C7) : BanzaColors.successBg,
             borderRadius: BanzaRadius.fullAll,
           ),
-          child: const Icon(Icons.check_rounded, color: BanzaColors.success, size: 40),
+          child: Icon(
+            isSandbox ? Icons.science_rounded : Icons.check_rounded,
+            color: isSandbox ? const Color(0xFF92400E) : BanzaColors.success,
+            size:  40,
+          ),
         ),
         const SizedBox(height: BanzaSpacing.xl),
+        if (isSandbox)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.md, vertical: 4),
+            margin:  const EdgeInsets.only(bottom: BanzaSpacing.sm),
+            decoration: BoxDecoration(
+              color:        const Color(0xFFFEF3C7),
+              borderRadius: BanzaRadius.fullAll,
+              border:       Border.all(color: const Color(0xFFFCD34D)),
+            ),
+            child: Text(
+              'COMPROVATIVO DE TESTE',
+              style: BanzaTextStyles.label.copyWith(
+                color: const Color(0xFF92400E), fontSize: 10, letterSpacing: 0.8,
+              ),
+            ),
+          ),
         Text(amountLabel,
             style: BanzaTextStyles.displayMd.copyWith(color: BanzaColors.gray900)),
         const SizedBox(height: BanzaSpacing.xs),
@@ -235,6 +258,16 @@ class _SuccessView extends StatelessWidget {
           width: double.infinity,
           child: BanzaButton(label: 'Fechar', onPressed: onClose),
         ),
+        if (isSandbox) ...[
+          const SizedBox(height: BanzaSpacing.lg),
+          Text(
+            'Comprovativo Sandbox Banza · Sem valor financeiro real',
+            style: BanzaTextStyles.bodySm.copyWith(
+              color: BanzaColors.gray400, fontSize: 11,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ]),
     ));
   }

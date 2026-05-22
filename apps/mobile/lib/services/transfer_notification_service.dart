@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:banza_flutter/banza_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../config.dart';
 import 'push_notification_service.dart';
 
 /// Polls for new incoming activity and fires local notifications.
@@ -62,14 +63,15 @@ class TransferNotificationService {
   }
 
   Future<void> _notify(ActivityItem item) async {
-    final amount = formatMinor(item.amountMinor, item.currency);
-    final body   = item.note?.isNotEmpty == true
+    final amount  = formatMinor(item.amountMinor, item.currency);
+    final body    = item.note?.isNotEmpty == true
         ? item.note!
         : 'Transferência recebida';
+    final prefix  = AppConfig.isSandbox ? '[SANDBOX] ' : '';
 
     await _plugin.show(
       _notifId++,
-      'Recebeu $amount',
+      '${prefix}Recebeu $amount',
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
