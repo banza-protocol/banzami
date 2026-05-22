@@ -1,7 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:banza_flutter/banza_flutter.dart';
 
+import '../config.dart';
 import '../services/session_service.dart';
 import 'onboarding/welcome_screen.dart';
 import 'pin_screen.dart';
@@ -80,6 +82,51 @@ class _SplashScreenState extends State<SplashScreen>
     ]);
 
     if (!mounted) return;
+
+    // Environment mismatch guard: sandbox build must point at staging URL and
+    // vice-versa. A mismatch means the binary was misconfigured at build time.
+    final apiUrl      = AppConfig.publicApiUrl;
+    final urlIsSandbox = apiUrl.contains('staging');
+    if (AppConfig.isSandbox != urlIsSandbox) {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(20)),
+          ),
+          title: const Row(children: [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFB45309)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Configuração inválida',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+            ),
+          ]),
+          content: Text(
+            AppConfig.isSandbox
+                ? 'Esta build de sandbox está ligada a uma API de produção ($apiUrl). '
+                  'Configuração de ambiente inválida.'
+                : 'Esta build de produção está ligada a uma API de staging ($apiUrl). '
+                  'Configuração de ambiente inválida.',
+            style: const TextStyle(fontSize: 14, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {},
+              child: const Text(
+                'Bloqueado',
+                style: TextStyle(color: BanzaColors.error),
+              ),
+            ),
+          ],
+        ),
+      );
+      // Never navigate — leave the dialog blocking.
+      return;
+    }
 
     final Widget target;
     if (!session.hasSession) {

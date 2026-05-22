@@ -2,12 +2,17 @@
 # staging-seed.sh — seed test consumers on the staging / TestFlight sandbox.
 #
 # Usage:
-#   ./tools/staging-seed.sh                   # seed default testers
-#   ./tools/staging-seed.sh --reset           # wipe all staging consumers first
-#   ./tools/staging-seed.sh --fund @handle    # add 10,000 Kz to an existing account
-#   ./tools/staging-seed.sh --list            # list all staging consumers
+#   ./tools/staging-seed.sh                      # seed default testers
+#   ./tools/staging-seed.sh --reset              # wipe all staging consumers first
+#   ./tools/staging-seed.sh --fund @handle       # add 10,000 Kz to an existing account
+#   ./tools/staging-seed.sh --list               # list all staging consumers
+#   ./tools/staging-seed.sh --delete @handle     # delete a single staging consumer
+#   ./tools/staging-seed.sh --inspect @handle    # show transfers for a consumer
 #
 # Endpoint: https://staging.banzami.org  (or override STAGING_URL)
+#
+# SAFETY: This script is hardcoded to connect only to banzami_staging.
+#         It MUST NEVER run against the production database.
 
 set -euo pipefail
 
@@ -81,6 +86,38 @@ list_testers() {
     -c \"SELECT handle, display_name, status, created_at FROM consumers ORDER BY created_at;\"" 2>&1
 }
 
+# ─── delete ───────────────────────────────────────────────────────────────────
+delete_tester() {
+  local handle="${1#@}"
+  warn "Deleting @$handle from staging..."
+  ssh root@217.160.9.248 "docker exec banzami-postgres-1 psql -U banzami -d banzami_staging -c \"
+    DELETE FROM public_api_credentials WHERE consumer_id IN (
+      SELECT id FROM consumers WHERE handle = '$handle'
+    );
+    DELETE FROM consumer_wallets WHERE consumer_id IN (
+      SELECT id FROM consumers WHERE handle = '$handle'
+    );
+    DELETE FROM consumers WHERE handle = '$handle';
+  \"" 2>&1
+  log "@$handle deleted."
+}
+
+# ─── inspect ──────────────────────────────────────────────────────────────────
+inspect_tester() {
+  local handle="${1#@}"
+  log "Inspecting @$handle transfers on staging..."
+  ssh root@217.160.9.248 "docker exec banzami-postgres-1 psql -U banzami -d banzami_staging -c \"
+    SELECT t.id, t.direction, t.amount_minor, t.currency, t.status, t.created_at,
+           s.handle AS sender, r.handle AS recipient
+    FROM transfers t
+    JOIN consumers s ON s.id = t.sender_id
+    JOIN consumers r ON r.id = t.recipient_id
+    WHERE s.handle = '$handle' OR r.handle = '$handle'
+    ORDER BY t.created_at DESC
+    LIMIT 20;
+  \"" 2>&1
+}
+
 # ─── reset ────────────────────────────────────────────────────────────────────
 reset_staging() {
   warn "This will DELETE all staging consumers and wallets. Ctrl+C to cancel."
@@ -102,6 +139,14 @@ case "${1:-seed}" in
   --list)
     list_testers
     ;;
+  --delete)
+    [[ -z "${2:-}" ]] && err "Usage: $0 --delete @handle"
+    delete_tester "$2"
+    ;;
+  --inspect)
+    [[ -z "${2:-}" ]] && err "Usage: $0 --inspect @handle"
+    inspect_tester "$2"
+    ;;
   seed|"")
     printf "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
     printf "${CYAN}  Banzami Staging Seed — TestFlight testers${RESET}\n"
@@ -111,6 +156,7 @@ case "${1:-seed}" in
     register_tester "testuser1"  "Tester Um"
     register_tester "ana"        "Ana"
     register_tester "joao"       "João"
+    register_tester "merchant01" "Merchant Teste"
 
     printf "\n${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n"
     printf "  Endpoint  %s\n" "$STAGING_URL"
@@ -119,6 +165,6 @@ case "${1:-seed}" in
     printf "${CYAN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}\n\n"
     ;;
   *)
-    err "Unknown command: $1. Use: seed | --reset | --fund @handle | --list"
+    err "Unknown command: $1. Use: seed | --reset | --fund @handle | --list | --delete @handle | --inspect @handle"
     ;;
 esac

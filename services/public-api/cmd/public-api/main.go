@@ -57,6 +57,19 @@ func main() {
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
+	// Boot summary — makes environment visible in every deployment log.
+	sandboxRoutes := cfg.Environment == "SANDBOX"
+	slog.Info("boot: environment",
+		"environment",    cfg.Environment,
+		"sandbox_routes", sandboxRoutes,
+		"core_api_url",   cfg.CoreAPIURL,
+	)
+	if cfg.Environment == "SANDBOX" {
+		slog.Warn("SANDBOX mode — fake funding enabled, no real rails, no real settlement")
+	} else {
+		slog.Info("LIVE mode — sandbox routes disabled, real rails active")
+	}
+
 	go func() {
 		slog.Info("public-api starting",
 			"port",         cfg.Port,

@@ -8,7 +8,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../config.dart';
 import '../services/session_service.dart';
+import '../widgets/sandbox_banner.dart';
 import '../widgets/tab_screen_header.dart';
 
 /// Bottom-nav "Receber" hub: QR card at top + received transactions list below.
@@ -69,14 +71,18 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   String _qrPayload(String handle) {
+    // Sandbox QR uses a distinct scheme so it cannot be scanned as live payment.
+    final scheme = AppConfig.isSandbox ? 'banza-sandbox' : 'banza';
     if (_amountSet && _amountMinor > 0) {
-      return 'banza:@$handle?amount=$_amountMinor&currency=AOA';
+      return '$scheme:@$handle?amount=$_amountMinor&currency=AOA';
     }
-    return 'banza:@$handle';
+    return '$scheme:@$handle';
   }
 
   String _shareUrl(String handle) {
-    final base = 'https://pay.banzami.org/u/$handle';
+    final base = AppConfig.isSandbox
+        ? 'https://staging.banzami.org/pay/u/$handle'
+        : 'https://pay.banzami.org/u/$handle';
     if (_amountSet && _amountMinor > 0) return '$base?amount=$_amountMinor';
     return base;
   }
@@ -253,6 +259,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               size:          190,
                               embeddedImage: const AssetImage('assets/images/banza_icon.png'),
                             ),
+                            if (AppConfig.isSandbox) ...[
+                              const SizedBox(height: BanzaSpacing.sm),
+                              const SandboxBadge(),
+                            ],
                             const SizedBox(height: BanzaSpacing.lg),
 
                             // Handle pill
@@ -290,9 +300,13 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             ),
                             const SizedBox(height: BanzaSpacing.xs),
                             Text(
-                              'Mostre este QR para receber pagamentos',
+                              AppConfig.isSandbox
+                                  ? 'QR de teste · Sem valor financeiro real'
+                                  : 'Mostre este QR para receber pagamentos',
                               style: BanzaTextStyles.bodySm.copyWith(
-                                color: BanzaColors.gray400,
+                                color: AppConfig.isSandbox
+                                    ? const Color(0xFFB45309)
+                                    : BanzaColors.gray400,
                               ),
                             ),
                           ],

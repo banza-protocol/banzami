@@ -3,21 +3,31 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
+// sandboxFundDailyLimit is the maximum number of fund calls a single consumer
+// may make in a 24-hour window. Prevents test infrastructure abuse.
+const sandboxFundDailyLimit = 20
+
 // SandboxHandler provides developer utilities for consumer integration testing.
 // Every endpoint enforces that the service is deployed in SANDBOX environment.
 type SandboxHandler struct {
 	core        *service.CorePublicClient
 	environment string // "PRODUCTION" or "SANDBOX"
+	fundLimiter *TransferRateLimiter
 }
 
 func NewSandboxHandler(core *service.CorePublicClient, environment string) *SandboxHandler {
-	return &SandboxHandler{core: core, environment: environment}
+	return &SandboxHandler{
+		core:        core,
+		environment: environment,
+		fundLimiter: NewTransferRateLimiter(sandboxFundDailyLimit, 24*time.Hour),
+	}
 }
 
 func (h *SandboxHandler) requireSandbox(w http.ResponseWriter, r *http.Request) bool {
@@ -41,6 +51,12 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 	consumer, ok := middleware.GetConsumer(r.Context())
 	if !ok {
 		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "missing auth")
+		return
+	}
+
+	if !h.fundLimiter.Allow(consumer.ID) {
+		apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
+			"sandbox fund limit reached — maximum 20 top-ups per 24 hours per consumer")
 		return
 	}
 
