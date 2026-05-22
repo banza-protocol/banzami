@@ -117,17 +117,21 @@ class BanzaVerifiedMark extends StatelessWidget {
           ),
 
           // ── Layer 3: inner glass ring ──────────────────────────────────
+          // Gradient runs bottom → top so the bright end sits at the bottom
+          // of the ring (fully behind or outside the core seal) and the top
+          // — the exposed annular gap — stays near-transparent. This removes
+          // the "trace" artifact without losing the glass depth effect.
           Container(
             width:  size * 0.73,
             height: size * 0.73,
             decoration: BoxDecoration(
               shape:    BoxShape.circle,
               gradient: LinearGradient(
-                begin:  Alignment.topLeft,
-                end:    Alignment.bottomRight,
+                begin:  Alignment.bottomCenter,
+                end:    Alignment.topCenter,
                 colors: [
-                  Colors.white.withValues(alpha: 0.22),
-                  Colors.white.withValues(alpha: 0.04),
+                  Colors.white.withValues(alpha: 0.18),
+                  Colors.white.withValues(alpha: 0.02),
                 ],
               ),
               border: Border.all(
