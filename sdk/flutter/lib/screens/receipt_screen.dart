@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/pdf_receipt_generator.dart';
 
 
 // ---------------------------------------------------------------------------
@@ -319,22 +320,39 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
     try {
-      await Share.share(
-        'Comprovativo Banza\n'
-        'Transferência concluída\n'
-        'Montante: $_amount\n'
-        'De: @$_from\n'
-        'Para: @${widget.transfer.recipient}\n'
-        'Data: $_dateShort\n'
-        'Ref: $_ref\n'
-        'Método: Saldo Banza',
+      final file = await BanzaPdfReceiptGenerator.generate(
+        transfer:  widget.transfer,
+        ownHandle: _from,
+      );
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        subject:             'Comprovativo Banza · Ref $_ref',
         sharePositionOrigin: origin,
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível partilhar.')),
-      );
+      // Emergency fallback — plain text if PDF generation fails.
+      final box2 = _shareKey.currentContext?.findRenderObject() as RenderBox?;
+      final origin2 = box2 == null
+          ? null
+          : box2.localToGlobal(Offset.zero) & box2.size;
+      try {
+        await Share.share(
+          'Comprovativo Banza\n'
+          'Ref: $_ref\n'
+          'Montante: $_amount\n'
+          'De: @$_from\n'
+          'Para: @${widget.transfer.recipient}\n'
+          'Data: $_dateShort\n'
+          'Método: Saldo Banza',
+          sharePositionOrigin: origin2,
+        );
+      } catch (_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Não foi possível partilhar.')),
+        );
+      }
     }
   }
 

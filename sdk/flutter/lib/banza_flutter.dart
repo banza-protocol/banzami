@@ -41,6 +41,7 @@ export 'theme/banza_theme.dart';
 
 // Utils
 export 'utils/money_format.dart';
+export 'utils/pdf_receipt_generator.dart';
 
 // Widgets
 export 'widgets/banza_button.dart';
