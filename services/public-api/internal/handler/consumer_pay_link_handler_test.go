@@ -622,3 +622,55 @@ func TestPayLink_Pay_HappyPathLocked(t *testing.T) {
 		t.Error("transfer_id must be set after successful payment")
 	}
 }
+
+// ---------------------------------------------------------------------------
+// 15. POST pay — account frozen → 422 ACCOUNT_FROZEN
+// ---------------------------------------------------------------------------
+
+func TestPayLink_Pay_AccountFrozen(t *testing.T) {
+	h := buildPayLinkHandler(&fakePayLinkExecutor{
+		payFn: func(_ context.Context, _ string, _ service.PayConsumerPayLinkRequest) (*service.ConsumerPayLink, error) {
+			return nil, service.ErrTransferWalletLocked
+		},
+	})
+
+	body := payLinkJsonBody(t, map[string]any{"idempotency_key": "key-frozen"})
+	r := httptest.NewRequest(http.MethodPost, "/v1/consumer-pay-links/TESTCODE1/pay", body)
+	r = withAuth(r, "payer-uuid-001")
+	w := httptest.NewRecorder()
+	h.Pay(w, r)
+
+	if w.Code != http.StatusUnprocessableEntity {
+		t.Fatalf("expected 422, got %d — body: %s", w.Code, w.Body.String())
+	}
+	got := payLinkDecodeBody(t, w)
+	if got["code"] != "ACCOUNT_FROZEN" {
+		t.Errorf("code = %v, want ACCOUNT_FROZEN", got["code"])
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 16. POST pay — self-pay → 400 SELF_TRANSFER_NOT_ALLOWED
+// ---------------------------------------------------------------------------
+
+func TestPayLink_Pay_SelfPay(t *testing.T) {
+	h := buildPayLinkHandler(&fakePayLinkExecutor{
+		payFn: func(_ context.Context, _ string, _ service.PayConsumerPayLinkRequest) (*service.ConsumerPayLink, error) {
+			return nil, service.ErrTransferSelfTransfer
+		},
+	})
+
+	body := payLinkJsonBody(t, map[string]any{"idempotency_key": "key-selfpay"})
+	r := httptest.NewRequest(http.MethodPost, "/v1/consumer-pay-links/TESTCODE1/pay", body)
+	r = withAuth(r, "receiver-uuid-001") // same consumer as the link's receiver
+	w := httptest.NewRecorder()
+	h.Pay(w, r)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d — body: %s", w.Code, w.Body.String())
+	}
+	got := payLinkDecodeBody(t, w)
+	if got["code"] != "SELF_TRANSFER_NOT_ALLOWED" {
+		t.Errorf("code = %v, want SELF_TRANSFER_NOT_ALLOWED", got["code"])
+	}
+}

@@ -5,6 +5,7 @@ use axum::{
 };
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
+use sqlx::Row as _;
 use uuid::Uuid;
 
 use crate::{
@@ -12,6 +13,18 @@ use crate::{
     routes::risk,
     state::AppState,
 };
+
+// Local row type for the FOR UPDATE fetch — uses runtime query (not query!)
+// to avoid sqlx offline-cache dependency for the FOR UPDATE clause.
+struct LockedLinkRow {
+    id:                   Uuid,
+    receiver_consumer_id: Uuid,
+    amount_minor:         Option<i64>,
+    currency:             String,
+    locked:               bool,
+    status:               String,
+    expires_at:           Option<DateTime<Utc>>,
+}
 
 // ---------------------------------------------------------------------------
 // Code generation — 8 random chars from unambiguous alphanumeric set
@@ -179,7 +192,14 @@ pub async fn pay(
     let payer_id: Uuid = body.payer_consumer_id.parse()
         .map_err(|_| ApiError::bad_request("invalid payer_consumer_id"))?;
 
-    let link = sqlx::query!(
+    // ── Pre-flight checks (no row lock yet) ────────────────────────────────
+    // These fast checks reject obviously invalid requests before taking a lock.
+
+    if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
+        return Err(ApiError::unprocessable("ACCOUNT_FROZEN", "payer account is frozen"));
+    }
+
+    let pre = sqlx::query!(
         r#"
         SELECT id, receiver_consumer_id, amount_minor, currency,
                locked, status, expires_at
@@ -193,6 +213,60 @@ pub async fn pay(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("consumer pay link not found"))?;
 
+    if pre.status != "ACTIVE" {
+        return Err(ApiError::unprocessable(
+            "LINK_NOT_ACTIVE",
+            format!("link status is {}", pre.status),
+        ));
+    }
+
+    if let Some(exp) = pre.expires_at {
+        if Utc::now() > exp {
+            sqlx::query!(
+                "UPDATE consumer_pay_links SET status = 'EXPIRED' WHERE link_code = $1",
+                code,
+            )
+            .execute(&state.pool)
+            .await
+            .ok();
+            return Err(ApiError::unprocessable("LINK_EXPIRED", "link has expired"));
+        }
+    }
+
+    if payer_id == pre.receiver_consumer_id {
+        return Err(ApiError::bad_request("cannot pay your own link"));
+    }
+
+    // ── Begin transaction — acquires row-level lock ─────────────────────────
+    // SELECT ... FOR UPDATE prevents concurrent payment attempts from racing
+    // past the status check. The second concurrent request blocks here until
+    // the first commits, then sees status = 'PAID' and returns LINK_NOT_ACTIVE.
+    let mut tx = state.pool.begin()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Runtime query (not query!) so FOR UPDATE doesn't need an offline cache entry.
+    let row = sqlx::query(
+        "SELECT id, receiver_consumer_id, amount_minor, currency, locked, status, expires_at \
+         FROM consumer_pay_links WHERE link_code = $1 FOR UPDATE",
+    )
+    .bind(&code)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("consumer pay link not found"))?;
+
+    let link = LockedLinkRow {
+        id:                   row.try_get("id").map_err(|e| ApiError::internal(e.to_string()))?,
+        receiver_consumer_id: row.try_get("receiver_consumer_id").map_err(|e| ApiError::internal(e.to_string()))?,
+        amount_minor:         row.try_get("amount_minor").map_err(|e| ApiError::internal(e.to_string()))?,
+        currency:             row.try_get("currency").map_err(|e| ApiError::internal(e.to_string()))?,
+        locked:               row.try_get("locked").map_err(|e| ApiError::internal(e.to_string()))?,
+        status:               row.try_get("status").map_err(|e| ApiError::internal(e.to_string()))?,
+        expires_at:           row.try_get("expires_at").map_err(|e| ApiError::internal(e.to_string()))?,
+    };
+
+    // Re-check under lock — another transaction may have paid between pre-flight and now.
     if link.status != "ACTIVE" {
         return Err(ApiError::unprocessable(
             "LINK_NOT_ACTIVE",
@@ -206,17 +280,17 @@ pub async fn pay(
                 "UPDATE consumer_pay_links SET status = 'EXPIRED' WHERE link_code = $1",
                 code,
             )
-            .execute(&state.pool)
+            .execute(&mut *tx)
             .await
             .ok();
+            tx.commit().await.map_err(|e| ApiError::internal(e.to_string()))?;
             return Err(ApiError::unprocessable("LINK_EXPIRED", "link has expired"));
         }
     }
 
-    if payer_id == link.receiver_consumer_id {
-        return Err(ApiError::bad_request("cannot pay your own link"));
-    }
-
+    // ── Amount resolution ──────────────────────────────────────────────────
+    // For locked links the server-stored amount is authoritative; client value
+    // is silently ignored, preventing tampered-amount attacks.
     let amount = if link.locked {
         link.amount_minor
             .ok_or_else(|| ApiError::bad_request("locked link has no amount set"))?
@@ -226,16 +300,13 @@ pub async fn pay(
             .ok_or_else(|| ApiError::bad_request("amount_minor required for open links"))?
     };
 
-    if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
-        return Err(ApiError::unprocessable("ACCOUNT_FROZEN", "payer account is frozen"));
-    }
-
+    // ── Wallet and balance checks ──────────────────────────────────────────
     let payer_wallet = sqlx::query!(
         "SELECT id, available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
         payer_id, link.currency,
     )
-    .fetch_optional(&state.pool)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::unprocessable("WALLET_NOT_FOUND", "payer has no active wallet"))?;
@@ -245,7 +316,7 @@ pub async fn pay(
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
         link.receiver_consumer_id, link.currency,
     )
-    .fetch_optional(&state.pool)
+    .fetch_optional(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::unprocessable("WALLET_NOT_FOUND", "receiver has no active wallet"))?;
@@ -260,7 +331,7 @@ pub async fn pay(
         "#,
         payer_wallet.available_account_id,
     )
-    .fetch_one(&state.pool)
+    .fetch_one(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .unwrap_or(0);
@@ -272,6 +343,7 @@ pub async fn pay(
         ));
     }
 
+    // ── Double-entry ledger posting ────────────────────────────────────────
     let transfer_id = Uuid::new_v4();
     let now         = Utc::now();
     let ledger_key  = format!("consumer-pay-link-{}", link.id);
@@ -285,7 +357,7 @@ pub async fn pay(
         ledger_key,
         now,
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
@@ -293,29 +365,33 @@ pub async fn pay(
         "SELECT id FROM ledger_postings WHERE idempotency_key = $1",
         ledger_key,
     )
-    .fetch_one(&state.pool)
+    .fetch_one(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // uq_ledger_entry_posting_type (migration 0040) enforces at most one DEBIT
+    // and one CREDIT per posting — ON CONFLICT DO NOTHING catches that constraint.
     sqlx::query!(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
+         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)
+         ON CONFLICT DO NOTHING",
         Uuid::new_v4(), actual_posting,
         payer_wallet.available_account_id, amount, link.currency, now,
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     sqlx::query!(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6) ON CONFLICT DO NOTHING",
+         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)
+         ON CONFLICT DO NOTHING",
         Uuid::new_v4(), actual_posting,
         receiver_wallet.available_account_id, amount, link.currency, now,
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
@@ -336,10 +412,12 @@ pub async fn pay(
         actual_posting,
         now,
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .ok();
 
+    // WHERE status = 'ACTIVE' is a final safety gate; under the FOR UPDATE lock
+    // this UPDATE should always match exactly one row at this point.
     sqlx::query!(
         r#"
         UPDATE consumer_pay_links
@@ -348,10 +426,15 @@ pub async fn pay(
         "#,
         payer_id, transfer_id, now, code,
     )
-    .execute(&state.pool)
+    .execute(&mut *tx)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Audit is async and non-critical; runs after the transaction commits.
     risk::audit(
         &state.pool,
         "CONSUMER",

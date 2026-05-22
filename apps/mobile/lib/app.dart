@@ -113,6 +113,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
             currency:             link.currency,
             locked:               link.locked,
             ownHandle:            session.handle,
+            linkCode:             link.linkCode,
             onSuccess:            (_) {},
             isSandbox:            AppConfig.isSandbox,
           ),

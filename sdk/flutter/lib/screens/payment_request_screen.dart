@@ -43,6 +43,9 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
   final void Function(Transfer) onSuccess;
   final bool    isSandbox;
   final String? logoAssetPath;
+  /// When set, payment is executed via the consumer pay-link API
+  /// (POST /v1/consumer-pay-links/:code/pay) instead of sendByHandle.
+  final String? linkCode;
 
   const BanzamiPaymentRequestScreen({
     super.key,
@@ -57,6 +60,7 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
     required this.onSuccess,
     this.isSandbox     = false,
     this.logoAssetPath,
+    this.linkCode,
   });
 
   @override
@@ -98,6 +102,15 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
   Future<void> _pay() async {
     if (_sending) return;
+
+    // Self-pay guard — also enforced server-side, but fail fast locally.
+    if (widget.ownHandle != null &&
+        widget.ownHandle!.isNotEmpty &&
+        widget.ownHandle == widget.recipientHandle) {
+      setState(() => _error = 'Não pode pagar o seu próprio pedido.');
+      return;
+    }
+
     final amount = widget.locked ? (widget.amountMinor ?? 0) : _amountMinor;
     if (amount <= 0) {
       setState(() => _amountError = 'Introduza um montante válido');
@@ -108,13 +121,26 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
     _pulseCtrl.repeat(reverse: true);
 
     try {
-      final transfer = await widget.client.sendByHandle(
-        recipientHandle: widget.recipientHandle,
-        amountMinor:     amount,
-        currency:        widget.currency,
-        note:            widget.note,
-        idempotencyKey:  const Uuid().v4(),
-      );
+      Transfer transfer;
+
+      if (widget.linkCode != null) {
+        // Pay via the dedicated consumer pay-link API.
+        // The server ignores client amount on locked links — tamper-proof.
+        final link = await widget.client.payConsumerPayLink(
+          widget.linkCode!,
+          amountMinor: widget.locked ? null : amount,
+        );
+        transfer = Transfer.fromConsumerPayLink(link, ownHandle: widget.ownHandle);
+      } else {
+        transfer = await widget.client.sendByHandle(
+          recipientHandle: widget.recipientHandle,
+          amountMinor:     amount,
+          currency:        widget.currency,
+          note:            widget.note,
+          idempotencyKey:  const Uuid().v4(),
+        );
+      }
+
       if (!mounted) return;
       _pulseCtrl.stop();
       _pulseCtrl.reset();
@@ -137,11 +163,14 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       setState(() {
         _sending = false;
         _error   = switch (e.code) {
-          'INSUFFICIENT_FUNDS'  => 'Saldo insuficiente para esta transferência.',
-          'RECIPIENT_NOT_FOUND' => '@${widget.recipientHandle} não encontrado.',
-          'RECIPIENT_NO_WALLET' => 'Destinatário sem carteira activa.',
-          'SELF_TRANSFER'       => 'Não pode enviar para si mesmo.',
-          _                     => e.message.isNotEmpty ? e.message : 'Erro de envio. Tente novamente.',
+          'INSUFFICIENT_FUNDS'          => 'Saldo insuficiente para esta transferência.',
+          'LINK_NOT_ACTIVE'             => 'Este pedido de pagamento já não está activo.',
+          'ACCOUNT_FROZEN'              => 'A sua conta está suspensa. Contacte o suporte.',
+          'SELF_TRANSFER_NOT_ALLOWED'   => 'Não pode pagar o seu próprio pedido.',
+          'RECIPIENT_NOT_FOUND'         => '@${widget.recipientHandle} não encontrado.',
+          'RECIPIENT_NO_WALLET'         => 'Destinatário sem carteira activa.',
+          'SELF_TRANSFER'               => 'Não pode enviar para si mesmo.',
+          _                             => e.message.isNotEmpty ? e.message : 'Erro de envio. Tente novamente.',
         };
       });
     } catch (_) {

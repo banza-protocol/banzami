@@ -774,6 +774,8 @@ func mapConsumerPayLinkPayError(err error) error {
 		return ErrTransferWalletNotFound
 	case contains(msg, "ACCOUNT_FROZEN"):
 		return ErrTransferWalletLocked
+	case contains(msg, "cannot pay your own link"):
+		return ErrTransferSelfTransfer
 	default:
 		return err
 	}

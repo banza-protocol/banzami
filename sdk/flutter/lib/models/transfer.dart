@@ -1,3 +1,4 @@
+import 'consumer_pay_link.dart';
 import '../utils/money_format.dart';
 
 /// P2P transfer receipt — returned by POST /v1/transfers.
@@ -31,6 +32,21 @@ class Transfer {
   bool get isCompleted => status == 'COMPLETED';
 
   String get amountFormatted => formatMinor(amountMinor, currency);
+
+  factory Transfer.fromConsumerPayLink(ConsumerPayLink link, {String? ownHandle}) {
+    return Transfer(
+      transferId:  link.id,
+      sender:      ownHandle ?? '',
+      recipient:   link.receiverHandle,
+      amountMinor: link.amountMinor ?? 0,
+      currency:    link.currency,
+      status:      'COMPLETED',
+      note:        link.note,
+      createdAt:   link.paidAt != null
+          ? DateTime.parse(link.paidAt!)
+          : DateTime.parse(link.createdAt),
+    );
+  }
 
   factory Transfer.fromJson(Map<String, dynamic> json) {
     return Transfer(
