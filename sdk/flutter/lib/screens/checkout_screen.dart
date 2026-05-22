@@ -129,7 +129,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
-            const Icon(Icons.error_outline, color: Colors.red, size: 48),
+            const Icon(Icons.error_outline, color: BanzaColors.error, size: 48),
             const SizedBox(height: 12),
             const Text('Não foi possível carregar o link de pagamento.',
                 textAlign: TextAlign.center),
@@ -301,7 +301,7 @@ class _InvalidState extends StatelessWidget {
             width: 64, height: 64,
             decoration: BoxDecoration(color: const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(32)),
-            child: const Icon(Icons.close, color: Colors.red, size: 32),
+            child: const Icon(Icons.close, color: BanzaColors.error, size: 32),
           ),
           const SizedBox(height: 16),
           const Text('Link inválido',

@@ -156,7 +156,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     final session = context.read<SessionService>().session;
 
     return Scaffold(
-      backgroundColor: BanzaColors.white,
+      backgroundColor: BanzaColors.offWhite,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
