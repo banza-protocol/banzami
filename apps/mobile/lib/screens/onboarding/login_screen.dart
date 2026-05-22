@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
 import '../../services/session_service.dart';
 import '../../widgets/pin_pad.dart';
 import '../main_screen.dart';
@@ -133,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
             ClipRRect(
               borderRadius: BorderRadius.circular(14),
               child: Image.asset(
-                'assets/images/banza_icon.png',
+                BrandingAssets.icon,
                 height: 48,
                 width:  48,
                 fit:    BoxFit.cover,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import 'onboarding/welcome_screen.dart';
@@ -298,8 +299,8 @@ class _AppIcon extends StatelessWidget {
       height: 88,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/banza_icon.png'),
+        image: DecorationImage(
+          image: AssetImage(BrandingAssets.icon),
           fit:   BoxFit.cover,
         ),
         boxShadow: const [

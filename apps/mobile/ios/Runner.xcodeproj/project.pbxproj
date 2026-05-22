@@ -83,6 +83,9 @@
 		97C147021CF9000F007C117D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		9891925849F04CD6A55733B2 /* Pods-Runner.debug-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-Runner.debug-merchant.xcconfig"; path = "Target Support Files/Pods-Runner/Pods-Runner.debug-merchant.xcconfig"; sourceTree = "<group>"; };
 		AF57971C685D474D8C03A92E /* Consumer.profile.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Consumer.profile.xcconfig; sourceTree = "<group>"; };
+		AA1BC001D4E5F6A7 /* ConsumerSandbox.debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ConsumerSandbox.debug.xcconfig; sourceTree = "<group>"; };
+		BB1BC001D4E5F6A7 /* ConsumerSandbox.release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ConsumerSandbox.release.xcconfig; sourceTree = "<group>"; };
+		CC1BC001D4E5F6A7 /* ConsumerSandbox.profile.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ConsumerSandbox.profile.xcconfig; sourceTree = "<group>"; };
 		BC612168F27047A9AF6D347D /* Pods-RunnerTests.release-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.release-merchant.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.release-merchant.xcconfig"; sourceTree = "<group>"; };
 		BZ1PRIVACY0000000000AA00 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		CE60C2E8971A41B5ACC490EC /* Pods-RunnerTests.debug-merchant.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-RunnerTests.debug-merchant.xcconfig"; path = "Target Support Files/Pods-RunnerTests/Pods-RunnerTests.debug-merchant.xcconfig"; sourceTree = "<group>"; };
@@ -175,6 +178,9 @@
 				15ABFF9D7E2F4125927C355E /* Consumer.debug.xcconfig */,
 				19B795E1DD30450A8F10E5A7 /* Consumer.release.xcconfig */,
 				AF57971C685D474D8C03A92E /* Consumer.profile.xcconfig */,
+				AA1BC001D4E5F6A7 /* ConsumerSandbox.debug.xcconfig */,
+				BB1BC001D4E5F6A7 /* ConsumerSandbox.release.xcconfig */,
+				CC1BC001D4E5F6A7 /* ConsumerSandbox.profile.xcconfig */,
 				8A449E01C4E6404AA03769FF /* Merchant.debug.xcconfig */,
 				2B6C25CC7E5F4D3E9CC38D27 /* Merchant.release.xcconfig */,
 				1D7C7D96486346DBA4EF4BD6 /* Merchant.profile.xcconfig */,
@@ -1396,6 +1402,298 @@
 			};
 			name = "Profile-consumer";
 		};
+		DD1BC001D4E5F6A7 /* Debug-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA1BC001D4E5F6A7 /* ConsumerSandbox.debug.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIconSandbox;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = "Debug-consumer_sandbox";
+		};
+		EE1BC001D4E5F6A7 /* Release-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB1BC001D4E5F6A7 /* ConsumerSandbox.release.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIconSandbox;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = "Release-consumer_sandbox";
+		};
+		FF1BC001D4E5F6A7 /* Profile-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC1BC001D4E5F6A7 /* ConsumerSandbox.profile.xcconfig */;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = AppIconSandbox;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				SDKROOT = iphoneos;
+				SUPPORTED_PLATFORMS = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = "Profile-consumer_sandbox";
+		};
+		A11BC001D4E5F6A7 /* Debug-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = AA1BC001D4E5F6A7 /* ConsumerSandbox.debug.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconSandbox;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = W22UFWBATJ;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Debug-consumer_sandbox";
+		};
+		A21BC001D4E5F6A7 /* Release-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = BB1BC001D4E5F6A7 /* ConsumerSandbox.release.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconSandbox;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = W22UFWBATJ;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Release-consumer_sandbox";
+		};
+		A31BC001D4E5F6A7 /* Profile-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = CC1BC001D4E5F6A7 /* ConsumerSandbox.profile.xcconfig */;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIconSandbox;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = Runner/Runner.entitlements;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = "$(FLUTTER_BUILD_NUMBER)";
+				DEVELOPMENT_TEAM = W22UFWBATJ;
+				ENABLE_BITCODE = NO;
+				INFOPLIST_FILE = Runner/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "Runner/Runner-Bridging-Header.h";
+				SWIFT_VERSION = 5.0;
+				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = "Profile-consumer_sandbox";
+		};
+		A41BC001D4E5F6A7 /* Debug-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = F6FEF2F3407448FA935D7F5D /* Pods-RunnerTests.debug-consumer.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.banza.app.RunnerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = "Debug-consumer_sandbox";
+		};
+		A51BC001D4E5F6A7 /* Release-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 8718F4EB025B47D79BB3C210 /* Pods-RunnerTests.release-consumer.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.banza.app.RunnerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = "Release-consumer_sandbox";
+		};
+		A61BC001D4E5F6A7 /* Profile-consumer_sandbox */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 3B76DF309B224A53B8A2F210 /* Pods-RunnerTests.profile-consumer.xcconfig */;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.banza.app.RunnerTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Runner.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Runner";
+			};
+			name = "Profile-consumer_sandbox";
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1404,12 +1702,15 @@
 			buildConfigurations = (
 				331C8088294A63A400263BE5 /* Debug */,
 				DCCFBFF27B9540DD8403AADD /* Debug-consumer */,
+				A41BC001D4E5F6A7 /* Debug-consumer_sandbox */,
 				B23D04135C5F4D468D7A0E91 /* Debug-merchant */,
 				331C8089294A63A400263BE5 /* Release */,
 				6A8F1C72B8D04E599D1C8070 /* Release-consumer */,
+				A51BC001D4E5F6A7 /* Release-consumer_sandbox */,
 				C78EE933AECC4A50A385FA4C /* Release-merchant */,
 				331C808A294A63A400263BE5 /* Profile */,
 				FFEDC99EBB00489FAC82A94E /* Profile-consumer */,
+				A61BC001D4E5F6A7 /* Profile-consumer_sandbox */,
 				95EF9ABD0A08499D9F044714 /* Profile-merchant */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1420,12 +1721,15 @@
 			buildConfigurations = (
 				97C147031CF9000F007C117D /* Debug */,
 				E0DF1F9A4B9E473C973827F1 /* Debug-consumer */,
+				DD1BC001D4E5F6A7 /* Debug-consumer_sandbox */,
 				439D1013319641AD9AABDB1E /* Debug-merchant */,
 				97C147041CF9000F007C117D /* Release */,
 				14528A89CFBF47DABE003B5A /* Release-consumer */,
+				EE1BC001D4E5F6A7 /* Release-consumer_sandbox */,
 				1210CC798E184773BC051804 /* Release-merchant */,
 				249021D3217E4FDB00AE95B9 /* Profile */,
 				F34AEA9D80224105AA7D37EA /* Profile-consumer */,
+				FF1BC001D4E5F6A7 /* Profile-consumer_sandbox */,
 				090409655DF34A869FE801AF /* Profile-merchant */,
 			);
 			defaultConfigurationIsVisible = 0;
@@ -1436,12 +1740,15 @@
 			buildConfigurations = (
 				97C147061CF9000F007C117D /* Debug */,
 				FAC5FC0191604B2E8D7E5199 /* Debug-consumer */,
+				A11BC001D4E5F6A7 /* Debug-consumer_sandbox */,
 				8DB2D492B70A4A75A1B28022 /* Debug-merchant */,
 				97C147071CF9000F007C117D /* Release */,
 				42672027F15B4604A6B7E109 /* Release-consumer */,
+				A21BC001D4E5F6A7 /* Release-consumer_sandbox */,
 				F1C253199FC043C6B84B8269 /* Release-merchant */,
 				249021D4217E4FDB00AE95B9 /* Profile */,
 				71A6143C56FA4F42B5426324 /* Profile-consumer */,
+				A31BC001D4E5F6A7 /* Profile-consumer_sandbox */,
 				413A5FAB10D14F6690BF16AF /* Profile-merchant */,
 			);
 			defaultConfigurationIsVisible = 0;

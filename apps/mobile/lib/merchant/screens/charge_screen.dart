@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
 import '../config.dart';
 import '../services/merchant_session_service.dart';
 
@@ -258,7 +259,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               dataModuleShape: QrDataModuleShape.square,
               color:           BanzaColors.gray900,
             ),
-            embeddedImage:      const AssetImage('assets/images/banza_icon.png'),
+            embeddedImage:      AssetImage(BrandingAssets.icon),
             embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),

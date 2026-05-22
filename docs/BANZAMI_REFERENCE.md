@@ -2670,7 +2670,7 @@ Uma faixa âmbar ("Ambiente de Teste — Sem valor financeiro real") aparece no 
 
 #### Ícone de app diferenciado
 
-As builds sandbox usam um ícone de app com um ponto âmbar com a letra "S" no canto superior direito. Gerado deterministicamente por `tools/make-sandbox-icon.py` a partir do ícone de produção. Os testadores distinguem visualmente as builds sandbox das builds de produção no ecrã inicial do dispositivo.
+As builds sandbox usam um ícone de app permanente e pré-construído (`sbanza_icon.png`), armazenado em `apps/mobile/assets/branding/sandbox/`. O flavor Xcode `consumer_sandbox` selecciona automaticamente o asset catalog `AppIconSandbox.appiconset` via `ASSETCATALOG_COMPILER_APPICON_NAME = AppIconSandbox` — sem geração dinâmica, sem mutação de ficheiros em tempo de build, sem restauração necessária. Os testadores distinguem visualmente as builds sandbox das builds de produção no ecrã inicial do dispositivo.
 
 #### Bloqueio por configuração inválida
 
@@ -2778,28 +2778,29 @@ Todos recebem 10.000 Kz fictícios no registo. Podem ser adicionalmente financia
 
 #### Comandos de build
 
-**Passo 1 — Gerar ícone sandbox**
+**Passo 1 — Verificar prontidão do ambiente**
 
 ```bash
-./tools/gen-icons-sandbox.sh
+./tools/testflight-readiness.sh
 ```
 
-Este comando:
-1. Executa `tools/make-sandbox-icon.py` para criar `banza_icon_sandbox.png` (ponto âmbar "S" sobre o ícone de produção)
-2. Executa `dart run flutter_launcher_icons:main -f flutter_launcher_icons-sandbox.yaml` para gerar todas as resoluções de ícone
-
-**Passo 2 — Build do IPA**
+**Passo 2 — Build do IPA** (flavor `consumer_sandbox` selecciona `AppIconSandbox` automaticamente)
 
 ```bash
 cd apps/mobile
 flutter build ipa \
+  --flavor consumer_sandbox \
+  -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
   --dart-define=ENVIRONMENT=sandbox \
-  --dart-define=PUBLIC_API_URL=https://staging.banzami.org
+  --export-options-plist=ios/ExportOptions.plist
 ```
 
 Os dois `--dart-define` são obrigatórios:
-- `ENVIRONMENT=sandbox` activa o modo sandbox em toda a app (banner, QR scheme, recibos, ícone)
+- `ENVIRONMENT=sandbox` activa o modo sandbox em toda a app (banner, QR scheme, recibos, branding)
 - `PUBLIC_API_URL=https://staging.banzami.org` aponta a app para a infra de staging
+
+O ícone sandbox é um asset permanente — nenhuma geração dinâmica ou restauração é necessária antes ou depois do build.
 
 **Passo 3 — Upload TestFlight**
 
@@ -2810,14 +2811,6 @@ xcrun altool --upload-app \
   --apiKey <APP_STORE_CONNECT_API_KEY> \
   --apiIssuer <APP_STORE_CONNECT_ISSUER_ID>
 ```
-
-**Passo 4 — Restaurar ícone de produção**
-
-```bash
-./tools/gen-icons-sandbox.sh --restore
-```
-
-Este comando restaura os ícones de produção via `git checkout`. Os ícones sandbox nunca são commitados — existem apenas durante o processo de build.
 
 ---
 
@@ -2904,14 +2897,11 @@ Sem esta separação, os testes TestFlight contaminariam as métricas de produç
 
 **Segurança:** O script está hardcoded para conectar apenas à base de dados `banzami_staging` via `docker exec`. Não existe parâmetro para especificar uma base de dados diferente. Não pode apagar dados de produção.
 
-#### gen-icons-sandbox.sh
+#### gen-icons-sandbox.sh (depreciado)
 
-```bash
-./tools/gen-icons-sandbox.sh           # gerar ícones sandbox (antes do build)
-./tools/gen-icons-sandbox.sh --restore # restaurar ícones de produção (após o build)
-```
+Este script está depreciado. Os ícones sandbox são agora assets permanentes em `apps/mobile/assets/branding/sandbox/` e `ios/Runner/Assets.xcassets/AppIconSandbox.appiconset/`. O flavor `consumer_sandbox` selecciona o asset catalog correcto automaticamente — sem mutação de ficheiros antes ou depois do build.
 
-O ícone sandbox é gerado deterministicamente: o script `tools/make-sandbox-icon.py` composita um ponto âmbar com "S" sobre o ícone de produção de 1254×1254px. O resultado é sempre idêntico dado o mesmo ícone de origem. Os ícones sandbox **nunca são commitados** no repositório.
+O script emite um aviso e termina imediatamente sem fazer nada.
 
 ---
 
@@ -2962,8 +2952,10 @@ Estes princípios são regras de arquitectura vinculativas, não orientações:
 - `services/public-api/internal/observability/otel.go` — Atributo `deployment.environment`
 - `tools/staging-seed.sh` — Ferramentas de seed e gestão de staging
 - `tools/testflight-readiness.sh` — Checklist de prontidão TestFlight (11 verificações)
-- `tools/gen-icons-sandbox.sh` — Geração de ícone sandbox
-- `tools/make-sandbox-icon.py` — Script determinístico de composição de ícone
+- `apps/mobile/assets/branding/sandbox/` — Assets de branding sandbox permanentes (ícone, logo, splash)
+- `apps/mobile/ios/Runner/Assets.xcassets/AppIconSandbox.appiconset/` — 25 resoluções do ícone sandbox para iOS
+- `tools/gen-icons-sandbox.sh` — **Depreciado** — emite aviso e termina
+- `tools/make-sandbox-icon.py` — **Depreciado** — substituído por assets pré-construídos
 
 ---
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -45,7 +47,7 @@ class _Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      'assets/images/banza_splash.png',
+      BrandingAssets.splash,
       width: 80,
     );
   }

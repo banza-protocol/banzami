@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../../branding_assets.dart';
 import 'setup_screen.dart';
 
 class MerchantWelcomeScreen extends StatelessWidget {
@@ -19,7 +20,7 @@ class MerchantWelcomeScreen extends StatelessWidget {
               const Spacer(flex: 2),
 
               Image.asset(
-                'assets/images/banza_logo.png',
+                BrandingAssets.logo,
                 height: 80,
               ),
               const SizedBox(height: 24),

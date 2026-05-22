@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../../branding_assets.dart';
 import 'create_account_screen.dart';
 import 'login_screen.dart';
 
@@ -58,7 +59,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.asset(
-                        'assets/images/banza_icon.png',
+                        BrandingAssets.icon,
                         height: 56,
                       ),
                     ),
