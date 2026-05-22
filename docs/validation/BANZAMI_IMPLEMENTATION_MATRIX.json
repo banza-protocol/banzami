@@ -2207,13 +2207,16 @@
       "referenceSection": "§13.4",
       "description": "Endpoint público autenticado por JWT que expõe a transferência P2P ao consumidor: POST /v1/transfers com rate limiting, idempotência obrigatória, identidade do remetente derivada do token, receipt canónico sem identificadores internos.",
       "requirement": "POST /v1/transfers funcional com auth JWT, idempotência, rate limiting (20/min), mapeamento de erros completo, sem exposição de IDs internos. GET /v1/transfers e GET /v1/transfers/{id} disponíveis.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Public API / Consumer Payments",
       "technicalArea": "Go · Rust",
       "validationMethods": [
         "unit_tests",
-        "financial_invariant"
+        "financial_invariant",
+        "integration_tests",
+        "e2e_tests",
+        "sandbox"
       ],
       "acceptanceCriteria": [
         "POST /v1/transfers aceita recipient, amount_minor, currency, idempotency_key",
@@ -2231,7 +2234,19 @@
         "services/public-api/internal/handler/transfers_test.go — 12 unit tests: success, auth, validation, error mapping, idempotency, rate limit, no internal IDs",
         "services/public-api/internal/service/core_client.go — SendP2pTransfer(): delegates to POST /internal/v1/consumer/transfers",
         "services/public-api/internal/service/credentials.go — GetHandle(): resolves consumer_id → @banza handle from public_api_credentials",
-        "contracts/openapi/transfers.yaml — OpenAPI 3.1 spec: POST /v1/transfers, GET /v1/transfers, GET /v1/transfers/{id}"
+        "contracts/openapi/transfers.yaml — OpenAPI 3.1 spec: POST /v1/transfers, GET /v1/transfers, GET /v1/transfers/{id}",
+        "E2E-A: POST /v1/transfers live — 201 + canonical receipt, 10 fields present, no internal IDs",
+        "E2E-B: GET /v1/transfers list — transfer appears immediately in feed (WAL-003 cross-validation)",
+        "E2E-C: GET /v1/transfers/{id} — transfer retrievable by public transfer_id",
+        "E2E-D: missing idempotency_key — 400 MISSING_FIELD, core never called",
+        "E2E-E: duplicate idempotency_key under concurrency — same transfer_id returned, 1 DB row per key (8 parallel submits → 1 transfer)",
+        "E2E-F: bogus JWT consumer_id — 401 UNAUTHORIZED (sender identity spoofing impossible)",
+        "E2E-G: absent JWT — 401 UNAUTHORIZED",
+        "E2E-H: rate limit trigger — 429 RATE_LIMITED after 20/min per consumer",
+        "E2E-I: per-consumer rate limit isolation — testuser123 returns 201 while fm65 rate-limited",
+        "E2E-J: P2P-001 double-entry cross-validation — ledger_posting for live transfer: 2 entries, net_sum=0 (DR sender, CR recipient)",
+        "E2E-K: no internal IDs in live response or OpenAPI spec — 5 forbidden fields absent",
+        "SQL audit: 66 completed transfers, 66 unique idempotency_keys, 0 duplicates, 66 P2P postings, total_net_zero=0"
       ],
       "dependencies": [
         "P2P-001",
@@ -2281,18 +2296,20 @@
         }
       ],
       "confidence": {
-        "score": 70,
-        "level": "HIGH",
+        "score": 90,
+        "level": "VERY_HIGH",
         "basis": [
           "evidence[] non-empty (+20)",
           "unit_tests in validationMethods (+15)",
-          "financial_invariant: all 5 invariants PASS (+20)",
-          "sandbox pending (-15)"
+          "integration_tests in validationMethods (+20)",
+          "e2e_tests in validationMethods (+15)",
+          "sandbox in validationMethods (+10)",
+          "financial_invariant: all 5 invariants PASS (+20)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-05-22T08:39:03Z",
+      "validatedAgainstCommit": "f89eb801ec4dbc85035e4994cf64c9f385cc5657",
       "history": [
         {
           "timestamp": "2026-05-21T14:00:00Z",
@@ -2308,9 +2325,25 @@
             "services/public-api/internal/handler/transfers_test.go",
             "contracts/openapi/transfers.yaml"
           ]
+        },
+        {
+          "timestamp": "2026-05-22T08:39:03Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "96ca25dd6653a4e6",
+          "commit": "f89eb801",
+          "reason": "P2P-003: public consumer transfer API fully validated — JWT sender binding (spoof-resistant), mandatory idempotency, fixed-window rate limiter (20/min per consumer, isolated), canonical receipt (no internal IDs), 12 unit tests + 11 E2E tests PASS, P2P-001 double-entry cross-validation (2 entries, net_sum=0), WAL-003 feed cross-validation, SQL audit (66 transfers, 0 duplicates), all 5 invariants PASS, confidence 70→90 VERY_HIGH",
+          "evidence": [
+            "services/public-api/internal/handler/transfers.go",
+            "services/public-api/internal/handler/transfers_test.go",
+            "contracts/openapi/transfers.yaml",
+            "E2E-A through E2E-K (11 live tests)",
+            "SQL audit: 66 completed, 0 duplicates, net_sum=0"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-21"
+      "lastUpdated": "2026-05-22"
     },
     {
       "id": "APP-001",
