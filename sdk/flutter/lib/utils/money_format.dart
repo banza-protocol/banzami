@@ -12,6 +12,9 @@ String formatMinor(int amountMinor, String currency) {
   final amount  = amountMinor / divisor;
 
   if (currency == 'AOA') {
+    if (amountMinor > 0 && amountMinor < divisor) {
+      return '${NumberFormat('#,##0.##', 'pt_PT').format(amount)} $symbol';
+    }
     final formatter = NumberFormat('#,##0', 'pt_PT');
     return '${formatter.format(amount)} $symbol';
   }
