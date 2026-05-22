@@ -199,45 +199,62 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle reg,
     required pw.TextStyle bold,
   }) {
-    // pw.Border.all() + borderRadius causes corner artefacts in the pdf package
-    // (border segments drawn independently, creating arrow-like protrusions).
-    // Fix: nested containers — outer = border colour, inner = fill colour.
-    if (isSandbox) {
-      return pw.Container(
-        padding: const pw.EdgeInsets.all(1),
-        decoration: const pw.BoxDecoration(
-          color:        _kAmberBd,
-          borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
-        ),
-        child: pw.Container(
-          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: const pw.BoxDecoration(
-            color:        _kAmberBg,
-            borderRadius: pw.BorderRadius.all(pw.Radius.circular(19)),
-          ),
-          child: pw.Text(
-            'SANDBOX  •  Ambiente de teste',
-            style: bold.copyWith(color: _kAmberDk, fontSize: 8, letterSpacing: 0.4),
-          ),
-        ),
-      );
-    }
-    return pw.Container(
-      padding: const pw.EdgeInsets.all(1),
-      decoration: const pw.BoxDecoration(
-        color:        _kGray200,
-        borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
-      ),
-      child: pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: const pw.BoxDecoration(
-          color:        _kGray100,
-          borderRadius: pw.BorderRadius.all(pw.Radius.circular(19)),
-        ),
-        child: pw.Text(
-          'Banza  •  Comprovativo verificado',
-          style: bold.copyWith(color: _kGray600, fontSize: 8, letterSpacing: 0.3),
-        ),
+    const hPad  = 14.0;
+    const vPad  = 7.0;
+    const bdW   = 1.2;
+    // Bézier circle approximation constant (4-point cubic).
+    const kappa = 0.5523;
+
+    final text  = isSandbox ? 'SANDBOX  •  Ambiente de teste' : 'Banza  •  Comprovativo verificado';
+    final fg    = isSandbox ? _kAmberDk : _kGray600;
+    final bg    = isSandbox ? _kAmberBg : _kGray100;
+    final bd    = isSandbox ? _kAmberBd : _kGray200;
+    final style = bold.copyWith(color: fg, fontSize: 8, letterSpacing: isSandbox ? 0.4 : 0.3);
+
+    // pw.BoxDecoration borderRadius ≥ height/2 causes edge artefacts in the
+    // pdf package (clipping path mismatch at the pill extremities).
+    // Fix: draw the pill with explicit Bézier arcs via pw.CustomPaint.
+    // PDF y-axis: 0 = bottom, size.y = top.
+    return pw.CustomPaint(
+      painter: (canvas, size) {
+        final w = size.x;
+        final h = size.y;
+        final r = h / 2; // pill radius = exact half-height
+
+        // Traces a closed pill path inset by [inset] from all edges.
+        void pill(double inset) {
+          final ri = r - inset;           // effective arc radius
+          final lx = inset + ri;          // left arc centre x
+          final rx = w - inset - ri;      // right arc centre x
+          final top    = h - inset;
+          final bottom = inset;
+          final mid    = h / 2;
+          canvas
+            ..moveTo(lx, top)
+            ..lineTo(rx, top)
+            // top-right quadrant arc
+            ..curveTo(rx + ri * kappa, top, w - inset, mid + ri * kappa, w - inset, mid)
+            // bottom-right quadrant arc
+            ..curveTo(w - inset, mid - ri * kappa, rx + ri * kappa, bottom, rx, bottom)
+            ..lineTo(lx, bottom)
+            // bottom-left quadrant arc
+            ..curveTo(lx - ri * kappa, bottom, inset, mid - ri * kappa, inset, mid)
+            // top-left quadrant arc (closes back to moveTo point)
+            ..curveTo(inset, mid + ri * kappa, lx - ri * kappa, top, lx, top);
+        }
+
+        canvas.setFillColor(bg);
+        pill(bdW / 2);
+        canvas.fillPath();
+
+        canvas.setStrokeColor(bd);
+        canvas.setLineWidth(bdW);
+        pill(bdW / 2);
+        canvas.strokePath();
+      },
+      child: pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(horizontal: hPad, vertical: vPad),
+        child: pw.Text(text, style: style),
       ),
     );
   }
