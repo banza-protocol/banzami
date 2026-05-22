@@ -1,6 +1,6 @@
 // Merchant flavor — shared settings for Debug + Release.
 
 FLUTTER_TARGET=lib/main_merchant.dart
-PRODUCT_BUNDLE_IDENTIFIER=com.banza.merchant
+PRODUCT_BUNDLE_IDENTIFIER=com.banzami.merchant
 APP_DISPLAY_NAME=Banza Business
 APP_FLAVOR=merchant

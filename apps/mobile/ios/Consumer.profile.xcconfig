@@ -1,6 +1,6 @@
 #include "Flutter/Release.xcconfig"
 #include "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile-consumer.xcconfig"
-PRODUCT_BUNDLE_IDENTIFIER = com.banza.consumer
+PRODUCT_BUNDLE_IDENTIFIER = com.banzami.consumer
 FLUTTER_TARGET = lib/main_consumer.dart
 APP_FLAVOR = consumer
 APP_DISPLAY_NAME = Banza

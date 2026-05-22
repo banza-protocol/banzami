@@ -3,6 +3,6 @@
 // so dev and prod installs don't collide.
 
 FLUTTER_TARGET=lib/main_consumer.dart
-PRODUCT_BUNDLE_IDENTIFIER=com.banza.consumer
+PRODUCT_BUNDLE_IDENTIFIER=com.banzami.consumer
 APP_DISPLAY_NAME=Banza
 APP_FLAVOR=consumer
