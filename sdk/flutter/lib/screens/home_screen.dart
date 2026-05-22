@@ -742,8 +742,19 @@ class _SandboxDot extends StatelessWidget {
 }
 
 // =============================================================================
-// Sandbox fund panel
+// Sandbox fund panel — premium funding card
 // =============================================================================
+
+String _fmtKz(int kz) {
+  final s = kz.toString();
+  final buf = StringBuffer();
+  for (var i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 == 0) buf.writeCharCode(0x202F);
+    buf.write(s[i]);
+  }
+  buf.write(' Kz');
+  return buf.toString();
+}
 
 class _SandboxFundPanel extends StatefulWidget {
   final ConsumerPublicClient client;
@@ -755,28 +766,52 @@ class _SandboxFundPanel extends StatefulWidget {
 }
 
 class _SandboxFundPanelState extends State<_SandboxFundPanel> {
-  bool    _loading = false;
-  String? _error;
-  String? _success;
+  bool _loading  = false;
+  int  _amountKz = 10000;
 
-  static const _presets = [
-    (label: '10 000 Kz',    minor: 1000000),
-    (label: '50 000 Kz',    minor: 5000000),
-    (label: '200 000 Kz',   minor: 20000000),
-    (label: '1 000 000 Kz', minor: 100000000),
-  ];
+  static const int _step  = 1000;
+  static const int _minKz = 1000;
+  static const int _maxKz = 1000000;
+  static const _chips = [10, 50, 200, 1000];
 
-  Future<void> _fund(int amountMinor) async {
-    setState(() { _loading = true; _error = null; _success = null; });
+  void _increment() =>
+      setState(() => _amountKz = (_amountKz + _step).clamp(_minKz, _maxKz));
+  void _decrement() =>
+      setState(() => _amountKz = (_amountKz - _step).clamp(_minKz, _maxKz));
+  void _addChip(int kz) =>
+      setState(() => _amountKz = (_amountKz + kz).clamp(_minKz, _maxKz));
+
+  Future<void> _fund() async {
+    setState(() => _loading = true);
     try {
-      final result = await widget.client.sandboxFund(amountMinor: amountMinor);
+      final result = await widget.client.sandboxFund(amountMinor: _amountKz * 100);
       if (!mounted) return;
-      setState(() {
-        _success = 'Adicionados ${result.creditedMinor ~/ 100} Kz';
-      });
       widget.onFunded();
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Erro ao adicionar fundos');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
+              const SizedBox(width: 8),
+              Text('${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox'),
+            ],
+          ),
+          backgroundColor: BanzaColors.success,
+          duration:        const Duration(seconds: 3),
+          behavior:        SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BanzaRadius.smAll),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content:         const Text('Erro ao adicionar fundos'),
+          backgroundColor: BanzaColors.error,
+          behavior:        SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BanzaRadius.smAll),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -789,49 +824,268 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
         BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.xl,
       ),
       child: Container(
-        padding: const EdgeInsets.all(BanzaSpacing.lg),
         decoration: BoxDecoration(
-          color:        const Color(0xFFFEF3C7),
-          borderRadius: BanzaRadius.lgAll,
-          border:       Border.all(color: const Color(0xFFF59E0B)),
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFF8E8), Color(0xFFFFF0C0)],
+            begin:  Alignment.topLeft,
+            end:    Alignment.bottomRight,
+          ),
+          borderRadius: const BorderRadius.all(Radius.circular(28)),
+          border: Border.all(color: const Color(0xFFF7C65A)),
+          boxShadow: [
+            BoxShadow(
+              color:       const Color(0xFFF59E0B).withValues(alpha: 0.12),
+              blurRadius:  16,
+              offset:      const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(children: [
-              const Icon(Icons.science_rounded, size: 14, color: Color(0xFF92400E)),
-              const SizedBox(width: BanzaSpacing.xs),
-              Text('Sandbox', style: BanzaTextStyles.bodySm.copyWith(
-                color:      const Color(0xFF92400E),
-                fontWeight: FontWeight.w600,
-              )),
-            ]),
-            const SizedBox(height: BanzaSpacing.md),
-            Wrap(
-              spacing:    BanzaSpacing.sm,
-              runSpacing: BanzaSpacing.sm,
-              children: _presets.map((p) => OutlinedButton(
-                onPressed: _loading ? null : () => _fund(p.minor),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF92400E),
-                  side: const BorderSide(color: Color(0xFFF59E0B)),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.md, vertical: BanzaSpacing.xs,
+
+            // ── Header ──────────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+              child: Row(
+                children: [
+                  Container(
+                    width: 36, height: 36,
+                    decoration: const BoxDecoration(
+                      color:        Color(0xFFFDE68A),
+                      borderRadius: BorderRadius.all(Radius.circular(10)),
+                    ),
+                    child: const Icon(Icons.science_rounded, size: 18, color: Color(0xFF92400E)),
                   ),
-                  textStyle:     BanzaTextStyles.bodySm,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(p.label),
-              )).toList(),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Adicionar dinheiro de teste',
+                          style: TextStyle(
+                            fontSize:   13,
+                            fontWeight: FontWeight.w700,
+                            color:      Color(0xFF78350F),
+                            height:     1.2,
+                          ),
+                        ),
+                        SizedBox(height: 2),
+                        Text(
+                          'Crédito instantâneo na sua carteira sandbox',
+                          style: TextStyle(
+                            fontSize:   11,
+                            fontWeight: FontWeight.w400,
+                            color:      Color(0xFFB45309),
+                            height:     1.35,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.info_outline_rounded, size: 18, color: Color(0xFFD97706)),
+                ],
+              ),
             ),
-            if (_success != null) ...[
-              const SizedBox(height: BanzaSpacing.sm),
-              Text(_success!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.success)),
-            ],
-            if (_error != null) ...[
-              const SizedBox(height: BanzaSpacing.sm),
-              Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
-            ],
+
+            // ── Amount selector ──────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+              child: Row(
+                children: [
+                  _SandboxCircleBtn(
+                    icon:    Icons.remove_rounded,
+                    onTap:   _loading || _amountKz <= _minKz ? null : _decrement,
+                    enabled: !_loading && _amountKz > _minKz,
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        AnimatedSwitcher(
+                          duration:         const Duration(milliseconds: 200),
+                          transitionBuilder: (child, anim) => FadeTransition(
+                            opacity: anim,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0, 0.15),
+                                end:   Offset.zero,
+                              ).animate(anim),
+                              child: child,
+                            ),
+                          ),
+                          child: Text(
+                            key: ValueKey(_amountKz),
+                            _fmtKz(_amountKz),
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(
+                              fontFamily:  'JetBrains Mono',
+                              fontSize:    26,
+                              fontWeight:  FontWeight.w700,
+                              color:       Color(0xFF78350F),
+                              height:      1.1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Valor atual',
+                          style: TextStyle(
+                            fontSize:   11,
+                            color:      Color(0xFFB45309),
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _SandboxCircleBtn(
+                    icon:    Icons.add_rounded,
+                    onTap:   _loading || _amountKz >= _maxKz ? null : _increment,
+                    enabled: !_loading && _amountKz < _maxKz,
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Quick chips ──────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+              child: Wrap(
+                spacing:    8,
+                runSpacing: 8,
+                children: _chips.map((kz) => _SandboxChip(
+                  label: '+${_fmtKz(kz)}',
+                  onTap: _loading ? null : () => _addChip(kz),
+                )).toList(),
+              ),
+            ),
+
+            // ── CTA button ───────────────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: _loading
+                  ? const Center(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(vertical: 18),
+                        child: SizedBox(
+                          width: 22, height: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation(Color(0xFF92400E)),
+                          ),
+                        ),
+                      ),
+                    )
+                  : _SandboxFundButton(onTap: _fund),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SandboxCircleBtn extends StatelessWidget {
+  final IconData      icon;
+  final VoidCallback? onTap;
+  final bool          enabled;
+  const _SandboxCircleBtn({
+    required this.icon,
+    required this.enabled,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 42, height: 42,
+        decoration: BoxDecoration(
+          color: enabled ? BanzaColors.white : const Color(0xFFFDE68A),
+          shape: BoxShape.circle,
+          boxShadow: enabled
+              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.07), blurRadius: 8, offset: const Offset(0, 2))]
+              : null,
+        ),
+        child: Icon(
+          icon,
+          size:  20,
+          color: enabled ? const Color(0xFF92400E) : const Color(0xFFD97706),
+        ),
+      ),
+    );
+  }
+}
+
+class _SandboxChip extends StatelessWidget {
+  final String        label;
+  final VoidCallback? onTap;
+  const _SandboxChip({required this.label, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color:        const Color(0xFFFFF4D6),
+          borderRadius: const BorderRadius.all(Radius.circular(20)),
+          border:       Border.all(color: const Color(0xFFF7C65A)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize:   12,
+            fontWeight: FontWeight.w600,
+            color:      Color(0xFF92400E),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SandboxFundButton extends StatelessWidget {
+  final VoidCallback onTap;
+  const _SandboxFundButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+            begin:  Alignment.centerLeft,
+            end:    Alignment.centerRight,
+          ),
+          borderRadius: const BorderRadius.all(Radius.circular(16)),
+          boxShadow: [
+            BoxShadow(
+              color:      const Color(0xFFF59E0B).withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset:     const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.add_circle_outline_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Adicionar ao saldo',
+              style: TextStyle(
+                fontSize:   15,
+                fontWeight: FontWeight.w700,
+                color:      Colors.white,
+              ),
+            ),
           ],
         ),
       ),
