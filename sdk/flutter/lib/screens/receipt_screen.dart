@@ -117,10 +117,6 @@ class BanzaVerifiedMark extends StatelessWidget {
           ),
 
           // ── Layer 3: inner glass ring ──────────────────────────────────
-          // Gradient runs bottom → top so the bright end sits at the bottom
-          // of the ring (fully behind or outside the core seal) and the top
-          // — the exposed annular gap — stays near-transparent. This removes
-          // the "trace" artifact without losing the glass depth effect.
           Container(
             width:  size * 0.73,
             height: size * 0.73,
@@ -130,13 +126,9 @@ class BanzaVerifiedMark extends StatelessWidget {
                 begin:  Alignment.bottomCenter,
                 end:    Alignment.topCenter,
                 colors: [
-                  Colors.white.withValues(alpha: 0.18),
-                  Colors.white.withValues(alpha: 0.02),
+                  Colors.white.withValues(alpha: 0.14),
+                  Colors.white.withValues(alpha: 0.00),
                 ],
-              ),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.10),
-                width: 1.0,
               ),
               boxShadow: [
                 BoxShadow(
@@ -170,26 +162,6 @@ class BanzaVerifiedMark extends StatelessWidget {
                   offset:     const Offset(0, 4),
                 ),
               ],
-            ),
-          ),
-
-          // ── Gloss specular on core seal ────────────────────────────────
-          Positioned(
-            top: size * 0.215,
-            child: Container(
-              width:  size * 0.22,
-              height: size * 0.08,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(size),
-                gradient: LinearGradient(
-                  begin:  Alignment.topCenter,
-                  end:    Alignment.bottomCenter,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.28),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
             ),
           ),
 
