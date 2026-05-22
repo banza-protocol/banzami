@@ -11,6 +11,7 @@ export function ReferenceToc({ sections }: Props) {
   const [activeSectionId, setActiveSectionId] = useState(`section-${sections[0]?.number ?? 1}`)
   const [activeSubAnchor, setActiveSubAnchor] = useState('')
   const activeSubRef = useRef<HTMLButtonElement>(null)
+  const sidebarRef   = useRef<HTMLElement>(null)
 
   // Track active H2 section on scroll
   useEffect(() => {
@@ -50,9 +51,20 @@ export function ReferenceToc({ sections }: Props) {
     return () => window.removeEventListener('scroll', update)
   }, [activeSectionId, sections])
 
-  // Auto-scroll TOC to keep active subsection visible
+  // Scroll within the sidebar only — never let scrollIntoView touch the page.
+  // (scrollIntoView on a sticky container's child uses the element's natural
+  // document position, which can yank the user back to the top of the page.)
   useEffect(() => {
-    activeSubRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    const sidebar = sidebarRef.current
+    const btn     = activeSubRef.current
+    if (!sidebar || !btn) return
+    const sr = sidebar.getBoundingClientRect()
+    const br = btn.getBoundingClientRect()
+    if (br.top < sr.top + 16) {
+      sidebar.scrollBy({ top: br.top - sr.top - 16, behavior: 'smooth' })
+    } else if (br.bottom > sr.bottom - 16) {
+      sidebar.scrollBy({ top: br.bottom - sr.bottom + 16, behavior: 'smooth' })
+    }
   }, [activeSubAnchor])
 
   const activeSection = sections.find(s => `section-${s.number}` === activeSectionId)
@@ -67,7 +79,7 @@ export function ReferenceToc({ sections }: Props) {
   }
 
   return (
-    <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 overflow-y-auto border-r border-bz-border bg-white px-3 py-5 xl:block">
+    <aside ref={sidebarRef} className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-52 shrink-0 overflow-y-auto border-r border-bz-border bg-white px-3 py-5 xl:block">
       <div className="mb-3 text-[10px] font-bold uppercase tracking-widest text-bz-muted">
         Índice
       </div>
