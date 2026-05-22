@@ -46,6 +46,8 @@ class BanzamiConfirmScreen extends StatefulWidget {
   final String  idempotencyKey;
   final String? ownHandle;
   final void Function(Transfer) onSuccess;
+  final bool    isSandbox;
+  final String? logoAssetPath;
 
   const BanzamiConfirmScreen({
     super.key,
@@ -58,6 +60,8 @@ class BanzamiConfirmScreen extends StatefulWidget {
     required this.idempotencyKey,
     this.ownHandle,
     required this.onSuccess,
+    this.isSandbox     = false,
+    this.logoAssetPath,
   });
 
   @override
@@ -119,9 +123,11 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
       await Navigator.of(context).push(BanzaPageRoute(
         page: BanzamiReceiptScreen(
-          transfer:  transfer,
-          ownHandle: widget.ownHandle,
-          onDone:    widget.onSuccess,
+          transfer:      transfer,
+          ownHandle:     widget.ownHandle,
+          onDone:        widget.onSuccess,
+          isSandbox:     widget.isSandbox,
+          logoAssetPath: widget.logoAssetPath,
         ),
       ));
     } on BanzamiApiException catch (e) {

@@ -277,11 +277,16 @@ class BanzamiReceiptScreen extends StatefulWidget {
 
   final void Function(Transfer) onDone;
 
+  final bool    isSandbox;
+  final String? logoAssetPath;
+
   const BanzamiReceiptScreen({
     super.key,
     required this.transfer,
     this.ownHandle,
     required this.onDone,
+    this.isSandbox    = false,
+    this.logoAssetPath,
   });
 
   @override
@@ -381,8 +386,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         : box.localToGlobal(Offset.zero) & box.size;
     try {
       final file = await BanzaPdfReceiptGenerator.generate(
-        transfer:  widget.transfer,
-        ownHandle: _from,
+        transfer:      widget.transfer,
+        ownHandle:     _from,
+        isSandbox:     widget.isSandbox,
+        logoAssetPath: widget.logoAssetPath,
       );
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],

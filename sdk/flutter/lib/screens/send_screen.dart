@@ -20,12 +20,16 @@ class BanzamiSendScreen extends StatefulWidget {
   final void Function(Transfer transfer) onSuccess;
   /// The authenticated user's own handle — excluded from autocomplete results.
   final String? ownHandle;
+  final bool    isSandbox;
+  final String? logoAssetPath;
 
   const BanzamiSendScreen({
     super.key,
     required this.client,
     required this.onSuccess,
     this.ownHandle,
+    this.isSandbox     = false,
+    this.logoAssetPath,
   });
 
   @override
@@ -146,6 +150,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         idempotencyKey:       idempotencyKey,
         ownHandle:            widget.ownHandle,
         onSuccess:            widget.onSuccess,
+        isSandbox:            widget.isSandbox,
+        logoAssetPath:        widget.logoAssetPath,
       ),
     ));
   }
