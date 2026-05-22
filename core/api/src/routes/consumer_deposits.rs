@@ -477,6 +477,13 @@ pub async fn test_confirm(
     State(state): State<AppState>,
     axum::extract::Query(q): axum::extract::Query<TestConfirmQuery>,
 ) -> ApiResult<Json<ConsumerDepositResponse>> {
+    if state.environment.is_live() {
+        tracing::error!("consumer_deposits::test_confirm called in LIVE environment — rejected");
+        return Err(ApiError::forbidden(
+            "test-confirm is not available in LIVE environment",
+        ));
+    }
+
     // Fetch the deposit to get the amount.
     let deposit: Option<(i64, String)> = sqlx::query_as(
         "SELECT amount_minor, currency FROM consumer_deposits WHERE external_ref = $1",

@@ -97,13 +97,19 @@ pub struct SandboxCreditResponse {
 /// POST /internal/v1/wallets/:id/sandbox-credit
 ///
 /// Injects synthetic funds directly into a merchant wallet's available ledger
-/// account. For sandbox/test environments only — called exclusively by the
-/// api-gateway sandbox handler which enforces SANDBOX principal check.
+/// account. SANDBOX / test environments only — hard-rejected in LIVE.
 pub async fn sandbox_credit(
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(body): Json<SandboxCreditBody>,
 ) -> ApiResult<Json<SandboxCreditResponse>> {
+    if state.environment.is_live() {
+        tracing::error!("sandbox_credit called in LIVE environment — rejected");
+        return Err(ApiError::forbidden(
+            "sandbox credit is not available in LIVE environment",
+        ));
+    }
+
     if body.amount_minor <= 0 {
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
@@ -213,14 +219,20 @@ pub struct AdminCreditResponse {
 /// POST /internal/v1/wallets/:id/admin-credit
 ///
 /// Injects funds into a merchant wallet's available ledger account for admin
-/// purposes (beta funding, pilot merchants, TestFlight). No cap — admin-only.
-/// The `reason` field is required and embedded in the ledger posting description
-/// for full audit traceability.
+/// purposes (beta funding, pilot merchants, TestFlight). SANDBOX only — admin
+/// credit of synthetic funds is not permitted in LIVE.
 pub async fn admin_credit(
     State(state): State<AppState>,
     Path(id): Path<String>,
     Json(body): Json<AdminCreditBody>,
 ) -> ApiResult<Json<AdminCreditResponse>> {
+    if state.environment.is_live() {
+        tracing::error!("admin_credit called in LIVE environment — rejected");
+        return Err(ApiError::forbidden(
+            "admin credit is not available in LIVE environment",
+        ));
+    }
+
     if body.reason.trim().is_empty() {
         return Err(ApiError::bad_request("reason is required"));
     }

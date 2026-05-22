@@ -3,6 +3,74 @@ use std::sync::Arc;
 use sqlx::PgPool;
 
 use banzami_types::AccountId;
+
+// ---------------------------------------------------------------------------
+// Runtime environment — controls whether sandbox/test funding is permitted.
+// Defaults to Live for safety; set ENVIRONMENT=SANDBOX on staging containers.
+// ---------------------------------------------------------------------------
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum CoreEnvironment {
+    Live,
+    Sandbox,
+}
+
+impl CoreEnvironment {
+    pub fn from_env() -> Self {
+        match std::env::var("ENVIRONMENT").as_deref() {
+            Ok(v) if v.eq_ignore_ascii_case("SANDBOX") => CoreEnvironment::Sandbox,
+            _ => CoreEnvironment::Live, // safe default
+        }
+    }
+
+    pub fn is_live(self) -> bool {
+        self == CoreEnvironment::Live
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::CoreEnvironment;
+
+    #[test]
+    fn sandbox_env_var_accepted() {
+        // Temporarily set ENVIRONMENT=SANDBOX, then restore
+        std::env::set_var("ENVIRONMENT", "SANDBOX");
+        assert!(!CoreEnvironment::from_env().is_live());
+        std::env::remove_var("ENVIRONMENT");
+    }
+
+    #[test]
+    fn sandbox_case_insensitive() {
+        std::env::set_var("ENVIRONMENT", "sandbox");
+        assert!(!CoreEnvironment::from_env().is_live());
+        std::env::remove_var("ENVIRONMENT");
+    }
+
+    #[test]
+    fn unknown_env_defaults_to_live() {
+        std::env::set_var("ENVIRONMENT", "UNKNOWN_VALUE");
+        assert!(CoreEnvironment::from_env().is_live());
+        std::env::remove_var("ENVIRONMENT");
+    }
+
+    #[test]
+    fn missing_env_defaults_to_live() {
+        std::env::remove_var("ENVIRONMENT");
+        assert!(CoreEnvironment::from_env().is_live());
+    }
+
+    #[test]
+    fn live_variant_is_live() {
+        assert!(CoreEnvironment::Live.is_live());
+        assert!(!CoreEnvironment::Sandbox.is_live());
+    }
+}
+
 use banzami_ledger::PostgresLedgerRepository;
 use banzami_wallets::{PostgresWalletEngine, PostgresWalletRepository};
 use banzami_transactions::{PostgresTransactionEngine, PostgresTransactionRepository};
@@ -55,6 +123,7 @@ pub struct AppState {
     #[allow(dead_code)]
     pub pool:               PgPool,
     pub transit_account_id: AccountId,
+    pub environment:        CoreEnvironment,
     pub wallet:             Arc<WalletEng>,
     pub tx_engine:       Arc<TxEng>,
     pub merchant:        Arc<MerchantEng>,
@@ -79,6 +148,7 @@ impl AppState {
         pool: PgPool,
         transit_account_id: AccountId,
         bank_account_id: AccountId,
+        environment: CoreEnvironment,
     ) -> Self {
         // --- Wallet engine (for wallet routes) ---
         let wallet_ledger = PostgresLedgerRepository::new(pool.clone());
@@ -191,6 +261,7 @@ impl AppState {
         Self {
             pool,
             transit_account_id,
+            environment,
             wallet,
             tx_engine,
             merchant,
