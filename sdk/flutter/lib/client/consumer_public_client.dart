@@ -345,7 +345,7 @@ class ConsumerPublicClient {
 
     final exception = BanzamiApiException.fromJson(resp.statusCode, decoded);
     onError?.call(method, path, exception);
-    if (resp.statusCode == 401) onUnauthorized?.call();
+    if (resp.statusCode == 401 && auth && _token != null) onUnauthorized?.call();
     throw exception;
   }
 }
