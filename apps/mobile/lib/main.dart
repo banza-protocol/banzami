@@ -1,11 +1,13 @@
 import 'package:banza_flutter/banza_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt', null);
 
   final pinnedClient = await PinnedHttpClient.create();
 

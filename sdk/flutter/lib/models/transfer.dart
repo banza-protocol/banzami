@@ -35,8 +35,8 @@ class Transfer {
   factory Transfer.fromJson(Map<String, dynamic> json) {
     return Transfer(
       transferId:  json['transfer_id'] as String,
-      sender:      json['sender']      as String,
-      recipient:   json['recipient']   as String,
+      sender:      (json['sender']    as String).replaceFirst('@', ''),
+      recipient:   (json['recipient'] as String).replaceFirst('@', ''),
       amountMinor: (json['amount_minor'] as num).toInt(),
       currency:    json['currency']    as String,
       status:      json['status']      as String,
