@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
+import '../config.dart';
 import '../services/session_service.dart';
 import 'help_screen.dart';
 import 'notifications_screen.dart';
@@ -48,6 +49,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // ── Identity card ──────────────────────────────────────────────
             _ProfileHeader(session: session),
+
+            if (AppConfig.isSandbox) ...[
+              const SizedBox(height: BanzaSpacing.sm),
+              const _SandboxBanner(),
+            ],
 
             const SizedBox(height: BanzaSpacing.sm),
 
@@ -424,6 +430,53 @@ class _PaymentAddressCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+// =============================================================================
+// Sandbox / TestFlight banner
+// =============================================================================
+
+class _SandboxBanner extends StatelessWidget {
+  const _SandboxBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width:   double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.md, vertical: 10),
+      decoration: BoxDecoration(
+        color:        const Color(0xFFFEF3C7),
+        borderRadius: BanzaRadius.lgAll,
+        border:       Border.all(color: const Color(0xFFFCD34D), width: 1),
+      ),
+      child: Row(children: [
+        const Icon(Icons.science_rounded, size: 16, color: Color(0xFF92400E)),
+        const SizedBox(width: BanzaSpacing.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize:       MainAxisSize.min,
+            children: [
+              Text(
+                'Ambiente de teste',
+                style: BanzaTextStyles.label.copyWith(
+                  color:    const Color(0xFF92400E),
+                  fontSize: 12,
+                ),
+              ),
+              Text(
+                'O saldo e as transferências são simulados.',
+                style: BanzaTextStyles.bodySm.copyWith(
+                  color:    const Color(0xFFB45309),
+                  fontSize: 11,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ]),
     );
   }
 }

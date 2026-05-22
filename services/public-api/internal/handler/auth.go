@@ -76,6 +76,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	// Auto-provision an AOA wallet so the consumer can transact immediately.
 	_, _ = h.core.GetOrCreateWallet(r.Context(), consumer.ID, "AOA")
 
+	// Sandbox-only: grant 10,000 Kz test balance so testers can transact immediately.
+	if h.cfg.Environment == "SANDBOX" {
+		_, _ = h.core.SandboxCreditConsumer(r.Context(), consumer.ID, 1_000_000, "AOA")
+	}
+
 	token, expiresAt, err := middleware.NewConsumerToken(
 		h.cfg.JWTSecret, consumer.ID, []string{"consumer"}, consumerTokenTTL,
 	)
