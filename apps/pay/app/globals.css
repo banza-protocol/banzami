@@ -13,3 +13,72 @@
     color: #1C0D0D;
   }
 }
+
+@layer components {
+  /* ── Page shell ─────────────────────────────────────────────────────────── */
+  .bz-page {
+    @apply flex min-h-screen items-center justify-center p-4;
+  }
+
+  /* ── Generic card ───────────────────────────────────────────────────────── */
+  .bz-card {
+    @apply w-full rounded-2xl bg-white p-6 shadow-card;
+  }
+
+  /* ── Hero payment card ──────────────────────────────────────────────────── */
+  .bz-hero-card {
+    @apply relative w-full overflow-hidden rounded-2xl p-6;
+    background: linear-gradient(135deg, #B30012 0%, #4A0005 100%);
+    box-shadow:
+      0 8px 32px rgba(179, 0, 18, 0.38),
+      0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  /* Light-sweep shimmer overlay */
+  .bz-hero-sweep {
+    @apply pointer-events-none absolute inset-0;
+    background: linear-gradient(
+      105deg,
+      transparent 35%,
+      rgba(255, 255, 255, 0.07) 50%,
+      transparent 65%
+    );
+    animation: sweep 3.5s ease-in-out infinite;
+  }
+
+  /* ── QR code frame ──────────────────────────────────────────────────────── */
+  .bz-qr-frame {
+    @apply rounded-2xl bg-white p-4;
+    box-shadow:
+      0 4px 24px rgba(179, 0, 18, 0.18),
+      0 1px 4px rgba(0, 0, 0, 0.06);
+  }
+
+  /* ── Primary CTA button (cherry gradient) ───────────────────────────────── */
+  .bz-btn-primary {
+    @apply block rounded-2xl px-6 py-4 text-center font-bold text-white transition-all duration-200;
+    background: linear-gradient(135deg, #B30012 0%, #8E000D 100%);
+    box-shadow: 0 4px 16px rgba(179, 0, 18, 0.4);
+  }
+
+  .bz-btn-primary:hover:not(:disabled) {
+    box-shadow: 0 6px 24px rgba(179, 0, 18, 0.55);
+    transform: translateY(-1px);
+  }
+
+  .bz-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(179, 0, 18, 0.3);
+  }
+
+  .bz-btn-primary:disabled {
+    @apply opacity-40 cursor-not-allowed;
+  }
+
+  /* ── Glass secondary button ─────────────────────────────────────────────── */
+  .bz-btn-glass {
+    @apply rounded-2xl border border-gray-200 bg-white/60 px-4 py-3.5 text-center
+           font-semibold text-gray-600 backdrop-blur-sm transition-all duration-200
+           hover:bg-white hover:text-gray-800;
+  }
+}

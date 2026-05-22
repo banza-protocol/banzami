@@ -57,6 +57,25 @@ const config: Config = {
       backgroundImage: {
         'wine-gradient': 'linear-gradient(135deg, #B30012 0%, #4A0005 100%)',
       },
+      animation: {
+        float:      'float 3s ease-in-out infinite',
+        'fade-up':  'fade-up 0.5s ease-out both',
+        sweep:      'sweep 3.5s ease-in-out infinite',
+      },
+      keyframes: {
+        float: {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%':      { transform: 'translateY(-6px)' },
+        },
+        'fade-up': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
+        sweep: {
+          '0%':   { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(250%)' },
+        },
+      },
     },
   },
   plugins: [],
