@@ -89,9 +89,10 @@ class BanzaPdfReceiptGenerator {
 
   // ── Page ──────────────────────────────────────────────────────────────────
   //
-  // pw.Spacer() requires a bounded height constraint from its parent.
-  // pw.Container alone doesn't provide one — BoxConstraints.expand() anchors
-  // the outer box to the full A4 height so Spacer distributes correctly.
+  // pw.BoxConstraints.expand() in the pdf package sets min/max to infinity
+  // (unlike Flutter where it tightens to parent constraints), which makes
+  // pw.Spacer() inflate to infinity and push content off-page.
+  // Fixed layout: explicit vertical gaps only — no Spacer() needed.
 
   static pw.Widget _buildPage(
     pw.Context ctx, {
@@ -106,9 +107,8 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle    bold,
   }) {
     return pw.Container(
-      color:       _kWhite,
-      constraints: const pw.BoxConstraints.expand(),
-      padding:     const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
+      color:   _kWhite,
+      padding: const pw.EdgeInsets.symmetric(horizontal: 48, vertical: 40),
       child: pw.Column(
         crossAxisAlignment: pw.CrossAxisAlignment.stretch,
         children: [
@@ -125,11 +125,10 @@ class BanzaPdfReceiptGenerator {
             reg:       reg,
             bold:      bold,
           ),
-          // Push footer to bottom; disclaimer sits just above it.
-          pw.Spacer(),
+          pw.SizedBox(height: 36),
           if (isSandbox) ...[
             _buildSandboxDisclaimer(reg: reg, bold: bold),
-            pw.SizedBox(height: 32),
+            pw.SizedBox(height: 28),
           ],
           _buildFooter(ref8: ref8, isSandbox: isSandbox, reg: reg, bold: bold),
         ],
