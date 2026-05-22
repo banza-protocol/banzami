@@ -5,6 +5,7 @@ import 'package:banza_flutter/banza_flutter.dart';
 
 import '../config.dart';
 import '../services/session_service.dart';
+import '../widgets/banza_premium_dialog.dart';
 import '../widgets/sandbox_banner.dart';
 import 'help_screen.dart';
 import 'notifications_screen.dart';
@@ -148,43 +149,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmLogout(SessionService svc) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:   const RoundedRectangleBorder(borderRadius: BanzaRadius.xlAll),
-        title:   const Text('Terminar sessão?'),
-        content: const Text(
-          'Vai sair da conta neste dispositivo. Pode entrar novamente quando quiser.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sair', style: TextStyle(color: BanzaColors.wine)),
-          ),
-        ],
-      ),
+    final confirm = await showBanzaDialog(
+      context:      context,
+      icon:         Icons.logout_rounded,
+      title:        'Terminar sessão?',
+      description:  'Vai sair da sua conta neste dispositivo.\nPode entrar novamente quando quiser.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Sair',
+      variant:      BanzaDialogVariant.standard,
     );
     if (confirm == true) await svc.logout();
   }
 
   Future<void> _confirmClearAccount(SessionService svc) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:   const RoundedRectangleBorder(borderRadius: BanzaRadius.xlAll),
-        title:   const Text('Remover conta?'),
-        content: const Text(
-          'Todos os dados guardados serão apagados. Terá de criar conta ou entrar novamente.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remover', style: TextStyle(color: BanzaColors.error)),
-          ),
-        ],
-      ),
+    final confirm = await showBanzaDialog(
+      context:      context,
+      icon:         Icons.delete_forever_rounded,
+      title:        'Remover conta?',
+      description:  'Todos os dados guardados neste dispositivo serão apagados.\nTerá de iniciar sessão novamente.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Remover',
+      variant:      BanzaDialogVariant.danger,
     );
     if (confirm == true) await svc.clearAccount();
   }
