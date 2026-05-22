@@ -9,6 +9,7 @@ import '../widgets/banza_premium_dialog.dart';
 import '../widgets/sandbox_banner.dart';
 import 'help_screen.dart';
 import 'notifications_screen.dart';
+import 'onboarding/welcome_screen.dart';
 import 'security_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -158,7 +159,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       confirmLabel: 'Sair',
       variant:      BanzaDialogVariant.standard,
     );
-    if (confirm == true) await svc.logout();
+    if (confirm == true) {
+      await svc.logout();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (_) => false,
+        );
+      }
+    }
   }
 
   Future<void> _confirmClearAccount(SessionService svc) async {
@@ -171,7 +180,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       confirmLabel: 'Remover',
       variant:      BanzaDialogVariant.danger,
     );
-    if (confirm == true) await svc.clearAccount();
+    if (confirm == true) {
+      await svc.clearAccount();
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          (_) => false,
+        );
+      }
+    }
   }
 }
 
