@@ -393,23 +393,24 @@ pub async fn pay(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    sqlx::query!(
-        r#"
-        INSERT INTO transfers
-            (id, idempotency_key, sender_id, recipient_id,
-             amount_minor, currency, status, ledger_posting_id, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, $8, $8)
-        ON CONFLICT (idempotency_key) DO NOTHING
-        "#,
-        transfer_id,
-        body.idempotency_key,
-        payer_id,
-        link.receiver_consumer_id,
-        amount,
-        link.currency,
-        actual_posting,
-        now,
+    // Runtime query (no !) so adding `description` doesn't need a new sqlx cache entry.
+    // link.note propagates here so the activity feed shows the pay-link note.
+    sqlx::query(
+        "INSERT INTO transfers
+             (id, idempotency_key, sender_id, recipient_id,
+              amount_minor, currency, status, ledger_posting_id, description, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, 'COMPLETED', $7, $8, $9, $9)
+         ON CONFLICT (idempotency_key) DO NOTHING",
     )
+    .bind(transfer_id)
+    .bind(&body.idempotency_key)
+    .bind(payer_id)
+    .bind(link.receiver_consumer_id)
+    .bind(amount)
+    .bind(&link.currency)
+    .bind(actual_posting)
+    .bind(&link.note)  // Option<String> — NULL when no note
+    .bind(now)
     .execute(&mut *tx)
     .await
     .ok();
