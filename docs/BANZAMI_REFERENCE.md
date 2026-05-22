@@ -2508,25 +2508,23 @@ Este registo é deliberado: qualquer operador que leia os logs de um serviço sa
 O SANDBOX e o LIVE nunca partilham infra-estrutura. São stacks Docker completamente separados no mesmo servidor.
 
 ```
-┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐
-│         STACK PRODUÇÃO (LIVE)       │  │        STACK STAGING (SANDBOX)      │
-│                                     │  │                                     │
-│  ┌─────────────┐  ┌──────────────┐  │  │  ┌─────────────┐  ┌──────────────┐ │
-│  │  core-api   │  │  public-api  │  │  │  │ core-api-   │  │ public-api-  │ │
-│  │    :8081    │  │    :8083     │  │  │  │  staging    │  │   staging    │ │
-│  └──────┬──────┘  └──────┬───────┘  │  │  │   :8091     │  │    :8093     │ │
-│         │                │          │  │  └──────┬──────┘  └──────┬───────┘ │
-│  ┌──────▼────────────────▼───────┐  │  │         │                │         │
-│  │       PostgreSQL LIVE         │  │  │  ┌──────▼────────────────▼───────┐ │
-│  │     banzami (base de dados)   │  │  │  │     PostgreSQL Staging        │ │
-│  │  ledger real · carteiras      │  │  │  │  banzami_staging (base dados) │ │
-│  │  liquidação real · EMIS       │  │  │  │  ledger fictício · carteiras  │ │
-│  └───────────────────────────────┘  │  │  │  sem liquidação · sem EMIS    │ │
-│                                     │  │  └───────────────────────────────┘ │
-│  JWT_SECRET=<produção>              │  │  JWT_SECRET=<staging diferente>    │
-│  DATABASE_URL=banzami               │  │  DATABASE_URL=banzami_staging      │
-└─────────────────────────────────────┘  └─────────────────────────────────────┘
-         api.banzami.org                          staging.banzami.org
+┌─────────────────────────────────┐   ┌─────────────────────────────────┐
+│      STACK PRODUÇÃO (LIVE)      │   │     STACK STAGING (SANDBOX)     │
+├─────────────────────────────────┤   ├─────────────────────────────────┤
+│                                 │   │                                 │
+│  core-api            :8081      │   │  core-api-staging      :8091    │
+│  public-api          :8083      │   │  public-api-staging    :8093    │
+│                                 │   │                                 │
+│  ── PostgreSQL ───────────────  │   │  ── PostgreSQL ───────────────  │
+│  banzami                        │   │  banzami_staging                │
+│  ledger real · carteiras        │   │  ledger fictício · carteiras    │
+│  liquidação real · EMIS activo  │   │  sem liquidação · EMIS inactivo │
+│                                 │   │                                 │
+│  JWT_SECRET  = <produção>       │   │  JWT_SECRET  = <staging>        │
+│  DATABASE_URL = banzami         │   │  DATABASE_URL = banzami_staging │
+│                                 │   │                                 │
+│  api.banzami.org                │   │  staging.banzami.org            │
+└─────────────────────────────────┘   └─────────────────────────────────┘
 ```
 
 **Cada isolamento é físico, não apenas lógico:**
