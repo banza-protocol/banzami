@@ -17,6 +17,9 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BanzaScreenSecurityPlugin") {
+      BanzaScreenSecurityPlugin.register(with: registrar)
+    }
   }
 
   // Forward APNs token to Firebase Messaging (in case swizzling misses it).

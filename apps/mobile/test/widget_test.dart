@@ -138,7 +138,14 @@ void main() {
 
       await tester.pumpWidget(_wrap(_confirmScreen()));
       await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
-      await tester.pumpAndSettle();
+      // BanzaVerifiedMark has a repeating AnimationController — pumpAndSettle()
+      // never settles. BanzaPrimaryButton has a 2 × 150 ms scale animation before
+      // calling onPressed; pump at 50 ms intervals so each animation tick fires
+      // and the HTTP-chain microtasks can drain. Text is in the tree once the
+      // receipt route exists (regardless of the route transition opacity).
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
       expect(find.text('Enviado com sucesso'), findsOneWidget);
     });
 
@@ -169,7 +176,10 @@ void main() {
         200,
         headers: {'content-type': 'application/json'},
       ));
-      await tester.pumpAndSettle();
+      // Receipt screen has a repeating animation — pump instead of pumpAndSettle.
+      for (var i = 0; i < 20; i++) {
+        await tester.pump(const Duration(milliseconds: 50));
+      }
     });
 
     testWidgets('INSUFFICIENT_FUNDS shows Portuguese error message',
@@ -297,7 +307,9 @@ void main() {
       Transfer? received;
       await pumpReceipt(tester, onDone: (t) => received = t);
       await tester.tap(find.text('Concluído'));
-      await tester.pumpAndSettle();
+      // onDone is called synchronously in _done() — one pump is enough.
+      // Do not use pumpAndSettle(): the repeating rotation animation never settles.
+      await tester.pump();
       expect(received?.transferId, equals(transfer.transferId));
     });
   });
