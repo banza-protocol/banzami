@@ -5,6 +5,7 @@ import { MarkdownSection } from '@/components/MarkdownSection'
 import { ReadingProgress } from '@/components/ReadingProgress'
 import { ReferenceToc } from '@/components/ReferenceToc'
 import { ReferenceMobileToc } from '@/components/ReferenceMobileToc'
+import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
   title: { absolute: 'Banzami — Referência Oficial' },
@@ -19,6 +20,7 @@ export default function ReferencePage() {
     <>
       {/* Reading progress bar (client component) */}
       <ReadingProgress />
+      <BackToTop />
 
       <div className="flex min-h-screen">
         {/* Sticky mini ToC — visible on xl+ with active section tracking */}
