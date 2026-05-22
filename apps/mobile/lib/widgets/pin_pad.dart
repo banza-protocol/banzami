@@ -16,23 +16,38 @@ class PinDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = error ? BanzaColors.error : BanzaColors.wine;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(kPinLength, (i) {
         final isFilled = i < filled;
+        final isError  = error && isFilled;
         return AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           margin:   const EdgeInsets.symmetric(horizontal: 10),
           width:    13,
           height:   13,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: isFilled ? color : Colors.transparent,
+            shape:    BoxShape.circle,
+            // gradient for normal filled; flat color for error; transparent for empty
+            gradient: isFilled && !isError ? BanzaGradients.wine : null,
+            color:    isFilled
+                ? (isError ? BanzaColors.error : null)
+                : Colors.transparent,
             border: Border.all(
-              color: isFilled ? color : BanzaColors.gray200,
+              color: isError
+                  ? BanzaColors.error
+                  : isFilled
+                      ? BanzaColors.wineDark
+                      : const Color(0xFFD8D0CF), // Soft Neutral
               width: 2,
             ),
+            boxShadow: isFilled && !isError ? const [
+              BoxShadow(
+                color:        Color(0x60990011), // cherry glow
+                blurRadius:   6,
+                spreadRadius: -1,
+              ),
+            ] : null,
           ),
         );
       }),
@@ -220,16 +235,29 @@ class _DigitKey extends StatelessWidget {
     return SizedBox(
       width:  80,
       height: 80,
-      child: Material(
-        color:        Colors.transparent,
-        child: InkWell(
-          onTap:        disabled ? null : onTap,
-          borderRadius: BorderRadius.circular(40),
-          child: Ink(
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: BanzaColors.gray100,
+      child: Container(
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: BanzaColors.white,
+          border: Border.fromBorderSide(
+            BorderSide(color: Color(0xFFEDE8E7), width: 1.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color:      Color(0x0A000000),
+              blurRadius: 8,
+              offset:     Offset(0, 2),
             ),
+          ],
+        ),
+        child: Material(
+          color:        Colors.transparent,
+          shape:        const CircleBorder(),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap:          disabled ? null : onTap,
+            splashColor:    const Color(0x14990011), // cherry 8 %
+            highlightColor: const Color(0x0A990011), // cherry 4 %
             child: Center(
               child: Text(
                 label,

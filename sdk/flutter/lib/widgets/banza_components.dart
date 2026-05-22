@@ -489,11 +489,7 @@ class _BanzaActionTileState extends State<BanzaActionTile>
 
   @override
   Widget build(BuildContext context) {
-    final bg = widget.primary ? BanzaColors.wine   : BanzaColors.white;
-    final fg = widget.primary ? BanzaColors.white  : BanzaColors.gray900;
-    final shadowColor = widget.primary
-        ? BanzaColors.wine.withValues(alpha: 0.30)
-        : const Color(0x0D000000);
+    final fg = widget.primary ? BanzaColors.white : BanzaColors.gray900;
 
     return Expanded(
       child: ScaleTransition(
@@ -507,13 +503,26 @@ class _BanzaActionTileState extends State<BanzaActionTile>
               vertical: BanzaSpacing.lg,
             ),
             decoration: BoxDecoration(
-              color:        bg,
+              color:        widget.primary ? null : BanzaColors.white,
+              gradient:     widget.primary ? BanzaGradients.wine : null,
               borderRadius: BanzaRadius.xlAll,
-              boxShadow: [
+              boxShadow: widget.primary ? [
                 BoxShadow(
-                  color:      shadowColor,
+                  color:        BanzaColors.wine.withValues(alpha: 0.38),
+                  blurRadius:   18,
+                  offset:       const Offset(0, 6),
+                  spreadRadius: -2,
+                ),
+                const BoxShadow(
+                  color:      Color(0x14000000),
+                  blurRadius: 4,
+                  offset:     Offset(0, 2),
+                ),
+              ] : [
+                const BoxShadow(
+                  color:      Color(0x0D000000),
                   blurRadius: 12,
-                  offset:     const Offset(0, 4),
+                  offset:     Offset(0, 4),
                 ),
                 const BoxShadow(
                   color:      Color(0x08000000),
@@ -530,9 +539,15 @@ class _BanzaActionTileState extends State<BanzaActionTile>
                   height: 40,
                   decoration: BoxDecoration(
                     color: widget.primary
-                        ? BanzaColors.white.withValues(alpha: 0.18)
+                        ? BanzaColors.white.withValues(alpha: 0.20)
                         : BanzaColors.gray100,
                     shape: BoxShape.circle,
+                    border: widget.primary
+                        ? Border.all(
+                            color: BanzaColors.white.withValues(alpha: 0.30),
+                            width: 1,
+                          )
+                        : null,
                   ),
                   child: Icon(widget.icon, color: fg, size: 20),
                 ),
