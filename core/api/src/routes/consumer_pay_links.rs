@@ -20,6 +20,7 @@ struct LockedLinkRow {
     id:                   Uuid,
     receiver_consumer_id: Uuid,
     amount_minor:         Option<i64>,
+    note:                 Option<String>,
     currency:             String,
     locked:               bool,
     status:               String,
@@ -247,7 +248,7 @@ pub async fn pay(
 
     // Runtime query (not query!) so FOR UPDATE doesn't need an offline cache entry.
     let row = sqlx::query(
-        "SELECT id, receiver_consumer_id, amount_minor, currency, locked, status, expires_at \
+        "SELECT id, receiver_consumer_id, amount_minor, note, currency, locked, status, expires_at \
          FROM consumer_pay_links WHERE link_code = $1 FOR UPDATE",
     )
     .bind(&code)
@@ -260,6 +261,7 @@ pub async fn pay(
         id:                   row.try_get("id").map_err(|e| ApiError::internal(e.to_string()))?,
         receiver_consumer_id: row.try_get("receiver_consumer_id").map_err(|e| ApiError::internal(e.to_string()))?,
         amount_minor:         row.try_get("amount_minor").map_err(|e| ApiError::internal(e.to_string()))?,
+        note:                 row.try_get("note").map_err(|e| ApiError::internal(e.to_string()))?,
         currency:             row.try_get("currency").map_err(|e| ApiError::internal(e.to_string()))?,
         locked:               row.try_get("locked").map_err(|e| ApiError::internal(e.to_string()))?,
         status:               row.try_get("status").map_err(|e| ApiError::internal(e.to_string()))?,
