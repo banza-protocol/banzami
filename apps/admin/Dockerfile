@@ -31,6 +31,6 @@ USER banzami
 EXPOSE 3002
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
-    CMD wget -qO- http://localhost:3002/ || exit 1
+    CMD wget -qO- http://127.0.0.1:3002/ || exit 1
 
 CMD ["node", "server.js"]
