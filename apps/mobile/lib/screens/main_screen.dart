@@ -93,7 +93,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         consumerId:    session.consumerId,
         handle:        session.handle,
         displayName:   session.displayName,
-        logoAssetPath: BrandingAssets.icon,
+        logoAssetPath: BrandingAssets.logo,
         environment:   AppConfig.isSandbox
             ? BanzaEnvironment.sandbox
             : BanzaEnvironment.production,
