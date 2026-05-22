@@ -1,6 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import QRCode from 'react-qr-code';
 import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
 
 interface Props {
@@ -33,36 +34,11 @@ export default function PayClient({
   deepLink,
   expiresAt,
 }: Props) {
-  const qrRef              = useRef<HTMLDivElement>(null);
-  const [step, setStep]    = useState<Step>({ type: 'idle' });
+  const [step, setStep]     = useState<Step>({ type: 'idle' });
   const [expired, setExpired] = useState(false);
+  const [copied, setCopied]  = useState(false);
 
-  // Generate QR code once qrcode.js is loaded (for deep-link QR)
-  useEffect(() => {
-    const generate = () => {
-      if (typeof window === 'undefined') return;
-      const w = window as any;
-      if (!w.QRCode || !qrRef.current) return;
-      qrRef.current.innerHTML = '';
-      new w.QRCode(qrRef.current, {
-        text:         deepLink,
-        width:        180,
-        height:       180,
-        colorDark:    '#990011',
-        colorLight:   '#ffffff',
-        correctLevel: w.QRCode.CorrectLevel.M,
-      });
-    };
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-    script.integrity = 'sha512-CNgIRecGo7nphbeZ04Sc13ka07paqdeTu0WR1IM4kNcpmBAUSHSe7Vg2urhSgkXxmYWJDnOAUBxmBKMgNxIDg==';
-    script.crossOrigin = 'anonymous';
-    script.onload = generate;
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-  }, [deepLink]);
-
-  // Check link expiry
+  // Link expiry timer
   useEffect(() => {
     if (!expiresAt) return;
     const remaining = new Date(expiresAt).getTime() - Date.now();
@@ -71,17 +47,14 @@ export default function PayClient({
     return () => clearTimeout(t);
   }, [expiresAt]);
 
-  // Poll for payment confirmation (once instructions are shown)
+  // Poll for payment confirmation
   useEffect(() => {
     if (step.type !== 'instructions' && step.type !== 'idle') return;
     const id = setInterval(async () => {
       try {
         const { paid } = await getPaymentLinkStatus(slug);
-        if (paid) {
-          setStep({ type: 'confirmed' });
-          clearInterval(id);
-        }
-      } catch { /* network error — keep polling */ }
+        if (paid) { setStep({ type: 'confirmed' }); clearInterval(id); }
+      } catch { /* keep polling */ }
     }, POLL_INTERVAL);
     return () => clearInterval(id);
   }, [slug, step.type]);
@@ -96,24 +69,34 @@ export default function PayClient({
     }
   }, [slug, amountMinor]);
 
-  // Confirmed state
+  const handleCopyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {}
+  }, []);
+
+  // ── Confirmed ─────────────────────────────────────────────────────────────
   if (step.type === 'confirmed') {
     return (
-      <main className="flex min-h-screen items-center justify-center p-4">
-        <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-green-100">
-            <svg className="h-7 w-7 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+      <main className="bz-page">
+        <div className="bz-card animate-fade-up max-w-sm text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-success-bg">
+            <svg className="h-8 w-8 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
             </svg>
           </div>
           <h1 className="text-xl font-bold text-gray-900">Pagamento confirmado!</h1>
-          <p className="mt-2 text-sm text-gray-500">Obrigado. O pagamento foi recebido com sucesso.</p>
+          <p className="mt-2 text-sm text-gray-600">
+            {merchantName} recebeu o pagamento com sucesso.
+          </p>
         </div>
       </main>
     );
   }
 
-  // Instructions state — show entity + reference
+  // ── Multicaixa Express instructions ───────────────────────────────────────
   if (step.type === 'instructions') {
     const { instructions, expires_at } = step.payment;
     const expiryLabel = expires_at
@@ -121,58 +104,40 @@ export default function PayClient({
       : null;
 
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-        <div className="w-full max-w-sm space-y-4">
+      <main className="bz-page">
+        <div className="w-full max-w-sm space-y-4 animate-fade-up">
+          <HeroCard
+            merchantName={merchantName}
+            amountDisplay={amountDisplay}
+            description={description}
+          />
 
-          {/* Header */}
-          <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
-            <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-              {merchantName}
-            </p>
-            {description && (
-              <p className="mt-0.5 text-xs opacity-60">{description}</p>
-            )}
-            {amountDisplay ? (
-              <p className="mt-2 text-4xl font-bold tabular-nums">{amountDisplay}</p>
-            ) : (
-              <p className="mt-2 text-lg font-semibold opacity-80">Valor livre</p>
-            )}
-          </div>
-
-          {/* Multicaixa Express instructions */}
-          <div className="rounded-2xl bg-white p-6 shadow-sm">
-            <h2 className="text-center text-sm font-semibold text-gray-700 mb-4">
+          <div className="bz-card space-y-5">
+            <h2 className="text-center text-sm font-semibold text-gray-900">
               Pagar via Multicaixa Express
             </h2>
 
             <div className="space-y-3">
               <InstructionStep n={1} label="Abra a app Multicaixa Express" />
               <InstructionStep n={2} label="Seleccione «Pagamentos de Serviços»" />
-              <InstructionStep n={3} label="Introduza a entidade e a referência abaixo" />
+              <InstructionStep n={3} label="Introduza a entidade e referência abaixo" />
             </div>
 
-            <div className="mt-5 grid grid-cols-2 gap-3">
-              <div className="rounded-xl bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500 mb-1">Entidade</p>
-                <p className="text-2xl font-bold tracking-widest text-gray-900">{instructions.entity}</p>
-              </div>
-              <div className="rounded-xl bg-gray-50 p-3 text-center">
-                <p className="text-xs text-gray-500 mb-1">Referência</p>
-                <p className="text-2xl font-bold tracking-widest text-gray-900">
-                  {instructions.reference.replace(/(\d{3})(?=\d)/g, '$1 ')}
-                </p>
-              </div>
+            <div className="grid grid-cols-2 gap-3">
+              <RefBox label="Entidade" value={instructions.entity} />
+              <RefBox
+                label="Referência"
+                value={instructions.reference.replace(/(\d{3})(?=\d)/g, '$1 ')}
+              />
             </div>
 
             {expiryLabel && (
-              <p className="mt-4 text-center text-xs text-amber-600">
-                Válido até às {expiryLabel}
-              </p>
+              <p className="text-center text-xs text-warning">Válido até às {expiryLabel}</p>
             )}
 
-            <div className="mt-5 flex items-center gap-2 rounded-lg bg-blue-50 px-3 py-2">
-              <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-              <p className="text-xs text-blue-700">A aguardar confirmação de pagamento…</p>
+            <div className="flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-2.5">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-wine animate-pulse" />
+              <p className="text-xs text-gray-600">A aguardar confirmação de pagamento…</p>
             </div>
           </div>
 
@@ -184,89 +149,171 @@ export default function PayClient({
     );
   }
 
-  // Default idle / loading state — show payment options
+  // ── Idle / loading / error ────────────────────────────────────────────────
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 p-4">
-      <div className="w-full max-w-sm space-y-4">
+    <main className="bz-page">
+      <div className="w-full max-w-sm space-y-4 animate-fade-up">
 
-        {/* Amount / header */}
-        <div className="rounded-2xl p-6 text-center text-white" style={{ background: '#990011' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest opacity-80">
-            {merchantName}
-          </p>
-          {description && (
-            <p className="mt-0.5 text-xs opacity-60">{description}</p>
-          )}
-          {amountDisplay ? (
-            <p className="mt-2 text-4xl font-bold tabular-nums">{amountDisplay}</p>
-          ) : (
-            <p className="mt-2 text-lg font-semibold opacity-80">Valor livre</p>
-          )}
-        </div>
+        {/* Hero card */}
+        <HeroCard
+          merchantName={merchantName}
+          amountDisplay={amountDisplay}
+          description={description}
+        />
 
-        {/* Error */}
+        {/* Error banner */}
         {step.type === 'error' && (
-          <div className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+          <div className="rounded-xl bg-error-bg px-4 py-3 text-sm text-error">
             {step.message}
           </div>
         )}
 
-        {/* Multicaixa Express CTA */}
-        <div className="rounded-2xl bg-white p-6 shadow-sm space-y-4">
+        {/* Expired banner */}
+        {expired && (
+          <div className="rounded-xl bg-warning-bg px-4 py-3 text-center text-sm font-medium text-warning">
+            O tempo de pagamento expirou.
+          </div>
+        )}
+
+        {/* QR + CTAs */}
+        <div className="bz-card space-y-5">
+
+          {/* Security label */}
+          <div className="flex items-center justify-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse" />
+            <p className="text-xs font-medium text-success">Pagamento seguro Banzami</p>
+          </div>
+
+          {/* Floating QR frame */}
+          <div className="flex justify-center">
+            <div className="bz-qr-frame animate-float">
+              <QRCode
+                value={deepLink}
+                size={172}
+                fgColor="#B30012"
+                bgColor="#ffffff"
+                level="M"
+              />
+            </div>
+          </div>
+
+          <p className="text-center text-xs text-gray-400">
+            Abra a app Banzami e digitalize o código QR
+          </p>
+
+          {/* Open app — primary CTA */}
+          <a href={deepLink} className="bz-btn-primary">
+            Abrir app Banzami
+          </a>
+
+          {/* Divider */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-gray-200" />
+            <span className="text-xs text-gray-400">ou</span>
+            <div className="h-px flex-1 bg-gray-200" />
+          </div>
+
+          {/* Multicaixa Express */}
           <button
             onClick={handlePayWithMulticaixa}
             disabled={step.type === 'loading' || expired}
-            className="w-full rounded-xl py-3.5 text-center font-semibold text-white text-sm disabled:opacity-50 transition"
-            style={{ background: '#990011' }}
+            className="w-full rounded-2xl border border-gray-200 py-3.5 text-center text-sm
+                       font-semibold text-gray-700 transition duration-200
+                       hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {step.type === 'loading' ? 'A preparar…' : 'Pagar com Multicaixa Express'}
+            {step.type === 'loading' ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="h-4 w-4 rounded-full border-2 border-wine border-t-transparent animate-spin" />
+                A preparar…
+              </span>
+            ) : (
+              'Pagar com Multicaixa Express'
+            )}
           </button>
 
-          <div className="flex items-center gap-3 text-gray-300">
-            <div className="flex-1 h-px bg-gray-200" />
-            <span className="text-xs">ou</span>
-            <div className="flex-1 h-px bg-gray-200" />
-          </div>
-
-          <div>
-            <p className="mb-3 text-center text-sm text-gray-500">
-              Abra a app Banzami e digitalize o código QR
-            </p>
-            <div ref={qrRef} className="flex justify-center mb-4" />
-            <a
-              href={deepLink}
-              className="inline-block w-full rounded-xl py-3 text-center font-semibold text-sm border border-gray-200 text-gray-700 hover:bg-gray-50 transition"
-            >
-              Abrir app Banzami
-            </a>
-          </div>
-
-          {expired ? (
-            <p className="text-center text-sm text-amber-600 bg-amber-50 rounded-lg px-3 py-2">
-              O tempo de pagamento expirou.
-            </p>
-          ) : (
-            <p className="text-center text-xs text-gray-400">
-              A aguardar confirmação de pagamento…
-            </p>
-          )}
+          {/* Copy link */}
+          <button onClick={handleCopyLink} className="bz-btn-glass w-full">
+            {copied ? '✓ Link copiado' : 'Copiar link de pagamento'}
+          </button>
         </div>
 
         <p className="text-center text-xs text-gray-400">
-          Não feche esta página. Será notificado automaticamente após o pagamento.
+          Não feche esta página. Será notificado automaticamente.
         </p>
       </div>
     </main>
   );
 }
 
+// ── Shared sub-components ─────────────────────────────────────────────────────
+
+function HeroCard({
+  merchantName,
+  amountDisplay,
+  description,
+}: {
+  merchantName:  string;
+  amountDisplay: string | null;
+  description:   string | null;
+}) {
+  return (
+    <div className="bz-hero-card">
+      {/* Metallic sweep shimmer */}
+      <div className="bz-hero-sweep" aria-hidden="true" />
+
+      <div className="relative z-10 flex flex-col items-center">
+        {/* Brand label + security badge */}
+        <div className="flex w-full items-center justify-between">
+          <span className="text-[10px] font-bold tracking-[0.22em] text-white/40 uppercase">
+            BANZA
+          </span>
+          <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-0.5
+                           text-[10px] font-semibold text-white/75 backdrop-blur-sm">
+            <span className="h-1.5 w-1.5 rounded-full bg-green-400" />
+            Seguro
+          </span>
+        </div>
+
+        {/* Merchant name */}
+        <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-white/55">
+          {merchantName}
+        </p>
+
+        {/* Amount */}
+        {amountDisplay ? (
+          <p className="mt-1 text-[2.75rem] font-bold leading-none tabular-nums text-white">
+            {amountDisplay}
+          </p>
+        ) : (
+          <p className="mt-1 text-2xl font-semibold text-white/65">Valor livre</p>
+        )}
+
+        {/* Description */}
+        {description && (
+          <p className="mt-1.5 text-xs text-white/45">{description}</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function InstructionStep({ n, label }: { n: number; label: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold text-white" style={{ background: '#990011' }}>
+      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full
+                       bg-wine text-xs font-bold text-white">
         {n}
       </span>
-      <p className="text-sm text-gray-600 pt-0.5">{label}</p>
+      <p className="pt-0.5 text-sm text-gray-600">{label}</p>
+    </div>
+  );
+}
+
+function RefBox({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-gray-100 p-3 text-center">
+      <p className="mb-1 text-xs text-gray-400">{label}</p>
+      <p className="text-2xl font-bold tabular-nums tracking-widest text-gray-900">{value}</p>
     </div>
   );
 }
