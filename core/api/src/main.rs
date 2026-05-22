@@ -18,7 +18,7 @@ use banzami_payment_links::run_expiry_worker as run_pl_expiry_worker;
 use banzami_reconciliation::run_balance_checker;
 use banzami_settlement::run_settlement_scheduler;
 use banzami_types::Currency;
-use state::AppState;
+use state::{AppState, CoreEnvironment};
 
 #[tokio::main]
 async fn main() {
@@ -83,7 +83,13 @@ async fn main() {
         created_at:   chrono::Utc::now(),
     }).await.expect("failed to ensure bank ledger account");
 
-    let state = AppState::new(pool.clone(), transit_account_id, bank_account_id);
+    let environment = CoreEnvironment::from_env();
+    tracing::info!(environment = ?environment, "boot: runtime environment");
+    if environment.is_live() {
+        tracing::warn!("LIVE environment — all sandbox/test funding endpoints are DISABLED");
+    }
+
+    let state = AppState::new(pool.clone(), transit_account_id, bank_account_id, environment);
 
     // Spawn the QR expiry background worker.
     // Interval is configurable via QR_EXPIRY_INTERVAL_SECS (default: 60 s).

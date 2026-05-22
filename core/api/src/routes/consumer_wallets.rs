@@ -247,12 +247,18 @@ pub async fn commit_reserved(
 ///
 /// Injects funds into a consumer's available ledger account using a balanced
 /// double-entry posting. DR transit account (ASSET) / CR consumer available
-/// account (LIABILITY). For development and test environments only — not
-/// exposed in production.
+/// account (LIABILITY). SANDBOX / test environments only — hard-rejected in LIVE.
 pub async fn test_credit(
     State(state): State<AppState>,
     Json(body): Json<TestCreditBody>,
 ) -> ApiResult<Json<TestCreditResponse>> {
+    if state.environment.is_live() {
+        tracing::error!("test_credit called in LIVE environment — rejected");
+        return Err(ApiError::forbidden(
+            "test credit is not available in LIVE environment",
+        ));
+    }
+
     if body.amount_minor <= 0 {
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }

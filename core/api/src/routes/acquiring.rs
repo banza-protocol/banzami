@@ -326,6 +326,13 @@ pub async fn test_confirm(
     State(state): State<AppState>,
     Query(q):     Query<TestConfirmQuery>,
 ) -> ApiResult<Json<AcquiringPaymentResponse>> {
+    if state.environment.is_live() {
+        tracing::error!("acquiring::test_confirm called in LIVE environment — rejected");
+        return Err(ApiError::forbidden(
+            "test-confirm is not available in LIVE environment",
+        ));
+    }
+
     let currency = q.currency.as_deref().unwrap_or("AOA");
 
     // Fetch the existing payment to get the correct amount for the callback payload.
