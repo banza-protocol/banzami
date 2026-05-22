@@ -12,17 +12,79 @@ Flutter application for the Banzami payment platform, supporting two flavours: *
 ## Running
 
 ```bash
-# Merchant app
-flutter run -t lib/main_merchant.dart
-
-# Consumer app
-flutter run -t lib/main_consumer.dart
+cd apps/mobile
 ```
 
-The gateway URL is configured in `lib/merchant/config.dart` and `lib/consumer/config.dart` via the `GATEWAY_URL` compile-time variable:
+### Consumer
 
 ```bash
-flutter run -t lib/main_merchant.dart --dart-define=GATEWAY_URL=http://192.168.1.10:8080
+# Local
+flutter run --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=http://192.168.1.10:8083 --debug
+
+# Produção
+flutter run --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org --debug
+
+# Staging (sandbox)
+flutter run --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+  --dart-define=ENVIRONMENT=sandbox --debug
+```
+
+### Merchant
+
+```bash
+# Local
+flutter run --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=http://192.168.1.10:8080 --debug
+
+# Produção
+flutter run --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=https://api.banzami.org --debug
+```
+
+## Build para App Store
+
+```bash
+flutter clean && flutter pub get
+cd ios && pod install && cd ..
+
+# Consumer app
+flutter build ipa --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --export-options-plist=ios/ExportOptions.plist
+
+# Merchant app
+flutter build ipa --flavor merchant -t lib/main_merchant.dart \
+  --dart-define=GATEWAY_URL=https://api.banzami.org \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --export-options-plist=ios/ExportOptions.plist
+```
+
+## Build para TestFlight (Sandbox)
+
+Verifica o ambiente de staging antes de cada build:
+
+```bash
+./tools/testflight-readiness.sh
+```
+
+Gera o ícone sandbox e constrói o IPA:
+
+```bash
+# Gerar ícone sandbox (ponto âmbar "S" sobre o ícone de produção)
+./tools/gen-icons-sandbox.sh
+
+# Consumer sandbox
+flutter build ipa --flavor consumer -t lib/main_consumer.dart \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+  --dart-define=ENVIRONMENT=sandbox \
+  --export-options-plist=ios/ExportOptions.plist
+
+# Restaurar ícone de produção após o build
+./tools/gen-icons-sandbox.sh --restore
 ```
 
 ## Merchant features
