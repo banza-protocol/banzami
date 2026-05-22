@@ -203,6 +203,15 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 
 ---
 
+## App Store Connect — Registo de apps criadas
+
+| App | Bundle ID | SKU | Team ID | Estado |
+|-----|-----------|-----|---------|--------|
+| Banza | `com.banza.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
+| Banza Business | `com.banza.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
+
+---
+
 ## Registo de submissões
 
 | Data | Build | Apps | Estado |
