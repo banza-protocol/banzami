@@ -34,6 +34,12 @@ dependencies:
   # Share files / images (used by BanzamiReceiveScreen QR share)
   share_plus: ^10.1.4
 
+  # PDF generation
+  pdf: ^3.11.0
+
+  # Temp file path for PDF export
+  path_provider: ^2.1.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
