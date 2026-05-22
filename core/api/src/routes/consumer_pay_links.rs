@@ -374,8 +374,7 @@ pub async fn pay(
     sqlx::query!(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6)
-         ON CONFLICT DO NOTHING",
+         VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
         Uuid::new_v4(), actual_posting,
         payer_wallet.available_account_id, amount, link.currency, now,
     )
@@ -386,8 +385,7 @@ pub async fn pay(
     sqlx::query!(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
-         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6)
-         ON CONFLICT DO NOTHING",
+         VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6) ON CONFLICT DO NOTHING",
         Uuid::new_v4(), actual_posting,
         receiver_wallet.available_account_id, amount, link.currency, now,
     )
