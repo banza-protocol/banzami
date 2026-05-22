@@ -6,12 +6,14 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
 import 'services/push_notification_service.dart';
 import 'services/transfer_notification_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('pt', null);
 
   // Slow services run in background — must not block runApp.
   // iOS holds the native launch screen until Flutter paints its first frame,
