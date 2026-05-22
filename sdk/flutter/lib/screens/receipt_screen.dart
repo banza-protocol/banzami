@@ -278,7 +278,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: BanzaSpacing.lg,
-                    vertical:   BanzaSpacing.sm,
+                    vertical:   4,
                   ),
                   child: Row(children: [
                     IconButton(
@@ -308,15 +308,15 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                       horizontal: BanzaSpacing.xl,
                     ),
                     child: Column(children: [
-                      const SizedBox(height: BanzaSpacing.lg),
+                      const SizedBox(height: 10),
 
                       // Verified mark
                       ScaleTransition(
                         scale: _markScale,
-                        child: const BanzaVerifiedMark(size: 120),
+                        child: const BanzaVerifiedMark(size: 96),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.lg),
+                      const SizedBox(height: BanzaSpacing.sm),
 
                       Text(
                         'Enviado com sucesso',
@@ -343,7 +343,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         ),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.xl),
+                      const SizedBox(height: BanzaSpacing.md),
 
                       // ── Glass detail card ──────────────────────────────
                       Container(
@@ -374,7 +374,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         ]),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.xl),
+                      const SizedBox(height: BanzaSpacing.lg),
 
                       // ── Concluído ──────────────────────────────────────
                       SizedBox(
@@ -421,7 +421,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         ),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.md),
+                      const SizedBox(height: BanzaSpacing.sm),
 
                       // ── Partilhar comprovativo ─────────────────────────
                       SizedBox(
@@ -450,7 +450,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         ),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.xl),
+                      const SizedBox(height: BanzaSpacing.sm),
 
                       // ── Footer ─────────────────────────────────────────
                       Row(
@@ -484,7 +484,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         textAlign: TextAlign.center,
                       ),
 
-                      const SizedBox(height: BanzaSpacing.xl),
+                      const SizedBox(height: BanzaSpacing.xs),
                     ]),
                   ),
                 ),
@@ -516,7 +516,7 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: 11),
+        padding: const EdgeInsets.symmetric(vertical: 9),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
