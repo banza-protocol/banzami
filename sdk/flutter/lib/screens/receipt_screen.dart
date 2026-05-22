@@ -19,26 +19,28 @@ const _kMidWine    = Color(0xFF7A000D);
 const _kDeepShadow = Color(0xFF5E000A);
 
 // ---------------------------------------------------------------------------
-// BanzaVerifiedMark — premium certified transfer badge
+// BanzaVerifiedMark — premium layered authenticity seal
 // ---------------------------------------------------------------------------
 
-/// Circular premium badge that confirms a Banza transfer is authentic.
-///
-/// Renders a dashed outer ring, a cherry-glass inner circle, the "— BANZA —"
-/// label, and a white checkmark. No green, no generic success UI.
+/// Four-layer premium badge: outer luminous ring → dashed security ring with
+/// integrated BANZA label → inner glass ring → core cherry seal + checkmark.
 class BanzaVerifiedMark extends StatelessWidget {
   final double size;
-  const BanzaVerifiedMark({super.key, this.size = 120});
+  const BanzaVerifiedMark({super.key, this.size = 96});
 
   @override
   Widget build(BuildContext context) {
+    // Dashed ring sits at 42 % of size from center = radius 40.3 px at size 96.
+    // BANZA label is centered on that ring's topmost point.
+    const ringR = 0.42; // radiusFraction passed to painter
+
     return SizedBox(
       width:  size,
       height: size,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Ambient cherry glow
+          // ── Layer 0: ambient cherry bloom ─────────────────────────────
           Container(
             width:  size,
             height: size,
@@ -46,73 +48,152 @@ class BanzaVerifiedMark extends StatelessWidget {
               shape:     BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:      _kCherry.withValues(alpha: 0.50),
-                  blurRadius: 36,
-                  spreadRadius: 6,
+                  color:        _kCherry.withValues(alpha: 0.55),
+                  blurRadius:   22,
+                  spreadRadius: 4,
                 ),
                 BoxShadow(
-                  color:      _kCherry.withValues(alpha: 0.18),
-                  blurRadius: 64,
+                  color:        _kCherry.withValues(alpha: 0.25),
+                  blurRadius:   48,
                   spreadRadius: 12,
                 ),
               ],
             ),
           ),
 
-          // Dashed outer ring
-          CustomPaint(
-            size:    Size(size, size),
-            painter: _DashedRingPainter(
-              color: Colors.white.withValues(alpha: 0.28),
-            ),
-          ),
-
-          // Inner cherry-glass circle
+          // ── Layer 1: outer luminous ring ───────────────────────────────
           Container(
-            width:  size * 0.80,
-            height: size * 0.80,
+            width:  size,
+            height: size,
             decoration: BoxDecoration(
-              shape:    BoxShape.circle,
-              gradient: const RadialGradient(
-                colors: [_kCherry, _kMidWine, _kDeepShadow],
-                stops:  [0.0,      0.55,      1.0],
-              ),
+              shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.20),
-                width: 1.5,
+                color: _kCherry.withValues(alpha: 0.85),
+                width: 2.0,
               ),
               boxShadow: [
                 BoxShadow(
-                  color:      Colors.black.withValues(alpha: 0.30),
-                  blurRadius: 16,
-                  offset:     const Offset(0, 5),
+                  color:        _kCherry.withValues(alpha: 1.0),
+                  blurRadius:   6,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color:        _kCherry.withValues(alpha: 0.55),
+                  blurRadius:   18,
+                  spreadRadius: 4,
                 ),
               ],
             ),
           ),
 
-          // "— BANZA —" label near the top of the inner circle
+          // ── Layer 2: dashed security ring (gap at top for label) ───────
+          CustomPaint(
+            size:    Size(size, size),
+            painter: _DashedRingPainter(
+              color:          Colors.white.withValues(alpha: 0.52),
+              radiusFraction: ringR,
+              gapAngleRad:    1.28, // ≈ 73° — enough space for BANZA text
+            ),
+          ),
+
+          // ── BANZA label — centre aligned on ring top ───────────────────
+          // top = size/2 − ring_radius − half_font_height
+          //     = size*(0.50 − ringR − 0.046)
           Positioned(
-            top: size * 0.115,
+            top:   size * (0.50 - ringR - 0.046),
+            left:  0,
+            right: 0,
             child: Text(
-              '— BANZA —',
+              'BANZA',
+              textAlign: TextAlign.center,
               style: TextStyle(
-                color:         Colors.white.withValues(alpha: 0.68),
+                color:         Colors.white.withValues(alpha: 0.92),
                 fontSize:      size * 0.092,
-                fontWeight:    FontWeight.w700,
-                letterSpacing: 2.0,
+                fontWeight:    FontWeight.w800,
+                letterSpacing: 2.4,
+                height:        1.0,
               ),
             ),
           ),
 
-          // White checkmark
-          Padding(
-            padding: EdgeInsets.only(top: size * 0.06),
-            child: Icon(
-              Icons.check_rounded,
-              color: Colors.white,
-              size:  size * 0.38,
+          // ── Layer 3: inner glass ring ──────────────────────────────────
+          Container(
+            width:  size * 0.73,
+            height: size * 0.73,
+            decoration: BoxDecoration(
+              shape:    BoxShape.circle,
+              gradient: LinearGradient(
+                begin:  Alignment.topLeft,
+                end:    Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: 0.22),
+                  Colors.white.withValues(alpha: 0.04),
+                ],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.32),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color:        Colors.black.withValues(alpha: 0.28),
+                  blurRadius:   10,
+                  spreadRadius: 1,
+                ),
+              ],
             ),
+          ),
+
+          // ── Layer 4: core cherry seal ──────────────────────────────────
+          Container(
+            width:  size * 0.60,
+            height: size * 0.60,
+            decoration: BoxDecoration(
+              shape:    BoxShape.circle,
+              gradient: const RadialGradient(
+                center: Alignment(0, -0.28),
+                colors: [_kCherry, _kMidWine, _kDeepShadow],
+                stops:  [0.0,     0.52,      1.0],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.18),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color:      Colors.black.withValues(alpha: 0.50),
+                  blurRadius: 14,
+                  offset:     const Offset(0, 4),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Gloss specular on core seal ────────────────────────────────
+          Positioned(
+            top: size * 0.215,
+            child: Container(
+              width:  size * 0.22,
+              height: size * 0.08,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(size),
+                gradient: LinearGradient(
+                  begin:  Alignment.topCenter,
+                  end:    Alignment.bottomCenter,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.28),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Checkmark ──────────────────────────────────────────────────
+          Icon(
+            Icons.check_rounded,
+            color: Colors.white,
+            size:  size * 0.32,
           ),
         ],
       ),
@@ -121,8 +202,15 @@ class BanzaVerifiedMark extends StatelessWidget {
 }
 
 class _DashedRingPainter extends CustomPainter {
-  final Color color;
-  const _DashedRingPainter({required this.color});
+  final Color  color;
+  final double radiusFraction; // radius = size.width * radiusFraction
+  final double gapAngleRad;    // gap centred at −π/2 (top) in radians
+
+  const _DashedRingPainter({
+    required this.color,
+    this.radiusFraction = 0.42,
+    this.gapAngleRad    = 1.28,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -131,23 +219,32 @@ class _DashedRingPainter extends CustomPainter {
       ..strokeWidth = 1.5
       ..style       = PaintingStyle.stroke;
 
-    final center    = Offset(size.width / 2, size.height / 2);
-    final radius    = size.width / 2 - 1.0;
-    const segments  = 40;
-    const filled    = 0.55; // fraction of each segment that is a dash
+    final center      = Offset(size.width / 2, size.height / 2);
+    final radius      = size.width * radiusFraction;
+    final drawable    = math.pi * 2 - gapAngleRad;
+    final startAngle  = -math.pi / 2 + gapAngleRad / 2;
+
+    const segments = 32;
+    const filled   = 0.52;
+    final segArc   = drawable / segments;
+    final dashArc  = segArc * filled;
 
     for (int i = 0; i < segments; i++) {
-      final start = (i / segments) * math.pi * 2 - math.pi / 2;
-      const sweep = (math.pi * 2 / segments) * filled;
       canvas.drawArc(
         Rect.fromCircle(center: center, radius: radius),
-        start, sweep, false, paint,
+        startAngle + i * segArc,
+        dashArc,
+        false,
+        paint,
       );
     }
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
+  bool shouldRepaint(covariant _DashedRingPainter old) =>
+      old.color != color ||
+      old.radiusFraction != radiusFraction ||
+      old.gapAngleRad != gapAngleRad;
 }
 
 // ---------------------------------------------------------------------------
