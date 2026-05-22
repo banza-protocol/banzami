@@ -133,6 +133,10 @@ func (h *ConsumerPayLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "LINK_NOT_ACTIVE", "link is not active")
 		case errors.Is(err, service.ErrTransferInsufficientFunds):
 			apierror.Respond(w, r, http.StatusUnprocessableEntity, "INSUFFICIENT_FUNDS", "insufficient funds")
+		case errors.Is(err, service.ErrTransferWalletLocked):
+			apierror.Respond(w, r, http.StatusUnprocessableEntity, "ACCOUNT_FROZEN", "account is frozen")
+		case errors.Is(err, service.ErrTransferSelfTransfer):
+			apierror.Respond(w, r, http.StatusBadRequest, "SELF_TRANSFER_NOT_ALLOWED", "cannot pay your own link")
 		default:
 			apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "payment could not be processed")
 		}
