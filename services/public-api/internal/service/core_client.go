@@ -755,9 +755,28 @@ func (c *CorePublicClient) GetConsumerPayLinkByCode(ctx context.Context, code st
 func (c *CorePublicClient) PayConsumerPayLink(ctx context.Context, code string, req PayConsumerPayLinkRequest) (*ConsumerPayLink, error) {
 	var out ConsumerPayLink
 	if err := c.post(ctx, "/internal/v1/consumer-pay-links/"+code+"/pay", req, &out); err != nil {
-		return nil, err
+		return nil, mapConsumerPayLinkPayError(err)
 	}
 	return &out, nil
+}
+
+func mapConsumerPayLinkPayError(err error) error {
+	if errors.Is(err, ErrNotFound) {
+		return ErrConsumerPayLinkNotFound
+	}
+	msg := err.Error()
+	switch {
+	case contains(msg, "LINK_NOT_ACTIVE") || contains(msg, "LINK_EXPIRED"):
+		return ErrConsumerPayLinkNotActive
+	case contains(msg, "INSUFFICIENT_FUNDS"):
+		return ErrTransferInsufficientFunds
+	case contains(msg, "WALLET_NOT_FOUND"):
+		return ErrTransferWalletNotFound
+	case contains(msg, "ACCOUNT_FROZEN"):
+		return ErrTransferWalletLocked
+	default:
+		return err
+	}
 }
 
 func contains(s, substr string) bool {
