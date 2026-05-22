@@ -774,7 +774,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   static const int _step  = 1000;
   static const int _minKz = 1000;
   static const int _maxKz = 1000000;
-  static const _chips = [10, 500, 1000];
+  static const _chips = [10, 50, 200, 1000];
 
   void _increment() =>
       setState(() => _amountKz = (_amountKz + _step).clamp(_minKz, _maxKz));
@@ -953,12 +953,17 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
             // ── Quick chips ──────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-              child: Wrap(
-                spacing:    6,
-                runSpacing: 6,
-                children: _chips.map((kz) => _SandboxChip(
-                  label: '+${_fmtKz(kz)}',
-                  onTap: _loading ? null : () => _addChip(kz),
+              child: Row(
+                children: _chips.map((kz) => Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      right: kz != _chips.last ? 6 : 0,
+                    ),
+                    child: _SandboxChip(
+                      label: '+${_fmtKz(kz)}',
+                      onTap: _loading ? null : () => _addChip(kz),
+                    ),
+                  ),
                 )).toList(),
               ),
             ),
@@ -1031,7 +1036,7 @@ class _SandboxChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
         decoration: BoxDecoration(
           color:        const Color(0xFFFFF4D6),
           borderRadius: const BorderRadius.all(Radius.circular(20)),
@@ -1039,6 +1044,7 @@ class _SandboxChip extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             fontSize:   11,
             fontWeight: FontWeight.w600,
