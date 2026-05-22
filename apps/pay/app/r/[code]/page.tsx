@@ -58,9 +58,9 @@ export default async function PaymentRequestPage({ params }: Props) {
     : null;
   const initial      = (displayName ?? handle)[0]?.toUpperCase() ?? 'B';
 
-  const deepLink = link.amount_minor != null
-    ? `banza://pay/u/${handle}?amount=${link.amount_minor}&currency=${link.currency}`
-    : `banza://pay/u/${handle}`;
+  // Use the pay-link code path so Flutter calls payConsumerPayLink(),
+  // not sendByHandle() — this enforces backend amount authority and link lifecycle.
+  const deepLink = `banza://pay?request=${params.code}`;
 
   return (
     <main className="min-h-screen bg-off-white flex flex-col items-center justify-center p-4">

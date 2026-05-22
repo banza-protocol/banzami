@@ -25,6 +25,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -620,6 +621,83 @@ func TestPayLink_Pay_HappyPathLocked(t *testing.T) {
 	}
 	if got["transfer_id"] == nil || got["transfer_id"] == "" {
 		t.Error("transfer_id must be set after successful payment")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// 17. Concurrent payment race — handler + service layer serialization
+//
+// Two goroutines fire Pay simultaneously.  The fake executor gates the first
+// call until both have entered the handler, then returns success for the first
+// and LINK_NOT_ACTIVE for the second.
+//
+// Property proved: exactly one 200 and exactly one 422 emerge from two
+// concurrent requests targeting the same link code.  The DB-level guarantee
+// (SELECT FOR UPDATE) is exercised in integration tests that require a live
+// database; this test proves the handler correctly propagates serialized
+// outcomes from the core.
+// ---------------------------------------------------------------------------
+
+func TestPayLink_Pay_ConcurrentRace_OnlyOneSucceeds(t *testing.T) {
+	// gate ensures both goroutines have entered the fake before either returns.
+	gate := make(chan struct{})
+	var callCount int32
+
+	h := buildPayLinkHandler(&fakePayLinkExecutor{
+		payFn: func(_ context.Context, _ string, _ service.PayConsumerPayLinkRequest) (*service.ConsumerPayLink, error) {
+			n := int(atomic.AddInt32(&callCount, 1))
+			if n == 1 {
+				// First caller: wait until the second has also arrived, then succeed.
+				<-gate
+				return paidLink(450_000), nil
+			}
+			// Second caller: signal the first, then return conflict.
+			gate <- struct{}{}
+			return nil, service.ErrConsumerPayLinkNotActive
+		},
+	})
+
+	type result struct {
+		code int
+		body map[string]any
+	}
+	results := make(chan result, 2)
+
+	fire := func() {
+		body := payLinkJsonBody(t, map[string]any{"idempotency_key": "key-race"})
+		r := httptest.NewRequest(http.MethodPost, "/v1/consumer-pay-links/TESTCODE1/pay", body)
+		r = withAuth(r, "payer-uuid-001")
+		r = withChiParam(r, "code", "TESTCODE1")
+		w := httptest.NewRecorder()
+		h.Pay(w, r)
+		results <- result{code: w.Code, body: payLinkDecodeBody(t, w)}
+	}
+
+	go fire()
+	go fire()
+
+	r1 := <-results
+	r2 := <-results
+
+	codes := []int{r1.code, r2.code}
+	okCount  := 0
+	nopCount := 0
+	for _, c := range codes {
+		switch c {
+		case http.StatusOK:
+			okCount++
+		case http.StatusUnprocessableEntity:
+			nopCount++
+		default:
+			t.Errorf("unexpected status code %d from concurrent requests", c)
+		}
+	}
+
+	if okCount != 1 {
+		t.Errorf("expected exactly 1 successful payment, got %d", okCount)
+	}
+	if nopCount != 1 {
+		t.Errorf("expected exactly 1 LINK_NOT_ACTIVE, got %d", nopCount)
 	}
 }
 
