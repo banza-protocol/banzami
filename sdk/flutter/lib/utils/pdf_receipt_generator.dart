@@ -188,30 +188,45 @@ class BanzaPdfReceiptGenerator {
     required pw.TextStyle reg,
     required pw.TextStyle bold,
   }) {
+    // pw.Border.all() + borderRadius causes corner artefacts in the pdf package
+    // (border segments drawn independently, creating arrow-like protrusions).
+    // Fix: nested containers — outer = border colour, inner = fill colour.
     if (isSandbox) {
       return pw.Container(
-        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-        decoration: pw.BoxDecoration(
-          color:        _kAmberBg,
-          borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
-          border:       pw.Border.all(color: _kAmberBd, width: 1),
+        padding: const pw.EdgeInsets.all(1),
+        decoration: const pw.BoxDecoration(
+          color:        _kAmberBd,
+          borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
         ),
-        child: pw.Text(
-          'SANDBOX  •  Ambiente de teste',
-          style: bold.copyWith(color: _kAmberDk, fontSize: 8, letterSpacing: 0.4),
+        child: pw.Container(
+          padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: const pw.BoxDecoration(
+            color:        _kAmberBg,
+            borderRadius: pw.BorderRadius.all(pw.Radius.circular(19)),
+          ),
+          child: pw.Text(
+            'SANDBOX  •  Ambiente de teste',
+            style: bold.copyWith(color: _kAmberDk, fontSize: 8, letterSpacing: 0.4),
+          ),
         ),
       );
     }
     return pw.Container(
-      padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-      decoration: pw.BoxDecoration(
-        color:        _kGray100,
-        borderRadius: const pw.BorderRadius.all(pw.Radius.circular(20)),
-        border:       pw.Border.all(color: _kGray200, width: 1),
+      padding: const pw.EdgeInsets.all(1),
+      decoration: const pw.BoxDecoration(
+        color:        _kGray200,
+        borderRadius: pw.BorderRadius.all(pw.Radius.circular(20)),
       ),
-      child: pw.Text(
-        'Banza  •  Comprovativo verificado',
-        style: bold.copyWith(color: _kGray600, fontSize: 8, letterSpacing: 0.3),
+      child: pw.Container(
+        padding: const pw.EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+        decoration: const pw.BoxDecoration(
+          color:        _kGray100,
+          borderRadius: pw.BorderRadius.all(pw.Radius.circular(19)),
+        ),
+        child: pw.Text(
+          'Banza  •  Comprovativo verificado',
+          style: bold.copyWith(color: _kGray600, fontSize: 8, letterSpacing: 0.3),
+        ),
       ),
     );
   }
