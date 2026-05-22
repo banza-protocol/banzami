@@ -1,0 +1,14 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE consumer_pay_links SET status = 'EXPIRED' WHERE link_code = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e3e83148c7a71da0c16f3765b0dc9d9021c5a8ba818d8e0b94e566ecd279cea9"
+}
