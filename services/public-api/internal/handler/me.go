@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 
@@ -11,11 +12,12 @@ import (
 
 // MeHandler handles the authenticated consumer's profile and wallet endpoints.
 type MeHandler struct {
-	core *service.CorePublicClient
+	core        *service.CorePublicClient
+	environment string // "PRODUCTION" or "SANDBOX"
 }
 
-func NewMeHandler(core *service.CorePublicClient) *MeHandler {
-	return &MeHandler{core: core}
+func NewMeHandler(core *service.CorePublicClient, environment string) *MeHandler {
+	return &MeHandler{core: core, environment: environment}
 }
 
 // GET /v1/me
@@ -36,7 +38,13 @@ func (h *MeHandler) Profile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	respond(w, http.StatusOK, record)
+	// Merge environment into the consumer map so SDK callers don't need
+	// structural changes — environment is additive alongside existing fields.
+	out := map[string]any{"environment": h.environment}
+	if b, err2 := json.Marshal(record); err2 == nil {
+		_ = json.Unmarshal(b, &out)
+	}
+	respond(w, http.StatusOK, out)
 }
 
 // GET /v1/me/wallet

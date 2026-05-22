@@ -59,7 +59,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
         // Session is NOT auto-initialized here — SplashScreen owns bootstrap.
         ChangeNotifierProvider(create: (_) => SessionService()),
         Provider(create: (_) => ConsumerPublicClient(
-          baseUrl:    AppConfig.publicApiUrl,
+          baseUrl:     AppConfig.publicApiUrl,
+          environment: AppConfig.isSandbox
+              ? BanzaEnvironment.sandbox
+              : BanzaEnvironment.production,
           httpClient: widget.pinnedClient,
         )),
       ],

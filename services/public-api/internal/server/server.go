@@ -51,7 +51,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 	authH        := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
 	consumerH    := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
-	meH          := handler.NewMeHandler(deps.CoreClient)
+	meH          := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
 	transferH    := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter)
 	activityH    := handler.NewActivityHandler(deps.CoreClient)
 	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)

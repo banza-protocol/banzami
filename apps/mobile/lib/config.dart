@@ -1,13 +1,25 @@
 /// Build-time configuration.
 ///
-/// Pass values via --dart-define at build time:
-///   flutter run --dart-define=GATEWAY_URL=https://api.banzami.org \
-///               --dart-define=APP_API_KEY=bz_live_...
+/// Production build (default):
+///   flutter build ipa
+///
+/// Staging / TestFlight build:
+///   flutter build ipa \
+///     --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+///     --dart-define=ENVIRONMENT=sandbox
 abstract class AppConfig {
   /// Public API base URL (consumer-facing service, port 8083).
-  /// Pass via --dart-define=PUBLIC_API_URL=https://api.banzami.org at build time.
   static const String publicApiUrl = String.fromEnvironment(
     'PUBLIC_API_URL',
     defaultValue: 'https://consumer.banzami.org',
   );
+
+  /// Build environment: "sandbox" (staging / TestFlight) or "production" (default).
+  static const String _environment = String.fromEnvironment(
+    'ENVIRONMENT',
+    defaultValue: 'production',
+  );
+
+  /// True for staging / TestFlight builds. Enables sandbox badge, sandbox fund, etc.
+  static bool get isSandbox => _environment == 'sandbox';
 }

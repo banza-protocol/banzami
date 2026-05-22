@@ -6,6 +6,7 @@
 #   ./deploy.sh core-api                 # deploy one service
 #   ./deploy.sh admin-api admin-frontend # deploy multiple services
 #   ./deploy.sh --no-cache core-api      # force full rebuild (no Docker layer cache)
+#   ./deploy.sh staging                  # deploy staging sandbox (core-api-staging + public-api-staging)
 #
 # Available services:
 #   core-api           Rust financial core
@@ -17,6 +18,7 @@
 #   pay-frontend       Next.js pay page (pay.banzami.org)
 #   checkout-frontend  Next.js checkout page
 #   docs-frontend      Next.js public website (banzami.org)
+#   staging            Staging sandbox (core-api-staging + public-api-staging)
 
 set -euo pipefail
 
@@ -26,7 +28,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -258,6 +260,17 @@ _wait_healthy() {
   warn "$container health check timed out (may still be starting)"
 }
 
+deploy_staging() {
+  step "staging" "Staging sandbox (core-api-staging + public-api-staging)"
+  # Staging reuses the production images — rebuild those first if needed.
+  # The only per-environment change is DATABASE_URL and ENVIRONMENT=SANDBOX
+  # which are already in the server .env.
+  info "Recreating staging containers..."
+  ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d --force-recreate core-api-staging public-api-staging 2>&1"
+  _wait_healthy "banzami-core-api-staging-1"
+  _wait_healthy "banzami-public-api-staging-1"
+}
+
 # ─── Main ─────────────────────────────────────────────────────────────────────
 
 printf "\n${BOLD}Banzami deploy${NC} → ${CYAN}%s${NC}\n" "$REMOTE"
@@ -277,6 +290,7 @@ for svc in "${SERVICES[@]}"; do
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
     docs-frontend)      deploy_docs_frontend ;;
+    staging)            deploy_staging ;;
   esac
 done
 

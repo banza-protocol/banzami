@@ -6,6 +6,9 @@ class Consumer {
   final String? verificationBadge;
   final DateTime createdAt;
   final DateTime updatedAt;
+  /// "PRODUCTION" or "SANDBOX". Populated by /v1/me; null when obtained
+  /// via other endpoints (e.g. search) that don't carry environment context.
+  final String? environment;
 
   const Consumer({
     required this.id,
@@ -15,6 +18,7 @@ class Consumer {
     this.verificationBadge,
     required this.createdAt,
     required this.updatedAt,
+    this.environment,
   });
 
   String get displayLabel => displayName?.isNotEmpty == true ? displayName! : '@$handle';
@@ -31,8 +35,11 @@ class Consumer {
       verificationBadge: json['verification_badge'] as String?,
       createdAt:         DateTime.parse(json['created_at'] as String),
       updatedAt:         DateTime.parse(json['updated_at'] as String),
+      environment:       json['environment']        as String?,
     );
   }
+
+  bool get isSandbox => environment == 'SANDBOX';
 
   Map<String, dynamic> toJson() => {
     'id':           id,
