@@ -208,56 +208,94 @@ void main() {
   group('BanzamiReceiptScreen', () {
     final transfer = Transfer.fromJson(_kTransfer);
 
-    testWidgets('renders success header and action button', (tester) async {
+    // Convenience: pump the receipt screen at portrait phone size.
+    Future<void> pumpReceipt(
+      WidgetTester tester, {
+      void Function(Transfer)? onDone,
+    }) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
         transfer:  transfer,
         ownHandle: 'fm65',
-        onDone:    (_) {},
+        onDone:    onDone ?? (_) {},
       )));
+    }
+
+    testWidgets('renders success header and Concluído button', (tester) async {
+      await pumpReceipt(tester);
       expect(find.text('Enviado com sucesso'), findsOneWidget);
       expect(find.text('Concluído'),           findsOneWidget);
     });
 
-    testWidgets('shows recipient handle in details card', (tester) async {
-      await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
-        transfer:  transfer,
-        ownHandle: 'fm65',
-        onDone:    (_) {},
-      )));
-      expect(find.textContaining('@joao'), findsOneWidget);
+    testWidgets('BanzaVerifiedMark is rendered — no generic green circle',
+        (tester) async {
+      await pumpReceipt(tester);
+      expect(find.byType(BanzaVerifiedMark), findsOneWidget);
     });
 
-    testWidgets('shows note when transfer has a note', (tester) async {
-      await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
-        transfer:  transfer,
-        ownHandle: 'fm65',
-        onDone:    (_) {},
-      )));
+    testWidgets('recipient handle appears in subtitle and Para row',
+        (tester) async {
+      await pumpReceipt(tester);
+      // "@joao" is present in both the subtitle ("para @joao") and the
+      // Para detail row — exactly two occurrences.
+      expect(find.textContaining('@joao'), findsNWidgets(2));
+    });
+
+    testWidgets('all required detail row labels are present', (tester) async {
+      await pumpReceipt(tester);
+      for (final label in ['De', 'Para', 'Nota', 'Data', 'Ref', 'Método']) {
+        expect(find.text(label), findsOneWidget, reason: 'Missing row: $label');
+      }
+    });
+
+    testWidgets('shows note value from transfer', (tester) async {
+      await pumpReceipt(tester);
       expect(find.text('jantar'), findsOneWidget);
     });
 
-    testWidgets('shows abbreviated 8-char ref uppercased', (tester) async {
-      await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
-        transfer:  transfer,
-        ownHandle: 'fm65',
-        onDone:    (_) {},
-      )));
+    testWidgets('shows abbreviated 8-char ref uppercased in Ref row',
+        (tester) async {
+      await pumpReceipt(tester);
+      // find.text() requires exact match — finds only the _DetailRow value,
+      // not the footer line which contains the ref as a substring.
       expect(find.text('ABC12345'), findsOneWidget);
+    });
+
+    testWidgets('does not expose full UUID or trace id', (tester) async {
+      await pumpReceipt(tester);
+      expect(
+        find.textContaining('abc12345-dead-beef'),
+        findsNothing,
+        reason: 'Full UUID must not be shown to the user',
+      );
+      expect(
+        find.textContaining('trace-001'),
+        findsNothing,
+        reason: 'Internal trace_id must not be shown',
+      );
+    });
+
+    testWidgets('share button is present with no leading icon', (tester) async {
+      await pumpReceipt(tester);
+      expect(find.text('Partilhar comprovativo'), findsOneWidget);
+      // The share OutlinedButton must contain only a Text child (no Icon).
+      final btn = find.ancestor(
+        of:       find.text('Partilhar comprovativo'),
+        matching: find.byType(OutlinedButton),
+      );
+      expect(btn, findsOneWidget);
+      expect(
+        find.descendant(of: btn, matching: find.byType(Icon)),
+        findsNothing,
+        reason: 'Share button must have no icon',
+      );
     });
 
     testWidgets('Concluído invokes onDone with the completed transfer',
         (tester) async {
-      // Use a realistic portrait phone size — the receipt screen is designed
-      // for portrait and overflows the default 800×600 test surface by ~6px.
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
       Transfer? received;
-      await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
-        transfer:  transfer,
-        ownHandle: 'fm65',
-        onDone:    (t) => received = t,
-      )));
+      await pumpReceipt(tester, onDone: (t) => received = t);
       await tester.tap(find.text('Concluído'));
       await tester.pumpAndSettle();
       expect(received?.transferId, equals(transfer.transferId));

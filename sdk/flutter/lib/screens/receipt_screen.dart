@@ -1,20 +1,169 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
-import '../widgets/banza_components.dart';
+
+
+// ---------------------------------------------------------------------------
+// Cherry design tokens — local aliases matching the official BanzaColors family
+// ---------------------------------------------------------------------------
+
+const _kCherry     = Color(0xFFC21A2C);
+const _kMidWine    = Color(0xFF7A000D);
+const _kDeepShadow = Color(0xFF5E000A);
+
+// ---------------------------------------------------------------------------
+// BanzaVerifiedMark — premium certified transfer badge
+// ---------------------------------------------------------------------------
+
+/// Circular premium badge that confirms a Banza transfer is authentic.
+///
+/// Renders a dashed outer ring, a cherry-glass inner circle, the "— BANZA —"
+/// label, and a white checkmark. No green, no generic success UI.
+class BanzaVerifiedMark extends StatelessWidget {
+  final double size;
+  const BanzaVerifiedMark({super.key, this.size = 120});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width:  size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Ambient cherry glow
+          Container(
+            width:  size,
+            height: size,
+            decoration: BoxDecoration(
+              shape:     BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color:      _kCherry.withValues(alpha: 0.50),
+                  blurRadius: 36,
+                  spreadRadius: 6,
+                ),
+                BoxShadow(
+                  color:      _kCherry.withValues(alpha: 0.18),
+                  blurRadius: 64,
+                  spreadRadius: 12,
+                ),
+              ],
+            ),
+          ),
+
+          // Dashed outer ring
+          CustomPaint(
+            size:    Size(size, size),
+            painter: _DashedRingPainter(
+              color: Colors.white.withValues(alpha: 0.28),
+            ),
+          ),
+
+          // Inner cherry-glass circle
+          Container(
+            width:  size * 0.80,
+            height: size * 0.80,
+            decoration: BoxDecoration(
+              shape:    BoxShape.circle,
+              gradient: const RadialGradient(
+                colors: [_kCherry, _kMidWine, _kDeepShadow],
+                stops:  [0.0,      0.55,      1.0],
+              ),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.20),
+                width: 1.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color:      Colors.black.withValues(alpha: 0.30),
+                  blurRadius: 16,
+                  offset:     const Offset(0, 5),
+                ),
+              ],
+            ),
+          ),
+
+          // "— BANZA —" label near the top of the inner circle
+          Positioned(
+            top: size * 0.115,
+            child: Text(
+              '— BANZA —',
+              style: TextStyle(
+                color:         Colors.white.withValues(alpha: 0.68),
+                fontSize:      size * 0.092,
+                fontWeight:    FontWeight.w700,
+                letterSpacing: 2.0,
+              ),
+            ),
+          ),
+
+          // White checkmark
+          Padding(
+            padding: EdgeInsets.only(top: size * 0.06),
+            child: Icon(
+              Icons.check_rounded,
+              color: Colors.white,
+              size:  size * 0.38,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DashedRingPainter extends CustomPainter {
+  final Color color;
+  const _DashedRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color       = color
+      ..strokeWidth = 1.5
+      ..style       = PaintingStyle.stroke;
+
+    final center    = Offset(size.width / 2, size.height / 2);
+    final radius    = size.width / 2 - 1.0;
+    const segments  = 40;
+    const filled    = 0.55; // fraction of each segment that is a dash
+
+    for (int i = 0; i < segments; i++) {
+      final start = (i / segments) * math.pi * 2 - math.pi / 2;
+      const sweep = (math.pi * 2 / segments) * filled;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        start, sweep, false, paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter old) => false;
+}
+
+// ---------------------------------------------------------------------------
+// BanzamiReceiptScreen
+// ---------------------------------------------------------------------------
 
 /// Final screen of the P2P send flow — shown after a successful transfer.
 ///
-/// The transfer is already complete when this screen appears.
-/// "Concluído" pops the entire navigation stack back to [MainScreen]
-/// and invokes [onDone] so the home screen can refresh balance and activity.
+/// "Concluído" pops back to [MainScreen] and triggers [onDone] so the home
+/// screen refreshes. "Partilhar comprovativo" opens the native share sheet.
 class BanzamiReceiptScreen extends StatefulWidget {
   final Transfer transfer;
-  final String?  ownHandle;
+
+  /// The sender's own handle — displayed without hitting the API.
+  final String? ownHandle;
+
   final void Function(Transfer) onDone;
 
   const BanzamiReceiptScreen({
@@ -31,21 +180,23 @@ class BanzamiReceiptScreen extends StatefulWidget {
 class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
-  late final Animation<double>   _checkScale;
+  late final Animation<double>   _markScale;
   late final Animation<double>   _fade;
 
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(
-      vsync:    this,
-      duration: BanzaMotion.slow,
+    _ctrl = AnimationController(vsync: this, duration: BanzaMotion.slow);
+    _markScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _ctrl,
+        curve:  const Interval(0.15, 0.65, curve: Curves.elasticOut),
+      ),
     );
-    _checkScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _ctrl, curve: const Interval(0.2, 0.7, curve: Curves.elasticOut)),
+    _fade = CurvedAnimation(
+      parent: _ctrl,
+      curve:  const Interval(0.0, 0.45, curve: Curves.easeOut),
     );
-    _fade = CurvedAnimation(parent: _ctrl, curve: const Interval(0, 0.5, curve: Curves.easeOut));
-
     _ctrl.forward();
     HapticFeedback.mediumImpact();
   }
@@ -56,157 +207,287 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     super.dispose();
   }
 
+  // ── Computed fields ────────────────────────────────────────────────────────
+
+  String get _ref {
+    final id = widget.transfer.transferId;
+    return (id.length >= 8 ? id.substring(0, 8) : id).toUpperCase();
+  }
+
+  String get _amount =>
+      formatMinor(widget.transfer.amountMinor, widget.transfer.currency);
+
+  String get _dateLong {
+    final ts = widget.transfer.completedAt ?? widget.transfer.createdAt;
+    return DateFormat("d 'de' MMMM 'de' y, HH:mm", 'pt').format(ts.toLocal());
+  }
+
+  String get _dateShort {
+    final ts = widget.transfer.completedAt ?? widget.transfer.createdAt;
+    return DateFormat('dd/MM/y HH:mm', 'pt').format(ts.toLocal());
+  }
+
+  String get _from => widget.ownHandle ?? widget.transfer.sender;
+
+  // ── Actions ────────────────────────────────────────────────────────────────
+
+  void _done() {
+    widget.onDone(widget.transfer);
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  }
+
+  void _share() {
+    Share.share(
+      'Comprovativo Banza\n'
+      'Transferência concluída\n'
+      'Montante: $_amount\n'
+      'De: @$_from\n'
+      'Para: @${widget.transfer.recipient}\n'
+      'Data: $_dateShort\n'
+      'Ref: $_ref\n'
+      'Método: Saldo Banza',
+    );
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
   @override
   Widget build(BuildContext context) {
-    final amount = formatMinor(widget.transfer.amountMinor, widget.transfer.currency);
-    final ts     = widget.transfer.completedAt ?? widget.transfer.createdAt;
-    final date   = DateFormat("d 'de' MMMM 'de' y, HH:mm", 'pt').format(ts.toLocal());
-    final ref    = widget.transfer.transferId.length >= 8
-        ? widget.transfer.transferId.substring(0, 8).toUpperCase()
-        : widget.transfer.transferId.toUpperCase();
+    final t    = widget.transfer;
+    final note = (t.note?.isNotEmpty == true) ? t.note! : '—';
 
     return Scaffold(
-      backgroundColor: BanzaColors.wineDark,
+      backgroundColor: _kDeepShadow,
       body: Container(
         width:  double.infinity,
         height: double.infinity,
-        decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin:  Alignment.topCenter,
+            end:    Alignment.bottomCenter,
+            colors: [_kCherry, Color(0xFF990011), _kMidWine, _kDeepShadow],
+            stops:  [0.0,      0.35,              0.65,      1.0],
+          ),
+        ),
         child: SafeArea(
           child: FadeTransition(
             opacity: _fade,
             child: Column(
               children: [
-                // Top bar
+                // ── Top bar ────────────────────────────────────────────────
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: BanzaSpacing.lg,
-                    vertical:   BanzaSpacing.md,
+                    vertical:   BanzaSpacing.sm,
                   ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: Colors.white54,
-                          size:  22,
-                        ),
-                        onPressed: () {
-                          widget.onDone(widget.transfer);
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                        },
+                  child: Row(children: [
+                    IconButton(
+                      icon: const Icon(
+                        Icons.close_rounded,
+                        color: Colors.white54,
+                        size:  22,
                       ),
-                      const Spacer(),
+                      onPressed: _done,
+                    ),
+                    const Spacer(),
+                    Text(
+                      'Comprovativo',
+                      style: BanzaTextStyles.headingSm.copyWith(
+                        color: Colors.white.withValues(alpha: 0.75),
+                      ),
+                    ),
+                    const Spacer(),
+                    const SizedBox(width: 48),
+                  ]),
+                ),
+
+                // ── Scrollable content ─────────────────────────────────────
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: BanzaSpacing.xl,
+                    ),
+                    child: Column(children: [
+                      const SizedBox(height: BanzaSpacing.lg),
+
+                      // Verified mark
+                      ScaleTransition(
+                        scale: _markScale,
+                        child: const BanzaVerifiedMark(size: 120),
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.lg),
+
                       Text(
-                        'Comprovativo',
+                        'Enviado com sucesso',
                         style: BanzaTextStyles.headingSm.copyWith(
-                          color: BanzaColors.white.withValues(alpha: 0.75),
+                          color: Colors.white.withValues(alpha: 0.80),
                         ),
                       ),
-                      const Spacer(),
-                      const SizedBox(width: 48),
-                    ],
-                  ),
-                ),
 
-                const Spacer(),
+                      const SizedBox(height: BanzaSpacing.xs),
 
-                // Animated check mark
-                ScaleTransition(
-                  scale: _checkScale,
-                  child: Container(
-                    width:  88,
-                    height: 88,
-                    decoration: BoxDecoration(
-                      color:  BanzaColors.white.withValues(alpha: 0.15),
-                      shape:  BoxShape.circle,
-                      border: Border.all(
-                        color: BanzaColors.white.withValues(alpha: 0.30),
-                        width: 1.5,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: BanzaColors.white,
-                      size:  48,
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: BanzaSpacing.lg),
-
-                Text(
-                  'Enviado com sucesso',
-                  style: BanzaTextStyles.headingSm.copyWith(
-                    color: BanzaColors.white.withValues(alpha: 0.80),
-                  ),
-                ),
-
-                const SizedBox(height: BanzaSpacing.sm),
-
-                Text(
-                  amount,
-                  style: BanzaTextStyles.monoLg.copyWith(
-                    color: BanzaColors.white,
-                  ),
-                ),
-
-                const SizedBox(height: BanzaSpacing.xs),
-
-                Text(
-                  'para @${widget.transfer.recipient}',
-                  style: BanzaTextStyles.bodyMd.copyWith(
-                    color: BanzaColors.white.withValues(alpha: 0.60),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Details card
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
-                  child: BanzaGlassCard(
-                    child: Column(
-                      children: [
-                        if (widget.ownHandle != null || widget.transfer.sender.isNotEmpty)
-                          _Row(label: 'De', value: '@${widget.ownHandle ?? widget.transfer.sender}'),
-                        if (widget.transfer.note != null && widget.transfer.note!.isNotEmpty)
-                          _Row(label: 'Nota', value: widget.transfer.note!),
-                        _Row(label: 'Data',   value: date),
-                        _Row(label: 'Ref',    value: ref),
-                        const _Row(label: 'Método', value: 'Saldo Banza', isLast: true),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // CTAs
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
-                  child: Column(
-                    children: [
-                      BanzaPrimaryButton(
-                        label:           'Concluído',
-                        backgroundColor: BanzaColors.white,
-                        foregroundColor: BanzaColors.wine,
-                        onPressed: () {
-                          widget.onDone(widget.transfer);
-                          Navigator.of(context).popUntil((route) => route.isFirst);
-                        },
-                      ),
-                      TextButton(
-                        onPressed: () {},
-                        style: TextButton.styleFrom(
-                          foregroundColor: BanzaColors.white.withValues(alpha: 0.55),
+                      Text(
+                        _amount,
+                        style: BanzaTextStyles.monoLg.copyWith(
+                          color: Colors.white,
                         ),
-                        child: const Text('Partilhar comprovativo'),
                       ),
-                    ],
+
+                      const SizedBox(height: BanzaSpacing.xs),
+
+                      Text(
+                        'para @${t.recipient}',
+                        style: BanzaTextStyles.bodyMd.copyWith(
+                          color: Colors.white.withValues(alpha: 0.60),
+                        ),
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.xl),
+
+                      // ── Glass detail card ──────────────────────────────
+                      Container(
+                        width:   double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: BanzaSpacing.lg,
+                          vertical:   BanzaSpacing.sm,
+                        ),
+                        decoration: BoxDecoration(
+                          color:        Colors.white.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(28),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.18),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(children: [
+                          _DetailRow(label: 'De',     value: '@$_from'),
+                          _DetailRow(label: 'Para',   value: '@${t.recipient}'),
+                          _DetailRow(label: 'Nota',   value: note),
+                          _DetailRow(label: 'Data',   value: _dateLong),
+                          _DetailRow(label: 'Ref',    value: _ref),
+                          const _DetailRow(
+                            label:  'Método',
+                            value:  'Saldo Banza',
+                            isLast: true,
+                          ),
+                        ]),
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.xl),
+
+                      // ── Concluído ──────────────────────────────────────
+                      SizedBox(
+                        width:  double.infinity,
+                        height: 58,
+                        child: ElevatedButton(
+                          onPressed: _done,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: BanzaColors.wine,
+                            elevation:       0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width:  22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  shape:  BoxShape.circle,
+                                  border: Border.all(
+                                    color: BanzaColors.wine,
+                                    width: 1.5,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.check_rounded,
+                                  size: 14,
+                                ),
+                              ),
+                              const SizedBox(width: BanzaSpacing.sm),
+                              Text(
+                                'Concluído',
+                                style: BanzaTextStyles.bodyMd.copyWith(
+                                  color:      BanzaColors.wine,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.md),
+
+                      // ── Partilhar comprovativo ─────────────────────────
+                      SizedBox(
+                        width:  double.infinity,
+                        height: 58,
+                        child: OutlinedButton(
+                          onPressed: _share,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            backgroundColor: Colors.white.withValues(alpha: 0.08),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.14),
+                              width: 1,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(22),
+                            ),
+                          ),
+                          child: Text(
+                            'Partilhar comprovativo',
+                            style: BanzaTextStyles.bodyMd.copyWith(
+                              color:      Colors.white,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.xl),
+
+                      // ── Footer ─────────────────────────────────────────
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.shield_outlined,
+                            size:  13,
+                            color: Colors.white.withValues(alpha: 0.48),
+                          ),
+                          const SizedBox(width: 5),
+                          Flexible(
+                            child: Text(
+                              'Comprovativo Banza  •  Ref $_ref',
+                              style: BanzaTextStyles.bodySm.copyWith(
+                                color:    Colors.white.withValues(alpha: 0.55),
+                                fontSize: 11.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Verificável quando partilhado',
+                        style: BanzaTextStyles.bodySm.copyWith(
+                          color:    Colors.white.withValues(alpha: 0.38),
+                          fontSize: 11,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+
+                      const SizedBox(height: BanzaSpacing.xl),
+                    ]),
                   ),
                 ),
-
-                const SizedBox(height: BanzaSpacing.lg),
               ],
             ),
           ),
@@ -216,49 +497,51 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   }
 }
 
-// =============================================================================
-// Detail row — white on dark
-// =============================================================================
+// ---------------------------------------------------------------------------
+// Detail row
+// ---------------------------------------------------------------------------
 
-class _Row extends StatelessWidget {
+class _DetailRow extends StatelessWidget {
   final String label;
   final String value;
   final bool   isLast;
 
-  const _Row({required this.label, required this.value, this.isLast = false});
+  const _DetailRow({
+    required this.label,
+    required this.value,
+    this.isLast = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: BanzaSpacing.sm),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                label,
-                style: BanzaTextStyles.bodySm.copyWith(
-                  color: BanzaColors.white.withValues(alpha: 0.55),
-                ),
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: BanzaTextStyles.bodySm.copyWith(
+                color: Colors.white.withValues(alpha: 0.55),
               ),
-              const SizedBox(width: BanzaSpacing.md),
-              Flexible(
-                child: Text(
-                  value,
-                  style: BanzaTextStyles.bodyMd.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color:      BanzaColors.white,
-                  ),
-                  textAlign: TextAlign.end,
+            ),
+            const SizedBox(width: BanzaSpacing.md),
+            Flexible(
+              child: Text(
+                value,
+                style: BanzaTextStyles.bodyMd.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color:      Colors.white,
                 ),
+                textAlign: TextAlign.end,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-        if (!isLast)
-          Divider(height: 1, color: BanzaColors.white.withValues(alpha: 0.12)),
-      ],
-    );
+      ),
+      if (!isLast)
+        Divider(height: 1, color: Colors.white.withValues(alpha: 0.12)),
+    ]);
   }
 }
