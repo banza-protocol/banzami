@@ -131,7 +131,7 @@ class BanzaVerifiedMark extends StatelessWidget {
                 ],
               ),
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.32),
+                color: Colors.white.withValues(alpha: 0.10),
                 width: 1.0,
               ),
               boxShadow: [
@@ -354,7 +354,8 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     final note = (t.note?.isNotEmpty == true) ? t.note! : '—';
 
     return Scaffold(
-      backgroundColor: _kDeepShadow,
+      backgroundColor:            _kDeepShadow,
+      resizeToAvoidBottomInset:   false,
       body: Container(
         width:  double.infinity,
         height: double.infinity,
