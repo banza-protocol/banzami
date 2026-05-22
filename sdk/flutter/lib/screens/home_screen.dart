@@ -774,7 +774,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   static const int _step  = 1000;
   static const int _minKz = 1000;
   static const int _maxKz = 1000000;
-  static const _chips = [10, 50, 200, 1000];
+  static const _chips = [10, 500, 1000];
 
   void _increment() =>
       setState(() => _amountKz = (_amountKz + _step).clamp(_minKz, _maxKz));
