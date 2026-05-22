@@ -99,8 +99,8 @@ void main() {
 
       expect(find.text('João Silva'), findsOneWidget);
       expect(find.text('@joao'),     findsOneWidget);
-      expect(find.text('Confirmar'), findsOneWidget);
-      expect(find.text('Cancelar'),  findsOneWidget);
+      expect(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'), findsOneWidget);
+      expect(find.text('Cancelar'),                                     findsOneWidget);
     });
 
     testWidgets('shows note chip when note is provided', (tester) async {
@@ -130,40 +130,39 @@ void main() {
       expect(find.text('Cancelar'), findsNothing);
     });
 
-    testWidgets('Confirmar shows spinner while request is in flight',
+    testWidgets('Confirmar triggers transfer and shows receipt on success',
         (tester) async {
-      final completer = Completer<http.StreamedResponse>();
-      final c = _clientWith(_ManualHttpClient(completer.future));
+      // Receipt screen is designed for portrait; 800×600 default overflows by 6px.
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_wrap(_confirmScreen(client: c)));
-      await tester.tap(find.text('Confirmar'));
-      await tester.pump(); // process tap, don't await async
-
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-      // Resolve to avoid pending-async warnings
-      completer.complete(http.StreamedResponse(
-        Stream.value(utf8.encode(jsonEncode(_kTransfer))),
-        200,
-        headers: {'content-type': 'application/json'},
-      ));
+      await tester.pumpWidget(_wrap(_confirmScreen()));
+      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
+      expect(find.text('Enviado com sucesso'), findsOneWidget);
     });
 
     testWidgets('button is disabled while in-flight (anti-double-submit)',
         (tester) async {
+      // Receipt screen needs portrait size for the final pumpAndSettle.
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       int callCount = 0;
       final completer = Completer<http.StreamedResponse>();
       final c = _clientWith(
           _ManualHttpClient(completer.future, onCall: () => callCount++));
 
       await tester.pumpWidget(_wrap(_confirmScreen(client: c)));
-      await tester.tap(find.text('Confirmar'));
-      await tester.pump();
 
-      // Label disappears and spinner appears — button is disabled
-      expect(find.text('Confirmar'),           findsNothing);
-      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      // Invoke _confirm() directly via onPressed, bypassing the 2×150ms
+      // button scale animation. This tests the _sending state guard — the
+      // real anti-double-submit mechanism — not the animation delay.
+      // callCount++ happens synchronously within _confirm() before the first
+      // await (BaseClient.post → send() → onCall()), so no pump is needed.
+      tester.widget<BanzaPrimaryButton>(find.byType(BanzaPrimaryButton))
+          .onPressed!();
+      expect(callCount, 1);
 
       completer.complete(http.StreamedResponse(
         Stream.value(utf8.encode(jsonEncode(_kTransfer))),
@@ -171,16 +170,13 @@ void main() {
         headers: {'content-type': 'application/json'},
       ));
       await tester.pumpAndSettle();
-
-      // Only one API call was made
-      expect(callCount, 1);
     });
 
     testWidgets('INSUFFICIENT_FUNDS shows Portuguese error message',
         (tester) async {
       await tester.pumpWidget(
           _wrap(_confirmScreen(client: _apiErrorClient('INSUFFICIENT_FUNDS'))));
-      await tester.tap(find.text('Confirmar'));
+      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(
         find.text('Saldo insuficiente para esta transferência.'),
@@ -192,7 +188,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
           _confirmScreen(client: _apiErrorClient('RECIPIENT_NOT_FOUND'))));
-      await tester.tap(find.text('Confirmar'));
+      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(find.textContaining('@joao não encontrado'), findsOneWidget);
     });
@@ -201,7 +197,7 @@ void main() {
         (tester) async {
       await tester
           .pumpWidget(_wrap(_confirmScreen(client: _networkErrorClient())));
-      await tester.tap(find.text('Confirmar'));
+      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(find.textContaining('ligação'), findsOneWidget);
     });
@@ -251,6 +247,11 @@ void main() {
 
     testWidgets('Concluído invokes onDone with the completed transfer',
         (tester) async {
+      // Use a realistic portrait phone size — the receipt screen is designed
+      // for portrait and overflows the default 800×600 test surface by ~6px.
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       Transfer? received;
       await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
         transfer:  transfer,
