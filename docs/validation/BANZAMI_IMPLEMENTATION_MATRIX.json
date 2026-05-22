@@ -2374,10 +2374,16 @@
       ],
       "testCoverage": true,
       "evidence": [
-        "sdk/flutter/lib/screens/confirm_screen.dart — BanzamiConfirmScreen: review obrigatório antes do POST",
-        "sdk/flutter/lib/screens/receipt_screen.dart — BanzamiReceiptScreen: comprovativo com ref, data, montante",
-        "sdk/flutter/lib/screens/send_screen.dart — navegação para confirm, UUID de idempotência gerado uma vez",
-        "apps/mobile/test/widget_test.dart — 14/14 widget tests passing (flutter test)",
+        "sdk/flutter/lib/screens/confirm_screen.dart:81-130 — _confirm(): POST only on explicit tap; _sending guard line 82",
+        "sdk/flutter/lib/screens/confirm_screen.dart:240 — onPressed: _sending ? null : _confirm (button disabled while in-flight)",
+        "sdk/flutter/lib/screens/receipt_screen.dart:61-66 — ref = transferId[0:8].toUpperCase()",
+        "sdk/flutter/lib/screens/receipt_screen.dart:155-175 — receipt shows: recipient, amount, date, ref, note, método",
+        "sdk/flutter/lib/screens/receipt_screen.dart:193-196 — Concluído: onDone(transfer) then popUntil(isFirst)",
+        "sdk/flutter/lib/screens/send_screen.dart:136 — Uuid().v4() once per _send(), passed as idempotencyKey to confirm screen",
+        "sdk/flutter/lib/screens/home_screen.dart:74-75 — _load(): Future.wait([_loadBalance(), _loadActivity()])",
+        "sdk/flutter/lib/screens/home_screen.dart:104 — onSuccess: (_) => _load() wired into send flow",
+        "dart analyze: 0 errors — 2026-05-22 (confirmed clean)",
+        "apps/mobile/test/widget_test.dart — 14/14 widget tests passing (commit 37b12ef)",
         "commit 64adb88 — feat(app): APP-001 — wire Flutter SDK and app to WAL-003 + P2P-003 APIs",
         "commit ddb81f0 — feat(app): APP-001A — transfer confirm + receipt UX and widget tests"
       ],
@@ -2397,9 +2403,7 @@
       ],
       "blockingIssues": [
         "Runtime não verificado em dispositivo real — obrigatório antes de VALIDATED",
-        "Sem testes de integração contra API sandbox — pendente APP-001B",
-        "Acoplamento de navegação: home_screen.dart:88 pop() redundante com popUntil(isFirst) — cleanup recomendado",
-        "_sendError campo morto em send_screen.dart — cleanup pendente"
+        "Sem testes de integração contra API sandbox — pendente APP-001B"
       ],
       "invariants": [
         {
@@ -2413,12 +2417,13 @@
         "score": 60,
         "level": "HIGH",
         "basis": [
-          "evidence non-empty (+20): 6 evidence items (confirm_screen, receipt_screen, send_screen, widget_test, 2 commits)",
-          "integration_tests in validationMethods (+20): 14/14 widget tests pass (flutter test)",
-          "manual_ux (+0): declarado como método futuro; não executado ainda (APP-001B)",
+          "evidence non-empty (+20): 12 evidence items (code audit 2026-05-22)",
+          "integration_tests in validationMethods (+20): 14/14 widget tests passing (repaired by commit 37b12ef)",
+          "manual_ux (+0): não executado em dispositivo real — iPhone FM65 conectado, pendente confirmação utilizador",
           "production_review or sandbox (+0): não realizado",
           "INV-IDEM-001 PASS (+20): todos os invariants PASS",
-          "path to VALIDATED: sandbox API test (+10) + manual UX em dispositivo real (+15) → score 85 → VALIDATED elegível"
+          "blocking issues 3 (nav coupling) e 4 (_sendError dead field) resolvidos no código actual",
+          "path to VALIDATED: device test confirmation (+15) → score 75; + sandbox (+10) → score 85 VALIDATED elegível"
         ]
       },
       "freezeReason": null,
@@ -2441,9 +2446,25 @@
             "commit 64adb88",
             "commit ddb81f0"
           ]
+        },
+        {
+          "timestamp": "2026-05-22T00:00:00Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "f2d5f67c9770a0a6",
+          "reason": "Evidence housekeeping after comprehensive code audit 2026-05-22. All 9 acceptance criteria confirmed PASS from code. 14/14 widget tests passing (37b12ef fixed 7 tests broken by design-system migration). dart analyze: 0 errors. Blocking issues 3 (nav coupling) and 4 (dead _sendError field) resolved in current code. Blocking issues 1 (real device) and 2 (sandbox tests) remain — hard blocks for VALIDATED. iPhone FM65 connected and ready for live device test.",
+          "evidence": [
+            "sdk/flutter/lib/screens/confirm_screen.dart:82,240",
+            "sdk/flutter/lib/screens/receipt_screen.dart:61-66,155-175,194",
+            "sdk/flutter/lib/screens/send_screen.dart:136",
+            "sdk/flutter/lib/screens/home_screen.dart:74-75,104",
+            "dart analyze: 0 errors 2026-05-22",
+            "apps/mobile/test/widget_test.dart 14/14 commit 37b12ef"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-21"
+      "lastUpdated": "2026-05-22"
     },
     {
       "id": "PL-001",
