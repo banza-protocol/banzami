@@ -5,11 +5,9 @@ import 'package:banza_flutter/banza_flutter.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 
 import '../branding_assets.dart';
-import '../config.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
-import '../widgets/sandbox_banner.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'receive_hub_screen.dart';
@@ -107,8 +105,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: BanzaColors.offWhite,
       body: Column(
         children: [
-          if (AppConfig.isSandbox) const SandboxRibbon(),
-          Expanded(child: IndexedStack(index: _tab, children: tabs)),
+Expanded(child: IndexedStack(index: _tab, children: tabs)),
         ],
       ),
       bottomNavigationBar: _FloatingTabBar(
