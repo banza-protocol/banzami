@@ -41,7 +41,8 @@ Angola precisa do seu próprio — construído para o Kwanza, para o QR, para o 
 17. [Arquitectura Técnica](#17-arquitectura-técnica)
 18. [O Ecossistema Banzami](#18-o-ecossistema-banzami)
 19. [Roadmap e Futuro](#19-roadmap-e-futuro)
-20. [Declaração de Visão Final](#20-declaração-de-visão-final)
+20. [Arquitectura Sandbox & TestFlight](#20-arquitectura-sandbox--testflight)
+21. [Declaração de Visão Final](#21-declaração-de-visão-final)
 
 ---
 
@@ -2372,7 +2373,603 @@ A arquitectura já está concebida para isso. O momento ainda não chegou.
 
 ---
 
-## 20. Declaração de Visão Final
+## 20. Arquitectura Sandbox & TestFlight
+
+> **Princípio central: o dinheiro LIVE é sagrado.**  
+> O sandbox existe para testar o ecossistema em segurança — sem nenhuma possibilidade de contaminar dinheiro de produção ou fluxos de liquidação.
+
+Esta secção documenta a arquitectura completa de isolamento de ambiente do Banza: por que existe, como funciona, as garantias que fornece e como os operadores a mantêm e validam.
+
+---
+
+### 20.1 Por que o Sandbox Existe
+
+O Banza lida com dinheiro angolano real. Antes de qualquer versão chegar a utilizadores reais, é necessário um ambiente onde o produto possa ser testado exaustivamente — com fluxos de pagamento completos, saldos de carteira realistas e comportamento de rede real — sem que nenhum Kwanza real se mova.
+
+O sandbox serve:
+
+| Caso de uso | Descrição |
+|-------------|-----------|
+| **Beta testing TestFlight** | Os testadores instalam uma build do TestFlight e executam fluxos de pagamento completos com dinheiro fictício |
+| **Validação de UX** | Equipas de produto testam novas funcionalidades sem tocar em contas de produção |
+| **Demonstrações a parceiros** | Demonstrações a comerciantes, parceiros e investidores que mostram o produto real, não um mockup |
+| **QA e regressão** | As suites de testes automáticos correm contra o ambiente staging |
+| **Integração de programadores** | Os integradores de SDK testam as suas implementações antes de ir a produção |
+| **Simulação de comerciante** | Os comerciantes testam o seu setup de QR, Pay Links e webhooks antes de activar |
+
+O sandbox garante que **nenhum destes casos de uso toca**:
+- saldos de produção reais
+- liquidação real
+- dinheiro real
+- carris EMIS/banco reais
+
+---
+
+### 20.2 O Incidente que Motivou o Endurecimento (SANDBOX-SAFETY-001)
+
+Em Maio de 2026, foi detectado um incidente de contaminação de ambiente.
+
+**O que aconteceu:** Um crédito de teste de 500.000 AOA foi acidentalmente creditado na carteira de produção de @fm65 através do endpoint `test_credit`. A chamada chegou ao ambiente LIVE porque o core-api não impunha verificações de ambiente em tempo de execução — confiava que os chamadores garantiam que os endpoints de teste nunca seriam invocados em produção.
+
+**Por que era perigoso:** Embora nenhum dinheiro real tivesse entrado, a operação criou uma entrada de ledger inválida no ambiente de produção — uma violação directa da separação ledger LIVE/SANDBOX. Se passasse despercebido, teria criado um desequilíbrio de reconciliação. Em escala, este padrão tornaria a auditoria impossível.
+
+**Como foi resolvido:**
+1. O crédito fictício foi revertido através de um lançamento contábil de dupla entrada adequado — DÉBITO carteira do consumidor, CRÉDITO conta de trânsito
+2. Nenhuma liquidação real ocorreu; nenhuma via bancária foi envolvida
+3. A arquitectura foi imediatamente endurecida (SANDBOX-SAFETY-001)
+
+**O que foi aprendido:** Os guardas de ambiente devem ser aplicados no runtime, não confiados à disciplina operacional. O comportamento seguro para um sistema financeiro é **falhar por defeito para o estado mais restritivo** (LIVE), nunca presumir sandbox.
+
+A correcção permanente: o core-api agora aplica um guarda de runtime em cada endpoint de teste. Se o ambiente for LIVE, o endpoint devolve 403 — incondicionalmente, independentemente de quem chamou ou porquê.
+
+---
+
+### 20.3 Modelo de Ambiente
+
+O Banza define dois ambientes mutuamente exclusivos:
+
+| Ambiente | Descrição |
+|----------|-----------|
+| **LIVE** | Operações financeiras reais. Carris EMIS activos. Dinheiro angolano real. Liquidação real. |
+| **SANDBOX** | Ambiente de teste. Sem carris reais. Sem dinheiro real. Sem liquidação real. |
+
+#### Enum CoreEnvironment (Rust — core-api)
+
+O core-api implementa um enum `CoreEnvironment` que lê a variável de ambiente `ENVIRONMENT` no arranque:
+
+```rust
+pub enum CoreEnvironment {
+    Live,
+    Sandbox,
+}
+
+impl CoreEnvironment {
+    pub fn from_env() -> Self {
+        match std::env::var("ENVIRONMENT").as_deref() {
+            Ok("SANDBOX") => Self::Sandbox,
+            _ => Self::Live,   // LIVE é o padrão seguro
+        }
+    }
+
+    pub fn is_live(&self) -> bool {
+        matches!(self, Self::Live)
+    }
+}
+```
+
+**O comportamento de defeito é LIVE.** Se a variável `ENVIRONMENT` estiver ausente, mal configurada ou vazia, o serviço arranca em modo LIVE. Isto garante que uma configuração incorrecta em produção nunca activa acidentalmente funcionalidades de sandbox.
+
+#### Variáveis de ambiente de serviço
+
+```yaml
+# Produção — explicitamente declarado em docker-compose.yml
+core-api:
+  environment:
+    ENVIRONMENT: LIVE
+
+public-api:
+  environment:
+    ENVIRONMENT: LIVE
+
+# Staging — explicitamente declarado
+core-api-staging:
+  environment:
+    ENVIRONMENT: SANDBOX
+
+public-api-staging:
+  environment:
+    ENVIRONMENT: SANDBOX
+```
+
+#### Log de arranque
+
+Cada serviço regista o seu ambiente no arranque:
+
+```
+# public-api (Go)
+INFO  boot: environment  environment=LIVE  sandbox_routes=false  core_api_url=http://core-api:8081
+INFO  LIVE mode — sandbox routes disabled, real rails active
+
+# public-api em staging
+INFO  boot: environment  environment=SANDBOX  sandbox_routes=true  core_api_url=http://core-api-staging:8081
+WARN  SANDBOX mode — fake funding enabled, no real rails, no real settlement
+
+# core-api (Rust)
+INFO  boot: runtime environment  environment=Sandbox
+WARN  SANDBOX mode — test funding endpoints are active
+```
+
+Este registo é deliberado: qualquer operador que leia os logs de um serviço sabe imediatamente em que ambiente está a correr.
+
+---
+
+### 20.4 Isolamento Físico de Ambiente
+
+O SANDBOX e o LIVE nunca partilham infra-estrutura. São stacks Docker completamente separados no mesmo servidor.
+
+```
+┌─────────────────────────────────────┐  ┌─────────────────────────────────────┐
+│         STACK PRODUÇÃO (LIVE)       │  │        STACK STAGING (SANDBOX)      │
+│                                     │  │                                     │
+│  ┌─────────────┐  ┌──────────────┐  │  │  ┌─────────────┐  ┌──────────────┐ │
+│  │  core-api   │  │  public-api  │  │  │  │ core-api-   │  │ public-api-  │ │
+│  │    :8081    │  │    :8083     │  │  │  │  staging    │  │   staging    │ │
+│  └──────┬──────┘  └──────┬───────┘  │  │  │   :8091     │  │    :8093     │ │
+│         │                │          │  │  └──────┬──────┘  └──────┬───────┘ │
+│  ┌──────▼────────────────▼───────┐  │  │         │                │         │
+│  │       PostgreSQL LIVE         │  │  │  ┌──────▼────────────────▼───────┐ │
+│  │     banzami (base de dados)   │  │  │  │     PostgreSQL Staging        │ │
+│  │  ledger real · carteiras      │  │  │  │  banzami_staging (base dados) │ │
+│  │  liquidação real · EMIS       │  │  │  │  ledger fictício · carteiras  │ │
+│  └───────────────────────────────┘  │  │  │  sem liquidação · sem EMIS    │ │
+│                                     │  │  └───────────────────────────────┘ │
+│  JWT_SECRET=<produção>              │  │  JWT_SECRET=<staging diferente>    │
+│  DATABASE_URL=banzami               │  │  DATABASE_URL=banzami_staging      │
+└─────────────────────────────────────┘  └─────────────────────────────────────┘
+         api.banzami.org                          staging.banzami.org
+```
+
+**Cada isolamento é físico, não apenas lógico:**
+
+| Componente | LIVE | SANDBOX |
+|-----------|------|---------|
+| Base de dados | `banzami` | `banzami_staging` |
+| Ledger | Entradas reais | Entradas fictícias |
+| Carteiras | Saldos reais | Saldos de teste |
+| Contas de trânsito | Trânsito de produção | Trânsito de staging |
+| JWT secret | Segredo de produção | Segredo de staging diferente |
+| Endpoints de API | `api.banzami.org` | `staging.banzami.org` |
+| Telemetria OTel | `environment=LIVE` | `environment=SANDBOX` |
+| EMIS/carris bancários | Activos | Desactivados |
+
+**Consequência:** um token emitido pelo ambiente LIVE é inválido no ambiente SANDBOX e vice-versa. Um QR gerado no sandbox não pode ser pago por uma app LIVE. Uma conta de consumidor de staging não existe em produção.
+
+---
+
+### 20.5 Modelo de Financiamento Sandbox
+
+Os consumidores de sandbox precisam de saldos de teste para executar fluxos de pagamento. O Banza fornece três mecanismos de financiamento fictício:
+
+#### Crédito automático no registo
+
+Quando um consumidor se regista no ambiente SANDBOX, recebe automaticamente um crédito de boas-vindas de 10.000 Kz fictícios para começar a testar imediatamente.
+
+#### Endpoint de financiamento sandbox
+
+Disponível apenas em SANDBOX. Retorna 403 em todos os outros ambientes.
+
+```http
+POST /v1/sandbox/fund
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "amount_minor": 1000000,
+  "currency": "AOA"
+}
+```
+
+```json
+{
+  "funded": true,
+  "currency": "AOA",
+  "credited_minor": 1000000,
+  "new_balance": 2000000,
+  "note": "Sandbox wallet credited. Virtual balance — no real funds moved."
+}
+```
+
+**Limites:**
+- Máximo de 100.000.000 AOA (10.000.000.000 minor units) por pedido
+- Máximo de 20 top-ups por consumidor por período de 24 horas
+
+**Isolamento LIVE garantido:**
+
+```rust
+// core-api — guard em cada endpoint de teste
+if state.environment.is_live() {
+    tracing::error!("test_credit called in LIVE environment — rejected");
+    return Err(ApiError::forbidden(
+        "test credit is not available in LIVE environment"
+    ));
+}
+```
+
+```go
+// public-api — guard no handler sandbox
+func (h *SandboxHandler) requireSandbox(w http.ResponseWriter, r *http.Request) bool {
+    if h.environment != "SANDBOX" {
+        apierror.Respond(w, r, http.StatusForbidden, "SANDBOX_ONLY",
+            "this endpoint is only available in sandbox mode")
+        return false
+    }
+    return true
+}
+```
+
+#### Todo o financiamento sandbox é contabilisticamente correcto
+
+Mesmo em sandbox, os créditos fictícios são registados como entradas de ledger de dupla entrada adequadas. Não há mutação directa de saldo. O sandbox funciona como produção — apenas o endpoint de crédito inicial é diferente. Isto garante que a cobertura de testes seja fiel ao comportamento de produção.
+
+#### Ferramentas CLI de staging
+
+```bash
+# Financiar um testador existente com 10.000 Kz
+./tools/staging-seed.sh --fund @fm65
+
+# Inspeccionar as últimas 20 transferências de um consumidor
+./tools/staging-seed.sh --inspect @merchant01
+
+# Apagar um consumidor de staging
+./tools/staging-seed.sh --delete @testuser1
+
+# Listar todos os consumidores de staging
+./tools/staging-seed.sh --list
+```
+
+---
+
+### 20.6 Garantias de Protecção LIVE
+
+Os seguintes endpoints são **explicitamente bloqueados** em ambiente LIVE com resposta 403:
+
+| Endpoint | Serviço | Motivo do bloqueio |
+|----------|---------|---------------------|
+| `test_credit` | core-api | Crédito fictício de carteira |
+| `sandbox_credit` | core-api | Crédito sandbox de carteira |
+| `admin_credit` | core-api | Crédito de administrador (para testes) |
+| `test_confirm` (deposits) | core-api | Confirmação fictícia de depósito |
+| `test_confirm` (acquiring) | core-api | Confirmação fictícia de acquiring |
+| `POST /v1/sandbox/fund` | public-api | Endpoint de financiamento sandbox |
+
+**Comportamento em LIVE:**
+
+```
+POST /v1/sandbox/fund  (ambiente LIVE)
+
+HTTP 403 Forbidden
+{
+  "code": "SANDBOX_ONLY",
+  "message": "this endpoint is only available in sandbox mode"
+}
+```
+
+Esta protecção é aplicada a nível de runtime, não de configuração. Mesmo que a configuração de rede ou proxy redireccionasse incorrectamente tráfego sandbox para um serviço LIVE, o serviço recusaria a operação.
+
+---
+
+### 20.7 UX Sandbox Móvel
+
+As builds TestFlight identificam-se visualmente para eliminar qualquer ambiguidade — para testadores, equipas de produto e parceiros — de que estão a interagir com dinheiro fictício.
+
+#### Faixa de sandbox persistente
+
+Uma faixa âmbar ("Ambiente de Teste — Sem valor financeiro real") aparece no topo de cada ecrã da app, em todos os tabs, de forma persistente. Implementada como `SandboxRibbon` no `MainScreen` — um único ponto de inserção que cobre toda a navegação.
+
+#### Badge de sandbox
+
+`SandboxBadge` — um pill âmbar compacto "SANDBOX" — é renderizado contextualmente onde o conteúdo financeiro aparece: no ecrã de recepção de QR, no ecrã de saldo, nos detalhes de transferência.
+
+#### Ícone de app diferenciado
+
+As builds sandbox usam um ícone de app com um ponto âmbar com a letra "S" no canto superior direito. Gerado deterministicamente por `tools/make-sandbox-icon.py` a partir do ícone de produção. Os testadores distinguem visualmente as builds sandbox das builds de produção no ecrã inicial do dispositivo.
+
+#### Bloqueio por configuração inválida
+
+No arranque, a app verifica que o flag de build (`--dart-define=ENVIRONMENT=sandbox`) corresponde ao URL da API configurado. Se uma build sandbox estiver apontada para `api.banzami.org` (produção), ou uma build LIVE para `staging.banzami.org`, a app mostra um AlertDialog bloqueante e recusa navegar:
+
+```
+Configuração de ambiente inválida.
+
+Esta build de sandbox está ligada à API de produção.
+Isto é um erro de configuração e foi bloqueado por segurança.
+```
+
+Isto impede que erros de configuração de build passem despercebidos.
+
+---
+
+### 20.8 Diferenciação de QR e Recibos Sandbox
+
+#### QR sandbox
+
+Os QR gerados em ambiente sandbox usam o esquema `banza-sandbox:` em vez de `banza:`:
+
+```
+LIVE:    banza://pay/u/fm65?amount=250000&currency=AOA
+SANDBOX: banza-sandbox://pay/u/fm65?amount=250000&currency=AOA
+```
+
+**Consequências de design:**
+- Um QR sandbox **não pode ser lido** por uma app de produção — o esquema é desconhecido
+- Uma app sandbox **não pode ler** um QR de produção — o esquema não corresponde
+- Elimina completamente o risco de um testador fazer o scan de um QR de produção com uma build sandbox, ou vice-versa
+
+O URL de partilha de QR sandbox aponta para `staging.banzami.org/pay/u/<handle>`, não para `api.banzami.org`. Os links de sandbox não encaminham pagamentos reais.
+
+#### Recibos sandbox
+
+Os recibos de pagamento em builds sandbox são explicitamente marcados:
+
+- Badge "COMPROVATIVO DE TESTE" em âmbar no topo do recibo
+- Ícone de aviso em vez do ícone de sucesso
+- Rodapé: "Sem valor financeiro real — Ambiente de Teste"
+- Cor do recibo alterada para esquema âmbar em vez de verde
+
+Isto impede que um recibo sandbox seja usado como prova de pagamento real — uma forma de protecção contra engenharia social de pagamento falso.
+
+#### Prefixo de notificação
+
+As notificações locais de transferências recebidas em builds sandbox são prefixadas com `[SANDBOX]`:
+
+```
+LIVE:    "Recebeu 2.500 Kz"
+SANDBOX: "[SANDBOX] Recebeu 2.500 Kz"
+```
+
+---
+
+### 20.9 Arquitectura TestFlight
+
+O TestFlight é o canal de distribuição de beta para testers iOS. A configuração de build do Banza garante que as builds TestFlight conectam exclusivamente a `staging.banzami.org` e nunca a `api.banzami.org`.
+
+#### Fluxo do testador
+
+```
+Instalar build TestFlight
+          ↓
+App abre → arranque verifica ambiente (sandbox build ↔ staging URL)
+          ↓
+Ecrã de registo → handle + PIN
+          ↓
+Crédito automático de boas-vindas: 10.000 Kz fictícios aplicados
+          ↓
+Explorar funcionalidades:
+  • Enviar transferência para outro testador
+  • Receber pagamento
+  • Fazer scan de QR sandbox
+  • Criar Pay Link de teste
+  • Ver histórico de actividade
+          ↓
+Todos os fluxos executam end-to-end — sem dinheiro real, sem EMIS, sem liquidação
+```
+
+#### Testadores pré-configurados (staging-seed.sh)
+
+Os seguintes consumidores são criados na base de dados de staging para testes imediatos:
+
+| Handle | Nome | PIN | Função |
+|--------|------|-----|--------|
+| `@fm65` | Fidel Monteiro | 123456 | Testador principal |
+| `@testuser1` | Tester Um | 123456 | Testador genérico |
+| `@ana` | Ana | 123456 | Testador consumidor |
+| `@joao` | João | 123456 | Testador consumidor |
+| `@merchant01` | Merchant Teste | 123456 | Testador de comerciante |
+
+Todos recebem 10.000 Kz fictícios no registo. Podem ser adicionalmente financiados com `./tools/staging-seed.sh --fund @handle`.
+
+---
+
+### 20.10 Processo de Build TestFlight
+
+#### Pré-condições
+
+1. `tools/testflight-readiness.sh` deve passar com 0 falhas (ver §20.11)
+2. A base de dados de staging deve estar saudável e com seed
+3. O `core-api-staging` deve estar a correr com `ENVIRONMENT=SANDBOX`
+
+#### Comandos de build
+
+**Passo 1 — Gerar ícone sandbox**
+
+```bash
+./tools/gen-icons-sandbox.sh
+```
+
+Este comando:
+1. Executa `tools/make-sandbox-icon.py` para criar `banza_icon_sandbox.png` (ponto âmbar "S" sobre o ícone de produção)
+2. Executa `dart run flutter_launcher_icons:main -f flutter_launcher_icons-sandbox.yaml` para gerar todas as resoluções de ícone
+
+**Passo 2 — Build do IPA**
+
+```bash
+cd apps/mobile
+flutter build ipa \
+  --dart-define=ENVIRONMENT=sandbox \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.org
+```
+
+Os dois `--dart-define` são obrigatórios:
+- `ENVIRONMENT=sandbox` activa o modo sandbox em toda a app (banner, QR scheme, recibos, ícone)
+- `PUBLIC_API_URL=https://staging.banzami.org` aponta a app para a infra de staging
+
+**Passo 3 — Upload TestFlight**
+
+```bash
+xcrun altool --upload-app \
+  --type ios \
+  --file build/ios/ipa/*.ipa \
+  --apiKey <APP_STORE_CONNECT_API_KEY> \
+  --apiIssuer <APP_STORE_CONNECT_ISSUER_ID>
+```
+
+**Passo 4 — Restaurar ícone de produção**
+
+```bash
+./tools/gen-icons-sandbox.sh --restore
+```
+
+Este comando restaura os ícones de produção via `git checkout`. Os ícones sandbox nunca são commitados — existem apenas durante o processo de build.
+
+---
+
+### 20.11 Checklist de Prontidão TestFlight
+
+O script `tools/testflight-readiness.sh` executa 11 verificações de saúde antes de autorizar um build TestFlight. Deve ser executado contra o ambiente de staging imediatamente antes de cada build.
+
+```bash
+./tools/testflight-readiness.sh
+# ou com URL personalizado:
+STAGING_URL=https://staging.banzami.org ./tools/testflight-readiness.sh
+```
+
+**As 11 verificações:**
+
+| # | Verificação | O que valida |
+|---|-------------|--------------|
+| 1 | **Rede / TLS** | Host staging.banzami.org acessível; certificado TLS válido e não expirado |
+| 2 | **Health endpoint** | `/health` ou `/healthz` devolve 200 |
+| 3 | **Registo de consumidor** | `POST /v1/auth/register` para dois consumidores de teste devolve 201 |
+| 4 | **Login** | `POST /v1/auth/token` devolve 200 e token JWT válido |
+| 5 | **Sandbox fund** | `POST /v1/sandbox/fund` devolve 200 com `new_balance` |
+| 6 | **Saldo de carteira** | `GET /v1/me/wallet/balance` devolve 200 e saldo > 0 após crédito |
+| 7 | **Transferência P2P** | `POST /v1/transfers` entre consumidores de teste devolve 200/201; saldo do destinatário actualizado |
+| 8 | **Feed de actividade** | `GET /v1/me/activity` devolve 200 com items |
+| 9 | **Lookup de consumidor** | `GET /v1/consumers/{handle}` devolve 200 |
+| 10 | **Isolamento LIVE** | `POST /v1/sandbox/fund` contra `api.banzami.org` devolve 403 |
+| 11 | **Sanidade de rate limit** | Chamadas repetidas a sandbox/fund devolvem 200 ou 429 (nunca outro código inesperado) |
+
+**Comportamento de saída:**
+- Exit 0: todas as verificações passaram → "READY for TestFlight"
+- Exit 1: uma ou mais verificações falharam → "NOT READY for TestFlight"
+
+O script imprime os comandos de build completos quando tem sucesso, incluindo os `--dart-define` exactos necessários.
+
+---
+
+### 20.12 Telemetria e Separação de Observabilidade
+
+Todos os serviços Banza carimbam o atributo `deployment.environment` em cada trace e métrica OpenTelemetry:
+
+| Serviço | Ambiente LIVE | Ambiente SANDBOX |
+|---------|--------------|-----------------|
+| `public-api` | `deployment.environment=LIVE` | `deployment.environment=SANDBOX` |
+| `api-gateway` | `deployment.environment=production` | `deployment.environment=development` |
+| `admin-api` | `deployment.environment=LIVE` | — (sempre LIVE) |
+
+Este atributo é aplicado no recurso OTel no arranque do serviço:
+
+```go
+res, err := resource.New(ctx,
+    resource.WithAttributes(
+        semconv.ServiceName(serviceName),
+        semconv.ServiceVersion(version),
+        semconv.DeploymentEnvironmentKey.String(environment), // "LIVE" ou "SANDBOX"
+    ),
+    resource.WithHost(),
+    resource.WithProcess(),
+)
+```
+
+**Filtros Grafana:** os dashboards de produção podem excluir completamente o tráfego de sandbox com um único filtro de label:
+
+```
+deployment_environment="LIVE"
+```
+
+Sem esta separação, os testes TestFlight contaminariam as métricas de produção: latências, contagens de transacção, taxas de erro — tornando os alertas de oncall infiáveis. A separação de telemetria garante que o que os dashboards de produção mostram reflecte apenas operações LIVE reais.
+
+---
+
+### 20.13 Ferramentas de Operação de Staging
+
+#### staging-seed.sh — referência completa
+
+```bash
+./tools/staging-seed.sh              # seed dos testadores padrão
+./tools/staging-seed.sh --fund @handle    # adicionar 10.000 Kz a uma conta existente
+./tools/staging-seed.sh --inspect @handle # ver últimas 20 transferências
+./tools/staging-seed.sh --delete @handle  # apagar consumidor de staging
+./tools/staging-seed.sh --list            # listar todos os consumidores de staging
+./tools/staging-seed.sh --reset           # apagar todos os consumidores de staging (ATENÇÃO)
+```
+
+**Segurança:** O script está hardcoded para conectar apenas à base de dados `banzami_staging` via `docker exec`. Não existe parâmetro para especificar uma base de dados diferente. Não pode apagar dados de produção.
+
+#### gen-icons-sandbox.sh
+
+```bash
+./tools/gen-icons-sandbox.sh           # gerar ícones sandbox (antes do build)
+./tools/gen-icons-sandbox.sh --restore # restaurar ícones de produção (após o build)
+```
+
+O ícone sandbox é gerado deterministicamente: o script `tools/make-sandbox-icon.py` composita um ponto âmbar com "S" sobre o ícone de produção de 1254×1254px. O resultado é sempre idêntico dado o mesmo ícone de origem. Os ícones sandbox **nunca são commitados** no repositório.
+
+---
+
+### 20.14 Princípios de Segurança do Sandbox
+
+Estes princípios são regras de arquitectura vinculativas, não orientações:
+
+1. **O dinheiro LIVE é sagrado.** Nenhum crédito fictício pode criar entradas de ledger em produção.
+
+2. **O dinheiro fictício deve nunca tocar produção.** Mesmo que uma chamada chegue a um serviço LIVE, esse serviço recusa-a incondicionalmente.
+
+3. **O sandbox deve ser visivelmente diferenciado.** Nenhum testador deve alguma vez duvidar de que está em sandbox. Cada ecrã, cada recibo, cada QR, cada notificação, cada ícone comunica o estado do ambiente.
+
+4. **Todo o financiamento deve ser ledger-backed.** Mesmo em sandbox, os créditos fictícios passam pelo ledger de dupla entrada. Não há mutação directa de saldo.
+
+5. **Sem mutação oculta de saldo.** Os saldos de carteira são sempre o resultado de entradas de ledger — em LIVE e em SANDBOX.
+
+6. **Sem carris de liquidação partilhados.** O ambiente SANDBOX nunca tem acesso a credenciais EMIS, carris bancários ou qualquer forma de liquidação real.
+
+7. **Sem ambiguidade de ambiente.** Cada serviço regista o seu ambiente no arranque. Cada build móvel verifica a sua configuração no arranque. Cada trace e métrica carrega o label de ambiente.
+
+8. **LIVE é o padrão seguro.** Se o ambiente não puder ser determinado, presume-se LIVE. Nunca sandbox.
+
+---
+
+### 20.15 Roadmap Futuro do Sandbox
+
+| Melhoria | Descrição |
+|----------|-----------|
+| **Infra de staging dedicada** | Servidor separado exclusivamente para staging — elimina a partilha de host com produção |
+| **Simulador EMIS sandbox** | Endpoint simulado que imita respostas EMIS para testar fluxos de acquiring e liquidação completos |
+| **Acquiring sintético** | Simular fluxos de pagamento com cartão fictícios para testes de integração de acquiring |
+| **Reset nocturno automático** | Job automático que limpa e faz seed da base de dados de staging diariamente à meia-noite |
+| **Dashboards de QA** | Painel de observabilidade dedicado ao staging — latências, taxas de erro, cobertura de testes |
+| **Sandboxes multi-tenant de parceiros** | Ambientes sandbox isolados por parceiro — cada integrador tem o seu próprio namespace de teste |
+| **Simulation mode SDK** | Mode offline no Banza SDK que simula respostas da API sem conectividade — para testes unitários de integradores |
+| **Injecção de falhas** | Modo de staging que pode injectar falhas sintéticas (timeout, 500, ledger conflict) para testar resiliência |
+
+---
+
+**Referências de implementação:**
+
+- `SANDBOX-SAFETY-001` — Incidente e endurecimento de isolamento de ambiente (Maio 2026)
+- `SANDBOX-002` — Endurecimento UX sandbox TestFlight (Maio 2026)
+- `core/api/src/state.rs` — Enum `CoreEnvironment` e guards de runtime
+- `services/public-api/internal/handler/sandbox.go` — Handler sandbox com rate limiter
+- `services/public-api/internal/handler/sandbox_test.go` — 7 testes de invariante
+- `services/public-api/internal/observability/otel.go` — Atributo `deployment.environment`
+- `tools/staging-seed.sh` — Ferramentas de seed e gestão de staging
+- `tools/testflight-readiness.sh` — Checklist de prontidão TestFlight (11 verificações)
+- `tools/gen-icons-sandbox.sh` — Geração de ícone sandbox
+- `tools/make-sandbox-icon.py` — Script determinístico de composição de ícone
+
+---
+
+## 21. Declaração de Visão Final
 
 ### O que o comércio de Angola merece
 
