@@ -36,6 +36,7 @@ type Dependencies struct {
 	DisputeSvc            service.DisputeService
 	PaymentRequestSvc     service.PaymentRequestService
 	MerchantProfileSvc    service.MerchantProfileService
+	ConsumerPayLinkSvc    service.ConsumerPayLinkService
 	FCMSvc                *notify.FCMService
 }
 
@@ -84,6 +85,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	disputeHandler        := handler.NewDisputeHandler(deps.DisputeSvc)
 	paymentReqHandler     := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler        := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
+	consumerPayLinkPubH   := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -227,6 +229,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	})
 	r.Route("/public/profiles", func(r chi.Router) {
 		r.Get("/{handle}", profileHandler.GetPublic)
+	})
+	r.Route("/public/consumer-pay-links", func(r chi.Router) {
+		r.Get("/{code}", consumerPayLinkPubH.GetPublic)
 	})
 
 	// Wrap the entire chi router with otelhttp. This creates one trace span per

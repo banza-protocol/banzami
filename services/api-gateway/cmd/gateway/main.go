@@ -91,8 +91,9 @@ func main() {
 		RefundSvc:          service.NewCoreApiRefundService(coreClient),
 		DisputeSvc:         service.NewCoreApiDisputeService(coreClient),
 		PaymentRequestSvc:  service.NewCoreApiPaymentRequestService(coreClient),
-		MerchantProfileSvc: service.NewCoreApiMerchantProfileService(coreClient),
-		FCMSvc:             fcmSvc,
+		MerchantProfileSvc:  service.NewCoreApiMerchantProfileService(coreClient),
+		ConsumerPayLinkSvc:  service.NewCoreApiConsumerPayLinkService(coreClient),
+		FCMSvc:              fcmSvc,
 	}
 
 	srv := server.New(cfg, deps)

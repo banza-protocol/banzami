@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/activity_item.dart';
 import '../models/consumer.dart';
+import '../models/consumer_pay_link.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
@@ -271,6 +272,63 @@ class ConsumerPublicClient {
       body: body,
     );
     return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Consumer pay links
+  // ---------------------------------------------------------------------------
+
+  /// Create a shareable consumer pay link (receiver = authenticated consumer).
+  ///
+  /// [amountMinor] null → open link (flexible, payer chooses amount).
+  /// [locked] true (default) → payer cannot override the amount.
+  Future<ConsumerPayLink> createConsumerPayLink({
+    int?    amountMinor,
+    String? note,
+    String  currency       = 'AOA',
+    bool    locked         = true,
+    int?    expiresInHours,
+  }) async {
+    final body = <String, dynamic>{
+      'currency': currency,
+      'locked':   locked,
+      if (amountMinor    != null) 'amount_minor':     amountMinor,
+      if (note           != null) 'note':              note,
+      if (expiresInHours != null) 'expires_in_hours': expiresInHours,
+    };
+    final json = await _call(method: 'POST', path: '/v1/consumer-pay-links', body: body);
+    return ConsumerPayLink.fromJson(json);
+  }
+
+  /// Fetch a consumer pay link by its public code. No authentication required.
+  Future<ConsumerPayLink> getConsumerPayLinkByCode(String code) async {
+    final json = await _call(
+      method: 'GET',
+      path:   '/v1/consumer-pay-links/$code',
+      auth:   false,
+    );
+    return ConsumerPayLink.fromJson(json);
+  }
+
+  /// Pay a consumer pay link.
+  ///
+  /// [amountMinor] is required only when the link is not locked (open amount).
+  /// [idempotencyKey] prevents double-charging on retry.
+  Future<ConsumerPayLink> payConsumerPayLink(
+    String code, {
+    int?    amountMinor,
+    String? idempotencyKey,
+  }) async {
+    final body = <String, dynamic>{
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      if (amountMinor != null) 'amount_minor': amountMinor,
+    };
+    final json = await _call(
+      method: 'POST',
+      path:   '/v1/consumer-pay-links/$code/pay',
+      body:   body,
+    );
+    return ConsumerPayLink.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------

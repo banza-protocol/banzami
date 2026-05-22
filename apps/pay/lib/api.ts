@@ -102,6 +102,32 @@ export async function getMerchantProfile(handle: string): Promise<MerchantProfil
   return res.json();
 }
 
+export interface ConsumerPayLink {
+  id:                    string;
+  link_code:             string;
+  receiver_consumer_id:  string;
+  receiver_handle:       string;
+  receiver_display_name: string | null;
+  amount_minor:          number | null;
+  note:                  string | null;
+  currency:              string;
+  locked:                boolean;
+  status:                'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  expires_at:            string | null;
+  created_at:            string;
+  paid_at:               string | null;
+}
+
+export async function getConsumerPayLink(code: string): Promise<ConsumerPayLink | null> {
+  const res = await fetch(
+    `${GATEWAY_URL}/public/consumer-pay-links/${encodeURIComponent(code)}`,
+    { next: { revalidate: 0 } },
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  return res.json();
+}
+
 export function formatAmount(amountMinor: number, currency: string): string {
   const major = amountMinor / 100;
   if (currency.toUpperCase() === 'AOA') {

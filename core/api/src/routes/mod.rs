@@ -10,6 +10,7 @@ pub mod onboarding;
 pub mod disputes;
 pub mod merchant_profiles;
 pub mod merchants;
+pub mod consumer_pay_links;
 pub mod payment_requests;
 pub mod payouts;
 pub mod payment_links;

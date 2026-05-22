@@ -281,6 +281,11 @@ async fn main() {
         .route("/internal/v1/payment-requests/:id/decline",  post(routes::payment_requests::decline))
         .route("/internal/v1/payment-requests/:id/cancel",   post(routes::payment_requests::cancel))
 
+        // Consumer pay links — open shareable payment links (receiver unknown payer)
+        .route("/internal/v1/consumer-pay-links",                   post(routes::consumer_pay_links::create))
+        .route("/internal/v1/consumer-pay-links/by-code/:code",     get(routes::consumer_pay_links::get_by_code))
+        .route("/internal/v1/consumer-pay-links/:code/pay",         post(routes::consumer_pay_links::pay))
+
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
         .layer(TraceLayer::new_for_http());
