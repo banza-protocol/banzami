@@ -691,6 +691,75 @@ func mapPaymentLinkError(err error) error {
 	return err
 }
 
+// ---------------------------------------------------------------------------
+// Consumer pay links
+// ---------------------------------------------------------------------------
+
+var (
+	ErrConsumerPayLinkNotFound  = errors.New("consumer pay link not found")
+	ErrConsumerPayLinkNotActive = errors.New("consumer pay link is not active")
+)
+
+type ConsumerPayLink struct {
+	ID                  string     `json:"id"`
+	LinkCode            string     `json:"link_code"`
+	ReceiverConsumerID  string     `json:"receiver_consumer_id"`
+	ReceiverHandle      string     `json:"receiver_handle"`
+	ReceiverDisplayName *string    `json:"receiver_display_name"`
+	AmountMinor         *int64     `json:"amount_minor"`
+	Note                *string    `json:"note"`
+	Currency            string     `json:"currency"`
+	Locked              bool       `json:"locked"`
+	Status              string     `json:"status"`
+	PayerConsumerID     *string    `json:"payer_consumer_id"`
+	TransferID          *string    `json:"transfer_id"`
+	ExpiresAt           *time.Time `json:"expires_at"`
+	CreatedAt           time.Time  `json:"created_at"`
+	PaidAt              *time.Time `json:"paid_at"`
+}
+
+type CreateConsumerPayLinkRequest struct {
+	ReceiverConsumerID string  `json:"receiver_consumer_id"`
+	AmountMinor        *int64  `json:"amount_minor,omitempty"`
+	Note               *string `json:"note,omitempty"`
+	Currency           string  `json:"currency"`
+	Locked             bool    `json:"locked"`
+	ExpiresInHours     *int64  `json:"expires_in_hours,omitempty"`
+}
+
+type PayConsumerPayLinkRequest struct {
+	PayerConsumerID string  `json:"payer_consumer_id"`
+	AmountMinor     *int64  `json:"amount_minor,omitempty"`
+	IdempotencyKey  string  `json:"idempotency_key"`
+}
+
+func (c *CorePublicClient) CreateConsumerPayLink(ctx context.Context, req CreateConsumerPayLinkRequest) (*ConsumerPayLink, error) {
+	var out ConsumerPayLink
+	if err := c.post(ctx, "/internal/v1/consumer-pay-links", req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CorePublicClient) GetConsumerPayLinkByCode(ctx context.Context, code string) (*ConsumerPayLink, error) {
+	var out ConsumerPayLink
+	if err := c.get(ctx, "/internal/v1/consumer-pay-links/by-code/"+code, &out); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrConsumerPayLinkNotFound
+		}
+		return nil, err
+	}
+	return &out, nil
+}
+
+func (c *CorePublicClient) PayConsumerPayLink(ctx context.Context, code string, req PayConsumerPayLinkRequest) (*ConsumerPayLink, error) {
+	var out ConsumerPayLink
+	if err := c.post(ctx, "/internal/v1/consumer-pay-links/"+code+"/pay", req, &out); err != nil {
+		return nil, err
+	}
+	return &out, nil
+}
+
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr ||
 		len(s) > 0 && len(substr) > 0 &&

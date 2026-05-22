@@ -49,14 +49,15 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 	transferLimiter := handler.NewTransferRateLimiter(transferRateLimit, transferRateWindow)
 
-	authH        := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
-	consumerH    := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
-	meH          := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
-	transferH    := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter)
-	activityH    := handler.NewActivityHandler(deps.CoreClient)
-	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient)
-	sandboxH     := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
-	onboardingH  := handler.NewOnboardingHandler(deps.CoreClient)
+	authH           := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
+	consumerH       := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
+	meH             := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
+	transferH       := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter)
+	activityH       := handler.NewActivityHandler(deps.CoreClient)
+	paymentLinkH    := handler.NewPaymentLinkHandler(deps.CoreClient)
+	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient)
+	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
+	onboardingH     := handler.NewOnboardingHandler(deps.CoreClient)
 
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
@@ -75,6 +76,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	// Public payment link lookup — no JWT required
 	r.Get("/v1/payment-links/{slug}", paymentLinkH.GetBySlug)
 
+	// Public consumer pay link lookup — no JWT required (pay web app fetches this)
+	r.Get("/v1/consumer-pay-links/{code}", consumerPayLinkH.GetByCode)
+
 	// Authenticated consumer endpoints
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
@@ -92,6 +96,10 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 		// Payment link payment
 		r.Post("/v1/payment-links/{slug}/pay", paymentLinkH.Pay)
+
+		// Consumer pay links — create + pay
+		r.Post("/v1/consumer-pay-links",            consumerPayLinkH.Create)
+		r.Post("/v1/consumer-pay-links/{code}/pay", consumerPayLinkH.Pay)
 
 		// Sandbox utilities — 403 when not in SANDBOX environment
 		r.Post("/v1/sandbox/fund", sandboxH.FundWallet)

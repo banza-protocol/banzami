@@ -30,6 +30,7 @@ export 'client/api_exception.dart';
 // Models
 export 'models/activity_item.dart';
 export 'models/consumer.dart';
+export 'models/consumer_pay_link.dart';
 export 'models/merchant.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
@@ -56,6 +57,7 @@ export 'widgets/banza_components.dart';
 export 'screens/home_screen.dart';
 export 'screens/send_screen.dart';
 export 'screens/confirm_screen.dart';
+export 'screens/payment_request_screen.dart';
 export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';

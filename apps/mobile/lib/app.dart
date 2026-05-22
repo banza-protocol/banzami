@@ -43,10 +43,9 @@ class _BanzamiAppState extends State<BanzamiApp> {
   void _handleLink(Uri uri) {
     if (uri.host != 'pay') return;
     final segs = uri.pathSegments;
-    if (segs.isEmpty) return;
 
     // banza://pay/link/{slug}
-    if (segs[0] == 'link' && segs.length >= 2) {
+    if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
       final slug = segs[1];
       _navigatorKey.currentState?.push(MaterialPageRoute(
         builder: (_) => LinkPayScreen(slug: slug),
@@ -55,7 +54,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }
 
     // banza://pay/u/{handle}?amount={minor}&currency={currency}
-    if (segs[0] == 'u' && segs.length >= 2) {
+    if (segs.isNotEmpty && segs[0] == 'u' && segs.length >= 2) {
       final ctx = _navigatorKey.currentContext;
       if (ctx == null) return;
       final session = ctx.read<SessionService>().session;
@@ -64,16 +63,61 @@ class _BanzamiAppState extends State<BanzamiApp> {
       final handle  = segs[1];
       final rawAmt  = uri.queryParameters['amount'];
       final amount  = rawAmt != null ? int.tryParse(rawAmt) : null;
-      _navigatorKey.currentState?.push(MaterialPageRoute(
-        builder: (_) => BanzamiSendScreen(
-          client:        client,
-          ownHandle:     session.handle,
-          onSuccess:     (_) {},
-          isSandbox:     AppConfig.isSandbox,
-          initialHandle: handle,
-          initialAmount: amount,
-        ),
-      ));
+
+      if (amount != null && amount > 0) {
+        // Fixed-amount request — show premium locked screen.
+        _navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => BanzamiPaymentRequestScreen(
+            client:               client,
+            recipientHandle:      handle,
+            amountMinor:          amount,
+            locked:               true,
+            ownHandle:            session.handle,
+            onSuccess:            (_) {},
+            isSandbox:            AppConfig.isSandbox,
+          ),
+        ));
+      } else {
+        // No amount — open flexible send screen.
+        _navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => BanzamiSendScreen(
+            client:        client,
+            ownHandle:     session.handle,
+            onSuccess:     (_) {},
+            isSandbox:     AppConfig.isSandbox,
+            initialHandle: handle,
+          ),
+        ));
+      }
+      return;
+    }
+
+    // banza://pay?request={code}
+    if (uri.host == 'pay' && segs.isEmpty) {
+      final code = uri.queryParameters['request'];
+      if (code == null || code.isEmpty) return;
+      final ctx = _navigatorKey.currentContext;
+      if (ctx == null) return;
+      final session = ctx.read<SessionService>().session;
+      if (session == null) return;
+      final client = ctx.read<ConsumerPublicClient>();
+      client.getConsumerPayLinkByCode(code).then((link) {
+        if (!link.isActive) return;
+        _navigatorKey.currentState?.push(MaterialPageRoute(
+          builder: (_) => BanzamiPaymentRequestScreen(
+            client:               client,
+            recipientHandle:      link.receiverHandle,
+            recipientDisplayName: link.receiverDisplayName,
+            amountMinor:          link.amountMinor,
+            note:                 link.note,
+            currency:             link.currency,
+            locked:               link.locked,
+            ownHandle:            session.handle,
+            onSuccess:            (_) {},
+            isSandbox:            AppConfig.isSandbox,
+          ),
+        ));
+      }).catchError((_) {});
     }
   }
 
