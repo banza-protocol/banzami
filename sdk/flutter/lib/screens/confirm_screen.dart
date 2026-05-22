@@ -16,6 +16,17 @@ const _kCardBR     = BorderRadius.all(Radius.circular(_kCardRadius));
 const _kBadgeBg    = Color(0x14990011); // wine 8 %
 const _kDotColor   = BanzaColors.wine;
 
+// ── Transfer-progress overlay colours ─────────────────────────────────────────
+
+const _kOrbCenter  = Color(0x40FFFFFF); // white 25 %
+const _kOrbMid     = Color(0x99C21A2C); // cherry 60 %
+const _kOrbEdge    = Color(0xCC5E000A); // deep-shadow 80 %
+const _kGlowInner  = Color(0x73C21A2C); // cherry glow inner 45 %
+const _kGlowOuter  = Color(0x33C21A2C); // cherry glow outer 20 %
+const _kBgTop      = Color(0xFF990011);
+const _kBgMid      = Color(0xFF5E000A);
+const _kBgBottom   = Color(0xFF2A0005);
+
 // ---------------------------------------------------------------------------
 // BanzamiConfirmScreen
 // ---------------------------------------------------------------------------
@@ -57,32 +68,22 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     with SingleTickerProviderStateMixin {
   bool    _sending = false;
   String? _error;
-  bool    _entered = false; // entrance animation gate
+  bool    _entered = false;
 
-  // Sending overlay animation
-  late final AnimationController _sendCtrl;
-  late final Animation<double>   _sendFade;
-  late final Animation<Offset>   _arrowSlide;
+  // Orb pulse animation — replaces the old flat white overlay animation.
+  late final AnimationController _pulseCtrl;
+  late final Animation<double>   _pulseScale;
 
   @override
   void initState() {
     super.initState();
-    _sendCtrl = AnimationController(
+    _pulseCtrl = AnimationController(
       vsync:    this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1500),
     );
-    _sendFade = CurvedAnimation(
-      parent: _sendCtrl,
-      curve:  const Interval(0, 0.4, curve: Curves.easeOut),
+    _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
+      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
     );
-    _arrowSlide = Tween<Offset>(
-      begin: Offset.zero,
-      end:   const Offset(0, -1.5),
-    ).animate(CurvedAnimation(
-      parent: _sendCtrl,
-      curve:  const Interval(0.2, 1.0, curve: Curves.easeInOut),
-    ));
-    // Trigger card entrance after the first frame.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _entered = true);
     });
@@ -90,7 +91,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
   @override
   void dispose() {
-    _sendCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
@@ -100,7 +101,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     if (_sending) return;
     HapticFeedback.mediumImpact();
     setState(() { _sending = true; _error = null; });
-    _sendCtrl.repeat();
+    _pulseCtrl.repeat(reverse: true);
 
     try {
       final transfer = await widget.client.sendByHandle(
@@ -112,7 +113,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       );
 
       if (!mounted) return;
-      _sendCtrl.stop();
+      _pulseCtrl.stop();
+      _pulseCtrl.reset();
       setState(() => _sending = false);
 
       await Navigator.of(context).push(BanzaPageRoute(
@@ -124,8 +126,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       ));
     } on BanzamiApiException catch (e) {
       if (!mounted) return;
-      _sendCtrl.stop();
-      _sendCtrl.reset();
+      _pulseCtrl.stop();
+      _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
       setState(() {
         _sending = false;
@@ -140,8 +142,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       });
     } catch (_) {
       if (!mounted) return;
-      _sendCtrl.stop();
-      _sendCtrl.reset();
+      _pulseCtrl.stop();
+      _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
       setState(() { _sending = false; _error = 'Erro de ligação. Tente novamente.'; });
     }
@@ -157,7 +159,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Gradient avatar
           Container(
             width:  56,
             height: 56,
@@ -176,7 +177,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
             ),
           ),
           const SizedBox(width: BanzaSpacing.lg),
-          // Text block
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -210,7 +210,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                     ),
                   ),
                 const SizedBox(height: 10),
-                // "Endereço Banza" badge
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color:        _kBadgeBg,
@@ -293,6 +292,172 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     );
   }
 
+  // ── Transfer-progress overlay ──────────────────────────────────────────────
+
+  Widget _buildProgressOverlay(String amount, String handle) {
+    return Stack(
+      children: [
+        // Deep cherry gradient — fills entire screen when AppBar is null.
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin:  Alignment.topCenter,
+              end:    Alignment.bottomCenter,
+              colors: [_kBgTop, _kBgMid, _kBgBottom],
+              stops:  [0.0, 0.60, 1.0],
+            ),
+          ),
+        ),
+
+        // Radial ambient glow (top-centre, large, static — cheap).
+        Positioned(
+          top:   -120,
+          left:  -60,
+          right: -60,
+          child: Center(
+            child: Container(
+              width:  520,
+              height: 520,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [_kGlowInner, _kGlowOuter, Colors.transparent],
+                  stops:  [0.0,         0.45,         1.0],
+                ),
+              ),
+            ),
+          ),
+        ),
+
+        // Content — full-screen column with safe area.
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: BanzaSpacing.xl),
+
+                // ── Orb ─────────────────────────────────────────────────────
+                const Spacer(),
+                ScaleTransition(
+                  scale: _pulseScale,
+                  child: _buildOrb(),
+                ),
+                const SizedBox(height: 44),
+
+                // ── Status text ──────────────────────────────────────────────
+                Text(
+                  'A enviar dinheiro...',
+                  style: BanzaTextStyles.bodyLg.copyWith(
+                    color:      Colors.white.withValues(alpha: 0.72),
+                    fontWeight: FontWeight.w500,
+                    height:     1.5,
+                  ),
+                ),
+                const SizedBox(height: 28),
+
+                // ── Amount ───────────────────────────────────────────────────
+                Text(
+                  amount,
+                  style: BanzaTextStyles.monoLg.copyWith(
+                    color:      Colors.white,
+                    fontSize:   38,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // ── Recipient ────────────────────────────────────────────────
+                Text(
+                  'para @$handle',
+                  style: BanzaTextStyles.bodyMd.copyWith(
+                    color:      Colors.white.withValues(alpha: 0.58),
+                    fontWeight: FontWeight.w400,
+                    fontSize:   15,
+                  ),
+                ),
+                const Spacer(),
+
+                // ── Cancel button (disabled — request already dispatched) ────
+                _buildCancelButton(),
+                const SizedBox(height: BanzaSpacing.xl),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOrb() {
+    return Container(
+      width:  118,
+      height: 118,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const RadialGradient(
+          center: Alignment(0, -0.30),
+          colors: [_kOrbCenter, _kOrbMid, _kOrbEdge],
+          stops:  [0.0,          0.50,     1.0],
+        ),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.18),
+          width: 1.0,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color:        const Color(0xFFC21A2C).withValues(alpha: 0.48),
+            blurRadius:   52,
+            spreadRadius: 10,
+          ),
+          BoxShadow(
+            color:        const Color(0xFFC21A2C).withValues(alpha: 0.20),
+            blurRadius:   88,
+            spreadRadius: 24,
+          ),
+        ],
+      ),
+      child: const Icon(
+        Icons.arrow_upward_rounded,
+        color: Colors.white,
+        size:  46,
+      ),
+    );
+  }
+
+  Widget _buildCancelButton() {
+    return Container(
+      width:  double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.20),
+          width: 1.0,
+        ),
+        borderRadius: BorderRadius.circular(BanzaRadius.field),
+      ),
+      child: TextButton(
+        // Always disabled: by the time this overlay is visible, the
+        // HTTP request is already in-flight. Cancellation is not possible.
+        onPressed: null,
+        style: TextButton.styleFrom(
+          disabledForegroundColor: Colors.white.withValues(alpha: 0.42),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(BanzaRadius.field),
+          ),
+        ),
+        child: Text(
+          'Cancelar',
+          style: BanzaTextStyles.bodyMd.copyWith(
+            fontSize:   15,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -303,148 +468,78 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     final amount      = formatMinor(widget.amountMinor, widget.currency);
 
     return BanzaScaffold(
-      appBar: BanzaAppBar(
-        title:    'Confirmar envio',
-        showBack: !_sending,
-      ),
+      // Hide the AppBar while sending — the overlay fills full-screen.
+      appBar: _sending
+          ? null
+          : const BanzaAppBar(title: 'Confirmar envio', showBack: true),
       body: Stack(
         children: [
-          // ── Main review UI ───────────────────────────────────────────────
-          SafeArea(
-            child: AnimatedOpacity(
-              opacity:  _entered ? 1.0 : 0.0,
-              duration: BanzaMotion.slow,
-              curve:    Curves.easeOut,
-              child: AnimatedSlide(
-                offset:   _entered ? Offset.zero : const Offset(0, 0.025),
+          // ── Review UI ──────────────────────────────────────────────────────
+          if (!_sending)
+            SafeArea(
+              child: AnimatedOpacity(
+                opacity:  _entered ? 1.0 : 0.0,
                 duration: BanzaMotion.slow,
-                curve:    BanzaMotion.decelerate,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Scrollable card zone
-                    Expanded(
-                      child: SingleChildScrollView(
+                curve:    Curves.easeOut,
+                child: AnimatedSlide(
+                  offset:   _entered ? Offset.zero : const Offset(0, 0.025),
+                  duration: BanzaMotion.slow,
+                  curve:    BanzaMotion.decelerate,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(
+                            BanzaSpacing.xl, 32, BanzaSpacing.xl, BanzaSpacing.xl,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _recipientCard(initial, displayName, handle),
+                              const SizedBox(height: 16),
+                              _amountCard(amount, widget.note),
+                              const SizedBox(height: 16),
+                              const BanzaWarningBanner(
+                                message: 'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                              ),
+                              if (_error != null) ...[
+                                const SizedBox(height: BanzaSpacing.md),
+                                BanzaErrorBanner(message: _error!),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzaSpacing.xl, 32, BanzaSpacing.xl, BanzaSpacing.xl,
+                          BanzaSpacing.xl, 8, BanzaSpacing.xl, BanzaSpacing.xl,
                         ),
                         child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            _recipientCard(initial, displayName, handle),
-                            const SizedBox(height: 16),
-                            _amountCard(amount, widget.note),
-                            const SizedBox(height: 16),
-                            const BanzaWarningBanner(
-                              message: 'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
+                            BanzaPrimaryButton(
+                              label:     'Confirmar envio',
+                              isLoading: false,
+                              height:    58,
+                              onPressed: _confirm,
                             ),
-                            if (_error != null) ...[
-                              const SizedBox(height: BanzaSpacing.md),
-                              BanzaErrorBanner(message: _error!),
-                            ],
+                            const SizedBox(height: BanzaSpacing.md),
+                            BanzaGhostButton(
+                              label:     'Cancelar',
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
                           ],
                         ),
                       ),
-                    ),
-                    // Sticky CTA area
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        BanzaSpacing.xl, 8, BanzaSpacing.xl, BanzaSpacing.xl,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          BanzaPrimaryButton(
-                            label:     'Confirmar envio',
-                            isLoading: false,
-                            height:    58,
-                            onPressed: _sending ? null : _confirm,
-                          ),
-                          const SizedBox(height: BanzaSpacing.md),
-                          BanzaGhostButton(
-                            label:     'Cancelar',
-                            onPressed: _sending ? null : () => Navigator.of(context).pop(),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // ── Sending overlay ──────────────────────────────────────────────
-          if (_sending)
-            AnimatedBuilder(
-              animation: _sendCtrl,
-              builder: (_, __) => FadeTransition(
-                opacity: _sendFade,
-                child: Container(
-                  color: BanzaColors.offWhite,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox(
-                          width:  80,
-                          height: 80,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
-                              Container(
-                                width:  80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color:  BanzaColors.wine.withValues(alpha: 0.08),
-                                  shape:  BoxShape.circle,
-                                ),
-                              ),
-                              SlideTransition(
-                                position: _arrowSlide,
-                                child: const Icon(
-                                  Icons.arrow_upward_rounded,
-                                  color: BanzaColors.wine,
-                                  size:  36,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: BanzaSpacing.xl),
-                        Text(
-                          'A enviar dinheiro…',
-                          style: BanzaTextStyles.headingMd.copyWith(color: BanzaColors.gray900),
-                        ),
-                        const SizedBox(height: BanzaSpacing.sm),
-                        Text(
-                          amount,
-                          style: BanzaTextStyles.monoLg.copyWith(
-                            color:      BanzaColors.gray900,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(height: BanzaSpacing.xs),
-                        Text(
-                          'para @$handle',
-                          style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
-                        ),
-                        const SizedBox(height: BanzaSpacing.xxl),
-                        GestureDetector(
-                          onTap: () {},
-                          child: Text(
-                            'Cancelar',
-                            style: BanzaTextStyles.bodyMd.copyWith(
-                              color: BanzaColors.gray400,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    ],
                   ),
                 ),
               ),
             ),
+
+          // ── Premium transfer-progress overlay ──────────────────────────────
+          if (_sending) _buildProgressOverlay(amount, handle),
         ],
       ),
     );
