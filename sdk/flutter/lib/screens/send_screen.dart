@@ -22,6 +22,10 @@ class BanzamiSendScreen extends StatefulWidget {
   final String? ownHandle;
   final bool    isSandbox;
   final String? logoAssetPath;
+  /// Pre-filled from a deep link (without the @ prefix).
+  final String? initialHandle;
+  /// Pre-filled from a deep link — skips the amount input default of 0.
+  final int?    initialAmount;
 
   const BanzamiSendScreen({
     super.key,
@@ -30,6 +34,8 @@ class BanzamiSendScreen extends StatefulWidget {
     this.ownHandle,
     this.isSandbox     = false,
     this.logoAssetPath,
+    this.initialHandle,
+    this.initialAmount,
   });
 
   @override
@@ -63,6 +69,12 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         _validateHandleOnBlur();
       }
     });
+    if (widget.initialHandle != null) {
+      _handleCtrl.text = widget.initialHandle!.replaceAll('@', '');
+      if (widget.initialAmount != null) _amountMinor = widget.initialAmount!;
+      // Validate the pre-filled handle once the widget is in the tree.
+      WidgetsBinding.instance.addPostFrameCallback((_) => _validateHandleOnBlur());
+    }
   }
 
   @override
@@ -208,6 +220,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
               ),
               const SizedBox(height: BanzaSpacing.sm),
               BanzaAmountInput(
+                initialAmountMinor: widget.initialAmount,
                 onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
                 errorText:  _amountError,
               ),

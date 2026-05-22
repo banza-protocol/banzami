@@ -41,13 +41,38 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _handleLink(Uri uri) {
+    if (uri.host != 'pay') return;
+    final segs = uri.pathSegments;
+    if (segs.isEmpty) return;
+
     // banza://pay/link/{slug}
-    if (uri.host == 'pay' &&
-        uri.pathSegments.length >= 2 &&
-        uri.pathSegments[0] == 'link') {
-      final slug = uri.pathSegments[1];
+    if (segs[0] == 'link' && segs.length >= 2) {
+      final slug = segs[1];
       _navigatorKey.currentState?.push(MaterialPageRoute(
         builder: (_) => LinkPayScreen(slug: slug),
+      ));
+      return;
+    }
+
+    // banza://pay/u/{handle}?amount={minor}&currency={currency}
+    if (segs[0] == 'u' && segs.length >= 2) {
+      final ctx = _navigatorKey.currentContext;
+      if (ctx == null) return;
+      final session = ctx.read<SessionService>().session;
+      if (session == null) return; // not logged in — ignore
+      final client  = ctx.read<ConsumerPublicClient>();
+      final handle  = segs[1];
+      final rawAmt  = uri.queryParameters['amount'];
+      final amount  = rawAmt != null ? int.tryParse(rawAmt) : null;
+      _navigatorKey.currentState?.push(MaterialPageRoute(
+        builder: (_) => BanzamiSendScreen(
+          client:        client,
+          ownHandle:     session.handle,
+          onSuccess:     (_) {},
+          isSandbox:     AppConfig.isSandbox,
+          initialHandle: handle,
+          initialAmount: amount,
+        ),
       ));
     }
   }
