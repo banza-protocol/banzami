@@ -51,7 +51,7 @@ android {
 
     defaultConfig {
         // applicationId is overridden per flavor below — safe fallback.
-        applicationId = "com.banzami.consumer"
+        applicationId = "com.banza.consumer"
         minSdk = 24 // Android 7.0 — drops TLS 1.0/1.1-only devices, enforces modern cipher suites
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -64,12 +64,12 @@ android {
     productFlavors {
         create("consumer") {
             dimension = "app"
-            applicationId = "com.banzami.consumer"
+            applicationId = "com.banza.consumer"
             resValue("string", "app_name", "Banza")
         }
         create("merchant") {
             dimension = "app"
-            applicationId = "com.banzami.merchant"
+            applicationId = "com.banza.merchant"
             resValue("string", "app_name", "Banza Business")
         }
     }
