@@ -26,6 +26,17 @@ class BanzamiApp extends StatefulWidget {
 class _BanzamiAppState extends State<BanzamiApp> {
   StreamSubscription<Uri>? _linkSub;
 
+  // Dedup guard: iOS sends the launch URI via both getInitialLink() and
+  // uriLinkStream. Ignore the same URI if handled within the last 3 seconds.
+  String?   _lastHandledUri;
+  DateTime? _lastHandledAt;
+
+  bool _isDuplicateLink(Uri uri) {
+    if (_lastHandledUri == null || _lastHandledAt == null) return false;
+    final age = DateTime.now().difference(_lastHandledAt!);
+    return age < const Duration(seconds: 3) && uri.toString() == _lastHandledUri;
+  }
+
   @override
   void initState() {
     super.initState();
@@ -41,6 +52,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _handleLink(Uri uri) {
+    if (_isDuplicateLink(uri)) return;
+    _lastHandledUri = uri.toString();
+    _lastHandledAt  = DateTime.now();
+
     // ── Universal links: https://pay.banzami.org/* ──────────────────────────
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
       _handleUniversalLink(uri);
