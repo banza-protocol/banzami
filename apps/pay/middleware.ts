@@ -34,10 +34,12 @@ export function middleware(request: NextRequest) {
   return response;
 }
 
-// Run on all page and API routes; skip static assets and images
-// which are never HTML and don't need a per-request CSP.
+// Run on all page and API routes; skip:
+//   - Next.js internal static assets
+//   - .well-known/* — Apple AASA and Android assetlinks need clean JSON
+//     with no extra middleware headers (Apple/Google CDNs are strict)
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico).*)',
+    '/((?!_next/static|_next/image|favicon\\.ico|\\.well-known).*)',
   ],
 };

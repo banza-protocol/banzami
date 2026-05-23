@@ -42,12 +42,23 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Deep link: banza://pay/link/{slug} from payment link QR codes -->
+            <!-- Custom scheme: banza://pay/... (QR codes, in-app links) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="banza" android:host="pay"/>
+            </intent-filter>
+            <!-- Android App Links: https://pay.banzami.org/r/* /pay/* /u/*
+                 autoVerify triggers verification against /.well-known/assetlinks.json
+                 at install time. Verified links open directly without a chooser. -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/r/"/>
+                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/pay/"/>
+                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/u/"/>
             </intent-filter>
         </activity>
         <!-- Firebase Cloud Messaging — notification icon and brand colour -->
