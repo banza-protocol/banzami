@@ -188,11 +188,14 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   }
 
   function openApp() {
+    console.log('[pay/r] buttonClicked=true autoOpenOnMount=false');
     setOpen('opening');
     let tid: ReturnType<typeof setTimeout>;
     const onVis = () => {
+      console.log('[pay/r] visibilitychange:', document.hidden ? 'hidden' : 'visible');
       if (document.hidden) {
         clearTimeout(tid);
+        console.log('[pay/r] appOpenAssumed=true');
         setOpen('app_opened');
         document.removeEventListener('visibilitychange', onVis);
       }
@@ -200,11 +203,15 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
     document.addEventListener('visibilitychange', onVis);
     tid = setTimeout(() => {
       document.removeEventListener('visibilitychange', onVis);
-      if (openPhaseRef.current === 'opening') setOpen('not_installed');
+      if (openPhaseRef.current === 'opening') {
+        console.log('[pay/r] appOpenAssumed=false (timeout 2500ms)');
+        setOpen('not_installed');
+      }
     }, 2500);
   }
 
   useEffect(() => {
+    console.log('[pay/r] mount code=' + code + ' sandbox=' + sandbox + ' autoOpenOnMount=false');
     const ctrl = new AbortController();
     const tid  = setTimeout(() => {
       ctrl.abort();
