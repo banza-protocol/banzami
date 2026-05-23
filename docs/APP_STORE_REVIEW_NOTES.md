@@ -37,6 +37,13 @@ Important:
 * Please allow Camera permissions (required for QR code scanning)
 * Please allow Push Notifications (required for payment confirmations)
 * The app operates in sandbox mode — no real money is moved
+
+Security behaviour:
+* The app automatically locks when sent to the background (e.g. switching apps,
+  pressing the Home button, or opening the app switcher)
+* When returning to the app you will be prompted for the PIN — this is intentional
+  security behaviour, not a bug
+* Use PIN 123456 to unlock after any background/foreground transition
 ```
 
 ### TestFlight — What to Test
@@ -50,6 +57,12 @@ O que testar:
 3. Enviar dinheiro para outro @banza
 4. Pagar via QR code
 5. Pagar via link de pagamento
+6. Segurança — sai da app (prima Home ou muda de app) e volta:
+   deve aparecer um ecrã de bloqueio com pedido de PIN
+7. Protecção no selector de apps — abre o selector de apps (duplo clique Home
+   ou desliza de baixo): a app deve mostrar um ecrã de privacidade sem conteúdo
+8. Cartão de saldo — o saldo principal deve aparecer em destaque no topo do ecrã
+   com gradiente escuro premium
 
 O que reportar:
 - Erros ou crashes
@@ -57,6 +70,7 @@ O que reportar:
 - Valores ou saldos incorrectos no ecrã
 - Problemas com o leitor de QR
 - Problemas com pagamentos
+- Aplicação que não bloqueia ao sair para segundo plano
 
 Para reportar problemas: agita o iPhone
 durante a app → aparece o menu de feedback
@@ -178,18 +192,20 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 ## Contas de revisão sandbox
 
 > **Estado:** Apps aprovadas em 2026-05-18 (TestFlight External).
-> As contas abaixo podem ser desactivadas — builds TestFlight seguintes não precisam de revisão Apple.
-> Só serão necessárias novas contas quando for submeter para a App Store pública.
+> Conta `review` recriada em 2026-05-24 para próxima submissão (Banza consumer).
+> Banza Business ainda não submetido — conta merchant pendente.
+> Builds TestFlight seguintes não precisam de nova revisão Apple após aprovação inicial.
 
 ### Consumer (Banza)
 
-| Campo       | Valor                                    | Estado                |
-|-------------|------------------------------------------|-----------------------|
-| Handle      | review                                   | Desactivar no sandbox |
-| PIN         | 123456                                   | —                     |
-| Consumer ID | 64080866-4c92-4358-ad20-2233a8db8428     | Desactivar no sandbox |
+| Campo       | Valor                                    | Estado  |
+|-------------|------------------------------------------|---------|
+| Handle      | review                                   | ACTIVE  |
+| PIN         | 123456                                   | —       |
+| Consumer ID | 8d94dd9c-73d6-4743-94f5-4235249dbb79     | ACTIVE  |
+| Criada em   | 2026-05-24                               | —       |
 
-Para desactivar: `POST /v1/consumers/64080866-4c92-4358-ad20-2233a8db8428/suspend` (via API gateway sandbox com chave de admin).
+Para desactivar: `POST /v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspend` (via API gateway sandbox com chave de admin).
 
 ### Merchant (Banza Business)
 
@@ -214,8 +230,9 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 
 ## Registo de submissões
 
-| Data | Build | Apps | Estado |
-|------|-------|------|--------|
-| 2026-05-18 | 1.0.0 (1) | Banza + Banza Business | ✅ Aprovado (TestFlight External) |
+| Data | Build | App | Ambiente | Estado |
+|------|-------|-----|----------|--------|
+| 2026-05-18 | 1.0.0 (1) | Banza + Banza Business (Banzami legacy) | — | ✅ Aprovado (TestFlight External) — app antiga |
+| 2026-05-24 | 1.0.0 (1) | Banza | Sandbox | 🔄 IPA pronto — pendente upload Transporter |
 
 Adicionar uma linha a cada submissão.
