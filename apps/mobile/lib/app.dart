@@ -26,23 +26,46 @@ class BanzamiApp extends StatefulWidget {
 class _BanzamiAppState extends State<BanzamiApp> {
   StreamSubscription<Uri>? _linkSub;
 
-  // Dedup guard: iOS sends the launch URI via both getInitialLink() and
-  // uriLinkStream. Ignore the same URI if handled within the last 3 seconds.
-  String?   _lastHandledUri;
+  // ── URI dedup guard ────────────────────────────────────────────────────────
+  // iOS fires both getInitialLink() and uriLinkStream with the same launch URI
+  // on cold start. Normalized form strips the ?sandbox param so that
+  // banza://pay?request=X and banza://pay?request=X&sandbox=1 are treated
+  // identically for dedup purposes.
+  String?   _lastHandledNorm;
   DateTime? _lastHandledAt;
 
+  // ── Route guard ────────────────────────────────────────────────────────────
+  // Tracks the payment request code currently visible on screen so we never
+  // push a second PaymentRequestScreen for the same code.
+  String?   _currentPaymentCode;
+
+  String _normalizeUri(Uri uri) {
+    final params = Map<String, String>.from(uri.queryParameters)..remove('sandbox');
+    return Uri(
+      scheme: uri.scheme,
+      host:   uri.host,
+      port:   uri.hasPort ? uri.port : null,
+      path:   uri.path,
+      queryParameters: params.isEmpty ? null : params,
+    ).toString();
+  }
+
   bool _isDuplicateLink(Uri uri) {
-    if (_lastHandledUri == null || _lastHandledAt == null) return false;
+    if (_lastHandledNorm == null || _lastHandledAt == null) return false;
     final age = DateTime.now().difference(_lastHandledAt!);
-    return age < const Duration(seconds: 3) && uri.toString() == _lastHandledUri;
+    return age < const Duration(seconds: 5) && _normalizeUri(uri) == _lastHandledNorm;
   }
 
   @override
   void initState() {
     super.initState();
     final appLinks = AppLinks();
-    appLinks.getInitialLink().then((uri) { if (uri != null) _handleLink(uri); });
-    _linkSub = appLinks.uriLinkStream.listen(_handleLink);
+    appLinks.getInitialLink().then((uri) {
+      if (uri != null) _handleLink(uri, source: 'initial');
+    });
+    _linkSub = appLinks.uriLinkStream.listen(
+      (uri) => _handleLink(uri, source: 'stream'),
+    );
   }
 
   @override
@@ -51,10 +74,18 @@ class _BanzamiAppState extends State<BanzamiApp> {
     super.dispose();
   }
 
-  void _handleLink(Uri uri) {
-    if (_isDuplicateLink(uri)) return;
-    _lastHandledUri = uri.toString();
-    _lastHandledAt  = DateTime.now();
+  void _handleLink(Uri uri, {String source = 'unknown'}) {
+    final norm = _normalizeUri(uri);
+    debugPrint('[deep-link] received source=$source uri=$uri normalized=$norm');
+
+    if (_isDuplicateLink(uri)) {
+      final age = DateTime.now().difference(_lastHandledAt!).inMilliseconds;
+      debugPrint('[deep-link] ignoredDuplicate=true last=$_lastHandledNorm age=${age}ms');
+      return;
+    }
+    debugPrint('[deep-link] ignoredDuplicate=false → handling');
+    _lastHandledNorm = norm;
+    _lastHandledAt   = DateTime.now();
 
     // ── Universal links: https://pay.banzami.org/* ──────────────────────────
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
@@ -109,14 +140,30 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   void _openPaymentRequest(String code) {
+    // Route guard: never push two PaymentRequestScreens for the same code.
+    if (_currentPaymentCode == code) {
+      debugPrint('[deep-link] routeAlreadyOpen=true code=$code — skip push');
+      return;
+    }
+
     final ctx = _navigatorKey.currentContext;
     if (ctx == null) return;
     final session = ctx.read<SessionService>().session;
     if (session == null) return;
     final client = ctx.read<ConsumerPublicClient>();
+
+    debugPrint('[deep-link] fetching pay link code=$code');
     client.getConsumerPayLinkByCode(code).then((link) {
-      if (!link.isActive) return;
-      _navigatorKey.currentState?.push(MaterialPageRoute(
+      if (!link.isActive) {
+        debugPrint('[deep-link] link not active — skip push');
+        return;
+      }
+      final nav = _navigatorKey.currentState;
+      if (nav == null) return;
+
+      _currentPaymentCode = code;
+      debugPrint('[deep-link] pushing PaymentRequestScreen code=$code');
+      nav.push(MaterialPageRoute(
         builder: (_) => BanzamiPaymentRequestScreen(
           client:               client,
           recipientHandle:      link.receiverHandle,
@@ -130,8 +177,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
           onSuccess:            (_) {},
           isSandbox:            AppConfig.isSandbox,
         ),
-      ));
-    }).catchError((_) {});
+      )).then((_) {
+        _currentPaymentCode = null;
+        debugPrint('[deep-link] PaymentRequestScreen popped code=$code');
+      });
+    }).catchError((e) {
+      debugPrint('[deep-link] error fetching pay link: $e');
+    });
   }
 
   void _openHandlePay(Uri uri, String handle) {
