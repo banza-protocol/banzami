@@ -1,4 +1,6 @@
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'http://localhost:8080';
+const GATEWAY_URL         = process.env.NEXT_PUBLIC_GATEWAY_URL  ?? 'http://localhost:8080';
+// Server-only — read at runtime, not baked at build time.
+const STAGING_GATEWAY_URL = process.env.STAGING_GATEWAY_URL ?? 'http://public-api-staging:8083';
 
 export interface PaymentLink {
   id:            string;
@@ -118,9 +120,10 @@ export interface ConsumerPayLink {
   paid_at:               string | null;
 }
 
-export async function getConsumerPayLink(code: string): Promise<ConsumerPayLink | null> {
-  const res = await fetch(
-    `${GATEWAY_URL}/public/consumer-pay-links/${encodeURIComponent(code)}`,
+export async function getConsumerPayLink(code: string, sandbox = false): Promise<ConsumerPayLink | null> {
+  const base = sandbox ? STAGING_GATEWAY_URL : GATEWAY_URL;
+  const res  = await fetch(
+    `${base}/public/consumer-pay-links/${encodeURIComponent(code)}`,
     { next: { revalidate: 0 } },
   );
   if (res.status === 404) return null;
