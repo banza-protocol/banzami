@@ -311,6 +311,21 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               size:          190,
                               embeddedImage: AssetImage(BrandingAssets.icon),
                             ),
+                            if (_activeLink?.note != null &&
+                                _activeLink!.note!.trim().isNotEmpty) ...[
+                              const SizedBox(height: BanzaSpacing.md),
+                              Text(
+                                '"${_activeLink!.note!.trim()}"',
+                                style: BanzaTextStyles.bodyMd.copyWith(
+                                  fontWeight: FontWeight.w500,
+                                  fontStyle:  FontStyle.italic,
+                                  color:      BanzaColors.gray700,
+                                ),
+                                textAlign: TextAlign.center,
+                                maxLines:  2,
+                                overflow:  TextOverflow.ellipsis,
+                              ),
+                            ],
                             if (AppConfig.isSandbox) ...[
                               const SizedBox(height: BanzaSpacing.sm),
                               const SandboxBadge(),
