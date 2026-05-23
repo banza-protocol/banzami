@@ -97,6 +97,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         environment:   AppConfig.isSandbox
             ? BanzaEnvironment.sandbox
             : BanzaEnvironment.production,
+        onReceive:     () => setState(() => _tab = 2),
       ),
       const HistoryScreen(),
       ReceiveHubScreen(
