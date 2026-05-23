@@ -18,6 +18,10 @@ class BanzamiHomeScreen extends StatefulWidget {
   final String?              displayName;
   final String?              logoAssetPath;
   final VoidCallback?        onNotifications;
+  /// Called when the user taps the "Receber" quick action.
+  /// When provided the host app handles routing (e.g. switching a bottom-nav
+  /// tab) instead of pushing the standalone BanzamiReceiveScreen.
+  final VoidCallback?        onReceive;
   final BanzaEnvironment     environment;
 
   const BanzamiHomeScreen({
@@ -28,6 +32,7 @@ class BanzamiHomeScreen extends StatefulWidget {
     this.displayName,
     this.logoAssetPath,
     this.onNotifications,
+    this.onReceive,
     this.environment = BanzaEnvironment.production,
   });
 
@@ -107,12 +112,18 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     ),
   ));
 
-  void _onReceive() => Navigator.of(context).push(BanzaPageRoute(
-    page: BanzamiReceiveScreen(
-      handle:        widget.handle,
-      logoAssetPath: widget.logoAssetPath,
-    ),
-  ));
+  void _onReceive() {
+    if (widget.onReceive != null) {
+      widget.onReceive!();
+      return;
+    }
+    Navigator.of(context).push(BanzaPageRoute(
+      page: BanzamiReceiveScreen(
+        handle:        widget.handle,
+        logoAssetPath: widget.logoAssetPath,
+      ),
+    ));
+  }
 
   @override
   Widget build(BuildContext context) {
