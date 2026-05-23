@@ -466,7 +466,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   @override
   Widget build(BuildContext context) {
     final t    = widget.transfer;
-    final note = (t.note?.isNotEmpty == true) ? t.note! : '—';
+    final note = (t.note?.isNotEmpty == true) ? t.note! : 'Sem descrição';
     final timeStr = DateFormat('HH:mm:ss').format(_liveTime);
 
     return Scaffold(

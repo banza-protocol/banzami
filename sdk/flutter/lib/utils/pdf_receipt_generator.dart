@@ -352,11 +352,10 @@ class BanzaPdfReceiptGenerator {
         children: [
           _detailRow('De',     '@$ownHandle',   reg: reg, bold: bold),
           _divider(),
-          _detailRow('Para',   '@$recipient',   reg: reg, bold: bold),
-          if (note != null && note.isNotEmpty) ...[
-            _divider(),
-            _detailRow('Nota', note,            reg: reg, bold: bold),
-          ],
+          _detailRow('Para',   '@$recipient',                               reg: reg, bold: bold),
+          _divider(),
+          _detailRow('Nota',  (note != null && note.isNotEmpty) ? note : 'Sem descrição',
+                                                                             reg: reg, bold: bold),
           _divider(),
           _detailRow('Data',   dateStr,         reg: reg, bold: bold),
           _divider(),

@@ -14,6 +14,88 @@ import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
 import '../widgets/tab_screen_header.dart';
 
+// ---------------------------------------------------------------------------
+// Bottom-sheet widget — collects amount + optional note, calls API, pops link
+// ---------------------------------------------------------------------------
+
+class _AmountNoteSheet extends StatefulWidget {
+  final ConsumerPublicClient client;
+  const _AmountNoteSheet({required this.client});
+
+  @override
+  State<_AmountNoteSheet> createState() => _AmountNoteSheetState();
+}
+
+class _AmountNoteSheetState extends State<_AmountNoteSheet> {
+  int     _amount  = 0;
+  String  _note    = '';
+  bool    _loading = false;
+  String? _error;
+
+  Future<void> _apply() async {
+    if (_amount <= 0) return;
+    setState(() { _loading = true; _error = null; });
+    try {
+      final note = _note.trim().isEmpty ? null : _note.trim();
+      final link = await widget.client.createConsumerPayLink(
+        amountMinor: _amount,
+        note:        note,
+        locked:      true,
+      );
+      if (mounted) Navigator.pop(context, link);
+    } catch (_) {
+      if (mounted) setState(() { _loading = false; _error = 'Não foi possível criar o link.'; });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        BanzaSpacing.xl, BanzaSpacing.xl, BanzaSpacing.xl,
+        MediaQuery.viewInsetsOf(context).bottom + BanzaSpacing.xl,
+      ),
+      child: Column(
+        mainAxisSize:       MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
+          const SizedBox(height: BanzaSpacing.md),
+          BanzaAmountInput(onChanged: (v) => _amount = v),
+          const SizedBox(height: BanzaSpacing.md),
+          BanzaTextField(
+            label:           'Descrição (opcional)',
+            hint:            'Ex: jantar de ontem',
+            textInputAction: TextInputAction.done,
+            onChanged:       (v) => _note = v,
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: BanzaSpacing.sm),
+            Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
+          ],
+          const SizedBox(height: BanzaSpacing.lg),
+          Row(children: [
+            Expanded(
+              child: BanzaSecondaryButton(
+                label:     'Cancelar',
+                onPressed: _loading ? null : () => Navigator.pop(context),
+              ),
+            ),
+            const SizedBox(width: BanzaSpacing.sm),
+            Expanded(
+              child: BanzaPrimaryButton(
+                label:     'Aplicar',
+                isLoading: _loading,
+                onPressed: _loading ? null : _apply,
+              ),
+            ),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
 /// Bottom-nav "Receber" hub: QR card at top + received transactions list below.
 class ReceiveHubScreen extends StatefulWidget {
   final VoidCallback? onViewAll;
@@ -25,10 +107,9 @@ class ReceiveHubScreen extends StatefulWidget {
 }
 
 class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
-  int       _amountMinor = 0;
-  bool      _amountSet   = false;
-  bool      _sharing     = false;
-  ui.Image? _logoUiImage;
+  bool             _sharing    = false;
+  ui.Image?        _logoUiImage;
+  ConsumerPayLink? _activeLink;
 
   List<ActivityItem> _received         = [];
   bool               _loadingTransfers = false;
@@ -72,23 +153,27 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   String _qrPayload(String handle) {
+    if (_activeLink != null) {
+      final scheme = AppConfig.isSandbox ? 'banza-sandbox' : 'banza';
+      return '$scheme://pay?request=${_activeLink!.linkCode}';
+    }
     // Sandbox QR uses a distinct scheme so it cannot be scanned as live payment.
     final scheme = AppConfig.isSandbox ? 'banza-sandbox' : 'banza';
-    if (_amountSet && _amountMinor > 0) {
-      return '$scheme:@$handle?amount=$_amountMinor&currency=AOA';
-    }
     return '$scheme:@$handle';
   }
 
   String _shareUrl(String handle) {
-    final base = AppConfig.isSandbox
+    if (_activeLink != null) {
+      return AppConfig.isSandbox
+          ? 'https://staging.banzami.org/pay/r/${_activeLink!.linkCode}'
+          : 'https://pay.banzami.org/r/${_activeLink!.linkCode}';
+    }
+    return AppConfig.isSandbox
         ? 'https://staging.banzami.org/pay/u/$handle'
         : 'https://pay.banzami.org/u/$handle';
-    if (_amountSet && _amountMinor > 0) return '$base?amount=$_amountMinor';
-    return base;
   }
 
-  void _clearAmount() => setState(() { _amountSet = false; _amountMinor = 0; });
+  void _clearAmount() => setState(() { _activeLink = null; });
 
   Future<void> _copyHandle(String handle) async {
     HapticFeedback.selectionClick();
@@ -101,49 +186,17 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   Future<void> _showAmountSheet() async {
-    int draft = 0;
-    final result = await showModalBottomSheet<int>(
+    final client = context.read<ConsumerPublicClient>();
+    final link = await showModalBottomSheet<ConsumerPayLink>(
       context:            context,
       isScrollControlled: true,
       backgroundColor:    BanzaColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-          BanzaSpacing.xl, BanzaSpacing.xl, BanzaSpacing.xl,
-          MediaQuery.of(ctx).viewInsets.bottom + BanzaSpacing.xl,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
-            const SizedBox(height: BanzaSpacing.md),
-            BanzaAmountInput(onChanged: (v) => draft = v),
-            const SizedBox(height: BanzaSpacing.lg),
-            Row(children: [
-              Expanded(
-                child: BanzaSecondaryButton(
-                  label:     'Cancelar',
-                  onPressed: () => Navigator.pop(ctx),
-                ),
-              ),
-              const SizedBox(width: BanzaSpacing.sm),
-              Expanded(
-                child: BanzaPrimaryButton(
-                  label:     'Aplicar',
-                  onPressed: () { if (draft > 0) Navigator.pop(ctx, draft); },
-                ),
-              ),
-            ]),
-          ],
-        ),
-      ),
+      builder: (_) => _AmountNoteSheet(client: client),
     );
-    if (result != null && result > 0) {
-      setState(() { _amountMinor = result; _amountSet = true; });
-    }
+    if (link != null && mounted) setState(() => _activeLink = link);
   }
 
   Future<void> _shareLink(String handle) async {
@@ -254,8 +307,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                           children: [
                             BanzaQrDisplay(
                               payload:       _qrPayload(handle),
-                              amountLabel:   (_amountSet && _amountMinor > 0)
-                                  ? formatMinor(_amountMinor, 'AOA')
+                              amountLabel:   (_activeLink?.amountMinor != null)
+                                  ? formatMinor(_activeLink!.amountMinor!, _activeLink!.currency)
                                   : null,
                               size:          190,
                               embeddedImage: AssetImage(BrandingAssets.icon),
@@ -338,7 +391,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               ),
                               const SizedBox(width: BanzaSpacing.sm),
                               Expanded(
-                                child: _amountSet
+                                child: _activeLink != null
                                     ? BanzaSecondaryButton(
                                         label:     'Remover montante',
                                         onPressed: _clearAmount,
