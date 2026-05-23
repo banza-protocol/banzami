@@ -185,6 +185,83 @@ services:
     networks:
       - banzami_net
 
+  # ─── Sandbox / staging stack ──────────────────────────────────────────────────
+  # Completely isolated from the live stack above.
+  # Sandbox data NEVER touches the live database.
+  # Reachable within banzami_net as: core-api-staging:8081, public-api-staging:8083
+
+  postgres-sandbox:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER:     banzami
+      POSTGRES_PASSWORD: banzami_sandbox
+      POSTGRES_DB:       banzami_sandbox
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_sandbox_data:/var/lib/postgresql/data
+    healthcheck:
+      test:     ["CMD-SHELL", "pg_isready -U banzami -d banzami_sandbox"]
+      interval: 5s
+      timeout:  5s
+      retries:  10
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  core-api-staging:
+    build:
+      context: ../../core
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL:       postgres://banzami:banzami_sandbox@postgres-sandbox:5432/banzami_sandbox
+      CORE_API_PORT:      "8081"
+      TRANSIT_ACCOUNT_ID: ${TRANSIT_ACCOUNT_ID_SANDBOX:-${TRANSIT_ACCOUNT_ID}}
+      BANK_ACCOUNT_ID:    ${BANK_ACCOUNT_ID_SANDBOX:-${BANK_ACCOUNT_ID}}
+      RUST_LOG:           core_api=info,warn
+    ports:
+      - "8084:8081"
+    depends_on:
+      postgres-sandbox:
+        condition: service_healthy
+    healthcheck:
+      test:     ["CMD", "curl", "-fsS", "http://localhost:8081/health"]
+      interval: 10s
+      timeout:  5s
+      start_period: 20s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  public-api-staging:
+    build:
+      context: ../../services/public-api
+      dockerfile: Dockerfile
+    environment:
+      PUBLIC_API_PORT: "8083"
+      CORE_API_URL:    http://core-api-staging:8081
+      DATABASE_URL:    postgres://banzami:banzami_sandbox@postgres-sandbox:5432/banzami_sandbox
+      JWT_SECRET:      ${SANDBOX_JWT_SECRET:-${JWT_SECRET}}
+      LOG_LEVEL:       ${LOG_LEVEL:-info}
+      OTLP_ENDPOINT:   ${OTLP_ENDPOINT:-}
+    ports:
+      - "8085:8083"
+    depends_on:
+      core-api-staging:
+        condition: service_healthy
+    healthcheck:
+      test:     ["CMD", "curl", "-fsS", "http://localhost:8083/health"]
+      interval: 10s
+      timeout:  5s
+      start_period: 15s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # ─── Frontend applications ────────────────────────────────────────────────────
+
   # Next.js pay page — public payment link checkout (pay.banzami.org).
   pay-frontend:
     build:
@@ -221,6 +298,7 @@ volumes:
   redis_data:
   prometheus_data:
   grafana_data:
+  postgres_sandbox_data:
 
 networks:
   banzami_net:
