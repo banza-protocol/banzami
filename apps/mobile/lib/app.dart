@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
+import 'guards/secure_app_lifecycle_guard.dart';
 import 'services/session_service.dart';
 import 'screens/splash_screen.dart';
 import 'screens/link_pay_screen.dart';
@@ -274,6 +275,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,
             home:                       const SplashScreen(),
+            builder: (_, child) => SecureAppLifecycleGuard(
+              navigatorKey: _navigatorKey,
+              child:        child!,
+            ),
           );
         },
       ),
