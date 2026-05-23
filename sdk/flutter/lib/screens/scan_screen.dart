@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
+import '../models/consumer_pay_link.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
@@ -25,6 +26,11 @@ class _HandlePayload extends _Payload {
 class _LinkPayload extends _Payload {
   final PaymentLink link;
   _LinkPayload(this.link);
+}
+
+class _ConsumerPayLinkPayload extends _Payload {
+  final ConsumerPayLink link;
+  _ConsumerPayLinkPayload(this.link);
 }
 
 /// Scan-to-pay flow.
@@ -63,6 +69,23 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   Future<void> _onScanned(String raw) async {
     setState(() { _step = _ScanStep.resolving; _error = null; });
+
+    // Consumer pay link: banza://pay?request=CODE (or banza-sandbox://...)
+    if ((raw.startsWith('banza://pay') || raw.startsWith('banza-sandbox://pay'))) {
+      final uri  = Uri.tryParse(raw);
+      final code = uri?.queryParameters['request'];
+      if (code != null && code.isNotEmpty) {
+        try {
+          final link = await widget.client.getConsumerPayLinkByCode(code);
+          if (mounted) setState(() { _payload = _ConsumerPayLinkPayload(link); _step = _ScanStep.confirm; });
+        } on BanzamiApiException {
+          if (mounted) setState(() { _error = 'Link de pagamento não encontrado'; _step = _ScanStep.error; });
+        } catch (_) {
+          if (mounted) setState(() { _error = 'Não foi possível verificar o link. Tente novamente.'; _step = _ScanStep.error; });
+        }
+        return;
+      }
+    }
 
     // Handle QR: banzami:@fm65  or  banzami:@fm65?amount=5000&currency=AOA
     if (raw.startsWith('banzami:@')) {
@@ -130,16 +153,25 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
           amountMinor: amount > 0 ? amount : null,
         );
         if (mounted) setState(() { _result = updated; _step = _ScanStep.success; });
+      } else if (p is _ConsumerPayLinkPayload) {
+        if (!p.link.isActive) {
+          setState(() { _error = 'Este link de pagamento já não está ativo.'; _processing = false; });
+          return;
+        }
+        final paid = await widget.client.payConsumerPayLink(p.link.linkCode);
+        if (mounted) setState(() { _result = paid; _step = _ScanStep.success; });
       }
     } on BanzamiApiException catch (e) {
       setState(() => _error = switch (e.code) {
-        'INSUFFICIENT_FUNDS' => 'Saldo insuficiente',
-        'LINK_NOT_ACTIVE'    => 'Link de pagamento já não está disponível',
-        'NO_WALLET'          => 'Não tem carteira activa para esta moeda',
-        'WALLET_NOT_FOUND'   => 'Destino sem carteira activa',
-        'NOT_FOUND'          => 'Link de pagamento não encontrado',
-        'SELF_TRANSFER'      => 'Não pode pagar o seu próprio link',
-        _                    => 'Erro de pagamento. Tente novamente.',
+        'INSUFFICIENT_FUNDS'          => 'Saldo insuficiente',
+        'LINK_NOT_ACTIVE'             => 'Link de pagamento já não está disponível',
+        'NO_WALLET'                   => 'Não tem carteira activa para esta moeda',
+        'WALLET_NOT_FOUND'            => 'Destino sem carteira activa',
+        'NOT_FOUND'                   => 'Link de pagamento não encontrado',
+        'SELF_TRANSFER'               => 'Não pode pagar o seu próprio link',
+        'SELF_TRANSFER_NOT_ALLOWED'   => 'Não pode pagar o seu próprio pedido',
+        'ACCOUNT_FROZEN'              => 'A sua conta está suspensa',
+        _                             => 'Erro de pagamento. Tente novamente.',
       });
     } catch (_) {
       setState(() => _error = 'Pagamento falhou. Tente novamente.');
@@ -182,20 +214,31 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   Widget _buildConfirm() {
     final p = _payload!;
-    final bool needsAmount = p is _HandlePayload
-        ? p.amountMinor == null
-        : p is _LinkPayload && p.link.amountMinor == null;
-    final String? fixedLabel = p is _HandlePayload
-        ? (p.amountMinor != null ? formatMinor(p.amountMinor!, p.currency) : null)
-        : p is _LinkPayload && p.link.amountMinor != null
-            ? formatMinor(p.link.amountMinor!, p.link.currency)
-            : null;
-    final String title = p is _HandlePayload
-        ? 'Enviar para @${p.handle}'
-        : (p is _LinkPayload && p.link.merchantName != null)
-            ? p.link.merchantName!
-            : 'Pagar link';
-    final String? subtitle = p is _LinkPayload ? p.link.description : null;
+    final bool needsAmount = switch (p) {
+      _HandlePayload()          => p.amountMinor == null,
+      _LinkPayload()            => p.link.amountMinor == null,
+      _ConsumerPayLinkPayload() => false, // always locked
+    };
+    final String? fixedLabel = switch (p) {
+      _HandlePayload() when p.amountMinor != null =>
+          formatMinor(p.amountMinor!, p.currency),
+      _LinkPayload() when p.link.amountMinor != null =>
+          formatMinor(p.link.amountMinor!, p.link.currency),
+      _ConsumerPayLinkPayload() when p.link.amountMinor != null =>
+          formatMinor(p.link.amountMinor!, p.link.currency),
+      _ => null,
+    };
+    final String title = switch (p) {
+      _HandlePayload()          => 'Enviar para @${p.handle}',
+      _LinkPayload() when p.link.merchantName != null => p.link.merchantName!,
+      _LinkPayload()            => 'Pagar link',
+      _ConsumerPayLinkPayload() => 'Pagar @${p.link.receiverHandle}',
+    };
+    final String? subtitle = switch (p) {
+      _LinkPayload()            => p.link.description,
+      _ConsumerPayLinkPayload() => p.link.note,
+      _                         => null,
+    };
 
     return SafeArea(
       child: SingleChildScrollView(
@@ -357,6 +400,11 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       final amount = p.link.amountMinor ?? _enteredAmount;
       amountLabel = formatMinor(amount, p.link.currency);
       subtitle    = p.link.merchantName ?? p.link.description ?? p.link.slug;
+    } else if (p is _ConsumerPayLinkPayload) {
+      amountLabel = p.link.amountMinor != null
+          ? formatMinor(p.link.amountMinor!, p.link.currency)
+          : '';
+      subtitle    = '@${p.link.receiverHandle}';
     } else {
       amountLabel = '';
       subtitle    = '';
