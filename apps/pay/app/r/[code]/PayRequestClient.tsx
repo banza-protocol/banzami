@@ -13,7 +13,25 @@ function formatAmt(amountMinor: number, currency: string): string {
   return new Intl.NumberFormat('pt-AO', { style: 'currency', currency, minimumFractionDigits: 2 }).format(major);
 }
 
-// ── Sub-components ─────────────────────────────────────────────────────────────
+// ── Environment badges ──────────────────────────────────────────────────────
+
+function SandboxBadge({ extra }: { extra?: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-yellow-400 bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-700">
+      SANDBOX{extra ? ` • ${extra}` : ''}
+    </span>
+  );
+}
+
+function LiveBadge({ extra }: { extra?: string }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-wine bg-white px-3 py-1 text-xs font-semibold text-wine">
+      Banza LIVE{extra ? ` • ${extra}` : ''}
+    </span>
+  );
+}
+
+// ── Sub-components ──────────────────────────────────────────────────────────
 
 function LoadingUI() {
   return (
@@ -26,7 +44,7 @@ function LoadingUI() {
   );
 }
 
-function NotFoundUI() {
+function NotFoundUI({ sandbox }: { sandbox: boolean }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -35,10 +53,17 @@ function NotFoundUI() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Pedido inválido</h1>
+        <h1 className="text-xl font-bold text-gray-900">
+          {sandbox ? 'Pedido sandbox inválido' : 'Pedido inválido'}
+        </h1>
         <p className="mt-2 text-sm text-gray-400">
           Esta ligação não existe, expirou ou pertence a outro ambiente.
         </p>
+        {sandbox && (
+          <div className="mt-4 flex justify-center">
+            <SandboxBadge extra="Dinheiro de teste" />
+          </div>
+        )}
         <a
           href="banza://open"
           className="mt-6 inline-block w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
@@ -50,7 +75,7 @@ function NotFoundUI() {
   );
 }
 
-function ErrorUI({ title, body }: { title: string; body: string }) {
+function ErrorUI({ title, body, sandbox }: { title: string; body: string; sandbox: boolean }) {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -62,6 +87,11 @@ function ErrorUI({ title, body }: { title: string; body: string }) {
         </div>
         <h1 className="text-xl font-bold text-gray-900">{title}</h1>
         <p className="mt-2 text-sm text-gray-400">{body}</p>
+        {sandbox && (
+          <div className="mt-4 flex justify-center">
+            <SandboxBadge />
+          </div>
+        )}
         <button
           onClick={() => window.location.reload()}
           className="mt-6 w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
@@ -73,7 +103,8 @@ function ErrorUI({ title, body }: { title: string; body: string }) {
   );
 }
 
-function PaidUI() {
+function PaidUI({ environment }: { environment: 'SANDBOX' | 'LIVE' }) {
+  const isSandbox = environment === 'SANDBOX';
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -82,14 +113,45 @@ function PaidUI() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Pagamento recebido</h1>
-        <p className="mt-2 text-sm text-gray-400">Este pedido de pagamento já foi liquidado.</p>
+        <h1 className="text-xl font-bold text-gray-900">
+          {isSandbox ? 'Pagamento de teste recebido' : 'Pagamento recebido'}
+        </h1>
+        <p className="mt-2 text-sm text-gray-400">
+          {isSandbox
+            ? 'Este pedido foi liquidado em ambiente sandbox.'
+            : 'Este pedido de pagamento foi liquidado.'}
+        </p>
+        <div className="mt-4 flex justify-center">
+          {isSandbox
+            ? <SandboxBadge extra="Dinheiro de teste" />
+            : <LiveBadge extra="Pagamento real" />}
+        </div>
+        {isSandbox && (
+          <p className="mt-3 text-xs text-yellow-600">Sem valor financeiro real.</p>
+        )}
       </div>
     </main>
   );
 }
 
-function ExpiredUI({ status }: { status: string }) {
+function TerminalUI({
+  environment,
+  status,
+}: {
+  environment: 'SANDBOX' | 'LIVE';
+  status: 'EXPIRED' | 'CANCELLED';
+}) {
+  const isSandbox  = environment === 'SANDBOX';
+  const isCancelled = status === 'CANCELLED';
+
+  const title = isCancelled
+    ? (isSandbox ? 'Pedido de teste cancelado'    : 'Pedido cancelado')
+    : (isSandbox ? 'Pedido de teste expirado'     : 'Pedido expirado');
+
+  const body = isCancelled
+    ? (isSandbox ? 'Este pedido sandbox foi cancelado.'              : 'Este pedido de pagamento foi cancelado.')
+    : (isSandbox ? 'Esta ligação sandbox já não está disponível.'    : 'Esta ligação de pagamento já não está disponível.');
+
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
@@ -98,16 +160,19 @@ function ExpiredUI({ status }: { status: string }) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </div>
-        <h1 className="text-xl font-bold text-gray-900">Link inválido</h1>
-        <p className="mt-2 text-sm text-gray-400">
-          {status === 'EXPIRED' ? 'Este pedido de pagamento expirou.' : 'Este pedido foi cancelado.'}
-        </p>
+        <h1 className="text-xl font-bold text-gray-900">{title}</h1>
+        <p className="mt-2 text-sm text-gray-400">{body}</p>
+        <div className="mt-4 flex justify-center">
+          {isSandbox
+            ? <SandboxBadge extra="Sem valor financeiro real" />
+            : <LiveBadge />}
+        </div>
       </div>
     </main>
   );
 }
 
-// ── Main client component ──────────────────────────────────────────────────────
+// ── Main client component ───────────────────────────────────────────────────
 
 export default function PayRequestClient({ code, sandbox }: { code: string; sandbox: boolean }) {
   const [phase, setPhase] = useState<Phase>('loading');
@@ -143,22 +208,26 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
     return () => { clearTimeout(tid); ctrl.abort(); };
   }, [code, sandbox]);
 
-  // ── State renders ──────────────────────────────────────────────────────────
+  // ── State renders ───────────────────────────────────────────────────────────
 
   if (phase === 'loading') return <LoadingUI />;
 
   if (phase === 'timeout')
-    return <ErrorUI title="Não foi possível carregar" body="Verifique a ligação e tente novamente." />;
+    return <ErrorUI sandbox={sandbox} title="Não foi possível carregar" body="Verifique a ligação e tente novamente." />;
 
   if (phase === 'network_error')
-    return <ErrorUI title="Erro de ligação" body="Não foi possível carregar o pedido." />;
+    return <ErrorUI sandbox={sandbox} title="Erro de ligação" body="Não foi possível carregar o pedido." />;
 
-  if (phase === 'not_found' || !link) return <NotFoundUI />;
+  if (phase === 'not_found' || !link) return <NotFoundUI sandbox={sandbox} />;
 
-  if (link.status === 'PAID')                                  return <PaidUI />;
-  if (link.status === 'EXPIRED' || link.status === 'CANCELLED') return <ExpiredUI status={link.status} />;
+  // Terminal states — use environment from the API response (server-injected,
+  // definitively reflects which backend was queried, not inferred from URL).
+  if (link.status === 'PAID') return <PaidUI environment={link.environment} />;
 
-  // ── ACTIVE payment card ────────────────────────────────────────────────────
+  if (link.status === 'EXPIRED' || link.status === 'CANCELLED')
+    return <TerminalUI environment={link.environment} status={link.status} />;
+
+  // ── ACTIVE payment card ─────────────────────────────────────────────────────
 
   const handle      = link.receiver_handle;
   const displayName = link.receiver_display_name;
@@ -200,9 +269,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
           {/* Sandbox badge */}
           {sandbox && (
             <div className="px-6 pt-3 pb-0 flex justify-center">
-              <span className="inline-flex items-center rounded-full border border-yellow-400 px-3 py-0.5 text-xs font-semibold text-yellow-700 bg-yellow-50">
-                SANDBOX
-              </span>
+              <SandboxBadge extra="Dinheiro de teste" />
             </div>
           )}
 
