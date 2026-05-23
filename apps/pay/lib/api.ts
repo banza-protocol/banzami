@@ -122,8 +122,12 @@ export interface ConsumerPayLink {
 
 export async function getConsumerPayLink(code: string, sandbox = false): Promise<ConsumerPayLink | null> {
   const base = sandbox ? STAGING_GATEWAY_URL : GATEWAY_URL;
+  // public-api-staging uses /v1/ prefix; api-gateway (live) uses /public/ prefix.
+  const path = sandbox
+    ? `/v1/consumer-pay-links/${encodeURIComponent(code)}`
+    : `/public/consumer-pay-links/${encodeURIComponent(code)}`;
   const res  = await fetch(
-    `${base}/public/consumer-pay-links/${encodeURIComponent(code)}`,
+    `${base}${path}`,
     { next: { revalidate: 0 } },
   );
   if (res.status === 404) return null;
