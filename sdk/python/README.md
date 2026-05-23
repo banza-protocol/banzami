@@ -143,6 +143,88 @@ finally:
     await client.close()
 ```
 
+## Payment links
+
+```python
+# Create a fixed-amount link
+link = await client.payment_links.create(
+    merchant_id="m_001",
+    wallet_id="wal_001",
+    amount=75000,           # 750 Kz
+    description="Compra online",
+)
+print(link.checkout_url)   # https://pay.banzami.co/{slug}
+
+# Open-amount link (payer enters the amount)
+link = await client.payment_links.create(
+    merchant_id="m_001",
+    wallet_id="wal_001",
+)
+
+# Poll status (no auth required)
+paid = await client.payment_links.check_status(link.slug)
+
+# Cancel a link
+await client.payment_links.cancel(link.id)
+```
+
+## Refunds
+
+```python
+refund = await client.refunds.create(
+    transaction_id="tx_001",
+    amount=20000,           # partial refund: 200 Kz
+    reason="Produto devolvido",
+)
+print(refund.status)       # PENDING → SUCCEEDED
+
+# List refunds for a transaction
+page = await client.refunds.list(transaction_id="tx_001")
+```
+
+## Disputes
+
+```python
+# Open a consumer dispute
+dispute = await client.disputes.open(
+    transaction_id="tx_001",
+    consumer_id="con_001",
+    amount=50000,
+    reason="Produto não recebido",
+)
+
+# Merchant submits evidence
+dispute = await client.disputes.add_evidence(
+    dispute.id,
+    evidence="https://storage.banzami.org/receipts/rec_001.pdf",
+)
+
+# List open disputes
+page = await client.disputes.list(status=DisputeStatus.OPEN)
+```
+
+## Payment requests (pedido de pagamento)
+
+```python
+from banza import PaymentRequestStatus
+
+# Request money from a specific @banza handle
+req = await client.payment_requests.create(
+    requester_id="con_001",
+    amount=30000,           # 300 Kz
+    payer_handle="@ana",
+    description="Jantar de ontem",
+)
+
+# Payer pays the request
+req = await client.payment_requests.pay(req.id)
+assert req.status == PaymentRequestStatus.PAID
+
+# Or decline / cancel
+await client.payment_requests.decline(req.id)
+await client.payment_requests.cancel(req.id)
+```
+
 ## Framework examples
 
 See the `examples/` directory for working integrations with:
