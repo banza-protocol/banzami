@@ -298,8 +298,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                       // QR area
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzaSpacing.xl, BanzaSpacing.xl,
                           BanzaSpacing.xl, BanzaSpacing.lg,
+                          BanzaSpacing.xl, BanzaSpacing.sm,
                         ),
                         child: Column(
                           children: [
@@ -313,13 +313,14 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             ),
                             if (_activeLink?.note != null &&
                                 _activeLink!.note!.trim().isNotEmpty) ...[
-                              const SizedBox(height: BanzaSpacing.md),
+                              const SizedBox(height: BanzaSpacing.xs),
                               Text(
                                 '"${_activeLink!.note!.trim()}"',
                                 style: BanzaTextStyles.bodyMd.copyWith(
                                   fontWeight: FontWeight.w500,
                                   fontStyle:  FontStyle.italic,
                                   color:      BanzaColors.gray700,
+                                  height:     1.2,
                                 ),
                                 textAlign: TextAlign.center,
                                 maxLines:  2,
@@ -327,10 +328,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               ),
                             ],
                             if (AppConfig.isSandbox) ...[
-                              const SizedBox(height: BanzaSpacing.sm),
+                              const SizedBox(height: BanzaSpacing.xs),
                               const SandboxBadge(),
                             ],
-                            const SizedBox(height: BanzaSpacing.lg),
+                            const SizedBox(height: BanzaSpacing.sm),
 
                             // Handle pill
                             GestureDetector(
@@ -384,7 +385,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
                       // Action buttons
                       Padding(
-                        padding: const EdgeInsets.all(BanzaSpacing.lg),
+                        padding: const EdgeInsets.fromLTRB(
+                          BanzaSpacing.lg, BanzaSpacing.sm,
+                          BanzaSpacing.lg, BanzaSpacing.lg,
+                        ),
                         child: Column(
                           children: [
                             BanzaPrimaryButton(
