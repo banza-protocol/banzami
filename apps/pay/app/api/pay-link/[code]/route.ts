@@ -11,7 +11,8 @@ export async function GET(
   try {
     const link = await getConsumerPayLink(params.code, sandbox);
     if (!link) return NextResponse.json(null, { status: 404 });
-    return NextResponse.json(link);
+    // Inject environment — the server knows definitively which backend was queried.
+    return NextResponse.json({ ...link, environment: sandbox ? 'SANDBOX' : 'LIVE' });
   } catch (err) {
     console.error('[api/pay-link] upstream error:', err);
     return NextResponse.json({ error: 'upstream unavailable' }, { status: 502 });

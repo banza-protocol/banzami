@@ -115,6 +115,8 @@ export interface ConsumerPayLink {
   currency:              string;
   locked:                boolean;
   status:                'ACTIVE' | 'PAID' | 'EXPIRED' | 'CANCELLED';
+  // Injected by the route handler — reflects which backend was queried.
+  environment:           'SANDBOX' | 'LIVE';
   expires_at:            string | null;
   created_at:            string;
   paid_at:               string | null;
