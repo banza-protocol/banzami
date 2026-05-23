@@ -39,6 +39,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // push a second PaymentRequestScreen for the same code.
   String?   _currentPaymentCode;
 
+  // ── Cold-start deferred link ───────────────────────────────────────────────
+  // On cold start the deep link fires before SplashScreen has bootstrapped the
+  // session. We park the code here and process it as soon as the session loads.
+  String?   _pendingRequestCode;
+
   String _normalizeUri(Uri uri) {
     final params = Map<String, String>.from(uri.queryParameters)..remove('sandbox');
     return Uri(
@@ -149,7 +154,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
     final ctx = _navigatorKey.currentContext;
     if (ctx == null) return;
     final session = ctx.read<SessionService>().session;
-    if (session == null) return;
+    if (session == null) {
+      // Cold start: session not ready yet — park and retry when session loads.
+      debugPrint('[deep-link] sessionNull=true code=$code — deferred');
+      _pendingRequestCode = code;
+      return;
+    }
+    _pendingRequestCode = null; // clear any stale pending
     final client = ctx.read<ConsumerPublicClient>();
 
     debugPrint('[deep-link] fetching pay link code=$code');
@@ -239,6 +250,15 @@ class _BanzamiAppState extends State<BanzamiApp> {
           final client = context.read<ConsumerPublicClient>();
           if (session.session != null) {
             client.setToken(session.session!.token);
+            // Cold-start deep link: session now ready — process any deferred code.
+            final pending = _pendingRequestCode;
+            if (pending != null) {
+              _pendingRequestCode = null;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                debugPrint('[deep-link] processingDeferred=true code=$pending');
+                _openPaymentRequest(pending);
+              });
+            }
           }
           // Auto-logout on 401: clear session and return to WelcomeScreen.
           client.onUnauthorized = () {

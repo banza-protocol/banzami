@@ -181,6 +181,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   const [link,  setLink]  = useState<ConsumerPayLink | null>(null);
   const [openPhase, setOpenPhase] = useState<OpenPhase>('idle');
   const openPhaseRef = useRef<OpenPhase>('idle');
+  const [returnedToBrowser, setReturnedToBrowser] = useState(false);
 
   function setOpen(p: OpenPhase) {
     openPhaseRef.current = p;
@@ -209,6 +210,20 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
       }
     }, 2500);
   }
+
+  // When the app opens and the user returns to the browser, detect it and
+  // reset the UI so they can easily tap the button again.
+  useEffect(() => {
+    if (openPhase !== 'app_opened') { setReturnedToBrowser(false); return; }
+    const onVis = () => {
+      if (!document.hidden) {
+        console.log('[pay/r] returnedToBrowser=true');
+        setReturnedToBrowser(true);
+      }
+    };
+    document.addEventListener('visibilitychange', onVis);
+    return () => document.removeEventListener('visibilitychange', onVis);
+  }, [openPhase]);
 
   useEffect(() => {
     console.log('[pay/r] mount code=' + code + ' sandbox=' + sandbox + ' autoOpenOnMount=false');
@@ -354,24 +369,55 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
               </div>
             )}
 
-            {/* ── app_opened: page visible again after app was opened ── */}
+            {/* ── app_opened: waiting in app, or returned to browser ── */}
             {openPhase === 'app_opened' && (
-              <div className="flex flex-col items-center gap-3 py-1">
-                <div className="flex items-center gap-1.5 text-sm text-gray-600">
-                  <svg className="h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24"
-                    stroke="currentColor" strokeWidth={2.5}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                  </svg>
-                  O Banza foi aberto. Completa o pagamento na app.
-                </div>
-                <button
-                  type="button"
-                  onClick={() => { window.location.href = deepLink; openApp(); }}
-                  className="text-sm font-medium text-wine underline"
+              returnedToBrowser ? (
+                // User is back in the browser — show the full button again
+                <a
+                  href={deepLink}
+                  onClick={openApp}
+                  style={{
+                    background: 'linear-gradient(135deg, #d90429 0%, #b00020 55%, #7a0014 100%)',
+                    boxShadow: '0 4px 20px rgba(176, 0, 32, 0.38), 0 1px 4px rgba(0, 0, 0, 0.14)',
+                  }}
+                  className="relative flex items-center justify-center gap-2.5 w-full h-14 text-white rounded-2xl text-base font-semibold tracking-tight overflow-hidden select-none transition-[transform,filter] duration-[120ms] ease-out hover:brightness-[1.07] active:scale-[0.985] active:brightness-90"
                 >
-                  Abrir Banza novamente
-                </button>
-              </div>
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{ background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0) 52%)' }}
+                  />
+                  <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
+                    aria-hidden className="relative shrink-0 opacity-[0.88]">
+                    <rect x="3"  y="3"  width="7" height="7" rx="1" />
+                    <rect x="14" y="3"  width="7" height="7" rx="1" />
+                    <rect x="3"  y="14" width="7" height="7" rx="1" />
+                    <circle cx="17.5" cy="17.5" r="2.5" />
+                  </svg>
+                  <span className="relative">
+                    {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banza'}
+                  </span>
+                </a>
+              ) : (
+                // App is open — show confirmation while user pays
+                <div className="flex flex-col items-center gap-3 py-1">
+                  <div className="flex items-center gap-1.5 text-sm text-gray-600">
+                    <svg className="h-4 w-4 shrink-0 text-green-500" fill="none" viewBox="0 0 24 24"
+                      stroke="currentColor" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                    </svg>
+                    O Banza foi aberto. Completa o pagamento na app.
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = deepLink; openApp(); }}
+                    className="text-sm font-medium text-wine underline"
+                  >
+                    Abrir Banza novamente
+                  </button>
+                </div>
+              )
             )}
 
             {/* ── not_installed: app never opened after 2.5 s ── */}
