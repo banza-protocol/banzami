@@ -140,7 +140,7 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
           ),
         ),
         if (widget.amountLabel != null) ...[
-          const SizedBox(height: BanzaSpacing.lg),
+          const SizedBox(height: BanzaSpacing.sm),
           Text(
             widget.amountLabel!,
             style: BanzaTextStyles.monoLg.copyWith(color: BanzaColors.gray900),
