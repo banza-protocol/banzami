@@ -314,7 +314,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                     const SizedBox(height: BanzaSpacing.sm),
                     Text('Solicitou um pagamento',
                         style: BanzaTextStyles.bodySm.copyWith(
-                            color: BanzaColors.gray500)),
+                            color: BanzaColors.gray400)),
 
                     const SizedBox(height: BanzaSpacing.xl),
 
