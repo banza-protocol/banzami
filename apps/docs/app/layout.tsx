@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { Inter } from 'next/font/google'
 import { getReference } from '@/lib/reference'
 import { SectionNav } from '@/components/SectionNav'
+import { BackToTop } from '@/components/BackToTop'
 import './globals.css'
 
 const inter = Inter({
@@ -147,6 +148,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           </div>
         </footer>
+
+        <BackToTop />
       </body>
     </html>
   )
