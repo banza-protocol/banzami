@@ -192,6 +192,7 @@ services:
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_GATEWAY_URL: https://api.banzami.org
+      STAGING_GATEWAY_URL:     http://public-api-staging:8083
     ports:
       - "3002:3002"
     depends_on:

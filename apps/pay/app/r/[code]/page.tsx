@@ -3,7 +3,8 @@ import type { Metadata } from 'next';
 import { getConsumerPayLink, formatAmount } from '@/lib/api';
 
 interface Props {
-  params: { code: string };
+  params:       { code: string };
+  searchParams: { sandbox?: string };
 }
 
 export function generateMetadata({ params }: Props): Metadata {
@@ -13,8 +14,9 @@ export function generateMetadata({ params }: Props): Metadata {
   };
 }
 
-export default async function PaymentRequestPage({ params }: Props) {
-  const link = await getConsumerPayLink(params.code);
+export default async function PaymentRequestPage({ params, searchParams }: Props) {
+  const sandbox = searchParams.sandbox === '1';
+  const link    = await getConsumerPayLink(params.code, sandbox);
   if (!link) notFound();
 
   if (link.status === 'PAID') {
@@ -58,9 +60,9 @@ export default async function PaymentRequestPage({ params }: Props) {
     : null;
   const initial      = (displayName ?? handle)[0]?.toUpperCase() ?? 'B';
 
-  // Use the pay-link code path so Flutter calls payConsumerPayLink(),
-  // not sendByHandle() — this enforces backend amount authority and link lifecycle.
-  const deepLink = `banza://pay?request=${params.code}`;
+  // Sandbox links use banza-sandbox:// so the app routes them to the staging API.
+  const scheme   = sandbox ? 'banza-sandbox' : 'banza';
+  const deepLink = `${scheme}://pay?request=${params.code}`;
 
   return (
     <main className="min-h-screen bg-off-white flex flex-col items-center justify-center p-4">
