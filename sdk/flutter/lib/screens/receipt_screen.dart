@@ -525,7 +525,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           horizontal: BanzaSpacing.xl,
                         ),
                         child: Column(children: [
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 6),
 
                           // Verified mark with rotating dashed ring
                           ScaleTransition(
@@ -533,7 +533,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             child: const BanzaVerifiedMark(size: 96),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.sm),
+                          const SizedBox(height: 4),
 
                           Text(
                             'Enviado com sucesso',
@@ -561,7 +561,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           ),
 
                           if (widget.isSandbox) ...[
-                            const SizedBox(height: 12),
+                            const SizedBox(height: 8),
                             Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 5,
@@ -584,18 +584,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                 ),
                               ),
                             ),
-                            const SizedBox(height: 5),
-                            Text(
-                              'Transação de teste sem valor financeiro real.',
-                              style: BanzaTextStyles.bodySm.copyWith(
-                                color:    const Color(0xFFD97706).withValues(alpha: 0.70),
-                                fontSize: 11.5,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
                           ],
 
-                          const SizedBox(height: BanzaSpacing.md),
+                          const SizedBox(height: BanzaSpacing.sm),
 
                           // ── Glass detail card ──────────────────────────
                           Container(
@@ -626,7 +617,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ]),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.lg),
+                          const SizedBox(height: BanzaSpacing.md),
 
                           // ── Concluído ──────────────────────────────────
                           SizedBox(
@@ -778,7 +769,7 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
