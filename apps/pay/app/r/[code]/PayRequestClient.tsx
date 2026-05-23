@@ -164,8 +164,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   const displayName = link.receiver_display_name;
   const amtDisplay  = link.amount_minor != null ? formatAmt(link.amount_minor, link.currency) : null;
   const initial     = (displayName ?? handle)[0]?.toUpperCase() ?? 'B';
-  const scheme      = sandbox ? 'banza-sandbox' : 'banza';
-  const deepLink    = `${scheme}://pay?request=${code}`;
+  const deepLink    = `banza://pay?request=${code}${sandbox ? '&sandbox=1' : ''}`;
 
   return (
     <main className="min-h-screen bg-off-white flex flex-col items-center justify-center p-4">
