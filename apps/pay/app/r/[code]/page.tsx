@@ -16,7 +16,15 @@ export function generateMetadata({ params }: Props): Metadata {
 
 export default async function PaymentRequestPage({ params, searchParams }: Props) {
   const sandbox = searchParams.sandbox === '1';
-  const link    = await getConsumerPayLink(params.code, sandbox);
+
+  let link: Awaited<ReturnType<typeof getConsumerPayLink>>;
+  try {
+    link = await getConsumerPayLink(params.code, sandbox);
+  } catch (err) {
+    console.error('[pay/r] API fetch failed:', err);
+    throw err; // bubbles to error.tsx
+  }
+
   if (!link) notFound();
 
   if (link.status === 'PAID') {
