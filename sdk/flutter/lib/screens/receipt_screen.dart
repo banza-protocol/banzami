@@ -486,12 +486,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   }
 
   // Screenshot detected — dismissable warning with PDF share guidance.
+  // Fully opaque so any subsequent screenshot only captures the warning.
   Widget _buildScreenshotWarning() {
     return Positioned.fill(
       child: GestureDetector(
         onTap: () => setState(() => _screenshotTaken = false),
         child: Container(
-          color: const Color(0xF03D0008),
+          color: const Color(0xFF1A0004),
           child: SafeArea(
             child: Center(
               child: Column(
