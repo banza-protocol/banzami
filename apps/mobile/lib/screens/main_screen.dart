@@ -74,9 +74,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Locking is handled globally by SecureAppLifecycleGuard.
+    // MainScreen only manages its own notification polling here.
     if (state == AppLifecycleState.paused) {
       _notifSvc?.stopPolling();
-      context.read<SessionService>().lock();
     } else if (state == AppLifecycleState.resumed) {
       _notifSvc?.startPolling();
     }

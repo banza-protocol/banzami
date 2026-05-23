@@ -8,10 +8,28 @@ import '../widgets/pin_pad.dart';
 import 'main_screen.dart';
 import 'onboarding/welcome_screen.dart';
 
-/// PIN entry screen — shown when the app is locked (foreground resume or cold start
-/// with an existing session).  Offers biometric unlock when enabled.
+/// PIN entry screen — used in two modes:
+///
+/// **Cold-start / session lock** (`isAppLock = false`, default):
+///   On success, pushes MainScreen via pushReplacement (full navigation reset).
+///
+/// **App-lock overlay** (`isAppLock = true`):
+///   On success, calls [onUnlocked] and pops itself so the previous route
+///   (MainScreen or any pushed screen) is revealed.  Does NOT push MainScreen.
 class PinScreen extends StatefulWidget {
-  const PinScreen({super.key});
+  /// When true the screen is acting as an app-lock overlay, not the initial
+  /// login screen.  Changes post-unlock navigation and adds a lock icon.
+  final bool          isAppLock;
+
+  /// Called immediately after a successful unlock when [isAppLock] is true.
+  /// The guard uses this to reset its overlay state before the route pops.
+  final VoidCallback? onUnlocked;
+
+  const PinScreen({
+    super.key,
+    this.isAppLock  = false,
+    this.onUnlocked,
+  });
 
   @override
   State<PinScreen> createState() => _PinScreenState();
@@ -50,13 +68,18 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     final ok = await svc.authenticateWithBiometrics();
     if (ok && mounted) {
       svc.unlock();
-      Navigator.of(context).pushReplacement(
-        PageRouteBuilder(
-          pageBuilder: (_, __, ___) => const MainScreen(),
-          transitionDuration: Duration.zero,
-          reverseTransitionDuration: Duration.zero,
-        ),
-      );
+      if (widget.isAppLock) {
+        widget.onUnlocked?.call();
+        Navigator.of(context).pop();
+      } else {
+        Navigator.of(context).pushReplacement(
+          PageRouteBuilder(
+            pageBuilder: (_, __, ___) => const MainScreen(),
+            transitionDuration: Duration.zero,
+            reverseTransitionDuration: Duration.zero,
+          ),
+        );
+      }
     }
   }
 
@@ -97,13 +120,18 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
       } catch (_) {}
       svc.unlock();
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder(
-            pageBuilder: (_, __, ___) => const MainScreen(),
-            transitionDuration: Duration.zero,
-            reverseTransitionDuration: Duration.zero,
-          ),
-        );
+        if (widget.isAppLock) {
+          widget.onUnlocked?.call();
+          Navigator.of(context).pop();
+        } else {
+          Navigator.of(context).pushReplacement(
+            PageRouteBuilder(
+              pageBuilder: (_, __, ___) => const MainScreen(),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+        }
       }
     } else {
       _failedAttempts += 1;
@@ -156,6 +184,23 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const SizedBox(height: 24),
+
+                  if (widget.isAppLock) ...[
+                    Container(
+                      width:  52,
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color:        const Color(0xFF3D0008).withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.lock_rounded,
+                        color: Color(0xFF3D0008),
+                        size:  26,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
 
                   if (session?.displayName != null)
                     Text(

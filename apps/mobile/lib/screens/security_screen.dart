@@ -74,11 +74,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
                   ),
                 if (hasBio)
                   const Divider(height: 1, indent: 56, color: BanzaColors.gray100),
-                _RowChevron(
-                  icon:  Icons.timer_outlined,
-                  label: 'Bloqueio automático',
-                  sub:   'Após 5 minutos',
-                  onTap: () => _showComingSoon('Bloqueio automático'),
+                const _RowStatus(
+                  icon:   Icons.timer_outlined,
+                  label:  'Bloqueio automático',
+                  sub:    'Activo ao sair da aplicação',
+                  status: 'Activado',
                 ),
               ]);
             },
@@ -174,13 +174,11 @@ class _SettingsCard extends StatelessWidget {
 class _RowChevron extends StatelessWidget {
   final IconData     icon;
   final String       label;
-  final String?      sub;
   final VoidCallback onTap;
 
   const _RowChevron({
     required this.icon,
     required this.label,
-    this.sub,
     required this.onTap,
   });
 
@@ -205,9 +203,6 @@ class _RowChevron extends StatelessWidget {
                     style: BanzaTextStyles.bodyMd.copyWith(
                       fontWeight: FontWeight.w500,
                     )),
-                if (sub != null)
-                  Text(sub!,
-                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
               ],
             ),
           ),
@@ -287,6 +282,61 @@ class _IconChip extends StatelessWidget {
         borderRadius: BanzaRadius.mdAll,
       ),
       child: Icon(icon, color: BanzaColors.wine, size: 18),
+    );
+  }
+}
+
+/// Read-only row that shows a feature is active — no tap action.
+class _RowStatus extends StatelessWidget {
+  final IconData icon;
+  final String   label;
+  final String   sub;
+  final String   status;
+
+  const _RowStatus({
+    required this.icon,
+    required this.label,
+    required this.sub,
+    required this.status,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzaSpacing.lg,
+        vertical:   BanzaSpacing.md + 2,
+      ),
+      child: Row(children: [
+        _IconChip(icon: icon),
+        const SizedBox(width: BanzaSpacing.md),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize:       MainAxisSize.min,
+            children: [
+              Text(label,
+                  style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
+              Text(sub,
+                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
+            ],
+          ),
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color:        BanzaColors.wine.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            status,
+            style: BanzaTextStyles.label.copyWith(
+              color:    BanzaColors.wine,
+              fontSize: 11,
+            ),
+          ),
+        ),
+      ]),
     );
   }
 }
