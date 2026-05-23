@@ -17,9 +17,13 @@ from .exceptions import (
     api_error_from_response,
 )
 from .resources import (
+    DisputesResource,
     MerchantsResource,
+    PaymentLinksResource,
+    PaymentRequestsResource,
     PayoutsResource,
     QrPaymentsResource,
+    RefundsResource,
     TransactionsResource,
     TransfersResource,
     WalletsResource,
@@ -116,13 +120,17 @@ class BanzaClient:
         )
 
         # Resources
-        self.transactions = TransactionsResource(self)
-        self.qr_payments  = QrPaymentsResource(self)
-        self.transfers    = TransfersResource(self)
-        self.payouts      = PayoutsResource(self)
-        self.wallets      = WalletsResource(self)
-        self.merchants    = MerchantsResource(self)
-        self.webhooks     = WebhooksResource(self, webhook_secret)
+        self.transactions    = TransactionsResource(self)
+        self.qr_payments     = QrPaymentsResource(self)
+        self.transfers       = TransfersResource(self)
+        self.payouts         = PayoutsResource(self)
+        self.wallets         = WalletsResource(self)
+        self.merchants       = MerchantsResource(self)
+        self.webhooks        = WebhooksResource(self, webhook_secret)
+        self.payment_links   = PaymentLinksResource(self)
+        self.refunds         = RefundsResource(self)
+        self.disputes        = DisputesResource(self)
+        self.payment_requests = PaymentRequestsResource(self)
 
     # ------------------------------------------------------------------
     # Context manager support
