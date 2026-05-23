@@ -294,7 +294,7 @@ class BanzamiReceiptScreen extends StatefulWidget {
 }
 
 class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
   late final AnimationController _ctrl;
   late final Animation<double>   _markScale;
   late final Animation<double>   _fade;
@@ -304,8 +304,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   Timer?                    _liveTimer;
 
   // Screen-capture protection state.
-  bool                      _isCaptured = false;
+  bool                      _isCaptured       = false;
+  bool                      _isBackground     = false;
+  bool                      _screenshotTaken  = false;
   StreamSubscription<bool>? _captureSub;
+  StreamSubscription<void>? _screenshotSub;
 
   // Key used to compute the share button's on-screen position for iOS
   // UIActivityViewController anchor (required on iPad, good practice on iPhone).
@@ -333,18 +336,35 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       if (mounted) setState(() => _liveTime = DateTime.now());
     });
 
+    WidgetsBinding.instance.addObserver(this);
+
     BanzaScreenSecurity.setSecure(true);
     _captureSub = BanzaScreenSecurity.captureState.listen(
       (v) { if (mounted) setState(() => _isCaptured = v); },
-      onError: (_) {},      // silently ignore — no platform channel in tests
+      onError: (_) {},
+      cancelOnError: false,
+    );
+    _screenshotSub = BanzaScreenSecurity.screenshotTaken.listen(
+      (_) { if (mounted) setState(() => _screenshotTaken = true); },
+      onError: (_) {},
       cancelOnError: false,
     );
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final background = state == AppLifecycleState.inactive ||
+                       state == AppLifecycleState.paused   ||
+                       state == AppLifecycleState.hidden;
+    if (mounted) setState(() => _isBackground = background);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _liveTimer?.cancel();
     _captureSub?.cancel();
+    _screenshotSub?.cancel();
     BanzaScreenSecurity.setSecure(false);
     _ctrl.dispose();
     super.dispose();
@@ -423,8 +443,14 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     }
   }
 
-  // ── Capture overlay ────────────────────────────────────────────────────────
+  // ── Security overlays ──────────────────────────────────────────────────────
 
+  // App switcher / background — pure black so no content leaks in the preview.
+  Widget _buildPrivacyBlackout() => const Positioned.fill(
+    child: ColoredBox(color: Colors.black),
+  );
+
+  // Screen recording / mirroring — dark wine with camera-off icon.
   Widget _buildCaptureOverlay() {
     return Positioned.fill(
       child: Container(
@@ -442,18 +468,70 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                 const SizedBox(height: 16),
                 Text(
                   'Comprovativo protegido',
-                  style: BanzaTextStyles.headingSm.copyWith(
-                    color: Colors.white,
-                  ),
+                  style: BanzaTextStyles.headingSm.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Não é possível capturar o ecrã',
+                  'Não é possível capturar este ecrã',
                   style: BanzaTextStyles.bodyMd.copyWith(
                     color: Colors.white.withValues(alpha: 0.60),
                   ),
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Screenshot detected — dismissable warning with PDF share guidance.
+  Widget _buildScreenshotWarning() {
+    return Positioned.fill(
+      child: GestureDetector(
+        onTap: () => setState(() => _screenshotTaken = false),
+        child: Container(
+          color: const Color(0xF03D0008),
+          child: SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.camera_rounded,
+                    color: Colors.white54,
+                    size:  56,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Captura detectada',
+                    style: BanzaTextStyles.headingSm.copyWith(
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Text(
+                      'Partilhe apenas o comprovativo PDF verificável.',
+                      style: BanzaTextStyles.bodyMd.copyWith(
+                        color: Colors.white.withValues(alpha: 0.60),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  TextButton(
+                    onPressed: () => setState(() => _screenshotTaken = false),
+                    child: Text(
+                      'Dispensar',
+                      style: BanzaTextStyles.bodyMd.copyWith(
+                        color: Colors.white.withValues(alpha: 0.45),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -742,8 +820,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
             ),
           ),
 
-          // ── Capture protection overlay (iOS mirroring / recording) ─────
-          if (_isCaptured) _buildCaptureOverlay(),
+          // ── Security overlays (order matters — blackout always on top) ──
+          if (_isCaptured)      _buildCaptureOverlay(),
+          if (_screenshotTaken) _buildScreenshotWarning(),
+          if (_isBackground)    _buildPrivacyBlackout(),
         ],
       ),
     );

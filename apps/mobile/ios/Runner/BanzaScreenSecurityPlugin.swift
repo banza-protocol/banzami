@@ -77,10 +77,8 @@ final class BanzaScreenSecurityPlugin: NSObject, FlutterPlugin, FlutterStreamHan
   }
 
   @objc private func screenshotTaken() {
-    // A screenshot was taken; emit true briefly so the Dart layer can react.
-    eventSink?(true)
-    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-      self?.eventSink?(UIScreen.main.isCaptured)
-    }
+    // Emit a string sentinel distinct from the Bool capture-state events so
+    // the Dart layer can display a different warning for screenshots vs recording.
+    eventSink?("screenshot")
   }
 }
