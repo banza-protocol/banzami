@@ -184,10 +184,10 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                     child: Row(
                       children: [
                         BanzaActionTile(
-                          icon:    Icons.qr_code_rounded,
-                          label:   'QR Code',
-                          onTap:   _onScan,
-                          primary: true,
+                          icon:   Icons.qr_code_rounded,
+                          label:  'QR Code',
+                          onTap:  _onScan,
+                          accent: true,
                         ),
                         const SizedBox(width: BanzaSpacing.md),
                         BanzaActionTile(
@@ -371,7 +371,7 @@ class _TopBar extends StatelessWidget {
 }
 
 // =============================================================================
-// Balance card — light floating card
+// Balance card — premium gradient hero
 // =============================================================================
 
 class _BalanceCard extends StatelessWidget {
@@ -391,79 +391,151 @@ class _BalanceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BanzaCard(
-      shadow: BanzaShadows.cardElevated,
-      padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, BanzaSpacing.xl,
-        BanzaSpacing.xl, BanzaSpacing.xl,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize:       MainAxisSize.min,
-        children: [
-          // Label + eye
-          Row(
-            children: [
-              Text(
-                'Saldo disponível',
-                style: BanzaTextStyles.bodySm.copyWith(
-                  color:      BanzaColors.gray400,
-                  fontWeight: FontWeight.w500,
-                  fontSize:   13,
-                ),
-              ),
-              const SizedBox(width: BanzaSpacing.sm),
-              GestureDetector(
-                onTap: onToggle,
-                child: Icon(
-                  balanceVisible
-                      ? Icons.visibility_outlined
-                      : Icons.visibility_off_outlined,
-                  color: BanzaColors.gray400,
-                  size:  18,
-                ),
-              ),
-            ],
+    return Container(
+      decoration: BoxDecoration(
+        gradient: BanzaGradients.wine,
+        borderRadius: BanzaRadius.xxlAll,
+        boxShadow: [
+          BoxShadow(
+            color:        const Color(0xFF990011).withValues(alpha: 0.42),
+            blurRadius:   36,
+            offset:       const Offset(0, 12),
+            spreadRadius: -6,
           ),
-          const SizedBox(height: BanzaSpacing.sm),
-          // Amount
-          if (loading)
-            Container(
-              height: 48,
-              width:  160,
+          BoxShadow(
+            color:        const Color(0xFF5E000A).withValues(alpha: 0.22),
+            blurRadius:   8,
+            offset:       const Offset(0, 3),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          // ── Decorative depth layers ──────────────────────────────────────
+          // Large glow disc — top-right
+          Positioned(
+            top:   -50,
+            right: -40,
+            child: Container(
+              width:  180,
+              height: 180,
               decoration: BoxDecoration(
-                color:        BanzaColors.gray100,
-                borderRadius: BanzaRadius.smAll,
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.07),
               ),
-            )
-          else
-            AnimatedSwitcher(
-              duration:       BanzaMotion.normal,
-              switchInCurve:  BanzaMotion.decelerate,
-              switchOutCurve: BanzaMotion.accelerate,
-              child: Text(
-                key: ValueKey(balanceVisible),
-                balanceVisible
-                    ? (balance?.availableFormatted ?? (error != null ? '— Kz' : '0,00 Kz'))
-                    : '• • • • •',
-                style: TextStyle(
-                  fontFamily:   'JetBrains Mono',
-                  fontSize:     32,
-                  fontWeight:   FontWeight.w700,
-                  color:        BanzaColors.gray900,
-                  height:       1.1,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          // Smaller inner disc
+          Positioned(
+            top:   10,
+            right: 50,
+            child: Container(
+              width:  80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withValues(alpha: 0.04),
+              ),
+            ),
+          ),
+          // Diagonal highlight streak — top-left Apple-style reflection
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin:  Alignment.topLeft,
+                  end:    Alignment.centerRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.10),
+                    Colors.transparent,
+                  ],
+                  stops: const [0.0, 0.55],
                 ),
               ),
             ),
-          if (error != null && !loading)
-            Padding(
-              padding: const EdgeInsets.only(top: BanzaSpacing.xs),
-              child: Text(
-                error!,
-                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
-              ),
+          ),
+          // ── Content ─────────────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 22, 24, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize:       MainAxisSize.min,
+              children: [
+                // Label row
+                Row(
+                  children: [
+                    Text(
+                      'Saldo disponível',
+                      style: TextStyle(
+                        color:      Colors.white.withValues(alpha: 0.72),
+                        fontSize:   13,
+                        fontWeight: FontWeight.w500,
+                        height:     1.2,
+                      ),
+                    ),
+                    const SizedBox(width: BanzaSpacing.sm),
+                    GestureDetector(
+                      onTap: onToggle,
+                      child: Icon(
+                        balanceVisible
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: Colors.white.withValues(alpha: 0.72),
+                        size:  17,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                // Amount
+                if (loading)
+                  Container(
+                    height: 44,
+                    width:  160,
+                    decoration: BoxDecoration(
+                      color:        Colors.white.withValues(alpha: 0.15),
+                      borderRadius: BanzaRadius.smAll,
+                    ),
+                  )
+                else
+                  AnimatedSwitcher(
+                    duration:       BanzaMotion.normal,
+                    switchInCurve:  BanzaMotion.decelerate,
+                    switchOutCurve: BanzaMotion.accelerate,
+                    child: Text(
+                      key: ValueKey(balanceVisible),
+                      balanceVisible
+                          ? (balance?.availableFormatted ?? (error != null ? '— Kz' : '0,00 Kz'))
+                          : '• • • • •',
+                      style: const TextStyle(
+                        fontFamily:   'JetBrains Mono',
+                        fontSize:     36,
+                        fontWeight:   FontWeight.w700,
+                        color:        Colors.white,
+                        height:       1.1,
+                        fontFeatures: [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                const SizedBox(height: 10),
+                // Subtitle / error
+                Text(
+                  error != null && !loading
+                      ? error!
+                      : 'Saldo na sua carteira Banza',
+                  style: TextStyle(
+                    color:      error != null && !loading
+                        ? Colors.white.withValues(alpha: 0.85)
+                        : Colors.white.withValues(alpha: 0.52),
+                    fontSize:   13,
+                    fontWeight: FontWeight.w400,
+                    height:     1.3,
+                  ),
+                ),
+              ],
             ),
+          ),
         ],
       ),
     );

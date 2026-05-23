@@ -449,10 +449,13 @@ class BanzaSectionTitle extends StatelessWidget {
 // =============================================================================
 
 class BanzaActionTile extends StatefulWidget {
-  final IconData icon;
-  final String   label;
+  final IconData     icon;
+  final String       label;
   final VoidCallback onTap;
+  /// Full wine-gradient tile — strongest visual weight.
   final bool primary;
+  /// Wine-tinted icon on white tile — secondary prominence, used for QR.
+  final bool accent;
 
   const BanzaActionTile({
     super.key,
@@ -460,6 +463,7 @@ class BanzaActionTile extends StatefulWidget {
     required this.label,
     required this.onTap,
     this.primary = false,
+    this.accent  = false,
   });
 
   @override
@@ -489,7 +493,9 @@ class _BanzaActionTileState extends State<BanzaActionTile>
 
   @override
   Widget build(BuildContext context) {
-    final fg = widget.primary ? BanzaColors.white : BanzaColors.gray900;
+    final isPrimary = widget.primary;
+    final isAccent  = widget.accent && !isPrimary;
+    final fg        = isPrimary ? BanzaColors.white : BanzaColors.gray900;
 
     return Expanded(
       child: ScaleTransition(
@@ -499,14 +505,12 @@ class _BanzaActionTileState extends State<BanzaActionTile>
           onTapUp:     (_) { _ctrl.forward(); widget.onTap(); },
           onTapCancel: ()  => _ctrl.forward(),
           child: Container(
-            padding: const EdgeInsets.symmetric(
-              vertical: BanzaSpacing.lg,
-            ),
+            padding: const EdgeInsets.symmetric(vertical: BanzaSpacing.lg),
             decoration: BoxDecoration(
-              color:        widget.primary ? null : BanzaColors.white,
-              gradient:     widget.primary ? BanzaGradients.wine : null,
+              color:        isPrimary ? null : BanzaColors.white,
+              gradient:     isPrimary ? BanzaGradients.wine : null,
               borderRadius: BanzaRadius.xlAll,
-              boxShadow: widget.primary ? [
+              boxShadow: isPrimary ? [
                 BoxShadow(
                   color:        BanzaColors.wine.withValues(alpha: 0.38),
                   blurRadius:   18,
@@ -538,18 +542,24 @@ class _BanzaActionTileState extends State<BanzaActionTile>
                   width:  40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: widget.primary
+                    color: isPrimary
                         ? BanzaColors.white.withValues(alpha: 0.20)
-                        : BanzaColors.gray100,
+                        : isAccent
+                            ? BanzaColors.wine.withValues(alpha: 0.09)
+                            : BanzaColors.gray100,
                     shape: BoxShape.circle,
-                    border: widget.primary
+                    border: isPrimary
                         ? Border.all(
                             color: BanzaColors.white.withValues(alpha: 0.30),
                             width: 1,
                           )
                         : null,
                   ),
-                  child: Icon(widget.icon, color: fg, size: 20),
+                  child: Icon(
+                    widget.icon,
+                    color: isAccent ? BanzaColors.wine : fg,
+                    size:  20,
+                  ),
                 ),
                 const SizedBox(height: BanzaSpacing.sm),
                 Text(
