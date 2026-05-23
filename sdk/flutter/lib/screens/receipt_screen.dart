@@ -560,6 +560,41 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ),
                           ),
 
+                          if (widget.isSandbox) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color:        const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: const Color(0xFFF6C453),
+                                  width: 1.0,
+                                ),
+                              ),
+                              child: Text(
+                                'SANDBOX  •  Dinheiro de teste',
+                                style: BanzaTextStyles.bodySm.copyWith(
+                                  color:         const Color(0xFF92400E),
+                                  fontSize:      11.5,
+                                  fontWeight:    FontWeight.w700,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            Text(
+                              'Transação de teste sem valor financeiro real.',
+                              style: BanzaTextStyles.bodySm.copyWith(
+                                color:    const Color(0xFFD97706).withValues(alpha: 0.70),
+                                fontSize: 11.5,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
+
                           const SizedBox(height: BanzaSpacing.md),
 
                           // ── Glass detail card ──────────────────────────
@@ -694,9 +729,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Comprovativo válido apenas no ecrã vivo da app',
+                            widget.isSandbox
+                                ? 'Comprovativo sandbox  •  sem valor financeiro real'
+                                : 'Comprovativo válido apenas no ecrã vivo da app',
                             style: BanzaTextStyles.bodySm.copyWith(
-                              color:    Colors.white.withValues(alpha: 0.38),
+                              color: widget.isSandbox
+                                  ? const Color(0xFFD97706).withValues(alpha: 0.65)
+                                  : Colors.white.withValues(alpha: 0.38),
                               fontSize: 11,
                             ),
                             textAlign: TextAlign.center,
