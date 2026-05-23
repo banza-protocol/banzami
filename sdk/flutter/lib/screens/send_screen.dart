@@ -51,7 +51,6 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   String? _handleError;
   String? _amountError;
 
-  bool    _handleFocused    = false;
   List<ConsumerSuggestion> _suggestions = [];
   ConsumerSuggestion? _selectedSuggestion;
   bool    _searching        = false;
@@ -63,7 +62,6 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   void initState() {
     super.initState();
     _handleFocus.addListener(() {
-      setState(() => _handleFocused = _handleFocus.hasFocus);
       if (!_handleFocus.hasFocus) {
         setState(() => _suggestions = []);
         _validateHandleOnBlur();
@@ -171,81 +169,107 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   @override
   Widget build(BuildContext context) {
     return BanzaScaffold(
-      appBar: const BanzaAppBar(title: 'Enviar'),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(BanzaSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Para quem?',
-                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
-              ),
-              const SizedBox(height: BanzaSpacing.sm),
-              TextField(
-                controller:      _handleCtrl,
-                focusNode:       _handleFocus,
-                decoration: InputDecoration(
-                  prefixText: '@',
-                  hintText:  _handleFocused ? 'banza do destinatário' : '@banza do destinatário',
-                  errorText: _handleError,
-                  suffixIcon: (_searching || _validatingHandle)
-                      ? const Padding(
-                          padding: EdgeInsets.all(12),
-                          child: SizedBox(
-                            width: 16, height: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      : _handleConfirmed
-                          ? const Icon(Icons.check_circle, color: Color(0xFF166534), size: 20)
-                          : null,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Back button
+            IconButton(
+              icon:    const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
+              color:   BanzaColors.gray900,
+              padding: const EdgeInsets.fromLTRB(BanzaSpacing.md, BanzaSpacing.md, BanzaSpacing.md, 0),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+
+            // Scrollable form
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(
+                  BanzaSpacing.xl, BanzaSpacing.md,
+                  BanzaSpacing.xl, BanzaSpacing.xxl,
                 ),
-                autocorrect:     false,
-                textInputAction: TextInputAction.next,
-                onChanged:       _onHandleChanged,
-              ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Large premium title
+                    const Text('Enviar', style: BanzaTextStyles.displayMd),
+                    const SizedBox(height: BanzaSpacing.xxl),
 
-              if (_suggestions.isNotEmpty)
-                _SuggestionList(
-                  suggestions: _suggestions,
-                  onTap:       _selectSuggestion,
+                    // ── Para quem? ─────────────────────────────────────────
+                    Text(
+                      'Para quem?',
+                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                    ),
+                    const SizedBox(height: BanzaSpacing.sm),
+                    TextField(
+                      controller:      _handleCtrl,
+                      focusNode:       _handleFocus,
+                      decoration: InputDecoration(
+                        prefixText: '@',
+                        hintText:   'banza do destinatário',
+                        errorText:  _handleError,
+                        suffixIcon: (_searching || _validatingHandle)
+                            ? const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: SizedBox(
+                                  width: 16, height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzaColors.wine),
+                                ),
+                              )
+                            : _handleConfirmed
+                                ? const Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 20)
+                                : null,
+                      ),
+                      style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray900),
+                      autocorrect:     false,
+                      textInputAction: TextInputAction.next,
+                      onChanged:       _onHandleChanged,
+                    ),
+
+                    if (_suggestions.isNotEmpty)
+                      _SuggestionList(
+                        suggestions: _suggestions,
+                        onTap:       _selectSuggestion,
+                      ),
+
+                    // ── Quanto? ────────────────────────────────────────────
+                    const SizedBox(height: BanzaSpacing.xl),
+                    Text(
+                      'Quanto?',
+                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                    ),
+                    const SizedBox(height: BanzaSpacing.sm),
+                    BanzaAmountInput(
+                      initialAmountMinor: widget.initialAmount,
+                      onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
+                      errorText:  _amountError,
+                    ),
+
+                    // ── Descrição ──────────────────────────────────────────
+                    const SizedBox(height: BanzaSpacing.xl),
+                    Text(
+                      'Descrição (opcional)',
+                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                    ),
+                    const SizedBox(height: BanzaSpacing.sm),
+                    BanzaTextField(
+                      controller:        _descCtrl,
+                      hint:              'Ex: jantar de ontem',
+                      textInputAction:   TextInputAction.done,
+                      onEditingComplete: _send,
+                    ),
+
+                    const SizedBox(height: BanzaSpacing.xxl),
+                    BanzaPrimaryButton(
+                      label:     'Continuar',
+                      isLoading: _validatingHandle,
+                      onPressed: _send,
+                    ),
+                  ],
                 ),
-
-              const SizedBox(height: BanzaSpacing.xl),
-              Text(
-                'Quanto?',
-                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
               ),
-              const SizedBox(height: BanzaSpacing.sm),
-              BanzaAmountInput(
-                initialAmountMinor: widget.initialAmount,
-                onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
-                errorText:  _amountError,
-              ),
-
-              const SizedBox(height: BanzaSpacing.xl),
-              Text(
-                'Descrição (opcional)',
-                style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
-              ),
-              const SizedBox(height: BanzaSpacing.sm),
-              TextField(
-                controller:      _descCtrl,
-                decoration: const InputDecoration(hintText: 'Ex: jantar de ontem'),
-                textInputAction: TextInputAction.done,
-                onSubmitted:     (_) => _send(),
-              ),
-
-              const SizedBox(height: BanzaSpacing.xxl),
-              BanzaPrimaryButton(
-                label:     'Continuar',
-                isLoading: _validatingHandle,
-                onPressed: _send,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
