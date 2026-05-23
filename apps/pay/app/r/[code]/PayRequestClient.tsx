@@ -277,16 +277,31 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
           <div className="px-6 py-6 flex flex-col gap-3">
             <a
               href={deepLink}
-              className="flex items-center justify-center gap-2 w-full h-14 bg-wine text-white rounded-2xl text-base font-semibold shadow-sm active:bg-wine-medium transition-colors"
+              style={{
+                background: 'linear-gradient(135deg, #d90429 0%, #b00020 55%, #7a0014 100%)',
+                boxShadow: '0 4px 20px rgba(176, 0, 32, 0.38), 0 1px 4px rgba(0, 0, 0, 0.14)',
+              }}
+              className="relative flex items-center justify-center gap-2.5 w-full h-14 text-white rounded-2xl text-base font-semibold tracking-tight overflow-hidden select-none transition-[transform,filter] duration-[120ms] ease-out hover:brightness-[1.07] active:scale-[0.985] active:brightness-90"
             >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              {/* Diagonal inner highlight */}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255,255,255,0.13) 0%, rgba(255,255,255,0) 52%)',
+                }}
+              />
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"
+                aria-hidden className="relative shrink-0 opacity-[0.88]">
                 <rect x="3"  y="3"  width="7" height="7" rx="1" />
                 <rect x="14" y="3"  width="7" height="7" rx="1" />
                 <rect x="3"  y="14" width="7" height="7" rx="1" />
                 <circle cx="17.5" cy="17.5" r="2.5" />
               </svg>
-              {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banza'}
+              <span className="relative">
+                {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banza'}
+              </span>
             </a>
             <p className="text-center text-xs text-gray-400 leading-relaxed">
               Precisa de ter a app Banza instalada.
