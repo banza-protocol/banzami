@@ -10,6 +10,7 @@ import '../client/consumer_public_client.dart';
 import '../models/consumer_pay_link.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/qr_logo_utils.dart';
 import '../widgets/banza_amount_input.dart';
 import '../widgets/banza_components.dart';
 import '../widgets/banza_qr_display.dart';
@@ -149,8 +150,9 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
       targetWidth:  160,
       targetHeight: 160,
     );
-    final frame = await codec.getNextFrame();
-    if (mounted) setState(() => _logoUiImage = frame.image);
+    final frame   = await codec.getNextFrame();
+    final rounded = await roundQrLogoCorners(frame.image);
+    if (mounted) setState(() => _logoUiImage = rounded);
   }
 
   void _clearAmount() => setState(() => _activeLink = null);

@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/qr_logo_utils.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Public entry point
@@ -387,19 +388,22 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
 
   void _attachStream(ImageProvider? provider) {
     if (provider == null) return;
-    _listener = ImageStreamListener((info, _) {
-      if (mounted) setState(() => _loadedImage = info.image);
-    });
+    _listener = ImageStreamListener((info, _) => _applyRounding(info.image));
     _stream = provider.resolve(ImageConfiguration.empty);
     _stream!.addListener(_listener!);
+  }
+
+  Future<void> _applyRounding(ui.Image raw) async {
+    final rounded = await roundQrLogoCorners(raw);
+    if (mounted) setState(() => _loadedImage = rounded);
   }
 
   void _detachStream() {
     if (_stream != null && _listener != null) {
       _stream!.removeListener(_listener!);
     }
-    _stream    = null;
-    _listener  = null;
+    _stream      = null;
+    _listener    = null;
     _loadedImage = null;
   }
 
