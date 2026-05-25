@@ -52,6 +52,7 @@ export 'widgets/banza_qr_display.dart';
 export 'widgets/banza_qr_scanner.dart';
 export 'widgets/banza_transfer_item.dart';
 export 'widgets/banza_components.dart';
+export 'widgets/p2p_share_card.dart';
 
 // Screens
 export 'screens/home_screen.dart';

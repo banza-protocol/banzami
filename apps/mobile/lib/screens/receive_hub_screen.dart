@@ -1,10 +1,6 @@
-import 'dart:io';
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
@@ -107,8 +103,6 @@ class ReceiveHubScreen extends StatefulWidget {
 }
 
 class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
-  bool             _sharing    = false;
-  ui.Image?        _logoUiImage;
   ConsumerPayLink? _activeLink;
 
   List<ActivityItem> _received         = [];
@@ -116,23 +110,11 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   String?            _transferError;
 
   final _shareLinkKey = GlobalKey();
-  final _shareQrKey   = GlobalKey();
 
   @override
   void initState() {
     super.initState();
-    _loadLogo();
     _loadReceived();
-  }
-
-  Future<void> _loadLogo() async {
-    final data  = await rootBundle.load(BrandingAssets.icon);
-    final codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-      targetWidth: 160, targetHeight: 160,
-    );
-    final frame = await codec.getNextFrame();
-    if (mounted) setState(() => _logoUiImage = frame.image);
   }
 
   Future<void> _loadReceived() async {
@@ -216,44 +198,23 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     }
   }
 
-  Future<void> _shareQr(String handle) async {
-    if (_sharing) return;
-    HapticFeedback.lightImpact();
-    setState(() => _sharing = true);
-    try {
-      final painter = QrPainter(
-        data:                 _qrPayload(handle),
-        version:              QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.H,
-        eyeStyle:        const QrEyeStyle(eyeShape: QrEyeShape.square, color: BanzaColors.wine),
-        dataModuleStyle: const QrDataModuleStyle(dataModuleShape: QrDataModuleShape.square, color: BanzaColors.gray900),
-        embeddedImage:      _logoUiImage,
-        embeddedImageStyle: _logoUiImage != null
-            ? const QrEmbeddedImageStyle(size: Size(80, 80))
-            : null,
-      );
-      final byteData = await painter.toImageData(512);
-      if (byteData == null) throw Exception('QR render retornou imagem vazia');
-      final file = File(
-        '${Directory.systemTemp.path}/qr_${handle.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '_')}.png',
-      );
-      await file.writeAsBytes(byteData.buffer.asUint8List());
-      final box    = _shareQrKey.currentContext?.findRenderObject() as RenderBox?;
-      final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'image/png')],
-        subject:             'QR de pagamento — @$handle',
-        sharePositionOrigin: origin,
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao partilhar: $e')),
-        );
-      }
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
+  Future<void> _openShareModal(Session session) async {
+    final handle = session.handle;
+    await showP2PShareModal(
+      context,
+      handle:      handle,
+      displayName: session.displayName,
+      qrPayload:   _qrPayload(handle),
+      shareUrl:    _shareUrl(handle),
+      amountMinor: _activeLink?.amountMinor,
+      currency:    _activeLink?.currency,
+      note:        _activeLink?.note,
+      isSandbox:   AppConfig.isSandbox,
+      logoWidget:  ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Image.asset(BrandingAssets.icon, width: 20, height: 20),
+      ),
+    );
   }
 
   @override
@@ -401,9 +362,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             Row(children: [
                               Expanded(
                                 child: BanzaSecondaryButton(
-                                  key:       _shareQrKey,
-                                  label:     _sharing ? 'A partilhar…' : 'Partilhar QR',
-                                  onPressed: _sharing ? null : () => _shareQr(handle),
+                                  label:     _activeLink != null
+                                      ? 'Partilhar pedido'
+                                      : 'Partilhar QR',
+                                  onPressed: () => _openShareModal(session),
                                 ),
                               ),
                               const SizedBox(width: BanzaSpacing.sm),
