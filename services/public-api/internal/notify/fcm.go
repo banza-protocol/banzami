@@ -84,7 +84,7 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 		"transfer_id",  transferID,
 	)
 
-	_, err := s.client.Send(ctx, &messaging.Message{
+	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{
 			Title: prefix + "Pagamento recebido",
 			Body:  body,
@@ -112,7 +112,7 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] payment_received sent", "topic", topic)
+		slog.Info("[FCM] payment_received sent", "topic", topic, "message_id", msgID)
 	}
 }
 
@@ -131,7 +131,7 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 		"amount_minor", amountMinor,
 	)
 
-	_, err := s.client.Send(ctx, &messaging.Message{
+	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{
 			Title: prefix + "Pagamento recebido",
 			Body:  formatAmount(amountMinor, currency),
@@ -157,8 +157,95 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] payment_link_paid sent", "topic", topic)
+		slog.Info("[FCM] payment_link_paid sent", "topic", topic, "message_id", msgID)
 	}
+}
+
+// SendPaymentRequestPaid notifies a consumer that their payment request (pay link) was paid.
+// Semantically identical to SendPaymentReceived from the recipient's perspective.
+// Runs best-effort — errors are logged, never returned.
+func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency, transferID string) {
+	if s == nil {
+		return
+	}
+	prefix := s.sandboxPrefix()
+	topic  := s.topicForConsumer(recipientConsumerID)
+	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+
+	slog.Info("[FCM] sending payment_request_paid",
+		"topic",        topic,
+		"consumer_id",  recipientConsumerID,
+		"sender",       senderHandle,
+		"amount_minor", amountMinor,
+		"transfer_id",  transferID,
+	)
+
+	msgID, err := s.client.Send(ctx, &messaging.Message{
+		Notification: &messaging.Notification{
+			Title: prefix + "Pagamento recebido",
+			Body:  body,
+		},
+		Data: map[string]string{
+			"type":          "payment_received",
+			"environment":   s.environment,
+			"transfer_id":   transferID,
+			"sender_handle": senderHandle,
+			"amount_minor":  strconv.FormatInt(amountMinor, 10),
+			"currency":      currency,
+			"route":         "receipt",
+		},
+		Android: &messaging.AndroidConfig{Priority: "high"},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{
+				Aps: &messaging.Aps{Sound: "default"},
+			},
+		},
+		Topic: topic,
+	})
+	if err != nil {
+		slog.Error("[FCM] payment_request_paid send failed",
+			"consumer_id", recipientConsumerID,
+			"error", err,
+		)
+	} else {
+		slog.Info("[FCM] payment_request_paid sent", "topic", topic, "message_id", msgID)
+	}
+}
+
+// SendDebugPush sends a test push to a consumer's FCM topic.
+// Intended for the SANDBOX debug endpoint only.
+// Returns the Firebase message ID and topic for inspection.
+func (s *FCMService) SendDebugPush(ctx context.Context, recipientConsumerID string) (messageID, topic string, err error) {
+	if s == nil {
+		return "", "", fmt.Errorf("FCM not initialized — FIREBASE_CREDENTIALS_JSON not set")
+	}
+	topic = s.topicForConsumer(recipientConsumerID)
+
+	slog.Info("[FCM] sending debug push", "topic", topic, "consumer_id", recipientConsumerID)
+
+	msgID, sendErr := s.client.Send(ctx, &messaging.Message{
+		Notification: &messaging.Notification{
+			Title: s.sandboxPrefix() + "Debug: Push funcionando ✓",
+			Body:  "Notificações estão a funcionar correctamente.",
+		},
+		Data: map[string]string{
+			"type":        "debug",
+			"environment": s.environment,
+		},
+		Android: &messaging.AndroidConfig{Priority: "high"},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{
+				Aps: &messaging.Aps{Sound: "default"},
+			},
+		},
+		Topic: topic,
+	})
+	if sendErr != nil {
+		slog.Error("[FCM] debug push failed", "consumer_id", recipientConsumerID, "error", sendErr)
+		return "", topic, sendErr
+	}
+	slog.Info("[FCM] debug push sent", "topic", topic, "message_id", msgID)
+	return msgID, topic, nil
 }
 
 // formatAmount formats a minor-unit amount for notification body text.
