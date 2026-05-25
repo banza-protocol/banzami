@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/banzami/banzami/services/public-api/internal/config"
+	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/observability"
 	"github.com/banzami/banzami/services/public-api/internal/server"
 	"github.com/banzami/banzami/services/public-api/internal/service"
@@ -49,9 +50,16 @@ func main() {
 	core  := service.NewCorePublicClient(cfg.CoreAPIURL)
 	creds := service.NewCredentialStore(pool)
 
+	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment)
+	if err != nil {
+		slog.Error("[FCM] initialization failed", "error", err)
+		os.Exit(1)
+	}
+
 	srv := server.New(cfg, server.Dependencies{
 		CoreClient: core,
 		CredStore:  creds,
+		FCMSvc:     fcmSvc,
 	})
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

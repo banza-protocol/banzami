@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
-import 'package:firebase_messaging/firebase_messaging.dart';
-
 import '../branding_assets.dart';
 import '../config.dart';
 import '../services/push_notification_service.dart';
@@ -40,14 +38,26 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     _notifSvc = TransferNotificationService(client, consumerId: session.consumerId)
       ..startPolling();
 
-    await FirebaseMessaging.instance.requestPermission(
-      alert: true, badge: true, sound: true,
-    );
+    final granted = await PushNotificationService.requestPermission();
+    debugPrint('[FCM] permission granted=$granted');
+    if (!granted) return;
 
-    await FirebaseMessaging.instance.getAPNSToken();
+    // Register foreground handler — shows BanzaToast using this screen's context.
+    if (mounted) {
+      final ctx = context;
+      PushNotificationService.onForegroundMessage = (msg) {
+        final title = msg.notification?.title ?? '';
+        final body  = msg.notification?.body ?? '';
+        final text  = body.isNotEmpty ? body : title;
+        if (text.isNotEmpty && ctx.mounted) {
+          BanzaToast.showInfo(ctx, text);
+        }
+      };
+    }
 
-    await PushNotificationService.subscribeToTopic('consumer_${session.consumerId}');
-    await PushNotificationService.getToken();
+    await PushNotificationService.subscribeConsumer(session.consumerId);
+    final token = await PushNotificationService.getToken();
+    debugPrint('[FCM] token registered consumerId=${session.consumerId} hasToken=${token != null}');
   }
 
   Future<void> _refreshProfile() async {

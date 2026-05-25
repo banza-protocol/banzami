@@ -8,14 +8,17 @@ import (
 
 // Config holds all runtime configuration for the public-api service.
 type Config struct {
-	Port         int
-	CoreAPIURL   string
-	DatabaseURL  string
-	JWTSecret    string
-	LogLevel     string
-	LogFormat    string
-	OTLPEndpoint string // optional; tracing is a no-op when empty
-	Environment  string // "PRODUCTION" or "SANDBOX"
+	Port                    int
+	CoreAPIURL              string
+	DatabaseURL             string
+	JWTSecret               string
+	LogLevel                string
+	LogFormat               string
+	OTLPEndpoint            string // optional; tracing is a no-op when empty
+	Environment             string // "PRODUCTION" or "SANDBOX"
+	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
+	// When empty, push notifications are silently disabled.
+	FirebaseCredentialsJSON string
 }
 
 // Load reads config from environment variables.
@@ -59,6 +62,7 @@ func Load() (*Config, error) {
 	}
 
 	return &Config{
+		FirebaseCredentialsJSON: os.Getenv("FIREBASE_CREDENTIALS_JSON"),
 		Port:         port,
 		CoreAPIURL:   coreURL,
 		DatabaseURL:  dbURL,

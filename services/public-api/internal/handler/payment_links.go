@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
+	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
@@ -24,10 +27,11 @@ type paymentLinkView struct {
 // PaymentLinkHandler handles consumer-facing payment link operations.
 type PaymentLinkHandler struct {
 	core *service.CorePublicClient
+	fcm  *notify.FCMService
 }
 
-func NewPaymentLinkHandler(core *service.CorePublicClient) *PaymentLinkHandler {
-	return &PaymentLinkHandler{core: core}
+func NewPaymentLinkHandler(core *service.CorePublicClient, fcm *notify.FCMService) *PaymentLinkHandler {
+	return &PaymentLinkHandler{core: core, fcm: fcm}
 }
 
 // withMerchantName enriches a PaymentLink with the merchant's display name.
@@ -154,5 +158,21 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	if updated != nil {
 		final = updated
 	}
+
+	// Notify merchant via FCM — best-effort, never delays the response.
+	go func(merchantID string, amount int64, currency string) {
+		if h.fcm == nil {
+			return
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer cancel()
+		slog.Info("[FCM] event created",
+			"event",        "payment_link_paid",
+			"merchant_id",  merchantID,
+			"amount_minor", amount,
+		)
+		h.fcm.SendPaymentLinkPaid(ctx, merchantID, amount, currency)
+	}(link.MerchantID, *amountMinor, link.Currency)
+
 	respond(w, http.StatusOK, h.withMerchantName(r.Context(), final))
 }
