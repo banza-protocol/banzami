@@ -31,10 +31,10 @@ class SecureAppLifecycleGuard extends StatefulWidget {
 
   @override
   State<SecureAppLifecycleGuard> createState() =>
-      _SecureAppLifecycleGuardState();
+      SecureAppLifecycleGuardState();
 }
 
-class _SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
+class SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
     with WidgetsBindingObserver {
 
   // Whether the privacy overlay (dark wine screen) is currently shown.
@@ -47,6 +47,9 @@ class _SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
   // Guards against pushing the lock route twice if resumed fires more
   // than once before the route is fully on the stack.
   bool _lockRoutePushed = false;
+
+  // Callbacks registered by deep-link handling that must fire after unlock.
+  final List<VoidCallback> _pendingUnlockCallbacks = [];
 
   // ── Observer registration ──────────────────────────────────────────────────
 
@@ -142,6 +145,7 @@ class _SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
           _lockRoutePushed = false;
           _privacyVisible  = false;
         });
+        _pendingUnlockCallbacks.clear();
       }
     });
 
@@ -152,8 +156,51 @@ class _SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
     });
   }
 
+  // ── External API ──────────────────────────────────────────────────────────
+
+  /// Called by deep-link handling when a Universal Link arrives while the app
+  /// is locked. Ensures the PIN screen is shown (pushing it if not already
+  /// visible) and registers [onSuccess] to be called after unlock.
+  ///
+  /// Safe to call multiple times — only one PinScreen is ever pushed.
+  void triggerUnlock(VoidCallback onSuccess) {
+    _pendingUnlockCallbacks.add(onSuccess);
+
+    if (_lockRoutePushed) return; // PIN already on screen — callback queued.
+    _lockRoutePushed = true;
+
+    // Show the privacy overlay so financial content is never uncovered.
+    if (!_privacyVisible) setState(() => _privacyVisible = true);
+
+    widget.navigatorKey.currentState?.push(
+      PageRouteBuilder<void>(
+        opaque:                    true,
+        barrierDismissible:        false,
+        transitionDuration:        Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+        pageBuilder:               (_, __, ___) => PinScreen(
+          isAppLock:  true,
+          onUnlocked: _onUnlocked,
+        ),
+      ),
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _lockRoutePushed = false;
+          _privacyVisible  = false;
+        });
+      }
+    });
+  }
+
   // Called by PinScreen when isAppLock = true and unlock succeeds.
   void _onUnlocked() {
+    // Fire any callbacks registered by deep-link handling.
+    for (final cb in _pendingUnlockCallbacks) {
+      cb();
+    }
+    _pendingUnlockCallbacks.clear();
+
     if (mounted) {
       setState(() {
         _privacyVisible  = false;
