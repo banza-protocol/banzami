@@ -31,6 +31,14 @@ class PinScreen extends StatefulWidget {
     this.onUnlocked,
   });
 
+  // ── Global visibility flag ─────────────────────────────────────────────────
+  //
+  // Counts how many PinScreen instances are currently mounted. The lifecycle
+  // guard reads this before pushing to prevent a second PIN screen appearing
+  // on top of a cold-start PIN screen (which the guard did not push itself).
+  static int _activeCount = 0;
+  static bool get activeOnScreen => _activeCount > 0;
+
   @override
   State<PinScreen> createState() => _PinScreenState();
 }
@@ -47,12 +55,16 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    PinScreen._activeCount++;
+    debugPrint('[APP-LOCK] PinScreen.initState isAppLock=${widget.isAppLock} activeCount=${PinScreen._activeCount}');
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _tryBiometrics());
   }
 
   @override
   void dispose() {
+    PinScreen._activeCount--;
+    debugPrint('[APP-LOCK] PinScreen.dispose isAppLock=${widget.isAppLock} activeCount=${PinScreen._activeCount}');
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }

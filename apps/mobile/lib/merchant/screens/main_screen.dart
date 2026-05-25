@@ -19,7 +19,10 @@ class MerchantMainScreen extends StatefulWidget {
 
 class _MerchantMainScreenState extends State<MerchantMainScreen>
     with WidgetsBindingObserver {
-  int _tab = 0;
+  static const int _kGraceSeconds = 30;
+
+  int       _tab      = 0;
+  DateTime? _pausedAt;
   PaymentNotificationService? _notifSvc;
 
   @override
@@ -52,9 +55,19 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused) {
       _notifSvc?.stopPolling();
-      context.read<MerchantSessionService>().lock();
+      _pausedAt = DateTime.now();
+      debugPrint('[APP-LOCK] merchant pausedAt=${_pausedAt?.toIso8601String()}');
+      // Lock decision is deferred to resumed to allow a grace period.
     } else if (state == AppLifecycleState.resumed) {
       _notifSvc?.startPolling();
+      final elapsed = _pausedAt != null
+          ? DateTime.now().difference(_pausedAt!).inSeconds
+          : _kGraceSeconds + 1;
+      _pausedAt = null;
+      debugPrint('[APP-LOCK] merchant resumedAfterSeconds=$elapsed requireUnlock=${elapsed >= _kGraceSeconds}');
+      if (elapsed >= _kGraceSeconds) {
+        context.read<MerchantSessionService>().lock();
+      }
     }
   }
 
