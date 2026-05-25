@@ -80,6 +80,20 @@ class _P2PShareModalState extends State<_P2PShareModal> {
   final _cardKey = GlobalKey();
   bool  _busy    = false;
 
+  // ── iOS share origin ──────────────────────────────────────────────────────
+  // Must be called synchronously (before any await) so the RenderBox is still
+  // mounted and has a valid size. On iPhone the rect is ignored (full-bottom
+  // sheet); on iPad it anchors the share popover.
+
+  Rect _shareOrigin() {
+    final box = context.findRenderObject() as RenderBox?;
+    if (box != null && box.hasSize && box.size.width > 0) {
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    final screen = MediaQuery.of(context).size;
+    return Rect.fromLTWH(screen.width / 2, screen.height - 100, 1, 1);
+  }
+
   // ── Image capture ──────────────────────────────────────────────────────────
 
   Future<Uint8List?> _captureCardPng() async {
@@ -111,8 +125,10 @@ class _P2PShareModalState extends State<_P2PShareModal> {
   Future<void> _shareImage() async {
     if (_busy) return;
     HapticFeedback.lightImpact();
+    final origin = _shareOrigin(); // capture before any await
     setState(() => _busy = true);
     try {
+      await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
       final file = await _writeTempFile(
@@ -120,7 +136,8 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject: 'Pagar @${widget.handle} com Banza',
+        subject:              'Pagar @${widget.handle} com Banza',
+        sharePositionOrigin:  origin,
       );
     } catch (e) {
       if (mounted) {
@@ -143,6 +160,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 
   Future<void> _shareWhatsApp() async {
     HapticFeedback.lightImpact();
+    final origin = _shareOrigin(); // capture before any await
 
     final sb = StringBuffer();
     if (widget.isSandbox) sb.writeln('🧪 SANDBOX — dinheiro de teste\n');
@@ -167,16 +185,21 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     if (await canLaunchUrl(waUrl)) {
       await launchUrl(waUrl, mode: LaunchMode.externalApplication);
     } else {
-      await Share.share(sb.toString().trim(),
-          subject: 'Pagar @${widget.handle} com Banza');
+      await Share.share(
+        sb.toString().trim(),
+        subject:             'Pagar @${widget.handle} com Banza',
+        sharePositionOrigin: origin,
+      );
     }
   }
 
   Future<void> _saveQr() async {
     if (_busy) return;
     HapticFeedback.lightImpact();
+    final origin = _shareOrigin(); // capture before any await
     setState(() => _busy = true);
     try {
+      await WidgetsBinding.instance.endOfFrame;
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
       final file = await _writeTempFile(
@@ -184,7 +207,8 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject: 'QR Banza — @${widget.handle}',
+        subject:             'QR Banza — @${widget.handle}',
+        sharePositionOrigin: origin,
       );
     } catch (e) {
       if (mounted) {
