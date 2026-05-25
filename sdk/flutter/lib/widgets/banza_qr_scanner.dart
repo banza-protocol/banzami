@@ -40,12 +40,15 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
     super.dispose();
   }
 
-  // Only accept payloads that look like Banzami payment links (deep-link or
-  // web URL form). Size-limit prevents crash from pathologically large QR data.
+  // Accept all known Banza QR payload formats. Size-limit prevents crash from
+  // pathologically large QR data. BanzaQrParser does the detailed validation.
   static bool _isValidPayload(String value) {
     if (value.length > 512) return false;
-    return value.startsWith('banzami://pay/') ||
-           value.startsWith('https://pay.banzami.org/');
+    return value.startsWith('https://pay.banzami.org/') ||
+           value.startsWith('banza://') ||
+           value.startsWith('banza-sandbox://') ||
+           value.startsWith('banza:@') ||
+           value.startsWith('banza-sandbox:@');
   }
 
   void _onDetect(BarcodeCapture capture) {
