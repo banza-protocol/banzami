@@ -5,6 +5,9 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../config.dart';
 
+// Mutable snapshot updated by subscribeConsumer/getToken for the debug panel.
+Map<String, String> _fcmDiagSnapshot = {};
+
 // Top-level handler required by firebase_messaging for background/terminated messages.
 // Firebase shows the OS notification automatically when the message has a notification
 // payload, so we only need to ensure Firebase is initialized.
@@ -129,10 +132,16 @@ class PushNotificationService {
     final apns = await _getApnsToken();
     if (apns == null) {
       debugPrint('[FCM] APNs token unavailable — skipping getToken()');
+      _fcmDiagSnapshot['apns_token'] = 'unavailable';
       return null;
     }
+    _fcmDiagSnapshot['apns_token'] = 'present';
     final token = await _messaging.getToken();
-    debugPrint('[FCM] token=${token?.substring(0, token.length.clamp(0, 16))}...');
+    if (token != null) {
+      _fcmDiagSnapshot['fcm_token'] =
+          '${token.substring(0, token.length.clamp(0, 8))}…${token.substring((token.length - 4).clamp(0, token.length))}';
+    }
+    debugPrint('[FCM] APNs token=present FCM token=${_fcmDiagSnapshot["fcm_token"] ?? "null"}');
     return token;
   }
 
@@ -144,6 +153,11 @@ class PushNotificationService {
     final topic = AppConfig.isSandbox
         ? 'sandbox_consumer_$consumerId'
         : 'consumer_$consumerId';
+    _fcmDiagSnapshot['consumer_id']     = consumerId;
+    _fcmDiagSnapshot['subscribed_topic'] = topic;
+    _fcmDiagSnapshot['environment']     = AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION';
+    debugPrint('[FCM] AppConfig.isSandbox=${AppConfig.isSandbox} consumerId=$consumerId');
+    debugPrint('[FCM] subscribing topic=$topic');
     await _subscribeTopic(topic);
   }
 
@@ -165,10 +179,36 @@ class PushNotificationService {
     final apns = await _getApnsToken();
     if (apns == null) {
       debugPrint('[FCM] APNs unavailable — skipping subscribeToTopic($topic)');
+      _fcmDiagSnapshot['subscribe_success'] = 'false (APNs unavailable)';
       return;
     }
-    await _messaging.subscribeToTopic(topic);
-    debugPrint('[FCM] subscribed topic=$topic');
+    try {
+      await _messaging.subscribeToTopic(topic);
+      _fcmDiagSnapshot['subscribe_success'] = 'true';
+      debugPrint('[FCM] subscribe success=true topic=$topic');
+    } catch (e) {
+      _fcmDiagSnapshot['subscribe_success'] = 'false ($e)';
+      debugPrint('[FCM] subscribe success=false topic=$topic error=$e');
+    }
+  }
+
+  // ── Diagnostics ────────────────────────────────────────────────────────────
+
+  /// Returns a snapshot of current FCM state for the debug panel.
+  /// Safe to call at any time — returns what was last recorded.
+  static Future<Map<String, String>> diagnostics() async {
+    // Re-check permission status live.
+    final settings = await _messaging.getNotificationSettings();
+    final status   = settings.authorizationStatus;
+    return {
+      'permission':        status.toString().replaceAll('AuthorizationStatus.', ''),
+      'environment':       _fcmDiagSnapshot['environment']      ?? (AppConfig.isSandbox ? 'SANDBOX' : 'PRODUCTION'),
+      'consumer_id':       _fcmDiagSnapshot['consumer_id']      ?? '—',
+      'subscribed_topic':  _fcmDiagSnapshot['subscribed_topic'] ?? '—',
+      'apns_token':        _fcmDiagSnapshot['apns_token']       ?? '—',
+      'fcm_token':         _fcmDiagSnapshot['fcm_token']        ?? '—',
+      'subscribe_success': _fcmDiagSnapshot['subscribe_success'] ?? '—',
+    };
   }
 
   // ── APNs helper ─────────────────────────────────────────────────────────────
@@ -178,7 +218,10 @@ class PushNotificationService {
   static Future<String?> _getApnsToken() async {
     for (var i = 0; i < 30; i++) {
       final apns = await _messaging.getAPNSToken();
-      if (apns != null) return apns;
+      if (apns != null) {
+        if (i > 0) debugPrint('[FCM] APNs token available after ${i}s');
+        return apns;
+      }
       await Future.delayed(const Duration(seconds: 1));
     }
     debugPrint('[FCM] APNs token not available after 30 s');

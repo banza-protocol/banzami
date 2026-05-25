@@ -39,7 +39,10 @@ void main() async {
 Future<void> _initBackgroundServices() async {
   try {
     await Firebase.initializeApp().timeout(const Duration(seconds: 10));
-  } catch (_) {}
+    debugPrint('[FCM] Firebase initialized=true');
+  } catch (e) {
+    debugPrint('[FCM] Firebase initialized=false error=$e');
+  }
 
   FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
   PlatformDispatcher.instance.onError = (error, stack) {
@@ -50,15 +53,21 @@ Future<void> _initBackgroundServices() async {
     await FirebaseCrashlytics.instance
         .setCrashlyticsCollectionEnabled(!kDebugMode)
         .timeout(const Duration(seconds: 5));
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('[FCM] Crashlytics init error=$e');
+  }
 
   try {
     await PushNotificationService.initialize()
         .timeout(const Duration(seconds: 10));
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('[FCM] PushNotificationService.initialize error=$e');
+  }
 
   try {
     await TransferNotificationService.initialize()
         .timeout(const Duration(seconds: 5));
-  } catch (_) {}
+  } catch (e) {
+    debugPrint('[FCM] TransferNotificationService.initialize error=$e');
+  }
 }

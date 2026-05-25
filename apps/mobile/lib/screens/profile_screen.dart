@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:banza_flutter/banza_flutter.dart';
 
 import '../config.dart';
+import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../widgets/banza_premium_dialog.dart';
 import '../widgets/sandbox_banner.dart';
@@ -101,6 +102,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ]),
+
+            if (AppConfig.isSandbox) ...[
+              const SizedBox(height: BanzaSpacing.xl),
+              const _SectionLabel('Debug · Push'),
+              const SizedBox(height: BanzaSpacing.sm),
+              _PushDiagnosticsSection(
+                client: context.read<ConsumerPublicClient>(),
+              ),
+            ],
 
             const SizedBox(height: BanzaSpacing.xl),
 
@@ -475,6 +485,164 @@ class _SettingsCard extends StatelessWidget {
       ),
       clipBehavior: Clip.hardEdge,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
+    );
+  }
+}
+
+// =============================================================================
+// Push diagnostics — sandbox only
+// =============================================================================
+
+class _PushDiagnosticsSection extends StatefulWidget {
+  final ConsumerPublicClient client;
+  const _PushDiagnosticsSection({required this.client});
+
+  @override
+  State<_PushDiagnosticsSection> createState() => _PushDiagnosticsSectionState();
+}
+
+class _PushDiagnosticsSectionState extends State<_PushDiagnosticsSection> {
+  Map<String, String> _diag    = {};
+  bool                _loading = false;
+  String?             _result;
+  bool                _resultOk = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+  }
+
+  Future<void> _refresh() async {
+    final diag = await PushNotificationService.diagnostics();
+    if (mounted) setState(() => _diag = diag);
+  }
+
+  Future<void> _sendTest() async {
+    setState(() { _loading = true; _result = null; });
+    try {
+      final json = await widget.client.sendDebugPush();
+      final id   = json['firebase_message_id'] as String? ?? '—';
+      if (mounted) {
+        setState(() {
+          _loading   = false;
+          _result    = 'Enviado ✓  ID: ${id.length > 16 ? '${id.substring(0, 16)}…' : id}';
+          _resultOk  = true;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading  = false;
+          _result   = 'Erro: $e';
+          _resultOk = false;
+        });
+      }
+    }
+    await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const mono = TextStyle(
+      fontFamily: 'monospace',
+      fontSize:   11,
+      color:      Color(0xFF4B5563),
+      height:     1.6,
+    );
+    const label = TextStyle(
+      fontSize:   10,
+      fontWeight: FontWeight.w600,
+      color:      Color(0xFF9CA3AF),
+      letterSpacing: 0.4,
+    );
+
+    final rows = [
+      ('PERMISSION',    _diag['permission']        ?? '—'),
+      ('ENVIRONMENT',   _diag['environment']       ?? '—'),
+      ('CONSUMER ID',   _diag['consumer_id']       ?? '—'),
+      ('TOPIC',         _diag['subscribed_topic']  ?? '—'),
+      ('APNs TOKEN',    _diag['apns_token']        ?? '—'),
+      ('FCM TOKEN',     _diag['fcm_token']         ?? '—'),
+      ('SUBSCRIBED',    _diag['subscribe_success'] ?? '—'),
+    ];
+
+    return Container(
+      decoration: const BoxDecoration(
+        color:        Color(0xFF111827),
+        borderRadius: BanzaRadius.xlAll,
+      ),
+      padding: const EdgeInsets.all(BanzaSpacing.lg),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const Icon(Icons.notifications_active_rounded, size: 14, color: Color(0xFF6EE7B7)),
+            const SizedBox(width: 6),
+            const Text('FCM Diagnostics', style: TextStyle(
+              color: Color(0xFF6EE7B7), fontSize: 12, fontWeight: FontWeight.w600,
+            )),
+            const Spacer(),
+            GestureDetector(
+              onTap: _refresh,
+              child: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF6B7280)),
+            ),
+          ]),
+
+          const SizedBox(height: BanzaSpacing.md),
+
+          ...rows.map((r) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              SizedBox(
+                width: 88,
+                child: Text(r.$1, style: label),
+              ),
+              Expanded(child: Text(r.$2, style: mono)),
+            ]),
+          )),
+
+          const SizedBox(height: BanzaSpacing.md),
+
+          if (_result != null)
+            Container(
+              width:  double.infinity,
+              margin: const EdgeInsets.only(bottom: BanzaSpacing.sm),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color:        _resultOk
+                    ? const Color(0xFF065F46)
+                    : const Color(0xFF7F1D1D),
+                borderRadius: BanzaRadius.mdAll,
+              ),
+              child: Text(
+                _result!,
+                style: mono.copyWith(color: Colors.white, fontSize: 11),
+              ),
+            ),
+
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _loading ? null : _sendTest,
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF065F46),
+                disabledBackgroundColor: const Color(0xFF1F2937),
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: const RoundedRectangleBorder(borderRadius: BanzaRadius.mdAll),
+              ),
+              icon: _loading
+                  ? const SizedBox(width: 14, height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Icon(Icons.send_rounded, size: 14, color: Colors.white),
+              label: Text(
+                _loading ? 'A enviar…' : 'Enviar notificação de teste',
+                style: const TextStyle(fontSize: 13, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

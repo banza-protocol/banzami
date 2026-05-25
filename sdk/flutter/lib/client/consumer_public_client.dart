@@ -355,6 +355,12 @@ class ConsumerPublicClient {
     );
   }
 
+  /// Sends a test FCM push to the authenticated consumer's topic.
+  /// Only works in sandbox — throws [BanzamiApiException] with code `FORBIDDEN` in production.
+  /// Returns the `{fcm_topic, firebase_message_id}` map from the server.
+  Future<Map<String, dynamic>> sendDebugPush() =>
+      _call(method: 'POST', path: '/v1/debug/push-test');
+
   // ---------------------------------------------------------------------------
   // HTTP helpers
   // ---------------------------------------------------------------------------
