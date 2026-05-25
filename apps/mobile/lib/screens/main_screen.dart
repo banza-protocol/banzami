@@ -42,7 +42,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint('[FCM] permission granted=$granted');
     if (!granted) return;
 
-    // Register foreground handler — shows BanzaToast using this screen's context.
+    // Register foreground handler — shows a tappable BanzaToast banner.
+    // Tapping the banner fires the same onTap callback used for background taps,
+    // routing to the correct screen (receipt, payment request, or history).
     if (mounted) {
       final ctx = context;
       PushNotificationService.onForegroundMessage = (msg) {
@@ -50,7 +52,9 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         final body  = msg.notification?.body ?? '';
         final text  = body.isNotEmpty ? body : title;
         if (text.isNotEmpty && ctx.mounted) {
-          BanzaToast.showInfo(ctx, text);
+          BanzaToast.showInfoTappable(ctx, text, onTap: () {
+            PushNotificationService.onTap?.call(msg);
+          });
         }
       };
     }

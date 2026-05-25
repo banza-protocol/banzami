@@ -68,7 +68,7 @@ func (s *FCMService) sandboxPrefix() string {
 
 // SendPaymentReceived notifies a consumer that they received a transfer.
 // Runs best-effort — errors are logged, never returned.
-func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency string) {
+func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency, transferID string) {
 	if s == nil {
 		return
 	}
@@ -81,6 +81,7 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 		"consumer_id",  recipientConsumerID,
 		"sender",       senderHandle,
 		"amount_minor", amountMinor,
+		"transfer_id",  transferID,
 	)
 
 	_, err := s.client.Send(ctx, &messaging.Message{
@@ -91,10 +92,11 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 		Data: map[string]string{
 			"type":          "payment_received",
 			"environment":   s.environment,
+			"transfer_id":   transferID,
 			"sender_handle": senderHandle,
 			"amount_minor":  strconv.FormatInt(amountMinor, 10),
 			"currency":      currency,
-			"route":         "activity",
+			"route":         "receipt",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
 		APNS: &messaging.APNSConfig{

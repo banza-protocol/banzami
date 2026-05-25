@@ -258,7 +258,7 @@ func (h *TransferHandler) notifyRecipient(t *service.P2pTransferResponse) {
 		"amount_minor", t.AmountMinor,
 	)
 
-	h.fcm.SendPaymentReceived(ctx, consumer.ID, t.Sender, t.AmountMinor, t.Currency)
+	h.fcm.SendPaymentReceived(ctx, consumer.ID, t.Sender, t.AmountMinor, t.Currency, t.ID)
 }
 
 // ---------------------------------------------------------------------------

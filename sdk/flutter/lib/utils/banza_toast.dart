@@ -35,7 +35,16 @@ class BanzaToast {
   static void showInfo(BuildContext context, String message) =>
       _show(context, message, _ToastType.info);
 
-  static void _show(BuildContext context, String message, _ToastType type) {
+  /// Shows an info toast that calls [onTap] when tapped (then dismisses).
+  /// Used for tappable foreground notification banners.
+  static void showInfoTappable(
+    BuildContext context,
+    String message, {
+    required VoidCallback onTap,
+  }) =>
+      _show(context, message, _ToastType.info, onTap: onTap);
+
+  static void _show(BuildContext context, String message, _ToastType type, {VoidCallback? onTap}) {
     _dismiss();
     final overlay = Overlay.of(context, rootOverlay: true);
     final id      = ++_currentId;
@@ -44,6 +53,7 @@ class BanzaToast {
         message:  message,
         type:     type,
         onDone:   () => _dismissIfCurrent(id),
+        onTap:    onTap,
       ),
     );
     _entry = entry;
@@ -67,11 +77,13 @@ class _BanzaToastWidget extends StatefulWidget {
     required this.message,
     required this.type,
     required this.onDone,
+    this.onTap,
   });
 
-  final String      message;
-  final _ToastType  type;
+  final String       message;
+  final _ToastType   type;
   final VoidCallback onDone;
+  final VoidCallback? onTap;
 
   @override
   State<_BanzaToastWidget> createState() => _BanzaToastWidgetState();
@@ -138,7 +150,10 @@ class _BanzaToastWidgetState extends State<_BanzaToastWidget>
           child: Material(
             color:        Colors.transparent,
             child: GestureDetector(
-              onTap: _dismiss,
+              onTap: () {
+                _dismiss();
+                widget.onTap?.call();
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                 decoration: BoxDecoration(
