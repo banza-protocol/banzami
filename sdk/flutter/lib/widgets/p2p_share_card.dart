@@ -205,97 +205,93 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     return Container(
       decoration: const BoxDecoration(
         color:        BanzaColors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
 
-              // Drag handle
-              const SizedBox(height: 10),
-              Container(
-                width: 36, height: 4,
-                decoration: const BoxDecoration(
-                  color:        BanzaColors.gray200,
-                  borderRadius: BanzaRadius.fullAll,
+            // Drag handle
+            const SizedBox(height: 8),
+            Container(
+              width: 36, height: 4,
+              decoration: const BoxDecoration(
+                color:        BanzaColors.gray200,
+                borderRadius: BanzaRadius.fullAll,
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // ── Avatar + name + handle ──────────────────────────────────────
+            _AvatarRow(
+              initials:    initials,
+              displayName: widget.displayName,
+              handle:      widget.handle,
+            ),
+
+            const SizedBox(height: 12),
+
+            // ── Share card preview (also captured for PNG export) ───────────
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+              child: RepaintBoundary(
+                key: _cardKey,
+                child: P2PShareCardBuilder(
+                  handle:      widget.handle,
+                  displayName: widget.displayName,
+                  qrPayload:   widget.qrPayload,
+                  amountMinor: widget.amountMinor,
+                  currency:    widget.currency,
+                  note:        widget.note,
+                  isSandbox:   widget.isSandbox,
+                  logoWidget:  widget.logoWidget,
                 ),
               ),
-              const SizedBox(height: BanzaSpacing.xl),
+            ),
 
-              // ── Avatar + name + handle ────────────────────────────────────
-              _AvatarRow(
-                initials:    initials,
-                displayName: widget.displayName,
-                handle:      widget.handle,
+            const SizedBox(height: 10),
+
+            // ── Actions ─────────────────────────────────────────────────────
+            const Divider(height: 1),
+
+            _ActionTile(
+              icon:  Icons.image_rounded,
+              label: _busy ? 'A processar…' : 'Partilhar imagem',
+              onTap: _busy ? null : _shareImage,
+            ),
+            _ActionTile(
+              icon:  Icons.link_rounded,
+              label: 'Copiar link',
+              onTap: _copyLink,
+            ),
+            _ActionTile(
+              icon:  Icons.chat_rounded,
+              label: 'Partilhar WhatsApp',
+              color: const Color(0xFF25D366),
+              onTap: _shareWhatsApp,
+            ),
+            _ActionTile(
+              icon:  Icons.download_rounded,
+              label: _busy ? 'A guardar…' : 'Guardar QR',
+              onTap: _busy ? null : _saveQr,
+            ),
+
+            const Divider(height: 1),
+
+            // ── Close ───────────────────────────────────────────────────────
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                minimumSize:     const Size(double.infinity, 44),
+                foregroundColor: BanzaColors.gray600,
               ),
-
-              const SizedBox(height: BanzaSpacing.xl),
-
-              // ── Share card preview (also captured for PNG export) ─────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
-                child: RepaintBoundary(
-                  key: _cardKey,
-                  child: P2PShareCardBuilder(
-                    handle:      widget.handle,
-                    displayName: widget.displayName,
-                    qrPayload:   widget.qrPayload,
-                    amountMinor: widget.amountMinor,
-                    currency:    widget.currency,
-                    note:        widget.note,
-                    isSandbox:   widget.isSandbox,
-                    logoWidget:  widget.logoWidget,
-                  ),
-                ),
+              child: const Text(
+                'Fechar',
+                style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
               ),
-
-              const SizedBox(height: BanzaSpacing.xl),
-
-              // ── Actions ───────────────────────────────────────────────────
-              const Divider(height: 1),
-
-              _ActionTile(
-                icon:  Icons.image_rounded,
-                label: _busy ? 'A processar…' : 'Partilhar imagem',
-                onTap: _busy ? null : _shareImage,
-              ),
-              _ActionTile(
-                icon:  Icons.link_rounded,
-                label: 'Copiar link',
-                onTap: _copyLink,
-              ),
-              _ActionTile(
-                icon:  Icons.chat_rounded,
-                label: 'Partilhar WhatsApp',
-                color: const Color(0xFF25D366),
-                onTap: _shareWhatsApp,
-              ),
-              _ActionTile(
-                icon:  Icons.download_rounded,
-                label: _busy ? 'A guardar…' : 'Guardar QR',
-                onTap: _busy ? null : _saveQr,
-              ),
-
-              const Divider(height: 1),
-
-              // ── Close ─────────────────────────────────────────────────────
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                style: TextButton.styleFrom(
-                  minimumSize:     const Size(double.infinity, 52),
-                  foregroundColor: BanzaColors.gray600,
-                ),
-                child: const Text(
-                  'Fechar',
-                  style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w500),
-                ),
-              ),
-
-              const SizedBox(height: BanzaSpacing.sm),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -341,14 +337,14 @@ class P2PShareCardBuilder extends StatelessWidget {
         borderRadius: BanzaRadius.xxlAll,
         boxShadow:    BanzaShadows.cardElevated,
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
 
           // ── Wine gradient inner card ────────────────────────────────────
           ClipRRect(
-            borderRadius: BanzaRadius.xlAll,
+            borderRadius: BanzaRadius.lgAll,
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(gradient: BanzaGradients.wine),
@@ -373,8 +369,8 @@ class P2PShareCardBuilder extends StatelessWidget {
 
                   Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: BanzaSpacing.xl,
-                      vertical:   BanzaSpacing.xl,
+                      horizontal: 20,
+                      vertical:   16,
                     ),
                     child: Column(
                       children: [
@@ -384,7 +380,7 @@ class P2PShareCardBuilder extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: BanzaSpacing.md,
-                              vertical:   BanzaSpacing.xs,
+                              vertical:   3,
                             ),
                             decoration: const BoxDecoration(
                               color:        BanzaColors.gold,
@@ -402,18 +398,18 @@ class P2PShareCardBuilder extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: BanzaSpacing.md),
+                          const SizedBox(height: 8),
                         ],
 
                         // QR on white background
                         Container(
-                          padding:    const EdgeInsets.all(BanzaSpacing.md),
+                          padding:    const EdgeInsets.all(10),
                           decoration: const BoxDecoration(
                             color:        Colors.white,
                             borderRadius: BanzaRadius.lgAll,
                           ),
                           child: CustomPaint(
-                            size: const Size(160, 160),
+                            size: const Size(140, 140),
                             painter: QrPainter(
                               data:                 qrPayload,
                               version:              QrVersions.auto,
@@ -430,14 +426,14 @@ class P2PShareCardBuilder extends StatelessWidget {
                           ),
                         ),
 
-                        const SizedBox(height: BanzaSpacing.md),
+                        const SizedBox(height: 8),
 
                         // Amount
                         Text(
                           amountText,
                           style: TextStyle(
                             color:      Colors.white,
-                            fontSize:   hasAmount ? 24 : 15,
+                            fontSize:   hasAmount ? 22 : 14,
                             fontWeight: hasAmount ? FontWeight.w700 : FontWeight.w400,
                             fontFamily: 'Inter',
                             fontStyle:  hasAmount ? FontStyle.normal : FontStyle.italic,
@@ -448,12 +444,12 @@ class P2PShareCardBuilder extends StatelessWidget {
 
                         // Note
                         if (note != null && note!.isNotEmpty) ...[
-                          const SizedBox(height: BanzaSpacing.xs),
+                          const SizedBox(height: 3),
                           Text(
                             '"$note"',
                             style: TextStyle(
                               color:      Colors.white.withValues(alpha: 0.72),
-                              fontSize:   13,
+                              fontSize:   12,
                               fontFamily: 'Inter',
                               fontStyle:  FontStyle.italic,
                               decoration: TextDecoration.none,
@@ -464,7 +460,7 @@ class P2PShareCardBuilder extends StatelessWidget {
                           ),
                         ],
 
-                        const SizedBox(height: BanzaSpacing.md),
+                        const SizedBox(height: 8),
 
                         // "Receber com Banza" label
                         Text(
@@ -485,7 +481,7 @@ class P2PShareCardBuilder extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: BanzaSpacing.lg),
+          const SizedBox(height: 8),
 
           // ── Footer ───────────────────────────────────────────────────────
           Row(
@@ -493,7 +489,7 @@ class P2PShareCardBuilder extends StatelessWidget {
             children: [
               if (logoWidget != null) ...[
                 logoWidget!,
-                const SizedBox(width: BanzaSpacing.sm),
+                const SizedBox(width: 6),
               ],
               Text(
                 'Pague instantaneamente com Banza',
@@ -527,8 +523,8 @@ class _AvatarRow extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width:  64,
-          height: 64,
+          width:  48,
+          height: 48,
           decoration: const BoxDecoration(
             gradient: BanzaGradients.wine,
             shape:    BoxShape.circle,
@@ -538,21 +534,24 @@ class _AvatarRow extends StatelessWidget {
               initials,
               style: const TextStyle(
                 color:      Colors.white,
-                fontSize:   24,
+                fontSize:   19,
                 fontWeight: FontWeight.w700,
                 fontFamily: 'Inter',
               ),
             ),
           ),
         ),
-        const SizedBox(height: BanzaSpacing.sm),
+        const SizedBox(height: 5),
         if (displayName != null) ...[
-          Text(displayName!, style: BanzaTextStyles.headingMd),
-          const SizedBox(height: 2),
+          Text(
+            displayName!,
+            style: BanzaTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 1),
         ],
         Text(
           '@$handle',
-          style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+          style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
         ),
       ],
     );
@@ -575,17 +574,24 @@ class _ActionTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final effectiveColor = onTap == null ? BanzaColors.gray400 : color;
-    return ListTile(
-      leading: Icon(icon, color: effectiveColor, size: 22),
-      title: Text(
-        label,
-        style: BanzaTextStyles.bodyMd.copyWith(
-          color:      effectiveColor,
-          fontWeight: FontWeight.w500,
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, color: effectiveColor, size: 20),
+            const SizedBox(width: 16),
+            Text(
+              label,
+              style: BanzaTextStyles.bodyMd.copyWith(
+                color:      effectiveColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ),
       ),
-      onTap:  onTap,
-      dense:  true,
     );
   }
 }
