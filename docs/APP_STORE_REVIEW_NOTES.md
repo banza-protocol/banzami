@@ -51,6 +51,9 @@ Security behaviour:
 ```
 Bem-vindo ao beta do Banza!
 
+O Banza é a infraestrutura programável de pagamentos instantâneos de Angola —
+com carteira Kwanza, QR nativo, transferências P2P e identidade financeira @banza.
+
 O que testar:
 1. Registo e login com @banza e PIN
 2. Consultar saldo e histórico de transacções
@@ -119,6 +122,10 @@ Important:
 
 ```
 Bem-vindo ao beta do Banza Business!
+
+O Banza Business é a camada comerciante da infraestrutura programável de
+pagamentos instantâneos de Angola — QR nativo, liquidação instantânea,
+sem terminal de cartão, sem espera.
 
 O que testar:
 1. Configurar a conta com Merchant ID e API Key
@@ -225,6 +232,47 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 |-----|-----------|-----|---------|--------|
 | Banza | `com.banza.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
 | Banza Business | `com.banza.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
+
+---
+
+## App Store Descriptions (Copy)
+
+Use these for the App Store listing pages. Mirrors new infrastructure positioning.
+
+### Banza (Consumer) — App Store Description
+
+```
+O Banza é a tua carteira de pagamentos instantâneos em Kwanza.
+
+Com o Banza podes:
+• Pagar em qualquer comerciante com QR — sem cash, sem espera
+• Receber e enviar dinheiro para qualquer @banza em segundos
+• Consultar o teu saldo e histórico em tempo real
+• Pagar links de pagamento partilhados no WhatsApp
+
+O Banza é a infraestrutura programável de pagamentos instantâneos de Angola:
+QR-native, wallet-native, construído para o Kwanza.
+
+Sem cartão. Sem IBAN. Sem confirmação manual.
+Apenas @banza — e o dinheiro move-se.
+```
+
+### Banza Business (Merchant) — App Store Description
+
+```
+O Banza Business é o ponto de venda da nova economia angolana.
+
+Com o Banza Business podes:
+• Receber pagamentos instantâneos via QR — imprime e aceita de imediato
+• Criar e partilhar links de pagamento por WhatsApp ou SMS
+• Ver cada pagamento em tempo real, sem esperar por confirmação
+• Gerir o teu saldo e histórico de transacções num só lugar
+
+Sem terminal de cartão. Sem taxas de POS. Sem espera.
+Apenas QR + liquidação instantânea em Kwanza.
+
+O Banza Business é parte da infraestrutura programável de pagamentos de Angola.
+```
 
 ---
 

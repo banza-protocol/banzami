@@ -2,9 +2,9 @@
 
 ## Identity Statement
 
-Banzami is modern African financial infrastructure — not a startup product, not a western fintech clone.
+Banzami is Angola's programmable instant payments infrastructure — not a startup product, not a western fintech clone, not a wallet app.
 
-The visual identity communicates: **trust, speed, resilience, and African technological ambition.**
+The platform is four layers deep: consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. The visual identity communicates: **trust, speed, resilience, and Angolan technological ambition.**
 
 ---
 

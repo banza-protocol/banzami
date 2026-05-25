@@ -14,9 +14,11 @@
 
 ## Strategic Position
 
-Banzami is Angola's QR-native instant payment network and the first Angola-native SDK payment infrastructure.
+Banzami is building Angola's programmable instant payments infrastructure: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core — the first of its kind built natively for Angola.
 
-We are not building a generic fintech product. We are building national-scale payment infrastructure for a specific, well-understood market — Angola — with the discipline and depth that requires.
+Banza is not a wallet app. It is the payment platform that Angola apps are built on top of. Any Angolan taxi app, ecommerce site, or delivery platform can integrate Banza SDK and accept instant Kwanza payments natively — in hours, not months.
+
+We are not building a generic fintech product. We are building national-scale programmable payment infrastructure for a specific, well-understood market — Angola — with the discipline and depth that requires.
 
 ---
 
