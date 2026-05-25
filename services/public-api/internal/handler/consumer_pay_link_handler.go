@@ -4,13 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
+	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
@@ -23,11 +26,13 @@ type consumerPayLinkExecutor interface {
 
 // ConsumerPayLinkHandler handles consumer-facing pay link operations.
 type ConsumerPayLinkHandler struct {
-	core consumerPayLinkExecutor
+	core    consumerPayLinkExecutor
+	handles senderHandleResolver
+	fcm     *notify.FCMService
 }
 
-func NewConsumerPayLinkHandler(core *service.CorePublicClient) *ConsumerPayLinkHandler {
-	return &ConsumerPayLinkHandler{core: core}
+func NewConsumerPayLinkHandler(core *service.CorePublicClient, handles *service.CredentialStore, fcm *notify.FCMService) *ConsumerPayLinkHandler {
+	return &ConsumerPayLinkHandler{core: core, handles: handles, fcm: fcm}
 }
 
 func newConsumerPayLinkHandlerWithFakes(exec consumerPayLinkExecutor) *ConsumerPayLinkHandler {
@@ -142,5 +147,50 @@ func (h *ConsumerPayLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	// Notify the link owner (recipient) via FCM — best-effort, never delays the response.
+	go h.notifyPaymentRequestPaid(link, consumer.ID)
+
 	respond(w, http.StatusOK, link)
+}
+
+// notifyPaymentRequestPaid resolves the payer's handle and sends FCM to the link owner.
+func (h *ConsumerPayLinkHandler) notifyPaymentRequestPaid(link *service.ConsumerPayLink, payerConsumerID string) {
+	if h.fcm == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// Resolve payer handle for notification body.
+	senderHandle, err := h.handles.GetHandle(ctx, payerConsumerID)
+	if err != nil {
+		slog.Warn("[FCM] notifyPaymentRequestPaid: could not resolve payer handle",
+			"payer_consumer_id", payerConsumerID, "error", err)
+		senderHandle = ""
+	}
+
+	var amountMinor int64
+	if link.AmountMinor != nil {
+		amountMinor = *link.AmountMinor
+	}
+	transferID := ""
+	if link.TransferID != nil {
+		transferID = *link.TransferID
+	}
+
+	slog.Info("[FCM] event created",
+		"event",        "payment_request_paid",
+		"recipient_id", link.ReceiverConsumerID,
+		"sender",       senderHandle,
+		"amount_minor", amountMinor,
+	)
+
+	h.fcm.SendPaymentRequestPaid(ctx,
+		link.ReceiverConsumerID,
+		senderHandle,
+		amountMinor,
+		link.Currency,
+		transferID,
+	)
 }

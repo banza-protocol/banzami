@@ -57,9 +57,10 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	transferH       := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
 	activityH       := handler.NewActivityHandler(deps.CoreClient)
 	paymentLinkH    := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
-	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient)
+	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH     := handler.NewOnboardingHandler(deps.CoreClient)
+	debugPushH      := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
 
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
@@ -104,7 +105,10 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Post("/v1/consumer-pay-links/{code}/pay", consumerPayLinkH.Pay)
 
 		// Sandbox utilities — 403 when not in SANDBOX environment
-		r.Post("/v1/sandbox/fund", sandboxH.FundWallet)
+		r.Post("/v1/sandbox/fund",           sandboxH.FundWallet)
+
+		// Debug utilities — 403 in PRODUCTION, no-op when FCM not configured
+		r.Post("/v1/debug/push-test", debugPushH.PushTest)
 	})
 
 	traced := otelhttp.NewHandler(r, "public-api")
