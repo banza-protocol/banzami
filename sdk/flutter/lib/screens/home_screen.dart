@@ -6,6 +6,7 @@ import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banza_theme.dart';
 import '../utils/banza_toast.dart';
+import '../utils/date_formatter.dart';
 import '../utils/money_format.dart';
 import '../widgets/banza_components.dart';
 import 'receive_screen.dart';
@@ -587,17 +588,8 @@ class _ActivityRow extends StatelessWidget {
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '';
-    final now  = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) {
-      return 'Hoje, ${_pad(dt.hour)}:${_pad(dt.minute)}';
-    } else if (diff.inDays == 1) {
-      return 'Ontem, ${_pad(dt.hour)}:${_pad(dt.minute)}';
-    }
-    return '${dt.day}/${dt.month}';
+    return BanzaDateFormatter.formatActivityTime(dt);
   }
-
-  String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
 class _ActivityIcon extends StatelessWidget {

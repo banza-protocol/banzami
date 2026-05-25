@@ -96,14 +96,13 @@ class _HistoryScreenState extends State<HistoryScreen>
   }
 
   List<dynamic> _grouped(List<ActivityItem> items) {
-    final now       = DateTime.now();
-    final today     = DateUtils.dateOnly(now);
+    final today     = BanzaDateFormatter.toLocalDate(DateTime.now());
     final yesterday = today.subtract(const Duration(days: 1));
     final grouped   = <dynamic>[];
     String? lastKey;
 
     for (final item in items) {
-      final date = DateUtils.dateOnly(item.createdAt);
+      final date = BanzaDateFormatter.toLocalDate(item.createdAt);
       final String key;
       if (date == today) {
         key = 'Hoje';
@@ -826,13 +825,8 @@ class _HistoryRow extends StatelessWidget {
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '';
-    final diff = DateTime.now().difference(dt);
-    if (diff.inDays == 0) return '${_pad(dt.hour)}:${_pad(dt.minute)}';
-    if (diff.inDays == 1) return 'Ontem';
-    return '${dt.day}/${dt.month}';
+    return BanzaDateFormatter.formatListTime(dt);
   }
-
-  String _pad(int n) => n.toString().padLeft(2, '0');
 }
 
 // =============================================================================

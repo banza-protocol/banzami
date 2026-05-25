@@ -1,12 +1,12 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
 import '../models/transfer.dart';
+import 'date_formatter.dart';
 import 'money_format.dart';
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
@@ -45,8 +45,8 @@ class BanzaPdfReceiptGenerator {
 
     final ref8    = transfer.transferId.replaceAll('-', '').substring(0, 8).toUpperCase();
     final amount  = formatMinor(transfer.amountMinor, transfer.currency);
-    final dateStr = DateFormat("d 'de' MMMM 'de' y, HH:mm", 'pt')
-        .format(transfer.completedAt ?? transfer.createdAt);
+    final dateStr = BanzaDateFormatter.formatReceiptDate(
+        transfer.completedAt ?? transfer.createdAt);
 
     pw.MemoryImage? logoImage;
     if (logoAssetPath != null) {
