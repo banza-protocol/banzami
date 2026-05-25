@@ -17,30 +17,32 @@ import '../utils/money_format.dart';
 
 Future<void> showP2PShareModal(
   BuildContext context, {
-  required String handle,
-  String? displayName,
-  required String qrPayload,
-  required String shareUrl,
-  int? amountMinor,
-  String? currency,
-  String? note,
-  bool isSandbox = false,
-  Widget? logoWidget,
+  required String    handle,
+  String?            displayName,
+  required String    qrPayload,
+  required String    shareUrl,
+  int?               amountMinor,
+  String?            currency,
+  String?            note,
+  bool               isSandbox        = false,
+  Widget?            logoWidget,
+  ImageProvider?     embeddedLogoImage,
 }) {
   return showModalBottomSheet<void>(
     context:            context,
     isScrollControlled: true,
     backgroundColor:    Colors.transparent,
     builder: (_) => _P2PShareModal(
-      handle:      handle,
-      displayName: displayName,
-      qrPayload:   qrPayload,
-      shareUrl:    shareUrl,
-      amountMinor: amountMinor,
-      currency:    currency,
-      note:        note,
-      isSandbox:   isSandbox,
-      logoWidget:  logoWidget,
+      handle:            handle,
+      displayName:       displayName,
+      qrPayload:         qrPayload,
+      shareUrl:          shareUrl,
+      amountMinor:       amountMinor,
+      currency:          currency,
+      note:              note,
+      isSandbox:         isSandbox,
+      logoWidget:        logoWidget,
+      embeddedLogoImage: embeddedLogoImage,
     ),
   );
 }
@@ -50,15 +52,16 @@ Future<void> showP2PShareModal(
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _P2PShareModal extends StatefulWidget {
-  final String  handle;
-  final String? displayName;
-  final String  qrPayload;
-  final String  shareUrl;
-  final int?    amountMinor;
-  final String? currency;
-  final String? note;
-  final bool    isSandbox;
-  final Widget? logoWidget;
+  final String         handle;
+  final String?        displayName;
+  final String         qrPayload;
+  final String         shareUrl;
+  final int?           amountMinor;
+  final String?        currency;
+  final String?        note;
+  final bool           isSandbox;
+  final Widget?        logoWidget;
+  final ImageProvider? embeddedLogoImage;
 
   const _P2PShareModal({
     required this.handle,
@@ -70,6 +73,7 @@ class _P2PShareModal extends StatefulWidget {
     this.note,
     required this.isSandbox,
     this.logoWidget,
+    this.embeddedLogoImage,
   });
 
   @override
@@ -262,14 +266,15 @@ class _P2PShareModalState extends State<_P2PShareModal> {
               child: RepaintBoundary(
                 key: _cardKey,
                 child: P2PShareCardBuilder(
-                  handle:      widget.handle,
-                  displayName: widget.displayName,
-                  qrPayload:   widget.qrPayload,
-                  amountMinor: widget.amountMinor,
-                  currency:    widget.currency,
-                  note:        widget.note,
-                  isSandbox:   widget.isSandbox,
-                  logoWidget:  widget.logoWidget,
+                  handle:            widget.handle,
+                  displayName:       widget.displayName,
+                  qrPayload:         widget.qrPayload,
+                  amountMinor:       widget.amountMinor,
+                  currency:          widget.currency,
+                  note:              widget.note,
+                  isSandbox:         widget.isSandbox,
+                  logoWidget:        widget.logoWidget,
+                  embeddedLogoImage: widget.embeddedLogoImage,
                 ),
               ),
             ),
@@ -326,15 +331,16 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 // Premium share card — used as modal preview and PNG export source
 // ─────────────────────────────────────────────────────────────────────────────
 
-class P2PShareCardBuilder extends StatelessWidget {
-  final String  handle;
-  final String? displayName;
-  final String  qrPayload;
-  final int?    amountMinor;
-  final String? currency;
-  final String? note;
-  final bool    isSandbox;
-  final Widget? logoWidget;
+class P2PShareCardBuilder extends StatefulWidget {
+  final String         handle;
+  final String?        displayName;
+  final String         qrPayload;
+  final int?           amountMinor;
+  final String?        currency;
+  final String?        note;
+  final bool           isSandbox;
+  final Widget?        logoWidget;
+  final ImageProvider? embeddedLogoImage;
 
   const P2PShareCardBuilder({
     super.key,
@@ -346,13 +352,70 @@ class P2PShareCardBuilder extends StatelessWidget {
     this.note,
     required this.isSandbox,
     this.logoWidget,
+    this.embeddedLogoImage,
   });
 
   @override
+  State<P2PShareCardBuilder> createState() => _P2PShareCardBuilderState();
+}
+
+class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
+  ui.Image?            _loadedImage;
+  ImageStream?         _stream;
+  ImageStreamListener? _listener;
+
+  @override
+  void initState() {
+    super.initState();
+    _attachStream(widget.embeddedLogoImage);
+  }
+
+  @override
+  void didUpdateWidget(P2PShareCardBuilder old) {
+    super.didUpdateWidget(old);
+    if (old.embeddedLogoImage != widget.embeddedLogoImage) {
+      _detachStream();
+      _attachStream(widget.embeddedLogoImage);
+    }
+  }
+
+  @override
+  void dispose() {
+    _detachStream();
+    super.dispose();
+  }
+
+  void _attachStream(ImageProvider? provider) {
+    if (provider == null) return;
+    _listener = ImageStreamListener((info, _) {
+      if (mounted) setState(() => _loadedImage = info.image);
+    });
+    _stream = provider.resolve(ImageConfiguration.empty);
+    _stream!.addListener(_listener!);
+  }
+
+  void _detachStream() {
+    if (_stream != null && _listener != null) {
+      _stream!.removeListener(_listener!);
+    }
+    _stream    = null;
+    _listener  = null;
+    _loadedImage = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final hasAmount  = amountMinor != null && amountMinor! > 0;
+    final handle      = widget.handle;
+    final displayName = widget.displayName;
+    final qrPayload   = widget.qrPayload;
+    final amountMinor = widget.amountMinor;
+    final currency    = widget.currency;
+    final note        = widget.note;
+    final isSandbox   = widget.isSandbox;
+    final logoWidget  = widget.logoWidget;
+    final hasAmount  = amountMinor != null && amountMinor > 0;
     final amountText = hasAmount
-        ? formatMinor(amountMinor!, currency ?? 'AOA')
+        ? formatMinor(amountMinor, currency ?? 'AOA')
         : 'Pagamento livre';
 
     return Container(
@@ -497,6 +560,10 @@ class P2PShareCardBuilder extends StatelessWidget {
                                 dataModuleShape: QrDataModuleShape.square,
                                 color:           BanzaColors.gray900,
                               ),
+                              embeddedImage:      _loadedImage,
+                              embeddedImageStyle: _loadedImage != null
+                                  ? const QrEmbeddedImageStyle(size: Size(24, 24))
+                                  : null,
                             ),
                           ),
                         ),
@@ -518,7 +585,7 @@ class P2PShareCardBuilder extends StatelessWidget {
                         ),
 
                         // Note
-                        if (note != null && note!.isNotEmpty) ...[
+                        if (note != null && note.isNotEmpty) ...[
                           const SizedBox(height: 3),
                           Text(
                             '"$note"',
@@ -562,7 +629,7 @@ class P2PShareCardBuilder extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               if (logoWidget != null) ...[
-                logoWidget!,
+                logoWidget,
                 const SizedBox(width: 6),
               ],
               Text(
