@@ -101,17 +101,24 @@ class _BanzamiAppState extends State<BanzamiApp> {
     _lastHandledAt   = DateTime.now();
 
     // ── Lock gate ──────────────────────────────────────────────────────────
-    // If the session exists but is locked, park the URI and show the PIN
-    // screen immediately. The link is processed only after unlock.
-    final ctx = _navigatorKey.currentContext;
-    if (ctx != null) {
-      final svc = ctx.read<SessionService>();
-      if (svc.hasSession && svc.isLocked) {
-        debugPrint('[deep-link] appLocked=true → parking uri and triggering unlock');
-        _pendingDeepLinkUri = uri;
-        _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
-        return;
+    final ctx        = _navigatorKey.currentContext;
+    final guardState = _guardKey.currentState;
+    final svc        = ctx?.read<SessionService>();
+    debugPrint('[deep-link] lockGate: ctx=${ctx != null} guardState=${guardState != null} '
+        'hasSession=${svc?.hasSession} isLocked=${svc?.isLocked} '
+        'pendingDeepLink=$_pendingDeepLinkUri');
+
+    if (svc != null && svc.hasSession && svc.isLocked) {
+      debugPrint('[deep-link] appLocked=true → parking uri and triggering unlock');
+      _pendingDeepLinkUri = uri;
+      if (guardState != null) {
+        guardState.triggerUnlock(_onDeepLinkUnlocked);
+      } else {
+        // Guard not mounted yet (very early cold start). The Consumer builder
+        // will retry once the session finishes loading.
+        debugPrint('[deep-link] guardState=null — will retry from Consumer builder');
       }
+      return;
     }
 
     // ── Universal links: https://pay.banzami.org/* ──────────────────────────
