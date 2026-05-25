@@ -6,6 +6,7 @@ import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banza_theme.dart';
 import '../utils/banza_toast.dart';
+import '../utils/camera_permission.dart';
 import '../utils/date_formatter.dart';
 import '../utils/money_format.dart';
 import '../widgets/banza_components.dart';
@@ -100,14 +101,19 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     }
   }
 
-  void _onScan() => Navigator.of(context).push(BanzaPageRoute(
-    page: BanzamiScanScreen(
-      client:    widget.client,
-      ownHandle: widget.handle,
-      isSandbox: widget.environment.isSandbox,
-      onSuccess: (_) => _load(),
-    ),
-  ));
+  Future<void> _onScan() async {
+    final granted = await BanzaCameraPermission.ensure(context);
+    if (!granted || !mounted) return;
+    debugPrint('[QR-CAMERA] initializing scanner');
+    Navigator.of(context).push(BanzaPageRoute(
+      page: BanzamiScanScreen(
+        client:    widget.client,
+        ownHandle: widget.handle,
+        isSandbox: widget.environment.isSandbox,
+        onSuccess: (_) => _load(),
+      ),
+    ));
+  }
 
   void _onSend() => Navigator.of(context).push(BanzaPageRoute(
     page: BanzamiSendScreen(

@@ -10,6 +10,7 @@ import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
 import '../utils/banza_toast.dart';
+import '../utils/camera_permission.dart';
 import '../utils/qr_parser.dart';
 import '../widgets/banza_amount_input.dart';
 import '../widgets/banza_components.dart';
@@ -178,6 +179,11 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
   Future<void> _scanQr() async {
     HapticFeedback.lightImpact();
+
+    final granted = await BanzaCameraPermission.ensure(context);
+    if (!granted || !mounted) return;
+
+    debugPrint('[QR-CAMERA] initializing scanner');
     String? raw;
     await Navigator.of(context).push(MaterialPageRoute<void>(
       fullscreenDialog: true,
@@ -189,6 +195,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         ),
       ),
     ));
+    debugPrint('[QR-CAMERA] scanner ready');
     if (raw == null || !mounted) return;
     _handleQrResult(raw!);
   }

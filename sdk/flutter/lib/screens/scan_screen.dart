@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
@@ -42,9 +43,32 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   String?   _error;
   int       _scanGeneration = 0; // incremented on rescan → rebuilds BanzaQrScanner
 
+  // null = checking, true = granted, false = denied (will pop)
+  bool?     _cameraReady;
+
   // Duplicate scan guard
   String?   _lastRaw;
   DateTime? _lastAt;
+
+  @override
+  void initState() {
+    super.initState();
+    _guardPermission();
+  }
+
+  // Lightweight status check — callers should have already called
+  // BanzaCameraPermission.ensure(), so this is typically instant.
+  Future<void> _guardPermission() async {
+    final status = await Permission.camera.status;
+    if (!mounted) return;
+    if (status.isGranted) {
+      debugPrint('[QR-CAMERA] scanner ready');
+      setState(() => _cameraReady = true);
+    } else {
+      debugPrint('[QR-CAMERA] permission not granted in scanner — popping');
+      Navigator.of(context).pop();
+    }
+  }
 
   bool _isDuplicate(String raw) {
     if (_lastRaw == null || _lastAt == null) return false;
@@ -216,6 +240,8 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_cameraReady != true) return _buildCameraLoading();
+
     return Scaffold(
       backgroundColor: _step == _ScanStep.scanning ? Colors.black : BanzaColors.offWhite,
       body: switch (_step) {
@@ -227,6 +253,27 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         _ScanStep.resolving => _buildResolving(),
         _ScanStep.error     => _buildError(),
       },
+    );
+  }
+
+  Widget _buildCameraLoading() {
+    return const Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.qr_code_outlined, color: Colors.white38, size: 64),
+              SizedBox(height: 20),
+              Text(
+                'A preparar câmara…',
+                style: TextStyle(color: Colors.white54, fontSize: 15),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
