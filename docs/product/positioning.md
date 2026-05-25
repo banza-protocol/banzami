@@ -8,7 +8,9 @@
 
 ## The One-Line Position
 
-**Banzami is Angola's instant payment network — QR-native, wallet-first, SDK-ready.**
+**Banza é a infraestrutura programável de pagamentos instantâneos de Angola — QR-native, wallet-native, developer-first.**
+
+*English: Banza is Angola's programmable instant payments infrastructure — QR-native, wallet-native, developer-first.*
 
 ---
 
@@ -16,10 +18,11 @@
 
 | Statement | Meaning |
 |-----------|---------|
+| Angola's programmable instant payments infrastructure | Not just a wallet app — a full payments platform with QR, wallets, APIs, SDKs, and financial identity |
 | Angola's QR-native instant payment network | QR codes are the primary merchant payment surface; settlement is instant, not delayed |
 | The first Angola-native SDK payment infrastructure | Any Angolan app integrates Banza SDK and accepts AOA instantly — this infrastructure did not exist before |
 | The wallet layer for Angolan digital commerce | Every account is a wallet; every payment is a wallet transfer; not card-centric |
-| The payment API for Angolan applications | Taxi apps, delivery platforms, ecommerce, donation platforms — all use Banzami as their payment engine |
+| The payment API for Angolan applications | Taxi apps, delivery platforms, ecommerce, donation platforms — all use Banza as their payment engine |
 | The replacement for cash and WhatsApp payment confirmation | The explicit product target: eliminate manual transfer confirmation in Angolan commerce |
 
 ---
@@ -50,7 +53,7 @@ Core proof points:
 
 ### For Angolan developers
 
-> "The first payment SDK built for Angola. Accept instant Kwanza payments inside your app in hours. Fully typed, idempotency-safe, webhook-verified."
+> "The developer layer of Angola's programmable payments platform. Accept instant Kwanza payments inside your app in hours. QR generation, payment links, webhooks — fully typed, idempotency-safe, webhook-verified."
 
 Core proof points:
 - Angola-native: AOA, pt-AO locale, @handle-based identity, EMIS-compatible
@@ -59,7 +62,7 @@ Core proof points:
 
 ### For investors
 
-> "Banzami is building the Pix of Angola — the QR-native national payment network that replaces cash and WhatsApp confirmation in the largest Portuguese-speaking country in Africa."
+> "Banzami is building the programmable payments infrastructure of Angola — the QR-native national network with consumer wallets, merchant rails, and a developer SDK ecosystem that replaces cash and WhatsApp confirmation in the largest Portuguese-speaking country in Africa."
 
 Core proof points:
 - National mission with a specific market, not a vague continental play
@@ -94,25 +97,43 @@ Banzami is explicitly NOT modeled on:
 
 ---
 
+## Infrastructure Layers
+
+Banza operates across four stacked layers. This framing helps explain why Banza is an infrastructure, not just an app:
+
+| Layer | Surface | Who Uses It |
+|-------|---------|-------------|
+| **Consumer layer** | Banza mobile app (iOS/Android) | Every Angolan — pay, receive, transfer, QR scan |
+| **Merchant layer** | Banza Business app + static/dynamic QR | Cantinas, ecommerce, taxi apps, institutions |
+| **Developer layer** | Banza SDK + Banza API + payment links + webhooks | Developers building Angolan apps |
+| **Infrastructure layer** | Ledger engine, settlement rails, EMIS integration, wallets | Banks, financial partners, regulated integrators |
+
+The first three layers are Banza's product surface. The fourth is the financial engineering underneath. All four are part of what "programmable payments infrastructure" means.
+
+---
+
 ## Language Rules
 
 ### Always use
 
+- "programmable payments infrastructure" or "programmable instant payments" — not "wallet app"
 - "instant payment" or "instant settlement" — not "fast payment" (fast is relative; instant is a product commitment)
-- "wallet" — not "account" (accounts are bank constructs; Banzami has wallets)
+- "wallet" — not "account" (accounts are bank constructs; Banza has wallets)
 - "AOA" or "Kwanza" — not generic "African currency"
 - "@handle" — not "username" (the handle IS the payment address)
 - "scan and pay" — not "tap to pay" (NFC is not the primary surface)
 - "QR-native" — not "QR-enabled" (QR is not a feature; it is the primary payment UX)
-- "Angola's payment network" — not "African payment network" (until expansion is proven)
+- "Angola's payment infrastructure" or "Angola's payment network" — not "African payment network"
+- "developer layer" or "payment API" — not "thin wrapper" or "helper library" when describing the SDK
 
 ### Avoid
 
+- "carteira digital simples" or "app de pagamentos básico" — undersells what the platform is
 - "pan-African" in any current-tense claim
 - "Stripe for Africa" or "X for Africa" analogies (lazy positioning, wrong model)
 - "fintech" alone without context (too generic)
 - "card payment" in any primary context (card is a future top-up rail, not the product)
-- "bank transfer" framed as a feature (bank transfers are the *problem* Banzami solves)
+- "bank transfer" framed as a feature (bank transfers are the *problem* Banza solves)
 
 ---
 

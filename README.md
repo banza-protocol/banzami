@@ -1,8 +1,8 @@
 # Banzami
 
-> Angola's wallet-native payment network — instant transfers, QR-first commerce, kwanza-native money movement.
+> Angola's programmable instant payments infrastructure — QR-native, wallet-native, developer-first.
 
-Banzami is a **wallet-native payment network** for Angola and emerging African markets. Every payment is a wallet-to-wallet ledger transfer. Every merchant payment surface is a QR code. Every account is addressable by @handle.
+Banzami is building **Angola's programmable instant payments infrastructure**: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. Every payment is a wallet-to-wallet ledger transfer. Every merchant surface is a QR code. Any Angolan app integrates Banza SDK and accepts instant Kwanza payments natively.
 
 The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
 
@@ -10,6 +10,7 @@ Reference models: Pix, WeChat Pay, M-Pesa, UPI — not card-first checkout.
 
 The platform provides:
 
+* **Programmable payments** — any Angolan app accepts instant AOA via SDK or API,
 * **QR-native payments** — scan to pay, scan to receive, instant settlement,
 * **@handle identity** — payments addressed to human-readable handles,
 * **wallet infrastructure** — double-entry ledger, strongly consistent balances,

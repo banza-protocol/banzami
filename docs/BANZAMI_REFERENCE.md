@@ -7,9 +7,9 @@
 
 ---
 
-> **Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente.**  
-> **Banza é a rede de pagamentos instantâneos QR-native em Kwanza, construída pelo Banzami.**  
-> Carteira-a-carteira. Liquidação instantânea. Sem cartão. Construído para cada angolano.
+> **Banza não é apenas uma carteira digital.**  
+> **É uma infraestrutura programável de pagamentos instantâneos em Kwanza — com QR, wallets, APIs, SDKs e identidade financeira @banza.**  
+> Banzami constrói a infraestrutura. Banza move o dinheiro.
 
 ---
 
@@ -50,7 +50,7 @@ Angola precisa do seu próprio — construído para o Kwanza, para o QR, para o 
 
 **Banzami** constrói a infraestrutura que permite ao país pagar digitalmente — a plataforma, a missão institucional e o ecossistema de parceiros que tornam possível uma nova era de comércio digital em Angola.
 
-**Banza** é o produto principal do Banzami: a **rede de pagamentos instantâneos de Angola** — uma infraestrutura completa de pagamentos digitais construída especificamente para o comércio angolano, comerciantes angolanos e consumidores angolanos.
+**Banza** é o produto principal do Banzami: a **infraestrutura programável de pagamentos instantâneos de Angola** — uma plataforma completa de pagamentos em Kwanza com QR, wallets, APIs, SDKs e identidade financeira @banza, construída especificamente para o comércio angolano.
 
 > *Banzami constrói a infraestrutura. Banza move o dinheiro.*  
 > *Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é como Angola paga.*
@@ -70,18 +70,27 @@ Banzami (organização / ecossistema)
     └── @banza (identidade de pagamento)
 ```
 
-O Banza não é um banco. Não é um processador de cartões. Não é uma plataforma fintech genérica adaptada de um modelo ocidental e rebaptizada para África.
+O Banza não é um banco. Não é um processador de cartões. Não é uma carteira digital simples. Não é uma plataforma fintech genérica adaptada de um modelo ocidental e rebaptizada para África.
 
-O Banza é uma **rede de pagamentos wallet-native**: cada conta é uma carteira digital, cada pagamento é uma transferência instantânea de carteira-para-carteira, e cada interação comercial é um código QR. O dinheiro move-se entre carteiras em tempo real — confirmado, liquidado e visível em segundos.
+O Banza é uma **infraestrutura programável de pagamentos instantâneos**: cada conta é uma carteira em Kwanza, cada pagamento é uma transferência directa de carteira-para-carteira, e qualquer aplicação angolana pode integrar pagamentos instantâneos via SDK em horas. O dinheiro move-se em tempo real — confirmado, liquidado e visível em segundos.
+
+### As quatro camadas do Banza
+
+| Camada | Para quem | O que oferece |
+|--------|-----------|---------------|
+| **Consumidor** | Cada angolano | Carteira Banza, QR payments, transferências P2P @banza, histórico instantâneo |
+| **Comerciante** | Cantinas, lojas, plataformas | Banza Business, QR estático/dinâmico, pagamentos sem terminal, dashboard em tempo real |
+| **Programador** | Apps de táxi, ecommerce, delivery, doações | Banza SDK, Banza API, payment links, webhooks, sandbox — integração em horas |
+| **Infraestrutura** | Parceiros, bancos, integradores | Rails de liquidação, ledger de dupla entrada, reconciliação, EMIS/Multicaixa |
 
 ### Os quatro pilares do Banza
 
 | Pilar | O que significa |
 |-------|----------------|
-| **Wallet-native** | Cada conta é uma carteira digital em Kwanza. Os pagamentos são transferências directas entre carteiras. Sem IBAN. Sem código bancário. Sem cartão. |
-| **QR-native** | A principal superfície de pagamento para comerciantes é um código QR. O comerciante imprime um QR. O consumidor faz o scan. O pagamento é instantâneo. Sem terminal de cartão, sem hardware, sem atrito. |
-| **Liquidação instantânea** | O dinheiro move-se no momento em que o pagamento é confirmado. Não no próximo dia útil. Não após verificação manual. Instantaneamente — na mesma transacção. |
-| **SDK-first** | Qualquer aplicação angolana — apps de táxi, plataformas de delivery, sites de ecommerce, plataformas de doações — integra o Banza em horas e aceita pagamentos instantâneos em Kwanza nativamente no seu produto. |
+| **Programmable** | Qualquer aplicação angolana integra pagamentos via SDK ou API. O Banza não é só uma app — é a camada de pagamentos de Angola. |
+| **Wallet-native** | Cada conta é uma carteira em Kwanza. Os pagamentos são transferências directas entre carteiras. Sem IBAN. Sem código bancário. Sem cartão. |
+| **QR-native** | A principal superfície de pagamento para comerciantes é um código QR. O comerciante imprime um QR. O consumidor faz o scan. O pagamento é instantâneo. Sem terminal, sem hardware, sem atrito. |
+| **Instant settlement** | O dinheiro move-se no momento em que o pagamento é confirmado — confirmado, liquidado e visível em segundos. |
 
 ### A experiência de pagamento canónica
 
@@ -112,10 +121,10 @@ Sem número de conta bancária. Sem IBAN. Sem códigos de referência. Sem dados
 
 ### Quem o Banza serve
 
+- **Consumidores** — cada angolano que quer pagar, transferir e receber dinheiro instantaneamente
 - **Comerciantes** — desde cantinas e bancas de mercado até plataformas de ecommerce e apps de táxi
-- **Programadores** — a construir a próxima geração de aplicações angolanas que precisam de aceitar pagamentos
-- **Consumidores** — cada angolano que quer pagar, enviar dinheiro e receber pagamentos instantaneamente
-- **Bancos e parceiros** — que querem oferecer aos seus clientes uma camada moderna de comércio digital
+- **Programadores** — equipas a construir apps angolanas que precisam de aceitar pagamentos em Kwanza via SDK ou API
+- **Integradores e parceiros** — bancos, fintechs e plataformas que querem incorporar pagamentos instantâneos na sua infraestrutura
 
 ---
 
