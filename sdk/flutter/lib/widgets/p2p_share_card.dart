@@ -416,8 +416,65 @@ class P2PShareCardBuilder extends StatelessWidget {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                         ],
+
+                        // ── Receiver identity ─────────────────────────────
+                        Container(
+                          width:  44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color:      Colors.black.withValues(alpha: 0.12),
+                                blurRadius: 8,
+                                offset:     const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              _initials(displayName ?? handle),
+                              style: const TextStyle(
+                                color:      BanzaColors.wine,
+                                fontSize:   17,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'Inter',
+                                decoration: TextDecoration.none,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          displayName ?? '@$handle',
+                          style: const TextStyle(
+                            color:      Colors.white,
+                            fontSize:   14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Inter',
+                            decoration: TextDecoration.none,
+                          ),
+                          textAlign: TextAlign.center,
+                          maxLines:  1,
+                          overflow:  TextOverflow.ellipsis,
+                        ),
+                        if (displayName != null) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            '@$handle',
+                            style: TextStyle(
+                              color:      Colors.white.withValues(alpha: 0.60),
+                              fontSize:   11,
+                              fontFamily: 'Inter',
+                              decoration: TextDecoration.none,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                        const SizedBox(height: 12),
 
                         // QR on white background
                         Container(
@@ -427,7 +484,7 @@ class P2PShareCardBuilder extends StatelessWidget {
                             borderRadius: BanzaRadius.lgAll,
                           ),
                           child: CustomPaint(
-                            size: const Size(140, 140),
+                            size: const Size(120, 120),
                             painter: QrPainter(
                               data:                 qrPayload,
                               version:              QrVersions.auto,
