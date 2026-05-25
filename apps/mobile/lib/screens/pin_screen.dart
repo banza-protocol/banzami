@@ -94,10 +94,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     if (_isLockedOut) {
       final secs = _lockoutUntil!.difference(DateTime.now()).inSeconds + 1;
       setState(() { _error = true; _pin = ''; _padResetKey += 1; });
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        content: Text('Demasiadas tentativas. Tente novamente em $secs segundos.'),
-        duration: const Duration(seconds: 3),
-      ));
+      BanzaToast.showWarning(context, 'Demasiadas tentativas. Tente novamente em $secs segundos.');
       return;
     }
 

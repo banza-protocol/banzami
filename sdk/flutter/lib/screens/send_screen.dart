@@ -9,6 +9,7 @@ import '../client/consumer_public_client.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
+import '../utils/banza_toast.dart';
 import '../utils/qr_parser.dart';
 import '../widgets/banza_amount_input.dart';
 import '../widgets/banza_components.dart';
@@ -196,8 +197,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final parsed = BanzaQrParser.parse(raw);
     switch (parsed) {
       case BanzaQrInvalid(:final reason):
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(reason)));
+        BanzaToast.showWarning(context, reason);
 
       case BanzaQrPaymentRequest(:final code, :final isSandbox):
         if (_sandboxMismatch(isSandbox)) return;
@@ -215,7 +215,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final msg = qrIsSandbox
         ? 'Este QR pertence ao ambiente sandbox.'
         : 'Este QR pertence ao ambiente live.';
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    BanzaToast.showWarning(context, msg);
     return true;
   }
 
@@ -255,7 +255,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
           'EXPIRED' => 'Este pedido expirou.',
           _         => 'Este pedido não está disponível.',
         };
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        BanzaToast.showWarning(context, msg);
         return;
       }
       await Navigator.of(context).push(BanzaPageRoute(
@@ -279,12 +279,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       final msg = e.isNotFound
           ? 'Pedido de pagamento não encontrado.'
           : 'Não foi possível verificar o QR. Tente novamente.';
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      BanzaToast.showError(context, msg);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Não foi possível verificar o QR. Tente novamente.')),
-      );
+      BanzaToast.showError(context, 'Não foi possível verificar o QR. Tente novamente.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }

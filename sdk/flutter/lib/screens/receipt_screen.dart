@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
+import '../utils/banza_toast.dart';
 import '../utils/money_format.dart';
 import '../utils/pdf_receipt_generator.dart';
 import '../utils/screen_security.dart';
@@ -436,9 +437,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         );
       } catch (_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Não foi possível partilhar.')),
-        );
+        BanzaToast.showError(context, 'Não foi possível partilhar.');
       }
     }
   }

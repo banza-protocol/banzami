@@ -116,9 +116,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
       await Share.share(_payUrl, subject: subject, sharePositionOrigin: origin);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao partilhar: $e')),
-        );
+        BanzaToast.showError(context, 'Erro ao partilhar: $e');
       }
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -296,9 +294,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
           onTap: () async {
             await Clipboard.setData(ClipboardData(text: _payUrl));
             if (!mounted) return;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Link copiado')),
-            );
+            BanzaToast.showSuccess(context, 'Link copiado');
           },
           child: Container(
             padding: const EdgeInsets.symmetric(

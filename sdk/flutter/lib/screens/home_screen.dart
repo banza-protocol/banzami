@@ -5,6 +5,7 @@ import '../client/consumer_public_client.dart';
 import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
 import '../theme/banza_theme.dart';
+import '../utils/banza_toast.dart';
 import '../utils/money_format.dart';
 import '../widgets/banza_components.dart';
 import 'receive_screen.dart';
@@ -876,31 +877,13 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       final result = await widget.client.sandboxFund(amountMinor: _amountKz * 100);
       if (!mounted) return;
       widget.onFunded();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(Icons.check_circle_outline_rounded, color: Colors.white, size: 18),
-              const SizedBox(width: 8),
-              Text('${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox'),
-            ],
-          ),
-          backgroundColor: BanzaColors.success,
-          duration:        const Duration(seconds: 3),
-          behavior:        SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BanzaRadius.smAll),
-        ),
+      BanzaToast.showSuccess(
+        context,
+        '${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox',
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content:         const Text('Erro ao adicionar fundos'),
-          backgroundColor: BanzaColors.error,
-          behavior:        SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BanzaRadius.smAll),
-        ),
-      );
+      BanzaToast.showError(context, 'Erro ao adicionar fundos');
     } finally {
       if (mounted) setState(() => _loading = false);
     }

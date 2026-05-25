@@ -120,9 +120,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   void _showComingSoon(String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve')),
-    );
+    BanzaToast.showInfo(context, '$feature em breve');
   }
 }
 
