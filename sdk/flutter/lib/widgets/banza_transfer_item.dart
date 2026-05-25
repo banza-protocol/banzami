@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../models/activity_item.dart';
 import '../theme/banza_theme.dart';
+import '../utils/date_formatter.dart';
 
 /// A single row in the consumer activity feed.
 ///
@@ -99,12 +99,5 @@ class BanzaTransferItem extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) {
-    final now  = DateTime.now();
-    final diff = now.difference(dt);
-    if (diff.inDays == 0) return DateFormat.Hm().format(dt);
-    if (diff.inDays == 1) return 'Ontem';
-    if (diff.inDays < 7)  return DateFormat.EEEE('pt_PT').format(dt);
-    return DateFormat('dd/MM/yy').format(dt);
-  }
+  String _formatDate(DateTime dt) => BanzaDateFormatter.formatShortTime(dt);
 }
