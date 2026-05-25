@@ -367,12 +367,14 @@ class P2PShareCardBuilder extends StatelessWidget {
                     ),
                   ),
 
-                  Padding(
+                  Positioned.fill(
+                    child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical:   16,
                     ),
                     child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
 
                         // SANDBOX badge
@@ -475,6 +477,7 @@ class P2PShareCardBuilder extends StatelessWidget {
                         ),
                       ],
                     ),
+                  ),
                   ),
                 ],
               ),
