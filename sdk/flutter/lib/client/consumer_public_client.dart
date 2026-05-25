@@ -400,7 +400,16 @@ class ConsumerPublicClient {
     }
 
     final durationMs = DateTime.now().difference(start).inMilliseconds;
-    final decoded    = jsonDecode(resp.body) as Map<String, dynamic>;
+
+    Map<String, dynamic>? decoded;
+    try {
+      decoded = jsonDecode(resp.body) as Map<String, dynamic>;
+    } catch (_) {
+      // Non-JSON body (e.g. nginx 404 text). Wrap it so callers get a readable message.
+      final err = BanzamiNetworkException('HTTP ${resp.statusCode}: ${resp.body.trim()}');
+      onError?.call(method, path, err);
+      throw err;
+    }
 
     if (resp.statusCode >= 200 && resp.statusCode < 300) {
       onResponse?.call(method, path, resp.statusCode, durationMs);
