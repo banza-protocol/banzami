@@ -229,8 +229,6 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 
   @override
   Widget build(BuildContext context) {
-    final initials = _initials(widget.displayName ?? widget.handle);
-
     return Container(
       decoration: const BoxDecoration(
         color:        BanzaColors.white,
@@ -250,15 +248,6 @@ class _P2PShareModalState extends State<_P2PShareModal> {
                 borderRadius: BanzaRadius.fullAll,
               ),
             ),
-            const SizedBox(height: 14),
-
-            // ── Avatar + name + handle ──────────────────────────────────────
-            _AvatarRow(
-              initials:    initials,
-              displayName: widget.displayName,
-              handle:      widget.handle,
-            ),
-
             const SizedBox(height: 12),
 
             // ── Share card preview (also captured for PNG export) ───────────
@@ -651,57 +640,6 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
 // ─────────────────────────────────────────────────────────────────────────────
 // Sub-widgets
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _AvatarRow extends StatelessWidget {
-  final String  initials;
-  final String? displayName;
-  final String  handle;
-
-  const _AvatarRow({
-    required this.initials,
-    this.displayName,
-    required this.handle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width:  48,
-          height: 48,
-          decoration: const BoxDecoration(
-            gradient: BanzaGradients.wine,
-            shape:    BoxShape.circle,
-          ),
-          child: Center(
-            child: Text(
-              initials,
-              style: const TextStyle(
-                color:      Colors.white,
-                fontSize:   19,
-                fontWeight: FontWeight.w700,
-                fontFamily: 'Inter',
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 5),
-        if (displayName != null) ...[
-          Text(
-            displayName!,
-            style: BanzaTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 1),
-        ],
-        Text(
-          '@$handle',
-          style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
-        ),
-      ],
-    );
-  }
-}
 
 class _ActionTile extends StatelessWidget {
   final IconData      icon;
