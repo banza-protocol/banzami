@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -27,12 +29,31 @@ class _ChargeScreenState extends State<ChargeScreen> {
   bool         _sharing  = false;
   String?      _error;
   PaymentLink? _link;
+  ui.Image?    _logoUiImage;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadLogo();
+  }
 
   @override
   void dispose() {
     _amountCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
+  }
+
+  Future<void> _loadLogo() async {
+    final data  = await rootBundle.load(BrandingAssets.icon);
+    final codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth:  160,
+      targetHeight: 160,
+    );
+    final frame   = await codec.getNextFrame();
+    final rounded = await roundQrLogoCorners(frame.image);
+    if (mounted) setState(() => _logoUiImage = rounded);
   }
 
   // Converts a user-typed Kz string (e.g. "250" or "250,50") to minor units
@@ -246,21 +267,25 @@ class _ChargeScreenState extends State<ChargeScreen> {
               ),
             ],
           ),
-          child: QrImageView(
-            data:                 _payUrl,
-            version:              QrVersions.auto,
-            size:                 220,
-            errorCorrectionLevel: QrErrorCorrectLevel.H,
-            eyeStyle:        const QrEyeStyle(
-              eyeShape: QrEyeShape.square,
-              color:    BanzaColors.wine,
+          child: CustomPaint(
+            size: const Size(220, 220),
+            painter: QrPainter(
+              data:                 _payUrl,
+              version:              QrVersions.auto,
+              errorCorrectionLevel: QrErrorCorrectLevel.H,
+              eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color:    BanzaColors.wine,
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color:           BanzaColors.gray900,
+              ),
+              embeddedImage:      _logoUiImage,
+              embeddedImageStyle: _logoUiImage != null
+                  ? const QrEmbeddedImageStyle(size: Size(44, 44))
+                  : null,
             ),
-            dataModuleStyle: const QrDataModuleStyle(
-              dataModuleShape: QrDataModuleShape.square,
-              color:           BanzaColors.gray900,
-            ),
-            embeddedImage:      AssetImage(BrandingAssets.icon),
-            embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(44, 44)),
           ),
         ),
 

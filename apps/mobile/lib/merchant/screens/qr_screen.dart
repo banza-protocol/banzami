@@ -45,8 +45,9 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       targetWidth:  160,
       targetHeight: 160,
     );
-    final frame = await codec.getNextFrame();
-    if (mounted) setState(() => _logoImage = frame.image);
+    final frame   = await codec.getNextFrame();
+    final rounded = await roundQrLogoCorners(frame.image);
+    if (mounted) setState(() => _logoImage = rounded);
   }
 
   Future<void> _loadQr() async {
@@ -176,21 +177,25 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
             boxShadow:    BanzaShadows.card,
           ),
           child: Column(children: [
-            QrImageView(
-              data:                 _qrPayload!,
-              version:              QrVersions.auto,
-              size:                 256,
-              errorCorrectionLevel: QrErrorCorrectLevel.H,
-              eyeStyle:        const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color:    BanzaColors.wine,
+            CustomPaint(
+              size: const Size(256, 256),
+              painter: QrPainter(
+                data:                 _qrPayload!,
+                version:              QrVersions.auto,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color:    BanzaColors.wine,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color:           BanzaColors.gray900,
+                ),
+                embeddedImage:      _logoImage,
+                embeddedImageStyle: _logoImage != null
+                    ? const QrEmbeddedImageStyle(size: Size(48, 48))
+                    : null,
               ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color:           BanzaColors.gray900,
-              ),
-              embeddedImage:      AssetImage(BrandingAssets.icon),
-              embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(48, 48)),
             ),
             const SizedBox(height: BanzaSpacing.lg),
             Text(

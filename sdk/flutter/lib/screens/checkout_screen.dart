@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -8,6 +10,7 @@ import '../client/banza_client.dart';
 import '../models/payment_link.dart';
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/qr_logo_utils.dart';
 
 /// Full-screen payment page for a Banzami payment link.
 ///
@@ -48,21 +51,35 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   PaymentLink? _link;
-  bool _loading = true;
-  String? _error;
-  bool _paid = false;
-  Timer? _pollTimer;
+  bool      _loading = true;
+  String?   _error;
+  bool      _paid = false;
+  Timer?    _pollTimer;
+  ui.Image? _logoUiImage;
 
   @override
   void initState() {
     super.initState();
     _load();
+    if (widget.logoAssetPath != null) _loadLogo(widget.logoAssetPath!);
   }
 
   @override
   void dispose() {
     _pollTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadLogo(String assetPath) async {
+    final data  = await rootBundle.load(assetPath);
+    final codec = await ui.instantiateImageCodec(
+      data.buffer.asUint8List(),
+      targetWidth:  160,
+      targetHeight: 160,
+    );
+    final frame   = await codec.getNextFrame();
+    final rounded = await roundQrLogoCorners(frame.image);
+    if (mounted) setState(() => _logoUiImage = rounded);
   }
 
   Future<void> _load() async {
@@ -153,7 +170,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return _InvalidState(status: link.status);
     }
 
-    return _ActivePayment(link: link, onOpenApp: _openApp, logoAssetPath: widget.logoAssetPath);
+    return _ActivePayment(link: link, onOpenApp: _openApp, logoUiImage: _logoUiImage);
   }
 }
 
@@ -162,10 +179,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 // ---------------------------------------------------------------------------
 
 class _ActivePayment extends StatelessWidget {
-  const _ActivePayment({ required this.link, required this.onOpenApp, this.logoAssetPath });
-  final PaymentLink link;
+  const _ActivePayment({ required this.link, required this.onOpenApp, this.logoUiImage });
+  final PaymentLink  link;
   final VoidCallback onOpenApp;
-  final String? logoAssetPath;
+  final ui.Image?    logoUiImage;
 
   @override
   Widget build(BuildContext context) {
@@ -211,25 +228,25 @@ class _ActivePayment extends StatelessWidget {
                 style: TextStyle(fontSize: 13, color: BanzaColors.gray700),
                 textAlign: TextAlign.center),
             const SizedBox(height: 16),
-            QrImageView(
-              data:                 deepLink,
-              version:              QrVersions.auto,
-              size:                 200,
-              errorCorrectionLevel: QrErrorCorrectLevel.H,
-              eyeStyle:        const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color:    BanzaColors.wine,
+            CustomPaint(
+              size: const Size(200, 200),
+              painter: QrPainter(
+                data:                 deepLink,
+                version:              QrVersions.auto,
+                errorCorrectionLevel: QrErrorCorrectLevel.H,
+                eyeStyle: const QrEyeStyle(
+                  eyeShape: QrEyeShape.square,
+                  color:    BanzaColors.wine,
+                ),
+                dataModuleStyle: const QrDataModuleStyle(
+                  dataModuleShape: QrDataModuleShape.square,
+                  color:           BanzaColors.gray900,
+                ),
+                embeddedImage:      logoUiImage,
+                embeddedImageStyle: logoUiImage != null
+                    ? const QrEmbeddedImageStyle(size: Size(40, 40))
+                    : null,
               ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color:           BanzaColors.gray900,
-              ),
-              embeddedImage: logoAssetPath != null
-                  ? AssetImage(logoAssetPath!)
-                  : null,
-              embeddedImageStyle: logoAssetPath != null
-                  ? const QrEmbeddedImageStyle(size: Size(40, 40))
-                  : null,
             ),
             const SizedBox(height: 16),
             SizedBox(

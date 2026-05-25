@@ -5,6 +5,7 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/qr_logo_utils.dart';
 
 /// Displays a scannable QR code for a Banzami payment payload.
 ///
@@ -88,11 +89,14 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
 
   void _attachStream(ImageProvider? provider) {
     if (provider == null) return;
-    _listener = ImageStreamListener((info, _) {
-      if (mounted) setState(() => _loadedImage = info.image);
-    });
+    _listener = ImageStreamListener((info, _) => _applyRounding(info.image));
     _stream = provider.resolve(ImageConfiguration.empty);
     _stream!.addListener(_listener!);
+  }
+
+  Future<void> _applyRounding(ui.Image raw) async {
+    final rounded = await roundQrLogoCorners(raw);
+    if (mounted) setState(() => _loadedImage = rounded);
   }
 
   void _detachStream() {
