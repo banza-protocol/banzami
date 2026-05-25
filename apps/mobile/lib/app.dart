@@ -9,9 +9,9 @@ import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'guards/secure_app_lifecycle_guard.dart';
+import 'services/notification_router.dart';
 import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
-import 'screens/history_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
@@ -54,10 +54,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // here and process it only after the user successfully unlocks.
   Uri?      _pendingDeepLinkUri;
 
-  // ── Notification tap route ─────────────────────────────────────────────────
+  // ── Notification tap ───────────────────────────────────────────────────────
   // When a push notification is tapped while the session is locked, we park
-  // the route here and process it after the user successfully unlocks.
-  String?   _pendingNotificationRoute;
+  // the message here and process it after the user successfully unlocks.
+  RemoteMessage? _pendingNotificationMsg;
 
   String _normalizeUri(Uri uri) {
     final params = Map<String, String>.from(uri.queryParameters)..remove('sandbox');
@@ -99,36 +99,47 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // ── Notification tap handling ──────────────────────────────────────────────
 
   void _handleNotificationTap(RemoteMessage msg) {
-    final route = msg.data['route'] as String? ?? '';
-    debugPrint('[FCM] notification tapped route=$route type=${msg.data["type"]}');
+    debugPrint('[FCM-ROUTE] tap received type=${msg.data["type"]} '
+        'route=${msg.data["route"]} transfer_id=${msg.data["transfer_id"]}');
 
     final ctx        = _navigatorKey.currentContext;
     final guardState = _guardKey.currentState;
     final svc        = ctx?.read<SessionService>();
 
+    debugPrint('[FCM-ROUTE] locked=${svc?.isLocked}');
+
     if (svc != null && svc.hasSession && svc.isLocked) {
-      debugPrint('[FCM] tap: appLocked=true → parking route and triggering unlock');
-      _pendingNotificationRoute = route;
+      debugPrint('[FCM-ROUTE] pending=true — parking and triggering unlock');
+      _pendingNotificationMsg = msg;
       guardState?.triggerUnlock(_onNotificationUnlocked);
       return;
     }
 
-    _routeToNotification(route);
+    _routeToNotification(msg);
   }
 
   void _onNotificationUnlocked() {
-    final route = _pendingNotificationRoute;
-    _pendingNotificationRoute = null;
-    if (route != null) _routeToNotification(route);
+    final msg = _pendingNotificationMsg;
+    _pendingNotificationMsg = null;
+    if (msg != null) _routeToNotification(msg);
   }
 
-  void _routeToNotification(String route) {
+  void _routeToNotification(RemoteMessage msg) {
+    final ctx = _navigatorKey.currentContext;
     final nav = _navigatorKey.currentState;
-    if (nav == null) return;
-    switch (route) {
-      case 'history':
-        nav.push(MaterialPageRoute(builder: (_) => const HistoryScreen()));
-    }
+    if (ctx == null || nav == null) return;
+
+    final svc    = ctx.read<SessionService>();
+    final client = ctx.read<ConsumerPublicClient>();
+    final handle = svc.session?.handle ?? '';
+
+    BanzaNotificationRouter.route(
+      data:         msg.data.map((k, v) => MapEntry(k, v.toString())),
+      toastContext: ctx,
+      navigator:    nav,
+      client:       client,
+      ownHandle:    handle,
+    );
   }
 
   void _handleLink(Uri uri, {String source = 'unknown'}) {
