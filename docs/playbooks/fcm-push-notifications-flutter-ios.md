@@ -18,7 +18,8 @@ Guia completo de implementação de push notifications com Firebase Cloud Messag
 10. [Integrar no ecrã principal](#10-integrar-no-ecrã-principal)
 11. [Testar end-to-end](#11-testar-end-to-end)
 12. [Backend — enviar FCM do servidor Go](#12-backend--enviar-fcm-do-servidor-go)
-13. [Erros comuns e soluções](#13-erros-comuns-e-soluções)
+13. [Painel de diagnóstico FCM (sandbox)](#13-painel-de-diagnóstico-fcm-sandbox)
+14. [Erros comuns e soluções](#14-erros-comuns-e-soluções)
 
 ---
 
@@ -665,9 +666,102 @@ export FIREBASE_CREDENTIALS_JSON="$(jq -c . < ~/service-account.json)"
 docker compose -f docker-compose.full.yml up -d api-gateway
 ```
 
+**Crítico:** A variável tem de estar no bloco `environment:` de **cada serviço** que usa FCM, incluindo staging. Ter a variável no `.env` do servidor **não é suficiente** — o Docker só a injeta se o serviço a referenciar explicitamente:
+
+```yaml
+# docker-compose.yml — AMBOS os serviços precisam desta linha:
+public-api:
+  environment:
+    FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}   # ← produção
+
+public-api-staging:
+  environment:
+    FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}   # ← staging (não esquecer!)
+```
+
+Verificar após deploy:
+```bash
+docker exec banzami-public-api-staging-1 env | grep FIREBASE
+docker logs banzami-public-api-staging-1 | grep FCM
+# esperado: {"msg":"[FCM] initialized","environment":"SANDBOX"}
+```
+
+### 12.6 Todos os caminhos de pagamento precisam de FCM
+
+Cada handler que conclui um pagamento deve disparar FCM. Não assumir que basta implementar num — auditar todos:
+
+| Endpoint | Destinatário da notificação | Tipo FCM |
+|---|---|---|
+| `POST /v1/transfers` | consumer destinatário | `payment_received` |
+| `POST /v1/payment-links/{slug}/pay` | merchant | `payment_received` |
+| `POST /v1/consumer-pay-links/{code}/pay` | consumer criador do link | `payment_received` |
+
+A chamada FCM é sempre em goroutine e nunca falha o pagamento — push é best-effort:
+
+```go
+// Após commit do pagamento — nunca antes, nunca bloqueante
+go h.fcm.SendPaymentReceived(context.Background(), recipientID, senderHandle, amountMinor, currency, transferID)
+```
+
 ---
 
-## 13. Erros comuns e soluções
+## 13. Painel de diagnóstico FCM (sandbox)
+
+Quando as notificações não chegam a um dispositivo real, o primeiro passo é confirmar o estado FCM sem precisar de disparar um pagamento real.
+
+### 13.1 Endpoint de teste — `POST /v1/debug/push-test`
+
+O `public-api` tem um endpoint sandbox-only que envia um push real ao tópico FCM do consumer autenticado:
+
+```
+POST /v1/debug/push-test
+Authorization: Bearer <sandbox_jwt>
+```
+
+Resposta esperada:
+```json
+{
+  "consumer_id": "5b7d6ce2-...",
+  "environment": "SANDBOX",
+  "fcm_topic": "sandbox_consumer_5b7d6ce2-...",
+  "firebase_message_id": "projects/banzami/messages/..."
+}
+```
+
+- Em produção retorna `403 FORBIDDEN` — protegido por guard de ambiente.
+- Retorna `500 FCM_ERROR` se `FIREBASE_CREDENTIALS_JSON` não estiver configurado no container.
+- Retorna `401` se o JWT estiver em falta ou inválido.
+
+### 13.2 Painel de diagnóstico no perfil (Flutter)
+
+No ecrã de Perfil (apenas quando `AppConfig.isSandbox`), existe uma secção **DEBUG · PUSH** que mostra em tempo real:
+
+| Campo | O que confirma |
+|---|---|
+| PERMISSION | Se o iOS autorizou notificações |
+| ENVIRONMENT | SANDBOX vs PRODUCTION |
+| CONSUMER ID | ID do consumer logado |
+| TOPIC | Tópico FCM subscrito (`sandbox_consumer_<id>`) |
+| APNs TOKEN | `present` ou `unavailable` (se unavailable, FCM nunca funciona) |
+| FCM TOKEN | Primeiros/últimos 4 chars do token (confirma registo no Firebase) |
+| SUBSCRIBED | `true` / `false (<erro>)` — resultado da subscrição ao tópico |
+
+O botão **"Enviar notificação de teste"** chama `POST /v1/debug/push-test` e mostra o Firebase message ID ou o erro directamente no painel.
+
+### 13.3 Checklist de diagnóstico rápido
+
+```
+APNs TOKEN = unavailable → problema no iOS/entitlements, não no backend
+APNs TOKEN = present, FCM TOKEN = null → APNs chegou mas Firebase não inicializou no mobile
+SUBSCRIBED = false → subscribeToTopic falhou, push nunca chega
+Botão → 404 → rota não existe no container (deploy desactualizado)
+Botão → 500 FCM_ERROR → FIREBASE_CREDENTIALS_JSON não está no container
+Botão → ID retornado, notificação não chega → subscrição ao tópico errada ou APNs mismatch
+```
+
+---
+
+## 14. Erros comuns e soluções
 
 ### `apns-token-not-set` (crash ao subscrever tópico)
 
@@ -723,6 +817,94 @@ Verificar por esta ordem:
 
 ---
 
+### Notificações chegam em transferências directas mas não em pay-links QR
+
+**Causa:** Cada handler de pagamento precisa de disparar FCM de forma independente. É um erro comum implementar FCM apenas no handler de transferências (`POST /v1/transfers`) e esquecer que `POST /v1/consumer-pay-links/{code}/pay` é um caminho de pagamento distinto que também precisa de notificar o destinatário.
+
+**Solução:** Auditar **todos** os handlers de pagamento e garantir que cada um tem a chamada FCM correspondente:
+
+```
+POST /v1/transfers                  → notificar o destinatário
+POST /v1/payment-links/{slug}/pay   → notificar o merchant
+POST /v1/consumer-pay-links/{code}/pay → notificar o criador do pay-link
+```
+
+A chamada FCM deve ser sempre numa goroutine (`go h.fcm.Send(...)`) e nunca bloquear a resposta — push é best-effort.
+
+---
+
+### `500 FCM_ERROR: FCM not initialized — FIREBASE_CREDENTIALS_JSON not set`
+
+**Causa:** O container está a correr sem a variável de ambiente `FIREBASE_CREDENTIALS_JSON`. Acontece tipicamente quando:
+
+1. A variável foi adicionada ao ficheiro `.env` do servidor mas **não foi adicionada ao bloco `environment:` do serviço** no `docker-compose.yml`. O Docker não injeta automaticamente todas as variáveis do `.env` — é necessário referenciá-las explicitamente em cada serviço:
+   ```yaml
+   FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+   ```
+
+2. O serviço de **staging** (`public-api-staging`) foi configurado depois do serviço de produção e o bloco `environment:` foi copiado sem incluir a variável Firebase.
+
+**Verificação:**
+```bash
+docker exec banzami-public-api-staging-1 env | grep FIREBASE
+```
+
+**Solução:** Adicionar a variável ao bloco `environment:` do serviço no `docker-compose.yml` e redeployar.
+
+**Regra:** Sempre que se adiciona uma nova variável de ambiente a um serviço, verificar **todos os serviços** que usam a mesma imagem (ex: produção **e** staging).
+
+---
+
+### `404 page not found` ao chamar o endpoint de debug no mobile (FormatException)
+
+**Causa combinada:**
+
+1. O endpoint `POST /v1/debug/push-test` foi deployado apenas no container de produção (`public-api`), não no de staging (`public-api-staging`). O mobile com `ENVIRONMENT=sandbox` aponta para `staging.banzami.org` que serve o container de staging — que não tinha a rota.
+
+2. O cliente HTTP do mobile fazia `jsonDecode(resp.body)` **antes** de verificar o status code. Uma resposta `404 text/plain` do nginx causava `FormatException: Unexpected character (at character 5)` em vez de uma mensagem legível.
+
+**Solução:**
+- Usar `./deploy.sh staging` **sempre que se deploya uma feature que afecta o mobile sandbox**. O `./deploy.sh public-api` só actualiza produção.
+- No cliente HTTP, verificar o status code antes de tentar fazer `jsonDecode`. Respostas não-JSON (nginx 404, 502, etc.) devem ser wrapped como `NetworkException("HTTP 404: 404 page not found")`.
+
+---
+
+### Erros de inicialização Firebase/FCM silenciosos no startup
+
+**Causa:** `_initBackgroundServices()` em `main_consumer.dart` usava `catch (_) {}` sem logging. Qualquer falha na inicialização do Firebase, FCM, ou Crashlytics era silenciosamente ignorada — impossível diagnosticar sem painel de debug.
+
+**Solução:** Nunca usar `catch (_)` em código de inicialização. Usar sempre `catch (e)` com logging:
+
+```dart
+try {
+  await Firebase.initializeApp().timeout(const Duration(seconds: 10));
+  debugPrint('[FCM] Firebase initialized=true');
+} catch (e) {
+  debugPrint('[FCM] Firebase initialized=false error=$e');
+}
+```
+
+**Regra:** Serviços de background podem falhar graciosamente, mas o erro tem de aparecer nos logs.
+
+---
+
+### FCM message ID descartado — impossível confirmar entrega
+
+**Causa:** `s.client.Send(ctx, msg)` retorna `(messageID string, err error)`. Usar `_, err :=` descarta o ID, tornando impossível correlacionar envios com entregas nos logs.
+
+**Solução:** Sempre logar o message ID:
+
+```go
+msgID, err := s.client.Send(ctx, msg)
+if err != nil {
+    slog.Error("[FCM] send failed", "error", err)
+    return
+}
+slog.Info("[FCM] sent", "message_id", msgID, "topic", topic)
+```
+
+---
+
 ### Token FCM aparece truncado nos logs
 
 O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do terminal ou usar um campo de texto maior. O token completo é necessário para o Firebase Console — um token incompleto é rejeitado silenciosamente.
@@ -746,22 +928,42 @@ O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do ter
 10. Runner.entitlements     → aps-environment = production
 11. switch_firebase_config.sh → script de cópia do plist correto
 12. AppDelegate.swift       → registerForRemoteNotifications + apnsToken forwarding
-13. PushNotificationService → serviço Dart com polling APNs
-14. MainScreen              → requestPermission + subscribeToTopic + getToken
+13. PushNotificationService → serviço Dart com polling APNs + _fcmDiagSnapshot
+14. main_consumer.dart      → catch (e) com debugPrint em todos os init de background
+15. MainScreen              → requestPermission + subscribeConsumer + getToken
+16. ProfileScreen           → painel de diagnóstico FCM (sandbox only)
 
 ── Backend Go ──────────────────────────────────────────────────────────────────
 
-15. go get firebase.google.com/go/v4
-16. internal/notify/fcm.go  → FCMService com SendToMerchant
-17. config.go               → FirebaseCredentialsJSON (env FIREBASE_CREDENTIALS_JSON)
-18. main.go                 → notify.NewFCMService + injectar em Dependencies
-19. handler/acquiring.go    → SendToMerchant após confirmação de pagamento
-20. docker-compose.full.yml → FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+17. go get firebase.google.com/go/v4
+18. internal/notify/fcm.go  → FCMService com Send* para cada tipo de evento
+                               logar sempre o firebase_message_id retornado
+19. config.go               → FirebaseCredentialsJSON (env FIREBASE_CREDENTIALS_JSON)
+20. main.go                 → notify.NewFCMService + injectar em Dependencies
+21. handler/transfers.go    → FCM após transferência directa
+22. handler/payment_link.go → FCM após pagamento de payment link
+23. handler/consumer_pay_link.go → FCM após pagamento de pay-link QR consumer
+24. handler/debug_push.go   → POST /v1/debug/push-test (sandbox-only)
+25. docker-compose.yml      → FIREBASE_CREDENTIALS_JSON em produção E em staging
 
 ── Produção ────────────────────────────────────────────────────────────────────
 
-21. Firebase Console        → Service accounts → Generate new private key
-22. VM                      → export FIREBASE_CREDENTIALS_JSON="$(jq -c . < sa.json)"
-23. VM                      → redeployar o container banzami_gateway
-24. Teste                   → disparar pagamento real e verificar notificação
+26. Firebase Console        → Service accounts → Generate new private key
+27. VM (.env)               → FIREBASE_CREDENTIALS_JSON="$(jq -c . < sa.json)"
+28. docker-compose.yml      → verificar que AMBOS public-api e public-api-staging têm a var
+29. ./deploy.sh public-api  → deploy produção
+30. ./deploy.sh staging     → deploy staging (obrigatório se o mobile usa sandbox)
+31. Verificação             → docker logs banzami-public-api-staging-1 | grep FCM
+                               esperado: [FCM] initialized environment=SANDBOX
+32. Teste                   → Profile → Debug Push → Enviar notificação de teste
+                               esperado: Firebase message ID + notificação no dispositivo
+33. Teste real              → disparar pagamento e verificar notificação
 ```
+
+**Regras de ouro:**
+
+1. Nunca deployar `public-api` sem também deployar `staging` — o mobile sandbox usa staging.
+2. Toda nova variável de ambiente vai para **todos** os serviços que usam a imagem (`public-api` **e** `public-api-staging`).
+3. Nunca usar `catch (_)` em código de inicialização — sempre `catch (e)` com log.
+4. O `client.Send()` retorna um message ID — sempre logar, nunca descartar com `_`.
+5. Auditar **todos** os handlers de pagamento quando se implementa FCM — não apenas o mais óbvio.
