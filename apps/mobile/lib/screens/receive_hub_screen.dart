@@ -209,11 +209,12 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       amountMinor: _activeLink?.amountMinor,
       currency:    _activeLink?.currency,
       note:        _activeLink?.note,
-      isSandbox:   AppConfig.isSandbox,
-      logoWidget:  ClipRRect(
+      isSandbox:         AppConfig.isSandbox,
+      logoWidget:        ClipRRect(
         borderRadius: BorderRadius.circular(6),
         child: Image.asset(BrandingAssets.icon, width: 20, height: 20),
       ),
+      embeddedLogoImage: AssetImage(BrandingAssets.icon),
     );
   }
 
