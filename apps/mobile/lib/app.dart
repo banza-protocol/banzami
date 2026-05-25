@@ -14,6 +14,7 @@ import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
+final _guardKey     = GlobalKey<SecureAppLifecycleGuardState>();
 
 class BanzamiApp extends StatefulWidget {
   final Client pinnedClient;
@@ -44,6 +45,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // On cold start the deep link fires before SplashScreen has bootstrapped the
   // session. We park the code here and process it as soon as the session loads.
   String?   _pendingRequestCode;
+
+  // ── Locked deep link ───────────────────────────────────────────────────────
+  // When a Universal Link arrives while the session is locked, we park the URI
+  // here and process it only after the user successfully unlocks.
+  Uri?      _pendingDeepLinkUri;
 
   String _normalizeUri(Uri uri) {
     final params = Map<String, String>.from(uri.queryParameters)..remove('sandbox');
@@ -84,7 +90,8 @@ class _BanzamiAppState extends State<BanzamiApp> {
     final norm = _normalizeUri(uri);
     debugPrint('[deep-link] received source=$source uri=$uri normalized=$norm');
 
-    if (_isDuplicateLink(uri)) {
+    // Duplicate guard — but allow re-processing the same URI after unlock.
+    if (_pendingDeepLinkUri == null && _isDuplicateLink(uri)) {
       final age = DateTime.now().difference(_lastHandledAt!).inMilliseconds;
       debugPrint('[deep-link] ignoredDuplicate=true last=$_lastHandledNorm age=${age}ms');
       return;
@@ -92,6 +99,20 @@ class _BanzamiAppState extends State<BanzamiApp> {
     debugPrint('[deep-link] ignoredDuplicate=false → handling');
     _lastHandledNorm = norm;
     _lastHandledAt   = DateTime.now();
+
+    // ── Lock gate ──────────────────────────────────────────────────────────
+    // If the session exists but is locked, park the URI and show the PIN
+    // screen immediately. The link is processed only after unlock.
+    final ctx = _navigatorKey.currentContext;
+    if (ctx != null) {
+      final svc = ctx.read<SessionService>();
+      if (svc.hasSession && svc.isLocked) {
+        debugPrint('[deep-link] appLocked=true → parking uri and triggering unlock');
+        _pendingDeepLinkUri = uri;
+        _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
+        return;
+      }
+    }
 
     // ── Universal links: https://pay.banzami.org/* ──────────────────────────
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
@@ -102,6 +123,20 @@ class _BanzamiAppState extends State<BanzamiApp> {
     // ── Custom scheme: banza://pay/... ─────────────────────────────────────
     if (uri.scheme != 'banza' || uri.host != 'pay') return;
     _handleBanzaScheme(uri);
+  }
+
+  // Called by the guard after successful unlock when a deep link was pending.
+  void _onDeepLinkUnlocked() {
+    final uri = _pendingDeepLinkUri;
+    _pendingDeepLinkUri = null;
+    if (uri == null) return;
+    debugPrint('[deep-link] unlocked → processing pending uri=$uri');
+
+    if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
+      _handleUniversalLink(uri);
+    } else if (uri.scheme == 'banza' && uri.host == 'pay') {
+      _handleBanzaScheme(uri);
+    }
   }
 
   // https://pay.banzami.org/r/{code}[?sandbox=1]
@@ -154,11 +189,17 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     final ctx = _navigatorKey.currentContext;
     if (ctx == null) return;
-    final session = ctx.read<SessionService>().session;
+    final svc     = ctx.read<SessionService>();
+    final session = svc.session;
     if (session == null) {
       // Cold start: session not ready yet — park and retry when session loads.
       debugPrint('[deep-link] sessionNull=true code=$code — deferred');
       _pendingRequestCode = code;
+      return;
+    }
+    if (svc.isLocked) {
+      // Security gate: should not reach here — _handleLink catches this first.
+      debugPrint('[deep-link] SECURITY appLocked=true — rejecting payment open');
       return;
     }
     _pendingRequestCode = null; // clear any stale pending
@@ -254,11 +295,22 @@ class _BanzamiAppState extends State<BanzamiApp> {
             // Cold-start deep link: session now ready — process any deferred code.
             final pending = _pendingRequestCode;
             if (pending != null) {
-              _pendingRequestCode = null;
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                debugPrint('[deep-link] processingDeferred=true code=$pending');
-                _openPaymentRequest(pending);
-              });
+              if (session.isLocked && _pendingDeepLinkUri == null) {
+                // Session loaded but locked — park URI and show PIN before
+                // processing the payment link.
+                _pendingDeepLinkUri = Uri.parse('banza://pay?request=$pending');
+                _pendingRequestCode = null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  debugPrint('[deep-link] coldStart+locked → triggering unlock code=$pending');
+                  _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
+                });
+              } else if (!session.isLocked) {
+                _pendingRequestCode = null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  debugPrint('[deep-link] processingDeferred=true code=$pending');
+                  _openPaymentRequest(pending);
+                });
+              }
             }
           }
           // Auto-logout on 401: clear session and return to WelcomeScreen.
@@ -276,6 +328,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
             navigatorKey:               _navigatorKey,
             home:                       const SplashScreen(),
             builder: (_, child) => SecureAppLifecycleGuard(
+              key:          _guardKey,
               navigatorKey: _navigatorKey,
               child:        child!,
             ),
