@@ -145,7 +145,7 @@ class BanzaNotificationRouter {
         ownHandle:     ownHandle,
         onDone:        (_) {},
         isSandbox:     AppConfig.isSandbox,
-        logoAssetPath: BrandingAssets.logo,
+        logoAssetPath: BrandingAssets.icon,
       ),
     ));
   }

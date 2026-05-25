@@ -19,7 +19,6 @@ const _kGray400  = PdfColor.fromInt(0xFF9CA3AF);
 const _kGray200  = PdfColor.fromInt(0xFFE5E7EB);
 const _kGray100  = PdfColor.fromInt(0xFFF3F4F6);
 const _kOffWhite = PdfColor.fromInt(0xFFFAFAFA);
-const _kWhite    = PdfColors.white;
 const _kAmberDk  = PdfColor.fromInt(0xFF92400E);
 const _kAmberBg  = PdfColor.fromInt(0xFFFEF3C7);
 const _kAmberBd  = PdfColor.fromInt(0xFFF6C453);
@@ -159,17 +158,11 @@ class BanzaPdfReceiptGenerator {
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
         if (logoImage != null)
-          pw.Center(child: pw.Image(logoImage, height: 60, fit: pw.BoxFit.contain))
-        else
           pw.Center(
-            child: pw.Container(
-              width: 60, height: 60,
-              decoration: const pw.BoxDecoration(
-                color: _kWine, shape: pw.BoxShape.circle,
-              ),
-              child: pw.Center(
-                child: pw.Text('B', style: bold.copyWith(color: _kWhite, fontSize: 28)),
-              ),
+            child: pw.ClipRRect(
+              horizontalRadius: 60 * 0.22,
+              verticalRadius:   60 * 0.22,
+              child: pw.Image(logoImage, width: 60, height: 60, fit: pw.BoxFit.cover),
             ),
           ),
         pw.SizedBox(height: 10),
