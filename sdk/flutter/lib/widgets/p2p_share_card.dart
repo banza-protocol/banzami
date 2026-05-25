@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/banza_theme.dart';
 import '../utils/money_format.dart';
+import '../utils/banza_toast.dart';
 import '../utils/qr_logo_utils.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -146,8 +147,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro ao partilhar: $e')));
+        BanzaToast.showError(context, 'Erro ao partilhar: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,8 +158,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     HapticFeedback.selectionClick();
     await Clipboard.setData(ClipboardData(text: widget.shareUrl));
     if (mounted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Link copiado')));
+      BanzaToast.showSuccess(context, 'Link copiado');
     }
   }
 
@@ -217,8 +216,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text('Erro ao guardar: $e')));
+        BanzaToast.showError(context, 'Erro ao guardar: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);

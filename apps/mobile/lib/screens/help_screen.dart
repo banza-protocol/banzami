@@ -85,9 +85,7 @@ class HelpScreen extends StatelessWidget {
   }
 
   static void _showComingSoon(BuildContext context, String feature) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$feature em breve')),
-    );
+    BanzaToast.showInfo(context, '$feature em breve');
   }
 }
 

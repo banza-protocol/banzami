@@ -159,9 +159,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     HapticFeedback.selectionClick();
     await Clipboard.setData(ClipboardData(text: '@$handle'));
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Endereço copiado')),
-      );
+      BanzaToast.showSuccess(context, 'Endereço copiado');
     }
   }
 
@@ -191,9 +189,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao partilhar: $e')),
-        );
+        BanzaToast.showError(context, 'Erro ao partilhar: $e');
       }
     }
   }

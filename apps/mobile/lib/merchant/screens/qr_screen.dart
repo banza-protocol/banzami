@@ -108,9 +108,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao partilhar: $e')),
-        );
+        BanzaToast.showError(context, 'Erro ao partilhar: $e');
       }
     } finally {
       if (mounted) setState(() => _sharing = false);

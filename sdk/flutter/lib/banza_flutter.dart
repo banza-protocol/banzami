@@ -41,6 +41,7 @@ export 'models/qr_code.dart';
 export 'theme/banza_theme.dart';
 
 // Utils
+export 'utils/banza_toast.dart';
 export 'utils/money_format.dart';
 export 'utils/pdf_receipt_generator.dart';
 export 'utils/qr_logo_utils.dart';
