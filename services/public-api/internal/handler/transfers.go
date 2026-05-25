@@ -4,15 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
+	"time"
 	"unicode/utf8"
 
-	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/chi/v5"
+	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
 	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
+	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
@@ -39,6 +42,7 @@ type TransferHandler struct {
 	core    p2pTransferSender
 	handles senderHandleResolver
 	limiter *TransferRateLimiter
+	fcm     *notify.FCMService
 }
 
 // NewTransferHandler wires the handler with its dependencies.
@@ -47,11 +51,13 @@ func NewTransferHandler(
 	core *service.CorePublicClient,
 	handles *service.CredentialStore,
 	limiter *TransferRateLimiter,
+	fcm *notify.FCMService,
 ) *TransferHandler {
 	return &TransferHandler{
 		core:    core,
 		handles: handles,
 		limiter: limiter,
+		fcm:     fcm,
 	}
 }
 
@@ -190,6 +196,9 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Notify recipient via FCM — best-effort, never delays the HTTP response.
+	go h.notifyRecipient(transfer)
+
 	// Build canonical public response — no internal identifiers exposed.
 	traceID := chimiddleware.GetReqID(r.Context())
 
@@ -207,6 +216,49 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respond(w, http.StatusCreated, resp)
+}
+
+// notifyRecipient resolves the recipient's consumer_id by handle and sends FCM.
+// Runs in a goroutine — never blocks the HTTP response.
+func (h *TransferHandler) notifyRecipient(t *service.P2pTransferResponse) {
+	if h.fcm == nil {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	// The P2P transfer response contains handles, not UUIDs.
+	// We need the recipient's consumer_id for the FCM topic.
+	type handleResolver interface {
+		GetConsumerByHandle(ctx context.Context, handle string) (*service.ConsumerRecord, error)
+	}
+	core, ok := h.core.(handleResolver)
+	if !ok {
+		slog.Warn("[FCM] notifyRecipient: core does not implement handleResolver")
+		return
+	}
+
+	recipient := t.Recipient
+	// Strip leading @ if present.
+	if len(recipient) > 0 && recipient[0] == '@' {
+		recipient = recipient[1:]
+	}
+
+	consumer, err := core.GetConsumerByHandle(ctx, recipient)
+	if err != nil {
+		slog.Warn("[FCM] notifyRecipient: could not resolve recipient handle",
+			"handle", t.Recipient, "error", err)
+		return
+	}
+
+	slog.Info("[FCM] event created",
+		"event",        "payment_received",
+		"recipient_id", consumer.ID,
+		"sender",       t.Sender,
+		"amount_minor", t.AmountMinor,
+	)
+
+	h.fcm.SendPaymentReceived(ctx, consumer.ID, t.Sender, t.AmountMinor, t.Currency)
 }
 
 // ---------------------------------------------------------------------------

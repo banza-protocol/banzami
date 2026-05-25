@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
@@ -8,7 +9,9 @@ import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'guards/secure_app_lifecycle_guard.dart';
+import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
+import 'screens/history_screen.dart';
 import 'screens/splash_screen.dart';
 import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
@@ -51,6 +54,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // here and process it only after the user successfully unlocks.
   Uri?      _pendingDeepLinkUri;
 
+  // ── Notification tap route ─────────────────────────────────────────────────
+  // When a push notification is tapped while the session is locked, we park
+  // the route here and process it after the user successfully unlocks.
+  String?   _pendingNotificationRoute;
+
   String _normalizeUri(Uri uri) {
     final params = Map<String, String>.from(uri.queryParameters)..remove('sandbox');
     return Uri(
@@ -78,12 +86,49 @@ class _BanzamiAppState extends State<BanzamiApp> {
     _linkSub = appLinks.uriLinkStream.listen(
       (uri) => _handleLink(uri, source: 'stream'),
     );
+    PushNotificationService.onTap = _handleNotificationTap;
   }
 
   @override
   void dispose() {
+    PushNotificationService.onTap = null;
     _linkSub?.cancel();
     super.dispose();
+  }
+
+  // ── Notification tap handling ──────────────────────────────────────────────
+
+  void _handleNotificationTap(RemoteMessage msg) {
+    final route = msg.data['route'] as String? ?? '';
+    debugPrint('[FCM] notification tapped route=$route type=${msg.data["type"]}');
+
+    final ctx        = _navigatorKey.currentContext;
+    final guardState = _guardKey.currentState;
+    final svc        = ctx?.read<SessionService>();
+
+    if (svc != null && svc.hasSession && svc.isLocked) {
+      debugPrint('[FCM] tap: appLocked=true → parking route and triggering unlock');
+      _pendingNotificationRoute = route;
+      guardState?.triggerUnlock(_onNotificationUnlocked);
+      return;
+    }
+
+    _routeToNotification(route);
+  }
+
+  void _onNotificationUnlocked() {
+    final route = _pendingNotificationRoute;
+    _pendingNotificationRoute = null;
+    if (route != null) _routeToNotification(route);
+  }
+
+  void _routeToNotification(String route) {
+    final nav = _navigatorKey.currentState;
+    if (nav == null) return;
+    switch (route) {
+      case 'history':
+        nav.push(MaterialPageRoute(builder: (_) => const HistoryScreen()));
+    }
   }
 
   void _handleLink(Uri uri, {String source = 'unknown'}) {

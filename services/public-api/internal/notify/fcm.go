@@ -11,19 +11,20 @@ import (
 	"google.golang.org/api/option"
 )
 
-// FCMService wraps the Firebase Cloud Messaging client.
-// A nil receiver is safe to call — all methods become no-ops when FCM is
-// disabled (FIREBASE_CREDENTIALS_JSON not set).
+// FCMService wraps the Firebase Cloud Messaging client for the public-api.
+// A nil receiver is safe — all methods become no-ops when FCM is disabled
+// (FIREBASE_CREDENTIALS_JSON not set).
 type FCMService struct {
 	client      *messaging.Client
-	environment string // "production", "development", "sandbox", etc.
+	environment string // "PRODUCTION" or "SANDBOX"
 }
 
 // NewFCMService initialises the FCM client from a JSON service-account string.
-// Returns nil (disabled, no error) when credentialsJSON is empty so the
-// gateway starts cleanly in local-dev environments without Firebase.
+// Returns nil (disabled) when credentialsJSON is empty so public-api starts
+// cleanly in environments without Firebase configured.
 func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*FCMService, error) {
 	if credentialsJSON == "" {
+		slog.Warn("[FCM] FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
 		return nil, nil
 	}
 	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsJSON([]byte(credentialsJSON)))
@@ -39,9 +40,10 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 }
 
 func (s *FCMService) isSandbox() bool {
-	return s != nil && (s.environment == "sandbox" || s.environment == "SANDBOX")
+	return s != nil && s.environment == "SANDBOX"
 }
 
+// topicForConsumer returns the FCM topic for a consumer, with sandbox isolation.
 func (s *FCMService) topicForConsumer(consumerID string) string {
 	if s.isSandbox() {
 		return "sandbox_consumer_" + consumerID
@@ -49,6 +51,7 @@ func (s *FCMService) topicForConsumer(consumerID string) string {
 	return "consumer_" + consumerID
 }
 
+// topicForMerchant returns the FCM topic for a merchant, with sandbox isolation.
 func (s *FCMService) topicForMerchant(merchantID string) string {
 	if s.isSandbox() {
 		return "sandbox_merchant_" + merchantID
@@ -63,58 +66,21 @@ func (s *FCMService) sandboxPrefix() string {
 	return ""
 }
 
-// SendToConsumer publishes a payment_received push to a consumer's FCM topic.
-// Errors are logged but never propagated — push notifications are best-effort.
-func (s *FCMService) SendToConsumer(ctx context.Context, consumerID, title, body string) {
-	if s == nil {
-		return
-	}
-	topic := s.topicForConsumer(consumerID)
-	prefix := s.sandboxPrefix()
-	slog.Info("[FCM] sending to consumer", "topic", topic, "title", title)
-	_, err := s.client.Send(ctx, &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: prefix + title,
-			Body:  body,
-		},
-		Data: map[string]string{
-			"type":        "payment_received",
-			"environment": s.environment,
-			"route":       "activity",
-		},
-		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{Sound: "default"},
-			},
-		},
-		Topic: topic,
-	})
-	if err != nil {
-		slog.Error("[FCM] consumer notification failed",
-			"consumer_id", consumerID,
-			"error", err,
-		)
-	} else {
-		slog.Info("[FCM] consumer notification sent", "topic", topic)
-	}
-}
-
-// SendPaymentReceived publishes a detailed payment_received push with data payload.
-func (s *FCMService) SendPaymentReceived(ctx context.Context, consumerID, senderHandle string, amountMinor int64, currency, transferID string) {
+// SendPaymentReceived notifies a consumer that they received a transfer.
+// Runs best-effort — errors are logged, never returned.
+func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency string) {
 	if s == nil {
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForConsumer(consumerID)
+	topic  := s.topicForConsumer(recipientConsumerID)
 	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
 
 	slog.Info("[FCM] sending payment_received",
 		"topic",        topic,
-		"consumer_id",  consumerID,
+		"consumer_id",  recipientConsumerID,
 		"sender",       senderHandle,
 		"amount_minor", amountMinor,
-		"transfer_id",  transferID,
 	)
 
 	_, err := s.client.Send(ctx, &messaging.Message{
@@ -125,7 +91,6 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, consumerID, sender
 		Data: map[string]string{
 			"type":          "payment_received",
 			"environment":   s.environment,
-			"transfer_id":   transferID,
 			"sender_handle": senderHandle,
 			"amount_minor":  strconv.FormatInt(amountMinor, 10),
 			"currency":      currency,
@@ -140,8 +105,8 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, consumerID, sender
 		Topic: topic,
 	})
 	if err != nil {
-		slog.Error("[FCM] payment_received failed",
-			"consumer_id", consumerID,
+		slog.Error("[FCM] payment_received send failed",
+			"consumer_id", recipientConsumerID,
 			"error", err,
 		)
 	} else {
@@ -149,23 +114,32 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, consumerID, sender
 	}
 }
 
-// SendToMerchant publishes a push notification to the FCM topic for a merchant.
-func (s *FCMService) SendToMerchant(ctx context.Context, merchantID, title, body string) {
+// SendPaymentLinkPaid notifies a merchant that their payment link was paid.
+// Runs best-effort — errors are logged, never returned.
+func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string, amountMinor int64, currency string) {
 	if s == nil {
 		return
 	}
 	prefix := s.sandboxPrefix()
 	topic  := s.topicForMerchant(merchantID)
-	slog.Info("[FCM] sending to merchant", "topic", topic, "title", title)
+
+	slog.Info("[FCM] sending payment_link_paid",
+		"topic",        topic,
+		"merchant_id",  merchantID,
+		"amount_minor", amountMinor,
+	)
+
 	_, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{
-			Title: prefix + title,
-			Body:  body,
+			Title: prefix + "Pagamento recebido",
+			Body:  formatAmount(amountMinor, currency),
 		},
 		Data: map[string]string{
-			"type":        "payment_link_paid",
-			"environment": s.environment,
-			"route":       "activity",
+			"type":         "payment_link_paid",
+			"environment":  s.environment,
+			"amount_minor": strconv.FormatInt(amountMinor, 10),
+			"currency":     currency,
+			"route":        "activity",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
 		APNS: &messaging.APNSConfig{
@@ -176,12 +150,12 @@ func (s *FCMService) SendToMerchant(ctx context.Context, merchantID, title, body
 		Topic: topic,
 	})
 	if err != nil {
-		slog.Error("[FCM] merchant notification failed",
+		slog.Error("[FCM] payment_link_paid send failed",
 			"merchant_id", merchantID,
 			"error", err,
 		)
 	} else {
-		slog.Info("[FCM] merchant notification sent", "topic", topic)
+		slog.Info("[FCM] payment_link_paid sent", "topic", topic)
 	}
 }
 

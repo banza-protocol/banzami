@@ -45,13 +45,13 @@ func main() {
 	}
 	rdb := redis.NewClient(opt)
 
-	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON)
+	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment)
 	if err != nil {
-		slog.Error("fcm init error", "error", err)
+		slog.Error("[FCM] init error", "error", err)
 		os.Exit(1)
 	}
 	if fcmSvc == nil {
-		slog.Warn("fcm: FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
+		slog.Warn("[FCM] FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
 	}
 
 	// Real core-api client — delegates all financial operations to the Rust core.
