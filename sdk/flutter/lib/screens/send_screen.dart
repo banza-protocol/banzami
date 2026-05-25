@@ -1,15 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
+import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
 import '../theme/banza_theme.dart';
+import '../utils/qr_parser.dart';
 import '../widgets/banza_amount_input.dart';
 import '../widgets/banza_components.dart';
+import '../widgets/banza_qr_scanner.dart';
 import 'confirm_screen.dart';
+import 'payment_request_screen.dart';
 
 /// P2P send flow — enter recipient @handle, amount, and optional description.
 ///
@@ -47,7 +52,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   final _descCtrl   = TextEditingController();
   final _handleFocus = FocusNode();
 
-  int     _amountMinor  = 0;
+  int     _amountMinor       = 0;
+  int     _amountInputVersion = 0; // incremented to force BanzaAmountInput rebuild
   String? _handleError;
   String? _amountError;
 
@@ -55,7 +61,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   ConsumerSuggestion? _selectedSuggestion;
   bool    _searching        = false;
   bool    _validatingHandle = false;
-  bool    _handleConfirmed  = false; // true once handle is known to exist
+  bool    _handleConfirmed  = false;
+  bool    _busy             = false; // true while resolving a payment-request QR
   Timer?  _debounce;
 
   @override
@@ -166,6 +173,123 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     ));
   }
 
+  // ── QR scan ────────────────────────────────────────────────────────────────
+
+  Future<void> _scanQr() async {
+    HapticFeedback.lightImpact();
+    String? raw;
+    await Navigator.of(context).push(MaterialPageRoute<void>(
+      fullscreenDialog: true,
+      builder: (scanCtx) => Scaffold(
+        backgroundColor: Colors.black,
+        body: BanzaQrScanner(
+          onDetected: (v) { raw = v; Navigator.of(scanCtx).pop(); },
+          onCancel:   () => Navigator.of(scanCtx).pop(),
+        ),
+      ),
+    ));
+    if (raw == null || !mounted) return;
+    _handleQrResult(raw!);
+  }
+
+  void _handleQrResult(String raw) {
+    final parsed = BanzaQrParser.parse(raw);
+    switch (parsed) {
+      case BanzaQrInvalid(:final reason):
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(reason)));
+
+      case BanzaQrPaymentRequest(:final code, :final isSandbox):
+        if (_sandboxMismatch(isSandbox)) return;
+        _openPaymentRequestFromQr(code);
+
+      case BanzaQrHandlePayment(:final handle, :final amountMinor,
+                                 :final note, :final isSandbox):
+        if (_sandboxMismatch(isSandbox)) return;
+        _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
+    }
+  }
+
+  bool _sandboxMismatch(bool qrIsSandbox) {
+    if (qrIsSandbox == widget.isSandbox) return false;
+    final msg = qrIsSandbox
+        ? 'Este QR pertence ao ambiente sandbox.'
+        : 'Este QR pertence ao ambiente live.';
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    return true;
+  }
+
+  void _prefillFromQr({
+    required String handle,
+    int?            amountMinor,
+    String?         note,
+  }) {
+    _handleCtrl.text = handle.replaceAll('@', '');
+    _handleFocus.unfocus();
+
+    setState(() {
+      _handleError        = null;
+      _handleConfirmed    = false;
+      _selectedSuggestion = null;
+      _suggestions        = [];
+      if (amountMinor != null && amountMinor > 0) {
+        _amountMinor        = amountMinor;
+        _amountInputVersion++;
+      }
+    });
+
+    if (note != null && note.isNotEmpty) _descCtrl.text = note;
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _validateHandleOnBlur());
+  }
+
+  Future<void> _openPaymentRequestFromQr(String code) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final link = await widget.client.getConsumerPayLinkByCode(code);
+      if (!mounted) return;
+      if (!link.isActive) {
+        final msg = switch (link.status) {
+          'PAID'    => 'Este pedido já foi pago.',
+          'EXPIRED' => 'Este pedido expirou.',
+          _         => 'Este pedido não está disponível.',
+        };
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        return;
+      }
+      await Navigator.of(context).push(BanzaPageRoute(
+        page: BanzamiPaymentRequestScreen(
+          client:               widget.client,
+          recipientHandle:      link.receiverHandle,
+          recipientDisplayName: link.receiverDisplayName,
+          amountMinor:          link.amountMinor,
+          note:                 link.note,
+          currency:             link.currency,
+          locked:               link.locked,
+          ownHandle:            widget.ownHandle,
+          linkCode:             link.linkCode,
+          onSuccess:            widget.onSuccess,
+          isSandbox:            widget.isSandbox,
+          logoAssetPath:        widget.logoAssetPath,
+        ),
+      ));
+    } on BanzamiApiException catch (e) {
+      if (!mounted) return;
+      final msg = e.isNotFound
+          ? 'Pedido de pagamento não encontrado.'
+          : 'Não foi possível verificar o QR. Tente novamente.';
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Não foi possível verificar o QR. Tente novamente.')),
+      );
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BanzaScaffold(
@@ -208,7 +332,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                         prefixText: '@',
                         hintText:   'banza do destinatário',
                         errorText:  _handleError,
-                        suffixIcon: (_searching || _validatingHandle)
+                        suffixIcon: (_searching || _validatingHandle || _busy)
                             ? const Padding(
                                 padding: EdgeInsets.all(12),
                                 child: SizedBox(
@@ -218,7 +342,17 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                               )
                             : _handleConfirmed
                                 ? const Icon(Icons.check_circle_rounded, color: Color(0xFF166534), size: 20)
-                                : null,
+                                : GestureDetector(
+                                    onTap: _scanQr,
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(10),
+                                      child: Icon(
+                                        Icons.qr_code_scanner_rounded,
+                                        color: BanzaColors.wine,
+                                        size:  22,
+                                      ),
+                                    ),
+                                  ),
                       ),
                       style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray900),
                       autocorrect:     false,
@@ -240,7 +374,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                     ),
                     const SizedBox(height: BanzaSpacing.sm),
                     BanzaAmountInput(
-                      initialAmountMinor: widget.initialAmount,
+                      key:                ValueKey(_amountInputVersion),
+                      initialAmountMinor: _amountMinor > 0 ? _amountMinor : widget.initialAmount,
                       onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
                       errorText:  _amountError,
                     ),
