@@ -348,34 +348,26 @@ class P2PShareCardBuilder extends StatelessWidget {
             child: Container(
               width: double.infinity,
               decoration: const BoxDecoration(gradient: BanzaGradients.wine),
-              child: Stack(
-                children: [
-
-                  // Subtle top sheen
-                  Positioned.fill(
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin:  Alignment.topCenter,
-                          end:    Alignment.center,
-                          colors: [
-                            Colors.white.withValues(alpha: 0.07),
-                            Colors.transparent,
-                          ],
-                        ),
-                      ),
-                    ),
+              child: DecoratedBox(
+                position: DecorationPosition.foreground,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin:  Alignment.topCenter,
+                    end:    Alignment.center,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.07),
+                      Colors.transparent,
+                    ],
                   ),
-
-                  Positioned.fill(
-                    child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical:   16,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical:   16,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
 
                         // SANDBOX badge
                         if (isSandbox) ...[
@@ -478,11 +470,9 @@ class P2PShareCardBuilder extends StatelessWidget {
                       ],
                     ),
                   ),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
 
           const SizedBox(height: 8),
 
