@@ -439,18 +439,17 @@ class _BalanceCard extends StatelessWidget {
               ),
             ),
           ),
-          // Diagonal highlight streak — top-left Apple-style reflection
+          // Subtle top sheen — matches profile card treatment (vertical, no left wash)
           Positioned.fill(
             child: Container(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  begin:  Alignment.topLeft,
-                  end:    Alignment.centerRight,
+                  begin:  Alignment.topCenter,
+                  end:    Alignment.center,
                   colors: [
-                    Colors.white.withValues(alpha: 0.10),
+                    Colors.white.withValues(alpha: 0.05),
                     Colors.transparent,
                   ],
-                  stops: const [0.0, 0.55],
                 ),
               ),
             ),
