@@ -18,8 +18,12 @@ Guia completo de implementação de push notifications com Firebase Cloud Messag
 10. [Integrar no ecrã principal](#10-integrar-no-ecrã-principal)
 11. [Testar end-to-end](#11-testar-end-to-end)
 12. [Backend — enviar FCM do servidor Go](#12-backend--enviar-fcm-do-servidor-go)
-13. [Painel de diagnóstico FCM (sandbox)](#13-painel-de-diagnóstico-fcm-sandbox)
+13. [Endpoint de debug (sandbox)](#13-endpoint-de-debug-sandbox)
 14. [Erros comuns e soluções](#14-erros-comuns-e-soluções)
+15. [Arquitectura final](#15-arquitectura-final)
+16. [Nomenclatura de tópicos](#16-nomenclatura-de-tópicos)
+17. [Checklist de validação end-to-end](#17-checklist-de-validação-end-to-end)
+18. [Regra de deploy — staging obrigatório](#18-regra-de-deploy--staging-obrigatório)
 
 ---
 
@@ -705,17 +709,24 @@ go h.fcm.SendPaymentReceived(context.Background(), recipientID, senderHandle, am
 
 ---
 
-## 13. Painel de diagnóstico FCM (sandbox)
+## 13. Endpoint de debug (sandbox)
 
-Quando as notificações não chegam a um dispositivo real, o primeiro passo é confirmar o estado FCM sem precisar de disparar um pagamento real.
+O painel UI de diagnóstico FCM que existia no ecrã de Perfil foi removido das builds de TestFlight e produção. Os dados internos (FCM token, consumer ID, tópico, APNs status) não devem ser expostos a utilizadores finais.
 
-### 13.1 Endpoint de teste — `POST /v1/debug/push-test`
+O **endpoint de backend mantém-se** — é útil para automação e debugging remoto.
 
-O `public-api` tem um endpoint sandbox-only que envia um push real ao tópico FCM do consumer autenticado:
+### 13.1 Endpoint — `POST /v1/debug/push-test`
 
 ```
 POST /v1/debug/push-test
 Authorization: Bearer <sandbox_jwt>
+Content-Type: application/json
+
+# Entrega por tópico (default — testa toda a cadeia de subscrição):
+{}
+
+# Entrega directa por token (isola APNs/dispositivo, bypassa subscrição):
+{"fcm_token": "<fcm_token_completo>"}
 ```
 
 Resposta esperada:
@@ -723,40 +734,63 @@ Resposta esperada:
 {
   "consumer_id": "5b7d6ce2-...",
   "environment": "SANDBOX",
-  "fcm_topic": "sandbox_consumer_5b7d6ce2-...",
-  "firebase_message_id": "projects/banzami/messages/..."
+  "delivery_mode": "token",
+  "target": "edSTrkNd...",
+  "firebase_message_id": "projects/banza-e0c07/messages/..."
 }
 ```
 
-- Em produção retorna `403 FORBIDDEN` — protegido por guard de ambiente.
-- Retorna `500 FCM_ERROR` se `FIREBASE_CREDENTIALS_JSON` não estiver configurado no container.
-- Retorna `401` se o JWT estiver em falta ou inválido.
+Comportamentos de erro:
+- `403 FORBIDDEN` — chamado em ambiente LIVE (protegido por guard de ambiente)
+- `500 FCM_ERROR: FCM not initialized` — `FIREBASE_CREDENTIALS_JSON` não está no container
+- `401` — JWT inválido ou em falta
 
-### 13.2 Painel de diagnóstico no perfil (Flutter)
+### 13.2 Estratégia topic vs token
 
-No ecrã de Perfil (apenas quando `AppConfig.isSandbox`), existe uma secção **DEBUG · PUSH** que mostra em tempo real:
+Usar os dois modos para isolar o problema:
 
-| Campo | O que confirma |
-|---|---|
-| PERMISSION | Se o iOS autorizou notificações |
-| ENVIRONMENT | SANDBOX vs PRODUCTION |
-| CONSUMER ID | ID do consumer logado |
-| TOPIC | Tópico FCM subscrito (`sandbox_consumer_<id>`) |
-| APNs TOKEN | `present` ou `unavailable` (se unavailable, FCM nunca funciona) |
-| FCM TOKEN | Primeiros/últimos 4 chars do token (confirma registo no Firebase) |
-| SUBSCRIBED | `true` / `false (<erro>)` — resultado da subscrição ao tópico |
-
-O botão **"Enviar notificação de teste"** chama `POST /v1/debug/push-test` e mostra o Firebase message ID ou o erro directamente no painel.
-
-### 13.3 Checklist de diagnóstico rápido
+| Modo | O que testa | Quando usar |
+|---|---|---|
+| **topic** (default) | Subscrição FCM + Firebase fanout + APNs | Primeiro teste — se falhar, suspeitar da subscrição |
+| **token** | Apenas APNs + entrega ao dispositivo | Se topic falha mas APNs token existe — confirma se o problema é a subscrição |
 
 ```
-APNs TOKEN = unavailable → problema no iOS/entitlements, não no backend
-APNs TOKEN = present, FCM TOKEN = null → APNs chegou mas Firebase não inicializou no mobile
-SUBSCRIBED = false → subscribeToTopic falhou, push nunca chega
-Botão → 404 → rota não existe no container (deploy desactualizado)
-Botão → 500 FCM_ERROR → FIREBASE_CREDENTIALS_JSON não está no container
-Botão → ID retornado, notificação não chega → subscrição ao tópico errada ou APNs mismatch
+topic falha + token funciona → subscribeToTopic não correu ou usou tópico errado
+topic funciona + notificação não aparece → APNs config (priority, aps.alert) em falta
+ambos falham → FCM não inicializado ou Firebase project mismatch
+```
+
+### 13.3 Verificar estado FCM via curl
+
+Obter o JWT do device (logs de startup) e chamar directamente:
+
+```bash
+JWT="eyJ..."  # token sandbox do consumer
+
+# Teste por tópico
+curl -s -X POST https://staging.banzami.org/v1/debug/push-test \
+  -H "Authorization: Bearer $JWT" \
+  -H "Content-Type: application/json" \
+  -d '{}' | jq .
+
+# Teste por token
+curl -s -X POST https://staging.banzami.org/v1/debug/push-test \
+  -H "Authorization: Bearer $JWT" \
+  -H "Content-Type: application/json" \
+  -d '{"fcm_token": "edSTrkNd..."}' | jq .
+```
+
+### 13.4 Verificar startup do backend
+
+```bash
+# Confirmar que o container carregou as credenciais certas
+docker logs banzami-public-api-staging-1 | grep FCM
+# Esperado:
+# {"msg":"[FCM] credentials loaded","project_id":"banza-e0c07","client_email":"..."}
+# {"msg":"[FCM] initialized","environment":"SANDBOX"}
+
+# Confirmar a variável de ambiente dentro do container
+docker exec banzami-public-api-staging-1 env | grep FIREBASE
 ```
 
 ---
@@ -911,6 +945,261 @@ O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do ter
 
 ---
 
+### `FCM_ERROR: SenderId mismatch`
+
+**Causa:** O FCM token gerado pelo mobile foi criado com o Firebase project A, mas o backend está a enviar mensagens usando as credenciais do Firebase project B. Os tokens FCM são vinculados a um projeto específico — não podem ser usados entre projetos.
+
+Exemplo do erro nos logs do backend:
+```
+[FCM] payment_received send failed error="SenderId mismatch"
+```
+
+**Como diagnosticar:**
+
+1. Verificar o `SENDER_ID` no `GoogleService-Info.plist` do flavor:
+   ```xml
+   <key>GCM_SENDER_ID</key>
+   <string>186759898040</string>
+   ```
+
+2. Verificar o `project_id` nas credenciais do backend — deve ser o mesmo Firebase project:
+   ```bash
+   docker logs banzami-public-api-staging-1 | grep 'credentials loaded'
+   # Esperado: project_id=banza-e0c07
+   ```
+
+3. Confirmar no startup log do backend que o `project_id` corresponde ao projeto Firebase do mobile.
+
+**Solução:**
+
+- Gerar o service account a partir do **mesmo Firebase project** que gerou o `GoogleService-Info.plist`.
+- Firebase Console → Project Settings → Service accounts → Generate new private key.
+- Garantir que o `project_id` no JSON do service account é igual ao campo `PROJECT_ID` no plist.
+- Actualizar `FIREBASE_CREDENTIALS_JSON` no servidor e redeployar **ambos** os containers.
+
+**Verificação pós-fix:**
+
+O startup log deve mostrar:
+```
+{"msg":"[FCM] credentials loaded","project_id":"banza-e0c07","client_email":"firebase-adminsdk-...@banza-e0c07.iam.gserviceaccount.com"}
+```
+
+O endpoint de debug deve retornar um `firebase_message_id` real sem erro.
+
+---
+
+### Notificações FCM via tópico aceites pelo Firebase mas não entregues no iOS
+
+**Causa:** Mensagens enviadas via tópico FCM para iOS sem configuração APNs explícita podem ser marcadas como aceites pelo Firebase mas entregues pelo APNs com prioridade baixa ("background") e nunca apresentadas visualmente ao utilizador.
+
+O Firebase define a prioridade padrão para tópicos como "normal" em APNs, o que significa que o iOS pode diferir a entrega indefinidamente (especialmente com Low Power Mode activo ou app em background há muito tempo).
+
+**Sintoma:** O endpoint de debug retorna um `firebase_message_id` válido, mas a notificação nunca aparece no dispositivo.
+
+**Solução:** Incluir `APNSConfig` explícito em **todas** as mensagens FCM:
+
+```go
+func apnsConfig(title, body string) *messaging.APNSConfig {
+    return &messaging.APNSConfig{
+        Headers: map[string]string{
+            "apns-priority": "10",  // 10 = imediato; 5 = background (default para tópicos)
+        },
+        Payload: &messaging.APNSPayload{
+            Aps: &messaging.Aps{
+                Alert: &messaging.ApsAlert{
+                    Title: title,
+                    Body:  body,
+                },
+                Sound: "default",
+            },
+        },
+    }
+}
+```
+
+Aplicar a **todas** as chamadas `client.Send()` — transfers, payment links, consumer pay-links, e debug push. Não assumir que o `Notification` de nível superior é suficiente para iOS com tópicos.
+
+---
+
+### Foreground vs background vs terminated — confusão no teste
+
+**Causa:** O comportamento das notificações FCM é diferente consoante o estado da app. Testar apenas em foreground não confirma que a stack está correcta para os outros estados.
+
+**Matriz de comportamento:**
+
+| Estado da app | FCM entrega | Quem mostra a notificação | Tap abre a app? |
+|---|---|---|---|
+| **Foreground** | `onMessage` callback | `flutter_local_notifications` ou `setForegroundNotificationPresentationOptions` | N/A — app já aberta |
+| **Background** | APNs → iOS | iOS (nativo) | Sim — `onMessageOpenedApp` |
+| **Terminated** | APNs → iOS | iOS (nativo) | Sim — `getInitialMessage()` |
+
+**Regra de teste:** Sempre testar os 3 estados separadamente. Pressionar o botão de debug com a app aberta só confirma o caminho de foreground.
+
+Para testar background: fechar a app (swipe up, mas não terminar), enviar o push, a notificação aparece como banner iOS.
+
+Para testar terminated: forçar fecho da app (double-tap home → swipe up), enviar o push, tap na notificação iOS deve abrir a app na rota correcta.
+
+---
+
+## 15. Arquitectura final
+
+### Mobile (Flutter)
+
+```
+Firebase.initializeApp()
+    ↓
+requestPermission() → iOS prompt
+    ↓
+_getApnsToken() → polling até 30s
+    ↓
+getToken() → FCM token (~150 chars)
+    ↓
+subscribeToTopic('sandbox_consumer_<uuid>')   ← sandbox
+subscribeToTopic('consumer_<uuid>')           ← live
+    ↓
+┌─────────────────────────────────────────────────────┐
+│  Foreground                                         │
+│  onMessage → flutter_local_notifications.show()     │
+│            → BanzaToast (in-app banner opcional)    │
+├─────────────────────────────────────────────────────┤
+│  Background / Terminated                            │
+│  iOS mostra banner nativo automaticamente           │
+│  Tap → onMessageOpenedApp / getInitialMessage()     │
+│       → BanzaNotificationRouter.route(message)      │
+│       → abre receipt, activity, etc.                │
+└─────────────────────────────────────────────────────┘
+```
+
+### Backend (Go — `internal/notify/fcm.go`)
+
+```
+NewFCMService(ctx, FIREBASE_CREDENTIALS_JSON, ENVIRONMENT)
+    ↓ loga project_id + client_email no startup
+    ↓
+FCMService.Send*(ctx, ...)
+    ↓ apnsConfig() → apns-priority: 10 + aps.alert + sound
+    ↓ AndroidConfig → priority: "high"
+    ↓ topic: sandbox_consumer_<id> / consumer_<id>
+    ↓ loga firebase_message_id retornado
+
+Handlers que disparam FCM:
+  POST /v1/transfers                    → SendPaymentReceived (destinatário)
+  POST /v1/payment-links/{slug}/pay     → SendPaymentLinkPaid (merchant)
+  POST /v1/consumer-pay-links/{code}/pay → SendPaymentRequestPaid (criador do link)
+  POST /v1/debug/push-test              → SendDebugPush / SendDebugPushToToken (sandbox only)
+```
+
+### Variáveis de ambiente obrigatórias
+
+| Variável | Serviço | Valor |
+|---|---|---|
+| `FIREBASE_CREDENTIALS_JSON` | `public-api` (LIVE) | JSON minificado do service account `banza-e0c07` |
+| `FIREBASE_CREDENTIALS_JSON` | `public-api-staging` | Mesmo JSON — **mesmo Firebase project** |
+| `ENVIRONMENT` | `public-api` | `LIVE` |
+| `ENVIRONMENT` | `public-api-staging` | `SANDBOX` |
+
+O `ENVIRONMENT` controla o prefixo do tópico (`sandbox_consumer_` vs `consumer_`) e bloqueia o endpoint de debug em LIVE.
+
+> **Nunca commitar o service account JSON.** Injectar sempre via `.env` no servidor ou sistema de secrets. O ficheiro contém uma chave privada com acesso total ao projeto Firebase.
+
+---
+
+## 16. Nomenclatura de tópicos
+
+Os tópicos FCM seguem o padrão:
+
+| Ambiente | Destinatário | Tópico |
+|---|---|---|
+| SANDBOX | Consumer | `sandbox_consumer_<consumer_uuid>` |
+| SANDBOX | Merchant | `sandbox_merchant_<merchant_uuid>` |
+| LIVE | Consumer | `consumer_<consumer_uuid>` |
+| LIVE | Merchant | `merchant_<merchant_uuid>` |
+
+**Regras:**
+
+1. O tópico de subscrição no mobile e o tópico de envio no backend têm de ser **exactamente iguais** — um caractere de diferença e a notificação nunca chega.
+2. Usar sempre `consumer_id` (UUID da tabela `consumers`), nunca `user_id` ou `handle`.
+3. O isolamento sandbox/live é garantido pelo prefixo — uma notificação de sandbox nunca chega a um dispositivo em modo live e vice-versa.
+4. Para novos tipos de destinatário (ex: merchant consumer), definir o padrão explicitamente antes de implementar — não inventar variações ad-hoc.
+
+---
+
+## 17. Checklist de validação end-to-end
+
+Executar após qualquer alteração à stack FCM (Firebase, APNs, backend, mobile):
+
+```
+Mobile
+──────
+[ ] PERMISSION = authorized
+[ ] APNs TOKEN = present  (se unavailable, todo o resto falha — ver §4 e §7)
+[ ] FCM TOKEN presente e completo (~150 chars)
+[ ] SUBSCRIBED = true para o tópico correto do ambiente
+
+Backend
+───────
+[ ] Startup log mostra: [FCM] credentials loaded project_id=banza-e0c07
+[ ] Startup log mostra: [FCM] initialized environment=SANDBOX/LIVE
+[ ] docker exec ... env | grep FIREBASE retorna o JSON completo
+
+Endpoint de debug
+─────────────────
+[ ] POST /v1/debug/push-test (topic) → retorna firebase_message_id sem erro
+[ ] POST /v1/debug/push-test (token) → retorna firebase_message_id sem erro
+[ ] Endpoint retorna 403 em LIVE
+
+Notificações
+────────────
+[ ] Foreground: notificação aparece como banner na app
+[ ] Background: notificação aparece como banner iOS ao receber push
+[ ] Terminated: tap na notificação iOS abre a app na rota correcta
+[ ] payment_received: abre o receipt do transfer
+[ ] payment_link_paid: aparece no histórico do merchant
+
+Pagamentos reais
+────────────────
+[ ] Transferência P2P → notificação chega ao destinatário
+[ ] Pagamento de consumer pay-link QR → notificação chega ao criador do link
+[ ] Pagamento de payment link merchant → notificação chega ao merchant
+```
+
+---
+
+## 18. Regra de deploy — staging obrigatório
+
+> **Atenção:** O mobile sandbox aponta para `staging.banzami.org`. Qualquer alteração ao `public-api` que afecte o mobile sandbox (novas rotas, variáveis de ambiente, config FCM) **tem de ser deployada também no staging**.
+
+```bash
+# Correcto — ambos os ambientes actualizados:
+./deploy.sh public-api
+./deploy.sh staging
+
+# Errado — staging continua com a versão antiga:
+./deploy.sh public-api
+```
+
+**Verificação após deploy:**
+
+```bash
+# Confirmar que staging tem a variável:
+ssh root@217.160.9.248 "docker exec banzami-public-api-staging-1 env | grep FIREBASE"
+
+# Confirmar logs de startup:
+ssh root@217.160.9.248 "docker logs banzami-public-api-staging-1 2>&1 | grep FCM"
+# Esperado:
+# {"msg":"[FCM] credentials loaded","project_id":"banza-e0c07",...}
+# {"msg":"[FCM] initialized","environment":"SANDBOX"}
+```
+
+**Quando é obrigatório redeployar staging:**
+
+- Nova rota adicionada ao `public-api`
+- Nova variável de ambiente adicionada a qualquer serviço
+- Alteração ao `FIREBASE_CREDENTIALS_JSON` (ex: rotação de credenciais)
+- Alteração à lógica FCM (tópicos, handlers, APNs config)
+
+---
+
 ## Resumo da ordem de implementação
 
 ```
@@ -928,36 +1217,42 @@ O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do ter
 10. Runner.entitlements     → aps-environment = production
 11. switch_firebase_config.sh → script de cópia do plist correto
 12. AppDelegate.swift       → registerForRemoteNotifications + apnsToken forwarding
-13. PushNotificationService → serviço Dart com polling APNs + _fcmDiagSnapshot
+13. PushNotificationService → serviço Dart com polling APNs
 14. main_consumer.dart      → catch (e) com debugPrint em todos os init de background
 15. MainScreen              → requestPermission + subscribeConsumer + getToken
-16. ProfileScreen           → painel de diagnóstico FCM (sandbox only)
 
 ── Backend Go ──────────────────────────────────────────────────────────────────
 
-17. go get firebase.google.com/go/v4
-18. internal/notify/fcm.go  → FCMService com Send* para cada tipo de evento
+16. go get firebase.google.com/go/v4
+17. internal/notify/fcm.go  → FCMService com Send* para cada tipo de evento
+                               apnsConfig() com apns-priority:10 + aps.alert
+                               logar project_id/client_email no startup
                                logar sempre o firebase_message_id retornado
-19. config.go               → FirebaseCredentialsJSON (env FIREBASE_CREDENTIALS_JSON)
-20. main.go                 → notify.NewFCMService + injectar em Dependencies
-21. handler/transfers.go    → FCM após transferência directa
-22. handler/payment_link.go → FCM após pagamento de payment link
-23. handler/consumer_pay_link.go → FCM após pagamento de pay-link QR consumer
-24. handler/debug_push.go   → POST /v1/debug/push-test (sandbox-only)
-25. docker-compose.yml      → FIREBASE_CREDENTIALS_JSON em produção E em staging
+18. config.go               → FirebaseCredentialsJSON (env FIREBASE_CREDENTIALS_JSON)
+19. main.go                 → notify.NewFCMService + injectar em Dependencies
+20. handler/transfers.go    → FCM após transferência directa
+21. handler/payment_link.go → FCM após pagamento de payment link
+22. handler/consumer_pay_link.go → FCM após pagamento de pay-link QR consumer
+23. handler/debug_push.go   → POST /v1/debug/push-test (sandbox-only, topic + token)
+24. docker-compose.yml      → FIREBASE_CREDENTIALS_JSON em public-api E public-api-staging
 
 ── Produção ────────────────────────────────────────────────────────────────────
 
-26. Firebase Console        → Service accounts → Generate new private key
-27. VM (.env)               → FIREBASE_CREDENTIALS_JSON="$(jq -c . < sa.json)"
-28. docker-compose.yml      → verificar que AMBOS public-api e public-api-staging têm a var
-29. ./deploy.sh public-api  → deploy produção
-30. ./deploy.sh staging     → deploy staging (obrigatório se o mobile usa sandbox)
-31. Verificação             → docker logs banzami-public-api-staging-1 | grep FCM
-                               esperado: [FCM] initialized environment=SANDBOX
-32. Teste                   → Profile → Debug Push → Enviar notificação de teste
-                               esperado: Firebase message ID + notificação no dispositivo
-33. Teste real              → disparar pagamento e verificar notificação
+25. Firebase Console        → Service accounts → Generate new private key
+                               (mesmo Firebase project que o mobile — verificar project_id)
+26. VM (.env)               → FIREBASE_CREDENTIALS_JSON="$(python3 -c "import json,sys; print(json.dumps(json.load(sys.stdin),separators=(',',':')))" < sa.json)"
+27. docker-compose.yml      → verificar que AMBOS public-api e public-api-staging têm a var
+28. ./deploy.sh public-api  → deploy produção
+29. ./deploy.sh staging     → deploy staging (obrigatório — ver §18)
+30. Verificação             → docker logs banzami-public-api-staging-1 | grep FCM
+                               esperado:
+                               [FCM] credentials loaded project_id=banza-e0c07
+                               [FCM] initialized environment=SANDBOX
+31. Teste endpoint          → curl POST /v1/debug/push-test → firebase_message_id sem erro
+32. Teste foreground        → app aberta → push aparece como banner in-app
+33. Teste background        → app fechada → push aparece como banner iOS
+34. Teste terminated        → app morta → tap no banner abre a rota correcta
+35. Teste real              → disparar pagamento P2P + pay-link QR → notificações chegam
 ```
 
 **Regras de ouro:**
@@ -967,3 +1262,5 @@ O FCM token tem ~150 caracteres. Se aparecer cortado, copiar directamente do ter
 3. Nunca usar `catch (_)` em código de inicialização — sempre `catch (e)` com log.
 4. O `client.Send()` retorna um message ID — sempre logar, nunca descartar com `_`.
 5. Auditar **todos** os handlers de pagamento quando se implementa FCM — não apenas o mais óbvio.
+6. O service account do backend tem de ser do **mesmo Firebase project** que gerou o `GoogleService-Info.plist` do mobile.
+7. Incluir `apnsConfig()` com `apns-priority: 10` em **todas** as mensagens — sem isto, tópicos iOS podem ser entregues silenciosamente ou diferidos.
