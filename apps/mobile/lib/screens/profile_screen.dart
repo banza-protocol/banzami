@@ -521,13 +521,16 @@ class _PushDiagnosticsSectionState extends State<_PushDiagnosticsSection> {
   Future<void> _sendTest() async {
     setState(() { _loading = true; _result = null; });
     try {
-      final json = await widget.client.sendDebugPush();
-      final id   = json['firebase_message_id'] as String? ?? '—';
+      final fcmToken = PushNotificationService.fcmToken;
+      final json     = await widget.client.sendDebugPush(fcmToken: fcmToken);
+      final id       = json['firebase_message_id'] as String? ?? '—';
+      final mode     = json['delivery_mode']       as String? ?? 'topic';
+      final shortId  = id.length > 20 ? '${id.substring(0, 20)}…' : id;
       if (mounted) {
         setState(() {
-          _loading   = false;
-          _result    = 'Enviado ✓  ID: ${id.length > 16 ? '${id.substring(0, 16)}…' : id}';
-          _resultOk  = true;
+          _loading  = false;
+          _result   = 'Enviado ✓ [$mode]  $shortId';
+          _resultOk = true;
         });
       }
     } catch (e) {

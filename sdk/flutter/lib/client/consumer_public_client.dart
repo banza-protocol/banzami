@@ -355,11 +355,20 @@ class ConsumerPublicClient {
     );
   }
 
-  /// Sends a test FCM push to the authenticated consumer's topic.
+  /// Sends a test FCM push to the authenticated consumer.
   /// Only works in sandbox — throws [BanzamiApiException] with code `FORBIDDEN` in production.
-  /// Returns the `{fcm_topic, firebase_message_id}` map from the server.
-  Future<Map<String, dynamic>> sendDebugPush() =>
-      _call(method: 'POST', path: '/v1/debug/push-test');
+  ///
+  /// - [fcmToken]: if provided, delivers directly to the token (bypasses topic fanout).
+  ///   Pass `PushNotificationService.fcmToken` for direct-token testing.
+  ///   Omit to use topic delivery (tests the full subscription path).
+  ///
+  /// Returns `{delivery_mode, target, firebase_message_id}`.
+  Future<Map<String, dynamic>> sendDebugPush({String? fcmToken}) =>
+      _call(
+        method: 'POST',
+        path:   '/v1/debug/push-test',
+        body:   fcmToken != null ? {'fcm_token': fcmToken} : null,
+      );
 
   // ---------------------------------------------------------------------------
   // HTTP helpers
