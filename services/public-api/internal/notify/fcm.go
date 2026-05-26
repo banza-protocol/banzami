@@ -66,6 +66,26 @@ func (s *FCMService) sandboxPrefix() string {
 	return ""
 }
 
+// apnsConfig builds an APNSConfig with explicit priority-10 delivery and alert.
+// Firebase's default topic priority can be deferred by iOS — setting apns-priority: 10
+// ensures immediate delivery consistent with Android's "high" priority.
+func apnsConfig(title, body string) *messaging.APNSConfig {
+	return &messaging.APNSConfig{
+		Headers: map[string]string{
+			"apns-priority": "10",
+		},
+		Payload: &messaging.APNSPayload{
+			Aps: &messaging.Aps{
+				Alert: &messaging.ApsAlert{
+					Title: title,
+					Body:  body,
+				},
+				Sound: "default",
+			},
+		},
+	}
+}
+
 // SendPaymentReceived notifies a consumer that they received a transfer.
 // Runs best-effort — errors are logged, never returned.
 func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerID, senderHandle string, amountMinor int64, currency, transferID string) {
@@ -74,6 +94,7 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 	}
 	prefix := s.sandboxPrefix()
 	topic  := s.topicForConsumer(recipientConsumerID)
+	title  := prefix + "Pagamento recebido"
 	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
 
 	slog.Info("[FCM] sending payment_received",
@@ -85,10 +106,7 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 	)
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: prefix + "Pagamento recebido",
-			Body:  body,
-		},
+		Notification: &messaging.Notification{Title: title, Body: body},
 		Data: map[string]string{
 			"type":          "payment_received",
 			"environment":   s.environment,
@@ -99,12 +117,8 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 			"route":         "receipt",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{Sound: "default"},
-			},
-		},
-		Topic: topic,
+		APNS:    apnsConfig(title, body),
+		Topic:   topic,
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_received send failed",
@@ -131,11 +145,11 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 		"amount_minor", amountMinor,
 	)
 
+	title  := prefix + "Pagamento recebido"
+	body   := formatAmount(amountMinor, currency)
+
 	msgID, err := s.client.Send(ctx, &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: prefix + "Pagamento recebido",
-			Body:  formatAmount(amountMinor, currency),
-		},
+		Notification: &messaging.Notification{Title: title, Body: body},
 		Data: map[string]string{
 			"type":         "payment_link_paid",
 			"environment":  s.environment,
@@ -144,12 +158,8 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 			"route":        "activity",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{Sound: "default"},
-			},
-		},
-		Topic: topic,
+		APNS:    apnsConfig(title, body),
+		Topic:   topic,
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_link_paid send failed",
@@ -180,11 +190,10 @@ func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsum
 		"transfer_id",  transferID,
 	)
 
+	title  := prefix + "Pagamento recebido"
+
 	msgID, err := s.client.Send(ctx, &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: prefix + "Pagamento recebido",
-			Body:  body,
-		},
+		Notification: &messaging.Notification{Title: title, Body: body},
 		Data: map[string]string{
 			"type":          "payment_received",
 			"environment":   s.environment,
@@ -195,12 +204,8 @@ func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsum
 			"route":         "receipt",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{Sound: "default"},
-			},
-		},
-		Topic: topic,
+		APNS:    apnsConfig(title, body),
+		Topic:   topic,
 	})
 	if err != nil {
 		slog.Error("[FCM] payment_request_paid send failed",
@@ -220,32 +225,67 @@ func (s *FCMService) SendDebugPush(ctx context.Context, recipientConsumerID stri
 		return "", "", fmt.Errorf("FCM not initialized — FIREBASE_CREDENTIALS_JSON not set")
 	}
 	topic = s.topicForConsumer(recipientConsumerID)
+	title := s.sandboxPrefix() + "Debug: Push funcionando ✓"
+	body  := "Notificações estão a funcionar correctamente."
 
-	slog.Info("[FCM] sending debug push", "topic", topic, "consumer_id", recipientConsumerID)
+	slog.Info("[FCM] sending debug push (topic)", "topic", topic, "consumer_id", recipientConsumerID)
 
 	msgID, sendErr := s.client.Send(ctx, &messaging.Message{
-		Notification: &messaging.Notification{
-			Title: s.sandboxPrefix() + "Debug: Push funcionando ✓",
-			Body:  "Notificações estão a funcionar correctamente.",
-		},
+		Notification: &messaging.Notification{Title: title, Body: body},
 		Data: map[string]string{
 			"type":        "debug",
 			"environment": s.environment,
+			"route":       "history",
 		},
 		Android: &messaging.AndroidConfig{Priority: "high"},
-		APNS: &messaging.APNSConfig{
-			Payload: &messaging.APNSPayload{
-				Aps: &messaging.Aps{Sound: "default"},
-			},
-		},
-		Topic: topic,
+		APNS:    apnsConfig(title, body),
+		Topic:   topic,
 	})
 	if sendErr != nil {
-		slog.Error("[FCM] debug push failed", "consumer_id", recipientConsumerID, "error", sendErr)
+		slog.Error("[FCM] debug push (topic) failed", "consumer_id", recipientConsumerID, "error", sendErr)
 		return "", topic, sendErr
 	}
-	slog.Info("[FCM] debug push sent", "topic", topic, "message_id", msgID)
+	slog.Info("[FCM] debug push (topic) sent", "topic", topic, "message_id", msgID)
 	return msgID, topic, nil
+}
+
+// SendDebugPushToToken sends a test push directly to an FCM registration token.
+// Direct token delivery bypasses topic fanout — useful to isolate whether the
+// issue is topic subscription or APNs/device delivery.
+// Intended for the SANDBOX debug endpoint only.
+func (s *FCMService) SendDebugPushToToken(ctx context.Context, fcmToken string) (messageID string, err error) {
+	if s == nil {
+		return "", fmt.Errorf("FCM not initialized — FIREBASE_CREDENTIALS_JSON not set")
+	}
+	title := s.sandboxPrefix() + "Debug (token): Push funcionando ✓"
+	body  := "Entrega directa via token — tópico não necessário."
+
+	slog.Info("[FCM] sending debug push (token)", "token_prefix", fcmToken[:min(len(fcmToken), 8)])
+
+	msgID, sendErr := s.client.Send(ctx, &messaging.Message{
+		Notification: &messaging.Notification{Title: title, Body: body},
+		Data: map[string]string{
+			"type":        "debug",
+			"environment": s.environment,
+			"route":       "history",
+		},
+		Android: &messaging.AndroidConfig{Priority: "high"},
+		APNS:    apnsConfig(title, body),
+		Token:   fcmToken,
+	})
+	if sendErr != nil {
+		slog.Error("[FCM] debug push (token) failed", "error", sendErr)
+		return "", sendErr
+	}
+	slog.Info("[FCM] debug push (token) sent", "message_id", msgID)
+	return msgID, nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
 
 // formatAmount formats a minor-unit amount for notification body text.
