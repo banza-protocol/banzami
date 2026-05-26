@@ -2,6 +2,7 @@ package notify
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -27,6 +28,23 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 		slog.Warn("[FCM] FIREBASE_CREDENTIALS_JSON not set — push notifications disabled")
 		return nil, nil
 	}
+
+	// Extract project_id from the credentials JSON for startup verification.
+	// A SenderId mismatch means this project_id does not match the mobile app's Firebase project.
+	var sa struct {
+		ProjectID   string `json:"project_id"`
+		ClientEmail string `json:"client_email"`
+	}
+	if err := json.Unmarshal([]byte(credentialsJSON), &sa); err != nil {
+		slog.Warn("[FCM] could not parse credentials for logging", "error", err)
+	} else {
+		slog.Info("[FCM] credentials loaded",
+			"project_id",    sa.ProjectID,
+			"client_email",  sa.ClientEmail,
+			"environment",   environment,
+		)
+	}
+
 	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsJSON([]byte(credentialsJSON)))
 	if err != nil {
 		return nil, fmt.Errorf("fcm: init firebase app: %w", err)
