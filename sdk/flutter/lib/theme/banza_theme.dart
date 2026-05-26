@@ -51,17 +51,18 @@ abstract class BanzaColors {
 
 abstract class BanzaGradients {
   /// Primary Banza gradient — balance card, key headers, confirm screen avatar.
-  /// 4-stop deep cherry at ~145°.
+  /// 4-stop deep wine at ~145°. Start darkened from #C21A2C → #920E1B for
+  /// a calmer, more premium look — reduces left-side saturation jump.
   static const LinearGradient wine = LinearGradient(
     begin:  Alignment(-0.57, -0.82),
     end:    Alignment(0.57, 0.82),
     colors: [
-      Color(0xFFC21A2C), // Cherry Highlight — 0%
-      Color(0xFF990011), // Primary Space Cherry — 38%
-      Color(0xFF7A000D), // Mid — 72%
+      Color(0xFF920E1B), // Dark Wine-Cherry — 0%  (was #C21A2C, too bright)
+      Color(0xFF7A000D), // Mid — 45%
+      Color(0xFF660009), // Near Dark — 75%
       Color(0xFF5E000A), // Deep Shadow — 100%
     ],
-    stops: [0.0, 0.38, 0.72, 1.0],
+    stops: [0.0, 0.45, 0.75, 1.0],
   );
 
   /// Light surface gradient — page backgrounds, card fills.
