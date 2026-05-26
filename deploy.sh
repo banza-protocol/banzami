@@ -266,9 +266,10 @@ deploy_staging() {
   # Idempotent: grep exits 0 if already there, insert after LOG_LEVEL if missing.
   info "Checking server compose env vars..."
   ssh "$REMOTE" "
-    grep -q 'FIREBASE_CREDENTIALS_JSON' /srv/banzami/docker-compose.yml || \
-    awk '/public-api-staging:/,/depends_on:/{if(/LOG_LEVEL/){print; print \"      FIREBASE_CREDENTIALS_JSON: \${FIREBASE_CREDENTIALS_JSON:-}\"; next}}1' \
-      /srv/banzami/docker-compose.yml > /tmp/dc.yml && mv /tmp/dc.yml /srv/banzami/docker-compose.yml
+    if ! grep -q 'FIREBASE_CREDENTIALS_JSON' /srv/banzami/docker-compose.yml; then
+      awk '/public-api-staging:/,/depends_on:/{if(/LOG_LEVEL/){print; print \"      FIREBASE_CREDENTIALS_JSON: \${FIREBASE_CREDENTIALS_JSON:-}\"; next}}1' \
+        /srv/banzami/docker-compose.yml > /tmp/dc.yml && mv /tmp/dc.yml /srv/banzami/docker-compose.yml
+    fi
   "
   info "Recreating staging containers..."
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d --force-recreate core-api-staging public-api-staging 2>&1"
