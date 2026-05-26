@@ -8,6 +8,10 @@ import '../config.dart';
 // Mutable snapshot updated by subscribeConsumer/getToken for the debug panel.
 Map<String, String> _fcmDiagSnapshot = {};
 
+// Full FCM token — stored separately so the debug panel can pass it to the
+// backend for direct-token delivery tests (snapshot only stores a truncated copy).
+String? _fcmFullToken;
+
 // Top-level handler required by firebase_messaging for background/terminated messages.
 // Firebase shows the OS notification automatically when the message has a notification
 // payload, so we only need to ensure Firebase is initialized.
@@ -23,7 +27,10 @@ class PushNotificationService {
 
   static final _messaging   = FirebaseMessaging.instance;
   static final _localPlugin = FlutterLocalNotificationsPlugin();
-  static bool  _initialized = false;
+  static bool   _initialized = false;
+
+  /// Full FCM registration token — exposed for direct-token debug push delivery.
+  static String? get fcmToken => _fcmFullToken;
 
   // ── Callbacks set by the app layer ──────────────────────────────────────────
 
@@ -61,11 +68,15 @@ class PushNotificationService {
 
     // Foreground: show in-app BanzaToast via callback, or fall back to local OS notification.
     FirebaseMessaging.onMessage.listen((msg) {
-      debugPrint('[FCM] foreground message type=${msg.data["type"]} '
-          'title=${msg.notification?.title}');
+      debugPrint('[FCM] onMessage fired '
+          'type=${msg.data["type"]} '
+          'title=${msg.notification?.title} '
+          'hasNotification=${msg.notification != null} '
+          'hasCallback=${onForegroundMessage != null}');
       if (onForegroundMessage != null) {
         onForegroundMessage!(msg);
       } else {
+        debugPrint('[FCM] onForegroundMessage not set — falling back to local notification');
         _showLocal(msg);
       }
     });
@@ -96,11 +107,14 @@ class PushNotificationService {
       sound: true,
     );
 
-    // Token refresh — update backend subscription when FCM rotates the token.
+    // Token refresh — update stored token when FCM rotates the registration.
     _messaging.onTokenRefresh.listen((newToken) {
-      debugPrint('[FCM] token refresh — re-subscribing');
-      // Re-subscription is topic-based; no backend call needed.
-      // The new token auto-applies to existing topic subscriptions in Firebase.
+      debugPrint('[FCM] token refresh — updating stored token');
+      _fcmFullToken = newToken;
+      _fcmDiagSnapshot['fcm_token'] =
+          '${newToken.substring(0, newToken.length.clamp(0, 8))}…'
+          '${newToken.substring((newToken.length - 4).clamp(0, newToken.length))}';
+      // Re-subscription is topic-based; new token auto-applies to existing subscriptions.
     });
 
     _initialized = true;
@@ -138,6 +152,7 @@ class PushNotificationService {
     _fcmDiagSnapshot['apns_token'] = 'present';
     final token = await _messaging.getToken();
     if (token != null) {
+      _fcmFullToken = token;
       _fcmDiagSnapshot['fcm_token'] =
           '${token.substring(0, token.length.clamp(0, 8))}…${token.substring((token.length - 4).clamp(0, token.length))}';
     }
