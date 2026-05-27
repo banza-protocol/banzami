@@ -1,8 +1,14 @@
-# Banzami
+# Banza — Private Commercial Product
 
-> Angola's programmable instant payments infrastructure — QR-native, wallet-native, developer-first.
+> Angola's instant payment network — QR-native, wallet-native, built on Banzami infrastructure.
 
-Banzami is building **Angola's programmable instant payments infrastructure**: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. Every payment is a wallet-to-wallet ledger transfer. Every merchant surface is a QR code. Any Angolan app integrates Banza SDK and accepts instant Kwanza payments natively.
+**This is the private commercial repository for Banza**, the payment product built by Banzami. It contains the product applications, backend services, financial core, infrastructure, and operational tooling.
+
+The open-source ecosystem (SDKs, contracts, protocol specs, integrations) lives at [github.com/banzami/banzami](https://github.com/banzami/banzami).
+
+---
+
+Banza is **Angola's instant payment network**: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. Every payment is a wallet-to-wallet ledger transfer. Every merchant surface is a QR code. Any Angolan app integrates the Banza SDK and accepts instant Kwanza payments natively.
 
 The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
 
@@ -20,7 +26,7 @@ The platform provides:
 * **local rail integration** — EMIS, Multicaixa Express,
 * **payout orchestration**, **reconciliation**, **compliance enforcement**.
 
-Banzami is an API-first infrastructure layer. External integrations use official Banzami SDKs. See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for the network identity constraint and [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for SDK policy.
+Banza is an API-first infrastructure layer. External integrations use official Banza SDKs. See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for the network identity constraint and [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for SDK policy.
 
 ---
 
