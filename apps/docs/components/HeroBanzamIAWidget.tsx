@@ -52,8 +52,23 @@ export function HeroBanzamIAWidget() {
           </span>
         </div>
 
-        {/* Input + submit */}
+        {/* Card body */}
         <div className="px-5 pb-4 pt-4">
+          {/* Suggestion chips — single scrollable row above input */}
+          <div className="mb-3 flex gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            {QUICK_PROMPTS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                onClick={() => submit(p)}
+                className="shrink-0 whitespace-nowrap rounded-full border border-bz-border bg-white px-3 py-1.5 text-xs font-medium text-bz-muted transition-colors hover:border-bz-primary/40 hover:bg-bz-primary-light hover:text-bz-primary"
+              >
+                {p}
+              </button>
+            ))}
+          </div>
+
+          {/* Input + submit */}
           <div className="flex gap-2">
             <input
               type="text"
@@ -72,20 +87,6 @@ export function HeroBanzamIAWidget() {
             >
               Perguntar →
             </button>
-          </div>
-
-          {/* Suggestion chips */}
-          <div className="mt-3 flex flex-wrap gap-2">
-            {QUICK_PROMPTS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                onClick={() => submit(p)}
-                className="shrink-0 rounded-full border border-bz-border bg-white px-3 py-1.5 text-xs font-medium text-bz-muted whitespace-nowrap transition-colors hover:border-bz-primary/40 hover:bg-bz-primary-light hover:text-bz-primary"
-              >
-                {p}
-              </button>
-            ))}
           </div>
         </div>
       </div>
