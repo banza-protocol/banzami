@@ -4,7 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeRaw from 'rehype-raw'
 import type { ReactElement } from 'react'
-import { ArchitectureDiagram } from './ArchitectureDiagram'
+import { ASCIIDiagramBlock } from './ASCIIDiagramBlock'
 import { Callout } from './Callout'
 
 interface Props {
@@ -63,7 +63,7 @@ export function MarkdownSection({ content, className = '' }: Props) {
 
             // Un-classified code blocks that look like ASCII diagrams → visual component
             if (!lang && text && isAsciiDiagram(text)) {
-              return <ArchitectureDiagram>{text}</ArchitectureDiagram>
+              return <ASCIIDiagramBlock>{text}</ASCIIDiagramBlock>
             }
 
             // Everything else → standard pre (prose styles apply)

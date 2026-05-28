@@ -11,6 +11,7 @@ import { SDKArchitectureVisual } from '@/components/SDKArchitectureVisual'
 import { SecurityPipelineVisual } from '@/components/SecurityPipelineVisual'
 import { QRCommerceVisual } from '@/components/QRCommerceVisual'
 import { MobilePaymentMockup } from '@/components/MobilePaymentMockup'
+import { ArchitectureDiagram } from '@/components/ArchitectureDiagram'
 
 interface Props {
   params: Promise<{ section: string }>
@@ -47,6 +48,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // Domain-aware visual components inserted based on section number
 function SectionVisual({ number }: { number: number }) {
   switch (number) {
+    case 3:  return (
+      <ArchitectureDiagram
+        src="/images/architecture/banzami-ecosystem.svg"
+        title="Ecossistema Banzami"
+        description="Visão geral da infraestrutura financeira programável"
+        alt="Diagrama do ecossistema Banzami — protocolo, operadores, liquidação e rastreabilidade"
+      />
+    )
     case 6:  return <PaymentFlowDiagram />         // How Banzami Works
     case 9:  return <QRCommerceVisual />            // QR Payment Ecosystem
     case 10: return <WalletToWalletVisual />        // Wallet-Native Philosophy
