@@ -1,12 +1,22 @@
 import Link from 'next/link'
+import { HeroBanzamIAWidget } from './HeroBanzamIAWidget'
 
 interface Props {
   tagline: string
 }
 
+const CAPABILITY_TAGS = [
+  'Operadores certificados',
+  'Federação',
+  'Liquidação',
+  'Rastreabilidade',
+  'Conformidade',
+  'BanzamIA',
+]
+
 export function HeroSection({ tagline }: Props) {
   return (
-    <section className="relative overflow-hidden pb-16 pt-20 md:pb-24 md:pt-28">
+    <section className="relative overflow-hidden pb-12 pt-20 md:pb-20 md:pt-28">
       {/* Subtle background gradient */}
       <div
         aria-hidden
@@ -18,7 +28,8 @@ export function HeroSection({ tagline }: Props) {
       />
 
       <div className="mx-auto max-w-4xl text-center">
-        {/* Badge */}
+
+        {/* 1 — Badge */}
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-bz-primary/20 bg-bz-primary-light px-4 py-2">
           <span className="h-2 w-2 animate-pulse-slow rounded-full bg-bz-primary" />
           <span className="text-xs font-semibold tracking-wide text-bz-primary">
@@ -26,11 +37,10 @@ export function HeroSection({ tagline }: Props) {
           </span>
         </div>
 
-        {/* Main headline */}
-        <h1 className="mb-6 text-4xl font-bold tracking-tight text-bz-text text-balance sm:text-5xl lg:text-6xl xl:text-7xl">
+        {/* 2 — Main headline */}
+        <h1 className="mb-5 text-balance text-4xl font-bold tracking-tight text-bz-text sm:text-5xl lg:text-6xl xl:text-7xl">
           Infraestrutura financeira{' '}
           <span
-            className="relative"
             style={{
               backgroundImage: 'linear-gradient(135deg, #990011 0%, #CC001A 50%, #C89B3C 100%)',
               WebkitBackgroundClip: 'text',
@@ -42,47 +52,35 @@ export function HeroSection({ tagline }: Props) {
           </span>
         </h1>
 
-        {/* Tagline from BANZAMI_REFERENCE.md */}
-        <p className="mx-auto mb-5 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
-          {tagline}
+        {/* 3 — Subheadline */}
+        <p className="mx-auto mb-7 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
+          Banzami é um protocolo aberto para operadores, pagamentos, liquidação, certificação e rastreabilidade financeira.
         </p>
 
-        {/* Protocol pillars */}
-        <div className="mb-8 mx-auto flex flex-wrap justify-center gap-2 max-w-2xl">
-          {[
-            'Operadores certificados',
-            'Protocolo aberto',
-            'Rastreabilidade financeira',
-            'IA para integração',
-            'Pagamentos QR instantâneos',
-          ].map((pill) => (
-            <span key={pill} className="rounded-full border border-bz-border bg-white px-3 py-1 text-xs font-medium text-bz-muted">
-              {pill}
+        {/* 4 — Capability tags */}
+        <div className="mx-auto mb-8 flex max-w-2xl flex-wrap justify-center gap-2">
+          {CAPABILITY_TAGS.map((tag) => (
+            <span
+              key={tag}
+              className="rounded-full border border-bz-border bg-white px-3 py-1 text-xs font-medium text-bz-muted"
+            >
+              {tag}
             </span>
           ))}
         </div>
 
-        {/* SCAN → CONFIRM → PAID strip */}
-        <div className="mb-10 mx-auto flex w-fit flex-col items-center rounded-2xl border border-bz-border bg-white px-8 py-4 shadow-card sm:flex-row sm:gap-0 sm:px-6 sm:py-3">
-          {['Escanear', 'Confirmar', 'Pago instantaneamente'].map((step, i) => (
-            <div key={i} className="flex flex-col items-center sm:flex-row sm:items-center">
-              <span className="py-1.5 font-semibold text-bz-text sm:py-0">{step}</span>
-              {i < 2 && (
-                <span className="inline-block rotate-90 font-light text-bz-primary sm:rotate-0 sm:px-3">→</span>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* 5 — BanzamIA entry (centerpiece) */}
+        <HeroBanzamIAWidget />
 
-        {/* CTA buttons */}
+        {/* 6 — CTA buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3">
-          <Link href="/reference" className="btn-primary text-base px-6 py-3">
+          <Link href="/reference" className="btn-primary px-6 py-3 text-base">
             Ler o manifesto
           </Link>
-          <Link href="/arquitectura-tecnica" className="btn-ghost text-base px-6 py-3">
+          <Link href="/arquitectura-tecnica" className="btn-ghost px-6 py-3 text-base">
             Ver arquitectura
           </Link>
-          <Link href="/visao-geral-do-ecossistema" className="btn-ghost text-base px-6 py-3">
+          <Link href="/visao-geral-do-ecossistema" className="btn-ghost px-6 py-3 text-base">
             Explorar ecossistema
           </Link>
         </div>
