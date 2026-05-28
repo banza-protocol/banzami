@@ -10,6 +10,25 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // BanzamIA dark institutional theme
+        bia: {
+          bg:           '#0C0D0F',
+          surface:      '#141518',
+          'surface-2':  '#1C1D22',
+          border:       '#2A2B31',
+          'border-2':   '#3A3B43',
+          text:         '#E8EAF0',
+          muted:        '#7B7D87',
+          'muted-2':    '#555760',
+          primary:      '#990011',
+          'primary-glow':'rgb(153 0 17 / 0.08)',
+          gold:         '#C89B3C',
+          'gold-dim':   '#8A6A28',
+          green:        '#22C55E',
+          'green-dim':  '#166534',
+          amber:        '#F59E0B',
+          red:          '#EF4444',
+        },
         // Official Banzami brand system
         bz: {
           primary:       '#990011',  // burgundy — identity, CTAs, active states
@@ -41,6 +60,7 @@ const config: Config = {
         '4xl': '2rem',
       },
       boxShadow: {
+        'bia-glow': '0 0 12px 0 rgb(153 0 17 / 0.35)',
         'card':   '0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
         'card-md':'0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)',
         'card-lg':'0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)',

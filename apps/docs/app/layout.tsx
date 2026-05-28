@@ -77,19 +77,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">
               {[
-                { href: '/reference',                          label: 'Referência' },
-                { href: '/banza-para-programadores',           label: 'Programadores' },
-                { href: '/banza-para-comerciantes',            label: 'Comerciantes' },
-                { href: '/arquitectura-tecnica',               label: 'Arquitectura' },
-                { href: '/seguranca-e-integridade-financeira', label: 'Segurança' },
-                { href: '/operators',                          label: 'Operadores' },
-                { href: '/validacao',                          label: 'Validação' },
-              ].map(({ href, label }) => (
+                { href: '/reference',                          label: 'Referência',    ai: false },
+                { href: '/banza-para-programadores',           label: 'Programadores', ai: false },
+                { href: '/banza-para-comerciantes',            label: 'Comerciantes',  ai: false },
+                { href: '/arquitectura-tecnica',               label: 'Arquitectura',  ai: false },
+                { href: '/seguranca-e-integridade-financeira', label: 'Segurança',     ai: false },
+                { href: '/operators',                          label: 'Operadores',    ai: false },
+                { href: '/validacao',                          label: 'Validação',     ai: false },
+                { href: '/banzamia',                           label: 'BanzamIA',      ai: true  },
+              ].map(({ href, label, ai }) => (
                 <Link
                   key={href}
                   href={href}
-                  className="rounded-lg px-3 py-1.5 text-sm text-bz-muted transition-colors hover:bg-bz-surface hover:text-bz-text"
+                  className={ai
+                    ? 'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-bz-gold transition-colors hover:bg-bz-gold-light'
+                    : 'rounded-lg px-3 py-1.5 text-sm text-bz-muted transition-colors hover:bg-bz-surface hover:text-bz-text'
+                  }
                 >
+                  {ai && (
+                    <svg className="h-3 w-3 shrink-0" viewBox="0 0 12 12" fill="none">
+                      <path d="M6 1l1.2 3.8H11l-3 2.2 1.1 3.6L6 8.3 2.9 10.6 4 7 1 4.8h3.8z" fill="currentColor"/>
+                    </svg>
+                  )}
                   {label}
                 </Link>
               ))}
@@ -145,6 +154,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
                 <Link href="/operators" className="hover:text-bz-primary">Operadores</Link>
                 <Link href="/validacao" className="hover:text-bz-primary">Validação</Link>
+                <Link href="/banzamia" className="hover:text-bz-gold text-bz-gold/70">BanzamIA</Link>
               </div>
             </div>
 
