@@ -28,7 +28,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend banzamia-api staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -195,7 +195,13 @@ deploy_docs_frontend() {
   ok "Reference doc and validation matrix synced"
 
   info "Building Docker image on server (context = repo root)..."
-  ssh "$REMOTE" "docker build $NO_CACHE \
+  # Pass BanzamIA API URL if set — enables Live API mode on banzami.org/banzamia
+  local BANZAMIA_ARG=""
+  if [ -n "${NEXT_PUBLIC_BANZAMIA_API_URL:-}" ]; then
+    BANZAMIA_ARG="--build-arg NEXT_PUBLIC_BANZAMIA_API_URL=${NEXT_PUBLIC_BANZAMIA_API_URL}"
+    info "BanzamIA Live API mode: ${NEXT_PUBLIC_BANZAMIA_API_URL}"
+  fi
+  ssh "$REMOTE" "docker build $NO_CACHE $BANZAMIA_ARG \
     -f /srv/banzami/src/apps/docs/Dockerfile \
     -t banzami/docs-frontend:latest \
     /srv/banzami/src/ 2>&1" \
@@ -260,6 +266,49 @@ _wait_healthy() {
   warn "$container health check timed out (may still be starting)"
 }
 
+deploy_banzamia_api() {
+  step "banzamia-api" "BanzamIA protocol intelligence API (Hono/Node)"
+  local BANZAMIA_REPO="${BANZAMIA_REPO:-$HOME/BanzamIA}"
+
+  if [ ! -d "$BANZAMIA_REPO" ]; then
+    die "BanzamIA repo not found at $BANZAMIA_REPO. Set BANZAMIA_REPO env var."
+  fi
+
+  info "Syncing BanzamIA source to server..."
+  ssh "$REMOTE" "mkdir -p /srv/banzamia/src"
+  rsync -az --delete \
+    --exclude='.git' \
+    --exclude='node_modules/' \
+    --exclude='apps/api/dist/' \
+    --exclude='apps/web/' \
+    --exclude='apps/cli/' \
+    "$BANZAMIA_REPO/" \
+    "$REMOTE:/srv/banzamia/src/"
+  ok "Sync complete"
+
+  info "Building Docker image on server..."
+  ssh "$REMOTE" "cd /srv/banzamia/src && docker build $NO_CACHE \
+    -f apps/api/Dockerfile \
+    -t banzami/banzamia-api:latest \
+    . 2>&1" \
+    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
+  ok "Image built"
+
+  info "Recreating container..."
+  ssh "$REMOTE" "
+    mkdir -p /srv/banzamia
+    docker rm -f banzamia-api-1 2>/dev/null || true
+    docker run -d \
+      --name banzamia-api-1 \
+      --restart unless-stopped \
+      -p 4001:4001 \
+      -e BANZAMIA_MODE=live-api-no-model \
+      -e BANZAMIA_ALLOWED_ORIGINS=https://banzami.org \
+      banzami/banzamia-api:latest
+  "
+  ok "Container started"
+}
+
 deploy_staging() {
   step "staging" "Staging sandbox (core-api-staging + public-api-staging)"
   # Ensure env vars added to services since initial server setup are present.
@@ -296,6 +345,7 @@ for svc in "${SERVICES[@]}"; do
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
     docs-frontend)      deploy_docs_frontend ;;
+    banzamia-api)       deploy_banzamia_api ;;
     staging)            deploy_staging ;;
   esac
 done

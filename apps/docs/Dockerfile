@@ -23,6 +23,12 @@ COPY docs/BANZAMI_REFERENCE.md /docs/BANZAMI_REFERENCE.md
 COPY docs/validation/ /docs/validation/
 
 ENV NEXT_TELEMETRY_DISABLED=1
+
+# BanzamIA Live API URL — set at build time to enable Live API mode on banzami.org/banzamia
+# Leave unset to keep Demo Mode (default).
+ARG NEXT_PUBLIC_BANZAMIA_API_URL
+ENV NEXT_PUBLIC_BANZAMIA_API_URL=${NEXT_PUBLIC_BANZAMIA_API_URL}
+
 RUN npm run build
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
