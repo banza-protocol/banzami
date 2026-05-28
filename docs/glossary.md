@@ -9,6 +9,18 @@
 
 ---
 
+## amount_minor
+
+The generic monetary field name for a payment value expressed in the smallest unit of a currency. An integer. Never a float. Example: `"amount_minor": 1050` represents 10,50 AOA. Part of the `*_minor` convention defined in BANZAMI_REFERENCE.md §5.
+
+---
+
+## available_minor
+
+The portion of a wallet balance that is immediately available for payments or withdrawals. An integer (i64). The other component is `reserved_minor`. Invariant: `balance_minor = available_minor + reserved_minor` (INV-WALLET-001). Part of the `*_minor` convention.
+
+---
+
 ## @banza
 
 A human-readable payment address uniquely identifying a consumer or merchant on the Banza network. Format: `@<handle>`. Examples: `@joao.luanda`, `@cantina.central`. Governed by INV-IDENT-001 (global uniqueness). No IBAN, no account number, no card number required. Defined in ADR-013.
@@ -29,7 +41,7 @@ An immutable record of an architecture-level decision: why it was made, what alt
 
 ## AOA / Kwanza
 
-Angola Obrigação Angolana — the official currency of Angola. All financial amounts in Banzami are denominated in AOA and stored as integer minor units (i64). Symbol: Kz. ISO 4217 code: AOA. Minor unit: 1 AOA = 100 minor units.
+Angola Obrigação Angolana — the official and primary currency of Banzami. ISO 4217 code: `AOA`. Symbol: Kz. Precision: **1 AOA = 100 minor units** (2 decimal places). Example: 10,50 Kz → `amount_minor = 1050`. All financial amounts in Banzami are denominated in AOA and stored as i64 integers. Any change to AOA precision policy requires an approved RFC. Defined in ADR-014, ADR-002. See BANZAMI_REFERENCE.md §5 (Currency Registry).
 
 ---
 
@@ -108,6 +120,12 @@ The machine-executable specification that defines what "protocol compliant" mean
 
 ---
 
+## Currency Registry
+
+The formal Banzami register of supported currencies with authoritative precision definitions. Current entries: AOA (100 minor units), USD (100 minor units), EUR (100 minor units). Adding a new currency requires an approved RFC specifying ISO 4217 code, minor unit count, rounding policy, and available settlement rails. Defined in BANZAMI_REFERENCE.md §5. The Currency Registry is the single source of truth for monetary precision — SDK implementations must align with it.
+
+---
+
 ## Credit (ledger)
 
 A ledger entry that increases a wallet balance. In the QR payment flow: merchant wallet receives a credit of the net amount; fee wallet receives a credit of the fee amount. Always paired with a debit of equal total value (INV-LEDGER-001).
@@ -160,9 +178,15 @@ A non-negotiable assertion about financial correctness that must never be violat
 
 ---
 
+## fee_minor
+
+The portion of a gross payment retained as operator fees. An integer. Formula: `gross_minor = net_minor + fee_minor` (INV-STL-001). Credited to a dedicated fee wallet as a separate ledger credit within the same atomic posting. Part of the `*_minor` convention. See also: `gross_minor`, `net_minor`.
+
+---
+
 ## Gross Amount
 
-The total amount paid by the consumer. Equals net + fee. `gross_minor = net_minor + fee_minor` (INV-STL-001). Stored as i64 minor units.
+The total amount paid by the consumer. Equals net + fee. Stored in the field `gross_minor`. Invariant: `gross_minor = net_minor + fee_minor` (INV-STL-001). Always an i64 integer — never a float.
 
 ---
 
@@ -196,15 +220,27 @@ See [Operator Manifest](#operator-manifest).
 
 ---
 
+## gross_minor
+
+The total amount paid by the consumer before any deductions. An integer. Invariant: `gross_minor = net_minor + fee_minor` (INV-STL-001). Part of the `*_minor` convention. See also: `fee_minor`, `net_minor`.
+
+---
+
 ## Minor Units
 
-The integer representation of monetary amounts. 1 AOA = 100 minor units. All amounts in Banzami are stored and computed as i64 minor units. Floating-point arithmetic is forbidden (INV-LEDGER-003).
+The integer representation of a monetary amount expressed in the smallest supported denomination of a currency. All amounts in Banzami are stored, computed, and transmitted as i64 minor units — floating-point arithmetic is forbidden (INV-LEDGER-003, MON-001). For AOA: 1 AOA = 100 minor units. For USD and EUR: 1 unit = 100 minor units. The `*_minor` suffix on field names signals that the value is in minor units. See BANZAMI_REFERENCE.md §5.
+
+---
+
+## net_minor
+
+The amount delivered to the merchant (receiver) after fee deduction. An integer. Invariant: `gross_minor = net_minor + fee_minor` (INV-STL-001). Credited to the merchant wallet in the same atomic posting as `fee_minor`. Part of the `*_minor` convention. See also: `gross_minor`, `fee_minor`.
 
 ---
 
 ## Net Amount
 
-The amount credited to the merchant wallet after fee deduction. `net = gross - fee`. Stored as i64 minor units.
+The amount credited to the merchant wallet after fee deduction. Stored in the field `net_minor`. `net_minor = gross_minor - fee_minor`. Always an i64 integer — never a float.
 
 ---
 
@@ -244,6 +280,12 @@ Consumer-to-consumer wallet transfer, addressed by @banza handle. Capability: `p
 
 ---
 
+## `*_minor` Convention
+
+The naming convention for all monetary fields in the Banzami protocol. Any field whose name ends in `_minor` holds an integer value in the smallest supported denomination of a currency. Standard fields: `amount_minor`, `gross_minor`, `fee_minor`, `net_minor`, `available_minor`, `reserved_minor`, `balance_minor`, `settlement_minor`. Using non-`*_minor` field names for monetary values (e.g., `"amount": 10.50`) is a protocol violation. Defined in BANZAMI_REFERENCE.md §5.
+
+---
+
 ## QR Code
 
 The primary payment surface for merchants. A Banza QR code encodes either a static merchant identity (static QR) or a specific payment amount (dynamic QR). Scanned by the Banza consumer app to initiate payment.
@@ -253,6 +295,12 @@ The primary payment surface for merchants. A Banza QR code encodes either a stat
 ## Rate Limiting
 
 Request frequency controls applied per API key. All Banzami API endpoints are rate-limited. Defined in ADR-004.
+
+---
+
+## reserved_minor
+
+The portion of a wallet balance that is temporarily locked — for example, during a pending transaction or in-flight payout. Cannot be used until released or confirmed. An integer. Invariant: `balance_minor = available_minor + reserved_minor` (INV-WALLET-001). Part of the `*_minor` convention.
 
 ---
 

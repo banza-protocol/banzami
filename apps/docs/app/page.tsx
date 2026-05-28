@@ -42,7 +42,7 @@ const useCases = [
 export default function HomePage() {
   const reference = getReference()
 
-  const whyNowSection = getSectionByNumber(14)
+  const whyNowSection = getSectionByNumber(15)
 
   return (
     <div className="overflow-x-hidden">

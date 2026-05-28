@@ -20,6 +20,35 @@ Banzami Certification is the formal verification that an operator implements the
 
 ---
 
+## Universal Certification Rules
+
+The following rules apply at **all certification levels** (0–4). Violation of any universal rule is an immediate certification blocker regardless of level.
+
+### MON-001 — Monetary Integer Representation
+
+| Field | Value |
+|-------|-------|
+| ID | `MON-001` |
+| Name | Monetary Integer Representation |
+| Applies to | All levels (0–4) |
+| Severity | CRITICAL |
+
+**Definition:** All monetary values MUST be represented as integer minor units. Floating-point monetary representation is prohibited across the entire protocol surface.
+
+| Violation | Result |
+|-----------|--------|
+| Float values in API request/response | Certification FAIL |
+| Float values in traces or structured logs | Certification FAIL |
+| Float values in operator manifests | Certification FAIL |
+| Float values in settlement messages | Certification FAIL |
+| Float values in wallet balances | Certification FAIL |
+| `gross_minor ≠ net_minor + fee_minor` | Certification FAIL |
+| `balance_minor ≠ available_minor + reserved_minor` | Certification FAIL |
+
+See `BANZAMI_REFERENCE.md §5` for the full monetary representation specification and the `*_minor` field naming convention.
+
+---
+
 ## Certification Levels
 
 ### Level 0 — Sandbox Certified
@@ -28,6 +57,7 @@ Banzami Certification is the formal verification that an operator implements the
 
 **Requirements:**
 - Valid Operator Manifest (any certification level declared as 0)
+- MON-001 — Monetary Integer Representation (universal rule)
 - Sandbox environment operational
 - Basic `POST /v1/sandbox/fund` and wallet query tests pass
 - No live settlement rails required

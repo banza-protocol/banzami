@@ -19,18 +19,19 @@
 2. [Princípios Fundamentais](#2-princípios-fundamentais)
 3. [Visão Geral do Ecossistema](#3-visão-geral-do-ecossistema)
 4. [Arquitectura Técnica](#4-arquitectura-técnica)
-5. [Governança](#5-governança)
-6. [Modelo de Certificação](#6-modelo-de-certificação)
-7. [Federação](#7-federação)
-8. [BanzamIA](#8-banzamia)
-9. [Para Programadores](#9-para-programadores)
-10. [Para Comerciantes](#10-para-comerciantes)
-11. [Para Consumidores](#11-para-consumidores)
-12. [Segurança e Integridade Financeira](#12-segurança-e-integridade-financeira)
-13. [Sandbox e Ambiente de Testes](#13-sandbox-e-ambiente-de-testes)
-14. [Por que Angola. Por que Agora.](#14-por-que-angola-por-que-agora)
-15. [Roadmap](#15-roadmap)
-16. [Declaração de Visão](#16-declaração-de-visão)
+5. [Representação Monetária](#5-representação-monetária)
+6. [Governança](#6-governança)
+7. [Modelo de Certificação](#7-modelo-de-certificação)
+8. [Federação](#8-federação)
+9. [BanzamIA](#9-banzamia)
+10. [Banza para Programadores](#10-banza-para-programadores)
+11. [Banza para Comerciantes](#11-banza-para-comerciantes)
+12. [Para Consumidores](#12-para-consumidores)
+13. [Segurança e Integridade Financeira](#13-segurança-e-integridade-financeira)
+14. [Sandbox e Ambiente de Testes](#14-sandbox-e-ambiente-de-testes)
+15. [Por que Angola. Por que Agora.](#15-por-que-angola-por-que-agora)
+16. [Roadmap](#16-roadmap)
+17. [Declaração de Visão](#17-declaração-de-visão)
 
 ---
 
@@ -305,7 +306,273 @@ Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer da
 
 ---
 
-## 5. Governança
+## 5. Representação Monetária
+
+> **Esta secção é normativa.** Todos os operadores, SDKs e implementações do protocolo Banzami DEVEM conformar com estas regras.
+
+### Regra de Inteiros
+
+**Todos os valores monetários no protocolo Banzami DEVEM ser representados como inteiros.**
+
+Valores monetários em vírgula flutuante são proibidos em toda a superfície do protocolo, incluindo:
+
+- APIs (request e response bodies)
+- Traces e logs estruturados
+- Manifestos de operador
+- Saldos de carteiras
+- Entradas de ledger
+- Batches de liquidação
+- Contratos de SDK
+- Mensagens de federação
+- Implementações internas de operadores
+
+**Exemplos proibidos:**
+
+```json
+{ "amount": 10.50 }
+{ "fee": 20.75 }
+```
+
+**Exemplos válidos:**
+
+```json
+{ "amount_minor": 1050 }
+{ "fee_minor": 2075 }
+```
+
+Esta regra está imposta ao nível de compilação pelo sistema de tipos Rust (`MoneyAmount`, não `f64`) e ao nível de esquema por constraints da base de dados (invariante `INV-LEDGER-003`).
+
+### Convenção `*_minor`
+
+O protocolo Banzami adopta a convenção de nomenclatura `*_minor` para todos os campos monetários. Campos que terminam em `_minor` representam valores monetários expressos na menor unidade suportada de uma moeda.
+
+**Campos monetários oficiais do protocolo:**
+
+| Campo | Significado |
+|-------|-------------|
+| `amount_minor` | Valor genérico de pagamento |
+| `gross_minor` | Montante bruto pago pelo consumidor |
+| `fee_minor` | Taxa retida pelo operador |
+| `net_minor` | Montante líquido entregue ao receptor |
+| `available_minor` | Saldo disponível imediatamente |
+| `reserved_minor` | Saldo temporariamente bloqueado |
+| `balance_minor` | Saldo total da carteira |
+| `settlement_minor` | Montante de liquidação num ciclo |
+
+### Porquê Inteiros
+
+A infraestrutura financeira DEVE evitar erros de arredondamento em vírgula flutuante. A representação em inteiros garante:
+
+- **Cálculos determinísticos** — o mesmo cálculo produz sempre o mesmo resultado, independentemente da plataforma ou linguagem de implementação
+- **Reconciliação exacta** — cada montante que entra deve sair; sem diferenças de sub-cêntimo acumuladas entre operações
+- **Liquidação exacta** — batches de liquidação fecham com precisão absoluta, sem arredondamentos residuais
+- **Auditabilidade exacta** — as entradas de ledger somam exactamente; auditores podem verificar qualquer posting
+- **Consistência do protocolo** — operadores em diferentes linguagens (Rust, Go, TypeScript, Dart, PHP) produzem resultados idênticos
+- **Portabilidade de implementação** — qualquer linguagem pode implementar aritmética de inteiros correctamente; vírgula flutuante tem comportamentos subtilmente diferentes entre plataformas
+
+> `0.1 + 0.2` em vírgula flutuante IEEE 754 não é `0.3`. Em aritmética de inteiros, `10 + 20 = 30`. Sempre.
+
+### Semântica de Montantes de Liquidação
+
+Todo o fluxo de pagamento Banza produz três montantes monetários com semântica exacta:
+
+**`gross_minor`** — Montante pago pelo consumidor antes de quaisquer deduções. É o valor total que sai da carteira do consumidor.
+
+**`fee_minor`** — Montante retido como taxa pelo operador. Creditado na carteira de taxas como entrada de ledger separada dentro do mesmo posting atómico.
+
+**`net_minor`** — Montante entregue ao receptor (comerciante). Creditado na carteira do comerciante.
+
+**Invariante normativo (INV-STL-001):**
+
+```
+gross_minor = net_minor + fee_minor
+```
+
+**Exemplo:**
+
+```json
+{
+  "gross_minor":  100000,
+  "fee_minor":      2000,
+  "net_minor":     98000
+}
+```
+
+| Campo | Minor units | AOA (1 AOA = 100 minor units) |
+|-------|------------|-------------------------------|
+| `gross_minor` | 100 000 | 1 000,00 Kz |
+| `fee_minor` | 2 000 | 20,00 Kz |
+| `net_minor` | 98 000 | 980,00 Kz |
+
+Verificação: 100 000 = 98 000 + 2 000 ✓
+
+A violação desta invariante é uma falha de certificação imediata.
+
+### Semântica de Saldo de Carteira
+
+Os saldos de carteira seguem semântica de dois componentes:
+
+**`available_minor`** — Saldo imediatamente disponível para pagamentos ou levantamentos. Reflecte fundos confirmados e não bloqueados.
+
+**`reserved_minor`** — Saldo temporariamente bloqueado — por exemplo, durante uma transacção pendente ou processo de payout em curso. Não pode ser utilizado até ser libertado ou confirmado.
+
+**`balance_minor`** — Saldo total da carteira.
+
+**Invariante normativo (INV-WALLET-001):**
+
+```
+balance_minor = available_minor + reserved_minor
+```
+
+Os saldos de carteiras são sempre derivados de entradas de ledger — nunca directamente mutados. Um saldo de carteira nunca pode ser negativo (INV-STL-002).
+
+### Registo de Moedas
+
+O Banzami mantém um registo formal de moedas suportadas com precisão oficial para cada uma. A adição de uma nova moeda requer um RFC aprovado.
+
+#### AOA — Kwanza Angolano
+
+| Campo | Valor |
+|-------|-------|
+| Código ISO 4217 | `AOA` |
+| Nome | Kwanza Angolano |
+| Símbolo | Kz |
+| Minor units | **100** (1 AOA = 100 minor units) |
+| Status | **Moeda oficial Banzami** |
+| Referência | ADR-014, ADR-002 |
+
+**Política de precisão AOA:** O Banzami representa o AOA com 2 casas decimais. 1 Kwanza = 100 minor units, permitindo representar valores até 0,01 Kz com precisão exacta.
+
+| Valor | `amount_minor` |
+|-------|---------------|
+| 10,50 Kz | 1 050 |
+| 1 000,00 Kz | 100 000 |
+| 2 500,00 Kz | 250 000 |
+| 100 000,00 Kz | 10 000 000 |
+
+Qualquer alteração à política de precisão do AOA requer um RFC aprovado. Esta é uma decisão de protocolo — não uma decisão unilateral de implementação.
+
+#### USD — Dólar Americano
+
+| Campo | Valor |
+|-------|-------|
+| Código ISO 4217 | `USD` |
+| Minor units | 100 (1 USD = 100 cents) |
+| Status | Suportado (traces de demonstração e referência) |
+
+Exemplo: 10,50 USD → `amount_minor = 1050`
+
+#### EUR — Euro
+
+| Campo | Valor |
+|-------|-------|
+| Código ISO 4217 | `EUR` |
+| Minor units | 100 (1 EUR = 100 cents) |
+| Status | Suportado (traces de demonstração e referência) |
+
+Exemplo: 25,99 EUR → `amount_minor = 2599`
+
+#### Adição de novas moedas
+
+A adição de uma nova moeda ao registo oficial requer um RFC aprovado que especifique:
+- Código ISO 4217
+- Número de minor units e política de precisão
+- Política de arredondamento (se aplicável)
+- Carris de liquidação disponíveis
+
+### Requisitos de Conformidade Monetária para Operadores
+
+Todos os operadores certificados DEVEM:
+
+- Armazenar todos os valores monetários como inteiros (i64 ou equivalente)
+- Expor todos os valores monetários como inteiros em todas as APIs
+- Preservar a precisão em toda a cadeia de processamento (entrada → ledger → saída)
+- Evitar aritmética em vírgula flutuante em cálculos de protocolo
+- Preservar a invariante de liquidação: `gross_minor = net_minor + fee_minor`
+- Preservar a invariante de carteira: `balance_minor = available_minor + reserved_minor`
+- Utilizar a convenção de nomenclatura `*_minor` para todos os campos monetários expostos
+
+Operadores que violem qualquer um destes requisitos falham na certificação.
+
+### Requisitos para SDKs
+
+Todos os SDKs Banzami oficiais DEVEM:
+
+- Expor campos monetários exclusivamente como inteiros (`number` em TypeScript, `int64` em Dart, `int` em PHP)
+- Preservar a precisão em toda a cadeia de serialização/deserialização
+- Rejeitar payloads de protocolo com valores monetários em vírgula flutuante
+- Documentar a precisão da moeda em todos os exemplos de código
+
+Aplica-se a: TypeScript (`@banza/sdk`), Flutter/Dart (`banzami_sdk`), PHP (`banza/sdk`), Go (interno) e quaisquer SDKs futuros.
+
+```typescript
+// CORRECTO — integer minor units
+const qr = await client.qr.createDynamic({
+  amountMinor: 1050,   // 10,50 AOA
+  currency: 'AOA',
+});
+
+// PROIBIDO — viola MON-001
+const qr = await client.qr.createDynamic({
+  amount: 10.50,       // ❌ vírgula flutuante
+  currency: 'AOA',
+});
+```
+
+### Regra de Certificação MON-001
+
+**MON-001 — Representação Monetária em Inteiros**
+
+| Campo | Valor |
+|-------|-------|
+| ID | `MON-001` |
+| Nome | Representação Monetária em Inteiros |
+| Nível mínimo | 0 (aplica-se a todos os operadores em todos os níveis) |
+| Gravidade | CRITICAL |
+
+**Definição:** Operadores certificados DEVEM representar todos os valores monetários como minor units inteiras. A representação em vírgula flutuante é proibida em toda a superfície do protocolo.
+
+| Violação | Resultado |
+|----------|-----------|
+| Valores float em APIs | FAIL de certificação |
+| Valores float em traces | FAIL de certificação |
+| Valores float em manifestos | FAIL de certificação |
+| Valores float em mensagens de liquidação | FAIL de certificação |
+| Valores float em saldos de carteiras | FAIL de certificação |
+| `gross_minor ≠ net_minor + fee_minor` | FAIL de certificação |
+| `balance_minor ≠ available_minor + reserved_minor` | FAIL de certificação |
+
+A violação de MON-001 é um bloqueador de certificação imediato para qualquer nível.
+
+### Regra de Conformidade CONFORMANCE-MON-001
+
+**CONFORMANCE-MON-001 — Verificação de Representação Monetária**
+
+O conformance suite verifica os seguintes requisitos para cada operador:
+
+| Verificação | Método | Resultado esperado |
+|-------------|--------|-------------------|
+| Campos monetários usam convenção `*_minor` | Inspecção de schema de API | PASS |
+| Valores são inteiros | Inspecção de payload JSON | PASS |
+| Payloads com vírgula flutuante são rejeitados | Submissão de payload inválido | HTTP 422 |
+| Invariante de liquidação verificada | `gross_minor = net_minor + fee_minor` | PASS |
+| Invariante de carteira verificada | `balance_minor = available_minor + reserved_minor` | PASS |
+
+```json
+{
+  "test_id": "CONFORMANCE-MON-001-float-rejection",
+  "description": "Operator must reject floating-point monetary values",
+  "operation": "POST /v1/qr/dynamic",
+  "payload": { "amount": 10.50, "currency": "AOA" },
+  "expected": { "status": "4xx" }
+}
+```
+
+**Referências cruzadas:** §13 (Segurança e Integridade Financeira), §7 (Modelo de Certificação), `docs/conformance.md`, `docs/certification.md`, `docs/glossary.md`.
+
+---
+
+## 6. Governança
 
 ### RFCs (Request for Comments)
 
@@ -353,7 +620,7 @@ Alterações à matrix requerem frases de governança com verificação de finge
 
 ---
 
-## 6. Modelo de Certificação
+## 7. Modelo de Certificação
 
 ### Níveis de certificação
 
@@ -422,7 +689,7 @@ As certificações são vinculadas a versões:
 
 ---
 
-## 7. Federação
+## 8. Federação
 
 ### Estado actual
 
@@ -462,7 +729,7 @@ Requisitos para federação:
 
 ---
 
-## 8. BanzamIA
+## 9. BanzamIA
 
 ### O que é a BanzamIA
 
@@ -500,7 +767,7 @@ Cita fontes para todas as afirmações sobre o protocolo. Delega decisões de ce
 
 ---
 
-## 9. Banza para Programadores
+## 10. Banza para Programadores
 
 ### Integração em horas
 
@@ -591,7 +858,7 @@ Ver `docs/sandbox/README.md` para referência completa.
 
 ---
 
-## 10. Banza para Comerciantes
+## 11. Banza para Comerciantes
 
 ### Sem hardware. Sem burocracia.
 
@@ -634,7 +901,7 @@ O cliente clica, confirma e paga. Sem integração técnica necessária.
 
 ---
 
-## 11. Para Consumidores
+## 12. Para Consumidores
 
 ### Banza Wallet
 
@@ -665,7 +932,7 @@ Sem IBAN. Sem número de conta. Sem código de referência.
 
 ---
 
-## 12. Segurança e Integridade Financeira
+## 13. Segurança e Integridade Financeira
 
 ### Camadas de segurança
 
@@ -707,7 +974,7 @@ A separação é imposta ao nível da infraestrutura e não pode ser contornada 
 
 ---
 
-## 13. Sandbox e Ambiente de Testes
+## 14. Sandbox e Ambiente de Testes
 
 ### Dois ambientes completamente isolados
 
@@ -729,7 +996,7 @@ Ver `docs/sandbox/README.md` para referência completa.
 
 ---
 
-## 14. Por que Angola. Por que Agora.
+## 15. Por que Angola. Por que Agora.
 
 Angola não precisa de copiar o modelo de pagamentos de outro país. Angola precisa do seu — construído para o Kwanza, para o QR, para o smartphone em cada bolso.
 
@@ -752,7 +1019,7 @@ Angola tem a oportunidade de saltar a fase da infraestrutura de cartões. Pode i
 
 ---
 
-## 15. Roadmap
+## 16. Roadmap
 
 ### Curto prazo (H2 2026)
 
@@ -786,7 +1053,7 @@ Angola tem a oportunidade de saltar a fase da infraestrutura de cartões. Pode i
 
 ---
 
-## 16. Declaração de Visão
+## 17. Declaração de Visão
 
 ### O que o comércio de Angola merece
 

@@ -208,6 +208,70 @@ Navigate to **BanzamIA → Conformance**. Select your certification level. The m
 
 ---
 
+## Universal Conformance Rules
+
+The following rules are tested at **all certification levels** (0–4), independent of the level-specific suites.
+
+### CONFORMANCE-MON-001 — Monetary Integer Representation
+
+**Applies to:** All levels (0–4)  
+**Severity:** CRITICAL — failure blocks certification at any level
+
+This rule verifies that the operator implements the monetary representation specification from `BANZAMI_REFERENCE.md §5`.
+
+| Check | Method | Expected |
+|-------|--------|----------|
+| Monetary fields use `*_minor` naming convention | API schema inspection | PASS |
+| Field values are JSON integers (not floats) | Payload inspection on all monetary endpoints | PASS |
+| Float payloads are rejected with a 4xx response | Submit `{"amount": 10.50}` to any monetary endpoint | HTTP 422 |
+| Settlement invariant holds | Verify `gross_minor = net_minor + fee_minor` on each payment | PASS |
+| Wallet invariant holds | Verify `balance_minor = available_minor + reserved_minor` after each operation | PASS |
+
+**Test file example:**
+
+```json
+{
+  "suite": "universal/monetary-representation",
+  "version": "1.0.0",
+  "certification_level": 0,
+  "tests": [
+    {
+      "id": "CONFORMANCE-MON-001-field-naming",
+      "name": "Monetary fields use *_minor convention",
+      "operation": { "type": "wallet_query", "wallet": "consumer" },
+      "expected_outcomes": {
+        "response_fields_monetary": ["balance_minor", "available_minor", "reserved_minor"],
+        "no_float_fields": true
+      },
+      "invariants_verified": ["INV-LEDGER-003", "MON-001"]
+    },
+    {
+      "id": "CONFORMANCE-MON-001-float-rejection",
+      "name": "Operator rejects floating-point monetary values",
+      "operation": {
+        "type": "raw_request",
+        "method": "POST",
+        "path": "/v1/qr/dynamic",
+        "body": { "amount": 10.50, "currency": "AOA" }
+      },
+      "expected_outcomes": { "status": "4xx" },
+      "invariants_verified": ["MON-001"]
+    },
+    {
+      "id": "CONFORMANCE-MON-001-settlement-invariant",
+      "name": "Settlement invariant: gross = net + fee",
+      "operation": { "type": "qr_payment", "amount_minor": 5000, "currency": "AOA" },
+      "expected_outcomes": {
+        "gross_minor_eq_net_plus_fee": true
+      },
+      "invariants_verified": ["INV-STL-001", "MON-001"]
+    }
+  ]
+}
+```
+
+---
+
 ## Idempotency Testing
 
 Every mutating operation is tested for idempotency:
