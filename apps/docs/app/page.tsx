@@ -42,7 +42,7 @@ const useCases = [
 export default function HomePage() {
   const reference = getReference()
 
-  const whyNowSection = getSectionByNumber(3)
+  const whyNowSection = getSectionByNumber(14)
 
   return (
     <div className="overflow-x-hidden">
@@ -83,9 +83,9 @@ export default function HomePage() {
               <p className="text-xs leading-relaxed text-bz-muted">{p.desc}</p>
             </div>
           ))}
-          {/* Why Now — sourced from §3 */}
+          {/* Why Now — sourced from §14 */}
           {whyNowSection && (
-            <Link href="/por-que-agora" className="card group p-5 hover:border-bz-primary/30">
+            <Link href="/por-que-angola-por-que-agora" className="card group p-5 hover:border-bz-primary/30">
               <div className="mb-3 text-2xl">⏱️</div>
               <h3 className="mb-1 text-sm font-semibold text-bz-text group-hover:text-bz-primary transition-colors">
                 Porquê agora?

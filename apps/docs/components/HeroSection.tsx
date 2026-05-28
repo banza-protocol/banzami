@@ -22,13 +22,13 @@ export function HeroSection({ tagline }: Props) {
         <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-bz-primary/20 bg-bz-primary-light px-4 py-2">
           <span className="h-2 w-2 animate-pulse-slow rounded-full bg-bz-primary" />
           <span className="text-xs font-semibold tracking-wide text-bz-primary">
-            Rede Angolana de Pagamentos Instantâneos
+            Infraestrutura Financeira Programável para Angola
           </span>
         </div>
 
         {/* Main headline */}
         <h1 className="mb-6 text-4xl font-bold tracking-tight text-bz-text text-balance sm:text-5xl lg:text-6xl xl:text-7xl">
-          O dinheiro move-se à{' '}
+          Infraestrutura financeira{' '}
           <span
             className="relative"
             style={{
@@ -38,14 +38,29 @@ export function HeroSection({ tagline }: Props) {
               backgroundClip: 'text',
             }}
           >
-            velocidade da internet.
+            programável.
           </span>
         </h1>
 
         {/* Tagline from BANZAMI_REFERENCE.md */}
-        <p className="mx-auto mb-8 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
+        <p className="mx-auto mb-5 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
           {tagline}
         </p>
+
+        {/* Protocol pillars */}
+        <div className="mb-8 mx-auto flex flex-wrap justify-center gap-2 max-w-2xl">
+          {[
+            'Operadores certificados',
+            'Protocolo aberto',
+            'Rastreabilidade financeira',
+            'IA para integração',
+            'Pagamentos QR instantâneos',
+          ].map((pill) => (
+            <span key={pill} className="rounded-full border border-bz-border bg-white px-3 py-1 text-xs font-medium text-bz-muted">
+              {pill}
+            </span>
+          ))}
+        </div>
 
         {/* SCAN → CONFIRM → PAID strip */}
         <div className="mb-10 mx-auto flex w-fit flex-col items-center rounded-2xl border border-bz-border bg-white px-8 py-4 shadow-card sm:flex-row sm:gap-0 sm:px-6 sm:py-3">
@@ -67,7 +82,7 @@ export function HeroSection({ tagline }: Props) {
           <Link href="/arquitectura-tecnica" className="btn-ghost text-base px-6 py-3">
             Ver arquitectura
           </Link>
-          <Link href="/ecossistema-de-negocio-banzami" className="btn-ghost text-base px-6 py-3">
+          <Link href="/visao-geral-do-ecossistema" className="btn-ghost text-base px-6 py-3">
             Explorar ecossistema
           </Link>
         </div>

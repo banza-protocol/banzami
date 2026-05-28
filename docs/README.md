@@ -4,6 +4,25 @@ This directory contains all technical documentation for the Banzami platform.
 
 > Code without documentation is an incomplete system. — CLAUDE.md §2.4
 
+**Start here:** [docs/index.md](index.md) — navigation entry point for new contributors.
+
+---
+
+## Ecosystem References
+
+| Document | Description |
+|----------|-------------|
+| [index.md](index.md) | Documentation navigation entry point — start here |
+| [BANZAMI_REFERENCE.md](BANZAMI_REFERENCE.md) | Official public reference — product, protocol, ecosystem |
+| [architecture/BANZAMI_ECOSYSTEM_REFERENCE.md](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) | Architecture-first ecosystem reference (single source of truth) |
+| [glossary.md](glossary.md) | Authoritative term definitions |
+| [conformance.md](conformance.md) | Conformance suite specification |
+| [certification.md](certification.md) | Certification levels 0–4 and process |
+| [reference-operator.md](reference-operator.md) | Reference Operator (Banza) specification |
+| [banzamia/overview.md](banzamia/overview.md) | BanzamIA — what it is and what it isn't |
+| [audit/documentation-audit.md](audit/documentation-audit.md) | Documentation gap analysis |
+| [images/architecture/banzami-ecosystem.svg](images/architecture/banzami-ecosystem.svg) | Ecosystem diagram |
+
 ---
 
 ## Architecture Decision Records (ADRs)
@@ -24,6 +43,11 @@ ADRs document the major technical decisions made in this project, their rational
 | [ADR-010](adr/ADR-010-consumer-auth-pin-jwt.md) | Consumer Authentication: PIN + JWT | Accepted |
 | [ADR-011](adr/ADR-011-integration-ecosystem-strategy.md) | Integration Ecosystem Strategy: v1 | Accepted |
 | [ADR-012](adr/ADR-012-sdk-first-ecosystem.md) | SDK-First Ecosystem: Mandatory SDK Usage | Accepted |
+| [ADR-013](adr/ADR-013-wallet-native-identity.md) | Wallet-Native Identity (@handle, no IBAN) | Accepted |
+| [ADR-014](adr/ADR-014-angola-national-mission.md) | Angola National Mission — single-market first | Accepted |
+| [ADR-015](adr/ADR-015-markdown-first-content-architecture.md) | Markdown-First Content Architecture | Accepted |
+| [ADR-016](adr/ADR-016-banzami-banza-brand-architecture.md) | Banzami/Banza Brand Architecture | Accepted |
+| [ADR-017](adr/ADR-017-wallet-domain-architecture.md) | Wallet Domain Architecture | Accepted |
 
 New ADRs should be numbered sequentially and placed in `docs/adr/`. ADRs are immutable once accepted — supersede with a new ADR rather than editing.
 
