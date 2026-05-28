@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { isLiveMode, type Citation } from '@/lib/banzamia-client'
 import { BanzamIASidebar } from './BanzamIASidebar'
 import { BanzamIAChat } from './BanzamIAChat'
@@ -37,12 +38,11 @@ const MODULE_TITLES: Record<ModuleId, string> = {
   'status':           'System Status',
 }
 
-interface Props {
-  initialQuestion?: string
-  autoSubmit?: boolean
-}
+export function BanzamIAApp() {
+  const searchParams = useSearchParams()
+  const initialQuestion = searchParams.get('question') ?? undefined
+  const autoSubmit = searchParams.get('auto') === '1'
 
-export function BanzamIAApp({ initialQuestion, autoSubmit }: Props = {}) {
   const [activeModule, setActiveModule] = useState<ModuleId>('chat')
   const [citations, setCitations] = useState<Citation[]>([])
   const [model, setModel] = useState('')
