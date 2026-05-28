@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { BanzamIAApp } from '@/components/banzamia/BanzamIAApp'
+import { NoBodyScroll } from '@/components/NoBodyScroll'
 
 export const metadata: Metadata = {
   title: 'BanzamIA — AI-native protocol intelligence',
@@ -9,9 +10,11 @@ export const metadata: Metadata = {
 
 export default function BanzamIAPage() {
   return (
-    // Fixed overlay below the sticky header (h-14 = 3.5rem = 56px)
-    <div className="fixed inset-x-0 bottom-0 top-14 z-30 overflow-hidden">
-      <BanzamIAApp />
-    </div>
+    <>
+      <NoBodyScroll />
+      <div className="fixed inset-x-0 bottom-0 top-14 z-30 overflow-hidden">
+        <BanzamIAApp />
+      </div>
+    </>
   )
 }
