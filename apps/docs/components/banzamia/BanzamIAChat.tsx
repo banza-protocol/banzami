@@ -64,7 +64,7 @@ function MessageBubble({ message }: { message: Message }) {
         )}
 
         {/* Content */}
-        <div className="prose-sm rounded-2xl rounded-tl-sm border border-bia-border bg-bia-surface px-4 py-3 text-bia-text">
+        <div className="prose-sm rounded-2xl rounded-tl-sm border border-bia-border bg-white px-4 py-3 text-bia-text shadow-sm">
           {message.streaming && message.content === '' ? (
             <div className="flex gap-1 py-1">
               <span className="h-2 w-2 rounded-full bg-bia-muted animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -101,7 +101,7 @@ function MarkdownContent({ content }: { content: string }) {
         i++
       }
       elements.push(
-        <pre key={i} className="my-3 overflow-x-auto rounded-lg bg-bia-bg border border-bia-border p-3 text-[12px] text-bia-text font-mono leading-relaxed">
+        <pre key={i} className="my-3 overflow-x-auto rounded-lg bg-bia-surface-2 border border-bia-border p-3 text-[12px] text-bia-text font-mono leading-relaxed">
           {lang && <div className="mb-2 text-[10px] uppercase tracking-wider text-bia-muted">{lang}</div>}
           <code>{codeLines.join('\n')}</code>
         </pre>
@@ -170,7 +170,7 @@ function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(`[^`]+`|\*\*[^*]+\*\*)/g)
   return parts.map((part, i) => {
     if (part.startsWith('`') && part.endsWith('`')) {
-      return <code key={i} className="rounded bg-bia-surface-2 border border-bia-border px-1 py-px font-mono text-[11px] text-bia-gold">{part.slice(1, -1)}</code>
+      return <code key={i} className="rounded bg-bia-surface-2 border border-bia-border px-1 py-px font-mono text-[11px] text-bia-primary">{part.slice(1, -1)}</code>
     }
     if (part.startsWith('**') && part.endsWith('**')) {
       return <strong key={i} className="font-semibold text-bia-text">{part.slice(2, -2)}</strong>
@@ -294,7 +294,7 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
               <button
                 key={i}
                 onClick={() => sendMessage(q)}
-                className="flex w-full items-start gap-3 rounded-xl border border-bia-border bg-bia-surface px-4 py-3 text-left text-sm text-bia-muted transition-colors hover:border-bia-primary/30 hover:bg-bia-surface-2 hover:text-bia-text"
+                className="flex w-full items-start gap-3 rounded-xl border border-bia-border bg-white px-4 py-3 text-left text-sm text-bia-muted transition-all hover:border-bia-primary/30 hover:bg-bia-surface-2 hover:text-bia-text hover:shadow-sm"
               >
                 <svg className="mt-0.5 h-4 w-4 shrink-0 text-bia-primary" viewBox="0 0 16 16" fill="none">
                   <path d="M8 3v10M3 8l5 5 5-5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>

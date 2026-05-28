@@ -43,9 +43,9 @@ export function KnowledgeModule() {
   }
 
   const TYPE_COLORS: Record<string, string> = {
-    context:    'text-bia-gold border-bia-gold/30 bg-bia-gold/5',
-    conformance:'text-purple-400 border-purple-400/30 bg-purple-400/5',
-    protocol:   'text-blue-400 border-blue-400/30 bg-blue-400/5',
+    context:    'text-bia-gold border-bia-gold/40 bg-amber-50',
+    conformance:'text-violet-700 border-violet-200 bg-violet-50',
+    protocol:   'text-blue-700 border-blue-200 bg-blue-50',
   }
 
   return (

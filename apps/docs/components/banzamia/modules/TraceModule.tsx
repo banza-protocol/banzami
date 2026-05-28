@@ -24,13 +24,13 @@ const DEMO_TRACE = {
 }
 
 const EVENT_COLORS: Record<string, string> = {
-  'qr.created':         'text-blue-400 border-blue-400/30 bg-blue-400/5',
-  'transfer.initiated': 'text-bia-gold border-bia-gold/30 bg-bia-gold/5',
-  'transfer.completed': 'text-bia-green border-bia-green/30 bg-bia-green/5',
-  'ledger.debit':       'text-bia-red border-bia-red/30 bg-bia-red/5',
-  'ledger.credit':      'text-bia-green border-bia-green/30 bg-bia-green/5',
-  'qr.paid':            'text-bia-green border-bia-green/30 bg-bia-green/5',
-  'settlement.assigned':'text-purple-400 border-purple-400/30 bg-purple-400/5',
+  'qr.created':         'text-blue-700 border-blue-200 bg-blue-50',
+  'transfer.initiated': 'text-bia-gold border-bia-gold/40 bg-amber-50',
+  'transfer.completed': 'text-bia-green border-green-200 bg-green-50',
+  'ledger.debit':       'text-bia-red border-red-200 bg-red-50',
+  'ledger.credit':      'text-bia-green border-green-200 bg-green-50',
+  'qr.paid':            'text-bia-green border-green-200 bg-green-50',
+  'settlement.assigned':'text-violet-700 border-violet-200 bg-violet-50',
 }
 
 export function TraceModule() {

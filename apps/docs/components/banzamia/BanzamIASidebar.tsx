@@ -97,7 +97,7 @@ const MODULES: Array<{ id: ModuleId; label: string; icon: React.ReactNode; liveO
 
 export function BanzamIASidebar({ active, onSelect, mode }: Props) {
   return (
-    <aside className="flex h-full w-52 shrink-0 flex-col border-r border-bia-border bg-bia-surface">
+    <aside className="flex h-full w-52 shrink-0 flex-col border-r border-bia-border bg-bia-surface-2">
       {/* Logo area */}
       <div className="flex h-14 items-center gap-2.5 border-b border-bia-border px-4">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-bia-primary shadow-bia-glow">
@@ -113,8 +113,8 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
       <div className="px-3 py-2.5">
         <div className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-[10px] font-semibold uppercase tracking-wider ${
           mode === 'live'
-            ? 'bg-bia-green/10 text-bia-green'
-            : 'bg-bia-amber/10 text-bia-amber'
+            ? 'bg-green-50 text-bia-green border border-green-200'
+            : 'bg-amber-50 text-bia-amber border border-amber-200'
         }`}>
           <span className={`h-1.5 w-1.5 rounded-full ${mode === 'live' ? 'bg-bia-green animate-pulse' : 'bg-bia-amber'}`} />
           {mode === 'live' ? 'Live — API connected' : 'Demo mode'}
@@ -129,17 +129,17 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
             <button
               key={mod.id}
               onClick={() => onSelect(mod.id)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 mb-0.5 text-left text-sm transition-colors ${
+              className={`flex w-full items-center gap-2.5 rounded-lg px-3 py-2 mb-0.5 text-left text-sm transition-all ${
                 isActive
-                  ? 'bg-bia-primary-glow border border-bia-primary/20 text-bia-text'
-                  : 'text-bia-muted hover:bg-bia-surface-2 hover:text-bia-text'
+                  ? 'bg-bia-primary text-white shadow-sm'
+                  : 'text-bia-muted hover:bg-white hover:text-bia-text'
               }`}
             >
-              <svg className={`h-4 w-4 shrink-0 ${isActive ? 'text-bia-primary' : ''}`} viewBox="0 0 16 16" fill="none">
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 16 16" fill="none">
                 {mod.icon}
               </svg>
               <span className="truncate font-medium">{mod.label}</span>
-              {isActive && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-bia-primary" />}
+              {isActive && <span className="ml-auto h-1.5 w-1.5 shrink-0 rounded-full bg-white/60" />}
             </button>
           )
         })}
@@ -147,8 +147,8 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
 
       {/* Footer */}
       <div className="border-t border-bia-border p-3">
-        <div className="rounded-lg bg-bia-surface-2 px-3 py-2">
-          <p className="text-[10px] text-bia-muted-2 leading-relaxed">
+        <div className="rounded-lg bg-bz-primary/5 border border-bz-primary/10 px-3 py-2">
+          <p className="text-[10px] text-bia-muted leading-relaxed italic">
             Tools determine truth.<br />AI explains truth.
           </p>
         </div>

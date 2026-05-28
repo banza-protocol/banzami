@@ -11,12 +11,12 @@ interface Props {
 }
 
 const CITATION_COLORS: Record<Citation['type'], string> = {
-  rfc:       'text-bia-gold border-bia-gold/30 bg-bia-gold/5',
-  adr:       'text-blue-400 border-blue-400/30 bg-blue-400/5',
-  api:       'text-purple-400 border-purple-400/30 bg-purple-400/5',
+  rfc:       'text-bia-gold border-bia-gold/40 bg-amber-50',
+  adr:       'text-blue-700 border-blue-200 bg-blue-50',
+  api:       'text-violet-700 border-violet-200 bg-violet-50',
   invariant: 'text-bia-primary border-bia-primary/30 bg-bia-primary/5',
   file:      'text-bia-muted border-bia-border bg-bia-surface-2',
-  vector:    'text-bia-green border-bia-green/30 bg-bia-green/5',
+  vector:    'text-bia-green border-green-200 bg-green-50',
 }
 
 const CITATION_ICONS: Record<Citation['type'], string> = {
@@ -29,10 +29,10 @@ const CITATION_ICONS: Record<Citation['type'], string> = {
 }
 
 const MODEL_LABELS: Record<string, { label: string; color: string }> = {
-  'qwen-14b':       { label: 'Qwen 14B', color: 'text-blue-400' },
-  'qwen-coder-7b':  { label: 'Qwen Coder 7B', color: 'text-purple-400' },
-  'deepseek-r1':    { label: 'DeepSeek R1', color: 'text-bia-gold' },
-  'orchestrator':   { label: 'Orchestrator', color: 'text-bia-green' },
+  'qwen-14b':      { label: 'Qwen 14B',      color: 'text-blue-700' },
+  'qwen-coder-7b': { label: 'Qwen Coder 7B', color: 'text-violet-700' },
+  'deepseek-r1':   { label: 'DeepSeek R1',   color: 'text-bia-gold' },
+  'orchestrator':  { label: 'Orchestrator',  color: 'text-bia-green' },
 }
 
 const TASK_LABELS: Record<string, string> = {
@@ -47,7 +47,7 @@ export function BanzamIASourcesPanel({ citations, model, taskType, isStreaming, 
   const modelInfo = MODEL_LABELS[model] ?? { label: model, color: 'text-bia-muted' }
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-l border-bia-border bg-bia-surface">
+    <aside className="flex h-full w-72 shrink-0 flex-col border-l border-bia-border bg-bia-surface-2">
       {/* Header */}
       <div className="flex h-14 items-center border-b border-bia-border px-4">
         <span className="text-xs font-semibold uppercase tracking-widest text-bia-muted">Sources & Context</span>

@@ -10,24 +10,24 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // BanzamIA dark institutional theme
+        // BanzamIA light institutional theme — aligned with official Banzami homepage
         bia: {
-          bg:           '#0C0D0F',
-          surface:      '#141518',
-          'surface-2':  '#1C1D22',
-          border:       '#2A2B31',
-          'border-2':   '#3A3B43',
-          text:         '#E8EAF0',
-          muted:        '#7B7D87',
-          'muted-2':    '#555760',
-          primary:      '#990011',
-          'primary-glow':'rgb(153 0 17 / 0.08)',
-          gold:         '#C89B3C',
-          'gold-dim':   '#8A6A28',
-          green:        '#22C55E',
-          'green-dim':  '#166534',
-          amber:        '#F59E0B',
-          red:          '#EF4444',
+          bg:           '#F5F1EE',   // warm ivory — app background
+          surface:      '#FFFFFF',   // white — card/panel surfaces
+          'surface-2':  '#F8F4F1',   // off-white — sidebar, inputs, secondary surfaces
+          border:       '#E8E0DB',   // warm subtle border
+          'border-2':   '#D5CAC4',   // stronger border
+          text:         '#111111',   // near-black primary text
+          muted:        '#5F5A57',   // warm gray secondary text
+          'muted-2':    '#9B928D',   // light warm gray tertiary text
+          primary:      '#990011',   // wine red (brand identity)
+          'primary-glow':'rgb(153 0 17 / 0.06)', // very subtle tint on light
+          gold:         '#C89B3C',   // warm gold accent
+          'gold-dim':   '#FAF0DC',   // light gold surface tint
+          green:        '#15803D',   // dark green — accessible on light backgrounds
+          'green-dim':  '#DCFCE7',   // light green background tint
+          amber:        '#92400E',   // dark amber — accessible on light backgrounds
+          red:          '#991B1B',   // dark red — accessible on light backgrounds
         },
         // Official Banzami brand system
         bz: {
@@ -60,7 +60,7 @@ const config: Config = {
         '4xl': '2rem',
       },
       boxShadow: {
-        'bia-glow': '0 0 12px 0 rgb(153 0 17 / 0.35)',
+        'bia-glow': '0 2px 8px 0 rgb(153 0 17 / 0.18)',
         'card':   '0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.04)',
         'card-md':'0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.04)',
         'card-lg':'0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04)',
