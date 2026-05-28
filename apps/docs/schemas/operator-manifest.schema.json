@@ -1,0 +1,104 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://banzami.com/schemas/operator-manifest.schema.json",
+  "title": "Banzami Operator Manifest",
+  "description": "Schema for operator entries in the Banzami public operator registry.",
+  "type": "object",
+
+  "required": [
+    "id",
+    "display_name",
+    "type",
+    "environment",
+    "jurisdiction",
+    "public_endpoint",
+    "manifest_url",
+    "protocol_version",
+    "certification_level",
+    "capabilities",
+    "simulated",
+    "production_allowed"
+  ],
+
+  "properties": {
+    "id": { "type": "string", "minLength": 1, "description": "Stable, URL-safe operator identifier." },
+    "display_name": { "type": "string", "minLength": 1 },
+    "description": { "type": "string" },
+    "type": {
+      "type": "string",
+      "enum": ["reference", "commercial", "government_sandbox", "academic", "bank", "merchant_network", "experimental", "federation_test_node"]
+    },
+    "environment": { "type": "string", "enum": ["sandbox", "production", "experimental"] },
+    "jurisdiction": { "type": "string" },
+    "public_endpoint": { "type": "string", "format": "uri" },
+    "manifest_url": { "type": "string", "format": "uri" },
+    "website": { "type": ["string", "null"], "format": "uri" },
+    "security_contact": { "type": "string" },
+    "protocol_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+    "manifest_version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+    "status": { "type": "string", "enum": ["active", "experimental", "deprecated", "offline"] },
+    "certification_level": { "type": "integer", "minimum": 0, "maximum": 4 },
+    "certification_level_name": { "type": "string" },
+    "conformance_badges": {
+      "type": "array",
+      "items": { "type": "string", "enum": ["protocol-compatible", "trace-compatible", "federation-ready", "settlement-compatible"] }
+    },
+    "capabilities": {
+      "type": "object",
+      "required": ["supports_wallets", "supports_qr", "supports_settlement"],
+      "properties": {
+        "supports_wallets": { "type": "boolean" },
+        "supports_qr": { "type": "boolean" },
+        "supports_settlement": { "type": "boolean" },
+        "supports_payment_requests": { "type": "boolean" },
+        "supports_events": { "type": "boolean" },
+        "supports_traces": { "type": "boolean" },
+        "supports_webhooks": { "type": "boolean" },
+        "supports_federation": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "simulated": { "type": "boolean" },
+    "production_allowed": { "type": "boolean" },
+    "supported_currencies": { "type": "array", "items": { "type": "string" } },
+    "signing_keys": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["fingerprint", "type", "created_at", "revoked"],
+        "properties": {
+          "fingerprint": { "type": "string" },
+          "type": { "type": "string" },
+          "created_at": { "type": "string" },
+          "rotation_date": { "type": ["string", "null"] },
+          "revoked": { "type": "boolean" }
+        }
+      }
+    },
+    "audit_trail": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "event", "description"],
+        "properties": {
+          "date": { "type": "string" },
+          "event": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      }
+    }
+  },
+
+  "if": {
+    "properties": { "environment": { "const": "sandbox" } },
+    "required": ["environment"]
+  },
+  "then": {
+    "properties": {
+      "simulated": { "const": true },
+      "production_allowed": { "const": false }
+    }
+  },
+
+  "additionalProperties": true
+}

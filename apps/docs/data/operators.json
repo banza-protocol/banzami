@@ -1,0 +1,251 @@
+[
+  {
+    "id": "reference-sandbox",
+    "display_name": "Banzami Reference Operator",
+    "description": "The canonical open-source sandbox operator maintained by the Banzami project. Implements the full Banzami protocol and serves as the reference implementation for all conformance tests.",
+    "type": "reference",
+    "environment": "sandbox",
+    "jurisdiction": "Global",
+    "public_endpoint": "http://localhost:3000",
+    "manifest_url": "http://localhost:3000/.well-known/banzami/operator.json",
+    "website": "https://github.com/banzami/banzami",
+    "security_contact": "security@banzami.com",
+    "protocol_version": "1.0",
+    "manifest_version": "1.0",
+    "status": "active",
+    "certification_level": 2,
+    "certification_level_name": "Trace-compatible",
+    "conformance_badges": ["protocol-compatible", "trace-compatible"],
+    "last_conformance_run": "2026-05-28T10:00:00Z",
+    "conformance_report_hash": "sha256:a84f9e2d1c3b5f7e9d0c2a84f9e2d1c3",
+    "runner_version": "1.0.0",
+    "passed_suites": ["health", "environment", "wallets", "transfers-basic", "qr", "payment-requests", "events", "ledger", "settlement", "traces"],
+    "failed_suites": [],
+    "capabilities": {
+      "supports_wallets": true,
+      "supports_qr": true,
+      "supports_settlement": true,
+      "supports_payment_requests": true,
+      "supports_events": true,
+      "supports_traces": true,
+      "supports_webhooks": false,
+      "supports_federation": false,
+      "supports_offline_payments": false,
+      "supports_multi_currency": false,
+      "supports_acquiring": false,
+      "supports_routing": false
+    },
+    "capabilities_metadata": {
+      "supports_webhooks": "planned",
+      "supports_federation": "planned",
+      "supports_offline_payments": "planned",
+      "supports_multi_currency": "experimental",
+      "supports_acquiring": "unavailable",
+      "supports_routing": "unavailable"
+    },
+    "supported_currencies": ["AOA"],
+    "supported_qr_versions": [1],
+    "settlement_modes": ["simulated"],
+    "supported_sdk_versions": ["1.0"],
+    "trace_support": true,
+    "trace_schema_version": "1.0",
+    "federation_support": false,
+    "federation_status": "planned",
+    "manifest_status": "valid",
+    "manifest_schema_valid": true,
+    "stale_manifest": false,
+    "last_manifest_fetch": "2026-05-28T10:00:00Z",
+    "simulated": true,
+    "production_allowed": false,
+    "signing_keys": [
+      {
+        "fingerprint": "SHA256:bz1ref0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6",
+        "type": "ed25519",
+        "created_at": "2026-05-01",
+        "rotation_date": null,
+        "revoked": false
+      }
+    ],
+    "audit_trail": [
+      {
+        "date": "2026-05-28",
+        "event": "conformance_update",
+        "description": "Certified at Level 2 (Trace-compatible) after adding GET /traces endpoint"
+      },
+      {
+        "date": "2026-05-15",
+        "event": "capability_added",
+        "description": "Added trace_support: GET /traces and GET /traces/:id endpoints"
+      },
+      {
+        "date": "2026-04-10",
+        "event": "initial_registration",
+        "description": "Operator registered at Level 1 (Protocol-compatible)"
+      }
+    ]
+  },
+  {
+    "id": "banza-operator",
+    "display_name": "Banza",
+    "description": "The first commercial operator built on the Banzami protocol. Serves the Angolan market with QR-native instant payments in Kwanza, wallet management, and merchant settlement.",
+    "type": "commercial",
+    "environment": "sandbox",
+    "jurisdiction": "Angola",
+    "public_endpoint": "https://api.banza.ao",
+    "manifest_url": "https://api.banza.ao/.well-known/banzami/operator.json",
+    "website": "https://banza.ao",
+    "security_contact": "security@banza.ao",
+    "protocol_version": "1.0",
+    "manifest_version": "1.0",
+    "status": "active",
+    "certification_level": 1,
+    "certification_level_name": "Protocol-compatible",
+    "conformance_badges": ["protocol-compatible"],
+    "last_conformance_run": "2026-05-28T09:00:00Z",
+    "conformance_report_hash": "sha256:f7e2d1c3a84b9e0f5a6b7c8d9e0f1a2b3c4d5e6",
+    "runner_version": "1.0.0",
+    "passed_suites": ["health", "environment", "wallets", "transfers-basic", "qr", "payment-requests", "events", "ledger", "settlement"],
+    "failed_suites": [],
+    "capabilities": {
+      "supports_wallets": true,
+      "supports_qr": true,
+      "supports_settlement": true,
+      "supports_payment_requests": true,
+      "supports_events": true,
+      "supports_traces": false,
+      "supports_webhooks": true,
+      "supports_federation": false,
+      "supports_offline_payments": false,
+      "supports_multi_currency": false,
+      "supports_acquiring": true,
+      "supports_routing": false
+    },
+    "capabilities_metadata": {
+      "supports_traces": "experimental",
+      "supports_federation": "planned",
+      "supports_offline_payments": "planned",
+      "supports_multi_currency": "planned",
+      "supports_routing": "planned"
+    },
+    "supported_currencies": ["AOA"],
+    "supported_qr_versions": [1],
+    "settlement_modes": ["simulated", "scheduled"],
+    "supported_sdk_versions": ["1.0"],
+    "trace_support": false,
+    "trace_schema_version": null,
+    "federation_support": false,
+    "federation_status": "planned",
+    "manifest_status": "valid",
+    "manifest_schema_valid": true,
+    "stale_manifest": false,
+    "last_manifest_fetch": "2026-05-28T09:00:00Z",
+    "simulated": true,
+    "production_allowed": false,
+    "signing_keys": [
+      {
+        "fingerprint": "SHA256:bz2banza0a1b2c3d4e5f6a7b8c9d0e1f2a3b4",
+        "type": "ed25519",
+        "created_at": "2026-04-01",
+        "rotation_date": null,
+        "revoked": false
+      }
+    ],
+    "audit_trail": [
+      {
+        "date": "2026-05-28",
+        "event": "conformance_update",
+        "description": "Level 1 certification confirmed after full protocol suite pass"
+      },
+      {
+        "date": "2026-05-10",
+        "event": "capability_added",
+        "description": "Added supports_webhooks: signed webhook delivery for payment events"
+      },
+      {
+        "date": "2026-04-01",
+        "event": "initial_registration",
+        "description": "First commercial Angolan operator registered on the Banzami protocol"
+      }
+    ]
+  },
+  {
+    "id": "gov-sandbox-angola",
+    "display_name": "Operador Sandbox Governamental",
+    "description": "Experimental government sandbox operator for testing Banzami protocol federation and interoperability. Managed by the Angolan fintech research infrastructure programme.",
+    "type": "government_sandbox",
+    "environment": "experimental",
+    "jurisdiction": "Angola",
+    "public_endpoint": "https://sandbox.banzami-gov.ao",
+    "manifest_url": "https://sandbox.banzami-gov.ao/.well-known/banzami/operator.json",
+    "website": null,
+    "security_contact": "infosec@banzami-gov.ao",
+    "protocol_version": "1.0",
+    "manifest_version": "1.0",
+    "status": "experimental",
+    "certification_level": 0,
+    "certification_level_name": "Reference-compatible",
+    "conformance_badges": [],
+    "last_conformance_run": "2026-05-20T12:00:00Z",
+    "conformance_report_hash": "sha256:c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1",
+    "runner_version": "1.0.0",
+    "passed_suites": ["health", "environment", "wallets", "transfers-basic"],
+    "failed_suites": [],
+    "capabilities": {
+      "supports_wallets": true,
+      "supports_qr": false,
+      "supports_settlement": false,
+      "supports_payment_requests": false,
+      "supports_events": false,
+      "supports_traces": false,
+      "supports_webhooks": false,
+      "supports_federation": false,
+      "supports_offline_payments": false,
+      "supports_multi_currency": false,
+      "supports_acquiring": false,
+      "supports_routing": false
+    },
+    "capabilities_metadata": {
+      "supports_qr": "planned",
+      "supports_settlement": "planned",
+      "supports_payment_requests": "planned",
+      "supports_events": "experimental",
+      "supports_traces": "planned",
+      "supports_federation": "experimental"
+    },
+    "supported_currencies": ["AOA"],
+    "supported_qr_versions": [],
+    "settlement_modes": [],
+    "supported_sdk_versions": ["1.0"],
+    "trace_support": false,
+    "trace_schema_version": null,
+    "federation_support": false,
+    "federation_status": "experimental",
+    "manifest_status": "valid",
+    "manifest_schema_valid": true,
+    "stale_manifest": false,
+    "last_manifest_fetch": "2026-05-20T12:00:00Z",
+    "simulated": true,
+    "production_allowed": false,
+    "signing_keys": [
+      {
+        "fingerprint": "SHA256:bz3gov0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5",
+        "type": "ed25519",
+        "created_at": "2026-05-01",
+        "rotation_date": null,
+        "revoked": false
+      }
+    ],
+    "audit_trail": [
+      {
+        "date": "2026-05-20",
+        "event": "conformance_update",
+        "description": "Level 0 baseline established — health, wallets, and basic transfers passing"
+      },
+      {
+        "date": "2026-05-01",
+        "event": "initial_registration",
+        "description": "Experimental government sandbox node registered as federation test target"
+      }
+    ]
+  }
+]
