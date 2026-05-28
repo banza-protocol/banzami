@@ -75,13 +75,13 @@ export function HeroBanzamIAWidget() {
           </div>
 
           {/* Suggestion chips */}
-          <div className="mt-3 flex flex-wrap gap-1.5">
+          <div className="mt-3 flex flex-wrap gap-2">
             {QUICK_PROMPTS.map((p) => (
               <button
                 key={p}
                 type="button"
                 onClick={() => submit(p)}
-                className="rounded-full border border-bz-border bg-bz-surface px-2.5 py-1 text-[11px] font-medium text-bz-muted transition-all hover:border-bz-primary/25 hover:bg-bz-primary-light hover:text-bz-primary"
+                className="shrink-0 rounded-full border border-bz-border bg-white px-3 py-1.5 text-xs font-medium text-bz-muted whitespace-nowrap transition-colors hover:border-bz-primary/40 hover:bg-bz-primary-light hover:text-bz-primary"
               >
                 {p}
               </button>
