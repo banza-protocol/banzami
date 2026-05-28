@@ -85,7 +85,7 @@ export function HeroBanzamIAWidget() {
               className="shrink-0 rounded-xl bg-bz-primary px-5 py-2.5 text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-35"
               style={{ boxShadow: '0 2px 8px rgba(153,0,17,0.28)' }}
             >
-              Perguntar →
+              Perguntar
             </button>
           </div>
         </div>
