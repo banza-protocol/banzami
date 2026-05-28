@@ -1,6 +1,7 @@
 'use client'
 
 import { type ModuleId } from './BanzamIAApp'
+import { BanzamIAIcon } from './BanzamIAIcon'
 
 interface Props {
   active: ModuleId
@@ -100,9 +101,7 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
       {/* Logo area */}
       <div className="flex h-14 items-center gap-2.5 border-b border-bia-border px-4">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-bia-primary shadow-bia-glow">
-          <svg className="h-4 w-4 text-white" viewBox="0 0 16 16" fill="none">
-            <path d="M8 2L2 6v8h4v-4h4v4h4V6L8 2z" fill="currentColor" />
-          </svg>
+          <BanzamIAIcon size={16} className="text-white" />
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold tracking-tight text-bia-text">BanzamIA</div>

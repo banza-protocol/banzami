@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { chatStream, type ChatMessage, type Citation, isLiveMode } from '@/lib/banzamia-client'
+import { BanzamIAIcon } from './BanzamIAIcon'
 
 interface Message extends ChatMessage {
   id: string
@@ -42,9 +43,7 @@ function MessageBubble({ message }: { message: Message }) {
     <div className="flex gap-3">
       {/* AI avatar */}
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-bia-primary shadow-bia-glow mt-0.5">
-        <svg className="h-4 w-4 text-white" viewBox="0 0 16 16" fill="none">
-          <path d="M8 2L2 6v8h4v-4h4v4h4V6L8 2z" fill="currentColor" />
-        </svg>
+        <BanzamIAIcon size={16} className="text-white" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -259,9 +258,7 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
         {/* Hero */}
         <div className="flex flex-1 flex-col items-center justify-center p-8">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-bia-primary shadow-bia-glow">
-            <svg className="h-8 w-8 text-white" viewBox="0 0 24 24" fill="none">
-              <path d="M12 3L3 9v12h6v-6h6v6h6V9L12 3z" fill="currentColor"/>
-            </svg>
+            <BanzamIAIcon size={32} className="text-white" />
           </div>
           <h1 className="mb-2 text-xl font-bold text-bia-text tracking-tight">BanzamIA</h1>
           <p className="mb-1 text-sm text-bia-muted text-center max-w-md">
