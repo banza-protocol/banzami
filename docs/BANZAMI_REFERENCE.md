@@ -47,19 +47,7 @@ Não é um banco. Não é uma carteira digital simples. Não é uma plataforma f
 
 ### Arquitectura de dois níveis
 
-```
-Banzami (organização / protocolo / ecossistema)
-├── Banza (produto principal de pagamento)
-│   ├── Banza Wallet
-│   ├── Banza Business
-│   ├── Banza QR
-│   ├── Banza Checkout
-│   ├── Banza Pay Links
-│   ├── Banza API
-│   ├── Banza SDK
-│   └── @banza (identidade de pagamento)
-└── BanzamIA (inteligência de protocolo)
-```
+![Arquitectura de dois níveis — Banzami (protocolo) ramifica em Banza (produto) e BanzamIA (inteligência)](/images/architecture/brand-architecture.svg)
 
 Esta arquitectura de marca está definida no ADR-016.
 
@@ -74,9 +62,7 @@ Esta arquitectura de marca está definida no ADR-016.
 
 ### A experiência canónica
 
-```
-SCAN QR  →  CONFIRMAR  →  PAGO INSTANTANEAMENTE
-```
+**SCAN QR** → **CONFIRMAR** → **PAGO INSTANTANEAMENTE**
 
 **Tempo total: menos de 3 segundos.**
 
@@ -177,32 +163,7 @@ Os operadores:
 
 ### Topologia de serviços
 
-```
-Internet
-    │
-    ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Camada de Serviços Go                          │
-│                                                             │
-│  api-gateway (:8080)  public-api (:8083)  admin-api (:8082) │
-│  • Auth JWT           • Ops consumidor   • Ops admin        │
-│  • Rate limiting      • Sandbox API      • Gestão merchant  │
-│  • Idempotência       • Push notifs      • Relatórios       │
-│  • Webhooks                                                 │
-└─────────────────────────────────────────────────────────────┘
-                │ HTTP (loopback)
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│              Rust Core API (interno — nunca exposto)        │
-│              18 crates — único escritor das tabelas         │
-│              financeiras                                    │
-└─────────────────────────────────────────────────────────────┘
-                │
-                ▼
-┌─────────────────────────────────────────────────────────────┐
-│         PostgreSQL (única fonte de verdade financeira)      │
-└─────────────────────────────────────────────────────────────┘
-```
+![Topologia de serviços — Internet → Camada Go (api-gateway, public-api, admin-api) → Rust Core API → PostgreSQL](/images/architecture/service-topology.svg)
 
 O Go gateway é o dono da superfície pública (auth, rate limits, idempotência). Para cada operação financeira, delega no Rust core-api via HTTP. O Rust é o único escritor das tabelas financeiras. O Go nunca escreve directamente em tabelas financeiras.
 
@@ -217,7 +178,7 @@ Cada operação financeira produz entradas de ledger. O ledger é:
 
 O fluxo canónico de um pagamento QR:
 
-```
+```text
 Carteira consumidor (DÉBITO)
     ├── Carteira comerciante (CRÉDITO) — montante líquido
     └── Carteira de taxas (CRÉDITO)   — taxa
@@ -254,22 +215,7 @@ Ver `docs/validation/INVARIANT_TAXONOMY.md` para o registo completo.
 
 Cada fluxo de pagamento produz um `trace_id`. O trace captura:
 
-```
-qr.created
-    ↓
-transfer.initiated
-    ↓
-ledger.debit
-    ↓
-ledger.credit (merchant)
-ledger.credit (fees)
-    ↓
-transfer.completed
-    ↓
-qr.paid
-    ↓
-settlement.assigned
-```
+![Sistema de rastreabilidade — fluxo de eventos desde qr.created até settlement.assigned, todos partilhando o mesmo trace_id](/images/architecture/trace-flow.svg)
 
 Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer da BanzamIA reconstrói e verifica qualquer trace interactivamente.
 
@@ -605,21 +551,7 @@ A certificação é obtida passando no conformance suite para o nível correspon
 
 ### Processo de certificação
 
-```
-1. Operador submete Manifesto → declara nível alvo
-        ↓
-2. BanzamIA Manifest Validator → valida estrutura do manifesto
-        ↓
-3. Operador executa conformance suite para o seu nível
-        ↓
-4. BanzamIA Conformance → verifica resultados dos testes
-        ↓
-5. Invariantes financeiros verificados para todas as capacidades declaradas
-        ↓
-6. Certificação emitida como artefacto assinado
-        ↓
-7. Certificação registada no registo público de operadores
-```
+![Processo de certificação — 7 etapas do Manifesto ao registo público, verificadas pelo BanzamIA](/images/architecture/certification-flow.svg)
 
 ### Manifesto de Operador
 
@@ -674,12 +606,7 @@ As capacidades de fundação foram desenhadas para permitir federação:
 
 A federação permite o encaminhamento de pagamentos entre operadores certificados:
 
-```
-Consumidor A (Operador X) → pagamento → Consumidor B (Operador Y)
-                                ↓
-                    Camada de Federação Banzami
-                    (encaminhamento, liquidação, invariantes)
-```
+![Arquitectura de federação — Operador X encaminha pagamento para Operador Y através da camada de federação Banzami](/images/architecture/federation.svg)
 
 Requisitos para federação:
 - Ambos os operadores com Certificação Nível 3+
@@ -905,15 +832,7 @@ Sem IBAN. Sem número de conta. Sem código de referência.
 
 ### Camadas de segurança
 
-```
-Consumidor/Comerciante
-        ↓
-API Gateway (JWT, rate limiting, CORS)
-        ↓
-Rust Core (invariantes financeiros, validação de estado)
-        ↓
-PostgreSQL (constraints de esquema, transacções ACID)
-```
+![Camadas de segurança — Consumidor → API Gateway → Rust Core → PostgreSQL, cada transacção atravessa todas as camadas](/images/architecture/security-layers.svg)
 
 ### Invariantes críticos
 
@@ -1068,9 +987,7 @@ Para cada cantina. Para cada táxi. Para cada escola, vendedor de mercado, site 
 
 Para Angola.
 
-```
-   SCAN   →   CONFIRMAR   →   PAGO INSTANTANEAMENTE
-```
+**SCAN** → **CONFIRMAR** → **PAGO INSTANTANEAMENTE**
 
 ---
 
