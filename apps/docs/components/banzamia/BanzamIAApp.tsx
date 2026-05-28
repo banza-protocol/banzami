@@ -37,7 +37,12 @@ const MODULE_TITLES: Record<ModuleId, string> = {
   'status':           'System Status',
 }
 
-export function BanzamIAApp() {
+interface Props {
+  initialQuestion?: string
+  autoSubmit?: boolean
+}
+
+export function BanzamIAApp({ initialQuestion, autoSubmit }: Props = {}) {
   const [activeModule, setActiveModule] = useState<ModuleId>('chat')
   const [citations, setCitations] = useState<Citation[]>([])
   const [model, setModel] = useState('')
@@ -59,6 +64,8 @@ export function BanzamIAApp() {
             onCitationsChange={setCitations}
             onModelChange={handleModelChange}
             onStreamingChange={setIsStreaming}
+            initialQuestion={initialQuestion}
+            autoSubmit={autoSubmit}
           />
         )
       case 'operator-builder': return <OperatorBuilderModule />

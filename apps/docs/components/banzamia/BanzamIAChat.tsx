@@ -16,6 +16,8 @@ interface Props {
   onCitationsChange: (citations: Citation[]) => void
   onModelChange: (model: string, taskType: string) => void
   onStreamingChange: (streaming: boolean) => void
+  initialQuestion?: string
+  autoSubmit?: boolean
 }
 
 const EXAMPLE_QUESTIONS = [
@@ -177,17 +179,32 @@ function renderInline(text: string): React.ReactNode {
   })
 }
 
-export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChange }: Props) {
+export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChange, initialQuestion, autoSubmit }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const initialHandledRef = useRef(false)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
+
+  // Handle ?question=...&auto=1 deep link
+  useEffect(() => {
+    if (!initialQuestion || initialHandledRef.current) return
+    initialHandledRef.current = true
+    if (autoSubmit) {
+      const id = setTimeout(() => sendMessage(initialQuestion), 150)
+      return () => clearTimeout(id)
+    } else {
+      setInput(initialQuestion)
+    }
+  // sendMessage identity is stable at mount; initialQuestion/autoSubmit won't change after navigation
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim() || isStreaming) return

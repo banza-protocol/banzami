@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getReference, getSectionByNumber } from '@/lib/reference'
 import { HeroSection } from '@/components/HeroSection'
+import { HomeBanzamIAEntry } from '@/components/banzamia/HomeBanzamIAEntry'
 import { ManifestoQuote } from '@/components/ManifestoQuote'
 import { PaymentFlowDiagram } from '@/components/PaymentFlowDiagram'
 import { EcosystemMap } from '@/components/EcosystemMap'
@@ -51,6 +52,9 @@ export default function HomePage() {
       <div className="px-5 md:px-8 lg:px-12">
         <HeroSection tagline={reference.tagline} />
       </div>
+
+      {/* ─── 1b. BANZAMIA ENTRYPOINT ──────────────────────────────────────── */}
+      <HomeBanzamIAEntry />
 
       {/* ─── 2. MANIFESTO QUOTE ───────────────────────────────────────────── */}
       <div className="px-5 md:px-8 lg:px-12">

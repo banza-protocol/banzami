@@ -262,6 +262,126 @@ export async function getSystemStatus(): Promise<SystemStatus> {
 
 const DEMO_RESPONSES: Array<{ pattern: RegExp; model: string; taskType: string; text: string; citations: Citation[] }> = [
   {
+    pattern: /o que.*banzami|banzami.*o que|banzami.*é|what is banzami|o que é.*banzami/i,
+    model: 'qwen-14b', taskType: 'DOCS',
+    text: `**Banzami — A organização por detrás da rede Banza**
+
+A **Banzami** é a organização de infraestrutura financeira que cria e mantém:
+
+- **Banza** — o produto de pagamentos instantâneos em Kwanza por QR Code
+- **Banza SDKs** — bibliotecas oficiais TypeScript, Python e Dart para programadores
+- **BanzamIA** — interface inteligente para integrar, validar e certificar o ecossistema
+- **Core financeiro** — motor em Rust com invariantes de ledger de grau bancário
+
+O Banzami não é um banco. É a camada de infraestrutura protocolar que permite a qualquer app angolana aceitar pagamentos em Kwanza — do táxi à escola, da cantina ao ecommerce.
+
+**Modelo de acesso:**
+Operadores certificados integram via SDK oficial. Cada pagamento é uma transferência wallet-to-wallet liquidada instantaneamente e registada no ledger de forma atómica e imutável.`,
+    citations: [
+      { type: 'file', label: 'BANZAMI_REFERENCE.md', ref: 'docs/BANZAMI_REFERENCE.md' },
+      { type: 'adr',  label: 'ADR-016 — Brand architecture', ref: 'docs/adrs/ADR-016.md' },
+    ],
+  },
+  {
+    pattern: /diferença|difference|banzami.*banza|banza.*banzami|brand.*archit/i,
+    model: 'qwen-14b', taskType: 'DOCS',
+    text: `**Banzami vs Banza — Arquitectura de marca (ADR-016)**
+
+| | Banzami | Banza |
+|---|---|---|
+| O que é | Organização e infraestrutura | O produto de pagamentos |
+| Papel | Protocolo, SDKs, certificação | App, QR, carteiras, UI |
+| SDK | \`@banzami/sdk\` (organização) | \`@banza/sdk\` (produto) |
+| Domínio | banzami.org | app.banza.ao |
+| BanzamIA | Pertence à Banzami | Serve os utilizadores Banza |
+
+**Regra de conteúdo (ADR-016):**
+- Use **Banzami** para: protocolo, infraestrutura, certificação, SDKs, BanzamIA, organização
+- Use **Banza** para: pagamentos, QR codes, carteiras, app móvel, experiência do utilizador
+
+Esta separação é deliberada — distingue a camada de infraestrutura da camada de produto.`,
+    citations: [
+      { type: 'adr',  label: 'ADR-016 — Brand architecture', ref: 'docs/adrs/ADR-016.md' },
+      { type: 'file', label: 'BANZAMI_REFERENCE.md §1', ref: 'docs/BANZAMI_REFERENCE.md' },
+    ],
+  },
+  {
+    pattern: /como integrar|primeiros passos|como começar|getting started|integra[çc]/i,
+    model: 'qwen-coder-7b', taskType: 'CODE',
+    text: `**Como integrar pagamentos Banza — Guia rápido**
+
+**1. Instalar o SDK oficial**
+
+\`\`\`bash
+npm install @banza/sdk
+# ou: pip install banza-sdk  |  flutter pub add banza_sdk
+\`\`\`
+
+**2. Inicializar o cliente**
+
+\`\`\`typescript
+import { BanzaClient } from '@banza/sdk'
+
+const client = new BanzaClient({
+  operatorId:  'op_your_id',
+  apiKey:      process.env.BANZA_API_KEY!,
+  environment: 'sandbox', // começar sempre em sandbox
+})
+\`\`\`
+
+**3. Criar um pagamento QR**
+
+\`\`\`typescript
+const qr = await client.qr.create({
+  merchantWallet: 'wal_merchant_abc',
+  amountMinor:    5000, // 50.00 AOA — sempre em unidades menores (ADR-001)
+  currency:       'AOA',
+  idempotencyKey: crypto.randomUUID(),
+})
+// qr.id · qr.url · qr.trace_id (propaga para todo o fluxo)
+\`\`\`
+
+Use o módulo **SDK Assistant** no BanzamIA completo para gerar código para o seu caso de uso específico.`,
+    citations: [
+      { type: 'file', label: '@banza/sdk', ref: 'sdk/typescript/README.md' },
+      { type: 'adr',  label: 'ADR-001 — Minor units', ref: 'docs/adrs/ADR-001.md' },
+      { type: 'api',  label: 'POST /v1/qr', ref: 'contracts/openapi.yaml' },
+    ],
+  },
+  {
+    pattern: /sandbox.*operat|operat.*sandbox|como funciona.*sandbox|sandbox/i,
+    model: 'qwen-14b', taskType: 'DOCS',
+    text: `**Sandbox Operator — Ambiente de testes isolado**
+
+O ambiente \`sandbox\` permite testar toda a integração sem mover dinheiro real.
+
+**Invariante de segurança sandbox (RFC-006):**
+Se \`environment === "sandbox"\` então:
+- \`simulated\` **deve** ser \`true\`
+- \`production_allowed\` **deve** ser \`false\`
+
+Violar esta invariante bloqueia a validação do manifesto — é uma protecção contra erros que poderiam expor código de sandbox em produção.
+
+**Manifesto sandbox correcto:**
+
+\`\`\`json
+{
+  "operator_id": "op_test_abc",
+  "environment": "sandbox",
+  "simulated": true,
+  "production_allowed": false,
+  "certification_level": 1,
+  "protocol_version": "1.0.0"
+}
+\`\`\`
+
+Use o módulo **Manifest Validator** para verificar o seu manifesto antes de submeter para certificação.`,
+    citations: [
+      { type: 'rfc',  label: 'RFC-006 — Operator Manifest', ref: 'docs/rfcs/RFC-006.md' },
+      { type: 'file', label: 'operator-manifest.schema.json', ref: 'schemas/operator-manifest.schema.json' },
+    ],
+  },
+  {
     pattern: /trace|trace_id|propagat/i,
     model: 'qwen-14b', taskType: 'DOCS',
     text: `**INV-TRACE-001 — Trace ID Propagation**
