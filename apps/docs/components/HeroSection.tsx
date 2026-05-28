@@ -57,12 +57,12 @@ export function HeroSection({ tagline }: Props) {
           Banzami é um protocolo aberto para operadores, pagamentos, liquidação, certificação e rastreabilidade financeira.
         </p>
 
-        {/* 4 — Capability tags */}
-        <div className="mx-auto mb-8 flex max-w-2xl flex-wrap justify-center gap-2">
+        {/* 4 — Capability tags — single row, scroll on mobile */}
+        <div className="mb-8 flex justify-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {CAPABILITY_TAGS.map((tag) => (
             <span
               key={tag}
-              className="rounded-full border border-bz-border bg-white px-3 py-1 text-xs font-medium text-bz-muted"
+              className="shrink-0 rounded-full border border-bz-border bg-white px-3 py-1 text-xs font-medium text-bz-muted"
             >
               {tag}
             </span>
