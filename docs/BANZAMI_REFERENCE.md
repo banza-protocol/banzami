@@ -135,7 +135,7 @@ O Banzami serve um mercado de forma excecional antes de considerar expansão. O 
 │  merchants · jobs · types     │  Nível 1 — Pagamentos Base           │
 │  (18 crates Rust)             │  Nível 2 — Pagamentos Avançados      │
 │                               │  Nível 3 — Protocolo Completo        │
-│                               │  Nível 4 — Operador de Infraestrutura│
+│                               │  Nível 4 — Operador Infraestrutura   │
 ├──────────────────────────────┴──────────────────────────────────────┤
 │                          BANZAMIA                                    │
 │              (Inteligência de Protocolo nativa de IA)                │
