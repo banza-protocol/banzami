@@ -16,7 +16,7 @@ const CAPABILITY_TAGS = [
 
 export function HeroSection({ tagline }: Props) {
   return (
-    <section className="relative overflow-hidden pb-12 pt-20 md:pb-20 md:pt-28">
+    <section className="relative overflow-hidden pb-12 pt-10 md:pb-20 md:pt-16">
       {/* Subtle background gradient */}
       <div
         aria-hidden
