@@ -118,38 +118,7 @@ O Banzami serve um mercado de forma excecional antes de considerar expansão. O 
 
 ## 3. Visão Geral do Ecossistema
 
-```
-┌─────────────────────────────────────────────────────────────────────┐
-│                           BANZAMI                                    │
-├──────────────────────────────┬──────────────────────────────────────┤
-│      KERNEL BANZAMI           │            OPERADORES                │
-│   (Núcleo Financeiro Rust)    │                                      │
-│                               │  Operador de Referência (Banza)      │
-│  ledger · wallets             │  Operador Sandbox                    │
-│  transactions · transfers     │  Futuros operadores de terceiros      │
-│  settlement · reconciliation  │                                      │
-│  payouts · qr                 ├──────────────────────────────────────┤
-│  payment-links · identity     │         CERTIFICAÇÃO                 │
-│  consumer-wallets · acquiring │                                      │
-│  risk · compliance · routing  │  Nível 0 — Sandbox                   │
-│  merchants · jobs · types     │  Nível 1 — Pagamentos Base           │
-│  (18 crates Rust)             │  Nível 2 — Pagamentos Avançados      │
-│                               │  Nível 3 — Protocolo Completo        │
-│                               │  Nível 4 — Operador Infraestrutura   │
-├──────────────────────────────┴──────────────────────────────────────┤
-│                          BANZAMIA                                    │
-│              (Inteligência de Protocolo nativa de IA)                │
-│                                                                      │
-│  Chat · Construtor de Operadores · Conformidade · Validador          │
-│  Trace Explainer · SDK Assistant · RFC/ADR Explorer · Knowledge      │
-├─────────────────────────────────────────────────────────────────────┤
-│                           SDKs                                       │
-│          TypeScript · Flutter/Dart · PHP · Go (interno)              │
-├─────────────────────────────────────────────────────────────────────┤
-│                        APLICAÇÕES                                    │
-│  Banza (mobile) · Banza Business · Checkout · Docs · Admin           │
-└─────────────────────────────────────────────────────────────────────┘
-```
+![Diagrama do Ecossistema Banzami — Kernel, Operadores, BanzamIA, SDKs e Aplicações](/images/architecture/banzami-ecosystem.svg)
 
 ### Kernel Banzami
 
