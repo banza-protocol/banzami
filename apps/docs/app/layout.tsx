@@ -63,7 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className={`${inter.variable} bg-bz-bg text-bz-text antialiased font-sans overflow-x-hidden`}>
 
         {/* Top navigation */}
-        <header className="sticky top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
+        <header className="fixed inset-x-0 top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-5 md:px-8">
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
@@ -119,7 +119,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </header>
 
-        <div className="mx-auto flex max-w-screen-2xl">
+        <div className="mx-auto flex max-w-screen-2xl pt-14">
           {/* Sidebar — hidden on mobile */}
           <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-60 shrink-0 overflow-y-auto border-r border-bz-border bg-white px-3 py-5 lg:block xl:w-64">
             <SectionNav sections={reference.sections} />
