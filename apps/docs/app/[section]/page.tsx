@@ -19,9 +19,14 @@ interface Props {
 // Only pre-generated slugs are valid — unknown slugs return 404 without rendering
 export const dynamicParams = false
 
-// Statically generate all section routes from BANZAMI_REFERENCE.md
+// Statically generate all section routes from BANZAMI_REFERENCE.md.
+// 'banzamia' is excluded — that path is handled by app/banzamia/page.tsx (live AI interface).
+const STATIC_ROUTE_OVERRIDES = new Set(['banzamia'])
+
 export async function generateStaticParams() {
-  return getAllSectionSlugs().map((slug) => ({ section: slug }))
+  return getAllSectionSlugs()
+    .filter((slug) => !STATIC_ROUTE_OVERRIDES.has(slug))
+    .map((slug) => ({ section: slug }))
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
