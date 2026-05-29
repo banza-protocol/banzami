@@ -116,11 +116,11 @@ export function QualityModule() {
                     <StatCard label="Graph Edges" value={graph.edge_count} />
                     <StatCard label="Avg Connections" value={graph.node_count > 0 ? (graph.edge_count / graph.node_count).toFixed(1) : '—'} sub="Edges per node" />
                   </div>
-                  {graph.by_type && Object.keys(graph.by_type).length > 0 && (
+                  {graph.nodes_by_type && Object.keys(graph.nodes_by_type).length > 0 && (
                     <div className="rounded-xl border border-bia-border bg-bia-surface p-4">
                       <div className="text-xs font-semibold uppercase tracking-wider text-bia-muted-2 mb-3">Node Type Distribution</div>
                       <div className="space-y-2">
-                        {Object.entries(graph.by_type)
+                        {Object.entries(graph.nodes_by_type)
                           .sort(([, a], [, b]) => b - a)
                           .map(([type, count]) => (
                             <RateBar

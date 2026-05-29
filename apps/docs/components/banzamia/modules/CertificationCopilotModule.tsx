@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { certificationCopilot, type CopilotResult, type LevelStatus } from '@/lib/banzamia-client'
 
-const LEVEL_NAMES = ['Reference-compatible', 'Protocol-compatible', 'Trace-compatible', 'Federation-ready', 'Settlement-compatible']
 const LEVEL_COLORS = ['#374151', '#2A3A8C', '#0E7490', '#7C3AED', '#990011']
 
 const DEFAULT_MANIFEST = `{
