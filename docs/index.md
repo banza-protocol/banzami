@@ -152,7 +152,7 @@ Protocol (RFC)
     │       ├── Go Services (gateway, public-api, admin-api)
     │       └── Applications (mobile, merchant, checkout, docs)
     │
-    └── BanzamIA (AI layer)
+    └── BanzAI (Protocol Operating System)
             │
             ├── Chat (protocol Q&A)
             ├── Builder (manifest creation)
@@ -171,7 +171,7 @@ When in doubt about a term, see [docs/glossary.md](glossary.md).
 |--------------|-------------|
 | Banza | The organisation and protocol |
 | Banzami | The consumer payment product |
-| BanzAI | The AI-native Protocol Agent |
+| BanzAI | Protocol Operating System |
 | Kernel | The Rust financial core (18 crates) |
 | Operator | Protocol implementor |
 | Manifest | Operator capability declaration |

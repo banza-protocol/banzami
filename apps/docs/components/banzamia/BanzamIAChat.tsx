@@ -378,7 +378,7 @@ function ChatInput({
           value={value}
           onChange={e => onChange(e.target.value)}
           onKeyDown={onKeyDown}
-          placeholder="Pergunta sobre o protocolo Banzami, código SDK, invariantes, certificação…"
+          placeholder="Pergunta sobre o protocolo Banza, código SDK, invariantes, certificação…"
           rows={1}
           disabled={disabled}
           className="flex-1 resize-none bg-transparent text-sm text-bia-text placeholder-bia-muted-2 outline-none disabled:opacity-50"

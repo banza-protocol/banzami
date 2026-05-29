@@ -10,7 +10,7 @@
 
 BanzAI is the AI-native interface for building, validating, and certifying Banza protocol operators. It is deployed at `banzami.org/banzamia`.
 
-BanzAI is not a chatbot. It is an **AI-native Protocol Agent** — an AI system specifically grounded in the Banza protocol, financial invariants, conformance specifications, and governance documents.
+BanzAI is not a chatbot. It is the **Protocol Operating System** — an orchestrated AI system specifically grounded in the Banza protocol, financial invariants, conformance specifications, and governance documents.
 
 > **Tools determine truth. AI explains truth.**
 

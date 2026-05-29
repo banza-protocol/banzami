@@ -102,8 +102,8 @@ Banza serves one market exceptionally before considering expansion. The protocol
 │                            │  Protocol Conformance Tests             │
 │                            │  Operator Manifest Validation           │
 ├───────────────────────────┴─────────────────────────────────────────┤
-│                          BANZAMIA                                    │
-│              (AI-native Protocol Agent)                              │
+│                           BANZAI                                     │
+│              (Protocol Operating System)                             │
 │                                                                      │
 │  Chat · Operator Builder · Conformance · Manifest Validator          │
 │  Trace Explainer · SDK Assistant · RFC/ADR Explorer · Knowledge Search│
@@ -114,22 +114,22 @@ Banza serves one market exceptionally before considering expansion. The protocol
 ├─────────────────────────────────────────────────────────────────────┤
 │                        APPLICATIONS                                  │
 │                                                                      │
-│  Banza (consumer mobile) · Banza Business (merchant) ·              │
-│  Banza Checkout · Banza Docs · Banza Admin · Validation Studio       │
+│  Banzami (consumer mobile) · Banzami Business (merchant) ·          │
+│  Banzami Checkout · Banza Docs · Banza Admin · Validation Studio     │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 3.1 Brand Architecture
 
-Per ADR-016:
+Per ADR-025 (supersedes ADR-016):
 
 | Name | Role |
 |------|------|
-| **Banza** | Organisation, protocol, ecosystem, infrastructure, governance |
-| **Banzami** | Consumer payment product (primary reference implementation) |
-| **BanzAI** | AI-native Protocol Agent |
+| **Banza** | Open financial protocol — kernel, ledger, certification, federation, governance |
+| **Banzami** | Reference operator and main product — consumer app, wallet, QR, checkout, Banzami Business |
+| **BanzAI** | Protocol Operating System — 16 modules, 8 capabilities |
 
-`Banzami constrói a infraestrutura. Banza move o dinheiro.`
+`Banza constrói a infraestrutura. Banzami move o dinheiro.`
 
 ### 3.2 Technology Stack
 
@@ -522,7 +522,7 @@ BanzAI does not replace deterministic tools. It:
 ### 11.2 Architecture
 
 ```
-BanzamIA
+BanzAI
 ├── Orchestration Layer (task routing)
 │   ├── DOCS tasks → Protocol documentation model
 │   ├── CODE tasks → Code generation model

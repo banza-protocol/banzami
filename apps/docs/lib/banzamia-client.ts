@@ -937,7 +937,7 @@ const DEMO_NODES: GraphNodeClient[] = [
   { id: 'vector:transfers', type: 'conformance_vector', title: 'Transfer Conformance Vectors', path: 'conformance/vectors/transfers.yaml', status: 'active', summary: 'Test vectors for transfer protocol conformance including invariant checks.', authority: 0.85 },
   { id: 'vector:ledger-postings', type: 'conformance_vector', title: 'Ledger Posting Vectors', path: 'conformance/vectors/ledger-postings.yaml', status: 'active', summary: 'Test vectors for double-entry ledger invariant verification.', authority: 0.85 },
   { id: 'certification:conformance', type: 'certification_rule', title: 'Conformance Certification Rules', path: 'docs/conformance.md', status: 'active', summary: 'Defines the conformance test suite structure and level progression rules.', authority: 0.85 },
-  { id: 'glossary:main', type: 'glossary_term', title: 'Protocol Glossary', path: 'docs/glossary.md', status: 'active', summary: 'Canonical definitions for all Banzami protocol terms.', authority: 0.80 },
+  { id: 'glossary:main', type: 'glossary_term', title: 'Protocol Glossary', path: 'docs/glossary.md', status: 'active', summary: 'Canonical definitions for all Banza protocol terms.', authority: 0.80 },
 ]
 
 const DEMO_EDGES: Array<{ from: string; to: string; relationship: string }> = [

@@ -53,7 +53,7 @@ export function KnowledgeModule() {
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">Knowledge Search</h2>
-          <p className="text-sm text-bia-muted">Semantic search over Banzami protocol docs, RFCs, ADRs, and conformance specifications.</p>
+          <p className="text-sm text-bia-muted">Semantic search over Banza protocol docs, RFCs, ADRs, and conformance specifications.</p>
         </div>
 
         <div className="flex gap-2">

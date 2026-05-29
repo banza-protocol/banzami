@@ -2,7 +2,7 @@
   {
     "id": "reference-sandbox",
     "display_name": "Banzami Reference Operator",
-    "description": "The canonical open-source sandbox operator maintained by the Banzami project. Implements the full Banzami protocol and serves as the reference implementation for all conformance tests.",
+    "description": "The canonical open-source sandbox operator maintained by the Banzami project. Implements the full Banza protocol and serves as the reference implementation for all conformance tests.",
     "type": "reference",
     "environment": "sandbox",
     "jurisdiction": "Global",
@@ -87,7 +87,7 @@
   {
     "id": "banza-operator",
     "display_name": "Banza",
-    "description": "The first commercial operator built on the Banzami protocol. Serves the Angolan market with QR-native instant payments in Kwanza, wallet management, and merchant settlement.",
+    "description": "The first commercial operator built on the Banza protocol. Serves the Angolan market with QR-native instant payments in Kwanza, wallet management, and merchant settlement.",
     "type": "commercial",
     "environment": "sandbox",
     "jurisdiction": "Angola",
@@ -164,14 +164,14 @@
       {
         "date": "2026-04-01",
         "event": "initial_registration",
-        "description": "First commercial Angolan operator registered on the Banzami protocol"
+        "description": "First commercial Angolan operator registered on the Banza protocol"
       }
     ]
   },
   {
     "id": "gov-sandbox-angola",
     "display_name": "Operador Sandbox Governamental",
-    "description": "Experimental government sandbox operator for testing Banzami protocol federation and interoperability. Managed by the Angolan fintech research infrastructure programme.",
+    "description": "Experimental government sandbox operator for testing Banza protocol federation and interoperability. Managed by the Angolan fintech research infrastructure programme.",
     "type": "government_sandbox",
     "environment": "experimental",
     "jurisdiction": "Angola",
