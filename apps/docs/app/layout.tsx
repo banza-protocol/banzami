@@ -70,9 +70,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="flex items-center gap-2.5">
               <span className="inline-block h-7 w-7 shrink-0 overflow-hidden rounded-[9px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-full w-full object-cover" />
+                <img src="/images/banza/banzami-logo.png" alt="Banza" className="h-full w-full object-cover" />
               </span>
-              <span className="text-base font-bold tracking-tight text-bz-text">Banzami</span>
+              <span className="text-base font-bold tracking-tight text-bz-text">Banza</span>
             </Link>
 
             {/* Desktop nav */}
@@ -138,9 +138,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-6 w-6 shrink-0 overflow-hidden rounded-[8px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/banza/banzami-logo.png" alt="Banzami" className="h-full w-full object-cover" />
+                    <img src="/images/banza/banzami-logo.png" alt="Banza" className="h-full w-full object-cover" />
                   </span>
-                  <span className="font-bold text-bz-text">Banzami</span>
+                  <span className="font-bold text-bz-text">Banza</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
                   Banza — Protocolo Aberto de Infraestrutura Financeira para Angola

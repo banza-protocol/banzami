@@ -7,7 +7,7 @@ import { ArchitectureHealth } from '@/components/validation/ArchitectureHealth'
 export const metadata: Metadata = {
   title: 'Validação',
   description:
-    'Sistema de execução e validação do ecossistema Banzami — acompanhamento rigoroso da implementação de todas as funcionalidades descritas no documento oficial.',
+    'Sistema de execução e validação do ecossistema Banza — acompanhamento rigoroso da implementação de todas as funcionalidades descritas no documento oficial.',
 }
 
 export default function ValidacaoPage() {

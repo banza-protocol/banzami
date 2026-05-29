@@ -8,9 +8,9 @@ import { ReferenceMobileToc } from '@/components/ReferenceMobileToc'
 import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
-  title: { absolute: 'Banzami — Referência Oficial' },
+  title: { absolute: 'Banza — Referência Oficial do Protocolo' },
   description:
-    'Referência oficial do ecossistema Banzami — 20 secções cobrindo filosofia institucional, arquitectura técnica, infraestrutura de pagamentos, segurança financeira e visão da rede Banza para Angola.',
+    'Referência oficial do Protocolo Banza — 20 secções cobrindo filosofia institucional, arquitectura técnica, infraestrutura de pagamentos, segurança financeira e visão da rede Banza para Angola.',
 }
 
 export default function ReferencePage() {
@@ -38,7 +38,7 @@ export default function ReferencePage() {
               </div>
 
               <h1 className="mb-4 text-3xl font-bold tracking-tight text-bz-text sm:text-4xl">
-                Banzami — Referência Oficial
+                Banza — Referência Oficial do Protocolo
               </h1>
 
               <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">

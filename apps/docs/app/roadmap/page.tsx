@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Roadmap — BanzAI Protocol Operating System',
   description:
-    'Roadmap público do BanzAI — Protocol Operating System do ecossistema Banzami. 16 módulos, 8 capacidades. Evolução transparente do sistema.',
+    'Roadmap público do BanzAI — Protocol Operating System do Protocolo Banza. 16 módulos, 8 capacidades. Evolução transparente do sistema.',
 }
 
 interface RoadmapItem {
@@ -98,7 +98,7 @@ export default function RoadmapPage() {
       {/* Header */}
       <div className="mb-10">
         <div className="flex items-center gap-2 text-xs text-bz-muted mb-3">
-          <Link href="/" className="hover:text-bz-primary">Banzami</Link>
+          <Link href="/" className="hover:text-bz-primary">Banza</Link>
           <span>/</span>
           <Link href="/banzamia" className="hover:text-bz-primary">BanzAI</Link>
           <span>/</span>

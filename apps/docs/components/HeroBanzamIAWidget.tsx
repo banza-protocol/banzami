@@ -43,7 +43,7 @@ export function HeroBanzamIAWidget() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold tracking-tight text-bz-text">Pergunte ao BanzAI</p>
             <p className="mt-0.5 text-[11px] leading-snug text-bz-muted">
-              O Sistema Operativo de Protocolo do ecossistema Banzami.
+              O Sistema Operativo do Protocolo Banza.
             </p>
           </div>
 
