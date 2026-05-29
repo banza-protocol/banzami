@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 340" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="340" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Arquitectura do Produto BanzamIA</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">8 MÓDULOS — INTERFACE COGNITIVA DO PROTOCOLO</text>
+
+  <!-- BanzamIA root box -->
+  <rect x="30" y="80" width="640" height="52" rx="12" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="30" y="80" width="640" height="52" rx="12" fill="#EA580C"/>
+  <text x="350" y="103" text-anchor="middle" fill="white" font-size="14" font-weight="700" letter-spacing="0.5">BanzamIA</text>
+  <text x="350" y="120" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" letter-spacing="1">AI-NATIVE PROTOCOL AGENT · banzami.org/banzamia</text>
+
+  <!-- Tree trunk -->
+  <line x1="350" y1="132" x2="350" y2="146" stroke="#FDBA74" stroke-width="1.5"/>
+  <!-- Horizontal branch -->
+  <line x1="107" y1="146" x2="593" y2="146" stroke="#FDBA74" stroke-width="1.5"/>
+
+  <!-- Drop lines to row 1 modules (centers at 107, 255, 403, 551 with w=136) -->
+  <line x1="107" y1="146" x2="107" y2="156" stroke="#FDBA74" stroke-width="1.5"/>
+  <line x1="255" y1="146" x2="255" y2="156" stroke="#FDBA74" stroke-width="1.5"/>
+  <line x1="403" y1="146" x2="403" y2="156" stroke="#FDBA74" stroke-width="1.5"/>
+  <line x1="551" y1="146" x2="551" y2="156" stroke="#FDBA74" stroke-width="1.5"/>
+
+  <!-- Row 1 modules: x=39, 187, 335, 483 — w=136, h=64 -->
+  <rect x="39"  y="156" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="107" y="178" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Chat</text>
+  <text x="107" y="194" text-anchor="middle" fill="#6B6265" font-size="8">Protocol Q&amp;A</text>
+  <text x="107" y="208" text-anchor="middle" fill="#6B6265" font-size="8">with citations</text>
+
+  <rect x="187" y="156" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="255" y="178" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Operator Builder</text>
+  <text x="255" y="194" text-anchor="middle" fill="#6B6265" font-size="8">Manifest creation</text>
+  <text x="255" y="208" text-anchor="middle" fill="#6B6265" font-size="8">guided workflow</text>
+
+  <rect x="335" y="156" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="403" y="178" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Conformance</text>
+  <text x="403" y="194" text-anchor="middle" fill="#6B6265" font-size="8">Test runner</text>
+  <text x="403" y="208" text-anchor="middle" fill="#6B6265" font-size="8">result analysis</text>
+
+  <rect x="483" y="156" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="551" y="178" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Manifest Validator</text>
+  <text x="551" y="194" text-anchor="middle" fill="#6B6265" font-size="8">Structural validation</text>
+  <text x="551" y="208" text-anchor="middle" fill="#6B6265" font-size="8">semantic checks</text>
+
+  <!-- Row 2 horizontal branch and drops -->
+  <line x1="107" y1="228" x2="593" y2="228" stroke="#FDBA74" stroke-width="1" stroke-dasharray="3 2"/>
+  <line x1="107" y1="228" x2="107" y2="238" stroke="#FDBA74" stroke-width="1"/>
+  <line x1="255" y1="228" x2="255" y2="238" stroke="#FDBA74" stroke-width="1"/>
+  <line x1="403" y1="228" x2="403" y2="238" stroke="#FDBA74" stroke-width="1"/>
+  <line x1="551" y1="228" x2="551" y2="238" stroke="#FDBA74" stroke-width="1"/>
+
+  <!-- Row 2 modules -->
+  <rect x="39"  y="238" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="107" y="260" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Trace Explainer</text>
+  <text x="107" y="276" text-anchor="middle" fill="#6B6265" font-size="8">Causal timeline</text>
+  <text x="107" y="290" text-anchor="middle" fill="#6B6265" font-size="8">+ invariants</text>
+
+  <rect x="187" y="238" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="255" y="260" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">SDK Assistant</text>
+  <text x="255" y="276" text-anchor="middle" fill="#6B6265" font-size="8">Code generation</text>
+  <text x="255" y="290" text-anchor="middle" fill="#6B6265" font-size="8">integration guide</text>
+
+  <rect x="335" y="238" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="403" y="260" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">RFC/ADR Explorer</text>
+  <text x="403" y="276" text-anchor="middle" fill="#6B6265" font-size="8">Governance docs</text>
+  <text x="403" y="290" text-anchor="middle" fill="#6B6265" font-size="8">search + explain</text>
+
+  <rect x="483" y="238" width="136" height="64" rx="8" fill="white" stroke="#FED7AA" stroke-width="1" filter="url(#sh)"/>
+  <text x="551" y="260" text-anchor="middle" fill="#EA580C" font-size="10" font-weight="700">Knowledge Search</text>
+  <text x="551" y="276" text-anchor="middle" fill="#6B6265" font-size="8">Semantic search</text>
+  <text x="551" y="290" text-anchor="middle" fill="#6B6265" font-size="8">Qdrant vector DB</text>
+
+  <!-- Caption -->
+  <text x="350" y="326" text-anchor="middle" fill="#9B8E8C" font-size="9">"Tools determine truth. AI explains truth." — Princípio fundamental da BanzamIA</text>
+
+</svg>
