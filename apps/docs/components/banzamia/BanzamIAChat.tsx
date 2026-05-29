@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
 import { chatStream, type ChatMessage, type Citation, isLiveMode } from '@/lib/banzamia-client'
 import { BanzamIAIcon } from './BanzamIAIcon'
 
@@ -341,6 +341,8 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
   )
 }
 
+const COMPOSER_MAX_HEIGHT = 220
+
 function ChatInput({
   value,
   onChange,
@@ -356,6 +358,15 @@ function ChatInput({
   disabled: boolean
   inputRef: React.RefObject<HTMLTextAreaElement | null>
 }) {
+  // Resize textarea without layout thrash: collapse to 0 first so the parent
+  // never sees an intermediate expanded state, then grow to clamped scrollHeight.
+  useLayoutEffect(() => {
+    const el = inputRef.current
+    if (!el) return
+    el.style.height = '0px'
+    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`
+  }, [value, inputRef])
+
   return (
     <div className="shrink-0 border-t border-bia-border bg-bia-surface p-4">
       <div className="flex items-end gap-3 rounded-xl border border-bia-border bg-bia-surface-2 px-4 py-3 focus-within:border-bia-primary/50">
@@ -368,12 +379,7 @@ function ChatInput({
           rows={1}
           disabled={disabled}
           className="flex-1 resize-none bg-transparent text-sm text-bia-text placeholder-bia-muted-2 outline-none disabled:opacity-50"
-          style={{ maxHeight: '120px', overflowY: 'auto' }}
-          onInput={e => {
-            const el = e.currentTarget
-            el.style.height = 'auto'
-            el.style.height = Math.min(el.scrollHeight, 120) + 'px'
-          }}
+          style={{ overflowY: 'auto', maxHeight: `${COMPOSER_MAX_HEIGHT}px` }}
         />
         <button
           onClick={onSubmit}
