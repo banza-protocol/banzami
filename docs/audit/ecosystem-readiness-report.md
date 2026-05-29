@@ -9,7 +9,7 @@
 
 ## 1. Methodology
 
-This report assesses the **actual implementation state** of the Banzami ecosystem — not documentation intent but real code, real routes, real tests, and real deployment infrastructure. Each domain is scored on a 0–5 maturity scale:
+This report assesses the **actual implementation state** of the Banza ecosystem — not documentation intent but real code, real routes, real tests, and real deployment infrastructure. Each domain is scored on a 0–5 maturity scale:
 
 | Score | Label | Meaning |
 |-------|-------|---------|
@@ -26,7 +26,7 @@ All findings verified through direct code inspection of all three repositories.
 
 ## 2. Domain Assessments
 
-### 2.1 Technical Infrastructure (Banzami Kernel)
+### 2.1 Technical Infrastructure (Banza Kernel)
 
 **Score: 4 / 5 — Production Ready**
 
@@ -41,7 +41,7 @@ All findings verified through direct code inspection of all three repositories.
 **Gaps that prevent score 5:**
 - `contracts/webhooks/` is empty — webhook schema not formally defined
 - `examples/` directories are all empty (merchant-checkout, payment-link, qr-payment, webhook-handler)
-- No Flutter SDK in the kernel repo (only exists in Banza)
+- No Flutter SDK in the kernel repo (only exists in Banzami)
 - SDKs are v0.1.0 but not published to npm, PyPI, or Packagist
 
 ---
@@ -65,7 +65,7 @@ All findings verified through direct code inspection of all three repositories.
 
 ---
 
-### 2.3 BanzamIA (AI Agent / Protocol Operating System)
+### 2.3 BanzAI (AI Agent / Protocol Operating System)
 
 **Score: 3 / 5 — Production Candidate**
 
@@ -79,7 +79,7 @@ All findings verified through direct code inspection of all three repositories.
 
 **Gaps:**
 - `live-ai` mode requires RunPod/vLLM deployment — planned but not deployed
-- BanzamIA runs in `live-api-no-model` mode in production (real RAG, mock LLM responses)
+- BanzAI runs in `live-api-no-model` mode in production (real RAG, mock LLM responses)
 - No real vector knowledge base pre-seeded for external operators (they must index themselves)
 - Protocol Graph builds at startup — cold start time unclear at scale
 
@@ -93,8 +93,8 @@ All findings verified through direct code inspection of all three repositories.
 - `docs/getting-started.md`: real 5-minute walkthrough to run sandbox locally
 - `docs/reference-api.md`: complete endpoint documentation
 - Conformance runner automates certification verification
-- BanzamIA certification copilot provides deterministic guidance
-- `docs/certification.md` and `docs/conformance.md` in Banza define the certification levels
+- BanzAI certification copilot provides deterministic guidance
+- `docs/certification.md` and `docs/conformance.md` in Banzami define the certification levels
 - Operator manifest (`/.well-known/banzami/operator.json`) implemented and documented
 
 **Gaps:**
@@ -120,7 +120,7 @@ All findings verified through direct code inspection of all three repositories.
 **Gaps:**
 - No production federation has occurred between any two real operators
 - No federation registry or discovery service running in production
-- Only one operator (Banza/reference-sandbox) exists — federation requires minimum two
+- Only one operator (Banzami/reference-sandbox) exists — federation requires minimum two
 - No cross-operator test suite in conformance vectors
 
 ---
@@ -130,16 +130,16 @@ All findings verified through direct code inspection of all three repositories.
 **Score: 3 / 5 — Production Candidate**
 
 **Evidence:**
-- Dockerfile and docker-compose.yml present for BanzamIA (multi-stage Node 22-Alpine + distroless runtime)
-- `deploy.sh` script at Banza repo root: deploys docs-frontend to `root@217.160.9.248`
+- Dockerfile and docker-compose.yml present for BanzAI (multi-stage Node 22-Alpine + distroless runtime)
+- `deploy.sh` script at Banzami repo root: deploys docs-frontend to `root@217.160.9.248`
 - Server is live (217.160.9.248) and serving docs site
 - CI pipeline functional for docs builds
 
 **Gaps:**
-- Banzami kernel deployment to production requires Go services (gateway, public-api, admin-api) + PostgreSQL — this infrastructure is not in a public repo
+- Banza kernel deployment to production requires Go services (gateway, public-api, admin-api) + PostgreSQL — this infrastructure is not in a public repo
 - No automated rollback or blue-green deployment
 - `live-ai` mode deployment not yet operational
-- BanzamIA Qdrant initialization is manual (no automated seeding for external deployments)
+- BanzAI Qdrant initialization is manual (no automated seeding for external deployments)
 
 ---
 
@@ -150,7 +150,7 @@ All findings verified through direct code inspection of all three repositories.
 **Evidence:**
 - `live-ai` mode fully implemented in code: `VLLMProvider` with Qwen2.5-7B, Qwen2.5-Coder-7B, DeepSeek-R1 support
 - Model routing logic implemented: generalist → Qwen, code → Qwen-Coder, reasoning → DeepSeek
-- RunPod integration architecture documented in BanzamIA README
+- RunPod integration architecture documented in BanzAI README
 - vLLM endpoint configuration via `BANZAMIA_VLLM_URL` env var
 
 **Gaps:**
@@ -161,19 +161,19 @@ All findings verified through direct code inspection of all three repositories.
 
 ---
 
-### 2.8 Business Readiness (Banza as First Operator)
+### 2.8 Business Readiness (Banzami as First Operator)
 
 **Score: 3 / 5 — Production Candidate**
 
 **Evidence:**
-- Banza homepage: Portuguese-language, Angola-focused, clear use cases (taxis, cantinas, ecommerce, schools, delivery)
+- Banzami homepage: Portuguese-language, Angola-focused, clear use cases (taxis, cantinas, ecommerce, schools, delivery)
 - Product positioning is tight: QR + wallet + SDK-native payment network for AOA
 - No Shopify/western platform dependency — architecture is local-market-first
 - Financial invariants use AOA as primary currency throughout (verified in audit)
 - Flutter mobile app implemented with full payment screens
 
 **Gaps:**
-- Banza production status not verifiable from public repos (private operator)
+- Banzami production status not verifiable from public repos (private operator)
 - Real merchant/consumer counts unknown
 - No public APIs available to external parties yet
 - Revenue model not documented in public materials
@@ -188,8 +188,8 @@ All findings verified through direct code inspection of all three repositories.
 - No Firebase credentials in any public repo (verified)
 - No APNs `.p8` keys in any repo (verified)
 - No private server IPs in public content (verified)
-- No EMIS/Multicaixa private integration details in public Banzami repo (verified)
-- BanzamIA safety constraints documented: read-only, no financial decisions
+- No EMIS/Multicaixa private integration details in public Banza repo (verified)
+- BanzAI safety constraints documented: read-only, no financial decisions
 - Double-entry ledger enforces financial invariants at engine level
 - Webhook signature verification implemented in all SDKs
 - `*_minor` integer money representation throughout — no floating-point money
@@ -211,10 +211,10 @@ All findings verified through direct code inspection of all three repositories.
 | 4 | **Live AI not deployed** — `live-ai` mode code-complete but RunPod not operational | AI Readiness | Medium |
 | 5 | **No external operator certified** — certification process untested end-to-end | Operator Onboarding, Trust | Medium |
 | 6 | **No federation in production** — only one operator exists | Federation | High |
-| 7 | **BanzamIA knowledge base not pre-seeded** — external operators must index themselves | AI Readiness | Medium |
-| 8 | **Flutter SDK missing from Banzami kernel** — only exists in Banza (private operator) | SDK | Medium |
+| 7 | **BanzAI knowledge base not pre-seeded** — external operators must index themselves | AI Readiness | Medium |
+| 8 | **Flutter SDK missing from Banza kernel** — only exists in Banzami (private operator) | SDK | Medium |
 | 9 | **Certification authority not operational** — self-assessed only, no CA for L1–L4 | Trust | Medium |
-| 10 | **Dual BanzamIA implementations** (standalone + embedded) not clearly documented | Operator Onboarding | Low |
+| 10 | **Dual BanzAI implementations** (standalone + embedded) not clearly documented | Operator Onboarding | Low |
 
 ---
 
@@ -224,7 +224,7 @@ All findings verified through direct code inspection of all three repositories.
 |---|----------|----------|
 | 1 | **19 production-quality Rust crates** with real state machines, not stubs | 76 .rs files, full engines |
 | 2 | **Fully runnable sandbox** with all documented routes implemented | 500+ lines, `cargo run --bin sandbox-operator` |
-| 3 | **BanzamIA is genuinely sophisticated** — RAG + Protocol Graph + 7 deterministic tools | Not a generic chatbot |
+| 3 | **BanzAI is genuinely sophisticated** — RAG + Protocol Graph + 7 deterministic tools | Not a generic chatbot |
 | 4 | **4 SDK languages all implemented** — TypeScript, Python, PHP, Go | Real code, not generated stubs |
 | 5 | **Comprehensive conformance suite** — 17 test vector files + Python runner | Not just documentation |
 | 6 | **Mode system enables gradual rollout** — demo → live-api → live-ai | Practical deployment path |
@@ -241,12 +241,12 @@ All findings verified through direct code inspection of all three repositories.
 |--------|-------|-------|
 | Technical Infrastructure | 4/5 | Production Ready |
 | SDK Ecosystem | 3/5 | Production Candidate |
-| BanzamIA AI Agent | 3/5 | Production Candidate |
+| BanzAI AI Agent | 3/5 | Production Candidate |
 | Operator Onboarding | 3/5 | Production Candidate |
 | Federation | 2/5 | Functional |
 | Deployment | 3/5 | Production Candidate |
 | Live AI | 2/5 | Functional |
-| Business (Banza) | 3/5 | Production Candidate |
+| Business (Banzami) | 3/5 | Production Candidate |
 | Trust & Security | 4/5 | Production Ready |
 
 **Aggregate Score: 3.2 / 5 — Production Candidate**
@@ -257,7 +257,7 @@ The ecosystem has a strong technical foundation and is near production-ready in 
 
 ## 6. Central Question
 
-> **If an external organization discovers Banzami tomorrow, can it realistically become a Payment Operator, then Settlement Operator, then Federation Operator using the protocol, documentation, certification framework and BanzamIA with minimal human assistance?**
+> **If an external organization discovers Banza tomorrow, can it realistically become a Payment Operator, then Settlement Operator, then Federation Operator using the protocol, documentation, certification framework and BanzAI with minimal human assistance?**
 
 **Answer: PARTIAL — In sandbox, YES. In production, NOT YET.**
 
@@ -265,7 +265,7 @@ The ecosystem has a strong technical foundation and is near production-ready in 
 - **Set up sandbox:** YES. `cargo run --bin sandbox-operator` works today.
 - **Integrate SDK:** PARTIAL. SDKs exist and have real code, but are not on public registries — operator must clone and build.
 - **Run conformance tests:** YES. Python runner + 17 test vectors work today.
-- **Get certification guidance from BanzamIA:** YES (in live-api-no-model mode). Deterministic tools work.
+- **Get certification guidance from BanzAI:** YES (in live-api-no-model mode). Deterministic tools work.
 - **Become Payment Operator (L1) in sandbox:** YES.
 - **Become Payment Operator (L1) in production:** NOT YET (no CA, no published SDKs, examples missing).
 - **Become Federation Operator:** NOT YET (requires a second real operator).

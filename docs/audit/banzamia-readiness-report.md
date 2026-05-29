@@ -1,4 +1,4 @@
-# BanzamIA Readiness Report
+# BanzAI Readiness Report
 
 **Version:** 1.0
 **Date:** 2026-05-29
@@ -7,14 +7,14 @@
 
 ---
 
-## 1. BanzamIA Architecture
+## 1. BanzAI Architecture
 
-BanzamIA exists in two deployment forms:
+BanzAI exists in two deployment forms:
 
 | Instance | Location | Purpose |
 |----------|----------|---------|
 | **Embedded** | `Banzami/apps/banzamia/` | Powers `banzami.org/banzamia`, the ecosystem-facing interface |
-| **Standalone** | `github.com/banzami/banzamia` | Independent BanzamIA system for direct deployment |
+| **Standalone** | `github.com/banzami/banzamia` | Independent BanzAI system for direct deployment |
 
 Both are real implementations. The embedded instance is the more complete and actively developed of the two.
 
@@ -71,7 +71,7 @@ Hybrid search: semantic vector search → if below threshold (0.45), fallback to
 
 ### Gaps
 
-- No pre-seeded knowledge base for external BanzamIA deployments — operators must run `npm run rag:index` themselves
+- No pre-seeded knowledge base for external BanzAI deployments — operators must run `npm run rag:index` themselves
 - Cold Qdrant initialization time on first startup is unknown at scale
 - No automated re-indexing when docs update (manual re-run required)
 
@@ -81,7 +81,7 @@ Hybrid search: semantic vector search → if below threshold (0.45), fallback to
 
 **Score: 4 / 5 — Production Ready**
 
-The Protocol Graph is BanzamIA's unique structural knowledge layer — it maps relationships between protocol concepts, not just full-text search.
+The Protocol Graph is BanzAI's unique structural knowledge layer — it maps relationships between protocol concepts, not just full-text search.
 
 ### Node Types (17)
 `rfc`, `adr`, `invariant`, `openapi`, `conformance_vector`, `certification_rule`, `manifest_schema`, `sdk_doc`, `architecture_doc`, `glossary_term`, `operator`, `capability`, `federation_profile`, `digital_twin`, `timeline_event`, `simulation_result`
@@ -168,7 +168,7 @@ The `live-ai` path is code-complete — only the RunPod/vLLM deployment is missi
 | Item | Status |
 |------|--------|
 | Dockerfile (embedded) | ✓ `docker/banzamia/Dockerfile` — Node 22-Alpine, distroless runtime |
-| docker-compose | ✓ `docker/banzamia/docker-compose.yml` — BanzamIA + Qdrant |
+| docker-compose | ✓ `docker/banzamia/docker-compose.yml` — BanzAI + Qdrant |
 | `.env.example` | ✓ 13+ config options documented |
 | Port | 4200 (configurable) |
 | Health check | ✓ `GET /health` with Qdrant + embedding status |
@@ -177,7 +177,7 @@ The `live-ai` path is code-complete — only the RunPod/vLLM deployment is missi
 
 ---
 
-## 9. Standalone BanzamIA Assessment
+## 9. Standalone BanzAI Assessment
 
 **Score: 3 / 5 — Production Candidate**
 
@@ -197,11 +197,11 @@ The standalone repo (`github.com/banzami/banzamia`) has three applications:
 
 ---
 
-## 10. Docs Site BanzamIA Integration
+## 10. Docs Site BanzAI Integration
 
 **Score: 5 / 5 — Fully integrated**
 
-The Banza docs site integrates BanzamIA through 16 fully implemented modules:
+The Banzami docs site integrates BanzAI through 16 fully implemented modules:
 
 | Module | Size | Purpose |
 |--------|------|---------|
@@ -219,34 +219,34 @@ The Banza docs site integrates BanzamIA through 16 fully implemented modules:
 | ResearchModule | 13.0 KB | Deep research mode |
 | SDKModule | 6.2 KB | SDK documentation and testing |
 | SimulatorModule | 13.5 KB | Protocol simulation UI |
-| StatusModule | 8.8 KB | BanzamIA system status |
+| StatusModule | 8.8 KB | BanzAI system status |
 | TraceModule | 7.3 KB | Trace analysis and explanation |
 
 All 16 modules are in `components/banzamia/modules/` — none are stubs.
 
 ---
 
-## 11. Top 5 BanzamIA Strengths
+## 11. Top 5 BanzAI Strengths
 
 1. **Genuinely unique architecture** — RAG + Protocol Graph + 7 deterministic tools is a novel combination for financial protocol assistance, not a generic chatbot
 2. **Deterministic tools are production-safe** — certification guidance, conformance results, and manifest validation produce consistent outputs regardless of LLM state
 3. **Mode system enables immediate deployment** — live-api-no-model provides real utility without GPU infrastructure
-4. **Protocol Graph is semantically rich** — 17 node types and 11 relationship types means BanzamIA can traverse protocol concepts structurally, not just by text similarity
+4. **Protocol Graph is semantically rich** — 17 node types and 11 relationship types means BanzAI can traverse protocol concepts structurally, not just by text similarity
 5. **16-module docs integration** — the most complete protocol-specific UI of any open financial infrastructure
 
 ---
 
-## 12. Top 5 BanzamIA Gaps
+## 12. Top 5 BanzAI Gaps
 
 1. **live-ai not deployed** — natural language Q&A works only with mock responses; real AI reasoning requires RunPod deployment
-2. **Knowledge base not pre-seeded** — external BanzamIA deployments require manual `rag:index` run; no out-of-the-box indexed corpus
-3. **Standalone repo outdated** — new Protocol OS modules (Simulator, Federation Intelligence, Memory, Digital Twin) not documented in standalone BanzamIA README
+2. **Knowledge base not pre-seeded** — external BanzAI deployments require manual `rag:index` run; no out-of-the-box indexed corpus
+3. **Standalone repo outdated** — new Protocol OS modules (Simulator, Federation Intelligence, Memory, Digital Twin) not documented in standalone BanzAI README
 4. **No benchmark results published** — evaluation scripts exist but no published metrics (precision@5, citation accuracy, adversarial pass rate)
 5. **Graph persistence missing** — Protocol Graph rebuilt from scratch on every restart; at scale, startup time will be a concern
 
 ---
 
-## 13. BanzamIA Overall Score
+## 13. BanzAI Overall Score
 
 | Dimension | Score |
 |-----------|-------|
@@ -263,4 +263,4 @@ All 16 modules are in `components/banzamia/modules/` — none are stubs.
 **Aggregate: 4.0 / 5 — Production Ready** (without live AI)
 **With live AI: 3.0 / 5 — Production Candidate** (mode not yet deployed)
 
-BanzamIA is genuinely sophisticated and ready for production use in `live-api-no-model` mode. The single biggest gap is the absence of live AI inference — which is the defining feature of the "AI-native Protocol Agent" positioning.
+BanzAI is genuinely sophisticated and ready for production use in `live-api-no-model` mode. The single biggest gap is the absence of live AI inference — which is the defining feature of the "AI-native Protocol Agent" positioning.

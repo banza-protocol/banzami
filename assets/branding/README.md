@@ -1,4 +1,4 @@
-# Banzami Brand Assets
+# Banza Brand Assets
 
 ## Master Icon
 

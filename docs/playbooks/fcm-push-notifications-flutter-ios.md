@@ -1,6 +1,6 @@
 # FCM Push Notifications — Flutter iOS (Multi-Flavor)
 
-Guia completo de implementação de push notifications com Firebase Cloud Messaging num projeto Flutter com múltiplos flavors iOS (ex: `consumer` e `merchant`). Baseado na implementação real do Banzami.
+Guia completo de implementação de push notifications com Firebase Cloud Messaging num projeto Flutter com múltiplos flavors iOS (ex: `consumer` e `merchant`). Baseado na implementação real do Banza.
 
 ---
 

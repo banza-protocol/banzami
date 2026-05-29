@@ -7,10 +7,10 @@
 
 ## Context
 
-Banzami has two distinct classes of web dashboard users:
+Banza has two distinct classes of web dashboard users:
 
 1. **Merchants** — external customers who need to monitor their transactions, manage API keys, configure webhooks, and initiate payouts.
-2. **Banzami Operators** — internal staff who perform compliance actions (KYC approval/rejection/AML flagging), manage the settlement lifecycle, and trigger reconciliation.
+2. **Banza Operators** — internal staff who perform compliance actions (KYC approval/rejection/AML flagging), manage the settlement lifecycle, and trigger reconciliation.
 
 The question was whether to build one multi-role dashboard or two separate applications.
 
@@ -30,7 +30,7 @@ Key reasons:
 
 **Operational clarity:** Operators see only the screens relevant to their role (compliance, settlement lifecycle, payout management, reconciliation). Merchants see only their business data (transactions, wallet, payouts, webhooks, API keys). Cross-contamination of mental models increases operational error risk.
 
-**Shared design system:** Both apps use identical Tailwind configuration with Banzami brand tokens (`apps/dashboard/tailwind.config.ts` and `apps/admin/tailwind.config.ts` are identical). When the shared TypeScript SDK (`@banza/sdk`) is published, both apps will import from it. The visual differentiation is intentional: the admin app uses a dark (`gray-900`) sidebar and login screen to signal its internal-only nature.
+**Shared design system:** Both apps use identical Tailwind configuration with Banza brand tokens (`apps/dashboard/tailwind.config.ts` and `apps/admin/tailwind.config.ts` are identical). When the shared TypeScript SDK (`@banza/sdk`) is published, both apps will import from it. The visual differentiation is intentional: the admin app uses a dark (`gray-900`) sidebar and login screen to signal its internal-only nature.
 
 ---
 
@@ -47,4 +47,4 @@ Key reasons:
 - Two separate `npm install` / build / deploy pipelines. Managed via the root `Makefile`.
 - Ports: `apps/dashboard` runs on `:3001`, `apps/admin` runs on `:3002` in development.
 - Future: the `docker-compose.full.yml` should be extended to include containerised builds of both dashboard apps when needed for staging.
-- If the Banzami team grows, ownership of each app can be assigned to separate teams without merge conflicts.
+- If the Banza team grows, ownership of each app can be assigned to separate teams without merge conflicts.

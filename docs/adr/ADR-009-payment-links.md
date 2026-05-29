@@ -9,7 +9,7 @@
 
 Angola's informal commerce operates largely through WhatsApp groups, Instagram stories, and direct messages. Merchants list products, buyers respond, and payment is settled via mobile money or cash. There is no universal checkout flow.
 
-Banzami needs a zero-friction payment primitive that:
+Banza needs a zero-friction payment primitive that:
 
 1. Works without the merchant having a website or app.
 2. Works for the customer in any browser, without installing an app.
@@ -28,7 +28,7 @@ A payment link is a shareable URL (`https://pay.banzami.org/{slug}`) backed by a
 
 **Two link types:** fixed-amount (amount locked at creation) and open (customer enters amount).
 
-**Pay page stack:** Next.js 14 App Router (`apps/pay/`) serving the consumer-facing checkout page, polling the api-gateway for status updates, rendering a QR code so mobile users can open the Banzami app.
+**Pay page stack:** Next.js 14 App Router (`apps/pay/`) serving the consumer-facing checkout page, polling the api-gateway for status updates, rendering a QR code so mobile users can open the Banza app.
 
 ---
 
@@ -70,7 +70,7 @@ The pay page polls `GET /public/pay/{slug}/status` every 3 seconds. The endpoint
 - Open links unlock use cases (donations, tips) that fixed-amount links cannot serve.
 
 **Negative:**
-- Open links require consumers to have a registered Banzami account — anonymous payment is not supported in V1.
+- Open links require consumers to have a registered Banza account — anonymous payment is not supported in V1.
 - Pay page requires a separate domain (`pay.banzami.org`) and TLS certificate.
 - Slug enumeration is theoretically possible; rate limiting and monitoring are required controls.
 

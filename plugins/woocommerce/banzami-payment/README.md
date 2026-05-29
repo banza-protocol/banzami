@@ -1,19 +1,19 @@
-# Banza Payment Gateway for WooCommerce
+# Banzami Payment Gateway for WooCommerce
 
-Accept payments via the Banza payment network in any WooCommerce store. Customers pay by scanning a QR code with the Banza app — no card details, no redirects to external pages.
+Accept payments via the Banzami payment network in any WooCommerce store. Customers pay by scanning a QR code with the Banzami app — no card details, no redirects to external pages.
 
 ## Requirements
 
 - WordPress 6.0+
 - WooCommerce 7.0+
 - PHP 7.4+
-- A Banzami merchant account with an API key and wallet
+- A Banza merchant account with an API key and wallet
 
 ## Installation
 
 1. Upload the `banzami-payment/` folder to `/wp-content/plugins/`.
-2. In WordPress admin go to **Plugins → Installed Plugins** and activate **Banza Payment Gateway**.
-3. Go to **WooCommerce → Settings → Payments** and click **Banza**.
+2. In WordPress admin go to **Plugins → Installed Plugins** and activate **Banzami Payment Gateway**.
+3. Go to **WooCommerce → Settings → Payments** and click **Banzami**.
 4. Fill in the settings (see below) and click **Save changes**.
 
 ## Configuration
@@ -21,17 +21,17 @@ Accept payments via the Banza payment network in any WooCommerce store. Customer
 | Setting | Description |
 |---|---|
 | **Enable** | Toggle the gateway on/off at checkout |
-| **Title** | Label shown to customers at checkout (e.g. "Banza — Pagar com o telemóvel") |
+| **Title** | Label shown to customers at checkout (e.g. "Banzami — Pagar com o telemóvel") |
 | **Description** | Short description shown below the title at checkout |
-| **Gateway URL** | Your Banzami API gateway URL (`https://api.banzami.org` for production) |
-| **API Key** | Merchant API key from the Banzami dashboard — starts with `bz_live_` |
-| **Webhook Secret** | Signing secret from the Banzami dashboard — used to verify webhook authenticity |
+| **Gateway URL** | Your Banza API gateway URL (`https://api.banzami.org` for production) |
+| **API Key** | Merchant API key from the Banza dashboard — starts with `bz_live_` |
+| **Webhook Secret** | Signing secret from the Banza dashboard — used to verify webhook authenticity |
 | **Currency** | `AOA` (Angolan Kwanza) or `USD` |
 | **Payment Timeout** | Minutes before an unpaid order is cancelled (default: 30) |
 
 ## Webhook Setup
 
-Register your webhook endpoint in the Banzami merchant dashboard:
+Register your webhook endpoint in the Banza merchant dashboard:
 
 ```
 https://your-store.com/wc-api/banzami
@@ -75,7 +75,7 @@ The plugin stores these custom meta fields on each order:
 
 | Meta key | Value |
 |---|---|
-| `_banzami_transaction_id` | Banzami transaction ID (UUID) |
+| `_banzami_transaction_id` | Banza transaction ID (UUID) |
 | `_banzami_amount_minor` | Amount in minor units (integer) sent to the API |
 | `_banzami_refund_processed` | Set to `"1"` after a refund webhook is processed (prevents duplicates) |
 
@@ -84,11 +84,11 @@ The plugin stores these custom meta fields on each order:
 - **AOA:** `amount_minor` = integer kwanzas (no decimal — 1 AOA = 1 minor unit)
 - **USD and others:** `amount_minor` = cents (`50.00 USD` → `5000`)
 
-This follows the Banzami platform convention. Do not pass floating-point amounts to the API.
+This follows the Banza platform convention. Do not pass floating-point amounts to the API.
 
 ## Local Development
 
-Use [ngrok](https://ngrok.com/) or a similar tunnel to expose your local WordPress to Banzami webhooks:
+Use [ngrok](https://ngrok.com/) or a similar tunnel to expose your local WordPress to Banza webhooks:
 
 ```bash
 ngrok http 80
@@ -115,13 +115,13 @@ curl -X POST https://your-tunnel.ngrok.io/wc-api/banzami \
 
 **Orders stay in "Pending payment" after payment.**
 Check that:
-1. The Webhook URL is correctly registered in the Banzami dashboard.
+1. The Webhook URL is correctly registered in the Banza dashboard.
 2. The Webhook Secret matches exactly (no trailing spaces).
 3. Your server is accessible from the internet (not blocked by a firewall).
 4. WooCommerce → Status → Logs shows no PHP errors for the `banzami` source.
 
 **Signature verification fails (401 in logs).**
-The Webhook Secret in WooCommerce settings must exactly match the one in the Banzami dashboard. Regenerate both if unsure.
+The Webhook Secret in WooCommerce settings must exactly match the one in the Banza dashboard. Regenerate both if unsure.
 
 **Payment page shows but QR code is blank.**
 The QR code is generated client-side using the `qrcode.js` library. Check your browser console for JavaScript errors or a Content Security Policy blocking the script.

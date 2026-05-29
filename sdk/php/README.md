@@ -1,8 +1,8 @@
 # banzami/sdk-php
 
-Official PHP SDK for the Banzami payment platform — Angola's QR-native instant payment network.
+Official PHP SDK for the Banza payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings. All monetary values are in AOA (Kwanza), expressed as **integer minor units**.
+Banza is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings. All monetary values are in AOA (Kwanza), expressed as **integer minor units**.
 
 > See [ADR-013](../../docs/adr/ADR-013-wallet-native-identity.md) and [ADR-014](../../docs/adr/ADR-014-angola-national-mission.md) for platform identity and market positioning.
 
@@ -214,7 +214,7 @@ echo $payout['status']; // "PENDING"
 
 ## Webhooks
 
-Banzami signs every webhook delivery. Always verify the signature before processing.
+Banza signs every webhook delivery. Always verify the signature before processing.
 
 ```php
 use Banzami\Webhooks;

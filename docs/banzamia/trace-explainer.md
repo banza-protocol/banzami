@@ -1,4 +1,4 @@
-# BanzamIA — Trace Explainer
+# BanzAI — Trace Explainer
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,9 +8,9 @@
 
 ## Overview
 
-The Trace Explainer reconstructs the complete causal event timeline for any Banzami payment flow and verifies that all financial invariants hold.
+The Trace Explainer reconstructs the complete causal event timeline for any Banza payment flow and verifies that all financial invariants hold.
 
-Every payment in Banzami produces a `trace_id`. Given that ID, the Trace Explainer retrieves every event in causal order, displays the ledger entries, and reports invariant status for the complete flow.
+Every payment in Banza produces a `trace_id`. Given that ID, the Trace Explainer retrieves every event in causal order, displays the ledger entries, and reports invariant status for the complete flow.
 
 ---
 
@@ -86,19 +86,19 @@ All timestamps are displayed in UTC time (HH:MM:SS). Full ISO 8601 timestamps ar
 
 ## Using the Trace Explainer
 
-### Via BanzamIA UI
+### Via BanzAI UI
 
-Navigate to **BanzamIA → Trace Explainer**. Enter a `trace_id` (format: `tr_<slug>`). Click Load.
+Navigate to **BanzAI → Trace Explainer**. Enter a `trace_id` (format: `tr_<slug>`). Click Load.
 
 Leave the field empty and click **Demo** to load a sample trace.
 
-### Via BanzamIA Chat
+### Via BanzAI Chat
 
 ```
 > Explica o trace tr_abc123xyz
 ```
 
-BanzamIA will retrieve the trace, display the timeline in prose, and report invariant status.
+BanzAI will retrieve the trace, display the timeline in prose, and report invariant status.
 
 ### Via API (planned)
 

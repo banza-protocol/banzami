@@ -1,4 +1,4 @@
-# BanzamIA — SDK Assistant
+# BanzAI — SDK Assistant
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The SDK Assistant generates integration code for Banzami SDKs and guides developers through the complete integration process — from first API call to production readiness.
+The SDK Assistant generates integration code for Banza SDKs and guides developers through the complete integration process — from first API call to production readiness.
 
 ---
 
@@ -234,13 +234,13 @@ Checklist before switching from sandbox to live:
 - [ ] Replace API key in environment variables
 - [ ] Register live webhook endpoints (sandbox webhooks are not called for live events)
 - [ ] Verify webhook signature implementation with a live test transaction
-- [ ] Fund live wallet via Banzami operations
+- [ ] Fund live wallet via Banza operations
 
 ---
 
 ## Asking the SDK Assistant
 
-The SDK Assistant in BanzamIA can generate code for any integration scenario:
+The SDK Assistant in BanzAI can generate code for any integration scenario:
 
 ```
 > Gera código TypeScript para criar um pagamento QR dinâmico

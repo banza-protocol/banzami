@@ -1,12 +1,12 @@
-# Banza SDK Certification Suite
+# Banzami SDK Certification Suite
 
-Shared golden test vectors and per-SDK test runners that verify all Banza SDK implementations produce identical webhook signature verification behavior.
+Shared golden test vectors and per-SDK test runners that verify all Banzami SDK implementations produce identical webhook signature verification behavior.
 
 ---
 
 ## Purpose
 
-This suite enforces the **cross-SDK contract**: every official Banza SDK must verify webhook signatures identically to the canonical Go implementation in `services/api-gateway/internal/webhook/signer.go`.
+This suite enforces the **cross-SDK contract**: every official Banzami SDK must verify webhook signatures identically to the canonical Go implementation in `services/api-gateway/internal/webhook/signer.go`.
 
 Passing this certification is a **merge requirement** for all SDK PRs.
 

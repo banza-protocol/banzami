@@ -7,7 +7,7 @@
 
 ## Business Purpose
 
-A merchant is an entity that uses Banzami to accept payments. Every merchant has an identity record, a status that controls whether they can process transactions, and a set of API keys for programmatic access.
+A merchant is an entity that uses Banza to accept payments. Every merchant has an identity record, a status that controls whether they can process transactions, and a set of API keys for programmatic access.
 
 This domain handles merchant registration, status management, and the full lifecycle of API key issuance, rotation, and revocation.
 

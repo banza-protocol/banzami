@@ -1,4 +1,4 @@
-# Banzami Mobile UX Philosophy
+# Banza Mobile UX Philosophy
 
 **Status:** Active  
 **Date:** 2026-05-19  
@@ -12,18 +12,18 @@
 
 This is not a tagline. It is the product contract with every Angolan user.
 
-Every mobile payment interaction Banzami ships must respect this sequence. If a flow deviates — adds friction, introduces waiting, or requires manual confirmation — it must be justified against this standard and treated as a defect to be resolved.
+Every mobile payment interaction Banza ships must respect this sequence. If a flow deviates — adds friction, introduces waiting, or requires manual confirmation — it must be justified against this standard and treated as a defect to be resolved.
 
 ---
 
 ## Why Mobile UX Is a First-Class Engineering Concern
 
-Banzami's primary market is Angola. In Angola:
+Banza's primary market is Angola. In Angola:
 
 - The majority of digital commerce happens on smartphones, not desktop browsers.
 - Mobile data is expensive and not always fast. Screens must load fast on 3G; flows must survive network interruption.
 - A significant portion of target users are first-time digital payment users. Cognitive load must be minimal.
-- The competitor is cash — which is frictionless, instant, and requires no app. Banzami must be *easier* than cash.
+- The competitor is cash — which is frictionless, instant, and requires no app. Banza must be *easier* than cash.
 - Merchant hardware is minimal. Most small merchants have one phone, not a POS terminal. The merchant experience must work on a mid-range Android with no accessories.
 
 If the UX is slow, confusing, or unreliable, users return to cash and WhatsApp. There is no margin for "good enough."
@@ -32,16 +32,16 @@ If the UX is slow, confusing, or unreliable, users return to cash and WhatsApp. 
 
 ## Reference Models
 
-These platforms set the standard for what Banzami's UX must feel like. They are reference for interaction quality and user expectation — not competitors.
+These platforms set the standard for what Banza's UX must feel like. They are reference for interaction quality and user expectation — not competitors.
 
-| Platform | What Banzami learns from it |
+| Platform | What Banza learns from it |
 |----------|----------------------------|
 | **Pix (Brazil)** | QR scan → immediate confirmation → no waiting; zero cognitive load for merchants; every Brazilian bank must support it |
 | **UPI / PhonePe (India)** | @handle as primary payment address; instant push notification on receipt; clean confirmation screen |
 | **WeChat Pay (China)** | QR is the dominant consumer habit; speed and reliability make QR preferable to cash even for tiny transactions |
 | **M-Pesa (Kenya/Tanzania)** | Mobile money that works on basic phones; trust through simplicity; offline-tolerant design |
 
-These platforms did not succeed by being "good enough." They succeeded by being obviously, demonstrably better than the alternative. Banzami must do the same for Angola.
+These platforms did not succeed by being "good enough." They succeeded by being obviously, demonstrably better than the alternative. Banza must do the same for Angola.
 
 ---
 
@@ -102,7 +102,7 @@ Users must never be asked for:
 - expiry dates,
 - billing addresses.
 
-Banzami is a wallet-native network. The consumer pays from their Banzami wallet. Card top-up (future feature) happens in a separate, clearly framed "add funds" flow — never inside a merchant payment confirmation.
+Banza is a wallet-native network. The consumer pays from their Banza wallet. Card top-up (future feature) happens in a separate, clearly framed "add funds" flow — never inside a merchant payment confirmation.
 
 ### 2. One-tap confirmation for known merchants
 
@@ -161,7 +161,7 @@ The merchant app must work on a low-end Android (2GB RAM, 5-year-old chipset) wi
 
 ### App-integrated merchant (taxi, delivery)
 
-The payment UI is embedded inside the merchant's own app via the Banzami Flutter SDK. The SDK provides:
+The payment UI is embedded inside the merchant's own app via the Banza Flutter SDK. The SDK provides:
 - a pre-built payment confirmation sheet (bottom sheet or full-screen),
 - configurable branding (merchant colors, logo),
 - real-time payment status via WebSocket,

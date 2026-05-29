@@ -1,6 +1,6 @@
-# Banzami Python SDK
+# Banza Python SDK
 
-Official async Python SDK for the [Banzami](https://banzami.org) payments platform — Angola's modern payment infrastructure.
+Official async Python SDK for the [Banza](https://banzami.org) payments platform — Angola's modern payment infrastructure.
 
 ## Requirements
 
@@ -237,4 +237,4 @@ See the `examples/` directory for working integrations with:
 
 ## License
 
-MIT — © 2026 Banzami
+MIT — © 2026 Banza

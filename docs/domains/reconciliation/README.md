@@ -7,7 +7,7 @@
 
 ## Business Purpose
 
-Reconciliation is the process of comparing Banzami's internal settlement records against the bank's external statement to verify that every Kz is accounted for. It detects discrepancies before they become financial losses or disputes.
+Reconciliation is the process of comparing Banza's internal settlement records against the bank's external statement to verify that every Kz is accounted for. It detects discrepancies before they become financial losses or disputes.
 
 Reconciliation is not optional infrastructure. It is the mechanism that proves the platform is financially correct.
 

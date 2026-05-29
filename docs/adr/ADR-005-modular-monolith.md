@@ -7,7 +7,7 @@
 
 ## Context
 
-Early-stage distributed systems impose heavy operational costs: distributed transactions, network partitions, schema coordination across services, polyglot observability, and complex local development environments. Banzami is building infrastructure that must be correct before it is fast and scalable.
+Early-stage distributed systems impose heavy operational costs: distributed transactions, network partitions, schema coordination across services, polyglot observability, and complex local development environments. Banza is building infrastructure that must be correct before it is fast and scalable.
 
 The question is: how should the system be decomposed and deployed, and under what conditions should that change?
 
@@ -61,7 +61,7 @@ Microservices solve scaling and team ownership problems. They introduce:
 - **Operational overhead** — each service needs its own CI/CD pipeline, health checks, logging aggregation, and distributed tracing instrumentation.
 - **Local development complexity** — running 10 services locally requires orchestration that slows down every engineer.
 
-None of these costs are justified at Banzami's current scale. The team is small, the domains are well-understood, and correctness is more important than independent scalability.
+None of these costs are justified at Banza's current scale. The team is small, the domains are well-understood, and correctness is more important than independent scalability.
 
 ### Why three processes and not one?
 

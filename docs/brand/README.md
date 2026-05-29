@@ -1,8 +1,8 @@
-# Banzami Brand System
+# Banza Brand System
 
 ## Identity Statement
 
-Banzami is Angola's programmable instant payments infrastructure — not a startup product, not a western fintech clone, not a wallet app.
+Banza is Angola's programmable instant payments infrastructure — not a startup product, not a western fintech clone, not a wallet app.
 
 The platform is four layers deep: consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. The visual identity communicates: **trust, speed, resilience, and Angolan technological ambition.**
 
@@ -168,7 +168,7 @@ Button height: 48dp (mobile), 40dp (web). Never smaller than 44dp touch target.
 
 ## UI Philosophy
 
-The Banzami interface must feel:
+The Banza interface must feel:
 
 > "Modern African financial infrastructure — confident, fast, and clear."
 
@@ -188,13 +188,13 @@ The mobile app's primary screen revolves around:
 4. **Receive** — third action
 5. **Recent activity** — scrollable, below the fold
 
-The hierarchy communicates: *Banzami is a payment tool, not a social network.*
+The hierarchy communicates: *Banza is a payment tool, not a social network.*
 
 ---
 
 ## Anti-Patterns
 
-These must never appear in Banzami interfaces:
+These must never appear in Banza interfaces:
 
 - Neon or glowing colors
 - Dark/night mode themes (v1)

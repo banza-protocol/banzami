@@ -1,4 +1,4 @@
-# BanzamIA — Operator Builder
+# BanzAI — Operator Builder
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,11 +8,11 @@
 
 ## Overview
 
-The Operator Builder module guides you through creating a valid Banzami Operator Manifest. A manifest is the machine-readable declaration that defines who you are as an operator, what capabilities you implement, and what certification level you are targeting.
+The Operator Builder module guides you through creating a valid Banza Operator Manifest. A manifest is the machine-readable declaration that defines who you are as an operator, what capabilities you implement, and what certification level you are targeting.
 
 Start here if you are:
-- Building a new Banzami protocol operator
-- Integrating Banzami payments into an existing platform
+- Building a new Banza protocol operator
+- Integrating Banza payments into an existing platform
 - Seeking certification for an existing implementation
 
 ---
@@ -144,7 +144,7 @@ Capabilities are atomic, independently testable units. Each is associated with a
 
 ## Guided Creation Flow
 
-The Operator Builder module in BanzamIA walks you through manifest creation step by step:
+The Operator Builder module in BanzAI walks you through manifest creation step by step:
 
 1. **Identity** — enter your `operator_id` and organisation name
 2. **Target level** — select certification level 0–4
@@ -152,7 +152,7 @@ The Operator Builder module in BanzamIA walks you through manifest creation step
 4. **Invariants** — builder auto-populates required invariants for selected capabilities
 5. **Endpoints** — sandbox and live API endpoints
 6. **Contacts** — technical and operations contact emails
-7. **Review** — BanzamIA Manifest Validator runs automatically
+7. **Review** — BanzAI Manifest Validator runs automatically
 8. **Download** — download the validated manifest JSON
 
 ---
@@ -175,7 +175,7 @@ After creating a valid manifest:
 
 1. Implement the capabilities declared in your manifest
 2. Run the [Conformance Suite](../conformance.md) for your target level
-3. Use the BanzamIA [Conformance module](../banzamia/overview.md) to verify results
+3. Use the BanzAI [Conformance module](../banzamia/overview.md) to verify results
 4. Submit for [Certification](../certification.md)
 
 ---

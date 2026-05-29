@@ -4,7 +4,7 @@ User-facing TypeScript / Next.js applications.
 
 ## Contents
 
-- `checkout/` — Hosted checkout page (`pay.banzami.org`): QR-first payment page for Banzami payment links.
+- `checkout/` — Hosted checkout page (`pay.banzami.org`): QR-first payment page for Banza payment links.
 - `dashboard/` — Merchant dashboard (analytics, transactions, settlements, payouts).
 - `admin/` — Internal admin console (operations, disputes, compliance review).
 - `docs/` — Public developer documentation site.

@@ -1,4 +1,4 @@
-# BanzamIA — Overview
+# BanzAI — Overview
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -6,28 +6,28 @@
 
 ---
 
-## What is BanzamIA?
+## What is BanzAI?
 
-BanzamIA is the AI-native interface for building, validating, and certifying Banzami protocol operators. It is deployed at `banzami.org/banzamia`.
+BanzAI is the AI-native interface for building, validating, and certifying Banza protocol operators. It is deployed at `banzami.org/banzamia`.
 
-BanzamIA is not a chatbot. It is an **AI-native Protocol Agent** — an AI system specifically grounded in the Banzami protocol, financial invariants, conformance specifications, and governance documents.
+BanzAI is not a chatbot. It is an **AI-native Protocol Agent** — an AI system specifically grounded in the Banza protocol, financial invariants, conformance specifications, and governance documents.
 
 > **Tools determine truth. AI explains truth.**
 
-This is BanzamIA's core principle. Financial invariants are verified by deterministic tools. BanzamIA surfaces tool results in natural language, explains protocol semantics, generates integration code, and guides operators through certification — but it does not replace the tools that enforce correctness.
+This is BanzAI's core principle. Financial invariants are verified by deterministic tools. BanzAI surfaces tool results in natural language, explains protocol semantics, generates integration code, and guides operators through certification — but it does not replace the tools that enforce correctness.
 
 ---
 
-## What BanzamIA Is
+## What BanzAI Is
 
 - A protocol Q&A interface grounded in citations (RFC, ADR, invariants)
 - A guided operator manifest creation tool
 - A conformance test runner and result explainer
 - A trace reconstructor and invariant verifier
-- An SDK code generator for Banzami integration
+- An SDK code generator for Banza integration
 - A semantic search engine over protocol documentation
 
-## What BanzamIA Is Not
+## What BanzAI Is Not
 
 - A substitute for running the conformance suite
 - An autonomous certifier (certification requires tooling + human approval)
@@ -55,7 +55,7 @@ This is BanzamIA's core principle. Financial invariants are verified by determin
 
 ### Live Mode
 
-When `NEXT_PUBLIC_BANZAMIA_API_URL` is configured, BanzamIA connects to the live API:
+When `NEXT_PUBLIC_BANZAMIA_API_URL` is configured, BanzAI connects to the live API:
 
 - Real streaming responses from protocol-grounded models
 - Multi-model routing (orchestrator → task-specific model)
@@ -63,11 +63,11 @@ When `NEXT_PUBLIC_BANZAMIA_API_URL` is configured, BanzamIA connects to the live
 - Citation sourcing from indexed protocol documents
 - Tool integration for invariant checking and manifest validation
 
-Live mode is indicated by a green badge: **⬤ Live — connected to BanzamIA API**
+Live mode is indicated by a green badge: **⬤ Live — connected to BanzAI API**
 
 ### Demo Mode
 
-When the API is unavailable, BanzamIA falls back to static demo responses:
+When the API is unavailable, BanzAI falls back to static demo responses:
 
 - Pre-written responses for common protocol questions
 - Source chips showing where citations would appear
@@ -78,7 +78,7 @@ When the API is unavailable, BanzamIA falls back to static demo responses:
 
 ## Security Posture
 
-BanzamIA operates with a strict read-only security posture:
+BanzAI operates with a strict read-only security posture:
 
 | Action | Allowed |
 |--------|---------|
@@ -95,24 +95,24 @@ BanzamIA operates with a strict read-only security posture:
 
 ## Homepage Integration
 
-A lightweight BanzamIA entry card is embedded on the Banzami homepage. It provides:
+A lightweight BanzAI entry card is embedded on the Banza homepage. It provides:
 
 - 6 quick-prompt chips for common protocol questions
 - Inline streaming answer (read-only, no tools)
 - Source chips showing citation types
-- "Continuar no BanzamIA completo →" deep link to `/banzamia?question=...&auto=1`
+- "Continuar no BanzAI completo →" deep link to `/banzamia?question=...&auto=1`
 
-Deep links to the full BanzamIA interface auto-submit the question and show the complete module panel.
+Deep links to the full BanzAI interface auto-submit the question and show the complete module panel.
 
 ---
 
 ## References
 
-- [Architecture](architecture.md) — technical architecture of BanzamIA
-- [API](api.md) — BanzamIA API contract
+- [Architecture](architecture.md) — technical architecture of BanzAI
+- [API](api.md) — BanzAI API contract
 - [Operator Builder](operator-builder.md) — manifest creation guide
 - [Manifest Validator](manifest-validator.md) — validation reference
 - [Trace Explainer](trace-explainer.md) — trace reconstruction guide
 - [SDK Assistant](sdk-assistant.md) — code generation guide
 - [Knowledge Search](knowledge-search.md) — semantic search guide
-- [Roadmap](roadmap.md) — BanzamIA development roadmap
+- [Roadmap](roadmap.md) — BanzAI development roadmap

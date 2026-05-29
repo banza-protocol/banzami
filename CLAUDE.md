@@ -1,4 +1,4 @@
-# Banzami Engineering Constitution
+# Banza Engineering Constitution
 
 ## National-Grade Financial Infrastructure for Angola
 
@@ -8,17 +8,17 @@
 
 ## 1.1 Primary National Mission
 
-Banzami exists to:
+Banza exists to:
 
 **Modernize and revolutionize digital payments in Angola.**
 
-Banzami is NOT trying to become:
+Banza is NOT trying to become:
 
 * a generic African fintech,
 * a continental super-app,
 * or a broad "Africa payments" platform.
 
-Banzami is focused FIRST on Angola.
+Banza is focused FIRST on Angola.
 
 Everything is optimized for:
 
@@ -31,21 +31,21 @@ Everything is optimized for:
 
 ## 1.2 Core National Objective
 
-Banzami aims to become:
+Banza aims to become:
 
 1. **The first true QR-native instant payment network in Angola.**
 2. **The first Angola-native SDK payment infrastructure** — enabling applications, ecommerce platforms, and mobile apps to accept instant online payments in Kwanza directly inside their products.
 
-## 1.3 The Transformation Banzami Enables
+## 1.3 The Transformation Banza Enables
 
 ### Taxi apps
-Today many Angolan taxi apps rely on cash, manual transfer confirmation, or payment outside the app. Banzami enables European-style in-app payments: ride completed → instant settlement → no cash, no manual confirmation, no external proof.
+Today many Angolan taxi apps rely on cash, manual transfer confirmation, or payment outside the app. Banza enables European-style in-app payments: ride completed → instant settlement → no cash, no manual confirmation, no external proof.
 
 ### Small merchants and cantinas
 Any business should be able to print a QR, receive instant Kwanza payments, and manage a business wallet — with no expensive terminal infrastructure.
 
 ### Ecommerce and mobile apps
-Banzami must become the standard SDK payment layer for Angola: ecommerce sites, delivery apps, marketplaces, schools, creators, taxi apps, donation platforms — all integrating Banzami SDKs and receiving instant Kwanza payments.
+Banza must become the standard SDK payment layer for Angola: ecommerce sites, delivery apps, marketplaces, schools, creators, taxi apps, donation platforms — all integrating Banza SDKs and receiving instant Kwanza payments.
 
 ### Creator and donation economy
 Apps like DOA: receive donations instantly, generate QR codes, receive wallet settlement, operate entirely in Kwanza.
@@ -55,7 +55,7 @@ Consumers transfer instantly, request money, pay via QR, pay via @handle — wit
 
 ## 1.4 Eliminating Angolan Payment Friction
 
-Banzami aims to eliminate:
+Banza aims to eliminate:
 
 * manual payments,
 * cash dependency,
@@ -71,7 +71,7 @@ SCAN  →  CONFIRM  →  PAID INSTANTLY
 
 ## 1.5 Official Positioning
 
-CORRECT descriptions of Banzami:
+CORRECT descriptions of Banza:
 
 * Angola's instant payment network
 * QR-native payment ecosystem
@@ -80,7 +80,7 @@ CORRECT descriptions of Banzami:
 * Mobile-first payment network
 * Angola-native SDK payment infrastructure
 
-INCORRECT descriptions of Banzami:
+INCORRECT descriptions of Banza:
 
 * Pan-African super-app (premature — Angola first)
 * Stripe for Africa (wrong model — wallet-native, not card-centric)
@@ -94,14 +94,14 @@ EMIS is NOT the product layer.
 
 EMIS is one of the infrastructure rails — one integration among several, enabling access to real Angolan payment infrastructure.
 
-Banzami provides the UX layer, wallet layer, QR layer, SDK layer, merchant layer, developer platform, and payment network on top of those rails.
+Banza provides the UX layer, wallet layer, QR layer, SDK layer, merchant layer, developer platform, and payment network on top of those rails.
 
 ## 1.7 Bank Relationship Philosophy
 
-Banks are not competitors. Banzami is an interoperability and simplification layer.
+Banks are not competitors. Banza is an interoperability and simplification layer.
 
 * Banks and EMIS provide: banking rails, settlement access, regulatory integration.
-* Banzami provides: instant UX, QR commerce, SDK infrastructure, developer integration, merchant tooling, mobile payment experiences, wallet-native payments.
+* Banza provides: instant UX, QR commerce, SDK infrastructure, developer integration, merchant tooling, mobile payment experiences, wallet-native payments.
 
 ## 1.8 Long-Term Objective
 
@@ -137,7 +137,7 @@ The platform is engineered with:
 * modern security standards,
 * long-term maintainability.
 
-Banzami is NOT a simple startup product.
+Banza is NOT a simple startup product.
 
 It is national-scale financial infrastructure for Angola.
 
@@ -194,7 +194,7 @@ All money movement MUST go through:
 
 ## 2.2 Reliability Over Hype
 
-Banzami prioritizes:
+Banza prioritizes:
 
 * stability,
 * predictability,
@@ -269,7 +269,7 @@ Future engineers must understand the system quickly.
 
 ## 2.6 Instant Payments as a Core Architectural Principle
 
-Banzami is designed as:
+Banza is designed as:
 
 * realtime payment infrastructure,
 * realtime money movement infrastructure,
@@ -282,7 +282,7 @@ They are a foundational product characteristic.
 
 ### Core Philosophy
 
-By default, ALL Banzami payment experiences must feel instant.
+By default, ALL Banza payment experiences must feel instant.
 
 The user experience target is:
 
@@ -428,7 +428,7 @@ The speed comes from excellent engineering, optimized flows, and disciplined arc
 
 > **"Money moves at internet speed."**
 
-Banzami is building realtime African payment infrastructure with banking-grade engineering.
+Banza is building realtime African payment infrastructure with banking-grade engineering.
 
 ---
 
@@ -436,9 +436,9 @@ Banzami is building realtime African payment infrastructure with banking-grade e
 
 This is a binding architectural constraint, not a design preference.
 
-### What Banzami IS
+### What Banza IS
 
-Banzami is:
+Banza is:
 
 * a **wallet-native payment network** — every account is a wallet, every payment is a wallet transfer,
 * a **QR-native ecosystem** — QR codes are the primary payment initiation mechanism,
@@ -446,9 +446,9 @@ Banzami is:
 * a **kwanza-native money network** — AOA is the primary unit, local rails (EMIS, Multicaixa Express) are native integrations,
 * a **@handle-based identity system** — payments are addressed to human-readable handles, not card numbers or account strings.
 
-### What Banzami is NOT
+### What Banza is NOT
 
-Banzami is NOT:
+Banza is NOT:
 
 * a card processor,
 * a Stripe clone,
@@ -1070,7 +1070,7 @@ docs(api): update webhook retry documentation
 
 # 13. Operational Philosophy
 
-Banzami is infrastructure.
+Banza is infrastructure.
 
 Infrastructure engineering requires:
 
@@ -1090,13 +1090,13 @@ We optimize for:
 
 # 14. SDK-First Ecosystem Policy
 
-**Banzami is an SDK-first platform.**
+**Banza is an SDK-first platform.**
 
 This is a binding architectural constraint, not a preference.
 
 ## 14.1 The Rule
 
-ALL external applications integrating Banzami MUST use an official Banzami SDK.
+ALL external applications integrating Banza MUST use an official Banza SDK.
 
 Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, curl wrappers, or handcrafted API clients are NOT the recommended integration path.
 
@@ -1199,7 +1199,7 @@ SDK quality is a platform-critical priority.
 
 ## 14.7 Documentation Rule
 
-All Banzami documentation must assume SDK usage by default.
+All Banza documentation must assume SDK usage by default.
 
 Raw HTTP examples are permitted only for:
 
@@ -1219,7 +1219,7 @@ See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for the full rationale, t
 
 ## 15.1 The Rule
 
-`docs/BANZAMI_REFERENCE.md` is the **single source of truth** for the entire public Banzami ecosystem.
+`docs/BANZAMI_REFERENCE.md` is the **single source of truth** for the entire public Banza ecosystem.
 
 This is a binding architectural constraint.
 
@@ -1237,7 +1237,7 @@ It is simultaneously:
 * the official UX philosophy,
 * and the authoritative content source for the website.
 
-Think of it as: **The Constitution of the Banzami Ecosystem.**
+Think of it as: **The Constitution of the Banza Ecosystem.**
 
 The public website is only the visual interface for consuming that constitution.
 
@@ -1325,40 +1325,40 @@ See [ADR-015](docs/adr/ADR-015-markdown-first-content-architecture.md) for full 
 
 ---
 
-# 16. Banzami / Banza Brand Architecture
+# 16. Banza / Banzami Brand Architecture
 
 This is a binding rule for all engineers and all content.
 
 ## 16.1 The Two-Level Model
 
-**Banzami** = organization / ecosystem / infrastructure / institutional entity
+**Banza** = organization / ecosystem / infrastructure / institutional entity
 
-**Banza** = main payment product / payment experience / wallet-QR network
+**Banzami** = main payment product / payment experience / wallet-QR network
 
-## 16.2 Use "Banza" for product-level context
-
-Use Banza when referring to:
-
-* the payment experience users interact with,
-* wallets and balances ("Banza Wallet"),
-* the payment network ("rede Banza"),
-* QR payments ("Banza QR"),
-* the merchant solution ("Banza Business"),
-* SDKs and APIs ("Banza SDK", "Banza API"),
-* payment links and checkout ("Banza Pay Links", "Banza Checkout"),
-* consumer-facing copy ("Paga com Banza", "adoptar o Banza").
-
-## 16.3 Use "Banzami" for organizational context
+## 16.2 Use "Banzami" for product-level context
 
 Use Banzami when referring to:
 
-* the company and team ("o Banzami constrói..."),
+* the payment experience users interact with,
+* wallets and balances ("Banzami Wallet"),
+* the payment network ("rede Banzami"),
+* QR payments ("Banzami QR"),
+* the merchant solution ("Banzami Business"),
+* SDKs and APIs ("Banzami SDK", "Banzami API"),
+* payment links and checkout ("Banzami Pay Links", "Banzami Checkout"),
+* consumer-facing copy ("Paga com Banzami", "adoptar o Banzami").
+
+## 16.3 Use "Banza" for organizational context
+
+Use Banza when referring to:
+
+* the company and team ("o Banza constrói..."),
 * institutional mission and strategy,
 * bank and regulatory relationships,
 * the technical platform and infrastructure as a whole,
 * documentation source of truth (BANZAMI_REFERENCE.md),
-* the ecosystem umbrella ("Ecossistema Banzami"),
-* future non-Banza products of the organization.
+* the ecosystem umbrella ("Ecossistema Banza"),
+* future non-Banzami products of the organization.
 
 ## 16.4 Product hierarchy
 
@@ -1387,42 +1387,42 @@ Banzami (organization)
 
 ## 16.6 Forbidden substitutions
 
-* "Pagar com Banzami" → WRONG. Use "Pagar com Banza."
-* "carteira Banzami" → WRONG. Use "Banza Wallet."
-* "Banzami Business" → WRONG. Use "Banza Business."
-* "SDK Banzami" → WRONG. Use "Banza SDK."
-* Blind replace-all of "Banzami" → FORBIDDEN. Context matters.
+* "Pagar com Banza" → WRONG. Use "Pagar com Banzami."
+* "carteira Banza" → WRONG. Use "Banzami Wallet."
+* "Banza Business" → WRONG. Use "Banzami Business."
+* "SDK Banza" → WRONG. Use "Banzami SDK."
+* Blind replace-all of "Banza" → FORBIDDEN. Context matters.
 
 ## 16.7 Grammatical gender — binding rule
 
 Both brand names are grammatically **masculine** in Portuguese:
 
-- **O Banza** (not "a Banza")
 - **O Banzami** (not "a Banzami")
+- **O Banza** (not "a Banza")
 
 This applies to all articles and contractions:
 
 | Wrong | Correct |
 |-------|---------|
-| a Banza | o Banza |
-| da Banza | do Banza |
-| na Banza | no Banza |
-| pela Banza | pelo Banza |
 | a Banzami | o Banzami |
 | da Banzami | do Banzami |
+| na Banzami | no Banzami |
 | pela Banzami | pelo Banzami |
+| a Banza | o Banza |
+| da Banza | do Banza |
+| pela Banza | pelo Banza |
 
-Agreement: participles and adjectives qualifying Banza/Banzami must be masculine:
-- "O Banza é construído..." (not "construída")
-- "O Banzami é reconhecido..." (not "reconhecida")
+Agreement: participles and adjectives qualifying Banzami/Banza must be masculine:
+- "O Banzami é construído..." (not "construída")
+- "O Banza é reconhecido..." (not "reconhecida")
 
-Compound product names follow the head noun gender (e.g. "o Banza Business" since "negócio" is masculine; "a Banza Wallet" since "carteira" is feminine).
+Compound product names follow the head noun gender (e.g. "o Banzami Business" since "negócio" is masculine; "a Banzami Wallet" since "carteira" is feminine).
 
 ## 16.8 Canonical positioning phrases
 
-> "Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente."
-> "Banzami constrói a infraestrutura. Banza move o dinheiro."
-> "Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é como Angola paga."
+> "Banza constrói a infraestrutura que permitirá Angola pagar digitalmente."
+> "Banza constrói a infraestrutura. Banzami move o dinheiro."
+> "Banza constrói a infraestrutura que permitirá Angola pagar digitalmente. Banzami é como Angola paga."
 
 ## 16.8 Content update flow
 
@@ -1556,7 +1556,7 @@ Every matrix item MUST have a `validationDomain` field set to one of the 11 cano
 | DOM-FIN | Ledger, wallets, P2P, payouts, refunds, settlement |
 | DOM-IDENTITY | Identity, @handle |
 | DOM-CONSUMER | QR, pay links, payment requests |
-| DOM-MERCHANT | Banza Business (mobile + web) |
+| DOM-MERCHANT | Banzami Business (mobile + web) |
 | DOM-DEV | SDKs, API, webhooks, sandbox |
 | DOM-SEC | Security, risk |
 | DOM-COMPLIANCE | KYC/KYB |
@@ -1680,21 +1680,21 @@ Focus moves to:
 
 - wallets and ledger engine
 - QR payment flows
-- merchant UX (Banza Business)
-- consumer UX (Banza app)
+- merchant UX (Banzami Business)
+- consumer UX (Banzami app)
 - settlement and reconciliation
 - SDKs (TypeScript, PHP, Python, Go, Flutter)
 - sandbox environment
 - closed-loop payments
 - ecommerce and mobile app integrations
 
-The governance system exists to support this work. Build the actual Banza network.
+The governance system exists to support this work. Build the actual Banzami network.
 
 ---
 
 # 19. Final Principle
 
-Every engineer working on Banzami must understand:
+Every engineer working on Banza must understand:
 
 This platform handles money.
 
@@ -1714,7 +1714,7 @@ The repository layout is frozen. The semantic zones below are binding architectu
 |------|------|
 | `apps/` | **Product-facing applications only.** Merchant dashboard, admin panel, pay page, checkout, mobile apps. Nothing operational or governance-related. |
 | `platforms/` | Operational and governance platforms. Target home for `apps/docs` and `apps/validation-studio`. Not yet physically separated — see §20.5. |
-| `integrations/sdk/` | Official Banzami SDKs only. Target home for the current `sdk/` directory. |
+| `integrations/sdk/` | Official Banza SDKs only. Target home for the current `sdk/` directory. |
 | `integrations/plugins/` | Commerce platform plugins (WooCommerce, Shopify). Target home for `plugins/woocommerce`, `plugins/shopify`. |
 | `integrations/adapters/` | Runtime/framework adapters (no product dependency). Target home for `plugins/generic-*`. |
 | `contracts/` | Canonical location for all public protocol contracts. OpenAPI specs, webhook schemas, QR payload specs, event contracts, SDK certification vectors. |

@@ -1,11 +1,11 @@
-# Banzami Ecosystem Reference
+# Banza Ecosystem Reference
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
 **Status:** Official  
-**Author:** Banzami Engineering
+**Author:** Banza Engineering
 
-> This document is the single source of truth for the Banzami ecosystem architecture.  
+> This document is the single source of truth for the Banza ecosystem architecture.  
 > It is architecture-first, not marketing. For the public product narrative, see `docs/BANZAMI_REFERENCE.md`.
 
 ---
@@ -22,14 +22,14 @@
 8. [Certification Model](#8-certification-model)
 9. [Conformance Model](#9-conformance-model)
 10. [Federation Model](#10-federation-model)
-11. [BanzamIA](#11-banzamia)
+11. [BanzAI](#11-banzamia)
 12. [Roadmap](#12-roadmap)
 
 ---
 
 ## 1. Vision
 
-Banzami is open programmable financial infrastructure for Angola.
+Banza is open programmable financial infrastructure for Angola.
 
 The vision is a payment ecosystem where:
 
@@ -38,7 +38,7 @@ The vision is a payment ecosystem where:
 - **All** financial operations are traceable, verifiable, and invariant-checked by default
 - **AI** explains protocol truth grounded in tooling, not inference
 
-Banzami is not a payment processor. It is a payment protocol with a reference implementation, a certification framework, and an AI-assisted integration layer.
+Banza is not a payment processor. It is a payment protocol with a reference implementation, a certification framework, and an AI-assisted integration layer.
 
 The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
 
@@ -48,7 +48,7 @@ The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
 
 ### Tools determine truth. AI explains truth.
 
-Financial invariants are checked by deterministic tools, not inferred by AI. BanzamIA surfaces the results of tool execution — it does not replace the tools.
+Financial invariants are checked by deterministic tools, not inferred by AI. BanzAI surfaces the results of tool execution — it does not replace the tools.
 
 ### Financial correctness over hype
 
@@ -56,11 +56,11 @@ Every design decision is evaluated against: "Does this preserve financial correc
 
 ### The protocol is the product
 
-Banza (the consumer product) is the reference implementation of the Banzami protocol. The protocol is what scales. Banza is what proves it.
+Banzami (the consumer product) is the reference implementation of the Banza protocol. The protocol is what scales. Banzami is what proves it.
 
 ### Operators implement policy. Kernel implements protocol.
 
-The Banzami Kernel enforces the financial invariants. Operators apply their business policies within the constraints the kernel enforces. These layers are never collapsed.
+The Banza Kernel enforces the financial invariants. Operators apply their business policies within the constraints the kernel enforces. These layers are never collapsed.
 
 ### Traceability by default
 
@@ -68,7 +68,7 @@ Every financial event carries a `trace_id`. Every causal chain is reconstructabl
 
 ### Angola first
 
-Banzami serves one market exceptionally before considering expansion. The protocol is designed around Kwanza, Angolan commercial law, EMIS rails, and the informal sector that represents the majority of Angolan commerce.
+Banza serves one market exceptionally before considering expansion. The protocol is designed around Kwanza, Angolan commercial law, EMIS rails, and the informal sector that represents the majority of Angolan commerce.
 
 ---
 
@@ -125,9 +125,9 @@ Per ADR-016:
 
 | Name | Role |
 |------|------|
-| **Banzami** | Organisation, protocol, ecosystem, infrastructure, governance |
-| **Banza** | Consumer payment product (primary reference implementation) |
-| **BanzamIA** | AI-native Protocol Agent |
+| **Banza** | Organisation, protocol, ecosystem, infrastructure, governance |
+| **Banzami** | Consumer payment product (primary reference implementation) |
+| **BanzAI** | AI-native Protocol Agent |
 
 `Banzami constrói a infraestrutura. Banza move o dinheiro.`
 
@@ -217,7 +217,7 @@ Current ADRs:
 | ADR-013 | Wallet-native identity — @handle addressing, no IBAN |
 | ADR-014 | Angola national mission — single-market first |
 | ADR-015 | Markdown-first content architecture — docs driven from single source |
-| ADR-016 | Banzami/Banza brand architecture — two-tier brand |
+| ADR-016 | Banza/Banzami brand architecture — two-tier brand |
 | ADR-017 | Wallet domain architecture — consumer wallet lifecycle |
 
 ### 4.3 Validation Governance
@@ -242,10 +242,10 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 |-----------|-------------|
 | `core/` | Rust financial core (18 crates) |
 | `services/` | Go API services |
-| `apps/mobile` | Banza consumer mobile app |
-| `apps/merchant` | Banza Business merchant app |
-| `apps/checkout` | Banza Checkout web app |
-| `apps/docs` | Banzami documentation website |
+| `apps/mobile` | Banzami consumer mobile app |
+| `apps/merchant` | Banzami Business merchant app |
+| `apps/checkout` | Banzami Checkout web app |
+| `apps/docs` | Banza documentation website |
 | `infra/` | Infrastructure as code |
 | `tools/` | Operational tooling |
 
@@ -266,7 +266,7 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 
 ### 6.1 The Double-Entry Ledger
 
-Every financial operation in Banzami produces ledger entries. The ledger is:
+Every financial operation in Banza produces ledger entries. The ledger is:
 - **Append-only** — entries are never modified or deleted (INV-LEDGER-002)
 - **Balanced** — every posting has equal debits and credits (INV-LEDGER-001)
 - **Integer-only** — amounts are stored as i64 minor units, never floating-point (INV-LEDGER-003)
@@ -289,7 +289,7 @@ Financial invariants are non-negotiable assertions that must never be violated. 
 - Database constraints (schema-level)
 - Application logic (runtime)
 - Automated test suites (CI)
-- BanzamIA tooling (observability)
+- BanzAI tooling (observability)
 
 Core invariant families:
 - `INV-LEDGER-*` — Ledger correctness
@@ -308,11 +308,11 @@ Every payment flow produces a `trace_id`. The trace captures:
 - Every entity touched (QR ID, transfer ID, ledger entry IDs, settlement ID)
 - Every invariant status at completion
 
-Traces are the primary audit tool. BanzamIA's Trace Explainer module reconstructs and verifies any trace interactively.
+Traces are the primary audit tool. BanzAI's Trace Explainer module reconstructs and verifies any trace interactively.
 
 ### 6.4 Settlement Model
 
-Settlement in Banzami is T+0 wallet credit with configurable payout cycles:
+Settlement in Banza is T+0 wallet credit with configurable payout cycles:
 - Consumer-to-merchant: immediate wallet credit
 - Merchant-to-bank: configurable payout schedule (daily by default)
 - Fee collection: immediate fee wallet credit
@@ -328,7 +328,7 @@ Settlement invariants:
 
 ### 7.1 What is an Operator?
 
-An Operator is any party that implements the Banzami protocol to process payments. Operators:
+An Operator is any party that implements the Banza protocol to process payments. Operators:
 - Declare capabilities in an Operator Manifest
 - Implement the conformance requirements for their certification level
 - Operate under the invariant framework
@@ -363,8 +363,8 @@ An Operator Manifest is a machine-readable declaration of:
 
 | Type | Description | Example |
 |------|-------------|---------|
-| **Reference Operator** | Canonical implementation of full protocol | Banza |
-| **Sandbox Operator** | Development/testing environment | Banza Sandbox |
+| **Reference Operator** | Canonical implementation of full protocol | Banzami |
+| **Sandbox Operator** | Development/testing environment | Banzami Sandbox |
 | **Third-party Operator** | External party certified to protocol | Future |
 | **Acquirer Operator** | Specialised in card acquiring | Future |
 
@@ -403,9 +403,9 @@ Certification is earned by passing the conformance suite for the corresponding l
 ### 8.2 Certification Process
 
 1. Operator submits Manifest declaring target certification level
-2. BanzamIA Manifest Validator validates manifest structure
+2. BanzAI Manifest Validator validates manifest structure
 3. Operator runs conformance suite for their level
-4. BanzamIA Conformance module verifies test results
+4. BanzAI Conformance module verifies test results
 5. Financial invariants are verified for all claimed capabilities
 6. Certification is issued as a signed artifact
 7. Certification is recorded in the public operator registry
@@ -469,7 +469,7 @@ Conformance tests do not just check API responses. They verify:
 
 ### 10.1 Current State
 
-Banzami does not currently support federation (inter-operator routing). All payments are processed by the Banzami reference operator.
+Banza does not currently support federation (inter-operator routing). All payments are processed by the Banza reference operator.
 
 Foundation capabilities have been designed to enable federation:
 - `trace_id` propagation across service boundaries
@@ -490,7 +490,7 @@ Consumer A (Operator X) → payment → Consumer B (Operator Y)
 
 Requirements for federation:
 - Both operators hold Certification Level 3+
-- Shared settlement account with Banzami
+- Shared settlement account with Banza
 - Federation manifest with routing capabilities
 - Cross-operator trace_id propagation
 - Atomic cross-operator ledger settlement
@@ -505,15 +505,15 @@ Requirements for federation:
 
 ---
 
-## 11. BanzamIA
+## 11. BanzAI
 
-### 11.1 What BanzamIA Is
+### 11.1 What BanzAI Is
 
-BanzamIA is the AI-native interface for building, validating, and certifying Banzami operators. It is deployed at `banzami.org/banzamia`.
+BanzAI is the AI-native interface for building, validating, and certifying Banza operators. It is deployed at `banzami.org/banzamia`.
 
 > Tools determine truth. AI explains truth.
 
-BanzamIA does not replace deterministic tools. It:
+BanzAI does not replace deterministic tools. It:
 - Explains protocol documentation grounded in citations
 - Surfaces tool execution results in natural language
 - Guides operators through the integration process
@@ -557,7 +557,7 @@ BanzamIA
 
 ### 11.4 Security Posture
 
-BanzamIA is read-only. It:
+BanzAI is read-only. It:
 - Cannot initiate financial operations
 - Cannot modify the implementation matrix without governance phrases
 - Cannot approve certifications autonomously
@@ -566,7 +566,7 @@ BanzamIA is read-only. It:
 
 ### 11.5 Live vs Demo Mode
 
-- **Live mode**: Connected to BanzamIA API (`NEXT_PUBLIC_BANZAMIA_API_URL`). Real streaming responses from protocol-grounded models.
+- **Live mode**: Connected to BanzAI API (`NEXT_PUBLIC_BANZAMIA_API_URL`). Real streaming responses from protocol-grounded models.
 - **Demo mode**: Static DEMO_RESPONSES array in `banzamia-client.ts`. Used when API is unavailable. Visually distinguished with amber badge.
 
 ---
@@ -579,7 +579,7 @@ BanzamIA is read-only. It:
 |------|-------------|
 | Conformance Suite v1 | Machine-executable Level 1–3 test suite |
 | Certification Level 1–2 | First external operators can be certified |
-| BanzamIA Live API | Production BanzamIA API with Qdrant vector store |
+| BanzAI Live API | Production BanzAI API with Qdrant vector store |
 | PHP SDK v1 | Stable PHP SDK for server-side integrations |
 | Payout automation | Automated T+1 payout cycles |
 | Acquiring integration | EMIS card acquiring integration |
@@ -589,9 +589,9 @@ BanzamIA is read-only. It:
 | Item | Description |
 |------|-------------|
 | Certification Level 3–4 | Full protocol and infrastructure certification |
-| Third-party operators | First non-Banza operators on the protocol |
+| Third-party operators | First non-Banzami operators on the protocol |
 | Federation RFC | Inter-operator routing specification |
-| BanzamIA Knowledge API | Qdrant-powered semantic search over all protocol docs |
+| BanzAI Knowledge API | Qdrant-powered semantic search over all protocol docs |
 | Open certification | Self-service certification portal |
 
 ### Long Term (H2 2027+)

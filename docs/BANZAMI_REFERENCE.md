@@ -1,21 +1,21 @@
-# Banzami — Documento de Referência Oficial
+# Banza — Documento de Referência Oficial
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
 **Status:** Official  
-**Author:** Banzami
+**Author:** Banza
 
 ---
 
-> **O Banzami constrói infraestrutura financeira programável.**  
-> **O Banza é como Angola paga.**  
+> **O Banza constrói infraestrutura financeira programável.**  
+> **O Banzami é como Angola paga.**  
 > Ferramentas determinam a verdade. A IA explica a verdade.
 
 ---
 
 ## Índice
 
-1. [O que é o Banzami?](#1-o-que-é-o-banzami)
+1. [O que é o Banza?](#1-o-que-é-o-banzami)
 2. [Princípios Fundamentais](#2-princípios-fundamentais)
 3. [Visão Geral do Ecossistema](#3-visão-geral-do-ecossistema)
 4. [Arquitectura Técnica](#4-arquitectura-técnica)
@@ -23,9 +23,9 @@
 6. [Governança](#6-governança)
 7. [Modelo de Certificação](#7-modelo-de-certificação)
 8. [Federação](#8-federação)
-9. [BanzamIA](#9-banzamia)
-10. [Banza para Programadores](#10-banza-para-programadores)
-11. [Banza para Comerciantes](#11-banza-para-comerciantes)
+9. [BanzAI](#9-banzamia)
+10. [Banzami para Programadores](#10-banza-para-programadores)
+11. [Banzami para Comerciantes](#11-banza-para-comerciantes)
 12. [Para Consumidores](#12-para-consumidores)
 13. [Segurança e Integridade Financeira](#13-segurança-e-integridade-financeira)
 14. [Sandbox e Ambiente de Testes](#14-sandbox-e-ambiente-de-testes)
@@ -35,27 +35,27 @@
 
 ---
 
-## 1. O que é o Banzami?
+## 1. O que é o Banza?
 
-**Banzami** é infraestrutura financeira programável de código aberto para Angola.
+**Banza** é infraestrutura financeira programável de código aberto para Angola.
 
 Não é um banco. Não é uma carteira digital simples. Não é uma plataforma fintech genérica adaptada de um modelo ocidental. É o protocolo que define como o dinheiro se move digitalmente em Angola — com regras imutáveis, invariantes financeiros verificáveis e uma camada de inteligência artificial que explica cada decisão do protocolo.
 
-**Banza** é o produto principal do Banzami: a rede angolana de pagamentos instantâneos por QR Code. Wallet-native. QR-first. Construída para cada angolano.
+**Banzami** é o produto principal do Banza: a rede angolana de pagamentos instantâneos por QR Code. Wallet-native. QR-first. Construída para cada angolano.
 
-> *Banzami constrói a infraestrutura. Banza move o dinheiro.*
+> *Banza constrói a infraestrutura. Banzami move o dinheiro.*
 
 ### Arquitectura de dois níveis
 
-![Arquitectura de dois níveis — Banzami (protocolo) ramifica em Banza (produto) e BanzamIA (inteligência)](/images/architecture/brand-architecture.svg)
+![Arquitectura de dois níveis — Banza (protocolo) ramifica em Banzami (produto) e BanzAI (inteligência)](/images/architecture/brand-architecture.svg)
 
 Esta arquitectura de marca está definida no ADR-016.
 
-### Os quatro pilares do Banza
+### Os quatro pilares do Banzami
 
 | Pilar | O que significa |
 |-------|----------------|
-| **Programmable** | Qualquer aplicação angolana integra pagamentos via SDK em horas. O Banza não é só uma app — é a camada de pagamentos de Angola. |
+| **Programmable** | Qualquer aplicação angolana integra pagamentos via SDK em horas. O Banzami não é só uma app — é a camada de pagamentos de Angola. |
 | **Wallet-native** | Cada conta é uma carteira em Kwanza. Pagamentos são transferências directas entre carteiras. Sem IBAN. Sem código bancário. |
 | **QR-native** | A superfície principal de pagamento é um código QR. O comerciante imprime. O consumidor faz o scan. Instantâneo. Sem terminal. |
 | **Instant settlement** | O dinheiro move-se no momento da confirmação — confirmado, liquidado e visível em segundos. |
@@ -68,9 +68,9 @@ Esta arquitectura de marca está definida no ADR-016.
 
 ### O nome
 
-**Banza** é uma palavra profundamente enraizada nas tradições linguísticas bantu de Angola, especialmente no universo Kikongo, onde *mbanza* designa historicamente um lugar de encontro — uma *banza* é um lugar, um centro de vida onde as pessoas se reúnem. O produto herda este significado: um espaço onde o comércio acontece, onde o valor circula.
+**Banzami** é uma palavra profundamente enraizada nas tradições linguísticas bantu de Angola, especialmente no universo Kikongo, onde *mbanza* designa historicamente um lugar de encontro — uma *banza* é um lugar, um centro de vida onde as pessoas se reúnem. O produto herda este significado: um espaço onde o comércio acontece, onde o valor circula.
 
-**Banzami** parte dessa mesma raiz e constrói a infraestrutura que torna tudo isso possível. Um nome distintamente angolano — não uma palavra emprestada, não uma marca inventada noutro continente.
+**Banza** parte dessa mesma raiz e constrói a infraestrutura que torna tudo isso possível. Um nome distintamente angolano — não uma palavra emprestada, não uma marca inventada noutro continente.
 
 ---
 
@@ -78,7 +78,7 @@ Esta arquitectura de marca está definida no ADR-016.
 
 ### Ferramentas determinam a verdade. A IA explica a verdade.
 
-Os invariantes financeiros são verificados por ferramentas determinísticas, não inferidos por inteligência artificial. O BanzamIA apresenta os resultados da execução de ferramentas — não substitui as ferramentas.
+Os invariantes financeiros são verificados por ferramentas determinísticas, não inferidos por inteligência artificial. O BanzAI apresenta os resultados da execução de ferramentas — não substitui as ferramentas.
 
 ### A correcção financeira não é negociável
 
@@ -86,11 +86,11 @@ Cada decisão de engenharia é avaliada contra: "Isto preserva a correcção fin
 
 ### O protocolo é o produto
 
-O Banza (o produto de consumo) é a implementação de referência do protocolo Banzami. O protocolo é o que escala. O Banza é o que prova que funciona.
+O Banzami (o produto de consumo) é a implementação de referência do protocolo Banza. O protocolo é o que escala. O Banzami é o que prova que funciona.
 
 ### Os operadores implementam política. O Kernel implementa o protocolo.
 
-O Kernel Banzami impõe os invariantes financeiros. Os operadores aplicam as suas políticas de negócio dentro das restrições que o kernel impõe. Estas camadas nunca se colapsam.
+O Kernel Banza impõe os invariantes financeiros. Os operadores aplicam as suas políticas de negócio dentro das restrições que o kernel impõe. Estas camadas nunca se colapsam.
 
 ### Rastreabilidade por defeito
 
@@ -98,17 +98,17 @@ Cada evento financeiro carrega um `trace_id`. Cada cadeia causal é reconstituí
 
 ### Angola primeiro
 
-O Banzami serve um mercado de forma excecional antes de considerar expansão. O protocolo foi desenhado em torno do Kwanza, da lei comercial angolana, dos carris EMIS e do sector informal que representa a maioria do comércio angolano.
+O Banza serve um mercado de forma excecional antes de considerar expansão. O protocolo foi desenhado em torno do Kwanza, da lei comercial angolana, dos carris EMIS e do sector informal que representa a maioria do comércio angolano.
 
 ---
 
 ## 3. Visão Geral do Ecossistema
 
-![Diagrama do Ecossistema Banzami — Kernel, Operadores, BanzamIA, SDKs e Aplicações](/images/architecture/banzami-ecosystem.svg)
+![Diagrama do Ecossistema Banza — Kernel, Operadores, BanzAI, SDKs e Aplicações](/images/architecture/banzami-ecosystem.svg)
 
-### Kernel Banzami
+### Kernel Banza
 
-O Kernel Banzami é o núcleo financeiro escrito em Rust. É composto por 18 crates com responsabilidades rigorosamente separadas:
+O Kernel Banza é o núcleo financeiro escrito em Rust. É composto por 18 crates com responsabilidades rigorosamente separadas:
 
 | Crate | Responsabilidade |
 |-------|-----------------|
@@ -133,7 +133,7 @@ O Kernel Banzami é o núcleo financeiro escrito em Rust. É composto por 18 cra
 
 ### Operadores
 
-Um Operador é qualquer entidade que implementa o protocolo Banzami para processar pagamentos.
+Um Operador é qualquer entidade que implementa o protocolo Banza para processar pagamentos.
 
 Os operadores:
 - Declaram capacidades num Manifesto de Operador
@@ -141,11 +141,11 @@ Os operadores:
 - Operam dentro do framework de invariantes
 - Estão sujeitos a verificação de certificação periódica
 
-**Operador de Referência:** O Banza é a implementação de referência do protocolo completo. Todos os comportamentos do protocolo estão validados contra o Operador de Referência.
+**Operador de Referência:** O Banzami é a implementação de referência do protocolo completo. Todos os comportamentos do protocolo estão validados contra o Operador de Referência.
 
 **Operador Sandbox:** Ambiente de desenvolvimento e testes totalmente isolado. Mesmo kernel, dados fictícios, sem carris de liquidação reais.
 
-**Operadores Certificados:** Qualquer entidade que obtenha certificação Banzami pode implementar o protocolo. Operadores certificados são o resultado intencional do protocolo — não um conceito futuro.
+**Operadores Certificados:** Qualquer entidade que obtenha certificação Banza pode implementar o protocolo. Operadores certificados são o resultado intencional do protocolo — não um conceito futuro.
 
 ---
 
@@ -198,7 +198,7 @@ Os invariantes financeiros são afirmações não negociáveis que nunca podem s
 | Esquema | Constraints de base de dados |
 | Runtime | Lógica de aplicação |
 | CI | Testes de integração automáticos |
-| Observabilidade | BanzamIA + Validation Studio |
+| Observabilidade | BanzAI + Validation Studio |
 
 Famílias de invariantes principais:
 
@@ -219,17 +219,17 @@ Cada fluxo de pagamento produz um `trace_id`. O trace captura:
 
 ![Sistema de rastreabilidade — fluxo de eventos desde qr.created até settlement.assigned, todos partilhando o mesmo trace_id](/images/architecture/trace-flow.svg)
 
-Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer do BanzamIA reconstrói e verifica qualquer trace interactivamente.
+Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer do BanzAI reconstrói e verifica qualquer trace interactivamente.
 
 ---
 
 ## 5. Representação Monetária
 
-> **Esta secção é normativa.** Todos os operadores, SDKs e implementações do protocolo Banzami DEVEM conformar com estas regras.
+> **Esta secção é normativa.** Todos os operadores, SDKs e implementações do protocolo Banza DEVEM conformar com estas regras.
 
 ### Regra de Inteiros
 
-**Todos os valores monetários no protocolo Banzami DEVEM ser representados como inteiros.**
+**Todos os valores monetários no protocolo Banza DEVEM ser representados como inteiros.**
 
 Valores monetários em vírgula flutuante são proibidos em toda a superfície do protocolo, incluindo:
 
@@ -261,7 +261,7 @@ Esta regra está imposta ao nível de compilação pelo sistema de tipos Rust (`
 
 ### Convenção `*_minor`
 
-O protocolo Banzami adopta a convenção de nomenclatura `*_minor` para todos os campos monetários. Campos que terminam em `_minor` representam valores monetários expressos na menor unidade suportada de uma moeda.
+O protocolo Banza adopta a convenção de nomenclatura `*_minor` para todos os campos monetários. Campos que terminam em `_minor` representam valores monetários expressos na menor unidade suportada de uma moeda.
 
 **Campos monetários oficiais do protocolo:**
 
@@ -291,7 +291,7 @@ A infraestrutura financeira DEVE evitar erros de arredondamento em vírgula flut
 
 ### Semântica de Montantes de Liquidação
 
-Todo o fluxo de pagamento Banza produz três montantes monetários com semântica exacta:
+Todo o fluxo de pagamento Banzami produz três montantes monetários com semântica exacta:
 
 **`gross_minor`** — Montante pago pelo consumidor antes de quaisquer deduções. É o valor total que sai da carteira do consumidor.
 
@@ -345,7 +345,7 @@ Os saldos de carteiras são sempre derivados de entradas de ledger — nunca dir
 
 ### Registo de Moedas
 
-O Banzami mantém um registo formal de moedas suportadas com precisão oficial para cada uma. A adição de uma nova moeda requer um RFC aprovado.
+O Banza mantém um registo formal de moedas suportadas com precisão oficial para cada uma. A adição de uma nova moeda requer um RFC aprovado.
 
 #### AOA — Kwanza Angolano
 
@@ -355,10 +355,10 @@ O Banzami mantém um registo formal de moedas suportadas com precisão oficial p
 | Nome | Kwanza Angolano |
 | Símbolo | Kz |
 | Minor units | **100** (1 AOA = 100 minor units) |
-| Status | **Moeda oficial Banzami** |
+| Status | **Moeda oficial Banza** |
 | Referência | ADR-014, ADR-002 |
 
-**Política de precisão AOA:** O Banzami representa o AOA com 2 casas decimais. 1 Kwanza = 100 minor units, permitindo representar valores até 0,01 Kz com precisão exacta.
+**Política de precisão AOA:** O Banza representa o AOA com 2 casas decimais. 1 Kwanza = 100 minor units, permitindo representar valores até 0,01 Kz com precisão exacta.
 
 | Valor | `amount_minor` |
 |-------|---------------|
@@ -413,7 +413,7 @@ Operadores que violem qualquer um destes requisitos falham na certificação.
 
 ### Requisitos para SDKs
 
-Todos os SDKs Banzami oficiais DEVEM:
+Todos os SDKs Banza oficiais DEVEM:
 
 - Expor campos monetários exclusivamente como inteiros (`number` em TypeScript, `int64` em Dart, `int` em PHP)
 - Preservar a precisão em toda a cadeia de serialização/deserialização
@@ -553,7 +553,7 @@ A certificação é obtida passando no conformance suite para o nível correspon
 
 ### Processo de certificação
 
-![Processo de certificação — 7 etapas do Manifesto ao registo público, verificadas pelo BanzamIA](/images/architecture/certification-flow.svg)
+![Processo de certificação — 7 etapas do Manifesto ao registo público, verificadas pelo BanzAI](/images/architecture/certification-flow.svg)
 
 ### Manifesto de Operador
 
@@ -594,11 +594,11 @@ As certificações são vinculadas a versões:
 
 ## 8. Federação
 
-A federação é uma camada de primeira classe na arquitectura Banzami. Define como operadores certificados comunicam, encaminham pagamentos e liquidam entre si.
+A federação é uma camada de primeira classe na arquitectura Banza. Define como operadores certificados comunicam, encaminham pagamentos e liquidam entre si.
 
 ### Estado actual
 
-A federação encontra-se na fase de desenho. Todos os pagamentos são actualmente processados pelo operador de referência Banza. O kernel, no entanto, foi desenhado desde o início com os primitivos necessários:
+A federação encontra-se na fase de desenho. Todos os pagamentos são actualmente processados pelo operador de referência Banzami. O kernel, no entanto, foi desenhado desde o início com os primitivos necessários:
 - Propagação de `trace_id` através de fronteiras de serviço
 - Declaração de manifesto de operador com capacidades de encaminhamento
 - Arquitectura de encaminhamento baseada em capacidades
@@ -608,11 +608,11 @@ A federação encontra-se na fase de desenho. Todos os pagamentos são actualmen
 
 A federação permite o encaminhamento de pagamentos entre operadores certificados:
 
-![Arquitectura de federação — Operador X encaminha pagamento para Operador Y através da camada de federação Banzami](/images/architecture/federation.svg)
+![Arquitectura de federação — Operador X encaminha pagamento para Operador Y através da camada de federação Banza](/images/architecture/federation.svg)
 
 Requisitos para federação:
 - Ambos os operadores com Certificação Nível 3+ (Federation Operator)
-- Conta de liquidação partilhada com Banzami
+- Conta de liquidação partilhada com Banza
 - Manifesto de federação com capacidades de encaminhamento
 - Propagação cross-operador de trace_id
 - Liquidação atómica cross-operador no ledger
@@ -627,19 +627,19 @@ Requisitos para federação:
 
 ---
 
-## 9. BanzamIA
+## 9. BanzAI
 
-O BanzamIA é um produto de primeira classe do ecossistema Banzami — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
+O BanzAI é um produto de primeira classe do ecossistema Banza — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
 
-Se o Kernel é o motor financeiro do Banzami, o BanzamIA é a interface cognitiva do Banzami. Um move valor. O outro torna o valor compreensível.
+Se o Kernel é o motor financeiro do Banza, o BanzAI é a interface cognitiva do Banza. Um move valor. O outro torna o valor compreensível.
 
 > **Ferramentas determinam a verdade. A IA explica a verdade.**
 
-![BanzamIA como Camada Cognitiva — arquitectura em quatro camadas do protocolo Banzami](/images/architecture/banzamia-cognitive-layer.svg)
+![BanzAI como Camada Cognitiva — arquitectura em quatro camadas do protocolo Banza](/images/architecture/banzamia-cognitive-layer.svg)
 
 ---
 
-### Porquê existe o BanzamIA
+### Porquê existe o BanzAI
 
 Os protocolos financeiros modernos tornam-se progressivamente mais difíceis de compreender.
 
@@ -663,39 +663,39 @@ Sem assistência:
 - Os erros tornam-se mais comuns
 - A adopção do protocolo desacelera
 
-O BanzamIA existe para resolver este problema.
+O BanzAI existe para resolver este problema.
 
 ---
 
 ### O Fosso de Conhecimento do Protocolo
 
-Sem o BanzamIA, um programador que quer integrar o protocolo Banzami tem de navegar centenas de páginas de documentação, pesquisar RFCs manualmente, interpretar ADRs e tentar implementar sem orientação contextual. O resultado são semanas de aprendizagem, erros de implementação e ciclos de validação falhados.
+Sem o BanzAI, um programador que quer integrar o protocolo Banza tem de navegar centenas de páginas de documentação, pesquisar RFCs manualmente, interpretar ADRs e tentar implementar sem orientação contextual. O resultado são semanas de aprendizagem, erros de implementação e ciclos de validação falhados.
 
-Com o BanzamIA, o mesmo programador faz uma pergunta e recebe uma resposta contextual fundamentada em fontes do protocolo. Recebe referências exactas. Recebe orientação de implementação. Constrói correctamente.
+Com o BanzAI, o mesmo programador faz uma pergunta e recebe uma resposta contextual fundamentada em fontes do protocolo. Recebe referências exactas. Recebe orientação de implementação. Constrói correctamente.
 
-**O BanzamIA comprime semanas de aprendizagem do protocolo em minutos.**
+**O BanzAI comprime semanas de aprendizagem do protocolo em minutos.**
 
-![O Fosso de Conhecimento do Protocolo — comparação sem e com BanzamIA](/images/architecture/banzamia-knowledge-gap.svg)
+![O Fosso de Conhecimento do Protocolo — comparação sem e com BanzAI](/images/architecture/banzamia-knowledge-gap.svg)
 
 ---
 
 ### Por que é diferente de IA genérica
 
-O BanzamIA **não é**:
+O BanzAI **não é**:
 
 - ChatGPT para pagamentos
 - Um assistente genérico
 - Um wrapper de LLM público
 
-O BanzamIA **é**:
+O BanzAI **é**:
 
-- Protocol-native — construída sobre o corpus do protocolo Banzami
+- Protocol-native — construída sobre o corpus do protocolo Banza
 - RFC-aware — conhece todos os RFCs e ADRs publicados
 - Invariant-aware — conhece e explica os invariantes financeiros
 - Certification-aware — guia operadores no processo de certificação
 - Citation-first — fundamenta todas as respostas em fontes verificáveis
 
-O propósito do BanzamIA não é criatividade. É compreensão do protocolo.
+O propósito do BanzAI não é criatividade. É compreensão do protocolo.
 
 A verdade nunca vem da imaginação do modelo. A verdade vem de:
 
@@ -708,21 +708,21 @@ O modelo explica. As ferramentas verificam. Esta separação é absoluta e inten
 
 ---
 
-### BanzamIA como Camada Cognitiva
+### BanzAI como Camada Cognitiva
 
-O protocolo Banzami tem quatro camadas:
+O protocolo Banza tem quatro camadas:
 
 **Camada Física** — Banks, EMIS, settlement rails, infraestrutura de liquidação.
 
-**Camada Financeira** — O Kernel Banzami em Rust. Ledger, wallets, transactions, settlement, QR, payouts. Executa regras com precisão determinística.
+**Camada Financeira** — O Kernel Banza em Rust. Ledger, wallets, transactions, settlement, QR, payouts. Executa regras com precisão determinística.
 
 **Camada de Governança** — Certificação, conformidade, federação. RFCs, ADRs, validation matrix, manifestos de operador.
 
-**Camada Cognitiva — BanzamIA** — A interface humana de todo o protocolo. Explica o que as outras camadas fazem, guia quem trabalha com elas, e torna o protocolo acessível.
+**Camada Cognitiva — BanzAI** — A interface humana de todo o protocolo. Explica o que as outras camadas fazem, guia quem trabalha com elas, e torna o protocolo acessível.
 
-O Kernel move valor. O BanzamIA move compreensão.
-O Kernel executa regras. O BanzamIA explica regras.
-O Kernel garante verdade. O BanzamIA torna a verdade acessível.
+O Kernel move valor. O BanzAI move compreensão.
+O Kernel executa regras. O BanzAI explica regras.
+O Kernel garante verdade. O BanzAI torna a verdade acessível.
 
 ---
 
@@ -742,15 +742,15 @@ Muito poucos fornecem:
 - Orientação de conformidade contextual
 - Explicação de invariantes em linguagem natural
 
-O BanzamIA transforma o conhecimento do protocolo numa capacidade interactiva.
+O BanzAI transforma o conhecimento do protocolo numa capacidade interactiva.
 
 Isto representa uma inovação arquitectónica significativa: um protocolo que não apenas define regras, mas as explica activamente a todos os que trabalham com ele.
 
 ---
 
-### O que acontece sem BanzamIA
+### O que acontece sem BanzAI
 
-| Dimensão | Sem BanzamIA | Com BanzamIA |
+| Dimensão | Sem BanzAI | Com BanzAI |
 |----------|-------------|--------------|
 | Onboarding | Semanas | Dias |
 | Certificação | Processo longo e difícil | Guiado passo a passo |
@@ -761,27 +761,27 @@ Isto representa uma inovação arquitectónica significativa: um protocolo que n
 
 ---
 
-### BanzamIA multiplica o ecossistema
+### BanzAI multiplica o ecossistema
 
-O BanzamIA não é apenas mais um módulo. É um multiplicador de força de todo o ecossistema.
+O BanzAI não é apenas mais um módulo. É um multiplicador de força de todo o ecossistema.
 
-![BanzamIA como Multiplicador de Força — cada componente amplificado](/images/architecture/banzamia-force-multiplier.svg)
+![BanzAI como Multiplicador de Força — cada componente amplificado](/images/architecture/banzamia-force-multiplier.svg)
 
-Cada componente do ecossistema torna-se mais acessível e mais eficaz quando combinado com o BanzamIA:
+Cada componente do ecossistema torna-se mais acessível e mais eficaz quando combinado com o BanzAI:
 
-- **Kernel × BanzamIA** = integrações mais fáceis para programadores
-- **Certificação × BanzamIA** = progressão mais rápida de operadores através dos níveis
-- **RFCs × BanzamIA** = conhecimento de protocolo acessível a qualquer contribuidor
-- **Integration Surface × BanzamIA** = desenvolvimento de SDK mais rápido e correcto
-- **Governança × BanzamIA** = melhor conformidade e menos desvios de protocolo
+- **Kernel × BanzAI** = integrações mais fáceis para programadores
+- **Certificação × BanzAI** = progressão mais rápida de operadores através dos níveis
+- **RFCs × BanzAI** = conhecimento de protocolo acessível a qualquer contribuidor
+- **Integration Surface × BanzAI** = desenvolvimento de SDK mais rápido e correcto
+- **Governança × BanzAI** = melhor conformidade e menos desvios de protocolo
 
 ---
 
 ### Arquitectura do Produto
 
-O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por dezasseis módulos especializados, organizados em três camadas:
+O BanzAI disponível publicamente em `banzami.org/banzamia` é composto por dezasseis módulos especializados, organizados em três camadas:
 
-![Protocol Operating System — 8 capacidades em órbita em torno do núcleo BanzamIA](/images/architecture/protocol-operating-system.svg)
+![Protocol Operating System — 8 capacidades em órbita em torno do núcleo BanzAI](/images/architecture/protocol-operating-system.svg)
 
 **Camada de Protocolo — Conhecimento e Raciocínio**
 
@@ -812,55 +812,55 @@ O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por de
 | **Federation Intelligence** | Análise de compatibilidade de federação — score 0–100, conflitos, bloqueadores |
 | **Protocol Memory** | Registo contínuo da jornada do operador — assessments, milestones, trajectória |
 | **Digital Twin** | Representação virtual completa do operador no protocolo |
-| **Quality Dashboard** | Métricas do sistema BanzamIA — RAG, Protocol Graph, Qdrant, ferramentas |
+| **Quality Dashboard** | Métricas do sistema BanzAI — RAG, Protocol Graph, Qdrant, ferramentas |
 
-![BanzamIA — 16 módulos em 3 camadas: Protocolo, Operador, Inteligência](/images/architecture/banzamia-product-architecture.svg)
+![BanzAI — 16 módulos em 3 camadas: Protocolo, Operador, Inteligência](/images/architecture/banzamia-product-architecture.svg)
 
 ---
 
 ### Arquitectura Canónica do Ecossistema
 
-O BanzamIA existe dentro de um ecossistema completo que vai do protocolo às aplicações. A arquitectura canónica mostra como todas as peças se ligam: o Kernel Rust, os operadores certificados, o quadro de certificação, o BanzamIA como Protocol OS, e as aplicações de utilizador.
+O BanzAI existe dentro de um ecossistema completo que vai do protocolo às aplicações. A arquitectura canónica mostra como todas as peças se ligam: o Kernel Rust, os operadores certificados, o quadro de certificação, o BanzAI como Protocol OS, e as aplicações de utilizador.
 
-![Arquitectura Canónica do Ecossistema Banzami — do Kernel ao BanzamIA às Aplicações](/images/architecture/banzamia-canonical-architecture.svg)
+![Arquitectura Canónica do Ecossistema Banza — do Kernel ao BanzAI às Aplicações](/images/architecture/banzamia-canonical-architecture.svg)
 
 Esta arquitectura tem cinco camadas:
 
 1. **Protocolo Kernel** — crates Rust (Ledger, Wallets, QR, Settlement, Federation, Conformance)
-2. **Operadores** — entidades certificadas que operam sobre o protocolo (Banza, sandbox, futuros operadores) e SDKs oficiais
+2. **Operadores** — entidades certificadas que operam sobre o protocolo (Banzami, sandbox, futuros operadores) e SDKs oficiais
 3. **Quadro de Certificação** — L0 Sandbox → L1 Payment → L2 Settlement → L3 Federation → L4 Infrastructure
-4. **BanzamIA** — Protocol OS: 3 camadas, 16 módulos, Model Router, Retrieval híbrido (RAG + Protocol Graph)
-5. **Aplicações** — Banza app, banzami.org, Mobile (Flutter), Admin, BanzamIA, Partner API
+4. **BanzAI** — Protocol OS: 3 camadas, 16 módulos, Model Router, Retrieval híbrido (RAG + Protocol Graph)
+5. **Aplicações** — Banzami app, banzami.org, Mobile (Flutter), Admin, BanzAI, Partner API
 
 ---
 
-### Como o BanzamIA Funciona
+### Como o BanzAI Funciona
 
-O BanzamIA não é um único modelo de IA. É um sistema orquestrado que combina múltiplos modelos de linguagem, recuperação de conhecimento do protocolo, ferramentas de validação determinísticas e lógica de certificação numa única interface.
+O BanzAI não é um único modelo de IA. É um sistema orquestrado que combina múltiplos modelos de linguagem, recuperação de conhecimento do protocolo, ferramentas de validação determinísticas e lógica de certificação numa única interface.
 
-![Arquitectura Interna do BanzamIA — fluxo completo de pergunta a resposta fundamentada](/images/architecture/banzamia-internal-architecture.svg)
+![Arquitectura Interna do BanzAI — fluxo completo de pergunta a resposta fundamentada](/images/architecture/banzamia-internal-architecture.svg)
 
 #### Não é um único modelo
 
-O BanzamIA não é:
+O BanzAI não é:
 
-- Um chatbot treinado no Banzami
+- Um chatbot treinado no Banza
 - Um wrapper de LLM único
-- Um assistente genérico com branding Banzami
+- Um assistente genérico com branding Banza
 
-O BanzamIA é um sistema AI-native que encaminha cada pedido para a combinação correcta de modelo de linguagem, fonte de conhecimento, ferramenta determinística e validador de protocolo.
+O BanzAI é um sistema AI-native que encaminha cada pedido para a combinação correcta de modelo de linguagem, fonte de conhecimento, ferramenta determinística e validador de protocolo.
 
 #### Estratégia de Modelos de IA
 
-O BanzamIA usa uma arquitectura de encaminhamento de modelos (model routing). Cada tipo de tarefa é classificado e enviado para o modelo mais adequado.
+O BanzAI usa uma arquitectura de encaminhamento de modelos (model routing). Cada tipo de tarefa é classificado e enviado para o modelo mais adequado.
 
-![Encaminhamento de Modelos BanzamIA — routing de tarefas por modelo e ferramentas](/images/architecture/banzamia-model-routing.svg)
+![Encaminhamento de Modelos BanzAI — routing de tarefas por modelo e ferramentas](/images/architecture/banzamia-model-routing.svg)
 
 **Qwen — Compreensão Geral do Protocolo**
 
 Modelo principal para compreensão e explicação do protocolo. Responsável por: documentação e Q&A geral, clarificação de conceitos, sumário de RFCs e ADRs, orientação de onboarding, navegação geral do ecossistema.
 
-*Exemplos: "O que é um trace_id?", "Como funciona a federação?", "Qual a diferença entre Banzami e Banza?"*
+*Exemplos: "O que é um trace_id?", "Como funciona a federação?", "Qual a diferença entre Banza e Banzami?"*
 
 **Qwen Coder — Assistência de Implementação**
 
@@ -876,7 +876,7 @@ Usado para tarefas de raciocínio profundo. Responsável por: debugging de invar
 
 #### Recuperação de Conhecimento do Protocolo (RAG)
 
-O BanzamIA não depende da memória do modelo. Recupera conhecimento da base de conhecimento viva do Banzami — em tempo real, com citações verificáveis.
+O BanzAI não depende da memória do modelo. Recupera conhecimento da base de conhecimento viva do Banza — em tempo real, com citações verificáveis.
 
 Fontes incluem: `BANZAMI_REFERENCE.md`, RFCs e ADRs, contratos OpenAPI, invariantes financeiros, schemas de manifesto, vectores de conformidade, documentação de SDK e glossário oficial.
 
@@ -893,7 +893,7 @@ Pergunta do utilizador
 
 **Por que não fine-tuning**
 
-O fine-tuning torna-se obsoleto quando o protocolo evolui. O BanzamIA usa em vez disso recuperação em tempo real de documentos versionados, validadores determinísticos e saídas verificadas por ferramentas.
+O fine-tuning torna-se obsoleto quando o protocolo evolui. O BanzAI usa em vez disso recuperação em tempo real de documentos versionados, validadores determinísticos e saídas verificadas por ferramentas.
 
 > *Os modelos são substituíveis. O conhecimento do protocolo não é.*
 
@@ -907,7 +907,7 @@ A verdade vem de schemas de protocolo, motores de conformidade, validadores, man
 
 #### Ferramentas Determinísticas
 
-Muitas funções do BanzamIA não são inferências do modelo. São ferramentas determinísticas:
+Muitas funções do BanzAI não são inferências do modelo. São ferramentas determinísticas:
 
 | Ferramenta | Função |
 |-----------|--------|
@@ -931,19 +931,19 @@ A arquitectura é desenhada para que o Live AI Mode possa ser activado sem redes
 
 #### Desenhado para Auto-Hospedagem
 
-O BanzamIA deve permanecer auto-hospedável. Operadores, reguladores ou sandboxes governamentais devem poder implantar a sua própria instância — porque a infraestrutura financeira requer soberania de dados, e a federação futura pode requerer validação independente.
+O BanzAI deve permanecer auto-hospedável. Operadores, reguladores ou sandboxes governamentais devem poder implantar a sua própria instância — porque a infraestrutura financeira requer soberania de dados, e a federação futura pode requerer validação independente.
 
 #### Como uma Pergunta é Respondida
 
 Exemplo completo — *utilizador pergunta: "Como certifico um operador de Nível 2?"*
 
-1. O BanzamIA recebe a pergunta
+1. O BanzAI recebe a pergunta
 2. O Task Router classifica-a como `CERTIFICATION`
 3. A recuperação de conhecimento encontra docs de certificação e regras de conformidade
 4. As ferramentas determinísticas inspeccionam os requisitos disponíveis
 5. O Model Router selecciona DeepSeek para raciocínio
 6. O DeepSeek explica o resultado usando o contexto recuperado
-7. O BanzamIA devolve: resposta clara · requisitos em falta · testes relevantes · referências a fontes · próximas acções
+7. O BanzAI devolve: resposta clara · requisitos em falta · testes relevantes · referências a fontes · próximas acções
 
 #### Exemplos de Encaminhamento por Modelo
 
@@ -958,9 +958,9 @@ Exemplo completo — *utilizador pergunta: "Como certifico um operador de Nível
 
 ### Avaliação da Qualidade de Recuperação
 
-O BanzamIA inclui um framework de avaliação contínua que mede a qualidade das respostas ao longo de quatro dimensões.
+O BanzAI inclui um framework de avaliação contínua que mede a qualidade das respostas ao longo de quatro dimensões.
 
-![Arquitectura de Avaliação RAG — framework de medição de qualidade do BanzamIA](/images/architecture/rag-evaluation-architecture.svg)
+![Arquitectura de Avaliação RAG — framework de medição de qualidade do BanzAI](/images/architecture/rag-evaluation-architecture.svg)
 
 #### Dataset de Referência
 
@@ -1008,7 +1008,7 @@ O decaimento por frescura tem semi-vida de 180 dias e piso de 0.80 — documento
 
 #### Validação Adversarial
 
-12 perguntas-armadilha que testam se o BanzamIA resiste a afirmações incorrectas sobre o protocolo:
+12 perguntas-armadilha que testam se o BanzAI resiste a afirmações incorrectas sobre o protocolo:
 
 | Armadilha | Critério |
 |-----------|---------|
@@ -1018,7 +1018,7 @@ O decaimento por frescura tem semi-vida de 180 dias e piso de 0.80 — documento
 | Níveis de certificação podem ser saltados | FAIL se afirmar que sim |
 | Saldo de carteira pode ser negativo | FAIL se afirmar que sim |
 | Liquidação cria dinheiro novo | FAIL se afirmar que sim |
-| BanzamIA pode inventar factos do protocolo | FAIL se afirmar que pode |
+| BanzAI pode inventar factos do protocolo | FAIL se afirmar que pode |
 
 **Princípio:** *Tools determine truth. AI explains truth.* — quando uma ferramenta determinística (validador de manifesto, runner de conformidade) conflitua com o modelo, a ferramenta ganha sempre.
 
@@ -1026,7 +1026,7 @@ O decaimento por frescura tem semi-vida de 180 dias e piso de 0.80 — documento
 
 ### Grafo de Protocolo
 
-O BanzamIA indexa todos os documentos do protocolo numa estrutura de grafo de conhecimento tipado, com nós e arestas extraídos automaticamente do markdown.
+O BanzAI indexa todos os documentos do protocolo numa estrutura de grafo de conhecimento tipado, com nós e arestas extraídos automaticamente do markdown.
 
 ![Arquitectura do Grafo de Protocolo — nós tipados e relações](/images/architecture/protocol-graph-architecture.svg)
 
@@ -1104,7 +1104,7 @@ O relatório de cobertura mostra quantos chunks e documentos estão indexados po
 
 ### Protocol Graph Explorer
 
-O Protocol Graph Explorer é um módulo visual interactivo que permite navegar o grafo de protocolo directamente no BanzamIA. Acesse em `/banzamia` → **Protocol Graph**.
+O Protocol Graph Explorer é um módulo visual interactivo que permite navegar o grafo de protocolo directamente no BanzAI. Acesse em `/banzamia` → **Protocol Graph**.
 
 ![Protocol Graph Explorer — painel de pesquisa, lista de nós, detalhe com relações](/images/architecture/protocol-graph-explorer.svg)
 
@@ -1173,13 +1173,13 @@ O módulo Protocol Research executa pesquisa multi-passo sobre a base de conheci
 POST /research    { "question": "..." }
 ```
 
-Ou directamente no módulo **Protocol Research** do BanzamIA em `/banzamia`.
+Ou directamente no módulo **Protocol Research** do BanzAI em `/banzamia`.
 
 ---
 
 ### Certification Copilot
 
-O Certification Copilot analisa um manifesto de operador e capacidades declaradas face aos requisitos de cada nível de certificação Banzami (L0–L4).
+O Certification Copilot analisa um manifesto de operador e capacidades declaradas face aos requisitos de cada nível de certificação Banza (L0–L4).
 
 ![Certification Copilot — análise de readiness, score, roadmap L0→L4](/images/architecture/certification-copilot.svg)
 
@@ -1215,13 +1215,13 @@ O Certification Copilot analisa um manifesto de operador e capacidades declarada
 POST /certification/copilot    { "manifest": {...}, "capabilities": [...], "target_level": 2 }
 ```
 
-Ou directamente no módulo **Certification Copilot** do BanzamIA em `/banzamia`.
+Ou directamente no módulo **Certification Copilot** do BanzAI em `/banzamia`.
 
 ---
 
 ### Quality Dashboard
 
-O Quality Dashboard torna as métricas internas do BanzamIA públicas e verificáveis. O princípio orientador é: **não pedimos confiança — mostramos medições.**
+O Quality Dashboard torna as métricas internas do BanzAI públicas e verificáveis. O princípio orientador é: **não pedimos confiança — mostramos medições.**
 
 ![Quality Dashboard — fontes de dados, agregador /rag/stats, painel de métricas](/images/architecture/quality-dashboard-architecture.svg)
 
@@ -1245,13 +1245,13 @@ Uma recuperação é considerada "fraca" quando o score de similaridade do top r
 GET /rag/stats    — snapshot completo em tempo real
 ```
 
-Acessível no módulo **Quality Dashboard** do BanzamIA em `/banzamia`.
+Acessível no módulo **Quality Dashboard** do BanzAI em `/banzamia`.
 
 ---
 
 ### Ecosystem Intelligence Layer
 
-O BanzamIA é organizado em quatro camadas de inteligência, cada uma construída sobre a anterior:
+O BanzAI é organizado em quatro camadas de inteligência, cada uma construída sobre a anterior:
 
 ![Ecosystem Intelligence Layer — 4 camadas: Knowledge, Retrieval+Graph, Intelligence Modules, Trust](/images/architecture/ecosystem-intelligence-layer.svg)
 
@@ -1424,9 +1424,9 @@ A chamada a `/digital-twin` regista automaticamente um snapshot de assessment na
 
 ### Protocol Operating System Vision
 
-O BanzamIA evoluiu de assistant de documentação para **Protocol Operating System** — a camada de inteligência que torna o protocolo Banza auto-gerível e auto-explicativo.
+O BanzAI evoluiu de assistant de documentação para **Protocol Operating System** — a camada de inteligência que torna o protocolo Banzami auto-gerível e auto-explicativo.
 
-![Protocol Operating System — BanzamIA Vision: 8 capabilities em órbita ao redor do hub central BanzamIA POS](/images/architecture/protocol-operating-system.svg)
+![Protocol Operating System — BanzAI Vision: 8 capabilities em órbita ao redor do hub central BanzAI POS](/images/architecture/protocol-operating-system.svg)
 
 **As 6 capacidades do Protocol OS:**
 
@@ -1460,7 +1460,7 @@ Historicamente, a infraestrutura financeira requeria mediação humana. Um opera
 
 A adopção do protocolo era limitada pelo número de humanos disponíveis para explicar o protocolo.
 
-O BanzamIA muda este modelo.
+O BanzAI muda este modelo.
 
 ![A Visão do Protocolo Autónomo — quatro fases na evolução de protocolos financeiros](/images/architecture/autonomous-protocol-vision.svg)
 
@@ -1470,13 +1470,13 @@ Isto é a Visão do Protocolo Autónomo.
 
 #### A Economia de Adopção do Protocolo
 
-O BanzamIA muda fundamentalmente a economia de adopção do protocolo.
+O BanzAI muda fundamentalmente a economia de adopção do protocolo.
 
-![A Economia de Adopção — como o BanzamIA muda a relação entre crescimento e custo](/images/architecture/protocol-adoption-economics.svg)
+![A Economia de Adopção — como o BanzAI muda a relação entre crescimento e custo](/images/architecture/protocol-adoption-economics.svg)
 
-Sem BanzamIA, o crescimento do ecossistema cria custo: mais operadores significa mais pedidos de suporte, mais carga de certificação, mais documentação manual. O custo escala linearmente com o crescimento.
+Sem BanzAI, o crescimento do ecossistema cria custo: mais operadores significa mais pedidos de suporte, mais carga de certificação, mais documentação manual. O custo escala linearmente com o crescimento.
 
-Com BanzamIA, o crescimento do ecossistema cria valor: mais operadores significa mais adopção self-service, melhor qualidade do RAG, protocolo mais acessível. O custo cresce sub-linearmente.
+Com BanzAI, o crescimento do ecossistema cria valor: mais operadores significa mais adopção self-service, melhor qualidade do RAG, protocolo mais acessível. O custo cresce sub-linearmente.
 
 #### O Custo de Compreensão
 
@@ -1487,23 +1487,23 @@ Cada protocolo financeiro tem dois custos distintos:
 
 A maioria dos projectos foca-se apenas no custo de implementação.
 
-O BanzamIA ataca o custo de compreensão. O protocolo torna-se mais fácil de aprender, mais fácil de certificar, mais fácil de integrar, mais fácil de adoptar.
+O BanzAI ataca o custo de compreensão. O protocolo torna-se mais fácil de aprender, mais fácil de certificar, mais fácil de integrar, mais fácil de adoptar.
 
 #### O Protocolo que se Explica a Si Mesmo
 
-![O Protocolo que se Explica — modelo tradicional vs BanzamIA](/images/architecture/protocol-self-explanation.svg)
+![O Protocolo que se Explica — modelo tradicional vs BanzAI](/images/architecture/protocol-self-explanation.svg)
 
 Os protocolos financeiros tradicionais dependem de humanos para explicar o comportamento do protocolo. A escala é limitada pela capacidade humana disponível.
 
-O BanzamIA permite um modelo diferente. O protocolo pode agora explicar-se a si mesmo — 24 horas por dia, sem limite de escala, com citações verificáveis para cada afirmação.
+O BanzAI permite um modelo diferente. O protocolo pode agora explicar-se a si mesmo — 24 horas por dia, sem limite de escala, com citações verificáveis para cada afirmação.
 
 O protocolo torna-se parcialmente auto-descritivo.
 
 #### Além da Interface de Chat
 
-O BanzamIA não é uma funcionalidade de chat. A interface de chat é apenas uma manifestação do sistema.
+O BanzAI não é uma funcionalidade de chat. A interface de chat é apenas uma manifestação do sistema.
 
-O BanzamIA também alimenta:
+O BanzAI também alimenta:
 
 - Criação guiada de operadores e geração de manifestos
 - Fluxos de validação e orientação de certificação
@@ -1518,39 +1518,39 @@ A camada de inteligência existe independentemente da interface de utilizador. P
 
 A maioria dos ecossistemas de pagamento fornece APIs, SDKs e documentação. Alguns fornecem portais de suporte e fóruns. Muito poucos fornecem inteligência nativa ao protocolo.
 
-O BanzamIA introduz uma nova categoria arquitectónica: **Infraestrutura de Protocolo AI-native**.
+O BanzAI introduz uma nova categoria arquitectónica: **Infraestrutura de Protocolo AI-native**.
 
-O BanzamIA não é simplesmente IA anexada a um protocolo. É inteligência de protocolo construída no ecossistema do protocolo — que cresce em valor à medida que o protocolo cresce em complexidade.
+O BanzAI não é simplesmente IA anexada a um protocolo. É inteligência de protocolo construída no ecossistema do protocolo — que cresce em valor à medida que o protocolo cresce em complexidade.
 
 À medida que o ecossistema cresce:
 
-- RFCs crescem → BanzamIA torna-os pesquisáveis e compreensíveis
-- Operadores crescem → BanzamIA escala o onboarding de forma autónoma
-- Regras de certificação crescem → BanzamIA guia automaticamente
-- SDKs crescem → BanzamIA gera código correcto
+- RFCs crescem → BanzAI torna-os pesquisáveis e compreensíveis
+- Operadores crescem → BanzAI escala o onboarding de forma autónoma
+- Regras de certificação crescem → BanzAI guia automaticamente
+- SDKs crescem → BanzAI gera código correcto
 
-O valor do BanzamIA cresce com a complexidade do protocolo. Isto cria uma vantagem composta.
+O valor do BanzAI cresce com a complexidade do protocolo. Isto cria uma vantagem composta.
 
 #### A Interface Humana do Protocolo
 
-O protocolo Banzami tem quatro pilares fundamentais:
+O protocolo Banza tem quatro pilares fundamentais:
 
 | Pilar | Função |
 |-------|--------|
 | **Kernel** | Move valor · executa verdade financeira com precisão determinística |
 | **Certificação** | Protege valor · garante conformidade e confiança entre operadores |
 | **Federação** | Conecta valor · interliga a rede de operadores certificados |
-| **BanzamIA** | Torna o valor compreensível · é a interface humana de todo o sistema |
+| **BanzAI** | Torna o valor compreensível · é a interface humana de todo o sistema |
 
-O Kernel é o motor financeiro. A Federação é a rede. A Certificação protege a confiança. O BanzamIA é a interface humana.
+O Kernel é o motor financeiro. A Federação é a rede. A Certificação protege a confiança. O BanzAI é a interface humana.
 
 Juntos transformam um protocolo de pagamentos numa infraestrutura financeira autónoma — onde qualquer programador, operador, auditor ou regulador pode compreender o que o protocolo exige, validar o que implementou e construir com confiança.
 
 ---
 
-### O futuro do BanzamIA
+### O futuro do BanzAI
 
-O BanzamIA deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.
+O BanzAI deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.
 
 Capacidades futuras podem incluir:
 
@@ -1565,9 +1565,9 @@ Capacidades futuras podem incluir:
 
 ### Declaração Final
 
-O Kernel é o motor financeiro do Banzami.
+O Kernel é o motor financeiro do Banza.
 
-O BanzamIA é a interface cognitiva do Banzami.
+O BanzAI é a interface cognitiva do Banza.
 
 Um move valor. O outro torna o valor compreensível.
 
@@ -1577,7 +1577,7 @@ Juntos transformam um protocolo de pagamentos numa infraestrutura financeira ace
 
 ### Postura de segurança
 
-O BanzamIA é read-only. Não pode:
+O BanzAI é read-only. Não pode:
 - Iniciar operações financeiras
 - Modificar a validation matrix sem frases de governança
 - Aprovar certificações de forma autónoma
@@ -1586,11 +1586,11 @@ Cita fontes para todas as afirmações sobre o protocolo. Delega decisões de ce
 
 ---
 
-## 10. Banza para Programadores
+## 10. Banzami para Programadores
 
 ### Integração em horas
 
-A superfície de integração oficial do Banzami são os SDKs. Integrações directas via HTTP não são o caminho recomendado. SDKs oficiais:
+A superfície de integração oficial do Banza são os SDKs. Integrações directas via HTTP não são o caminho recomendado. SDKs oficiais:
 
 | SDK | Pacote | Casos de uso |
 |-----|--------|-------------|
@@ -1677,12 +1677,12 @@ Ver `docs/sandbox/README.md` para referência completa.
 
 ---
 
-## 11. Banza para Comerciantes
+## 11. Banzami para Comerciantes
 
 ### Sem hardware. Sem burocracia.
 
 Um comerciante precisa de:
-1. Uma conta Banza Business
+1. Uma conta Banzami Business
 2. Um código QR impresso
 
 Não precisa de: TPA, contrato bancário especial, hardware adicional.
@@ -1698,9 +1698,9 @@ Não precisa de: TPA, contrato bancário especial, hardware adicional.
 
 O montante líquido é creditado na carteira do comerciante imediatamente após a confirmação do pagamento. Não há espera de dias bancários.
 
-### Banza Business
+### Banzami Business
 
-O dashboard do Banza Business oferece:
+O dashboard do Banzami Business oferece:
 - Saldo em tempo real
 - Histórico completo de transacções
 - QR generator (estático e dinâmico)
@@ -1722,7 +1722,7 @@ O cliente clica, confirma e paga. Sem integração técnica necessária.
 
 ## 12. Para Consumidores
 
-### Banza Wallet
+### Banzami Wallet
 
 Cada consumidor tem uma carteira em Kwanza identificada pelo seu @banza.
 
@@ -1811,18 +1811,18 @@ Ver `docs/sandbox/README.md` para referência completa.
 
 Angola não precisa de copiar o modelo de pagamentos de outro país. Angola precisa do seu — construído para o Kwanza, para o QR, para o smartphone em cada bolso.
 
-### O problema que o Banza resolve
+### O problema que o Banzami resolve
 
-- **Dependência de dinheiro físico** — o digital é mais complicado que as notas. O Banza torna o digital mais rápido.
-- **Comprovativos por WhatsApp** — screenshots de transferências como prova de pagamento. O Banza elimina isto.
-- **Ausência de SDK angolano** — programadores angolanos não tinham API de pagamentos nativa. O Banza resolve.
+- **Dependência de dinheiro físico** — o digital é mais complicado que as notas. O Banzami torna o digital mais rápido.
+- **Comprovativos por WhatsApp** — screenshots de transferências como prova de pagamento. O Banzami elimina isto.
+- **Ausência de SDK angolano** — programadores angolanos não tinham API de pagamentos nativa. O Banzami resolve.
 - **Exclusão de pequenos negócios** — TPA é caro e burocrático. Um QR impresso chega.
 
 ### A oportunidade
 
 Angola tem penetração móvel crescente, uma geração de programadores prontos, e um sector informal que representa a maioria do comércio — que nunca foi bem servido pelas soluções de pagamento existentes.
 
-O modelo está provado: o Pix no Brasil, o UPI na Índia, o M-Pesa em Moçambique. Angola tem as mesmas pré-condições. O Banza é a infraestrutura.
+O modelo está provado: o Pix no Brasil, o UPI na Índia, o M-Pesa em Moçambique. Angola tem as mesmas pré-condições. O Banzami é a infraestrutura.
 
 ### O salto tecnológico
 
@@ -1838,7 +1838,7 @@ Angola tem a oportunidade de saltar a fase da infraestrutura de cartões. Pode i
 |------|-----------|
 | Conformance Suite v1 | Suite de testes executável para Níveis 1–3 |
 | Certificação Nível 1–2 | Primeiros operadores externos certificados |
-| BanzamIA Live API | API BanzamIA em produção com Qdrant vector store |
+| BanzAI Live API | API BanzAI em produção com Qdrant vector store |
 | PHP SDK v1 | SDK PHP estável para integrações server-side |
 | Payout automatizado | Ciclos de payout T+1 automáticos |
 | Integração acquiring | Integração EMIS para pagamentos por cartão |
@@ -1850,7 +1850,7 @@ Angola tem a oportunidade de saltar a fase da infraestrutura de cartões. Pode i
 | Certificação Nível 3–4 | Protocolo completo e certificação de infraestrutura |
 | Operadores de terceiros | Primeiros operadores externos no protocolo |
 | RFC de federação | Especificação de encaminhamento inter-operadores |
-| BanzamIA Knowledge API | Pesquisa semântica sobre toda a documentação do protocolo |
+| BanzAI Knowledge API | Pesquisa semântica sobre toda a documentação do protocolo |
 | Portal de certificação | Certificação self-service |
 
 ### Longo prazo (H2 2027+)
@@ -1874,7 +1874,7 @@ Não infraestrutura adaptada de um modelo estrangeiro que nunca foi concebido pa
 
 Infraestrutura construída aqui. Para aqui.
 
-**Isso é o Banza — construído pelo Banzami.**
+**Isso é o Banzami — construído pelo Banza.**
 
 ### A transformação
 
@@ -1884,11 +1884,11 @@ Infraestrutura construída aqui. Para aqui.
 - Um programador angolano não tem SDK de pagamentos construído para o seu mercado
 - Uma cantina não tem escolha senão dinheiro físico
 
-**Amanhã — com o Banza:**
+**Amanhã — com o Banzami:**
 - Um comerciante imprime um QR e aceita pagamentos instantâneos de qualquer smartphone
 - Um consumidor faz o scan, confirma e paga em menos de 3 segundos — com recibo criptográfico
-- Um programador integra o Banza SDK e lança funcionalidade de pagamento em horas
-- Uma cantina tem Banza Wallet, Banza Business e visibilidade total sobre cada transacção
+- Um programador integra o Banzami SDK e lança funcionalidade de pagamento em horas
+- Uma cantina tem Banzami Wallet, Banzami Business e visibilidade total sobre cada transacção
 
 ### Por que isto importa para além do comércio
 
@@ -1896,11 +1896,11 @@ Os pagamentos não são apenas transacções. São confiança.
 
 Quando um pagamento é instantâneo e confirmado, ambas as partes podem avançar sem dúvida. Quando um recibo é digital e permanente, não há disputa sobre o que foi acordado. Quando uma carteira é sempre acessível, a capacidade de participar na vida económica não é restringida pela geografia ou pelo acesso bancário formal.
 
-O Banza torna a economia angolana mais líquida, mais transparente e mais acessível — não substituindo o que existe, mas completando o que falta.
+O Banzami torna a economia angolana mais líquida, mais transparente e mais acessível — não substituindo o que existe, mas completando o que falta.
 
 ### A promessa
 
-Cada decisão de engenharia, cada escolha de produto e cada design no Banza reflecte um compromisso do Banzami:
+Cada decisão de engenharia, cada escolha de produto e cada design no Banzami reflecte um compromisso do Banza:
 
 **Os pagamentos digitais em Angola devem ser instantâneos, acessíveis, integrados e utilizáveis por todos.**
 
@@ -1914,8 +1914,8 @@ Para Angola.
 
 ---
 
-*Banza — O sistema de pagamentos instantâneos de Angola. Wallet-native. QR-first. Construído para cada angolano.*  
-*Banzami — A infraestrutura que permite Angola pagar digitalmente.*
+*Banzami — O sistema de pagamentos instantâneos de Angola. Wallet-native. QR-first. Construído para cada angolano.*  
+*Banza — A infraestrutura que permite Angola pagar digitalmente.*
 
 ---
 
@@ -1927,7 +1927,7 @@ Para Angola.
 - ADR-012 — Ecossistema SDK-first
 - ADR-013 — Identidade wallet-native
 - ADR-014 — Missão nacional Angola-first
-- ADR-016 — Arquitectura de marca Banzami/Banza
+- ADR-016 — Arquitectura de marca Banza/Banzami
 - `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` — Referência técnica completa
 - `docs/validation/INVARIANT_TAXONOMY.md` — Registo completo de invariantes
 - `docs/sandbox/README.md` — Referência do ambiente sandbox

@@ -1,4 +1,4 @@
-# Banzami Documentation Index
+# Banza Documentation Index
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -10,7 +10,7 @@
 
 ## I am a...
 
-### New contributor to the Banzami codebase
+### New contributor to the Banza codebase
 
 1. Read [README.md](../README.md) — developer entry point, stack overview, service topology
 2. Read [CLAUDE.md](../CLAUDE.md) — Engineering Constitution, rules, conventions
@@ -18,20 +18,20 @@
 4. Read [docs/adr/ADR-001](adr/ADR-001-go-rust-service-boundary.md) through [ADR-017](adr/ADR-017-wallet-domain-architecture.md)
 5. Read [docs/validation/VALIDATION_DOMAINS.md](validation/VALIDATION_DOMAINS.md) — validation model
 
-### Developer integrating Banza payments
+### Developer integrating Banzami payments
 
 1. Read [docs/sandbox/README.md](sandbox/README.md) — get started in sandbox
 2. Read [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) — SDK examples
 3. Read [docs/BANZAMI_REFERENCE.md §9](BANZAMI_REFERENCE.md) — programadores section
-4. Ask [BanzamIA](https://banzami.org/banzamia) — generates integration code
+4. Ask [BanzAI](https://banzami.org/banzamia) — generates integration code
 
-### Operator building on the Banzami protocol
+### Operator building on the Banza protocol
 
 1. Read [docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md §7](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) — Operator Model
 2. Read [docs/certification.md](certification.md) — certification levels and process
 3. Read [docs/conformance.md](conformance.md) — conformance suite reference
 4. Read [docs/banzamia/operator-builder.md](banzamia/operator-builder.md) — manifest creation
-5. Use [BanzamIA Operator Builder](https://banzami.org/banzamia) — guided manifest creation
+5. Use [BanzAI Operator Builder](https://banzami.org/banzamia) — guided manifest creation
 
 ### Understanding the protocol governance
 
@@ -40,9 +40,9 @@
 3. Read [docs/validation/VALIDATION_DOMAINS.md](validation/VALIDATION_DOMAINS.md) — validation domains
 4. Read [docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md §4](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) — Governance
 
-### Understanding BanzamIA
+### Understanding BanzAI
 
-1. Read [docs/banzamia/overview.md](banzamia/overview.md) — what BanzamIA is
+1. Read [docs/banzamia/overview.md](banzamia/overview.md) — what BanzAI is
 2. Read [docs/banzamia/architecture.md](banzamia/architecture.md) — technical architecture
 3. Read [docs/banzamia/roadmap.md](banzamia/roadmap.md) — what's coming
 4. Visit [banzami.org/banzamia](https://banzami.org/banzamia) — live interface
@@ -86,13 +86,13 @@
 |----------|-------------|
 | [docs/certification.md](certification.md) | Certification levels 0–4, process, maintenance |
 | [docs/conformance.md](conformance.md) | Conformance suite structure and rules |
-| [docs/reference-operator.md](reference-operator.md) | Reference Operator (Banza) specification |
+| [docs/reference-operator.md](reference-operator.md) | Reference Operator (Banzami) specification |
 
-### BanzamIA
+### BanzAI
 
 | Document | Description |
 |----------|-------------|
-| [docs/banzamia/overview.md](banzamia/overview.md) | What BanzamIA is (and isn't) |
+| [docs/banzamia/overview.md](banzamia/overview.md) | What BanzAI is (and isn't) |
 | [docs/banzamia/architecture.md](banzamia/architecture.md) | Technical architecture |
 | [docs/banzamia/api.md](banzamia/api.md) | API contract |
 | [docs/banzamia/operator-builder.md](banzamia/operator-builder.md) | Manifest creation guide |
@@ -100,7 +100,7 @@
 | [docs/banzamia/trace-explainer.md](banzamia/trace-explainer.md) | Trace reconstruction guide |
 | [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) | SDK code generation guide |
 | [docs/banzamia/knowledge-search.md](banzamia/knowledge-search.md) | Semantic search guide |
-| [docs/banzamia/roadmap.md](banzamia/roadmap.md) | BanzamIA roadmap |
+| [docs/banzamia/roadmap.md](banzamia/roadmap.md) | BanzAI roadmap |
 
 ### Developer Integration
 
@@ -117,7 +117,7 @@
 |----------|-------------|
 | [docs/product/strategy.md](product/strategy.md) | Product strategy |
 | [docs/product/positioning.md](product/positioning.md) | Market positioning |
-| [docs/adr/ADR-016](adr/ADR-016-banzami-banza-brand-architecture.md) | Brand architecture (Banzami/Banza) |
+| [docs/adr/ADR-016](adr/ADR-016-banzami-banza-brand-architecture.md) | Brand architecture (Banza/Banzami) |
 | [assets/banza/guidelines/BANZA_BRAND_GUIDELINES.md](../assets/banza/guidelines/BANZA_BRAND_GUIDELINES.md) | Brand guidelines |
 
 ### Audit & Compliance
@@ -169,9 +169,9 @@ When in doubt about a term, see [docs/glossary.md](glossary.md).
 
 | If you see... | It means... |
 |--------------|-------------|
-| Banzami | The organisation and protocol |
-| Banza | The consumer payment product |
-| BanzamIA | The AI-native Protocol Agent |
+| Banza | The organisation and protocol |
+| Banzami | The consumer payment product |
+| BanzAI | The AI-native Protocol Agent |
 | Kernel | The Rust financial core (18 crates) |
 | Operator | Protocol implementor |
 | Manifest | Operator capability declaration |

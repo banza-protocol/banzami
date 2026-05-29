@@ -1,10 +1,10 @@
-# Banzami Glossary
+# Banza Glossary
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
 **Status:** Authoritative
 
-> Single authoritative definitions for every important term in the Banzami ecosystem.  
+> Single authoritative definitions for every important term in the Banza ecosystem.  
 > When in doubt about terminology, this document is the source of truth.
 
 ---
@@ -23,13 +23,13 @@ The portion of a wallet balance that is immediately available for payments or wi
 
 ## @banza
 
-A human-readable payment address uniquely identifying a consumer or merchant on the Banza network. Format: `@<handle>`. Examples: `@joao.luanda`, `@cantina.central`. Governed by INV-IDENT-001 (global uniqueness). No IBAN, no account number, no card number required. Defined in ADR-013.
+A human-readable payment address uniquely identifying a consumer or merchant on the Banzami network. Format: `@<handle>`. Examples: `@joao.luanda`, `@cantina.central`. Governed by INV-IDENT-001 (global uniqueness). No IBAN, no account number, no card number required. Defined in ADR-013.
 
 ---
 
 ## Acquiring
 
-The process of accepting payment card transactions. In Banzami, acquiring refers specifically to EMIS/Multicaixa Express integration — the mechanism by which card payments are accepted and settled into Banza wallets. Implemented in the `acquiring` Rust crate. Capability: `acquiring.emis`.
+The process of accepting payment card transactions. In Banza, acquiring refers specifically to EMIS/Multicaixa Express integration — the mechanism by which card payments are accepted and settled into Banzami wallets. Implemented in the `acquiring` Rust crate. Capability: `acquiring.emis`.
 
 ---
 
@@ -41,47 +41,47 @@ An immutable record of an architecture-level decision: why it was made, what alt
 
 ## AOA / Kwanza
 
-Angola Obrigação Angolana — the official and primary currency of Banzami. ISO 4217 code: `AOA`. Symbol: Kz. Precision: **1 AOA = 100 minor units** (2 decimal places). Example: 10,50 Kz → `amount_minor = 1050`. All financial amounts in Banzami are denominated in AOA and stored as i64 integers. Any change to AOA precision policy requires an approved RFC. Defined in ADR-014, ADR-002. See BANZAMI_REFERENCE.md §5 (Currency Registry).
-
----
-
-## Banza
-
-The primary payment product built by Banzami. The consumer-facing payment network: wallets, QR payments, @handle identity, Banza Business for merchants, and the Banza SDK for developers. Defined in ADR-016.
-
-**Not:** Banza ≠ Banzami (the organisation). See [Banzami](#banzami).
-
----
-
-## Banza Business
-
-The merchant dashboard and tooling within the Banza product. Provides: real-time balance, transaction history, QR generator, reconciliation reports, payout management.
-
----
-
-## Banza SDK
-
-The official SDK for integrating Banza payments into external applications. Available in TypeScript (`@banza/sdk`), Flutter/Dart (`banzami_sdk`), and PHP (`banza/sdk`). The recommended path for all external integrations — direct HTTP is not supported for production integrations (ADR-012).
-
----
-
-## BanzamIA
-
-The AI-native Protocol Agent for the Banzami ecosystem. Deployed at `banzami.org/banzamia`. An 8-module interface for building, validating, and certifying Banzami operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
+Angola Obrigação Angolana — the official and primary currency of Banza. ISO 4217 code: `AOA`. Symbol: Kz. Precision: **1 AOA = 100 minor units** (2 decimal places). Example: 10,50 Kz → `amount_minor = 1050`. All financial amounts in Banza are denominated in AOA and stored as i64 integers. Any change to AOA precision policy requires an approved RFC. Defined in ADR-014, ADR-002. See BANZAMI_REFERENCE.md §5 (Currency Registry).
 
 ---
 
 ## Banzami
 
-The organisation and protocol. Banzami builds the financial infrastructure (Banzami Kernel), defines the protocol (RFCs, ADRs), maintains the conformance suite and certification framework, and publishes official SDKs. Defined in ADR-016.
+The primary payment product built by Banza. The consumer-facing payment network: wallets, QR payments, @handle identity, Banzami Business for merchants, and the Banzami SDK for developers. Defined in ADR-016.
 
-**Not:** Banzami ≠ Banza (the payment product).
+**Not:** Banzami ≠ Banza (the organisation). See [Banza](#banzami).
 
 ---
 
-## Banzami Kernel
+## Banzami Business
 
-The Rust financial core of the Banzami platform. Composed of 18 Rust crates that collectively implement: ledger, wallets, transactions, transfers, settlement, reconciliation, payouts, QR, payment links, identity, consumer wallets, acquiring, risk, compliance, routing, merchants, jobs, and shared types. Never exposed directly to the internet — all access is via Go service layer.
+The merchant dashboard and tooling within the Banzami product. Provides: real-time balance, transaction history, QR generator, reconciliation reports, payout management.
+
+---
+
+## Banzami SDK
+
+The official SDK for integrating Banzami payments into external applications. Available in TypeScript (`@banza/sdk`), Flutter/Dart (`banzami_sdk`), and PHP (`banza/sdk`). The recommended path for all external integrations — direct HTTP is not supported for production integrations (ADR-012).
+
+---
+
+## BanzAI
+
+The AI-native Protocol Agent for the Banza ecosystem. Deployed at `banzami.org/banzamia`. An 8-module interface for building, validating, and certifying Banza operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
+
+---
+
+## Banza
+
+The organisation and protocol. Banza builds the financial infrastructure (Banza Kernel), defines the protocol (RFCs, ADRs), maintains the conformance suite and certification framework, and publishes official SDKs. Defined in ADR-016.
+
+**Not:** Banza ≠ Banzami (the payment product).
+
+---
+
+## Banza Kernel
+
+The Rust financial core of the Banza platform. Composed of 18 Rust crates that collectively implement: ledger, wallets, transactions, transfers, settlement, reconciliation, payouts, QR, payment links, identity, consumer wallets, acquiring, risk, compliance, routing, merchants, jobs, and shared types. Never exposed directly to the internet — all access is via Go service layer.
 
 ---
 
@@ -93,7 +93,7 @@ An atomic, independently testable unit of operator functionality. Capabilities a
 
 ## Certification
 
-The formal process by which an operator proves it implements the Banzami protocol correctly at a given level. Certification is earned by passing the conformance suite for the target level. Levels 0–4. Certifications are version-bound and expire after 12 months without re-verification. See `docs/certification.md`.
+The formal process by which an operator proves it implements the Banza protocol correctly at a given level. Certification is earned by passing the conformance suite for the target level. Levels 0–4. Certifications are version-bound and expire after 12 months without re-verification. See `docs/certification.md`.
 
 ---
 
@@ -122,7 +122,7 @@ The machine-executable specification that defines what "protocol compliant" mean
 
 ## Currency Registry
 
-The formal Banzami register of supported currencies with authoritative precision definitions. Current entries: AOA (100 minor units), USD (100 minor units), EUR (100 minor units). Adding a new currency requires an approved RFC specifying ISO 4217 code, minor unit count, rounding policy, and available settlement rails. Defined in BANZAMI_REFERENCE.md §5. The Currency Registry is the single source of truth for monetary precision — SDK implementations must align with it.
+The formal Banza register of supported currencies with authoritative precision definitions. Current entries: AOA (100 minor units), USD (100 minor units), EUR (100 minor units). Adding a new currency requires an approved RFC specifying ISO 4217 code, minor unit count, rounding policy, and available settlement rails. Defined in BANZAMI_REFERENCE.md §5. The Currency Registry is the single source of truth for monetary precision — SDK implementations must align with it.
 
 ---
 
@@ -140,7 +140,7 @@ A ledger entry that decreases a wallet balance. In the QR payment flow: consumer
 
 ## Double-Entry Ledger
 
-The accounting system used by Banzami. Every financial posting must contain equal debits and credits (INV-LEDGER-001). Entries are append-only (INV-LEDGER-002), stored as integer minor units (INV-LEDGER-003), and committed atomically (INV-LEDGER-004). Implemented in the `ledger` Rust crate. Defined in ADR-002.
+The accounting system used by Banza. Every financial posting must contain equal debits and credits (INV-LEDGER-001). Entries are append-only (INV-LEDGER-002), stored as integer minor units (INV-LEDGER-003), and committed atomically (INV-LEDGER-004). Implemented in the `ledger` Rust crate. Defined in ADR-002.
 
 ---
 
@@ -152,7 +152,7 @@ A QR code that encodes a specific payment amount. The consumer does not need to 
 
 ## Environment
 
-The deployment context. Banzami has two environments:
+The deployment context. Banza has two environments:
 - **LIVE** — real Angolan Kwanza, real settlement rails
 - **SANDBOX** — virtual funds, no real rails, completely isolated database
 
@@ -174,7 +174,7 @@ The portion of a gross payment amount retained by the operator. Formula: `gross 
 
 ## Financial Invariant
 
-A non-negotiable assertion about financial correctness that must never be violated. Invariants are enforced at compile time (Rust types), schema level (database constraints), runtime (application logic), CI (automated tests), and observability (BanzamIA). Identified by `INV-<DOMAIN>-<NNN>`. See `docs/validation/INVARIANT_TAXONOMY.md`.
+A non-negotiable assertion about financial correctness that must never be violated. Invariants are enforced at compile time (Rust types), schema level (database constraints), runtime (application logic), CI (automated tests), and observability (BanzAI). Identified by `INV-<DOMAIN>-<NNN>`. See `docs/validation/INVARIANT_TAXONOMY.md`.
 
 ---
 
@@ -198,7 +198,7 @@ See [@banza](#banza).
 
 ## Idempotency
 
-The property of an operation that produces the same result whether applied once or many times. All mutating Banzami API endpoints accept an `Idempotency-Key` header. Submitting the same key twice returns the original response without creating a duplicate. Defined in ADR-004.
+The property of an operation that produces the same result whether applied once or many times. All mutating Banza API endpoints accept an `Idempotency-Key` header. Submitting the same key twice returns the original response without creating a duplicate. Defined in ADR-004.
 
 ---
 
@@ -228,7 +228,7 @@ The total amount paid by the consumer before any deductions. An integer. Invaria
 
 ## Minor Units
 
-The integer representation of a monetary amount expressed in the smallest supported denomination of a currency. All amounts in Banzami are stored, computed, and transmitted as i64 minor units — floating-point arithmetic is forbidden (INV-LEDGER-003, MON-001). For AOA: 1 AOA = 100 minor units. For USD and EUR: 1 unit = 100 minor units. The `*_minor` suffix on field names signals that the value is in minor units. See BANZAMI_REFERENCE.md §5.
+The integer representation of a monetary amount expressed in the smallest supported denomination of a currency. All amounts in Banza are stored, computed, and transmitted as i64 minor units — floating-point arithmetic is forbidden (INV-LEDGER-003, MON-001). For AOA: 1 AOA = 100 minor units. For USD and EUR: 1 unit = 100 minor units. The `*_minor` suffix on field names signals that the value is in minor units. See BANZAMI_REFERENCE.md §5.
 
 ---
 
@@ -246,13 +246,13 @@ The amount credited to the merchant wallet after fee deduction. Stored in the fi
 
 ## Operator
 
-Any party that implements the Banzami protocol to process payments. Operators declare their capabilities in a Manifest and are subject to the Certification process. The Reference Operator (Banza) is the canonical implementation of the full protocol.
+Any party that implements the Banza protocol to process payments. Operators declare their capabilities in a Manifest and are subject to the Certification process. The Reference Operator (Banzami) is the canonical implementation of the full protocol.
 
 ---
 
 ## Operator Manifest
 
-A machine-readable JSON declaration of an operator's identity, target certification level, capabilities, asserted invariants, and endpoints. The starting point of the certification process. Validated by the BanzamIA Manifest Validator.
+A machine-readable JSON declaration of an operator's identity, target certification level, capabilities, asserted invariants, and endpoints. The starting point of the certification process. Validated by the BanzAI Manifest Validator.
 
 ---
 
@@ -270,7 +270,7 @@ A complete set of balanced ledger entries that are committed atomically. A posti
 
 ## Provider
 
-A payment rail provider. Banzami integrates with EMIS (Empresa Interbancária de Serviços) and Multicaixa Express as payment rail providers for acquiring and settlement.
+A payment rail provider. Banza integrates with EMIS (Empresa Interbancária de Serviços) and Multicaixa Express as payment rail providers for acquiring and settlement.
 
 ---
 
@@ -282,19 +282,19 @@ Consumer-to-consumer wallet transfer, addressed by @banza handle. Capability: `p
 
 ## `*_minor` Convention
 
-The naming convention for all monetary fields in the Banzami protocol. Any field whose name ends in `_minor` holds an integer value in the smallest supported denomination of a currency. Standard fields: `amount_minor`, `gross_minor`, `fee_minor`, `net_minor`, `available_minor`, `reserved_minor`, `balance_minor`, `settlement_minor`. Using non-`*_minor` field names for monetary values (e.g., `"amount": 10.50`) is a protocol violation. Defined in BANZAMI_REFERENCE.md §5.
+The naming convention for all monetary fields in the Banza protocol. Any field whose name ends in `_minor` holds an integer value in the smallest supported denomination of a currency. Standard fields: `amount_minor`, `gross_minor`, `fee_minor`, `net_minor`, `available_minor`, `reserved_minor`, `balance_minor`, `settlement_minor`. Using non-`*_minor` field names for monetary values (e.g., `"amount": 10.50`) is a protocol violation. Defined in BANZAMI_REFERENCE.md §5.
 
 ---
 
 ## QR Code
 
-The primary payment surface for merchants. A Banza QR code encodes either a static merchant identity (static QR) or a specific payment amount (dynamic QR). Scanned by the Banza consumer app to initiate payment.
+The primary payment surface for merchants. A Banzami QR code encodes either a static merchant identity (static QR) or a specific payment amount (dynamic QR). Scanned by the Banzami consumer app to initiate payment.
 
 ---
 
 ## Rate Limiting
 
-Request frequency controls applied per API key. All Banzami API endpoints are rate-limited. Defined in ADR-004.
+Request frequency controls applied per API key. All Banza API endpoints are rate-limited. Defined in ADR-004.
 
 ---
 
@@ -306,13 +306,13 @@ The portion of a wallet balance that is temporarily locked — for example, duri
 
 ## Reconciliation
 
-The process of verifying that all ledger entries are consistent with settlement records and external rails. Banzami performs automated daily reconciliation. Capability: `reconciliation`. Implemented in the `reconciliation` Rust crate.
+The process of verifying that all ledger entries are consistent with settlement records and external rails. Banza performs automated daily reconciliation. Capability: `reconciliation`. Implemented in the `reconciliation` Rust crate.
 
 ---
 
 ## Reference Operator
 
-The canonical implementation of the complete Banzami protocol. The Banza product is the Reference Operator. All protocol behaviours are validated against the Reference Operator.
+The canonical implementation of the complete Banza protocol. The Banzami product is the Reference Operator. All protocol behaviours are validated against the Reference Operator.
 
 ---
 
@@ -336,7 +336,7 @@ A specialised operator configuration for the sandbox environment. Same capabilit
 
 ## Settlement
 
-The process of crediting a merchant wallet with payment proceeds. In Banzami, settlement is T+0 (instant) — the net amount is credited to the merchant wallet at the moment the payment is confirmed. Capability: `settlement.t0`. Governed by INV-STL-001 and INV-STL-002.
+The process of crediting a merchant wallet with payment proceeds. In Banza, settlement is T+0 (instant) — the net amount is credited to the merchant wallet at the moment the payment is confirmed. Capability: `settlement.t0`. Governed by INV-STL-001 and INV-STL-002.
 
 ---
 
@@ -360,20 +360,20 @@ A grouping of implementation items by engineering concern. Used in the BANZAMI_I
 
 ## Wallet
 
-A Kwanza-denominated balance account. Every consumer and merchant in the Banza network has at least one wallet. Wallet balances are always derived from ledger entries — never directly mutated. A wallet balance can never go negative (INV-STL-002).
+A Kwanza-denominated balance account. Every consumer and merchant in the Banzami network has at least one wallet. Wallet balances are always derived from ledger entries — never directly mutated. A wallet balance can never go negative (INV-STL-002).
 
 ---
 
 ## Webhook
 
-An HTTP callback sent to an operator or integrator when a financial event occurs. Banzami webhooks use HMAC-SHA256 signatures (`Banza-Signature` header) for authenticity verification. Standard retry schedule: 1m → 5m → 30m → 2h → 8h. Defined in `docs/standards/webhook-signature-spec.md`.
+An HTTP callback sent to an operator or integrator when a financial event occurs. Banza webhooks use HMAC-SHA256 signatures (`Banza-Signature` header) for authenticity verification. Standard retry schedule: 1m → 5m → 30m → 2h → 8h. Defined in `docs/standards/webhook-signature-spec.md`.
 
 ---
 
 ## XOF
 
-West African CFA franc. Used in BanzamIA demo traces for protocol illustration. Not a supported live currency — Banzami's live currency is AOA (Kwanza).
+West African CFA franc. Used in BanzAI demo traces for protocol illustration. Not a supported live currency — Banza's live currency is AOA (Kwanza).
 
 ---
 
-*This glossary is maintained as part of the Banzami documentation. Report inconsistencies or missing terms via the standard RFC/ADR governance process.*
+*This glossary is maintained as part of the Banza documentation. Report inconsistencies or missing terms via the standard RFC/ADR governance process.*

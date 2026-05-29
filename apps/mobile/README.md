@@ -1,6 +1,6 @@
-# Banzami Mobile
+# Banza Mobile
 
-Flutter application for the Banzami payment platform, supporting two flavours: **Comerciante** (merchant) and **Consumidor** (consumer).
+Flutter application for the Banza payment platform, supporting two flavours: **Comerciante** (merchant) and **Consumidor** (consumer).
 
 ## Flavours
 

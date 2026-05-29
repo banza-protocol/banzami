@@ -1,4 +1,4 @@
-# Doa × Banzami — Backend Integration
+# Doa × Banza — Backend Integration
 
 Complete reference for the Doa server-side integration: payment service layer, API client, webhook handler, idempotency, persistence, and configuration.
 
@@ -25,7 +25,7 @@ app/api/
         └── route.ts         ← POST /api/webhooks/banzami
 ```
 
-All files under `lib/payments/providers/` and the two donations API routes include `import 'server-only'` — the Next.js compiler enforces this at build time, preventing Banzami credentials from reaching the browser.
+All files under `lib/payments/providers/` and the two donations API routes include `import 'server-only'` — the Next.js compiler enforces this at build time, preventing Banza credentials from reaching the browser.
 
 ---
 
@@ -47,11 +47,11 @@ export interface PaymentProvider {
 }
 ```
 
-`verify_webhook` and `parse_webhook` are optional — only webhook-capable providers implement them. The webhook route (`/api/webhooks/banzami`) calls these directly rather than through the registry, since it handles only Banzami webhooks.
+`verify_webhook` and `parse_webhook` are optional — only webhook-capable providers implement them. The webhook route (`/api/webhooks/banzami`) calls these directly rather than through the registry, since it handles only Banza webhooks.
 
 ---
 
-## BanzamiProvider Implementation
+## BanzaProvider Implementation
 
 ```typescript
 // lib/payments/providers/banzami.ts
@@ -110,17 +110,17 @@ class BanzamiProvider implements PaymentProvider {
 }
 ```
 
-**Authentication**: `POST /v1/auth/token` exchanges the API key for a short-lived JWT. The JWT is obtained fresh per initiation request — no caching, no token refresh. The JWT lifetime is defined by Banzami (typically 1 hour), but since initiation takes < 5 seconds, reuse between requests is not necessary.
+**Authentication**: `POST /v1/auth/token` exchanges the API key for a short-lived JWT. The JWT is obtained fresh per initiation request — no caching, no token refresh. The JWT lifetime is defined by Banza (typically 1 hour), but since initiation takes < 5 seconds, reuse between requests is not necessary.
 
-**Description prefix**: `DOA-{8-char-prefix}` embeds a reconciliation key visible in the Banzami dashboard. The prefix is the first 8 characters of the intent UUID, uppercased. This allows merchant operations to cross-reference Doa donations in the Banzami dashboard without the full UUID.
+**Description prefix**: `DOA-{8-char-prefix}` embeds a reconciliation key visible in the Banza dashboard. The prefix is the first 8 characters of the intent UUID, uppercased. This allows merchant operations to cross-reference Doa donations in the Banza dashboard without the full UUID.
 
-**Idempotency-Key**: `banzami:{intent_id}` is sent to Banzami's API. This is a second layer of idempotency beyond Doa's own dedup check — if the Doa server crashes after calling Banzami but before writing `donation_events`, a retry with the same intent_id will get the same payment link from Banzami rather than creating a second one.
+**Idempotency-Key**: `banzami:{intent_id}` is sent to Banza's API. This is a second layer of idempotency beyond Doa's own dedup check — if the Doa server crashes after calling Banza but before writing `donation_events`, a retry with the same intent_id will get the same payment link from Banza rather than creating a second one.
 
 ---
 
 ## Payment Initiation Route
 
-`POST /api/donations/initiate-payment` is the generic entrypoint for all payment methods. For Banzami:
+`POST /api/donations/initiate-payment` is the generic entrypoint for all payment methods. For Banza:
 
 ```typescript
 // Simplified — full implementation in app/api/donations/initiate-payment/route.ts
@@ -223,7 +223,7 @@ export async function GET(req: NextRequest) {
 
 ## Webhook Handler
 
-`POST /api/webhooks/banzami` receives push events from Banzami:
+`POST /api/webhooks/banzami` receives push events from Banza:
 
 ```typescript
 // app/api/webhooks/banzami/route.ts
@@ -248,7 +248,7 @@ Processing sequence:
 11. Return 200
 ```
 
-**Raw body constraint**: The body must be read as `req.text()` and verified before `JSON.parse()`. Passing the raw string to the HMAC verifier and then separately parsing it ensures the byte sequence used in verification is identical to what Banzami sent. Any JSON normalization (whitespace, key ordering) would invalidate the HMAC.
+**Raw body constraint**: The body must be read as `req.text()` and verified before `JSON.parse()`. Passing the raw string to the HMAC verifier and then separately parsing it ensures the byte sequence used in verification is identical to what Banza sent. Any JSON normalization (whitespace, key ordering) would invalidate the HMAC.
 
 ---
 
@@ -258,7 +258,7 @@ All payment state is stored in `donation_events` — an append-only event log. T
 
 ### Event: `payment_initiated`
 
-Written by `initiatePayment()` after a successful Banzami API call:
+Written by `initiatePayment()` after a successful Banza API call:
 
 ```json
 {
@@ -330,7 +330,7 @@ The poll loop can fire 50 times against a `USED` link — only the first call wr
 
 ## Environment Configuration
 
-All Banzami backend behavior is controlled by environment variables:
+All Banza backend behavior is controlled by environment variables:
 
 ```env
 # Banzami API
@@ -351,7 +351,7 @@ BANZAMI_WEBHOOK_SECRET=whsec_...
 `BANZAMI_WEBHOOK_SECRET` is optional. Without it:
 
 - The webhook route rejects all incoming requests with `500 { error: 'webhook secret not configured' }`
-- Banzami retries indefinitely — effectively a misconfiguration alarm
+- Banza retries indefinitely — effectively a misconfiguration alarm
 - Payment confirmation falls back to the poll-only path (up to 3 s lag)
 
 **Correct behaviour without webhooks**: Omit `BANZAMI_WEBHOOK_SECRET` entirely. The poll path works without it. Only add it when you have registered a webhook endpoint and stored the returned secret.
@@ -380,11 +380,11 @@ Removing `banzami` from this list disables the method for donors without changin
 
 ## API Client Architecture
 
-> **Transitional implementation.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()` approach predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` — see the [SDK Migration Target](#sdk-migration-target) below.
+> **Transitional implementation.** Banza is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()` approach predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` — see the [SDK Migration Target](#sdk-migration-target) below.
 
 Current (transitional) API calls are direct `fetch()` from two server-only files:
 
-| File | Banzami endpoint | Purpose |
+| File | Banza endpoint | Purpose |
 |------|-----------------|---------|
 | `lib/payments/providers/banzami.ts` | `POST /v1/auth/token`, `POST /v1/payment-links` | Payment initiation |
 | `app/api/donations/banzami-status/route.ts` | `POST /v1/auth/token`, `GET /v1/payment-links/{id}` | Status polling |
@@ -435,9 +435,9 @@ const event = await banzami.webhooks.constructEvent(rawBody, sigHeader);
 | Error | Behavior |
 |-------|----------|
 | `BanzamiProvider.initiate()` throws | `initiatePayment()` returns `{ ok: false, code: 'provider_failed' }` → API returns 500 → UI shows Portuguese error |
-| Banzami API returns 4xx on link creation | `initiatePayment()` throws → same error path |
+| Banza API returns 4xx on link creation | `initiatePayment()` throws → same error path |
 | Poll `fetch()` throws | Silent catch in `BanzamiPanel` → next tick retries |
-| Banzami API returns non-200 on status check | Route returns `{ confirmed: false }` → poll continues |
-| `applyPaymentEvent()` throws (DB error) | Webhook route returns 500 → Banzami retries |
+| Banza API returns non-200 on status check | Route returns `{ confirmed: false }` → poll continues |
+| `applyPaymentEvent()` throws (DB error) | Webhook route returns 500 → Banza retries |
 | `applyPaymentEvent()` returns `{ deduped: true }` | Normal → route returns 200 |
-| Missing `BANZAMI_WEBHOOK_SECRET` | Webhook route returns 500 → Banzami retries |
+| Missing `BANZAMI_WEBHOOK_SECRET` | Webhook route returns 500 → Banza retries |

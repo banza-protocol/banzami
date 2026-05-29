@@ -42,7 +42,7 @@ The SVG used in BANZAMI_REFERENCE.md §9 shows 8 modules. With the reference now
 
 ---
 
-### DOC-002: Update BanzamIA standalone README
+### DOC-002: Update BanzAI standalone README
 
 The standalone repo (`github.com/banzami/banzamia`) README predates the Protocol OS buildout. A developer discovering this repo would not know about 8 key modules.
 
@@ -57,11 +57,11 @@ The standalone repo (`github.com/banzami/banzamia`) README predates the Protocol
 
 ---
 
-### DOC-003: Kernel README — Add BanzamIA to ecosystem diagram
+### DOC-003: Kernel README — Add BanzAI to ecosystem diagram
 
-The main ecosystem ASCII diagram in `Banzami/README.md` ends at Banza. BanzamIA should appear as a separate branch or layer.
+The main ecosystem ASCII diagram in `Banzami/README.md` ends at Banzami. BanzAI should appear as a separate branch or layer.
 
-**Change:** Add BanzamIA as a third axis of the ecosystem diagram (alongside Rust Core, Contracts, SDKs → Banza, and separately → BanzamIA as Protocol OS).
+**Change:** Add BanzAI as a third axis of the ecosystem diagram (alongside Rust Core, Contracts, SDKs → Banzami, and separately → BanzAI as Protocol OS).
 
 **Estimated effort:** 15 minutes
 
@@ -69,7 +69,7 @@ The main ecosystem ASCII diagram in `Banzami/README.md` ends at Banza. BanzamIA 
 
 ### DOC-004: Kernel README — Fix Shopify/WooCommerce listing
 
-`Banzami/README.md` line 54 lists Shopify and WooCommerce as Banzami-provided integrations. These conflict with the Africa-first SDK-first strategy. Replace with generic plugin framing.
+`Banzami/README.md` line 54 lists Shopify and WooCommerce as Banza-provided integrations. These conflict with the Africa-first SDK-first strategy. Replace with generic plugin framing.
 
 **Estimated effort:** 5 minutes
 
@@ -90,7 +90,7 @@ The main ecosystem ASCII diagram in `Banzami/README.md` ends at Banza. BanzamIA 
 ### DOC-006: Runnable examples (at least 2 of 4)
 
 All `examples/` directories are empty. At minimum, create:
-1. `examples/qr-payment/` — TypeScript + BanzaClient QR flow
+1. `examples/qr-payment/` — TypeScript + BanzamiClient QR flow
 2. `examples/webhook-handler/` — Express.js webhook receiver with signature verification
 
 **Estimated effort:** 3 hours
@@ -109,10 +109,10 @@ RFC-0008 is referenced in code but not in the RFC list. Write or publish:
 
 ### DOC-008: sobre-banzamia — add Protocol OS context before CTA
 
-Currently the page jumps straight to a "Abrir BanzamIA →" button without explaining what a Protocol Operating System is. Add 2–3 sentences above the CTA card.
+Currently the page jumps straight to a "Abrir BanzAI →" button without explaining what a Protocol Operating System is. Add 2–3 sentences above the CTA card.
 
 **Suggested text:**
-> O BanzamIA é o Sistema Operativo do Protocolo Banzami — 16 módulos especializados que tornam o protocolo compreensível, validável, simulável e certificável. Não é um chatbot. É a interface cognitiva do protocolo: onde as ferramentas determinam a verdade e a IA explica a verdade.
+> O BanzAI é o Sistema Operativo do Protocolo Banza — 16 módulos especializados que tornam o protocolo compreensível, validável, simulável e certificável. Não é um chatbot. É a interface cognitiva do protocolo: onde as ferramentas determinam a verdade e a IA explica a verdade.
 
 **Estimated effort:** 10 minutes
 
@@ -132,9 +132,9 @@ New visitors understand WHAT the certification levels are but not WHY the 5-leve
 
 ---
 
-### DOC-011: BANZAMI_REFERENCE.md §1 — clarify Banza as first operator
+### DOC-011: BANZAMI_REFERENCE.md §1 — clarify Banzami as first operator
 
-Add "primeiro operador certificado" alongside "produto principal" to reduce narrative confusion between Banzami-the-protocol and Banza-the-product.
+Add "primeiro operador certificado" alongside "produto principal" to reduce narrative confusion between Banza-the-protocol and Banzami-the-product.
 
 ---
 
@@ -159,7 +159,7 @@ This SVG may still use old "intelligence layer" framing. Verify and update to us
 | DOC-016 | Certificate authority process documentation | 3h |
 | DOC-017 | Operator manifest publication guide (RFC-0005 + discovery) | 2h |
 | DOC-018 | `force-multiplier-model.svg` — consolidate with `banzamia-force-multiplier.svg` | 30min |
-| DOC-019 | BanzamIA standalone repo: architecture section update (src/ layout) | 30min |
+| DOC-019 | BanzAI standalone repo: architecture section update (src/ layout) | 30min |
 | DOC-020 | Observability guide: confirm `docs/observability/financial-tracing.md` exists | 15min |
 | DOC-021 | `banzami-jobs` crate — add to kernel README directory tree | 5min |
 | DOC-022 | Autonomous-protocol-vision.svg — mark completed items | 30min |
@@ -170,7 +170,7 @@ This SVG may still use old "intelligence layer" framing. Verify and update to us
 
 | Area | Current | Target (end of sprint) |
 |------|---------|----------------------|
-| BanzamIA positioning | 70/100 | 90/100 |
+| BanzAI positioning | 70/100 | 90/100 |
 | Feature coverage | 62/100 | 80/100 |
 | Operator onboarding | 55/100 | 75/100 |
 | Federation docs | 45/100 | 65/100 |
@@ -185,15 +185,15 @@ Applying the P0 + P1 + P2 items would bring documentation maturity from 56/100 t
 ## Naming Inversion — BANZA-NAMING-INVERSION-STEP-001
 
 **Status:** Planning complete (2026-05-29) — migration not yet started  
-**ADR:** `docs/adr/ADR-025-ecosystem-naming-inversion.md` (Banzami kernel repo)
+**ADR:** `docs/adr/ADR-025-ecosystem-naming-inversion.md` (Banza kernel repo)
 
-The legal company name (Banzami) is currently assigned to the protocol layer, not the product. ADR-025 inverts this:
+The legal company name (Banza) is currently assigned to the protocol layer, not the product. ADR-025 inverts this:
 
 | Role | Before | After |
 |------|--------|-------|
-| Protocol / ecosystem | Banzami | Banza |
-| Product / reference operator | Banza | Banzami |
-| Protocol Operating System | BanzamIA | BanzAI |
+| Protocol / ecosystem | Banza | Banzami |
+| Product / reference operator | Banzami | Banza |
+| Protocol Operating System | BanzAI | BanzAI |
 
 Migration is semantic — a global search-and-replace is explicitly forbidden. Every occurrence must be classified before renaming. See:
 
@@ -209,5 +209,5 @@ Migration waves (each a separate commit wave):
 |------|-------|
 | 1 | Documentation (ADRs, READMEs, BANZAMI_REFERENCE.md) |
 | 2 | Website copy (banzami.org pages, metadata, SVG text) |
-| 3 | AI OS rename (BanzamIA → BanzAI, components, routes) |
+| 3 | AI OS rename (BanzAI → BanzAI, components, routes) |
 | 4+ | Repository, package, domain renames (each requires separate ADR) |

@@ -37,7 +37,7 @@ Every consumer wallet is **backed by two LIABILITY ledger accounts** and follows
 | `available`  | LIABILITY | Spendable funds                        |
 | `reserved`   | LIABILITY | Funds held for pending outbound ops    |
 
-Banzami holds consumer funds as **liabilities** — we owe these amounts to the consumer.
+Banza holds consumer funds as **liabilities** — we owe these amounts to the consumer.
 
 - **Credit** to a LIABILITY account → we owe more (consumer received funds)
 - **Debit** from a LIABILITY account → we owe less (consumer spent funds)

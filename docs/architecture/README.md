@@ -1,10 +1,10 @@
-# Banzami — System Architecture
+# Banza — System Architecture
 
 ## Network Identity
 
-Banzami is a **wallet-native payment network**. This is the foundational architectural constraint from which all design decisions derive.
+Banza is a **wallet-native payment network**. This is the foundational architectural constraint from which all design decisions derive.
 
-| What Banzami IS | What Banzami is NOT |
+| What Banza IS | What Banza is NOT |
 |-----------------|---------------------|
 | Wallet ↔ wallet instant transfer network | Card processor |
 | QR-native payment ecosystem | Stripe clone |
@@ -28,7 +28,7 @@ See [ADR-013](../adr/ADR-013-wallet-native-identity.md) and [CLAUDE.md §2.7](..
 
 ## Overview
 
-Banzami is a **modular monolith** deployed as a set of coordinated processes. The core design principle is domain isolation without premature service extraction: each domain has strong internal boundaries but shares a single PostgreSQL instance and a single deployment unit per service.
+Banza is a **modular monolith** deployed as a set of coordinated processes. The core design principle is domain isolation without premature service extraction: each domain has strong internal boundaries but shares a single PostgreSQL instance and a single deployment unit per service.
 
 ---
 

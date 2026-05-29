@@ -9,15 +9,15 @@
 
 ## Context
 
-As Banzami's architecture matured — double-entry ledger, wallet engine, QR payment system, payment links, consumer deposits, @handle identity — a question of fundamental identity emerged:
+As Banza's architecture matured — double-entry ledger, wallet engine, QR payment system, payment links, consumer deposits, @handle identity — a question of fundamental identity emerged:
 
-**What kind of payment network is Banzami, exactly?**
+**What kind of payment network is Banza, exactly?**
 
-The initial documentation described Banzami as "fintech infrastructure" with wallet-native payments, but did not encode this identity as a binding architectural constraint. This left room for ambiguity: Could Banzami add card processing? Should the dashboard showcase card-entry UX? Should SDKs expose card tokenization APIs? Should documentation default to card-checkout examples?
+The initial documentation described Banza as "fintech infrastructure" with wallet-native payments, but did not encode this identity as a binding architectural constraint. This left room for ambiguity: Could Banza add card processing? Should the dashboard showcase card-entry UX? Should SDKs expose card tokenization APIs? Should documentation default to card-checkout examples?
 
-Without a clear answer, engineering decisions would drift toward the global default — the Stripe model — because it is the most documented, most imitated, most familiar pattern in developer tooling. For a Stripe-style payment processor, this drift is natural. For Banzami, it would be catastrophic misalignment.
+Without a clear answer, engineering decisions would drift toward the global default — the Stripe model — because it is the most documented, most imitated, most familiar pattern in developer tooling. For a Stripe-style payment processor, this drift is natural. For Banza, it would be catastrophic misalignment.
 
-Angola and the African market where Banzami operates are **not card-first economies**. The dominant transaction models are:
+Angola and the African market where Banza operates are **not card-first economies**. The dominant transaction models are:
 
 * Mobile money (M-Pesa, Orange Money, Airtel Money)
 * Bank transfer via national rails (EMIS, Multicaixa Express)
@@ -26,13 +26,13 @@ Angola and the African market where Banzami operates are **not card-first econom
 
 The population underserved by banking is also underserved by card infrastructure. Card ownership is low. Contactless terminal density is low. Card fraud risk relative to transaction volume is high.
 
-The populations and merchants Banzami serves need **wallet-to-wallet instant transfers** addressable by QR code or @handle. This is what WhatsApp Pay, M-Pesa, WeChat Pay, and Pix built. These are the reference architectures for Banzami — not Stripe.
+The populations and merchants Banza serves need **wallet-to-wallet instant transfers** addressable by QR code or @handle. This is what WhatsApp Pay, M-Pesa, WeChat Pay, and Pix built. These are the reference architectures for Banza — not Stripe.
 
 ---
 
 ## Decision
 
-**Banzami is a wallet-native payment network. This is a binding architectural constraint encoded in the engineering constitution (CLAUDE.md §2.7).**
+**Banza is a wallet-native payment network. This is a binding architectural constraint encoded in the engineering constitution (CLAUDE.md §2.7).**
 
 ### What this means, precisely:
 
@@ -53,8 +53,8 @@ The populations and merchants Banzami serves need **wallet-to-wallet instant tra
    - Handles resolve to wallet IDs internally.
 
 4. **Visa/Mastercard are future funding rails only — never the core network.**
-   - Cards are a mechanism for topping up a Banzami wallet from an external card account.
-   - Once kwanza lands in the Banzami wallet, the card is irrelevant to any subsequent payment.
+   - Cards are a mechanism for topping up a Banza wallet from an external card account.
+   - Once kwanza lands in the Banza wallet, the card is irrelevant to any subsequent payment.
    - Card credentials NEVER transit the core payment path.
    - Card tokenization, CVV handling, PCI DSS scope are isolated to a future card-top-up module, not the core network.
 
@@ -69,12 +69,12 @@ The populations and merchants Banzami serves need **wallet-to-wallet instant tra
 
 ### Why wallet-native?
 
-The Banzami wallet is the single account primitive. Every identity — consumer, merchant, operator — owns a wallet. The ledger tracks every debit and credit on every wallet immutably. Wallet-to-wallet transfer is the atomic operation from which every product feature (payment, transfer, refund, payout, settlement) is composed.
+The Banza wallet is the single account primitive. Every identity — consumer, merchant, operator — owns a wallet. The ledger tracks every debit and credit on every wallet immutably. Wallet-to-wallet transfer is the atomic operation from which every product feature (payment, transfer, refund, payout, settlement) is composed.
 
 Building this way means:
 
-* **No card rails in the critical path.** Card networks add latency (authorization round-trip), cost (interchange fees), chargebacks (contested payments), and fraud surface. By keeping cards out of the payment flow, Banzami's core path is faster, cheaper, and more controlled.
-* **Instant settlement by default.** When both sender and receiver are Banzami wallets, settlement is a ledger write — milliseconds, not T+2. This is structurally impossible for card networks.
+* **No card rails in the critical path.** Card networks add latency (authorization round-trip), cost (interchange fees), chargebacks (contested payments), and fraud surface. By keeping cards out of the payment flow, Banza's core path is faster, cheaper, and more controlled.
+* **Instant settlement by default.** When both sender and receiver are Banza wallets, settlement is a ledger write — milliseconds, not T+2. This is structurally impossible for card networks.
 * **Full auditability.** Every kwanza in the system exists in a ledger account. There is no card "authorization hold" ambiguity. The state is always deterministic.
 * **Market fit.** Angola's payments landscape will be transformed by QR-native, wallet-native money movement — not by replicating a card stack built for Western markets.
 
@@ -94,7 +94,7 @@ Ruling this out explicitly forces every product decision to be evaluated against
 
 ### 2. Card-first with wallets as an abstraction layer
 
-**Rejected.** This is the Stripe model. It optimizes for Western card infrastructure. It does not fit Angola's market, population, or regulatory environment. It would also put Banzami in direct competition with Stripe — a fight with no advantage.
+**Rejected.** This is the Stripe model. It optimizes for Western card infrastructure. It does not fit Angola's market, population, or regulatory environment. It would also put Banza in direct competition with Stripe — a fight with no advantage.
 
 ### 3. No explicit constraint — let product evolve
 
@@ -109,7 +109,7 @@ Ruling this out explicitly forces every product decision to be evaluated against
 * Engineering teams have a clear north star for evaluating new features.
 * SDK and documentation design converge on a coherent model (QR, wallets, @handles).
 * Core payment path remains card-free: no PCI DSS scope on the critical path.
-* Product differentiation is strong: Banzami is not "Angola's Stripe" but "Angola's Pix."
+* Product differentiation is strong: Banza is not "Angola's Stripe" but "Angola's Pix."
 
 ### Negative / Tradeoffs
 

@@ -1,6 +1,6 @@
 # apps/checkout
 
-Hosted checkout page at `pay.banzami.org`. Renders a payment link as a QR code and a deep-link button to open the Banzami consumer app. Polls for payment confirmation and updates the UI when the link is paid.
+Hosted checkout page at `pay.banzami.org`. Renders a payment link as a QR code and a deep-link button to open the Banza consumer app. Polls for payment confirmation and updates the UI when the link is paid.
 
 ---
 

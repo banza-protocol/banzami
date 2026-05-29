@@ -1,4 +1,4 @@
-# Doa × Banzami — Troubleshooting
+# Doa × Banza — Troubleshooting
 
 Diagnostic guide for common integration problems. Each section describes symptoms, root cause, and resolution steps.
 
@@ -8,7 +8,7 @@ Diagnostic guide for common integration problems. Each section describes symptom
 
 ### `banzami_webhook_rejected: signature mismatch`
 
-**Symptom**: Webhook requests arrive but all return 401. Banzami dashboard shows deliveries with `failed` status. Doa logs contain `banzami_webhook_rejected { reason: 'signature mismatch' }`.
+**Symptom**: Webhook requests arrive but all return 401. Banza dashboard shows deliveries with `failed` status. Doa logs contain `banzami_webhook_rejected { reason: 'signature mismatch' }`.
 
 **Root causes**:
 
@@ -45,7 +45,7 @@ curl -X POST https://api.banzami.org/v1/webhooks/endpoints \
 
 2. **Replay attempt**: An attacker (or a misconfigured test script) is replaying captured webhook payloads.
 
-3. **Banzami retry delivered late**: Unlikely — Banzami retries use fresh signatures, not the original timestamp.
+3. **Banza retry delivered late**: Unlikely — Banza retries use fresh signatures, not the original timestamp.
 
 **Resolution**:
 
@@ -64,7 +64,7 @@ For Vercel or hosted environments, clock sync is managed by the platform — con
 
 ### `banzami_webhook_rejected: secret not configured`
 
-**Symptom**: All webhook requests return 500. Doa logs contain `banzami_webhook_rejected { reason: 'secret not configured' }`. Banzami treats 500 as a failed delivery and retries.
+**Symptom**: All webhook requests return 500. Doa logs contain `banzami_webhook_rejected { reason: 'secret not configured' }`. Banza treats 500 as a failed delivery and retries.
 
 **Root cause**: `BANZAMI_WEBHOOK_SECRET` is not set in the server environment, or the environment variable was not loaded after being added.
 
@@ -72,7 +72,7 @@ For Vercel or hosted environments, clock sync is managed by the platform — con
 
 1. Set `BANZAMI_WEBHOOK_SECRET=whsec_...` in the environment
 2. Restart or redeploy the server
-3. Verify with a test delivery from the Banzami dashboard
+3. Verify with a test delivery from the Banza dashboard
 
 ---
 
@@ -83,9 +83,9 @@ For Vercel or hosted environments, clock sync is managed by the platform — con
 **Root cause**: The `donation_events` table has no `payment_initiated` row where `payload->>'provider_ref' = link.id`. The webhook is for a payment link not created through the Doa donation flow.
 
 **Possible causes**:
-- Payment link was created directly via the Banzami API or dashboard (not through Doa)
+- Payment link was created directly via the Banza API or dashboard (not through Doa)
 - The Doa server is in sandbox mode but the webhook is from a live payment, or vice versa
-- The `payment_initiated` event was never written (Banzami API call succeeded but the Doa DB write failed before the row was committed)
+- The `payment_initiated` event was never written (Banza API call succeeded but the Doa DB write failed before the row was committed)
 
 **Diagnosis**:
 
@@ -105,13 +105,13 @@ WHERE id = 'di_01jqx...';
 
 ### Webhook delivered but payment not confirmed in UI
 
-**Symptom**: Banzami dashboard shows webhook delivery as `success`. No `payment_confirmed` event in Doa's database. The donor's browser still shows the waiting state.
+**Symptom**: Banza dashboard shows webhook delivery as `success`. No `payment_confirmed` event in Doa's database. The donor's browser still shows the waiting state.
 
-**Root cause**: `applyPaymentEvent()` threw an error after webhook verification. Doa returned 500, causing Banzami to show the delivery as failed — but if you see `success`, the handler returned 200 without writing the event.
+**Root cause**: `applyPaymentEvent()` threw an error after webhook verification. Doa returned 500, causing Banza to show the delivery as failed — but if you see `success`, the handler returned 200 without writing the event.
 
 **Diagnosis**: Check Doa logs for `banzami_webhook_error` with a stack trace. Common cause: database connection error or constraint violation.
 
-**Resolution**: Fix the underlying error. If the delivery is already marked `success` by Banzami, trigger a manual status check via the poll endpoint or use the Banzami dashboard to re-deliver the event (if available).
+**Resolution**: Fix the underlying error. If the delivery is already marked `success` by Banza, trigger a manual status check via the poll endpoint or use the Banza dashboard to re-deliver the event (if available).
 
 ---
 
@@ -143,7 +143,7 @@ console.log('payUrl:', payUrl);  // should be https://pay.banzami.org/{slug}
 
 ### SANDBOX badge visible in production
 
-**Symptom**: The amber "SANDBOX" badge appears on the Banzami panel in the production environment.
+**Symptom**: The amber "SANDBOX" badge appears on the Banza panel in the production environment.
 
 **Root cause**: `BANZAMI_API_KEY` starts with `bz_test_` in the production environment.
 
@@ -153,13 +153,13 @@ console.log('payUrl:', payUrl);  // should be https://pay.banzami.org/{slug}
 2. Replace with the live key (`bz_live_...`)
 3. Restart or redeploy
 
-No payments made with a `bz_test_` key in production are real — they go to sandbox. The Banzami live gateway rejects `bz_test_` keys outright (`403 SANDBOX_KEY_REJECTED`), so payment initiation fails.
+No payments made with a `bz_test_` key in production are real — they go to sandbox. The Banza live gateway rejects `bz_test_` keys outright (`403 SANDBOX_KEY_REJECTED`), so payment initiation fails.
 
 ---
 
 ### Donor pays but poll never detects USED
 
-**Symptom**: The Banzami consumer app shows payment as successful. The Doa waiting screen never advances. No `payment_confirmed` event in the database.
+**Symptom**: The Banza consumer app shows payment as successful. The Doa waiting screen never advances. No `payment_confirmed` event in the database.
 
 **Root causes**:
 
@@ -167,7 +167,7 @@ No payments made with a `bz_test_` key in production are real — they go to san
 
 2. **Poll endpoint returning errors**: The status check route is returning non-200, causing the browser to silently skip ticks.
 
-3. **Banzami link ID mismatch**: The `link_id` passed to the poll endpoint doesn't match the link that was paid.
+3. **Banza link ID mismatch**: The `link_id` passed to the poll endpoint doesn't match the link that was paid.
 
 **Diagnosis**:
 
@@ -185,7 +185,7 @@ curl "https://api.banzami.org/v1/payment-links/lnk_01jqx..." \
 # Look for: "status": "USED"
 ```
 
-**Resolution**: If the link is `USED` in Banzami but the poll returns `{ confirmed: false }`, the status check route is likely broken. Check logs for errors in `banzami-status/route.ts`.
+**Resolution**: If the link is `USED` in Banza but the poll returns `{ confirmed: false }`, the status check route is likely broken. Check logs for errors in `banzami-status/route.ts`.
 
 ---
 
@@ -213,11 +213,11 @@ If multiple rows exist with the same `payload->>'provider_ref'`, the dedup logic
 
 ### Payment initiation fails with `provider_failed`
 
-**Symptom**: Donor selects Banzami, clicks pay, gets an error message. `initiate-payment` route returns 500. Doa logs show `banzami_initiate_error`.
+**Symptom**: Donor selects Banza, clicks pay, gets an error message. `initiate-payment` route returns 500. Doa logs show `banzami_initiate_error`.
 
 **Common causes**:
 
-| Error from Banzami | Likely cause |
+| Error from Banza | Likely cause |
 |--------------------|-------------|
 | `401 Unauthorized` | Wrong API key or expired JWT |
 | `403 SANDBOX_KEY_REJECTED` | `bz_test_` key used against live gateway |
@@ -242,9 +242,9 @@ curl -X POST $BANZAMI_GATEWAY_URL/v1/auth/token \
 
 ---
 
-### Banzami method not appearing in payment method picker
+### Banza method not appearing in payment method picker
 
-**Symptom**: The donor's method picker does not show Banzami as an option.
+**Symptom**: The donor's method picker does not show Banza as an option.
 
 **Root causes**:
 
@@ -258,17 +258,17 @@ curl -X POST $BANZAMI_GATEWAY_URL/v1/auth/token \
 
 ## Sandbox/Live Environment Mismatch
 
-### Banza app shows payment but Doa doesn't confirm
+### Banzami app shows payment but Doa doesn't confirm
 
-**Symptom**: The Banzami consumer app shows the payment was completed. Doa's polling loop never advances. The link appears as `ACTIVE` in Banzami's API.
+**Symptom**: The Banza consumer app shows the payment was completed. Doa's polling loop never advances. The link appears as `ACTIVE` in Banza's API.
 
-**Root cause**: The donor paid with a Banza app connected to the live network, but the QR encodes a sandbox pay URL, or vice versa. Environment-isolated links can only be paid from the matching environment.
+**Root cause**: The donor paid with a Banzami app connected to the live network, but the QR encodes a sandbox pay URL, or vice versa. Environment-isolated links can only be paid from the matching environment.
 
-**Resolution**: Ensure the Banza app environment matches the API key:
-- `bz_test_` key → only sandbox Banza apps can pay the link
-- `bz_live_` key → only live Banza apps can pay the link
+**Resolution**: Ensure the Banzami app environment matches the API key:
+- `bz_test_` key → only sandbox Banzami apps can pay the link
+- `bz_live_` key → only live Banzami apps can pay the link
 
-This should never happen in production (all keys are live). It's common during development when testing with a live Banzami account against sandbox links.
+This should never happen in production (all keys are live). It's common during development when testing with a live Banza account against sandbox links.
 
 ---
 
@@ -276,9 +276,9 @@ This should never happen in production (all keys are live). It's common during d
 
 For integration issues not covered here:
 
-1. **Check Banzami dashboard** → Webhooks → Events for delivery status and response codes
+1. **Check Banza dashboard** → Webhooks → Events for delivery status and response codes
 2. **Check Doa server logs** for structured log events with `action: 'banzami_*'`
 3. **Query `donation_events`** directly to inspect the event sequence for an intent
 4. **Verify environment variables** match the expected prefix (`bz_test_` vs `bz_live_`)
 
-For Banzami API issues (authentication errors, 5xx responses from Banzami, incorrect link behavior), contact Banzami support with the relevant `event_id` from the Banzami dashboard.
+For Banza API issues (authentication errors, 5xx responses from Banza, incorrect link behavior), contact Banza support with the relevant `event_id` from the Banza dashboard.

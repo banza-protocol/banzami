@@ -1,8 +1,8 @@
 # @banza/sdk
 
-Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
+Official JavaScript/TypeScript SDK for the Banza payment platform — Angola's QR-native instant payment network.
 
-Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
+Banza is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
 
 All monetary values use **integer minor units** in AOA (Kwanza). No floating-point arithmetic.
 

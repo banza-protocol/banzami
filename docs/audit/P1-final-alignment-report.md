@@ -10,9 +10,9 @@
 
 ## Executive Summary
 
-BANZAMI-CANONICAL-ALIGNMENT-P1 has been executed in full. All 10 parts of the consolidation task are complete across all three repositories (Banzami kernel, BanzamIA standalone, Banza operator).
+BANZAMI-CANONICAL-ALIGNMENT-P1 has been executed in full. All 10 parts of the consolidation task are complete across all three repositories (Banza kernel, BanzAI standalone, Banzami operator).
 
-The ecosystem documentation now presents a single, internally consistent canonical narrative. Every developer entry point — GitHub READMEs, the live banzami.org website, BANZAMI_REFERENCE.md, and the BanzamIA interface itself — reflects the same Protocol Operating System framing, 16-module structure, and "tools determine truth / AI explains truth" positioning.
+The ecosystem documentation now presents a single, internally consistent canonical narrative. Every developer entry point — GitHub READMEs, the live banzami.org website, BANZAMI_REFERENCE.md, and the BanzAI interface itself — reflects the same Protocol Operating System framing, 16-module structure, and "tools determine truth / AI explains truth" positioning.
 
 ---
 
@@ -21,7 +21,7 @@ The ecosystem documentation now presents a single, internally consistent canonic
 | Dimension | Before P1 (AUDIT-013) | After P1 | Delta |
 |-----------|----------------------|-----------|-------|
 | Terminology accuracy | 72/100 | 98/100 | +26 |
-| BanzamIA representation | 70/100 | 97/100 | +27 |
+| BanzAI representation | 70/100 | 97/100 | +27 |
 | Architecture diagram accuracy | 65/100 | 90/100 | +25 |
 | Documentation completeness | 62/100 | 82/100 | +20 |
 | Cross-surface consistency | 58/100 | 95/100 | +37 |
@@ -36,12 +36,12 @@ The ecosystem documentation now presents a single, internally consistent canonic
 **File:** `docs/images/architecture/banzamia-canonical-architecture.svg`
 **Also at:** `apps/docs/public/images/architecture/banzamia-canonical-architecture.svg`
 
-A new institutional-quality SVG showing the complete Banzami ecosystem stack in 5 layers:
+A new institutional-quality SVG showing the complete Banza ecosystem stack in 5 layers:
 1. Protocol Kernel (Rust crates)
-2. Operators + SDKs (Banza L1, Sandbox L0, future operators)
+2. Operators + SDKs (Banzami L1, Sandbox L0, future operators)
 3. Certification Framework (L0–L4 level pills)
-4. BanzamIA Protocol OS (3 module layers + Model Router + Retrieval)
-5. Applications (Banza app, banzami.org, Mobile, Admin, BanzamIA, Partner API)
+4. BanzAI Protocol OS (3 module layers + Model Router + Retrieval)
+5. Applications (Banzami app, banzami.org, Mobile, Admin, BanzAI, Partner API)
 
 Design follows canonical standards: viewBox="0 0 700 560", #F5F1EE background, #990011→#B11226 primary gradient, #C89B3C→#D4A843 gold.
 
@@ -59,7 +59,7 @@ Design consistent with canonical SVG standards. Tagline: "Ferramentas determinam
 
 ---
 
-### Part 3 — BanzamIA Standalone README Rewrite
+### Part 3 — BanzAI Standalone README Rewrite
 
 **File:** `/Users/fm65/BanzamIA/README.md`
 
@@ -79,13 +79,13 @@ Key changes:
 
 ---
 
-### Part 4 — Banzami Kernel README Updates
+### Part 4 — Banza Kernel README Updates
 
 **File:** `/Users/fm65/Banzami/README.md`
 
-1. **Ecosystem ASCII diagram**: BanzamIA added as a distinct second branch from the protocol kernel — no longer missing from the canonical ecosystem map. Both Banza (First Operator, L1) and BanzamIA (Protocol OS, 16 modules, 8 capabilities) appear as first-class ecosystem components.
+1. **Ecosystem ASCII diagram**: BanzAI added as a distinct second branch from the protocol kernel — no longer missing from the canonical ecosystem map. Both Banzami (First Operator, L1) and BanzAI (Protocol OS, 16 modules, 8 capabilities) appear as first-class ecosystem components.
 
-2. **BanzamIA section header**: "AI-native Protocol Agent" → "Protocol Operating System"
+2. **BanzAI section header**: "AI-native Protocol Agent" → "Protocol Operating System"
 
 3. **Integration plugins list** (DOC-004): "WooCommerce, Shopify, Laravel, Node.js, PHP" → "generic e-commerce and framework plugins (Laravel, Node.js, PHP, open plugin standard)" — removes conflict with Africa-first SDK-first strategy.
 
@@ -95,41 +95,41 @@ Key changes:
 
 **File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`
 
-Three additions to §9 BanzamIA:
+Three additions to §9 BanzAI:
 
 1. **Diagram reference after module tables**: `banzamia-product-architecture.svg` — the new 16-module 3-layer diagram, giving readers a visual summary immediately after the module tables.
 
-2. **New subsection "Arquitectura Canónica do Ecossistema"**: References `banzamia-canonical-architecture.svg` with prose explanation of all 5 layers. Placed between the module tables and "Como o BanzamIA Funciona".
+2. **New subsection "Arquitectura Canónica do Ecossistema"**: References `banzamia-canonical-architecture.svg` with prose explanation of all 5 layers. Placed between the module tables and "Como o BanzAI Funciona".
 
 These additions complete the picture: §9 now shows the orbital Protocol OS diagram (8 capabilities), the 3-layer module grid (16 modules), the canonical stack (full ecosystem), and the internal architecture (question-to-response flow).
 
 ---
 
-### Part 6 — "Why BanzamIA Changes Everything"
+### Part 6 — "Why BanzAI Changes Everything"
 
 Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
-- "O que acontece sem BanzamIA" — before/after table (6 dimensions)
+- "O que acontece sem BanzAI" — before/after table (6 dimensions)
 - "O Fosso de Conhecimento do Protocolo" — SVG comparison
 
 No duplication needed. The canonical before/after table was written correctly in AUDIT-013's P0 pass. Confirmed complete.
 
 ---
 
-### Part 7 — "The BanzamIA Truth Model"
+### Part 7 — "The BanzAI Truth Model"
 
 Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
 - "Modelo de Verdade do Protocolo" — SVG reference + canonical statement
 - "Ferramentas determinam a verdade. A IA explica a verdade."
 - banzamia-truth-model.svg referenced at the correct location
 
-Confirmed present and correctly positioned within "Como o BanzamIA Funciona".
+Confirmed present and correctly positioned within "Como o BanzAI Funciona".
 
 ---
 
-### Part 8 — "How BanzamIA Works Internally"
+### Part 8 — "How BanzAI Works Internally"
 
 Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
-- "Como o BanzamIA Funciona" — full internal architecture section
+- "Como o BanzAI Funciona" — full internal architecture section
 - banzamia-internal-architecture.svg referenced
 - 7-step question → response flow documented
 - Model routing table (question type → model + tools)
@@ -147,7 +147,7 @@ Fixes applied:
 | Surface | Issue | Fix |
 |---------|-------|-----|
 | `banzamia/page.tsx` metadata | Title: "AI-native Protocol Agent" | "Protocol Operating System" |
-| `BanzamIAChat.tsx` welcome text | "AI-native Protocol Agent for building..." | "Sistema Operativo do Protocolo Banzami. 16 módulos." |
+| `BanzamIAChat.tsx` welcome text | "AI-native Protocol Agent for building..." | "Sistema Operativo do Protocolo Banza. 16 módulos." |
 | `BanzamIASidebar.tsx` subtitle | "AI-native Protocol Agent" | "Protocol Operating System" |
 | `roadmap/page.tsx` description | Mixed old/new framing | Canonical Protocol OS framing only |
 | `roadmap/page.tsx` inline text | "AI-native Protocol Agent and Protocol OS" | "Protocol Operating System" only |
@@ -177,7 +177,7 @@ Every surface now uses canonical terminology:
 | ~~"AI-native Protocol Agent"~~ | Deprecated — zero occurrences remaining |
 | ~~"intelligence layer"~~ | Deprecated — zero occurrences remaining |
 | ~~"oito módulos" / "8 módulos"~~ | Deprecated — zero occurrences remaining |
-| ~~Shopify / WooCommerce as Banzami integrations~~ | Removed — conflicts with Africa-first strategy |
+| ~~Shopify / WooCommerce as Banza integrations~~ | Removed — conflicts with Africa-first strategy |
 
 ---
 
@@ -206,8 +206,8 @@ These items from the documentation-priority-roadmap.md are deferred:
 | `31ecb46` | banza | SVG diagrams: replace banzamia-product-architecture (16-module), add banzamia-canonical-architecture |
 | `16f4f50` | banza | BANZAMI_REFERENCE.md: canonical architecture section + 16-module diagram + sobre-banzamia Protocol OS context |
 | `cbe3fa5` | banza | Terminology: replace all AI-native Protocol Agent occurrences with Protocol Operating System |
-| `7c89c34` | banzamia | BanzamIA README: full rewrite as Protocol Operating System — 17 sections |
-| `76ba55a` | banzami | Banzami README: BanzamIA in ecosystem diagram + plugin list fix + section header |
+| `7c89c34` | banzamia | BanzAI README: full rewrite as Protocol Operating System — 17 sections |
+| `76ba55a` | banzami | Banza README: BanzAI in ecosystem diagram + plugin list fix + section header |
 
 ---
 
@@ -215,7 +215,7 @@ These items from the documentation-priority-roadmap.md are deferred:
 
 | Area | Before AUDIT-013 | After AUDIT-013 | After P1 |
 |------|-----------------|-----------------|---------|
-| BanzamIA positioning | 70/100 | 85/100 | 97/100 |
+| BanzAI positioning | 70/100 | 85/100 | 97/100 |
 | Terminology accuracy | 68/100 | 82/100 | 98/100 |
 | Feature coverage | 62/100 | 72/100 | 82/100 |
 | Diagram accuracy | 65/100 | 75/100 | 90/100 |
@@ -231,16 +231,16 @@ The gap between 82 and 95+ is entirely in P2 items (webhook schemas, runnable ex
 
 ## Answer to the Audit Question
 
-> **"Can a new visitor or developer reading Banzami documentation in 2026 understand what BanzamIA is, what it does, how it works, and how it relates to the rest of the ecosystem?"**
+> **"Can a new visitor or developer reading Banza documentation in 2026 understand what BanzAI is, what it does, how it works, and how it relates to the rest of the ecosystem?"**
 
 **After P1: YES.**
 
-- GitHub entry point (BanzamIA README): full Protocol OS framing, 8 capabilities table, 16-module breakdown, 4 new module descriptions, deployment modes
-- GitHub entry point (Banzami README): BanzamIA in ecosystem diagram as first-class component, Protocol OS framing, correct section header
+- GitHub entry point (BanzAI README): full Protocol OS framing, 8 capabilities table, 16-module breakdown, 4 new module descriptions, deployment modes
+- GitHub entry point (Banza README): BanzAI in ecosystem diagram as first-class component, Protocol OS framing, correct section header
 - banzami.org/sobre-banzamia: Protocol OS context before CTA, correct metadata, correct OpenGraph
 - banzami.org/banzamia: correct metadata title, correct welcome text
 - banzami.org/roadmap: correct metadata and inline text
-- BANZAMI_REFERENCE.md §9: 16-module tables, orbital capabilities SVG, 3-layer product SVG, canonical stack SVG, internal architecture SVG, truth model SVG, full "Como o BanzamIA Funciona" section
-- BanzamIA sidebar: "Protocol Operating System" subtitle
+- BANZAMI_REFERENCE.md §9: 16-module tables, orbital capabilities SVG, 3-layer product SVG, canonical stack SVG, internal architecture SVG, truth model SVG, full "Como o BanzAI Funciona" section
+- BanzAI sidebar: "Protocol Operating System" subtitle
 
 Every surface now tells the same story. The Protocol OS framing is canonical and consistent.

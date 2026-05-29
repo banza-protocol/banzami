@@ -17,7 +17,7 @@ Each diagram is scored 0–100 on:
 
 ---
 
-## SVG Inventory — Banza docs/images/architecture/
+## SVG Inventory — Banzami docs/images/architecture/
 
 26 SVG files found. Evaluated by category:
 

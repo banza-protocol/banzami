@@ -1,6 +1,6 @@
 # @banza/node
 
-Official Node.js SDK for Banzami — payment links, transactions, wallets, payouts, and webhook verification.
+Official Node.js SDK for Banza — payment links, transactions, wallets, payouts, and webhook verification.
 
 ---
 
@@ -228,7 +228,7 @@ const merchant = await client.getMerchant('mer_abc123');
 
 ### Webhook Handling
 
-Banzami signs all webhook payloads with HMAC-SHA256. Always verify the signature before processing.
+Banza signs all webhook payloads with HMAC-SHA256. Always verify the signature before processing.
 
 **Important:** Read the raw request body as a `Buffer` before verification. Do not let the framework parse JSON first.
 

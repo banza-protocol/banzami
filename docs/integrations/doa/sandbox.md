@@ -1,14 +1,14 @@
-# Doa × Banzami — Sandbox Integration
+# Doa × Banza — Sandbox Integration
 
-The official guide for integrating and testing with the Banzami sandbox environment.
+The official guide for integrating and testing with the Banza sandbox environment.
 
 ---
 
 ## What is the Sandbox?
 
-The Banzami sandbox is a complete replica of the production environment — same API surface, same state machines, same webhook retry logic, same signature verification — but no real money ever moves. Virtual AOA balances can be created freely for testing.
+The Banza sandbox is a complete replica of the production environment — same API surface, same state machines, same webhook retry logic, same signature verification — but no real money ever moves. Virtual AOA balances can be created freely for testing.
 
-**Banzami sandbox URLs**:
+**Banza sandbox URLs**:
 
 | Service | URL |
 |---------|-----|
@@ -27,7 +27,7 @@ bz_live_<random>  →  Production (real money)
 bz_test_<random>  →  Sandbox (virtual money)
 ```
 
-Banzami enforces this at the gateway — a `bz_test_` key is rejected by the live gateway and vice versa. The environment is also embedded as a signed `environment` claim in the JWT, making cross-environment token reuse impossible.
+Banza enforces this at the gateway — a `bz_test_` key is rejected by the live gateway and vice versa. The environment is also embedded as a signed `environment` claim in the JWT, making cross-environment token reuse impossible.
 
 **Doa reads the prefix at startup**:
 
@@ -118,7 +118,7 @@ Maximum: 100,000,000 centavos (1,000,000.00 AOA) per call. No daily limit.
 3. Find the link created by Doa (description: `DOA-{prefix}`)
 4. Click **Simulate Payment**
 
-Banzami marks the link as `USED` and fires any registered webhook endpoints.
+Banza marks the link as `USED` and fires any registered webhook endpoints.
 
 ### Method 2: API call
 
@@ -127,7 +127,7 @@ curl -X POST https://sandbox-api.banzami.org/v1/payment-links/{link_id}/mark-use
   -H "Authorization: Bearer $SANDBOX_JWT"
 ```
 
-This is equivalent to a donor scanning the QR and confirming in the Banza app.
+This is equivalent to a donor scanning the QR and confirming in the Banzami app.
 
 ### Method 3: Sandbox simulate endpoint
 
@@ -213,11 +213,11 @@ banzami_webhook_ok { intent_id: '...', deduped: false }
 
 | Guarantee | Mechanism |
 |-----------|-----------|
-| `bz_test_` keys rejected in production | Banzami gateway validates key prefix against environment claim |
+| `bz_test_` keys rejected in production | Banza gateway validates key prefix against environment claim |
 | `bz_live_` keys rejected in sandbox | Same middleware — `403 LIVE_ONLY` returned |
-| Sandbox payment links can't be paid with live app | Link environment encoded in Banzami's data model |
+| Sandbox payment links can't be paid with live app | Link environment encoded in Banza's data model |
 | Sandbox webhooks only delivered to sandbox endpoints | Delivery filtered by endpoint environment at dispatch |
-| No sandbox data visible in live dashboard | Separate databases in Banzami's infrastructure |
+| No sandbox data visible in live dashboard | Separate databases in Banza's infrastructure |
 
 ---
 
@@ -248,5 +248,5 @@ See [production-checklist.md](production-checklist.md) for the complete transiti
 2. Replace `BANZAMI_GATEWAY_URL` with `https://api.banzami.org`.
 3. Replace merchant/wallet IDs with production values.
 4. Register a new webhook endpoint against the production API and update `BANZAMI_WEBHOOK_SECRET`.
-5. Verify the `SANDBOX` badge is gone from the Banzami method picker.
+5. Verify the `SANDBOX` badge is gone from the Banza method picker.
 6. Run a real end-to-end test with a small amount before enabling for all campaigns.

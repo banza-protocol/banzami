@@ -7,9 +7,9 @@
 
 ## Business Purpose
 
-Settlement is the process by which Banzami collects the net proceeds of a merchant's transactions from the acquiring bank and credits them to the merchant's wallet.
+Settlement is the process by which Banza collects the net proceeds of a merchant's transactions from the acquiring bank and credits them to the merchant's wallet.
 
-Transactions generate revenue for the merchant, but the actual funds move from the acquirer to Banzami in batches — not transaction by transaction. A settlement batch represents one such collection: a merchant's gross transaction volume for a period, minus Banzami's fees, equals the net amount transferred.
+Transactions generate revenue for the merchant, but the actual funds move from the acquirer to Banza in batches — not transaction by transaction. A settlement batch represents one such collection: a merchant's gross transaction volume for a period, minus Banza's fees, equals the net amount transferred.
 
 ---
 

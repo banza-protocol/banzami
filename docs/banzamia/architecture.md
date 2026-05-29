@@ -1,4 +1,4 @@
-# BanzamIA — Architecture
+# BanzAI — Architecture
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -165,7 +165,7 @@ The orchestration layer classifies each request into a task type and routes to t
 
 ## Citation System
 
-Every BanzamIA response includes structured citations. Citation types:
+Every BanzAI response includes structured citations. Citation types:
 
 | Type | Label | Color |
 |------|-------|-------|
@@ -182,23 +182,23 @@ Citations are rendered as coloured chips in the Sources panel and as inline refe
 
 ## Grounding Principles
 
-BanzamIA enforces these grounding principles in all responses:
+BanzAI enforces these grounding principles in all responses:
 
 1. **Protocol claims cite RFC or ADR** — any statement about how the protocol works must reference the governing document
 2. **Invariant violations are hard findings** — if an invariant fails, this is reported as a definitive finding, not a concern
-3. **Certification requires tool result, not AI inference** — BanzamIA cannot certify an operator; it can only present tool output that supports a human certification decision
+3. **Certification requires tool result, not AI inference** — BanzAI cannot certify an operator; it can only present tool output that supports a human certification decision
 
 ---
 
 ## Deployment
 
-BanzamIA API runs as a Docker container:
+BanzAI API runs as a Docker container:
 
 ```
 banzamia-api → port 4001
 ```
 
-The Banza docs frontend connects to it via `NEXT_PUBLIC_BANZAMIA_API_URL`:
+The Banzami docs frontend connects to it via `NEXT_PUBLIC_BANZAMIA_API_URL`:
 
 ```bash
 NEXT_PUBLIC_BANZAMIA_API_URL=http://217.160.9.248:4001 ./deploy.sh docs-frontend
@@ -214,6 +214,6 @@ See `deploy.sh` → `deploy_banzamia_api()` for the full deployment procedure.
 
 - `apps/docs/components/banzamia/` — frontend components
 - `apps/docs/lib/banzamia-client.ts` — client library
-- `github.com/banzami/banzamia/apps/api/` — BanzamIA API server
-- [Overview](overview.md) — what BanzamIA is and isn't
+- `github.com/banzami/banzamia/apps/api/` — BanzAI API server
+- [Overview](overview.md) — what BanzAI is and isn't
 - [API Reference](api.md) — full API contract

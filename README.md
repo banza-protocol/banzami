@@ -1,14 +1,16 @@
-# Banza — Private Commercial Product
+# Banzami — Private Commercial Product
 
-> Angola's instant payment network — QR-native, wallet-native, built on Banzami infrastructure.
+> **Naming note:** Banzami was formerly called Banza (the product). The naming inversion (ADR-025, 2026-05-29) assigned Banzami to the product and Banza to the protocol. See `docs/migration/` for the full migration record.
 
-**This is the private commercial repository for Banza**, the payment product built by Banzami. It contains the product applications, backend services, financial core, infrastructure, and operational tooling.
+> Angola's instant payment network — QR-native, wallet-native, built on Banza infrastructure.
+
+**This is the private commercial repository for Banzami**, the payment product built by Banzami. It contains the product applications, backend services, financial core, infrastructure, and operational tooling.
 
 The open-source ecosystem (SDKs, contracts, protocol specs, integrations) lives at [github.com/banzami/banzami](https://github.com/banzami/banzami).
 
 ---
 
-Banza is **Angola's instant payment network**: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. Every payment is a wallet-to-wallet ledger transfer. Every merchant surface is a QR code. Any Angolan app integrates the Banza SDK and accepts instant Kwanza payments natively.
+Banzami is **Angola's instant payment network**: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core. Every payment is a wallet-to-wallet ledger transfer. Every merchant surface is a QR code. Any Angolan app integrates the Banzami SDK and accepts instant Kwanza payments natively.
 
 The canonical experience: `SCAN QR → CONFIRM → INSTANT SETTLEMENT`
 
@@ -26,13 +28,13 @@ The platform provides:
 * **local rail integration** — EMIS, Multicaixa Express,
 * **payout orchestration**, **reconciliation**, **compliance enforcement**.
 
-Banza is an API-first infrastructure layer. External integrations use official Banza SDKs. See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for the network identity constraint and [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for SDK policy.
+Banzami is an API-first infrastructure layer. External integrations use official Banzami SDKs. See [ADR-013](docs/adr/ADR-013-wallet-native-identity.md) for the network identity constraint and [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for SDK policy.
 
 ---
 
 ## Engineering Philosophy
 
-Banzami is built with:
+Banza is built with:
 
 * fintech-grade agility,
 * banking-grade reliability,
@@ -60,7 +62,7 @@ See [CLAUDE.md](CLAUDE.md) for the full Engineering Constitution.
 
 ## Architectural Principles
 
-Banzami follows a modular monolith architecture with strong internal domain boundaries.
+Banza follows a modular monolith architecture with strong internal domain boundaries.
 
 * Rust powers the financial core:
   ledger, wallets, settlements, reconciliation, payouts, and financial invariants.
@@ -88,7 +90,7 @@ A cantina owner prints a QR. A customer scans it. Payment is instant. No confirm
 
 **2. First Angola-native SDK payment infrastructure**
 
-Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates Banzami in hours and accepts instant Kwanza payments natively.
+Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates Banza in hours and accepts instant Kwanza payments natively.
 
 ---
 
@@ -105,7 +107,7 @@ Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, d
 
 ## Product Vision
 
-Banzami is building the digital payment layer for Angola.
+Banza is building the digital payment layer for Angola.
 
 The vision: `SCAN → CONFIRM → PAID INSTANTLY` — eliminating cash dependency, manual transfer confirmations, and WhatsApp proof-of-payment flows from Angolan commerce.
 
@@ -574,7 +576,7 @@ Kubernetes is intentionally deferred. The modular monolith approach provides sim
 
 ## Design System
 
-Banzami maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
+Banza maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
 
 - **Web / TypeScript:** [`sdk/typescript/src/theme/index.ts`](sdk/typescript/src/theme/index.ts)
 - **Mobile / Flutter:** [`sdk/flutter/lib/theme/banza_theme.dart`](sdk/flutter/lib/theme/banza_theme.dart)
@@ -620,7 +622,7 @@ See [`docs/brand/audit-2026-05-15.md`](docs/brand/audit-2026-05-15.md) for the f
 
 ## Integration Ecosystem
 
-> The integration layer is not built on top of Banzami — it **is** Banzami from the merchant's and developer's perspective.
+> The integration layer is not built on top of Banza — it **is** Banza from the merchant's and developer's perspective.
 
 Every SDK, plugin, and checkout interface is production infrastructure, held to the same engineering standards as the Rust ledger. See [ADR-011](docs/adr/ADR-011-integration-ecosystem-strategy.md) and the [Integration Ecosystem Strategy](docs/architecture/integration-ecosystem.md) for the full rationale.
 
@@ -690,7 +692,7 @@ QR is the primary payment modality for Angola's market — it works offline, req
 
 ### SDK-First Ecosystem Policy
 
-**Banzami is an SDK-first platform.** All external integrations MUST use official Banzami SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
+**Banza is an SDK-first platform.** All external integrations MUST use official Banza SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
 
 The SDKs are not optional helper libraries. They are security boundaries, DX infrastructure, and payment orchestration layers. Without SDK standardization, integrations become inconsistent, security mistakes multiply, and ecosystem maintenance becomes impossible at scale.
 
@@ -698,7 +700,7 @@ The SDKs are not optional helper libraries. They are security boundaries, DX inf
 
 ### Official Example Integrations
 
-Reference implementations that demonstrate correct, production-grade Banzami merchant integration. These serve as canonical guides for specific integration patterns.
+Reference implementations that demonstrate correct, production-grade Banza merchant integration. These serve as canonical guides for specific integration patterns.
 
 | Integration | Platform | Patterns Demonstrated |
 |-------------|----------|----------------------|
@@ -706,7 +708,7 @@ Reference implementations that demonstrate correct, production-grade Banzami mer
 
 **Doa** (`doadoa.app`) is the canonical reference for:
 - Merchant-presented QR payment flows
-- Banzami webhook integration with HMAC-SHA256 signature verification
+- Banza webhook integration with HMAC-SHA256 signature verification
 - Sandbox mode detection and developer UX (`bz_test_` prefix → SANDBOX badge)
 - Three-layer idempotency (initiation → confirmation → receipt)
 - Next.js `server-only` credential isolation
@@ -826,7 +828,7 @@ A settlement batch covers a merchant's wallet for a given period: `gross_amount 
 ---
 
 #### `banzami-payouts`
-Merchant payout orchestration — the flow of funds from Banzami to merchant bank accounts.
+Merchant payout orchestration — the flow of funds from Banza to merchant bank accounts.
 
 ```
 Payout state machine:
@@ -1250,7 +1252,7 @@ The same operations are available at `/internal/v1/*` on port 8081. These are th
 
 ## Sandbox
 
-Banzami operates two fully isolated environments. Sandbox is a complete replica of the production stack — same API surface, same state machines, same webhook retry logic — but no real money ever moves.
+Banza operates two fully isolated environments. Sandbox is a complete replica of the production stack — same API surface, same state machines, same webhook retry logic — but no real money ever moves.
 
 ### Environment isolation
 
@@ -1748,7 +1750,7 @@ make stack-up       # start everything (applies migrations automatically)
 
 ### Mobile Apps (Flutter)
 
-`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banza) and **merchant** (Banza Business) — built and published to the App Store and Play Store separately.
+`apps/mobile` is a single Flutter project with two flavors — **consumer** (Banzami) and **merchant** (Banzami Business) — built and published to the App Store and Play Store separately.
 
 **Run in development:**
 
@@ -1800,8 +1802,8 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 
 | Flavor   | iOS Bundle ID            | Android Application ID   | Display Name         |
 |----------|--------------------------|--------------------------|----------------------|
-| consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banza                |
-| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banza Business    |
+| consumer | `com.banzami.consumer`   | `com.banzami.consumer`   | Banzami                |
+| merchant | `com.banzami.merchant`   | `com.banzami.merchant`   | Banzami Business    |
 
 **iOS schemes** are at `apps/mobile/ios/Runner.xcodeproj/xcshareddata/xcschemes/`:
 - `consumer.xcscheme` — Debug-consumer / Release-consumer configurations
@@ -1811,9 +1813,9 @@ flutter build appbundle --flavor merchant -t lib/main_merchant.dart
 
 | Variable           | Flavor(s)          | Description                          |
 |--------------------|--------------------|--------------------------------------|
-| `PUBLIC_API_URL`   | consumer           | Banzami Public API base URL          |
-| `GATEWAY_URL`      | merchant           | Banzami API Gateway base URL         |
-| `PAY_BASE_URL`     | consumer, merchant | Banzami pay page base URL            |
+| `PUBLIC_API_URL`   | consumer           | Banza Public API base URL          |
+| `GATEWAY_URL`      | merchant           | Banza API Gateway base URL         |
+| `PAY_BASE_URL`     | consumer, merchant | Banza pay page base URL            |
 
 **Push notifications (FCM):**
 

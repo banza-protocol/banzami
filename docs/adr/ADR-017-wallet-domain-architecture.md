@@ -2,7 +2,7 @@
 
 **Status:** Accepted  
 **Date:** 2026-05-20  
-**Authors:** Banzami Engineering  
+**Authors:** Banza Engineering  
 **Supersedes:** —  
 **Related:** [ADR-002](ADR-002-double-entry-ledger.md) · [ADR-010](ADR-010-consumer-auth-pin-jwt.md) · [ADR-013](ADR-013-wallet-native-identity.md)
 
@@ -10,7 +10,7 @@
 
 ## Context
 
-The Banza Wallet is the foundational financial container for every consumer on the network. Every payment, transfer, QR scan, and payout settlement flows through a wallet. Getting the domain architecture right is a prerequisite for every subsequent financial feature — mistakes here propagate into the ledger, identity, and settlement layers.
+The Banzami Wallet is the foundational financial container for every consumer on the network. Every payment, transfer, QR scan, and payout settlement flows through a wallet. Getting the domain architecture right is a prerequisite for every subsequent financial feature — mistakes here propagate into the ledger, identity, and settlement layers.
 
 At the time of this ADR the `core/consumer-wallets` crate exists with a minimal three-state model (`ACTIVE`, `SUSPENDED`, `CLOSED`) and no onboarding lifecycle, no PIN security specification, no handle constraint definition, and no formal event model. The domain boundary between consumer identity (`core/identity`), the wallet engine (`core/consumer-wallets`), and the ledger (`core/ledger`) is implicit.
 
@@ -109,10 +109,10 @@ Each `ACTIVE` consumer wallet owns exactly **two** ledger accounts:
 
 | Account | Ledger Type | Purpose |
 |---------|------------|---------|
-| `available_account_id` | `LIABILITY` | Immediately spendable funds. Banzami owes this to the consumer. |
+| `available_account_id` | `LIABILITY` | Immediately spendable funds. Banza owes this to the consumer. |
 | `reserved_account_id` | `LIABILITY` | Funds held for in-flight outbound operations (pending transfers, QR payments). |
 
-**Why LIABILITY accounts?** Banzami holds the consumer's Kwanza — it is a liability on Banzami's balance sheet. A credit to a liability account increases what we owe; a debit reduces it. When a consumer receives funds, we credit their available account. When they send, we debit available and credit reserved (the reserve), then on settlement, debit reserved.
+**Why LIABILITY accounts?** Banza holds the consumer's Kwanza — it is a liability on Banza's balance sheet. A credit to a liability account increases what we owe; a debit reduces it. When a consumer receives funds, we credit their available account. When they send, we debit available and credit reserved (the reserve), then on settlement, debit reserved.
 
 **One-to-one invariant:** A wallet cannot share ledger accounts with any other wallet. Account IDs are non-transferable for the wallet's lifetime, including after `CLOSED` (the account rows remain for audit).
 
@@ -217,7 +217,7 @@ The failure counter is stored on the wallet row and incremented atomically with 
 
 ### Biometric Authentication
 
-Biometric credentials (Face ID, fingerprint) are stored **on the device only** in the platform secure enclave. Banzami never receives, stores, or processes biometric data. Biometric auth on the client side produces a local session token that is exchanged for a short-lived JWT at `POST /v1/auth/biometric-unlock`.
+Biometric credentials (Face ID, fingerprint) are stored **on the device only** in the platform secure enclave. Banza never receives, stores, or processes biometric data. Biometric auth on the client side produces a local session token that is exchanged for a short-lived JWT at `POST /v1/auth/biometric-unlock`.
 
 ---
 
@@ -260,7 +260,7 @@ All invariants below are registered in `docs/validation/INVARIANT_TAXONOMY.md`. 
 
 **Go services (api-gateway, admin-api, public-api):** Read wallet state and balance via HTTP calls to core-api. They never write financial tables (`INV-SEC-004`). Wallet mutations are always initiated through core-api endpoints.
 
-**Mobile (Banza app):** Communicates exclusively through the `@banza/sdk` TypeScript layer or `banza_flutter` SDK. PIN is captured on-device, transmitted over TLS as plaintext in the request body, hashed immediately in core-api before any persistence.
+**Mobile (Banzami app):** Communicates exclusively through the `@banza/sdk` TypeScript layer or `banza_flutter` SDK. PIN is captured on-device, transmitted over TLS as plaintext in the request body, hashed immediately in core-api before any persistence.
 
 **Background jobs (core/jobs/):** OTP expiry, stale onboarding cleanup, and reservation expiry run as Tokio tasks in core-api. They interact with consumer_wallets via the `ConsumerWalletEngine` trait directly (not HTTP).
 

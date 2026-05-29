@@ -1,6 +1,6 @@
-# Banzami Laravel SDK
+# Banza Laravel SDK
 
-Official Laravel integration for the Banzami payment gateway. Provides a service provider, facade, webhook verification middleware, and typed Laravel events for all Banzami webhook types.
+Official Laravel integration for the Banza payment gateway. Provides a service provider, facade, webhook verification middleware, and typed Laravel events for all Banza webhook types.
 
 ---
 
@@ -41,7 +41,7 @@ BANZAMI_WALLET_ID=your_default_wallet_id
 
 | Variable | Description |
 |---|---|
-| `BANZAMI_GATEWAY_URL` | Banzami API base URL (default: `https://api.banzami.org`) |
+| `BANZAMI_GATEWAY_URL` | Banza API base URL (default: `https://api.banzami.org`) |
 | `BANZAMI_API_KEY` | Your merchant API key |
 | `BANZAMI_WEBHOOK_SECRET` | HMAC secret for webhook signature verification |
 | `BANZAMI_MERCHANT_ID` | Default merchant ID (optional, can be passed per-request) |
@@ -141,7 +141,7 @@ $merchant = Banzami::getMerchant($merchantId);
 
 ## Webhooks
 
-Banzami sends webhook events to your application when payment state changes occur. The SDK automatically verifies the HMAC-SHA256 signature on every incoming request.
+Banza sends webhook events to your application when payment state changes occur. The SDK automatically verifies the HMAC-SHA256 signature on every incoming request.
 
 ### 1. Register the webhook route
 
@@ -155,7 +155,7 @@ protected $except = [
 ];
 ```
 
-### 2. Configure the webhook URL in your Banzami dashboard
+### 2. Configure the webhook URL in your Banza dashboard
 
 Point your webhook URL to:
 
@@ -193,7 +193,7 @@ protected $listen = [
 ];
 ```
 
-You can also listen for all Banzami webhooks generically:
+You can also listen for all Banza webhooks generically:
 
 ```php
 use Illuminate\Support\Facades\Event;
@@ -325,6 +325,6 @@ Run the test suite:
 ./vendor/bin/phpunit
 ```
 
-The test suite uses [Orchestra Testbench](https://orchestraplatform.com/docs/testbench/) and does not require a running Banzami instance. Webhook signatures are verified using the same HMAC-SHA256 logic as production.
+The test suite uses [Orchestra Testbench](https://orchestraplatform.com/docs/testbench/) and does not require a running Banza instance. Webhook signatures are verified using the same HMAC-SHA256 logic as production.
 
-To test webhooks locally, use a tunnelling tool such as [ngrok](https://ngrok.com/) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose your local server, then configure the resulting URL in your Banzami dashboard.
+To test webhooks locally, use a tunnelling tool such as [ngrok](https://ngrok.com/) or [Cloudflare Tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/) to expose your local server, then configure the resulting URL in your Banza dashboard.

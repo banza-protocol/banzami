@@ -7,7 +7,7 @@
 
 ## Context
 
-Banzami's technology stack is split across two languages:
+Banza's technology stack is split across two languages:
 
 - **Rust** (`core/`) — the financial core: ledger, wallets, transactions, merchants, settlement, routing, risk. Rust was chosen for memory safety, deterministic performance, and strong concurrency guarantees (CLAUDE.md §3.1).
 - **Go** (`services/api-gateway`) — the public API layer: authentication, rate limiting, idempotency, webhook delivery, request routing. Go was chosen for simplicity, concurrency, and operational reliability (CLAUDE.md §3.2).

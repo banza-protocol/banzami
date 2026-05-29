@@ -25,7 +25,7 @@ Repositories audited:
 | 4 | `Banza/apps/docs/app/roadmap/page.tsx:109` | Protocol Intelligence reference | "from a Protocol Intelligence Platform into a" | "AI-native Protocol Agent and Protocol Operating System" | ✓ Fixed |
 | 5 | `Banza/docs/banzamia/api.md:199` | Old repo path | `/Users/fm65/BanzamIA/apps/api/` | `github.com/banzami/banzamia/apps/api/` | ✓ Fixed |
 | 6 | `Banza/docs/banzamia/architecture.md:217` | Old repo path | `/Users/fm65/BanzamIA/apps/api/` | `github.com/banzami/banzamia/apps/api/` | ✓ Fixed |
-| 7 | `Banza/docs/banzamia/roadmap.md:129` | Third-Party Operators | "BanzamIA for Third-Party Operators" | "BanzamIA for Certified Operators" | ✓ Fixed |
+| 7 | `Banza/docs/banzamia/roadmap.md:129` | Third-Party Operators | "BanzAI for Third-Party Operators" | "BanzAI for Certified Operators" | ✓ Fixed |
 | 8 | `Banzami/apps/banzamia/src/tools/certification-copilot.ts` | Cert level names | Reference-compatible, Protocol-compatible, Trace-compatible, Federation-ready, Settlement-compatible | Sandbox Operator, Payment Operator, Settlement Operator, Federation Operator, Infrastructure Operator | ✓ Fixed |
 | 9 | `Banzami/apps/banzamia/src/tools/federation-intelligence.ts` | Cert level name | "Federation-ready" | "Federation Operator" | ✓ Fixed |
 | 10 | `Banzami/apps/banzamia/README.md` | Cert level names (table) | Old 5 names | New 5 names | ✓ Fixed |
@@ -55,22 +55,22 @@ Repositories audited:
 
 ## Items Confirmed Clean
 
-- "chatbot" describing BanzamIA — properly qualified as "is not a chatbot"
+- "chatbot" describing BanzAI — properly qualified as "is not a chatbot"
 - "SDK Layer" — term not found; Integration Surface already used
 - "banzami-core" as package name — only appears as Docker container name (`banzami-core-api-1`) in private infra README; not a public-facing doc issue
 - Floating-point money examples — all examples show prohibited patterns correctly; API docs use `*_minor` fields
-- "fm65/" in public docs — cleaned from BanzamIA API and architecture docs
-- Banzami README — already positions correctly as open kernel; BanzamIA section is accurate
-- Banza README — correctly positions as "Private Commercial Product" built on Banzami
+- "fm65/" in public docs — cleaned from BanzAI API and architecture docs
+- Banza README — already positions correctly as open kernel; BanzAI section is accurate
+- Banzami README — correctly positions as "Private Commercial Product" built on Banza
 
 ---
 
 ## Remaining Risks
 
-1. **BanzamIA API operational gap**: `BanzamIA/apps/api/` is a separate repo-native implementation from the Banzami monorepo's `apps/banzamia/`. These two implementations may diverge over time. Cross-check periodically.
-2. **Banza certification.md levels 0–4 capabilities**: The Banza-specific certification requirements (EMIS acquiring, etc.) have been renamed but still describe product-specific capabilities that don't map 1:1 to the universal protocol certification levels. This is intentional (Banza is a private commercial operator with additional requirements).
+1. **BanzAI API operational gap**: `BanzamIA/apps/api/` is a separate repo-native implementation from the Banza monorepo's `apps/banzamia/`. These two implementations may diverge over time. Cross-check periodically.
+2. **Banzami certification.md levels 0–4 capabilities**: The Banzami-specific certification requirements (EMIS acquiring, etc.) have been renamed but still describe product-specific capabilities that don't map 1:1 to the universal protocol certification levels. This is intentional (Banzami is a private commercial operator with additional requirements).
 3. **SVG architecture diagrams**: Some internal architecture docs in `docs/architecture/` still use ASCII box diagrams. These are internal design docs, not public-facing illustrations. No action required for internal docs.
-4. **BanzamIA repo missing new modules**: The BanzamIA standalone repo (`/Users/fm65/BanzamIA`) documentation has not yet been updated to reference the Protocol Simulator, Federation Intelligence, Protocol Memory, and Digital Twin modules — these were added to the Banzami monorepo's `apps/banzamia/` instance.
+4. **BanzAI repo missing new modules**: The BanzAI standalone repo (`/Users/fm65/BanzamIA`) documentation has not yet been updated to reference the Protocol Simulator, Federation Intelligence, Protocol Memory, and Digital Twin modules — these were added to the Banza monorepo's `apps/banzamia/` instance.
 
 ---
 

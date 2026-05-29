@@ -7,11 +7,11 @@
 
 ## Context
 
-Banzami needs a mobile integration layer for consumer-facing P2P payments. The SDK must:
+Banza needs a mobile integration layer for consumer-facing P2P payments. The SDK must:
 - Be embeddable in third-party merchant apps (checkout, POS).
 - Work as a standalone consumer wallet app.
 - Cover the full payment lifecycle: check balance, send, receive (QR display), scan-to-pay.
-- Be maintainable by Banzami engineering without duplicating UI across multiple native codebases.
+- Be maintainable by Banza engineering without duplicating UI across multiple native codebases.
 
 The candidate approaches were:
 1. Native iOS (Swift) + Native Android (Kotlin) — two separate codebases.
@@ -28,7 +28,7 @@ Flutter was chosen because:
 - **Single codebase** covers iOS and Android with pixel-perfect rendering.
 - **No bridge overhead** — Dart compiles to native ARM; financial UI is not degraded by JS-thread contention.
 - **Widget composability** allows shipping individual screens (`BanzamiSendScreen`, `BanzamiReceiveScreen`, `BanzamiScanScreen`, `BanzamiHomeScreen`) that host apps can embed directly via `Navigator.push`, without taking ownership of the full app shell.
-- **Banzami's engineering team** converges on one mobile language rather than maintaining two.
+- **Banza's engineering team** converges on one mobile language rather than maintaining two.
 
 **Package structure:**
 
@@ -65,6 +65,6 @@ sdk/flutter/
 ## Consequences
 
 - Host apps must add Flutter as a dependency (via `flutter_module` or as a pub package). This is a non-trivial addition for existing native apps; documented in the SDK README.
-- The SDK's `BanzaTheme.light` must be applied at the `MaterialApp` level. If the host app uses its own `ThemeData`, it must merge or wrap the Banzami theme for SDK screens.
+- The SDK's `BanzaTheme.light` must be applied at the `MaterialApp` level. If the host app uses its own `ThemeData`, it must merge or wrap the Banza theme for SDK screens.
 - `mobile_scanner` requires camera permissions in `AndroidManifest.xml` and `Info.plist`. The SDK README documents the required entries.
 - The SDK has no offline capability — all operations require network access to the gateway. Offline queuing is deferred to a future release.

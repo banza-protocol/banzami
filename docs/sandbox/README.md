@@ -1,8 +1,8 @@
-# Banzami Sandbox
+# Banza Sandbox
 
 ## Overview
 
-Banzami operates two completely isolated environments:
+Banza operates two completely isolated environments:
 
 | | **Sandbox** | **Live** |
 |---|---|---|
@@ -342,7 +342,7 @@ Content-Type: application/json
 {"owner_id": "<consumer-id>", "owner_type": "CONSUMER", "currency": "AOA"}
 ```
 
-Scan the returned `payload` with the Banzami consumer app (sandbox mode) to simulate a scan-to-pay flow.
+Scan the returned `payload` with the Banza consumer app (sandbox mode) to simulate a scan-to-pay flow.
 
 ### Dynamic QR (fixed amount)
 
@@ -418,7 +418,7 @@ When ready to switch from sandbox to live:
 3. **Update environment variables** — replace `bz_test_` key with `bz_live_` key.
 4. **Register live webhook endpoints** — sandbox endpoints are not called for live events.
 5. **Verify your webhook signature implementation** — run a live test transaction.
-6. **Fund your live wallet** — contact Banzami operations to activate real balance.
+6. **Fund your live wallet** — contact Banza operations to activate real balance.
 
 > ⚠️ **Never mix credentials.** A `bz_test_` key will be rejected by the live API gateway. A `bz_live_` key will be rejected by the sandbox. This is enforced at the infrastructure level and cannot be bypassed.
 

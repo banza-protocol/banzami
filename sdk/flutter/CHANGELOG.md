@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BanzamiScanScreen` — camera-based QR scan-to-pay flow supporting both `banzami:@{banza}` deep links and payment link URLs; handles camera permission errors with a retry path
 - `BanzamiButton` widget with four variants: primary, secondary (outlined), ghost (text-only), and destructive; supports `isLoading`, `fullWidth`, and leading `icon`
 - `BanzamiAmountInput` widget — large-format monetary input that exposes minor units via `onChanged`; supports thousands separator, `errorText`, and `enabled` flag
-- `BanzamiQrDisplay` widget with static and dynamic constructors; shows amount label and subtitle beneath the QR code in Banzami visual style
+- `BanzamiQrDisplay` widget with static and dynamic constructors; shows amount label and subtitle beneath the QR code in Banza visual style
 - `BanzamiQrScanner` widget — full-screen camera scanner that fires `onDetected` once per scan with the raw QR string
 - `BanzamiTransferItem` list row widget — resolves debit/credit direction from `currentConsumerId` and colours the amount accordingly
 - Design token system: `BanzaColors` (wine, gold, gray900, success, error), `BanzaGradients`, `BanzaTextStyles` (displayXl, headingMd, bodyMd, mono), `BanzaSpacing` (sm, lg, xl), `BanzaRadius` (mdAll, lgAll, fullAll), `BanzaShadows` (card, cardElevated)

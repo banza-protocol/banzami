@@ -1,6 +1,6 @@
-# Banzami PHP SDK
+# Banza PHP SDK
 
-Official PHP library for integrating with the Banzami payment platform.
+Official PHP library for integrating with the Banza payment platform.
 
 ## Requirements
 
@@ -193,7 +193,7 @@ echo BanzaClient::formatAmount($balance['available_minor'], $balance['currency']
 
 #### `createPayout(array $params): array`
 
-Initiates a bank payout from a Banzami wallet to an external bank account.
+Initiates a bank payout from a Banza wallet to an external bank account.
 
 ```php
 $payout = $client->createPayout([
@@ -238,7 +238,7 @@ echo $merchant['status']; // active | suspended
 
 ### Webhooks
 
-Banzami signs every webhook payload with HMAC-SHA256. Always verify the signature before processing the event.
+Banza signs every webhook payload with HMAC-SHA256. Always verify the signature before processing the event.
 
 #### Using `WebhookHandler`
 
@@ -302,7 +302,7 @@ The `Banza-Signature` header format is `sha256=<hex_digest>`.
 
 ### Money Helpers
 
-Banzami always works in minor units (integers) to avoid floating-point errors.
+Banza always works in minor units (integers) to avoid floating-point errors.
 
 #### `BanzaClient::formatAmount(int $amountMinor, string $currency): string`
 
@@ -361,7 +361,7 @@ Common status codes:
 | 409  | Conflict (duplicate idempotency) |
 | 422  | Validation error or business rule violation (e.g. insufficient funds) |
 | 429  | Rate limited                     |
-| 500  | Banzami internal error           |
+| 500  | Banza internal error           |
 
 ---
 

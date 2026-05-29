@@ -1,4 +1,4 @@
-# Banzami Product Strategy
+# Banza Product Strategy
 
 **Version:** 1.0  
 **Date:** 2026-05-19  
@@ -14,9 +14,9 @@
 
 ## Strategic Position
 
-Banzami is building Angola's programmable instant payments infrastructure: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core — the first of its kind built natively for Angola.
+Banza is building Angola's programmable instant payments infrastructure: a four-layer platform spanning consumer wallets, merchant QR rails, a developer SDK ecosystem, and a regulated financial core — the first of its kind built natively for Angola.
 
-Banza is not a wallet app. It is the payment platform that Angola apps are built on top of. Any Angolan taxi app, ecommerce site, or delivery platform can integrate Banza SDK and accept instant Kwanza payments natively — in hours, not months.
+Banzami is not a wallet app. It is the payment platform that Angola apps are built on top of. Any Angolan taxi app, ecommerce site, or delivery platform can integrate Banzami SDK and accept instant Kwanza payments natively — in hours, not months.
 
 We are not building a generic fintech product. We are building national-scale programmable payment infrastructure for a specific, well-understood market — Angola — with the discipline and depth that requires.
 
@@ -28,7 +28,7 @@ Angola's digital commerce is broken in a predictable and fixable way.
 
 ### The Cash Persistence Problem
 
-Despite mobile penetration exceeding 60%, cash dominates most commercial transactions. The reason is not that Angolans distrust digital — it is that existing digital payment friction is *worse* than cash. Manual bank transfers require reference codes, waiting periods, and confirmation delays. Cash is instantaneous. Banzami makes digital payments faster than cash.
+Despite mobile penetration exceeding 60%, cash dominates most commercial transactions. The reason is not that Angolans distrust digital — it is that existing digital payment friction is *worse* than cash. Manual bank transfers require reference codes, waiting periods, and confirmation delays. Cash is instantaneous. Banza makes digital payments faster than cash.
 
 ### The WhatsApp Proof Problem
 
@@ -39,15 +39,15 @@ The de facto "digital" payment flow in Angolan informal commerce:
 3. Customer sends the screenshot to the merchant on WhatsApp
 4. Merchant verifies manually, then confirms
 
-This is not digital commerce. It is analog reconciliation with extra steps. It fails at scale. It creates disputes. It requires trust in screenshots. Banzami eliminates this entirely: scan → confirm → instant settlement, no manual proof required.
+This is not digital commerce. It is analog reconciliation with extra steps. It fails at scale. It creates disputes. It requires trust in screenshots. Banza eliminates this entirely: scan → confirm → instant settlement, no manual proof required.
 
 ### The In-App Payment Gap
 
-Taxi apps, delivery platforms, and marketplaces in Angola cannot close the payment loop inside their products. The payment step forces users out of the app — to cash, external transfer, or fragile third-party workarounds. Banzami provides the SDK infrastructure so any Angolan app can accept instant Kwanza payments natively.
+Taxi apps, delivery platforms, and marketplaces in Angola cannot close the payment loop inside their products. The payment step forces users out of the app — to cash, external transfer, or fragile third-party workarounds. Banza provides the SDK infrastructure so any Angolan app can accept instant Kwanza payments natively.
 
 ### The SDK Gap
 
-There is no Angola-native payment SDK. Developers building Angolan applications have no clean, typed, idempotency-safe API to accept instant AOA payments. They improvise — with security vulnerabilities, inconsistent behavior, and no production-grade support. Banzami fills this gap.
+There is no Angola-native payment SDK. Developers building Angolan applications have no clean, typed, idempotency-safe API to accept instant AOA payments. They improvise — with security vulnerabilities, inconsistent behavior, and no production-grade support. Banza fills this gap.
 
 ---
 
@@ -57,15 +57,15 @@ There is no Angola-native payment SDK. Developers building Angolan applications 
 
 Make QR payments the normal expectation for Angolan consumers and merchants, the same way Pix normalized QR in Brazil and UPI in India.
 
-A cantina owner prints a Banza QR. A customer scans it. Payment is instant and confirmed on both sides. No WhatsApp. No manual check. No waiting.
+A cantina owner prints a Banzami QR. A customer scans it. Payment is instant and confirmed on both sides. No WhatsApp. No manual check. No waiting.
 
 This is the target. It is achievable. It requires focus on Angola.
 
 ### Objective 2 — First Angola-native SDK payment infrastructure
 
-Any Angolan application — taxi app, delivery platform, marketplace, school system, donation platform, ecommerce site — should integrate Banzami in hours and accept instant Kwanza payments natively inside their product.
+Any Angolan application — taxi app, delivery platform, marketplace, school system, donation platform, ecommerce site — should integrate Banza in hours and accept instant Kwanza payments natively inside their product.
 
-This does not exist today. Banzami builds it.
+This does not exist today. Banza builds it.
 
 ---
 
@@ -98,7 +98,7 @@ Angolan mobile users (Android and iOS) who want to:
 
 1. **QR point-of-sale** — merchant displays static or dynamic QR; consumer scans and pays instantly
 2. **Payment links** — merchant shares a link; consumer opens in browser and pays
-3. **In-app payments via SDK** — any Angolan app integrates Banza SDK and accepts instant AOA
+3. **In-app payments via SDK** — any Angolan app integrates Banzami SDK and accepts instant AOA
 4. **P2P transfers** — consumer sends money to another via @handle
 
 ### Tier 2 — Growth (follows network density)
@@ -116,7 +116,7 @@ Angolan mobile users (Android and iOS) who want to:
 
 ---
 
-## What Banzami Is Not Building (Now)
+## What Banza Is Not Building (Now)
 
 | Excluded | Why |
 |----------|-----|
@@ -134,15 +134,15 @@ These are not permanent exclusions — card top-up is planned as a future fundin
 
 ### Against cash
 
-Cash is the real competitor, not other fintechs. Cash is ubiquitous, trusted, and instant (in person). Banzami must match cash's immediacy while adding receipts, record-keeping, and remote payment capability.
+Cash is the real competitor, not other fintechs. Cash is ubiquitous, trusted, and instant (in person). Banza must match cash's immediacy while adding receipts, record-keeping, and remote payment capability.
 
 ### Against bank transfers
 
-Bank transfers are slow, require IBAN/reference codes, and have no in-person confirmation flow. Banzami is demonstrably faster and simpler.
+Bank transfers are slow, require IBAN/reference codes, and have no in-person confirmation flow. Banza is demonstrably faster and simpler.
 
 ### Against EMIS / Multicaixa
 
-EMIS is a rail, not a product. Banzami uses EMIS for interbank settlement and positions itself as the product layer above it. We are not competing with EMIS; we integrate it.
+EMIS is a rail, not a product. Banza uses EMIS for interbank settlement and positions itself as the product layer above it. We are not competing with EMIS; we integrate it.
 
 ### Against international fintechs
 
@@ -154,7 +154,7 @@ Stripe, PayPal, Adyen have no Angolan presence, no AOA infrastructure, and no lo
 
 ### Phase 1 — Network seeding
 
-Sign high-traffic Angolan apps (taxi, delivery, ecommerce) as SDK integrators. Each integrator brings consumer exposure at scale. One taxi app with 50k monthly users creates more Banzami wallet activations than any marketing campaign.
+Sign high-traffic Angolan apps (taxi, delivery, ecommerce) as SDK integrators. Each integrator brings consumer exposure at scale. One taxi app with 50k monthly users creates more Banza wallet activations than any marketing campaign.
 
 ### Phase 2 — Merchant density
 
@@ -162,7 +162,7 @@ QR deployment in physical merchants (cantinas, pharmacies, supermarkets, informa
 
 ### Phase 3 — Network effects
 
-When enough consumers have wallets and enough merchants accept QR, Banzami becomes the obvious integration for any new Angolan application. SDK adoption accelerates without active sales.
+When enough consumers have wallets and enough merchants accept QR, Banza becomes the obvious integration for any new Angolan application. SDK adoption accelerates without active sales.
 
 ### Phase 4 — Geographic expansion
 
@@ -177,13 +177,13 @@ When Angola has achieved network density — measurable by QR adoption rate, act
 Angolan banks are not competitors. They are:
 - holders of the Kwanza that consumers and merchants use,
 - providers of settlement accounts,
-- regulated infrastructure that Banzami must interoperate with.
+- regulated infrastructure that Banza must interoperate with.
 
-Banzami provides the commerce layer *above* banks:
+Banza provides the commerce layer *above* banks:
 - banks provide accounts, compliance, settlement, currency,
-- Banzami provides instant UX, QR, SDKs, wallets, merchant tools.
+- Banza provides instant UX, QR, SDKs, wallets, merchant tools.
 
-This positioning opens partnership opportunities. Banks gain a modern commerce layer they cannot build themselves. Banzami gains access to licensed infrastructure it cannot own directly.
+This positioning opens partnership opportunities. Banks gain a modern commerce layer they cannot build themselves. Banza gains access to licensed infrastructure it cannot own directly.
 
 ### BNA (Banco Nacional de Angola)
 
@@ -191,8 +191,8 @@ BNA is the monetary authority. All product decisions must account for BNA regula
 
 ### EMIS
 
-EMIS (Empresa Interbancária de Serviços) provides the interbank settlement rails and Multicaixa infrastructure. Banzami integrates EMIS for:
-- AOA movement into and out of the Banzami wallet network,
+EMIS (Empresa Interbancária de Serviços) provides the interbank settlement rails and Multicaixa infrastructure. Banza integrates EMIS for:
+- AOA movement into and out of the Banza wallet network,
 - interbank settlement for merchants,
 - Multicaixa Express compatibility.
 

@@ -7,7 +7,7 @@
 
 ## Business Purpose
 
-A wallet is the financial container for a merchant. Every merchant has at least one wallet per currency they operate in. The wallet tracks how much money Banzami owes the merchant at any given moment.
+A wallet is the financial container for a merchant. Every merchant has at least one wallet per currency they operate in. The wallet tracks how much money Banza owes the merchant at any given moment.
 
 Wallet balances are maintained in two layers:
 1. **Ledger entries** — the authoritative source of truth; all balance changes flow through immutable ledger postings.

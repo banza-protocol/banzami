@@ -1,4 +1,4 @@
-# Banzami Certification
+# Banza Certification
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Banzami Certification is the formal verification that an operator implements the Banzami protocol correctly at a given level. Certification is:
+Banza Certification is the formal verification that an operator implements the Banza protocol correctly at a given level. Certification is:
 
 - **Earned** — by passing the conformance suite, not by self-declaration
 - **Level-bound** — five levels (0–4) with increasing protocol depth
@@ -16,7 +16,7 @@ Banzami Certification is the formal verification that an operator implements the
 - **Time-limited** — expires after 12 months without re-verification
 - **Tool-verified** — conformance tests are deterministic; AI inference is not a substitute
 
-> A certified operator is one whose conformance suite results, financial invariants, and manifest have been verified by the Banzami certification process.
+> A certified operator is one whose conformance suite results, financial invariants, and manifest have been verified by the Banza certification process.
 
 ---
 
@@ -53,7 +53,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ### Level 0 — Sandbox Operator
 
-**Purpose:** Prove the operator can run the Banzami protocol in a test environment.
+**Purpose:** Prove the operator can run the Banza protocol in a test environment.
 
 **Requirements:**
 - Valid Operator Manifest (any certification level declared as 0)
@@ -62,7 +62,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 - Basic `POST /v1/sandbox/fund` and wallet query tests pass
 - No live settlement rails required
 
-**What it unlocks:** Access to sandbox API keys, test webhook delivery, Banzami developer support.
+**What it unlocks:** Access to sandbox API keys, test webhook delivery, Banza developer support.
 
 ---
 
@@ -142,7 +142,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 **Conformance suites:** All suites including `infrastructure/` (all 12 files, 88 tests)
 
-**What it unlocks:** Card acquiring, participation in Banzami federation (when available), highest transaction volume limits, operator network access.
+**What it unlocks:** Card acquiring, participation in Banza federation (when available), highest transaction volume limits, operator network access.
 
 ---
 
@@ -150,11 +150,11 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ### Step 1: Prepare your manifest
 
-Use the [BanzamIA Operator Builder](banzamia/operator-builder.md) to create a valid manifest for your target level. Run the [BanzamIA Manifest Validator](banzamia/manifest-validator.md) to verify it passes structural and semantic validation.
+Use the [BanzAI Operator Builder](banzamia/operator-builder.md) to create a valid manifest for your target level. Run the [BanzAI Manifest Validator](banzamia/manifest-validator.md) to verify it passes structural and semantic validation.
 
 ### Step 2: Implement the capabilities
 
-Build your operator implementation against the Banzami Kernel API or by implementing the equivalent protocol behaviour. Use the [Sandbox Operator](reference-operator.md) as your reference.
+Build your operator implementation against the Banza Kernel API or by implementing the equivalent protocol behaviour. Use the [Sandbox Operator](reference-operator.md) as your reference.
 
 ### Step 3: Run the conformance suite
 
@@ -172,7 +172,7 @@ All tests must pass. A single failure blocks certification for that level.
 
 ### Step 4: Submit for certification
 
-Submit your conformance results to Banzami:
+Submit your conformance results to Banza:
 
 ```
 POST /certification/apply
@@ -184,9 +184,9 @@ POST /certification/apply
 }
 ```
 
-### Step 5: Banzami review
+### Step 5: Banza review
 
-Banzami reviews:
+Banza reviews:
 - Conformance result file authenticity (signed by conformance runner)
 - Manifest consistency with conformance results
 - Financial invariant status for all declared capabilities
@@ -196,7 +196,7 @@ Review typically completes within 5 business days.
 
 ### Step 6: Certification issued
 
-On approval, Banzami issues:
+On approval, Banza issues:
 - A signed certification artifact (JSON + signature)
 - A certification badge for your operator profile
 - Live API key access for certified capabilities
@@ -249,11 +249,11 @@ Certified operators receive a badge for each level:
 
 | Badge | Level | Label |
 |-------|-------|-------|
-| 🔵 | 0 | Banzami Sandbox Operator |
-| 🟡 | 1 | Banzami Payment Operator |
-| 🟠 | 2 | Banzami Settlement Operator |
-| 🟤 | 3 | Banzami Federation Operator |
-| ⭐ | 4 | Banzami Infrastructure Operator |
+| 🔵 | 0 | Banza Sandbox Operator |
+| 🟡 | 1 | Banza Payment Operator |
+| 🟠 | 2 | Banza Settlement Operator |
+| 🟤 | 3 | Banza Federation Operator |
+| ⭐ | 4 | Banza Infrastructure Operator |
 
 ---
 
@@ -273,7 +273,7 @@ Your certification application is rejected for the target level. Fix the failure
 
 **Can AI replace the conformance suite?**
 
-No. BanzamIA can explain test failures and suggest fixes, but only the conformance suite determines certification. AI inference is not a substitute.
+No. BanzAI can explain test failures and suggest fixes, but only the conformance suite determines certification. AI inference is not a substitute.
 
 **How long does review take?**
 

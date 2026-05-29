@@ -7,7 +7,7 @@
 
 ## Business Purpose
 
-The ledger is the single financial truth of the platform. Every Kz that enters, moves through, or exits Banzami is permanently recorded here. It is the foundation that makes reconciliation, auditing, and dispute resolution possible.
+The ledger is the single financial truth of the platform. Every Kz that enters, moves through, or exits Banza is permanently recorded here. It is the foundation that makes reconciliation, auditing, and dispute resolution possible.
 
 No other domain writes to the ledger directly. Every domain that moves money (wallets, transactions, settlement, payouts) does so by requesting a posting from the ledger engine.
 
@@ -54,7 +54,7 @@ No other domain writes to the ledger directly. Every domain that moves money (wa
 
 ## Account Structure
 
-Banzami maintains a small set of system-level accounts:
+Banza maintains a small set of system-level accounts:
 
 | Account             | Type      | Role                                             |
 |---------------------|-----------|--------------------------------------------------|

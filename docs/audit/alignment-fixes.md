@@ -28,7 +28,7 @@
 
 **File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`  
 **Lines:** 782–798  
-**Issue (E — False):** States BanzamIA has 8 modules; actual count is 16.
+**Issue (E — False):** States BanzAI has 8 modules; actual count is 16.
 
 ```diff
 - O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por oito módulos especializados:
@@ -94,7 +94,7 @@
 
 ## Priority 2 — MISLEADING (fix before next public communication)
 
-### FIX-004 — Banzami kernel README: Shopify/WooCommerce as integrations
+### FIX-004 — Banza kernel README: Shopify/WooCommerce as integrations
 
 **File:** `/Users/fm65/Banzami/README.md`  
 **Line:** 54  
@@ -123,7 +123,7 @@ And update the `integrations/` section of the directory tree:
 
 ## Priority 3 — PARTIALLY OUTDATED (fix within 1 week)
 
-### FIX-005 — BanzamIA standalone README: Missing Protocol OS framing and new modules
+### FIX-005 — BanzAI standalone README: Missing Protocol OS framing and new modules
 
 **File:** `/Users/fm65/BanzamIA/README.md`  
 **Issue (C — Partially Outdated):** Missing Protocol OS canonical framing and 8 new modules.
@@ -181,10 +181,10 @@ Replace the opening description:
 
 ---
 
-### FIX-007 — Banzami kernel README: BanzamIA omitted from main ecosystem diagram
+### FIX-007 — Banza kernel README: BanzAI omitted from main ecosystem diagram
 
 **File:** `/Users/fm65/Banzami/README.md`  
-**Issue (C — Partially Outdated):** Main ASCII ecosystem diagram doesn't include BanzamIA.
+**Issue (C — Partially Outdated):** Main ASCII ecosystem diagram doesn't include BanzAI.
 
 The existing ASCII diagram ends with `→ BANZA`. It should show:
 
@@ -215,7 +215,7 @@ The existing ASCII diagram ends with `→ BANZA`. It should show:
 ### FIX-008 — BANZAMI_REFERENCE.md §1: "produto principal" narrative tension
 
 **File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`  
-**Issue (B — Incomplete):** "Banza é o produto principal do Banzami" could be read as Banzami = Banza's company.
+**Issue (B — Incomplete):** "Banzami é o produto principal do Banza" could be read as Banza = Banzami's company.
 
 Add clarifying sentence:
 ```diff
@@ -225,10 +225,10 @@ Add clarifying sentence:
 
 ---
 
-### FIX-009 — sobre-banzamia: No BanzamIA context before CTA
+### FIX-009 — sobre-banzamia: No BanzAI context before CTA
 
 **File:** `/Users/fm65/Banza/apps/docs/app/sobre-banzamia/page.tsx`  
-**Issue (B — Incomplete):** Visitor reaches this page from the sidebar and immediately sees a CTA "Abrir BanzamIA →" without any context on what they'll find.
+**Issue (B — Incomplete):** Visitor reaches this page from the sidebar and immediately sees a CTA "Abrir BanzAI →" without any context on what they'll find.
 
 Add a brief intro line above the CTA:
 ```
@@ -237,7 +237,7 @@ O BanzamIA é o Sistema Operativo do Protocolo Banzami — 16 módulos especiali
 
 ---
 
-### FIX-010 — Homepage: BanzamIA widget without context
+### FIX-010 — Homepage: BanzAI widget without context
 
 **File:** `/Users/fm65/Banza/apps/docs/app/page.tsx`  
 **Issue (B — Incomplete):** `<HomeBanzamIAEntry />` appears immediately after the hero without explaining why a payments infrastructure has a Protocol OS.
@@ -249,7 +249,7 @@ BanzamIA é o Sistema Operativo do Protocolo — faz perguntas sobre o protocolo
 
 ---
 
-### FIX-011 — BanzamIA standalone README: Architecture section outdated
+### FIX-011 — BanzAI standalone README: Architecture section outdated
 
 **File:** `/Users/fm65/BanzamIA/README.md`  
 **Issue (C):** The `core/` folder structure listed doesn't match the actual `apps/banzamia/src/` structure.
@@ -267,8 +267,8 @@ The standalone README shows `core/orchestrator/`, `core/routing/` etc. but the l
 | FIX-006 (metadata description) | 5 min | Medium | YES |
 | FIX-004 (Shopify/WooCommerce) | 10 min | Medium | This week |
 | FIX-005 (standalone README) | 45 min | Medium | This week |
-| FIX-007 (ecosystem diagram + BanzamIA) | 15 min | Medium | This week |
+| FIX-007 (ecosystem diagram + BanzAI) | 15 min | Medium | This week |
 | FIX-008 (produto principal tension) | 5 min | Low | When convenient |
 | FIX-009 (sobre-banzamia intro) | 10 min | Low | When convenient |
-| FIX-010 (homepage BanzamIA context) | 15 min | Medium | This week |
+| FIX-010 (homepage BanzAI context) | 15 min | Medium | This week |
 | FIX-011 (standalone arch outdated) | 30 min | Low | Next sprint |

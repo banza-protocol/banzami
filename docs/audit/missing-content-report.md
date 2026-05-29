@@ -7,11 +7,11 @@
 
 ---
 
-## 1. BanzamIA Capability Documentation — By Surface
+## 1. BanzAI Capability Documentation — By Surface
 
 ### github.com/banzami/banzamia (standalone repo)
 
-The standalone BanzamIA README is the primary documentation for developers cloning the repo directly. It is missing all content about the Protocol OS buildout.
+The standalone BanzAI README is the primary documentation for developers cloning the repo directly. It is missing all content about the Protocol OS buildout.
 
 | Missing Content | Priority |
 |----------------|----------|
@@ -33,11 +33,11 @@ The standalone BanzamIA README is the primary documentation for developers cloni
 
 ### github.com/banzami/banzami (kernel repo)
 
-The kernel README mentions BanzamIA but only as "AI-native Protocol Agent". It does not explain any BanzamIA capabilities.
+The kernel README mentions BanzAI but only as "AI-native Protocol Agent". It does not explain any BanzAI capabilities.
 
 | Missing Content | Priority |
 |----------------|----------|
-| What BanzamIA provides to operators using the kernel | Medium |
+| What BanzAI provides to operators using the kernel | Medium |
 | Reference to `apps/banzamia/` as the embedded Protocol OS instance | Medium |
 | Explanation of the dual deployment model (standalone vs embedded) | Low |
 | Protocol Graph built from kernel docs | Low |
@@ -53,7 +53,7 @@ This page renders `BANZAMI_REFERENCE.md §9` directly. With the FIX-002 applied 
 | How Protocol Simulator works — example scenario with before/after | Medium |
 | How Federation Intelligence scores compatibility | Medium |
 | What "Protocol Memory" persists and for how long (in-memory caveat) | Low |
-| How to self-host BanzamIA (deployment guide link) | Low |
+| How to self-host BanzAI (deployment guide link) | Low |
 
 ---
 
@@ -98,9 +98,9 @@ Federation is architecturally designed (RFC-0002, RFC-0005, RFC-0008 referenced)
 
 ---
 
-## 5. BanzamIA Quality Metrics — Not Published
+## 5. BanzAI Quality Metrics — Not Published
 
-The Quality Dashboard module exposes metrics about the BanzamIA system itself. These are shown in the UI but never published as a report or benchmarks document.
+The Quality Dashboard module exposes metrics about the BanzAI system itself. These are shown in the UI but never published as a report or benchmarks document.
 
 | Missing | Priority |
 |---------|---------|
@@ -128,7 +128,7 @@ The Quality Dashboard module exposes metrics about the BanzamIA system itself. T
 
 | Category | Items Missing | Critical | High |
 |----------|--------------|----------|------|
-| BanzamIA standalone repo | 11 | 1 | 5 |
+| BanzAI standalone repo | 11 | 1 | 5 |
 | Operator onboarding | 8 | 0 | 3 |
 | Federation documentation | 5 | 0 | 2 |
 | Contract documentation | 3 | 1 | 1 |
@@ -139,4 +139,4 @@ The Quality Dashboard module exposes metrics about the BanzamIA system itself. T
 The three critical gaps requiring immediate action:
 1. Webhook schemas (`contracts/webhooks/` is empty) — blocks L2 certification
 2. Runnable examples (`examples/` dirs all empty) — blocks external operator onboarding
-3. BanzamIA standalone README missing Protocol OS + new modules — primary developer entry point is outdated
+3. BanzAI standalone README missing Protocol OS + new modules — primary developer entry point is outdated

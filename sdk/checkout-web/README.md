@@ -1,6 +1,6 @@
 # @banzami/checkout
 
-Embeddable payment checkout for any website. Opens a QR + deep-link modal that lets customers pay via the Banzami mobile app.
+Embeddable payment checkout for any website. Opens a QR + deep-link modal that lets customers pay via the Banza mobile app.
 
 ## Quick start (NPM)
 
@@ -60,7 +60,7 @@ checkout.open({ currency: 'AOA', description: 'Donativo' });
 
 | Field        | Type     | Description                        |
 |--------------|----------|------------------------------------|
-| `gatewayUrl` | `string` | Banzami API base URL               |
+| `gatewayUrl` | `string` | Banza API base URL               |
 | `apiKey`     | `string` | Merchant API key (`bz_live_...`)   |
 | `merchantId` | `string` | Merchant UUID                      |
 | `walletId`   | `string` | Destination wallet UUID            |

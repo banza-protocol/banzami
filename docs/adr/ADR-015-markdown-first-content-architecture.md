@@ -8,14 +8,14 @@
 
 ## Context
 
-As the Banzami platform matures into national payment infrastructure, its public-facing presence must be:
+As the Banza platform matures into national payment infrastructure, its public-facing presence must be:
 
 * **consistent** — every audience sees the same product definition,
 * **authoritative** — one document owns the canonical truth,
 * **maintainable** — updates happen in one place, propagate everywhere,
 * **coherent** — positioning never drifts between website sections.
 
-The alternative — writing content independently for landing pages, docs sites, marketing pages, and investor decks — creates divergence. Different pages will describe Banzami differently. Positioning drifts. Engineering credibility erodes. The platform loses its voice.
+The alternative — writing content independently for landing pages, docs sites, marketing pages, and investor decks — creates divergence. Different pages will describe Banza differently. Positioning drifts. Engineering credibility erodes. The platform loses its voice.
 
 `docs/BANZAMI_REFERENCE.md` was created as the official flagship reference document, covering all audiences: merchants, developers, consumers, banks, investors, regulators. It has been written as a national payment network manifesto combined with a technical architecture reference.
 
@@ -25,7 +25,7 @@ The question is: how does this document relate to the public website?
 
 ## Decision
 
-**`docs/BANZAMI_REFERENCE.md` is the single source of truth for the entire public Banzami ecosystem.**
+**`docs/BANZAMI_REFERENCE.md` is the single source of truth for the entire public Banza ecosystem.**
 
 The correct content flow is:
 
@@ -141,7 +141,7 @@ Separate the technical reference from the marketing site.
 
 ### Positive
 
-* **Single update point.** Any change to how Banzami is described, positioned, or explained happens in one file. All surfaces update on next build.
+* **Single update point.** Any change to how Banza is described, positioned, or explained happens in one file. All surfaces update on next build.
 * **Git-reviewed content.** All content changes are pull requests. Every change is auditable, reviewable, and traceable.
 * **Positioning consistency.** The product is described the same way everywhere.
 * **Engineering discipline.** Content is subject to the same engineering rigor as code.

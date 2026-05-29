@@ -1,4 +1,4 @@
-# BanzamIA — Knowledge Search
+# BanzAI — Knowledge Search
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-Knowledge Search provides semantic search over all Banzami protocol documentation. Unlike keyword search, it finds conceptually related content — searching for "money creation" returns invariants about double-entry balance and fee decomposition, not just documents that contain those exact words.
+Knowledge Search provides semantic search over all Banza protocol documentation. Unlike keyword search, it finds conceptually related content — searching for "money creation" returns invariants about double-entry balance and fee decomposition, not just documents that contain those exact words.
 
 ---
 
@@ -26,7 +26,7 @@ The knowledge base indexes:
 | `docs/validation/VALIDATION_DOMAINS.md` | Validation domain taxonomy |
 | `docs/conformance.md` | Conformance suite specification |
 | `docs/certification.md` | Certification model |
-| `docs/banzamia/` | BanzamIA documentation |
+| `docs/banzamia/` | BanzAI documentation |
 | SDK documentation | TypeScript, Flutter, PHP integration guides |
 
 ---
@@ -102,17 +102,17 @@ The demo results demonstrate searches for:
 
 ## Using Knowledge Search
 
-### Via BanzamIA UI
+### Via BanzAI UI
 
-Navigate to **BanzamIA → Knowledge Search**. Type your query and press Enter or click Search. Use the quick search chips for common queries.
+Navigate to **BanzAI → Knowledge Search**. Type your query and press Enter or click Search. Use the quick search chips for common queries.
 
-### Via BanzamIA Chat
+### Via BanzAI Chat
 
 ```
 > O que diz a documentação sobre liquidação de settlements?
 ```
 
-BanzamIA Chat automatically queries the knowledge base for every response, surfacing the most relevant citations.
+BanzAI Chat automatically queries the knowledge base for every response, surfacing the most relevant citations.
 
 ---
 
@@ -122,15 +122,15 @@ To enable real semantic search:
 
 1. Deploy a Qdrant instance
 2. Index protocol documentation into Qdrant collections
-3. Configure BanzamIA API with Qdrant connection string
-4. Set `NEXT_PUBLIC_BANZAMIA_API_URL` to point to live BanzamIA API
+3. Configure BanzAI API with Qdrant connection string
+4. Set `NEXT_PUBLIC_BANZAMIA_API_URL` to point to live BanzAI API
 
-The BanzamIA API handles embedding generation and Qdrant querying internally.
+The BanzAI API handles embedding generation and Qdrant querying internally.
 
 ---
 
 ## References
 
 - `apps/docs/components/banzamia/modules/KnowledgeModule.tsx` — UI implementation
-- [Architecture](architecture.md) — BanzamIA architecture including Qdrant integration
+- [Architecture](architecture.md) — BanzAI architecture including Qdrant integration
 - [Roadmap](roadmap.md) — live knowledge API timeline

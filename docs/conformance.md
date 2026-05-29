@@ -1,4 +1,4 @@
-# Banzami Conformance Suite
+# Banza Conformance Suite
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,7 +8,7 @@
 
 ## Overview
 
-The Banzami Conformance Suite is the machine-executable specification that defines what "protocol compliant" means. It is the source of truth for certification.
+The Banza Conformance Suite is the machine-executable specification that defines what "protocol compliant" means. It is the source of truth for certification.
 
 An operator is conformant if and only if it passes all conformance tests for its declared certification level. AI inference is not a substitute for passing the suite.
 
@@ -202,9 +202,9 @@ FAIL: INV-LEDGER-001 violation in QR-STATIC-004
 Result: 27/28 tests passed. NOT CONFORMANT at Level 1.
 ```
 
-### Via BanzamIA
+### Via BanzAI
 
-Navigate to **BanzamIA → Conformance**. Select your certification level. The module guides you through setup and displays results with invariant-level explanations.
+Navigate to **BanzAI → Conformance**. Select your certification level. The module guides you through setup and displays results with invariant-level explanations.
 
 ---
 
@@ -314,16 +314,16 @@ Fix: implement atomic QR state transition: `PENDING → PAID` using a database-l
 
 ---
 
-## Conformance and BanzamIA
+## Conformance and BanzAI
 
-BanzamIA's Conformance module presents conformance results in natural language:
+BanzAI's Conformance module presents conformance results in natural language:
 
 - Explains what each failing test checks
 - Maps failures to specific invariants
 - Suggests fixes based on common failure patterns
 - Tracks certification readiness across multiple runs
 
-BanzamIA does not run conformance tests autonomously — it presents the results of tests that you run.
+BanzAI does not run conformance tests autonomously — it presents the results of tests that you run.
 
 ---
 

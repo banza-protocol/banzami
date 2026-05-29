@@ -1,4 +1,4 @@
-# Banzami Operations Runbooks
+# Banza Operations Runbooks
 
 Runbooks are step-by-step procedures for common operational tasks. They describe **how** to perform an action safely, not why the system is designed a certain way (that is in the ADRs).
 

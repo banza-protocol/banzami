@@ -1,4 +1,4 @@
-# Banza Brand Guidelines
+# Banzami Brand Guidelines
 
 Version: 1.0 — Frozen 2026-05-20
 
@@ -6,21 +6,21 @@ Version: 1.0 — Frozen 2026-05-20
 
 ## 1. Identity Architecture
 
-### Banzami vs. Banza
+### Banza vs. Banzami
 
-| | Banzami | Banza |
+| | Banza | Banzami |
 |--|---------|-------|
 | **What it is** | Organization / infrastructure ecosystem | Payment product / payment experience |
 | **Use it for** | Company, team, institutional mission, bank relationships, platform infrastructure | Wallets, QR payments, merchant solutions, SDKs, APIs, consumer UX |
-| **Examples** | "Banzami builds Angola's payment infrastructure" | "Paga com Banza", "Banza Wallet", "Banza Business" |
-| **Never** | "Banzami Wallet", "Banzami QR", "Pagar com Banzami" | "Banza is the company name" |
+| **Examples** | "Banza builds Angola's payment infrastructure" | "Paga com Banzami", "Banzami Wallet", "Banzami Business" |
+| **Never** | "Banza Wallet", "Banza QR", "Pagar com Banza" | "Banzami is the company name" |
 
 **Grammatical gender (Portuguese):** both names are masculine.
-- O Banza (not *a* Banza)
 - O Banzami (not *a* Banzami)
-- "O Banza é construído com Rust" (not *construída*)
+- O Banza (not *a* Banza)
+- "O Banzami é construído com Rust" (not *construída*)
 
-These assets are **Banza product assets**, not generic Banzami corporate assets.
+These assets are **Banzami product assets**, not generic Banza corporate assets.
 
 ---
 
@@ -28,7 +28,7 @@ These assets are **Banza product assets**, not generic Banzami corporate assets.
 
 > **"Soft physical depth with restrained luxury lighting."**
 
-The Banza visual identity is:
+The Banzami visual identity is:
 
 - **Premium minimalism** — nothing gratuitous, every element serves a purpose
 - **Soft physical depth** — surfaces have weight and dimensionality without being skeuomorphic
@@ -41,7 +41,7 @@ The Banza visual identity is:
 
 ## 3. The Symbol
 
-The Banza symbol is four rounded squares in a 2×2 grid:
+The Banzami symbol is four rounded squares in a 2×2 grid:
 - Top-left: large, pure white (dominant, foreground)
 - Top-right: large, soft pink (secondary)
 - Bottom-left: large, soft pink (secondary)
@@ -279,8 +279,8 @@ Rules:
 
 ## 12. What Belongs Here
 
-✅ **Banza product assets** — icon, logo, splash, QR frame graphics, payment UI elements  
-❌ **Banzami org assets** — corporate logo, letterhead, investor materials → `assets/branding/`
+✅ **Banzami product assets** — icon, logo, splash, QR frame graphics, payment UI elements  
+❌ **Banza org assets** — corporate logo, letterhead, investor materials → `assets/branding/`
 
 ---
 

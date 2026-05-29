@@ -9,7 +9,7 @@
 
 ## Context
 
-ADR-013 established the wallet-native technical identity: Banzami is a wallet ↔ wallet payment network, QR-native, @handle-based, instant settlement — not a card processor.
+ADR-013 established the wallet-native technical identity: Banza is a wallet ↔ wallet payment network, QR-native, @handle-based, instant settlement — not a card processor.
 
 But it did not answer a second, equally important question: **whose network is this?**
 
@@ -22,15 +22,15 @@ Without a clear national mission statement, the following failure modes are poss
 3. **Wrong competitive frame** — positioning against Stripe or PayPal (who have no Angolan presence and no AOA infrastructure) instead of positioning as the replacement for cash and manual transfer.
 4. **Wrong technical priorities** — building international card rails instead of local QR and EMIS integration.
 
-Angola has specific, well-understood payment problems that Banzami is uniquely positioned to solve. The mission must be encoded explicitly.
+Angola has specific, well-understood payment problems that Banza is uniquely positioned to solve. The mission must be encoded explicitly.
 
 ---
 
 ## Decision
 
-**Banzami's primary mission is to modernize and revolutionize digital payments in Angola. This is the anchor for all product, engineering, and positioning decisions.**
+**Banza's primary mission is to modernize and revolutionize digital payments in Angola. This is the anchor for all product, engineering, and positioning decisions.**
 
-Banzami is NOT:
+Banza is NOT:
 
 * a pan-African payment aggregator (premature — Angola first, expansion second),
 * a Stripe clone for Africa (wrong model — see ADR-013),
@@ -38,7 +38,7 @@ Banzami is NOT:
 * a cryptocurrency platform,
 * a traditional banking app.
 
-Banzami IS:
+Banza IS:
 
 * Angola's QR-native instant payment network,
 * the first Angola-native SDK payment infrastructure,
@@ -52,7 +52,7 @@ Banzami IS:
 
 ### Objective 1: First QR-native instant payment network in Angola
 
-Banzami must make QR payments the normal expectation for Angolan consumers and merchants — the same way Pix did in Brazil and UPI did in India.
+Banza must make QR payments the normal expectation for Angolan consumers and merchants — the same way Pix did in Brazil and UPI did in India.
 
 A cantina owner prints a QR. A customer scans it. Payment is instant. There is no manual confirmation, no bank transfer waiting, no WhatsApp proof image sent.
 
@@ -60,16 +60,16 @@ This is the target. It is achievable. It requires discipline and focus on Angola
 
 ### Objective 2: First Angola-native SDK payment infrastructure
 
-Any Angolan application — taxi app, delivery platform, marketplace, school system, donation platform, ecommerce site — should be able to integrate Banzami in hours and accept instant Kwanza payments natively inside their product.
+Any Angolan application — taxi app, delivery platform, marketplace, school system, donation platform, ecommerce site — should be able to integrate Banza in hours and accept instant Kwanza payments natively inside their product.
 
-This does not exist today. Banzami builds it.
+This does not exist today. Banza builds it.
 
 ---
 
 ## Market Reality: Angola's Payment Problems
 
 ### The cash problem
-Despite mobile penetration, cash remains dominant for most transactions. The friction of digital payment — manual transfer, reference codes, waiting for confirmation — makes cash simpler. Banzami must make digital simpler than cash.
+Despite mobile penetration, cash remains dominant for most transactions. The friction of digital payment — manual transfer, reference codes, waiting for confirmation — makes cash simpler. Banza must make digital simpler than cash.
 
 ### The WhatsApp proof problem
 The current "digital" payment flow in many informal Angolan businesses:
@@ -78,13 +78,13 @@ The current "digital" payment flow in many informal Angolan businesses:
 3. Customer sends screenshot to merchant on WhatsApp
 4. Merchant waits, verifies, confirms
 
-This is not digital commerce. It is manual reconciliation with an extra step. Banzami eliminates it.
+This is not digital commerce. It is manual reconciliation with an extra step. Banza eliminates it.
 
 ### The taxi app problem
-Ride-hailing and delivery apps in Angola cannot close the payment loop in-app. The payment step forces a departure from the product — cash, external transfer, or third-party workaround. Banzami enables in-app instant settlement for these flows.
+Ride-hailing and delivery apps in Angola cannot close the payment loop in-app. The payment step forces a departure from the product — cash, external transfer, or third-party workaround. Banza enables in-app instant settlement for these flows.
 
 ### The SDK gap
-There is no Angola-native payment SDK. Developers building Angolan applications have no clean, typed, idempotency-safe API layer to accept instant Kwanza payments. Banzami fills this gap.
+There is no Angola-native payment SDK. Developers building Angolan applications have no clean, typed, idempotency-safe API layer to accept instant Kwanza payments. Banza fills this gap.
 
 ---
 
@@ -98,13 +98,13 @@ EMIS (Empresa Interbancária de Serviços) is Angola's interbank payment infrast
 
 EMIS is a **payment rail** — not a payment product.
 
-Banzami uses EMIS as an integration point, not as the product layer. The product layer — QR codes, wallets, SDKs, merchant dashboards, consumer apps, payment requests — is Banzami. EMIS makes it possible to move real Kwanza into and out of the Banzami wallet network.
+Banza uses EMIS as an integration point, not as the product layer. The product layer — QR codes, wallets, SDKs, merchant dashboards, consumer apps, payment requests — is Banza. EMIS makes it possible to move real Kwanza into and out of the Banza wallet network.
 
 This distinction is critical:
 
 | Layer | Provider |
 |-------|---------|
-| Payment product (QR, wallet, SDK, UX) | Banzami |
+| Payment product (QR, wallet, SDK, UX) | Banza |
 | Interbank settlement rail | EMIS / Multicaixa |
 | Banking infrastructure | Angolan banks |
 | Regulatory framework | BNA (Banco Nacional de Angola) |
@@ -117,12 +117,12 @@ Angolan banks are not competitors. They are:
 
 * holders of the kwanza that consumers and merchants use,
 * providers of settlement accounts,
-* regulated infrastructure that Banzami must interoperate with.
+* regulated infrastructure that Banza must interoperate with.
 
-Banzami does not replace banks. It provides the commerce layer above them:
+Banza does not replace banks. It provides the commerce layer above them:
 
 * banks provide: accounts, compliance, settlement, currency,
-* Banzami provides: instant UX, QR, SDKs, wallets, merchant tools.
+* Banza provides: instant UX, QR, SDKs, wallets, merchant tools.
 
 This positioning opens partnership opportunities rather than closing them.
 
@@ -130,12 +130,12 @@ This positioning opens partnership opportunities rather than closing them.
 
 ## Ecosystem Target Use Cases
 
-These are the specific Angolan use cases Banzami is built to serve, in priority order:
+These are the specific Angolan use cases Banza is built to serve, in priority order:
 
 ### Tier 1 — Core Use Cases
 1. **QR point-of-sale** — merchant displays QR, consumer scans and pays instantly
 2. **Payment links** — merchant shares a link, consumer opens and pays
-3. **In-app payments via SDK** — any app integrates Banzami and accepts instant Kwanza
+3. **In-app payments via SDK** — any app integrates Banza and accepts instant Kwanza
 4. **P2P transfers** — consumer sends money to another via @handle
 
 ### Tier 2 — Growth Use Cases
@@ -159,7 +159,7 @@ Angola first. Not because other markets are unimportant, but because:
 2. Regulatory depth requires focus. Angola's BNA, EMIS integration, and KYB processes require dedicated attention.
 3. Product-market fit requires specificity. A product optimised for Angola is a product optimised for real users.
 
-When Banzami has achieved network density in Angola — when QR payments are normal, when the SDK is integrated by a meaningful number of Angolan apps — geographic expansion becomes a logical and fundable next step.
+When Banza has achieved network density in Angola — when QR payments are normal, when the SDK is integrated by a meaningful number of Angolan apps — geographic expansion becomes a logical and fundable next step.
 
 That expansion will use the same wallet-native, QR-first, SDK-first model. The technical architecture is already designed for it. But it must not distract from Angola today.
 

@@ -1,4 +1,4 @@
-# BanzamIA — API Reference
+# BanzAI — API Reference
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -178,14 +178,14 @@ Demo responses match query patterns and return pre-written answers with mock cit
 |----------|-----------|
 | API unreachable | Falls back to demo mode if configured, otherwise shows error message |
 | Stream interrupted | AbortController signal triggers clean teardown |
-| Non-abort error | Error message shown in chat bubble: "Erro ao conectar com BanzamIA" |
+| Non-abort error | Error message shown in chat bubble: "Erro ao conectar com BanzAI" |
 | Invalid request | API returns 400 with error message in SSE stream |
 
 ---
 
 ## Rate Limiting
 
-The BanzamIA API applies rate limiting per IP:
+The BanzAI API applies rate limiting per IP:
 - 60 requests per minute in normal operation
 - Burst allowance of 10 requests
 

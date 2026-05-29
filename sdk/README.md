@@ -1,6 +1,6 @@
 # sdk
 
-Official Banzami SDKs — the **developer layer of Angola's programmable payments platform**.
+Official Banza SDKs — the **developer layer of Angola's programmable payments platform**.
 
 The SDKs are not helper libraries. They are the integration surface through which any Angolan application — taxi app, ecommerce site, delivery platform, donation platform — accepts instant Kwanza payments natively. They are the product for developers.
 

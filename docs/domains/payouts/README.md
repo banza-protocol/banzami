@@ -7,7 +7,7 @@
 
 ## Business Purpose
 
-A payout is the disbursement of settled funds from a merchant's Banzami wallet to their external bank account. Where settlement moves money from the acquirer into Banzami, a payout moves money from Banzami out to the merchant.
+A payout is the disbursement of settled funds from a merchant's Banza wallet to their external bank account. Where settlement moves money from the acquirer into Banza, a payout moves money from Banza out to the merchant.
 
 Payouts are initiated by the merchant and managed through their lifecycle by admin operators.
 

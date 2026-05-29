@@ -1,13 +1,13 @@
-# Banzami Integration Ecosystem — v1 Strategy Reference
+# Banza Integration Ecosystem — v1 Strategy Reference
 
-> **This document is the authoritative reference for the Banzami integration layer.**  
+> **This document is the authoritative reference for the Banza integration layer.**  
 > For the architectural decision, see [ADR-011](../adr/ADR-011-integration-ecosystem-strategy.md).
 
 ---
 
 ## Mission
 
-Banzami must become **the easiest and most reliable way to integrate payments in Angola.**
+Banza must become **the easiest and most reliable way to integrate payments in Angola.**
 
 The financial core — Rust ledger, PostgreSQL, Go API gateway — is the mechanism. The integration ecosystem is what gives that mechanism economic value. A perfect ledger that nobody can integrate is infrastructure for nothing.
 
@@ -119,7 +119,7 @@ All adapters must implement:
 **Runtime:** Dart / Flutter 3.x  
 **Target:** iOS + Android
 
-The Flutter SDK is not just a network client. It is the **Banzami Mobile Runtime** — a complete toolkit for building payment-enabled mobile applications.
+The Flutter SDK is not just a network client. It is the **Banza Mobile Runtime** — a complete toolkit for building payment-enabled mobile applications.
 
 #### Client capabilities
 
@@ -135,12 +135,12 @@ final client = BanzaClient(
 
 #### Widget layer (roadmap items, not yet v1)
 
-The following widget layer is planned for v1.1. Designs must use the official Banzami design system:
+The following widget layer is planned for v1.1. Designs must use the official Banza design system:
 
 | Widget | Description |
 |--------|-------------|
 | `BanzaPaymentSheet` | Bottom sheet with QR + amount + confirm |
-| `BanzaQrScanner` | Camera overlay with Banzami branding |
+| `BanzaQrScanner` | Camera overlay with Banza branding |
 | `BanzaQrDisplay` | Animated QR with countdown timer |
 | `BanzaTransferFlow` | Handle → amount → confirm 3-step flow |
 | `BanzaWalletCard` | Balance display with Savanna Gold accent |
@@ -271,11 +271,11 @@ A merchant installs the plugin, enters their API key, and immediately accepts pa
 
 | Feature | Description |
 |---------|-------------|
-| QR checkout | WooCommerce checkout page shows Banza QR code |
+| QR checkout | WooCommerce checkout page shows Banzami QR code |
 | Hosted checkout redirect | Redirect to `apps/checkout/` for the payment UX |
 | Order synchronization | Webhook listener updates WooCommerce order status automatically |
 | Payment confirmation | Order moves to "Processing" when payment is confirmed |
-| Refunds | Admin-initiated refunds flow through the Banzami payouts API |
+| Refunds | Admin-initiated refunds flow through the Banza payouts API |
 | Retry | Failed webhook delivery retried with exponential backoff |
 
 #### Plugin settings (admin UI)
@@ -340,7 +340,7 @@ A slow or visually untrustworthy checkout page directly causes payment abandonme
 | Polling | Every 3 seconds, `GET /public/pay/{slug}/status` |
 | Mobile-first | Viewport-optimized, single-scroll, no horizontal scroll |
 | Load time | < 1.5s on 3G (no heavy JS bundles; QR is server-rendered) |
-| Brand | Official Banzami palette; merchant name displayed |
+| Brand | Official Banza palette; merchant name displayed |
 
 ### Design system (checkout)
 
@@ -359,7 +359,7 @@ colors: {
 
 QR payment is a strategic pillar, not an optional feature. The reasoning:
 
-1. **No card infrastructure required** — QR works with any smartphone and any bank account behind Banzami.
+1. **No card infrastructure required** — QR works with any smartphone and any bank account behind Banza.
 2. **Offline-compatible** — the merchant device displays the QR; the payer device scans it. Only one device needs connectivity at the moment of scanning.
 3. **Social-native** — a QR code image can be shared in any messaging app. Payment links become shareable payment QR codes.
 4. **Eliminates NFC/POS hardware requirement** — the merchant's phone or a printed QR code is the payment terminal.
@@ -379,7 +379,7 @@ QR payment is a strategic pillar, not an optional feature. The reasoning:
 
 ## Design System Compliance
 
-All consumer-facing surfaces — `apps/checkout/`, Flutter widgets, WooCommerce checkout — must use the official Banzami design system without deviation.
+All consumer-facing surfaces — `apps/checkout/`, Flutter widgets, WooCommerce checkout — must use the official Banza design system without deviation.
 
 ### Official palette
 
@@ -446,7 +446,7 @@ This guarantees that a network failure during a financial operation cannot resul
 All SDKs must provide a `verifyWebhookSignature` function that:
 1. Accepts the raw body (bytes, before any decoding)
 2. Accepts the `Banza-Signature` header value
-3. Accepts the webhook secret from the Banzami dashboard
+3. Accepts the webhook secret from the Banza dashboard
 4. Returns a boolean or raises a typed exception
 5. Uses constant-time comparison (prevents timing oracle attacks)
 
@@ -488,7 +488,7 @@ The following SDKs are acknowledged as strategically valuable but are explicitly
 | SDK | Reason for deferral |
 |-----|---------------------|
 | `sdk/kotlin/` | Flutter SDK serves the Android use case; Kotlin SDK needed only for SDK-less Android native apps |
-| `sdk/react-native/` | Flutter SDK is preferred for Banzami-native apps; RN SDK needed only for existing RN codebases |
+| `sdk/react-native/` | Flutter SDK is preferred for Banza-native apps; RN SDK needed only for existing RN codebases |
 | `sdk/go/` | Go is used internally; Go SDK needed only for third-party Go backends |
 | `sdk/dotnet/` | .NET penetration in Angola is low in the SME market |
 | `sdk/php/` (standalone) | Covered by `plugins/generic-php/` for most use cases |
@@ -519,5 +519,5 @@ The following metrics define a healthy integration ecosystem. They are tracked, 
 |---------|------|--------|
 | 1.0 | 2026-05-15 | Initial strategy document |
 
-**Owner:** Banzami Engineering  
+**Owner:** Banza Engineering  
 **Review cadence:** Quarterly, or after any SDK major version release

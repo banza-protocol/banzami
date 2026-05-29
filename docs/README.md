@@ -1,6 +1,6 @@
-# Banzami Documentation
+# Banza Documentation
 
-This directory contains all technical documentation for the Banzami platform.
+This directory contains all technical documentation for the Banza platform.
 
 > Code without documentation is an incomplete system. — CLAUDE.md §2.4
 
@@ -18,8 +18,8 @@ This directory contains all technical documentation for the Banzami platform.
 | [glossary.md](glossary.md) | Authoritative term definitions |
 | [conformance.md](conformance.md) | Conformance suite specification |
 | [certification.md](certification.md) | Certification levels 0–4 and process |
-| [reference-operator.md](reference-operator.md) | Reference Operator (Banza) specification |
-| [banzamia/overview.md](banzamia/overview.md) | BanzamIA — what it is and what it isn't |
+| [reference-operator.md](reference-operator.md) | Reference Operator (Banzami) specification |
+| [banzamia/overview.md](banzamia/overview.md) | BanzAI — what it is and what it isn't |
 | [audit/documentation-audit.md](audit/documentation-audit.md) | Documentation gap analysis |
 | [images/architecture/banzami-ecosystem.svg](images/architecture/banzami-ecosystem.svg) | Ecosystem diagram |
 
@@ -46,7 +46,7 @@ ADRs document the major technical decisions made in this project, their rational
 | [ADR-013](adr/ADR-013-wallet-native-identity.md) | Wallet-Native Identity (@handle, no IBAN) | Accepted |
 | [ADR-014](adr/ADR-014-angola-national-mission.md) | Angola National Mission — single-market first | Accepted |
 | [ADR-015](adr/ADR-015-markdown-first-content-architecture.md) | Markdown-First Content Architecture | Accepted |
-| [ADR-016](adr/ADR-016-banzami-banza-brand-architecture.md) | Banzami/Banza Brand Architecture | Accepted |
+| [ADR-016](adr/ADR-016-banzami-banza-brand-architecture.md) | Banza/Banzami Brand Architecture | Accepted |
 | [ADR-017](adr/ADR-017-wallet-domain-architecture.md) | Wallet Domain Architecture | Accepted |
 
 New ADRs should be numbered sequentially and placed in `docs/adr/`. ADRs are immutable once accepted — supersede with a new ADR rather than editing.
@@ -77,7 +77,7 @@ Each financial domain has a dedicated document covering its business purpose, ar
 
 ## Official Example Integrations
 
-Reference implementations that demonstrate correct Banzami integration patterns. These are not toy examples — each documents a production-grade merchant integration and serves as the canonical guide for that integration type.
+Reference implementations that demonstrate correct Banza integration patterns. These are not toy examples — each documents a production-grade merchant integration and serves as the canonical guide for that integration type.
 
 | Integration | Type | Documentation |
 |-------------|------|---------------|

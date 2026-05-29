@@ -1,8 +1,8 @@
-# Banza Brand Assets
+# Banzami Brand Assets
 
-Canonical visual identity for the **Banza** payment network.
+Canonical visual identity for the **Banzami** payment network.
 
-This directory is the **single source of visual truth** for all Banza product assets. Do not fork, duplicate, or scatter these files.
+This directory is the **single source of visual truth** for all Banzami product assets. Do not fork, duplicate, or scatter these files.
 
 ## Structure
 
@@ -63,7 +63,7 @@ linear-gradient(145deg, #c21a2c 0%, #990011 38%, #7a000d 72%, #5e000a 100%)
 ## Full Documentation
 
 See [guidelines/BANZA_BRAND_GUIDELINES.md](guidelines/BANZA_BRAND_GUIDELINES.md) for:
-- Banzami vs Banza distinction
+- Banza vs Banzami distinction
 - Color philosophy and usage rules
 - Gradient specifications
 - Icon usage, sizing, clear space

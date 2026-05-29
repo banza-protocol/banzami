@@ -1,10 +1,10 @@
-# Banzami API Reference
+# Banza API Reference
 
-Banza is Angola's programmable instant payments infrastructure. The API is the developer entry point — enabling any Angolan application to accept instant Kwanza payments, generate QR codes, create payment links, and process wallet transfers natively within their product.
+Banzami is Angola's programmable instant payments infrastructure. The API is the developer entry point — enabling any Angolan application to accept instant Kwanza payments, generate QR codes, create payment links, and process wallet transfers natively within their product.
 
-For most integrations, use an official [Banza SDK](../../sdk/) rather than calling the API directly. The SDK handles idempotency, retries, webhook signature verification, and type safety automatically.
+For most integrations, use an official [Banzami SDK](../../sdk/) rather than calling the API directly. The SDK handles idempotency, retries, webhook signature verification, and type safety automatically.
 
-This directory contains the API reference for all external and internal Banzami APIs.
+This directory contains the API reference for all external and internal Banza APIs.
 
 ---
 
@@ -149,7 +149,7 @@ Mark a link as used (called internally after a successful payment). Returns the 
 
 ### Webhooks
 
-Banzami notifies your server for every significant payment event. Register an endpoint once; we sign every delivery with HMAC-SHA256 so you can verify origin.
+Banza notifies your server for every significant payment event. Register an endpoint once; we sign every delivery with HMAC-SHA256 so you can verify origin.
 
 #### POST /v1/webhooks/endpoints
 

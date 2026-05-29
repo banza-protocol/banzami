@@ -9,7 +9,7 @@
 
 ## Context
 
-ADR-011 established the Banzami integration ecosystem: SDKs, plugins, adapters, and reference implementations as first-class platform infrastructure. The ecosystem was built and partially deployed.
+ADR-011 established the Banza integration ecosystem: SDKs, plugins, adapters, and reference implementations as first-class platform infrastructure. The ecosystem was built and partially deployed.
 
 As the first reference integration matured — DOA, the canonical merchant example — a pattern emerged: the initial DOA integration used direct `fetch()` calls rather than the TypeScript SDK. This was pragmatic at the time (SDK was not yet production-ready when DOA integration began), but it created a problem:
 
@@ -21,7 +21,7 @@ If the canonical reference implementation uses raw HTTP, merchants will:
 - implement webhook verification manually (with subtler bugs),
 - miss retry handling,
 - handle errors inconsistently,
-- and create a long-tail of bespoke integrations Banzami cannot maintain or guarantee.
+- and create a long-tail of bespoke integrations Banza cannot maintain or guarantee.
 
 The SDK exists to prevent exactly these failure modes. If official examples don't use it, the SDK becomes optional infrastructure that nobody uses.
 
@@ -31,9 +31,9 @@ Additionally, as the ecosystem grows beyond Angola into broader African markets,
 
 ## Decision
 
-**Banzami is officially an SDK-first ecosystem.**
+**Banza is officially an SDK-first ecosystem.**
 
-All external applications integrating Banzami MUST use an official Banzami SDK.
+All external applications integrating Banza MUST use an official Banza SDK.
 
 Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, `curl` wrappers, or handcrafted API clients are NOT the recommended integration path and MUST NOT be used in official examples.
 
@@ -48,7 +48,7 @@ This applies to:
 - templates,
 - and tutorials.
 
-The Banzami TypeScript SDK, PHP SDK, Python SDK, Flutter SDK, and other official SDKs are not optional helper libraries. They are:
+The Banza TypeScript SDK, PHP SDK, Python SDK, Flutter SDK, and other official SDKs are not optional helper libraries. They are:
 - security boundaries,
 - DX infrastructure,
 - payment orchestration layers,
@@ -86,7 +86,7 @@ The reference implementation must be the implementation developers should copy.
 
 ### 3. SDK-first enables ecosystem evolution
 
-When the Banzami API changes (new endpoint version, deprecation, breaking change), SDK users receive compatibility through a library update. Raw HTTP users must find and patch every integration manually.
+When the Banza API changes (new endpoint version, deprecation, breaking change), SDK users receive compatibility through a library update. Raw HTTP users must find and patch every integration manually.
 
 SDK-first creates an upgrade path. Direct HTTP does not.
 
@@ -136,7 +136,7 @@ Raw HTTP integration is permitted in:
 - **Low-level API reference documentation** — showing the actual HTTP request/response format
 - **SDK implementation code itself** — the SDK must make HTTP calls
 - **Advanced debugging** — developers tracing raw requests to diagnose issues
-- **Internal Banzami services** — Go services calling the Rust core over loopback are not external integrations
+- **Internal Banza services** — Go services calling the Rust core over loopback are not external integrations
 - **Public unauthenticated endpoints** — payment link status polling (`GET /public/pay/{slug}/status`), QR payload display, health checks
 - **Browser-side checkout UI** — the `@banzami/checkout-js` browser SDK handles frontend flows using only publishable endpoints; no secret keys involved
 - **WooCommerce/WordPress frontend polling** — same restriction as browser checkout

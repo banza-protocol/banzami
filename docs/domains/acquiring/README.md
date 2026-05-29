@@ -1,6 +1,6 @@
 # Acquiring Domain
 
-Acquiring handles the integration with external payment networks (EMIS Multicaixa Express) for merchant payment collection. It bridges Banzami payment links to the acquirer and processes confirmation callbacks.
+Acquiring handles the integration with external payment networks (EMIS Multicaixa Express) for merchant payment collection. It bridges Banza payment links to the acquirer and processes confirmation callbacks.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ When a callback confirms a payment (`CONFIRMED`), the acquiring route immediatel
 1. Checks idempotency (`ledger_postings.idempotency_key = "acquiring-settle-{payment_id}"`)
 2. Looks up `payment_links.wallet_id` from the acquiring payment
 3. Posts double-entry:
-   - **DR** `system:transit` (ASSET) — acquirer paid Banzami
+   - **DR** `system:transit` (ASSET) — acquirer paid Banza
    - **CR** `wallet:available` (LIABILITY) — merchant can now withdraw
 
 This is idempotent: duplicate callbacks are ignored via `ON CONFLICT (idempotency_key) DO NOTHING`.

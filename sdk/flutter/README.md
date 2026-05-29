@@ -1,6 +1,6 @@
-# Banzami Flutter SDK
+# Banza Flutter SDK
 
-Flutter SDK for integrating Banzami payments into mobile applications. Provides an API client, pre-built screens, reusable widgets, and a design system — everything needed to add instant P2P transfers and QR payments to a Flutter app.
+Flutter SDK for integrating Banza payments into mobile applications. Provides an API client, pre-built screens, reusable widgets, and a design system — everything needed to add instant P2P transfers and QR payments to a Flutter app.
 
 ---
 
@@ -133,7 +133,7 @@ Import the SDK and push any screen directly into your navigator. Each screen is 
 
 ### `CheckoutScreen`
 
-Full-screen payment page for a Banzami payment link. Displays a QR code and a deep-link button to open the Banzami consumer app. Polls every 3 seconds and calls `onSuccess` when payment is confirmed.
+Full-screen payment page for a Banza payment link. Displays a QR code and a deep-link button to open the Banza consumer app. Polls every 3 seconds and calls `onSuccess` when payment is confirmed.
 
 ```dart
 Navigator.push(
@@ -268,7 +268,7 @@ The screen handles camera permission errors and shows a retry path if the QR can
 
 ### `BanzamiButton`
 
-The canonical Banzami branded button. Always 48 dp tall. Four variants available.
+The canonical Banza branded button. Always 48 dp tall. Four variants available.
 
 ```dart
 // Primary (default)
@@ -332,7 +332,7 @@ BanzamiAmountInput(
 
 ### `BanzamiQrDisplay`
 
-Renders a scannable QR code in the Banzami visual style (wine-coloured finder patterns). Optionally shows an amount label and a subtitle beneath the code.
+Renders a scannable QR code in the Banza visual style (wine-coloured finder patterns). Optionally shows an amount label and a subtitle beneath the code.
 
 ```dart
 // Static QR
@@ -406,7 +406,7 @@ BanzamiTransferItem(
 
 ## Design system
 
-The SDK ships a complete design token set. Use it directly in host apps to stay consistent with Banzami branding.
+The SDK ships a complete design token set. Use it directly in host apps to stay consistent with Banza branding.
 
 ```dart
 import 'package:banza_flutter/banza_flutter.dart';
@@ -522,7 +522,7 @@ flutter test
 
 | Model                    | Source                             | Description                              |
 |--------------------------|------------------------------------|------------------------------------------|
-| `Consumer`               | `models/consumer.dart`             | Banzami consumer account                 |
+| `Consumer`               | `models/consumer.dart`             | Banza consumer account                 |
 | `ConsumerSuggestion`     | `models/consumer_suggestion.dart`  | Lightweight @banza autocomplete result   |
 | `Merchant`               | `models/merchant.dart`             | Merchant account                         |
 | `MerchantBalance`        | `models/merchant.dart`             | Wallet balance for a merchant            |

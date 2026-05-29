@@ -8,7 +8,7 @@
 
 ## Context
 
-Banzami's financial infrastructure — the Rust ledger, the Go API gateway, the PostgreSQL source of truth — exists to move money correctly and reliably. That infrastructure is necessary but not sufficient. Its strategic value is realized only when developers and merchants can integrate it.
+Banza's financial infrastructure — the Rust ledger, the Go API gateway, the PostgreSQL source of truth — exists to move money correctly and reliably. That infrastructure is necessary but not sufficient. Its strategic value is realized only when developers and merchants can integrate it.
 
 The Angolan payments market has structural barriers that make integration speed a competitive differentiator:
 
@@ -20,15 +20,15 @@ The Angolan payments market has structural barriers that make integration speed 
 
 4. **Trust is earned incrementally.** Developers and merchants evaluate platforms by their documentation quality, SDK reliability, and integration speed before they ever go live. The integration experience is therefore a direct sales channel.
 
-At the start of 2026, Banzami had a functional financial core and Go API layer but no systematic integration layer. Each potential merchant required custom implementation work. This ADR defines the strategy to change that.
+At the start of 2026, Banza had a functional financial core and Go API layer but no systematic integration layer. Each potential merchant required custom implementation work. This ADR defines the strategy to change that.
 
 ---
 
 ## Decision
 
-**Banzami will build a first-class, production-grade integration ecosystem in parallel with the financial infrastructure.**
+**Banza will build a first-class, production-grade integration ecosystem in parallel with the financial infrastructure.**
 
-The integration ecosystem is not a layer on top of Banzami — it IS Banzami from the merchant's and developer's perspective. Every SDK, plugin, and checkout interface is treated as production infrastructure, held to the same engineering standards as the Rust ledger.
+The integration ecosystem is not a layer on top of Banza — it IS Banza from the merchant's and developer's perspective. Every SDK, plugin, and checkout interface is treated as production infrastructure, held to the same engineering standards as the Rust ledger.
 
 The v1 ecosystem consists of six layers, each with a defined priority:
 
@@ -49,7 +49,7 @@ The v1 ecosystem consists of six layers, each with a defined priority:
 
 Financial infrastructure is a commodity in a mature market. In an emerging market like Angola, the infrastructure itself is the differentiator today — but that window is short. Within 18–36 months, the real differentiator will be ecosystem size: how many merchants are live, how many developers know the API, how many platforms have plugins.
 
-Ecosystem size compounds. A merchant using Banzami trains their developers to use Banzami. Those developers take that knowledge to their next client. A WooCommerce plugin installed by one merchant becomes a template for hundreds of others. The integration ecosystem is the primary growth mechanism.
+Ecosystem size compounds. A merchant using Banza trains their developers to use Banza. Those developers take that knowledge to their next client. A WooCommerce plugin installed by one merchant becomes a template for hundreds of others. The integration ecosystem is the primary growth mechanism.
 
 ### Why QR is the strategic core of the integration layer
 
@@ -64,7 +64,7 @@ Every integration point — SDKs, checkout, WooCommerce, payment links — must 
 
 ### Why Flutter is CRITICAL
 
-The primary Banzami user interface is mobile. The Flutter SDK is not a convenience wrapper — it is the runtime that merchants and consumers interact with. It must include reusable widgets, payment sheets, QR generation and scanning, and the full transfer and wallet UX. Building it to production quality is equivalent to building a mobile operating system for Angolan commerce.
+The primary Banza user interface is mobile. The Flutter SDK is not a convenience wrapper — it is the runtime that merchants and consumers interact with. It must include reusable widgets, payment sheets, QR generation and scanning, and the full transfer and wallet UX. Building it to production quality is equivalent to building a mobile operating system for Angolan commerce.
 
 ### Why TypeScript is CRITICAL
 
@@ -105,7 +105,7 @@ Every payment link points to this app. Its reliability, load speed, and trustwor
 
 ### Design system compliance
 
-All consumer-facing UI (checkout app, Flutter SDK widgets, WooCommerce plugin) must use the official Banzami design system:
+All consumer-facing UI (checkout app, Flutter SDK widgets, WooCommerce plugin) must use the official Banza design system:
 
 | Token | Value |
 |-------|-------|
@@ -129,7 +129,7 @@ Rejected. A JavaScript SDK cannot serve Flutter mobile apps, Python ERP systems,
 
 ### Third-party SDK on top of raw REST
 
-Rejected. Third-party SDKs reflect third-party priorities. They will not track API changes, will not implement Banzami-specific retry semantics (especially the idempotency-across-retries requirement), and will not carry the Banzami brand. First-party SDKs are a trust signal.
+Rejected. Third-party SDKs reflect third-party priorities. They will not track API changes, will not implement Banza-specific retry semantics (especially the idempotency-across-retries requirement), and will not carry the Banza brand. First-party SDKs are a trust signal.
 
 ### Shopify over WooCommerce
 
@@ -141,7 +141,7 @@ Rejected. See rationale above. Shopify's market penetration in Angola is not suf
 
 ### Positive
 
-- Merchants and developers can integrate Banzami independently, without Banzami engineering involvement.
+- Merchants and developers can integrate Banza independently, without Banza engineering involvement.
 - Ecosystem compounds: each integration increases visibility for the next.
 - API quality improves because SDK development surfaces ergonomic problems early.
 - WooCommerce plugin reaches SME merchants who have no engineering team.
@@ -169,4 +169,4 @@ Rejected. See rationale above. Shopify's market penetration in Angola is not suf
 - [ADR-007 — Flutter SDK Architecture](ADR-007-flutter-sdk-architecture.md)
 - [ADR-009 — Payment Links](ADR-009-payment-links.md)
 - [Integration Ecosystem Strategy Reference](../architecture/integration-ecosystem.md)
-- [Banzami Engineering Constitution](../../CLAUDE.md)
+- [Banza Engineering Constitution](../../CLAUDE.md)

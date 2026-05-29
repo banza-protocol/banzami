@@ -7,7 +7,7 @@
 
 ## Context
 
-Banzami needs a contactless payment mechanism for in-person and remote consumer-to-consumer payments. The two canonical patterns in mobile payments are:
+Banza needs a contactless payment mechanism for in-person and remote consumer-to-consumer payments. The two canonical patterns in mobile payments are:
 
 1. **Static QR** — a fixed code tied to a wallet owner; payer enters the amount at scan time.
 2. **Dynamic QR** — a code generated for a specific payment request; amount is embedded and code expires.
@@ -54,7 +54,7 @@ For dynamic QR, the gateway fetches the `qr_codes` record after decoding; the am
 
 **Single type (static-only):** Cannot encode amounts; unsuitable for invoice and e-commerce flows where the payer must confirm an exact figure.
 
-**External QR generation service:** Adds a third-party dependency, complicates audit trails, and adds latency. Banzami generates QR payloads in-house using the `qr_flutter` / `qr.js` libraries client-side from the server-issued payload string.
+**External QR generation service:** Adds a third-party dependency, complicates audit trails, and adds latency. Banza generates QR payloads in-house using the `qr_flutter` / `qr.js` libraries client-side from the server-issued payload string.
 
 ---
 

@@ -1,4 +1,4 @@
-# Doa × Banzami — Frontend Integration
+# Doa × Banza — Frontend Integration
 
 Complete reference for the Doa payment UI, including component architecture, QR panel implementation, loading states, and UX flows.
 
@@ -6,7 +6,7 @@ Complete reference for the Doa payment UI, including component architecture, QR 
 
 ## Component Hierarchy
 
-The Banzami UI lives inside Doa's multi-step donation flow:
+The Banza UI lives inside Doa's multi-step donation flow:
 
 ```
 DonateFlow
@@ -24,7 +24,7 @@ All components are in `app/(public)/c/[slug]/doar/`.
 
 ---
 
-## BanzaPanel Props
+## BanzamiPanel Props
 
 ```typescript
 interface BanzaPanelProps {
@@ -36,7 +36,7 @@ interface BanzaPanelProps {
 }
 ```
 
-`payUrl` and `linkId` are both derived from the Banzami payment link — `payUrl = BANZAMI_PAY_BASE_URL + '/' + slug`, `linkId = link.id`. They differ: `slug` is used in URLs, `id` is used for API calls.
+`payUrl` and `linkId` are both derived from the Banza payment link — `payUrl = BANZAMI_PAY_BASE_URL + '/' + slug`, `linkId = link.id`. They differ: `slug` is used in URLs, `id` is used for API calls.
 
 ---
 
@@ -99,7 +99,7 @@ useEffect(() => {
 
 **Why client-side?**
 
-The `qrcode` library is ~50 kB. Dynamic import defers this load until the donor actually reaches the Banzami stage — about 30–40% of donors who reach step 4 choose Banzami. Server-side generation would impose this cost for all donors at SSR time, or require a separate API call.
+The `qrcode` library is ~50 kB. Dynamic import defers this load until the donor actually reaches the Banza stage — about 30–40% of donors who reach step 4 choose Banza. Server-side generation would impose this cost for all donors at SSR time, or require a separate API call.
 
 **Why a data URL?**
 
@@ -173,7 +173,7 @@ These steps are rendered in Portuguese (pt-AO) — the primary language of Doa's
 </a>
 ```
 
-This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.org/{slug}` either in the browser or, if the Banza app is installed and handles the URL scheme, directly in the app.
+This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.org/{slug}` either in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
 
 `rel="noopener noreferrer"` prevents the opened tab from accessing `window.opener` — a standard security practice for `target="_blank"` links.
 
@@ -245,13 +245,13 @@ useEffect(() => {
 
 **Cleanup**: The `useEffect` cleanup clears the interval on unmount — prevents state updates on an unmounted component and avoids network calls for donors who navigate away before confirming.
 
-**Transient errors**: Network errors are silently caught. The next tick (3 s later) retries. The link remains valid on Banzami's side regardless of poll failures.
+**Transient errors**: Network errors are silently caught. The next tick (3 s later) retries. The link remains valid on Banza's side regardless of poll failures.
 
-**Webhook acceleration**: If `BANZAMI_WEBHOOK_SECRET` is configured, Banzami pushes `payment_link.paid` before the next poll tick. The webhook handler records the confirmation server-side. When the poll fires, the status check returns `{ confirmed: true }` immediately. The browser proceeds identically — it cannot distinguish webhook-confirmed from poll-confirmed.
+**Webhook acceleration**: If `BANZAMI_WEBHOOK_SECRET` is configured, Banza pushes `payment_link.paid` before the next poll tick. The webhook handler records the confirmation server-side. When the poll fires, the status check returns `{ confirmed: true }` immediately. The browser proceeds identically — it cannot distinguish webhook-confirmed from poll-confirmed.
 
 ---
 
-## DonateFlow State for Banzami
+## DonateFlow State for Banza
 
 Relevant state in `donate-flow.tsx`:
 
@@ -291,14 +291,14 @@ When `submitMethod('banzami')` is called:
 
 ## Branding Usage
 
-The panel uses the text label "Banza" (or "Banza (Sandbox)") as the method name. Banzami's logo is not embedded in the panel — only the name.
+The panel uses the text label "Banzami" (or "Banzami (Sandbox)") as the method name. Banza's logo is not embedded in the panel — only the name.
 
-The QR code uses dark navy (`#0f172a`) ink on white background — high contrast for scanning and visually neutral (doesn't conflict with any Banzami brand colors or Doa's Tailwind palette).
+The QR code uses dark navy (`#0f172a`) ink on white background — high contrast for scanning and visually neutral (doesn't conflict with any Banza brand colors or Doa's Tailwind palette).
 
 ---
 
-## No Client-Side Banzami Credentials
+## No Client-Side Banza Credentials
 
-The `BanzaPanel` never sees any Banzami API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.org/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
+The `BanzaPanel` never sees any Banza API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.org/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
 
 All API calls to `api.banzami.org` are made from Next.js API routes, where credentials live in server-only environment variables.

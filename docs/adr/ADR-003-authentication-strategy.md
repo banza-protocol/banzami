@@ -7,7 +7,7 @@
 
 ## Context
 
-Banzami has two distinct authentication surfaces:
+Banza has two distinct authentication surfaces:
 
 1. **Merchant API access** — merchants integrate programmatically. They need a stable long-lived credential for their servers and a short-lived token for individual requests.
 2. **Admin operations** — internal operators approve compliance, manage settlements, and trigger reconciliation. This surface must never be reachable from the internet.
@@ -77,13 +77,13 @@ The API key is long-lived and stable — suitable for storing in environment var
 
 RS256 requires a public/private key pair and enables token verification without the signing secret (useful for multi-service token verification). At the current scale, all JWT verification happens inside the single api-gateway process. The complexity of key pair management (rotation, distribution) is not justified. HS256 is simpler and sufficient.
 
-RS256 is the correct choice if external services or third parties ever need to verify Banzami-issued tokens independently.
+RS256 is the correct choice if external services or third parties ever need to verify Banza-issued tokens independently.
 
 ### Why not OAuth 2.0 / OIDC?
 
-OAuth 2.0 is designed for delegated authorisation — where a user grants a third party access to their resources. Banzami's merchant API is a server-to-server integration: the merchant is both the resource owner and the authorised party. OAuth 2.0 adds redirect flows, token introspection endpoints, and client registration complexity that provides no benefit in this model.
+OAuth 2.0 is designed for delegated authorisation — where a user grants a third party access to their resources. Banza's merchant API is a server-to-server integration: the merchant is both the resource owner and the authorised party. OAuth 2.0 adds redirect flows, token introspection endpoints, and client registration complexity that provides no benefit in this model.
 
-OIDC adds identity federation on top of OAuth 2.0. Banzami does not need to federate identities from external providers at this stage.
+OIDC adds identity federation on top of OAuth 2.0. Banza does not need to federate identities from external providers at this stage.
 
 ### Why static key for admin and not JWT?
 

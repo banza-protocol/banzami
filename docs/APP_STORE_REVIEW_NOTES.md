@@ -6,7 +6,7 @@ Update here first so future submissions stay consistent.
 
 ---
 
-## Banza (Consumer app)
+## Banzami (Consumer app)
 
 Usa autenticação por **@banza handle + PIN**.
 
@@ -84,7 +84,7 @@ Obrigado por fazeres parte do beta Banza!
 
 ---
 
-## Banza Business (Merchant app)
+## Banzami Business (Merchant app)
 
 Usa autenticação por **Merchant ID + API Key** (diferente da app consumer).
 
@@ -199,11 +199,11 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 ## Contas de revisão sandbox
 
 > **Estado:** Apps aprovadas em 2026-05-18 (TestFlight External).
-> Conta `review` recriada em 2026-05-24 para próxima submissão (Banza consumer).
-> Banza Business ainda não submetido — conta merchant pendente.
+> Conta `review` recriada em 2026-05-24 para próxima submissão (Banzami consumer).
+> Banzami Business ainda não submetido — conta merchant pendente.
 > Builds TestFlight seguintes não precisam de nova revisão Apple após aprovação inicial.
 
-### Consumer (Banza)
+### Consumer (Banzami)
 
 | Campo       | Valor                                    | Estado  |
 |-------------|------------------------------------------|---------|
@@ -214,7 +214,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 
 Para desactivar: `POST /v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspend` (via API gateway sandbox com chave de admin).
 
-### Merchant (Banza Business)
+### Merchant (Banzami Business)
 
 | Campo       | Valor                                                                      | Estado                |
 |-------------|----------------------------------------------------------------------------|-----------------------|
@@ -230,8 +230,8 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 
 | App | Bundle ID | SKU | Team ID | Estado |
 |-----|-----------|-----|---------|--------|
-| Banza | `com.banza.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
-| Banza Business | `com.banza.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
+| Banzami | `com.banza.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
+| Banzami Business | `com.banza.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
 
 ---
 
@@ -239,7 +239,7 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definiçõ
 
 Use these for the App Store listing pages. Mirrors new infrastructure positioning.
 
-### Banza (Consumer) — App Store Description
+### Banzami (Consumer) — App Store Description
 
 ```
 O Banza é a tua carteira de pagamentos instantâneos em Kwanza.
@@ -257,7 +257,7 @@ Sem cartão. Sem IBAN. Sem confirmação manual.
 Apenas @banza — e o dinheiro move-se.
 ```
 
-### Banza Business (Merchant) — App Store Description
+### Banzami Business (Merchant) — App Store Description
 
 ```
 O Banza Business é o ponto de venda da nova economia angolana.
@@ -280,7 +280,7 @@ O Banza Business é parte da infraestrutura programável de pagamentos de Angola
 
 | Data | Build | App | Ambiente | Estado |
 |------|-------|-----|----------|--------|
-| 2026-05-18 | 1.0.0 (1) | Banza + Banza Business (Banzami legacy) | — | ✅ Aprovado (TestFlight External) — app antiga |
-| 2026-05-24 | 1.0.0 (1) | Banza | Sandbox | 🔄 IPA pronto — pendente upload Transporter |
+| 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business (Banza legacy) | — | ✅ Aprovado (TestFlight External) — app antiga |
+| 2026-05-24 | 1.0.0 (1) | Banzami | Sandbox | 🔄 IPA pronto — pendente upload Transporter |
 
 Adicionar uma linha a cada submissão.

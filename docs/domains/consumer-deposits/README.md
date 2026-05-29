@@ -1,6 +1,6 @@
 # Consumer Deposits Domain
 
-Consumer deposits allow consumers to top up their Banzami wallet by paying via Multicaixa Express. They are architecturally separate from merchant payment links — deposits credit consumer wallets, not merchant wallets.
+Consumer deposits allow consumers to top up their Banza wallet by paying via Multicaixa Express. They are architecturally separate from merchant payment links — deposits credit consumer wallets, not merchant wallets.
 
 ## Flow
 

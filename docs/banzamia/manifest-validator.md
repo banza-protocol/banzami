@@ -1,4 +1,4 @@
-# BanzamIA — Manifest Validator
+# BanzAI — Manifest Validator
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -118,11 +118,11 @@ A failing validation:
 
 ## Using the Validator
 
-### Via BanzamIA UI
+### Via BanzAI UI
 
-Navigate to **BanzamIA → Manifest Validator**. Paste your manifest JSON. Click Validate. Results appear in real time.
+Navigate to **BanzAI → Manifest Validator**. Paste your manifest JSON. Click Validate. Results appear in real time.
 
-### Via BanzamIA Chat
+### Via BanzAI Chat
 
 ```
 > Valida este manifesto:
@@ -133,7 +133,7 @@ Navigate to **BanzamIA → Manifest Validator**. Paste your manifest JSON. Click
 }
 ```
 
-BanzamIA will run validation and explain each issue in plain language.
+BanzAI will run validation and explain each issue in plain language.
 
 ### Via API (planned)
 

@@ -1,10 +1,10 @@
 # contracts/
 
-Canonical location for all public protocol contracts — the shared truth between Banzami's infrastructure and the external ecosystem.
+Canonical location for all public protocol contracts — the shared truth between Banza's infrastructure and the external ecosystem.
 
 ## Purpose
 
-A protocol contract is any artifact that defines a formal interface between Banzami's platform and external consumers (SDKs, plugins, merchants, certification tools). Contracts must be versioned, reviewed as breaking changes, and must not live only in prose documentation once implementation begins.
+A protocol contract is any artifact that defines a formal interface between Banza's platform and external consumers (SDKs, plugins, merchants, certification tools). Contracts must be versioned, reviewed as breaking changes, and must not live only in prose documentation once implementation begins.
 
 ## Subdirectories
 

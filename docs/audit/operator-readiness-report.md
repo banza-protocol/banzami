@@ -2,14 +2,14 @@
 
 **Version:** 1.0
 **Date:** 2026-05-29
-**Question:** Can an external organization navigate the full operator journey — from discovery to Federation Operator — using only the Banzami protocol, documentation, BanzamIA, and SDKs?
+**Question:** Can an external organization navigate the full operator journey — from discovery to Federation Operator — using only the Banza protocol, documentation, BanzAI, and SDKs?
 **Status:** Complete
 
 ---
 
 ## 1. The Operator Journey (Simulated)
 
-This report simulates the journey of a fictional external organization — **"Kwanza Payments Ltd"** — discovering Banzami and attempting to become a Payment Operator (L1), then Settlement Operator (L2), then Federation Operator (L3).
+This report simulates the journey of a fictional external organization — **"Kwanza Payments Ltd"** — discovering Banza and attempting to become a Payment Operator (L1), then Settlement Operator (L2), then Federation Operator (L3).
 
 The simulation uses only publicly available tools and documentation. No insider knowledge assumed.
 
@@ -19,22 +19,22 @@ The simulation uses only publicly available tools and documentation. No insider 
 
 ### What the operator finds
 
-**Entry point: banzami.org / Banzami GitHub**
+**Entry point: banzami.org / Banza GitHub**
 
 The operator finds:
 - `docs/getting-started.md` — a 5-minute walkthrough to run the sandbox locally
-- `README.md` — positions Banzami as the open programmable financial infrastructure
+- `README.md` — positions Banza as the open programmable financial infrastructure
 - Protocol reference, ADRs, RFCs, SDK documentation
 
 **Assessment:**
 
 | Item | Status | Notes |
 |------|--------|-------|
-| Homepage positioning | ✓ Clear | Banzami = open kernel, Banza = first operator, BanzamIA = AI agent |
+| Homepage positioning | ✓ Clear | Banza = open kernel, Banzami = first operator, BanzAI = AI agent |
 | Getting started guide | ✓ Real | Not a stub — full Rust toolchain setup + seed wallets |
 | Architecture understanding | ✓ Available | 24 ADRs + 6 RFCs explain every decision |
 | API reference | ✓ Real | Full endpoint documentation |
-| BanzamIA introduction | ✓ Clear | AI-native Protocol Operating System described |
+| BanzAI introduction | ✓ Clear | AI-native Protocol Operating System described |
 
 **Phase 0 Verdict: PASS** — Discovery experience is solid. First impression is of a serious, well-documented infrastructure project.
 
@@ -75,7 +75,7 @@ cargo run --bin sandbox-operator
 
 ### What the operator does
 
-Operator wants to integrate their existing system with the Banzami protocol using an SDK.
+Operator wants to integrate their existing system with the Banza protocol using an SDK.
 
 **Available SDKs:**
 
@@ -144,13 +144,13 @@ python3 run.py --level 1 --target http://localhost:3100 --report-json
 
 ---
 
-## 6. Phase 4 — BanzamIA Guidance
+## 6. Phase 4 — BanzAI Guidance
 
 ### What the operator does
 
-Operator uses BanzamIA to understand the certification path, validate their manifest, and simulate payment flows.
+Operator uses BanzAI to understand the certification path, validate their manifest, and simulate payment flows.
 
-**Using BanzamIA certification copilot:**
+**Using BanzAI certification copilot:**
 - Submits operator manifest → receives gap analysis, blocking issues, readiness score (0–100%), suggested next steps
 - Uses protocol simulator to test edge cases without hitting real infrastructure
 - Uses digital twin to model full operator state (capabilities, KYC, settlement, federation profile)
@@ -160,7 +160,7 @@ Operator uses BanzamIA to understand the certification path, validate their mani
 | Item | Status | Notes |
 |------|--------|-------|
 | Certification copilot | ✓ REAL | Deterministic — not AI-generated responses |
-| Conformance runner (BanzamIA) | ✓ REAL | Level 0–4 certification levels |
+| Conformance runner (BanzAI) | ✓ REAL | Level 0–4 certification levels |
 | Protocol simulator | ✓ REAL | Deterministic payment flow simulation |
 | Manifest validator | ✓ REAL | JSON schema validation |
 | Federation intelligence | ✓ REAL | 0–100 compatibility score |
@@ -207,7 +207,7 @@ Operator completes conformance, validates manifest, and applies for certificatio
 
 ### What the operator does
 
-Operator deploys their Banzami-compatible operator to production.
+Operator deploys their Banza-compatible operator to production.
 
 **Assessment:**
 
@@ -218,7 +218,7 @@ Operator deploys their Banzami-compatible operator to production.
 | Operator manifest format | ✓ Documented | RFC-0005, example in sandbox |
 | Database requirements | ✓ Documented | PostgreSQL for production, SQLite for sandbox |
 | Infrastructure guide | Partial | ADRs document architecture; no step-by-step deployment guide |
-| Production Go services | Not public | Gateway/public-api/admin-api in private Banza repo |
+| Production Go services | Not public | Gateway/public-api/admin-api in private Banzami repo |
 
 **Phase 6 Verdict: PARTIAL** — A sophisticated operator can understand the deployment architecture from ADRs and build their own implementation. A less experienced operator will struggle without examples or a deployment guide.
 
@@ -254,7 +254,7 @@ With Payment Operator + Settlement Operator status, operator attempts to federat
 | 1 | Sandbox Setup | PASS | Low |
 | 2 | SDK Integration | PARTIAL | Medium (no registry publish, no examples) |
 | 3 | Conformance Testing | PARTIAL | Low-Medium (webhooks missing) |
-| 4 | BanzamIA Guidance | PARTIAL | Low (tools real, AI model mock) |
+| 4 | BanzAI Guidance | PARTIAL | Low (tools real, AI model mock) |
 | 5 | Certification | PARTIAL | Medium (self-assess only, no CA) |
 | 6 | Production Deployment | PARTIAL | High (no deployment guide, private services) |
 | 7 | Federation | BLOCKED | Blocked (only one operator) |
@@ -281,5 +281,5 @@ With Payment Operator + Settlement Operator status, operator attempts to federat
 2. **Write runnable examples** — at minimum: TypeScript SDK + webhook handler + QR payment flow
 3. **Define webhook schemas** — `contracts/webhooks/schemas.yaml` — enables webhook conformance certification
 4. **Create deployment guide** — step-by-step from sandbox → production for a reference Go implementation
-5. **Run first real certification** — use Banza as L1–L4 reference operator to prove the process works
+5. **Run first real certification** — use Banzami as L1–L4 reference operator to prove the process works
 6. **Recruit second operator** — federation requires minimum two — any community partner qualifies

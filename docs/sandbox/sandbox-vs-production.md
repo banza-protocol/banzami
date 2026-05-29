@@ -1,6 +1,6 @@
 # Sandbox vs Production
 
-Banzami maintains strict environment isolation. Mixing sandbox and production is a hard error.
+Banza maintains strict environment isolation. Mixing sandbox and production is a hard error.
 
 ## Environment Variables
 
@@ -38,7 +38,7 @@ This prevents accidentally deploying simulated payments to production.
 
 ## API Keys and Environment
 
-Banzami API keys are prefixed to indicate environment:
+Banza API keys are prefixed to indicate environment:
 - `bz_test_...` → Sandbox keys → routed to SimulatedProvider
 - `bz_live_...` → Production keys → routed to EMISProvider
 

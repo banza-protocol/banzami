@@ -7,7 +7,7 @@
 
 ## Context
 
-Banzami moves money on behalf of merchants and their customers. Every movement — payment, refund, settlement, payout — must be:
+Banza moves money on behalf of merchants and their customers. Every movement — payment, refund, settlement, payout — must be:
 
 - auditable: anyone must be able to reconstruct the full history
 - reconcilable: the internal ledger must agree with external statements

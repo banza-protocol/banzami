@@ -1,4 +1,4 @@
-# Banzami Reference Operator
+# Banza Reference Operator
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
@@ -8,12 +8,12 @@
 
 ## Overview
 
-The Banzami Reference Operator is the canonical implementation of the complete Banzami protocol. It serves two purposes:
+The Banza Reference Operator is the canonical implementation of the complete Banza protocol. It serves two purposes:
 
 1. **Living specification** — it proves every protocol behaviour is implementable and correct
 2. **Interoperability baseline** — all other operators are certified by matching Reference Operator behaviour
 
-The Reference Operator is implemented as the **Banza** product. It holds Certification Level 3 and is working toward Level 4 with EMIS acquiring integration.
+The Reference Operator is implemented as the **Banzami** product. It holds Certification Level 3 and is working toward Level 4 with EMIS acquiring integration.
 
 ---
 
@@ -81,7 +81,7 @@ The Reference Operator implements all standard protocol capabilities:
 
 ## Architecture
 
-The Reference Operator is built on the Banzami Kernel (18 Rust crates) with a Go orchestration layer:
+The Reference Operator is built on the Banza Kernel (18 Rust crates) with a Go orchestration layer:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -181,7 +181,7 @@ The Reference Operator emits OpenTelemetry traces for every financial operation:
 
 ## Traceability
 
-Every financial event carries a `trace_id` (`tr_<slug>` format). The complete event chain for any payment can be reconstructed using BanzamIA's Trace Explainer by entering the trace_id.
+Every financial event carries a `trace_id` (`tr_<slug>` format). The complete event chain for any payment can be reconstructed using BanzAI's Trace Explainer by entering the trace_id.
 
 The traceability system is implemented by propagating the trace_id:
 1. Assigned at the point of QR creation or transfer initiation

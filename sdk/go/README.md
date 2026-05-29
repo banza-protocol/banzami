@@ -1,6 +1,6 @@
 # banzami-go
 
-Official Go SDK for the Banzami payment platform.
+Official Go SDK for the Banza payment platform.
 
 > **Status: Scaffold** — Core webhook verification and payment links are production-ready. Additional resource clients (transfers, QR codes, consumer wallets) are pending implementation.
 

@@ -1,15 +1,15 @@
-# Banzami Documentation Audit
+# Banza Documentation Audit
 
 **Version:** 1.0  
 **Date:** 2026-05-28  
 **Status:** Active  
-**Author:** Banzami Engineering
+**Author:** Banza Engineering
 
 ---
 
 ## Purpose
 
-This audit captures the gap between the Banzami codebase and its documentation as of May 2026. It drives the BANZAMI-DOCUMENTATION-CONSOLIDATION-009 effort.
+This audit captures the gap between the Banza codebase and its documentation as of May 2026. It drives the BANZAMI-DOCUMENTATION-CONSOLIDATION-009 effort.
 
 ---
 
@@ -17,9 +17,9 @@ This audit captures the gap between the Banzami codebase and its documentation a
 
 | Document | Language | Lines | Status | Coverage |
 |----------|----------|-------|--------|----------|
-| `docs/BANZAMI_REFERENCE.md` | Portuguese | 3046 | Active | Product-focused; missing kernel architecture, conformance, BanzamIA |
+| `docs/BANZAMI_REFERENCE.md` | Portuguese | 3046 | Active | Product-focused; missing kernel architecture, conformance, BanzAI |
 | `README.md` | English | 1966 | Active | Developer-focused; good architecture coverage |
-| `docs/adr/ADR-001..017` | Portuguese | — | Active | 17 ADRs; gaps in certification, conformance, BanzamIA governance |
+| `docs/adr/ADR-001..017` | Portuguese | — | Active | 17 ADRs; gaps in certification, conformance, BanzAI governance |
 | `docs/sandbox/README.md` | English | ~500 | Active | Comprehensive; accurate |
 | `docs/validation/INVARIANT_TAXONOMY.md` | English | — | Active | Accurate |
 | `docs/validation/VALIDATION_DOMAINS.md` | English | — | Active | Accurate |
@@ -37,7 +37,7 @@ This audit captures the gap between the Banzami codebase and its documentation a
 | Document | Priority | Impact |
 |----------|----------|--------|
 | `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` | Critical | No single architecture source of truth |
-| `docs/banzamia/` (entire directory) | Critical | BanzamIA has zero documentation |
+| `docs/banzamia/` (entire directory) | Critical | BanzAI has zero documentation |
 | `docs/glossary.md` | High | Terminology inconsistency across all docs |
 | `docs/index.md` | High | No navigation entry point for new contributors |
 | `docs/reference-operator.md` | High | Reference operator details scattered or missing |
@@ -53,21 +53,21 @@ This audit captures the gap between the Banzami codebase and its documentation a
 
 | Location | Issue | Impact |
 |----------|-------|--------|
-| `BANZAMI_REFERENCE.md` §17 | "Banzami Kernel" described as 5 crates; actual codebase has 19 | Incorrect for any technical reader |
-| `BANZAMI_REFERENCE.md` §18 | Lists "BanzamIA" as a future roadmap item; it now exists and is deployed | Misleading |
+| `BANZAMI_REFERENCE.md` §17 | "Banza Kernel" described as 5 crates; actual codebase has 19 | Incorrect for any technical reader |
+| `BANZAMI_REFERENCE.md` §18 | Lists "BanzAI" as a future roadmap item; it now exists and is deployed | Misleading |
 | `BANZAMI_REFERENCE.md` §20 | References `gen-icons-sandbox.sh` and `make-sandbox-icon.py` as current tools; both are deprecated | Incorrect |
-| `README.md` | Does not mention conformance suite, certification framework, or BanzamIA | Architecture drift |
+| `README.md` | Does not mention conformance suite, certification framework, or BanzAI | Architecture drift |
 | `docs/sandbox/README.md` | Lists Python SDK example; no Python SDK exists or is planned | Incorrect SDK example |
 
 ### 2. Missing Concepts
 
 | Concept | Status in Docs | Actual Status |
 |---------|---------------|---------------|
-| Banzami Kernel (19 crates) | Partially described | Fully implemented |
+| Banza Kernel (19 crates) | Partially described | Fully implemented |
 | Financial Invariants (taxonomy) | Only in `INVARIANT_TAXONOMY.md` | Not surfaced in public docs |
 | Conformance Suite | Not documented | Implemented |
 | Certification Framework (Levels 0–4) | Not documented | Defined in matrix |
-| BanzamIA | Mentioned as future in REFERENCE | Deployed at /banzamia |
+| BanzAI | Mentioned as future in REFERENCE | Deployed at /banzamia |
 | Operator Manifests | Not documented | Defined in schema |
 | Capabilities System | Not documented | Implemented |
 | Federation Foundations | Not documented | Planned |
@@ -90,20 +90,20 @@ This audit captures the gap between the Banzami codebase and its documentation a
 |------|--------------------|--------------------|
 | **Operator model** | Not described in any public doc | Reference Operator + Sandbox Operator both implemented |
 | **Certification** | Not described | Level 0–4 system defined in validation matrix |
-| **BanzamIA modules** | Not described | 8 modules deployed: Chat, Operator Builder, Conformance, Manifest Validator, Trace Explainer, SDK Assistant, RFC/ADR Explorer, Knowledge Search |
+| **BanzAI modules** | Not described | 8 modules deployed: Chat, Operator Builder, Conformance, Manifest Validator, Trace Explainer, SDK Assistant, RFC/ADR Explorer, Knowledge Search |
 | **Validation Studio** | Only README/governance docs | Full web UI at /validacao |
 | **Traceability** | Brief mention in README | Full trace_id propagation, causality chains, invariant verification |
 | **Observability** | Described in §20.12 of REFERENCE | OTel implemented across all services |
-| **Financial invariants** | Only in INVARIANT_TAXONOMY.md | 15+ invariants enforced, BanzamIA surfaces them live |
+| **Financial invariants** | Only in INVARIANT_TAXONOMY.md | 15+ invariants enforced, BanzAI surfaces them live |
 
 ### 5. Terminology Inconsistencies
 
 | Term | Used as | Correct usage |
 |------|---------|--------------|
-| "Banzami" | Both org and product in older docs | Org/infrastructure only (ADR-016) |
-| "Banza SDK" vs "Banzami SDK" | Mixed | "Banza SDK" (product SDK) |
-| "Operator" | Undefined in public docs | Party that implements Banzami protocol |
-| "Kernel" | Sometimes "core", sometimes "kernel" | "Banzami Kernel" = Rust financial core |
+| "Banza" | Both org and product in older docs | Org/infrastructure only (ADR-016) |
+| "Banzami SDK" vs "Banza SDK" | Mixed | "Banzami SDK" (product SDK) |
+| "Operator" | Undefined in public docs | Party that implements Banza protocol |
+| "Kernel" | Sometimes "core", sometimes "kernel" | "Banza Kernel" = Rust financial core |
 | "Conformance" | Not defined | Protocol compliance verification |
 | "Certification" | Not defined | Official level earned by passing conformance |
 | "Manifest" | Only in code | Operator capability declaration |
@@ -116,7 +116,7 @@ This audit captures the gap between the Banzami codebase and its documentation a
 | Content | Locations |
 |---------|-----------|
 | Sandbox environment description | `docs/sandbox/README.md`, `BANZAMI_REFERENCE.md §20`, `README.md` |
-| Brand architecture (Banzami vs Banza) | `ADR-016`, `BANZAMI_REFERENCE.md §1`, `README.md §intro` |
+| Brand architecture (Banza vs Banzami) | `ADR-016`, `BANZAMI_REFERENCE.md §1`, `README.md §intro` |
 | Double-entry ledger description | `ADR-002`, `BANZAMI_REFERENCE.md §17`, `README.md` |
 | Authentication strategy | `ADR-003`, `ADR-010`, scattered in README |
 | SDK architecture | `ADR-007`, `ADR-012`, `README.md`, `BANZAMI_REFERENCE.md §12` |
@@ -129,7 +129,7 @@ This audit captures the gap between the Banzami codebase and its documentation a
 | `BANZAMI_REFERENCE.md` | `gen-icons-sandbox.sh` | Deprecated |
 | `docs/architecture/README.md` | "See architecture diagrams" | No diagrams exist |
 | `docs/domains/*/README.md` | "See full specification" | All are stubs with no content |
-| `BANZAMI_REFERENCE.md §18` | BanzamIA as future roadmap | BanzamIA is deployed |
+| `BANZAMI_REFERENCE.md §18` | BanzAI as future roadmap | BanzAI is deployed |
 
 ---
 
@@ -138,9 +138,9 @@ This audit captures the gap between the Banzami codebase and its documentation a
 ### Critical (blocks institutional coherence)
 
 1. **Create `BANZAMI_ECOSYSTEM_REFERENCE.md`** — architecture-first master reference for the full ecosystem, not the product narrative in BANZAMI_REFERENCE.md
-2. **Create `docs/banzamia/` documentation suite** — BanzamIA is deployed with 8 modules and zero documentation
+2. **Create `docs/banzamia/` documentation suite** — BanzAI is deployed with 8 modules and zero documentation
 3. **Create `docs/glossary.md`** — terminology drift is pervasive; a single authoritative glossary fixes it
-4. **Update `BANZAMI_REFERENCE.md §18`** — remove BanzamIA from "future roadmap"; describe it accurately
+4. **Update `BANZAMI_REFERENCE.md §18`** — remove BanzAI from "future roadmap"; describe it accurately
 
 ### High (blocks developer onboarding)
 
@@ -171,7 +171,7 @@ This audit captures the gap between the Banzami codebase and its documentation a
 |-------------|---------------|-------------|
 | New contributor onboarding | Must read 3046-line Portuguese document | Entry point index + modular docs |
 | Operator onboarding | No documentation exists | Full certification workflow |
-| BanzamIA understanding | Zero documentation | 9-file documentation suite |
+| BanzAI understanding | Zero documentation | 9-file documentation suite |
 | Architecture comprehension | Scattered, outdated | Single ecosystem reference |
 | Terminology | Inconsistent across 10+ files | Single authoritative glossary |
 | Institutional trust | Product story only | Protocol + governance + certification |
@@ -180,7 +180,7 @@ This audit captures the gap between the Banzami codebase and its documentation a
 
 ## References
 
-- ADR-016 — Brand architecture (Banzami/Banza)
+- ADR-016 — Brand architecture (Banza/Banzami)
 - ADR-015 — Markdown-first content architecture
 - `docs/validation/VALIDATION_DOMAINS.md`
 - `docs/validation/INVARIANT_TAXONOMY.md`

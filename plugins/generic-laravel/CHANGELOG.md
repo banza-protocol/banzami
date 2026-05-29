@@ -21,6 +21,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Facade method: `getMerchant`
 - Automatic `POST /banzami/webhook` route registration with HMAC-SHA256 signature verification; invalid signatures rejected with HTTP 401
 - Typed Laravel events dispatched on webhook receipt: `TransactionCompleted`, `TransactionFailed`, `PaymentLinkUsed`, `WalletProvisioned`, `PayoutRequested`
-- Generic `banzami.webhook` event for listening to all Banzami webhook types without typed handlers
+- Generic `banzami.webhook` event for listening to all Banza webhook types without typed handlers
 - Laravel 10 and Laravel 11 support; PHP 8.1+ required
-- Test suite built on Orchestra Testbench — no running Banzami instance required
+- Test suite built on Orchestra Testbench — no running Banza instance required

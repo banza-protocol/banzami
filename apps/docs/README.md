@@ -1,6 +1,6 @@
 # @banzami/docs
 
-Public documentation website for the Banzami platform.
+Public documentation website for the Banza platform.
 
 > **Per ADR-015:** all content on this site derives from `docs/BANZAMI_REFERENCE.md`. The markdown file is the single source of truth. This app is the visual rendering layer only.
 

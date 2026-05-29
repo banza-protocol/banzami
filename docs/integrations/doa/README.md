@@ -1,9 +1,9 @@
-# Doa × Banzami — Official Reference Integration
+# Doa × Banza — Official Reference Integration
 
-> **This is the canonical Banzami integration example.**
+> **This is the canonical Banza integration example.**
 > Every API call, payload shape, webhook handler, and environment configuration shown here reflects the live production system.
 
-> **SDK Migration Required.** Banzami is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
+> **SDK Migration Required.** Banza is an SDK-first platform ([ADR-012](../../adr/ADR-012-sdk-first-ecosystem.md)). The current direct `fetch()`-based implementation is transitional — it predates the TypeScript SDK reaching production readiness. Doa must migrate to `@banza/sdk` before this documentation is considered the complete canonical example. See [backend-integration.md](backend-integration.md#sdk-migration-target) for the migration target.
 
 ---
 
@@ -11,13 +11,13 @@
 
 [Doa](https://doadoa.app) is an Angolan crowdfunding platform — a mobile-first donation platform where campaign owners share *vaquinhas* over WhatsApp and donors pay without creating an account. Donors complete OTP verification, choose a payment method, and receive a PDF receipt on mobile.
 
-Doa is built on **Next.js 15** (App Router, TypeScript strict, Server Components) backed by **Supabase** (Postgres + Auth + RLS). The platform targets Angola as its primary market, which makes Banzami the natural default payment method — both AOA-native, both built for the Angolan mobile experience.
+Doa is built on **Next.js 15** (App Router, TypeScript strict, Server Components) backed by **Supabase** (Postgres + Auth + RLS). The platform targets Angola as its primary market, which makes Banza the natural default payment method — both AOA-native, both built for the Angolan mobile experience.
 
 ---
 
-## Why Doa is the Official Banzami Example
+## Why Doa is the Official Banza Example
 
-Doa represents the full surface of what a serious Banzami merchant integration looks like in production:
+Doa represents the full surface of what a serious Banza merchant integration looks like in production:
 
 | Capability | Implementation |
 |------------|----------------|
@@ -190,7 +190,7 @@ Doa:
 ### Prerequisites
 
 - Node.js ≥ 20.11
-- A Banzami sandbox merchant account with `bz_test_` API key
+- A Banza sandbox merchant account with `bz_test_` API key
 
 ### 1. Clone and install
 
@@ -200,7 +200,7 @@ npm install
 cp .env.example .env.local
 ```
 
-### 2. Configure Banzami sandbox credentials
+### 2. Configure Banza sandbox credentials
 
 ```env
 BANZAMI_GATEWAY_URL=https://sandbox-api.banzami.org
@@ -221,7 +221,7 @@ npm run dev
 
 ### 4. Simulate payment
 
-In the Banzami sandbox dashboard (`https://sandbox-dashboard.banzami.org`), find the payment link and click **Simulate Payment**. The Doa UI confirms within 3 seconds.
+In the Banza sandbox dashboard (`https://sandbox-dashboard.banzami.org`), find the payment link and click **Simulate Payment**. The Doa UI confirms within 3 seconds.
 
 ---
 

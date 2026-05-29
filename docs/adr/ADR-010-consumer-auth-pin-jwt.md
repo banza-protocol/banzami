@@ -7,7 +7,7 @@
 
 ## Context
 
-ADR-003 defined authentication for **merchants** (API key → JWT) and **admin operators** (static key). A third authentication surface now exists: **consumers** — end users who scan QR codes, pay payment links, and transfer money via the Banzami mobile app or public-api.
+ADR-003 defined authentication for **merchants** (API key → JWT) and **admin operators** (static key). A third authentication surface now exists: **consumers** — end users who scan QR codes, pay payment links, and transfer money via the Banza mobile app or public-api.
 
 Consumer authentication requirements differ from merchant authentication:
 
@@ -102,7 +102,7 @@ Consumers are interactive mobile users. A 1-hour TTL would force re-authenticati
 
 ### Why not OAuth 2.0 / OIDC?
 
-See ADR-003 for the general rationale. For consumers specifically: the complexity of an OIDC provider (authorization server, client registration, token introspection) is not justified for a self-contained mobile product at MVP scale. If Banzami ever becomes an identity provider for third-party apps, OIDC is the correct evolution path.
+See ADR-003 for the general rationale. For consumers specifically: the complexity of an OIDC provider (authorization server, client registration, token introspection) is not justified for a self-contained mobile product at MVP scale. If Banza ever becomes an identity provider for third-party apps, OIDC is the correct evolution path.
 
 ---
 

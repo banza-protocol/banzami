@@ -1,16 +1,16 @@
-# Banzami Webhook Signature Specification
+# Banza Webhook Signature Specification
 
 **Version:** 1.0  
 **Status:** Canonical  
 **Source of truth:** `services/api-gateway/internal/webhook/signer.go`
 
-This document is the single authoritative specification for Banzami webhook signature verification. All SDKs, integrations, and examples MUST implement this specification exactly. Deviations are security defects.
+This document is the single authoritative specification for Banza webhook signature verification. All SDKs, integrations, and examples MUST implement this specification exactly. Deviations are security defects.
 
 ---
 
 ## Overview
 
-Every webhook HTTP request from Banzami carries a `Banza-Signature` header containing an HMAC-SHA256 signature over the timestamp and raw request body. Merchants verify this signature to confirm that the request originated from Banzami and has not been tampered with.
+Every webhook HTTP request from Banza carries a `Banza-Signature` header containing an HMAC-SHA256 signature over the timestamp and raw request body. Merchants verify this signature to confirm that the request originated from Banza and has not been tampered with.
 
 The timestamp in the signed payload is also used for replay attack prevention — requests older than 300 seconds are rejected.
 
@@ -27,7 +27,7 @@ Banza-Signature: t=<unix_timestamp>,v1=<hex_hmac_sha256>
 | `t` | Unix timestamp (integer seconds) | When the webhook was dispatched |
 | `v1` | Lowercase hex string, 64 characters | HMAC-SHA256 of the signed payload |
 
-The `v1` prefix allows Banzami to introduce additional signature schemes in future versions without breaking existing verifiers. A verifier MUST check the `v1` field and MAY ignore unknown fields.
+The `v1` prefix allows Banza to introduce additional signature schemes in future versions without breaking existing verifiers. A verifier MUST check the `v1` field and MAY ignore unknown fields.
 
 ### Example header
 
@@ -165,7 +165,7 @@ function verify_webhook(raw_body, signature_header, webhook_secret):
 
 ## Webhook Event Envelope
 
-All Banzami webhook events share this envelope structure:
+All Banza webhook events share this envelope structure:
 
 ```json
 {
@@ -181,7 +181,7 @@ All Banzami webhook events share this envelope structure:
 | `id` | string | Unique event ID — use for deduplication |
 | `type` | string | Event type identifier (see Event Types below) |
 | `data` | object | Event-specific payload |
-| `created_at` | ISO 8601 | When the event was created on the Banzami side |
+| `created_at` | ISO 8601 | When the event was created on the Banza side |
 
 ---
 
@@ -245,7 +245,7 @@ Header value `sha256=abc123` (missing `t=` and `v1=`) — MUST raise a parse err
 | Mistake | Consequence | Correct approach |
 |---------|-------------|-----------------|
 | Reading `X-Banza-Signature` | Header not found — fails silently | Read `Banza-Signature` |
-| Using `sha256=<hmac>` format | Never matches Banzami output | Parse `t=<ts>,v1=<hmac>` |
+| Using `sha256=<hmac>` format | Never matches Banza output | Parse `t=<ts>,v1=<hmac>` |
 | Signing only the body (no timestamp) | Signatures never match | Sign `"{ts}.{body}"` |
 | Parsing JSON before verification | Body bytes differ from HMAC input | Read raw bytes first, then verify, then parse |
 | Using variable-time string comparison | Timing oracle — attacker can recover secret | Use `hmac.compare_digest` / `timingSafeEqual` / `hmac.Equal` |
@@ -255,7 +255,7 @@ Header value `sha256=abc123` (missing `t=` and `v1=`) — MUST raise a parse err
 
 ## SDK Conformance Requirement
 
-Every official Banza SDK MUST:
+Every official Banzami SDK MUST:
 
 1. Use the header name `Banza-Signature` (case-insensitive lookup, canonical name as written)
 2. Parse both `t` and `v1` fields from the comma-separated header

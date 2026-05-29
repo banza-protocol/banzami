@@ -1,4 +1,4 @@
-# Doa × Banzami — Complete Payment Flow
+# Doa × Banza — Complete Payment Flow
 
 Every state, every API call, every failure mode documented end-to-end.
 
@@ -6,13 +6,13 @@ Every state, every API call, every failure mode documented end-to-end.
 
 ## Prerequisites
 
-Before reaching the Banzami payment stage, the donor has:
+Before reaching the Banza payment stage, the donor has:
 
 1. Selected a campaign and amount (Step 1 — client-only state)
 2. Entered their identity and contact (Step 2 — client-only state)
 3. Created a `donation_intent` with OTP issued (Step 3 — server write)
 4. Completed OTP verification (Step 3 — server write: `otp_verified = true`)
-5. Selected Banzami as the payment method (Step 4)
+5. Selected Banza as the payment method (Step 4)
 
 The `donation_intent` at this point has:
 - `id` — UUID, primary key
@@ -200,8 +200,8 @@ Idempotency-Key: banzami:<intent_id>
 | `merchant_id` | string UUID | The Doa merchant account ID |
 | `wallet_id` | string UUID | The AOA wallet that will receive funds |
 | `amount_minor` | integer | Amount in centavos (150000 = 1,500.00 AOA) |
-| `currency` | string | Must be `"AOA"` — Banzami only supports Angolan Kwanza |
-| `description` | string | Human-readable label visible in Banzami dashboard; `DOA-{8-char prefix}` embeds a reconciliation key |
+| `currency` | string | Must be `"AOA"` — Banza only supports Angolan Kwanza |
+| `description` | string | Human-readable label visible in Banza dashboard; `DOA-{8-char prefix}` embeds a reconciliation key |
 
 **Response — 201 Created**
 
@@ -275,19 +275,19 @@ Authorization: Bearer <JWT>
 
 ## Failure Modes
 
-### Payment link creation fails (Banzami API error)
+### Payment link creation fails (Banza API error)
 
-**Cause**: Network error, invalid credentials, Banzami API outage.
+**Cause**: Network error, invalid credentials, Banza API outage.
 
 **Doa behavior**: `BanzamiProvider.initiate()` throws `banzami_api_error:{status}`. `initiatePayment()` returns `{ ok: false, code: 'provider_failed' }`. The API route returns a 500 with `humanError()` converting this to a Portuguese user-facing message. No `donation_events` entry is written.
 
 **Retry**: The donor can retry the payment — idempotency check in `initiatePayment()` will find no existing `payment_initiated` event and try again.
 
-### Poll returns non-200 from Banzami
+### Poll returns non-200 from Banza
 
-**Cause**: Transient network error, Banzami API outage.
+**Cause**: Transient network error, Banza API outage.
 
-**Doa behavior**: The poll tick's `fetch()` throws. The `catch` block discards the error silently. The next tick runs 3 seconds later. The link remains valid — Banzami's TTL is independent of poll failures.
+**Doa behavior**: The poll tick's `fetch()` throws. The `catch` block discards the error silently. The next tick runs 3 seconds later. The link remains valid — Banza's TTL is independent of poll failures.
 
 ### Link expires before payment
 
@@ -297,9 +297,9 @@ Authorization: Bearer <JWT>
 
 ### Donor pays and browser is closed
 
-**Cause**: Donor pays in the Banza app but closes the Doa tab before the poll fires.
+**Cause**: Donor pays in the Banzami app but closes the Doa tab before the poll fires.
 
-**Doa behavior**: The poll never runs. If `BANZAMI_WEBHOOK_SECRET` is configured, the webhook fires independently and records `payment_confirmed`. If not, the payment is confirmed in Banzami's system but Doa's ledger has no record.
+**Doa behavior**: The poll never runs. If `BANZAMI_WEBHOOK_SECRET` is configured, the webhook fires independently and records `payment_confirmed`. If not, the payment is confirmed in Banza's system but Doa's ledger has no record.
 
 **Mitigation**: Always configure `BANZAMI_WEBHOOK_SECRET`. The donor can also reload the thank-you page (`/c/{slug}/doar/obrigado?intent={intentId}`) which checks the intent status server-side.
 
@@ -309,7 +309,7 @@ Authorization: Bearer <JWT>
 
 ### Payment initiation idempotency
 
-Before calling Banzami's API, `initiatePayment()` queries `donation_events` for an existing `payment_initiated` event with `provider = 'banzami'`:
+Before calling Banza's API, `initiatePayment()` queries `donation_events` for an existing `payment_initiated` event with `provider = 'banzami'`:
 
 ```typescript
 const { data: prior } = await supabase
@@ -330,7 +330,7 @@ if (replayPayload) {
 }
 ```
 
-If a replay is found, the existing pay URL and link ID are returned without creating a new Banzami payment link. This means if a donor refreshes the page after seeing the QR, they get the same QR — not a new link with a new charge.
+If a replay is found, the existing pay URL and link ID are returned without creating a new Banza payment link. This means if a donor refreshes the page after seeing the QR, they get the same QR — not a new link with a new charge.
 
 ### Confirmation idempotency
 

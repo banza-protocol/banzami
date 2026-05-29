@@ -14,7 +14,7 @@
 |-----------|-------|-------|
 | Terminology Consistency | 88/100 | B+ |
 | Architectural Consistency | 74/100 | C+ |
-| BanzamIA Positioning | 70/100 | C |
+| BanzAI Positioning | 70/100 | C |
 | Feature Coverage (Documentation) | 62/100 | D |
 | Certification Model | 97/100 | A |
 | Product vs Protocol Distinction | 82/100 | B |
@@ -38,15 +38,15 @@ The certification level rename (AUDIT-011) eliminated the most widespread termin
 **F-001** — `Banzami/README.md` line 54  
 > "Integration plugins — WooCommerce, Shopify, Laravel, Node.js, PHP"  
 Type: MISLEADING (D)  
-Shopify and WooCommerce are listed as Banzami-provided integrations. The strategic direction is Africa-first, payment-link-native, generic plugins — not western e-commerce platform adapters. These directories exist but are empty. Listing them as capabilities is misleading.
+Shopify and WooCommerce are listed as Banza-provided integrations. The strategic direction is Africa-first, payment-link-native, generic plugins — not western e-commerce platform adapters. These directories exist but are empty. Listing them as capabilities is misleading.
 
 **F-002** — `Banzami/README.md` (ecosystem ASCII diagram)  
-> Diagram shows: Banzami → Banza. BanzamIA is not in the ecosystem diagram.  
+> Diagram shows: Banza → Banzami. BanzAI is not in the ecosystem diagram.  
 Type: ARCHITECTURAL_DRIFT (C)  
-BanzamIA is a first-class product of the ecosystem. The main ecosystem visualization in the kernel README omits it.
+BanzAI is a first-class product of the ecosystem. The main ecosystem visualization in the kernel README omits it.
 
 **F-003** — `BanzamIA/README.md` — "The intelligence layer"  
-> "BanzamIA is not a generic AI assistant. It is a: Financial infrastructure reasoning engine / Operator certification intelligence system / Protocol integration copilot / Conformance and governance advisor / Architecture review system"  
+> "BanzAI is not a generic AI assistant. It is a: Financial infrastructure reasoning engine / Operator certification intelligence system / Protocol integration copilot / Conformance and governance advisor / Architecture review system"  
 Type: INCOMPLETE (B)  
 These descriptions are all valid but use no canonical framing. "Protocol Operating System", "Cognitive Layer", "Protocol Intelligence Layer" — none appear. The standalone README predates the Protocol OS positioning.
 
@@ -57,9 +57,9 @@ These descriptions are all valid but use no canonical framing. "Protocol Operati
 ### Critical Findings
 
 **F-004** — `BANZAMI_REFERENCE.md` line 782 — **CRITICAL**  
-> "O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por **oito módulos especializados**"  
+> "O BanzAI disponível publicamente em `banzami.org/banzamia` é composto por **oito módulos especializados**"  
 Type: FALSE (E)  
-BanzamIA currently has **16 active modules**. The product architecture table lists only the original 8 (Chat, Operator Builder, Conformance, Manifest Validator, Trace Explainer, SDK Assistant, RFC/ADR Explorer, Knowledge Search). The 8 new modules added in the Protocol OS buildout (System Status, Protocol Graph, Protocol Research, Cert. Copilot, Quality Dashboard, Protocol Simulator, Federation Intelligence, Protocol Memory, Digital Twin) are documented individually later in section 9 but the opening product table is factually wrong.
+BanzAI currently has **16 active modules**. The product architecture table lists only the original 8 (Chat, Operator Builder, Conformance, Manifest Validator, Trace Explainer, SDK Assistant, RFC/ADR Explorer, Knowledge Search). The 8 new modules added in the Protocol OS buildout (System Status, Protocol Graph, Protocol Research, Cert. Copilot, Quality Dashboard, Protocol Simulator, Federation Intelligence, Protocol Memory, Digital Twin) are documented individually later in section 9 but the opening product table is factually wrong.
 
 **F-005** — `apps/docs/app/roadmap/page.tsx` line 49 — **CRITICAL**  
 > `{ id: 'r26', status: 'vision', title: 'Protocol Operating System', description: 'BanzamIA becomes the OS of the Banzami ecosystem...' }`  
@@ -67,21 +67,21 @@ Type: FALSE (E)
 The Protocol Operating System is BUILT. The 8 capabilities (Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar) are implemented. The SVG diagram `protocol-operating-system.svg` exists. Listing a delivered feature as a future "vision" is false.
 
 **F-006** — `banzamia-product-architecture.svg`  
-The SVG illustrating the BanzamIA product architecture shows 8 modules in a 4×2 grid. This visual is now factually wrong — it omits 8 delivered modules. Every page that renders this SVG shows an outdated architecture.
+The SVG illustrating the BanzAI product architecture shows 8 modules in a 4×2 grid. This visual is now factually wrong — it omits 8 delivered modules. Every page that renders this SVG shows an outdated architecture.
 
 **F-007** — `Banzami/README.md` — Ecosystem ASCII diagram  
-The central ecosystem diagram in the kernel README shows only `Banzami → [Rust Core, Contracts, SDKs] → Banza`. BanzamIA is mentioned in a later section but is absent from the main architecture diagram. A first reader of the kernel repo would not know BanzamIA exists from the visual.
+The central ecosystem diagram in the kernel README shows only `Banzami → [Rust Core, Contracts, SDKs] → Banza`. BanzAI is mentioned in a later section but is absent from the main architecture diagram. A first reader of the kernel repo would not know BanzAI exists from the visual.
 
 ---
 
-## Section 3 — BanzamIA Positioning
+## Section 3 — BanzAI Positioning
 
 ### Summary
 
-BanzamIA positioning is strong in the canonical reference (section 9) and in the embedded `apps/banzamia/` documentation. The gap is in the **standalone BanzamIA repo** and in **partial descriptions on supporting pages**.
+BanzAI positioning is strong in the canonical reference (section 9) and in the embedded `apps/banzamia/` documentation. The gap is in the **standalone BanzAI repo** and in **partial descriptions on supporting pages**.
 
 **F-008** — `BanzamIA/README.md` — Missing Protocol OS framing  
-The standalone repo README lists BanzamIA capabilities as bulleted descriptions ("Financial infrastructure reasoning engine", etc.) without using any canonical positioning: no "Protocol Operating System", no "Cognitive Layer", no 8-capability framework (Compreender/Explicar/Validar/Simular/Prever/Guiar/Certificar/Federar).  
+The standalone repo README lists BanzAI capabilities as bulleted descriptions ("Financial infrastructure reasoning engine", etc.) without using any canonical positioning: no "Protocol Operating System", no "Cognitive Layer", no 8-capability framework (Compreender/Explicar/Validar/Simular/Prever/Guiar/Certificar/Federar).  
 Type: INCOMPLETE (B)
 
 **F-009** — `BanzamIA/README.md` — Missing new modules  
@@ -91,7 +91,7 @@ Type: OUTDATED (C)
 **F-010** — `apps/docs/app/sobre-banzamia/page.tsx` metadata  
 > `description: 'BanzamIA — o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami.'`  
 Type: INCOMPLETE (B)  
-True but covers only 3 of the 8 capabilities. Missing: simular, federar, prever, guiar. A visitor reading only this page's SEO description gets an incomplete picture of BanzamIA.
+True but covers only 3 of the 8 capabilities. Missing: simular, federar, prever, guiar. A visitor reading only this page's SEO description gets an incomplete picture of BanzAI.
 
 **F-011** — `Banzami/apps/banzamia/README.md` — "Protocol Operating System" title  
 Correctly uses "Protocol Operating System" framing. ✓ PASS
@@ -103,7 +103,7 @@ Correctly uses "Protocol Operating System" framing. ✓ PASS
 
 ## Section 4 — Feature Coverage
 
-| Capability | BANZAMI_REFERENCE.md | BanzamIA standalone README | Banzami kernel README | Banza docs site |
+| Capability | BANZAMI_REFERENCE.md | BanzAI standalone README | Banza kernel README | Banzami docs site |
 |-----------|---------------------|--------------------------|----------------------|-----------------|
 | RAG | ✓ Documented | ✓ Documented | ✗ Not mentioned | ✓ Documented |
 | Protocol Graph | ✓ Documented (§9) | ✗ Not mentioned | ✗ Not mentioned | ✓ Documented |
@@ -119,7 +119,7 @@ Correctly uses "Protocol Operating System" framing. ✓ PASS
 | SDK Assistant | ✓ | ✓ | ✗ | ✓ |
 | Knowledge Search | ✓ | ✓ | ✗ | ✓ |
 
-**Gap Pattern:** The standalone BanzamIA repo (`github.com/banzami/banzamia`) is the most outdated documentation surface. 7 of 13 capabilities are either not mentioned or only partially described there.
+**Gap Pattern:** The standalone BanzAI repo (`github.com/banzami/banzamia`) is the most outdated documentation surface. 7 of 13 capabilities are either not mentioned or only partially described there.
 
 ---
 
@@ -129,7 +129,7 @@ Correctly uses "Protocol Operating System" framing. ✓ PASS
 
 Post-AUDIT-011, the certification model is consistent across all repos. No deviations from the canonical 5-level model found in any searched file.
 
-Minor note: The BanzamIA standalone README lists Level 2 as requiring "+ traces" but the canonical reference lists Level 2 as "Full trace propagation, webhooks, event correlation." The standalone README may be slightly simplified but not incorrect.
+Minor note: The BanzAI standalone README lists Level 2 as requiring "+ traces" but the canonical reference lists Level 2 as "Full trace propagation, webhooks, event correlation." The standalone README may be slightly simplified but not incorrect.
 
 ---
 
@@ -138,16 +138,16 @@ Minor note: The BanzamIA standalone README lists Level 2 as requiring "+ traces"
 ### Status: GOOD overall, one structural tension
 
 **F-013** — `BANZAMI_REFERENCE.md` §1  
-> "**Banza** é o produto principal do Banzami: a rede angolana de pagamentos instantâneos por QR Code."  
+> "**Banzami** é o produto principal do Banza: a rede angolana de pagamentos instantâneos por QR Code."  
 Type: TRUE BUT INCOMPLETE (B)  
-Calling Banza "o produto principal" (the main product) is accurate from a commercial perspective but creates narrative confusion for a new visitor who might infer that Banzami = Banza's parent company rather than an open protocol that any operator can implement. The framing should either clarify "first operator" explicitly alongside "main product" or be restructured.
+Calling Banzami "o produto principal" (the main product) is accurate from a commercial perspective but creates narrative confusion for a new visitor who might infer that Banza = Banzami's parent company rather than an open protocol that any operator can implement. The framing should either clarify "first operator" explicitly alongside "main product" or be restructured.
 
 **F-014** — `apps/docs/app/layout.tsx`  
 > `"Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos..."`  
 Type: TRUE (A)  
-Correctly positions Banzami as infrastructure and Banza as the payments network. ✓ PASS
+Correctly positions Banza as infrastructure and Banzami as the payments network. ✓ PASS
 
-No instances found where Banza is presented AS the protocol. The distinction is generally maintained.
+No instances found where Banzami is presented AS the protocol. The distinction is generally maintained.
 
 ---
 
@@ -156,12 +156,12 @@ No instances found where Banza is presented AS the protocol. The distinction is 
 | Finding | File | Truthfulness |
 |---------|------|-------------|
 | F-001 — Shopify/WooCommerce as integrations | `Banzami/README.md` | D — Misleading |
-| F-002 — BanzamIA missing from ecosystem diagram | `Banzami/README.md` | C — Partially Outdated |
+| F-002 — BanzAI missing from ecosystem diagram | `Banzami/README.md` | C — Partially Outdated |
 | F-003 — No Protocol OS framing in standalone README | `BanzamIA/README.md` | B — Incomplete |
 | F-004 — "8 modules" when 16 exist | `BANZAMI_REFERENCE.md:782` | E — **False** |
 | F-005 — Protocol OS listed as "vision" | `roadmap/page.tsx:49` | E — **False** |
 | F-006 — banzamia-product-architecture.svg shows 8 modules | SVG | E — **False** |
-| F-007 — Ecosystem diagram omits BanzamIA | `Banzami/README.md` ASCII | C — Partially Outdated |
+| F-007 — Ecosystem diagram omits BanzAI | `Banzami/README.md` ASCII | C — Partially Outdated |
 | F-008 — Missing Protocol OS framing | `BanzamIA/README.md` | B — Incomplete |
 | F-009 — Missing new modules in standalone README | `BanzamIA/README.md` | C — Partially Outdated |
 | F-010 — Incomplete capability description in metadata | `sobre-banzamia/page.tsx` | B — Incomplete |
@@ -180,10 +180,10 @@ No instances found where Banza is presented AS the protocol. The distinction is 
 
 **banzami.org (homepage)**
 
-1. ✓ The hero and manifesto quote correctly position Banza as a payments network and Banzami as the infrastructure builder.
+1. ✓ The hero and manifesto quote correctly position Banzami as a payments network and Banza as the infrastructure builder.
 2. ✓ Use cases (taxi apps, cantinas, ecommerce) are accurate for the Angola market.
-3. ⚠ BanzamIA appears as an "entrypoint widget" (`HomeBanzamIAEntry`) but the homepage doesn't explain what BanzamIA IS before showing it. A new visitor sees the BanzamIA chat interface without understanding why a payments infrastructure has an AI layer.
-4. ⚠ The homepage metadata says "Banza SDKs oficiais" — the visitor might not know whether these are published and available.
+3. ⚠ BanzAI appears as an "entrypoint widget" (`HomeBanzamIAEntry`) but the homepage doesn't explain what BanzAI IS before showing it. A new visitor sees the BanzAI chat interface without understanding why a payments infrastructure has an AI layer.
+4. ⚠ The homepage metadata says "Banzami SDKs oficiais" — the visitor might not know whether these are published and available.
 
 **banzami.org/sobre-banzamia**
 
@@ -199,7 +199,7 @@ No instances found where Banza is presented AS the protocol. The distinction is 
 **banzami.org/reference**
 
 1. ✓ Content is sourced from BANZAMI_REFERENCE.md — comprehensive.
-2. ⚠ The 8-module table in §9 will mislead visitors about BanzamIA's current scope.
+2. ⚠ The 8-module table in §9 will mislead visitors about BanzAI's current scope.
 
 ---
 
@@ -226,10 +226,10 @@ See `diagram-remediation-plan.md` for full SVG-by-SVG evaluation.
 
 | Question | Answer | Obstacle |
 |----------|--------|---------|
-| What is Banzami? | YES | Well explained in landing page and reference |
-| What is Banza? | YES | Clear product/operator distinction maintained |
-| What is BanzamIA? | PARTIALLY | Correct in canonical reference; outdated in standalone repo; 8 vs 16 module discrepancy |
-| Why is the architecture unique? | PARTIALLY | Not explained on homepage before showing BanzamIA widget |
+| What is Banza? | YES | Well explained in landing page and reference |
+| What is Banzami? | YES | Clear product/operator distinction maintained |
+| What is BanzAI? | PARTIALLY | Correct in canonical reference; outdated in standalone repo; 8 vs 16 module discrepancy |
+| Why is the architecture unique? | PARTIALLY | Not explained on homepage before showing BanzAI widget |
 | Why does certification exist? | YES | Well documented in conformance/certification docs |
 | Why does federation exist? | YES | RFC-0002/0005 and federation docs are present |
 | Why does Protocol OS matter? | PARTIALLY | Listed as a "vision" on roadmap — contradicts "it's already here" |
