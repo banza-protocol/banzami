@@ -1,4 +1,4 @@
-// BanzamIA API client
+// BanzAI API client
 // Mode detection:
 //   Demo Mode         — NEXT_PUBLIC_BANZAMIA_API_URL is not set
 //   Live API No Model — API set, models not configured

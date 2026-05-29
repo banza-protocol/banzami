@@ -69,7 +69,7 @@ export function HeroSection({ tagline }: Props) {
           ))}
         </div>
 
-        {/* 5 — BanzamIA entry (centerpiece) */}
+        {/* 5 — BanzAI entry (centerpiece) */}
         <HeroBanzamIAWidget />
 
         {/* 6 — CTA buttons */}

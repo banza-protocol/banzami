@@ -10,7 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // BanzamIA light institutional theme — aligned with official Banzami homepage
+        // BanzAI light institutional theme — aligned with official Banzami homepage
         bia: {
           bg:           '#F5F1EE',   // warm ivory — app background
           surface:      '#FFFFFF',   // white — card/panel surfaces
