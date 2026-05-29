@@ -79,8 +79,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <nav className="hidden items-center gap-1 md:flex">
               {[
                 { href: '/reference',                          label: 'Referência',    ai: false },
-                { href: '/banza-para-programadores',           label: 'Programadores', ai: false },
-                { href: '/banza-para-comerciantes',            label: 'Comerciantes',  ai: false },
+                { href: '/banzami-para-programadores',           label: 'Programadores', ai: false },
+                { href: '/banzami-para-comerciantes',            label: 'Comerciantes',  ai: false },
                 { href: '/arquitectura-tecnica',               label: 'Arquitectura',  ai: false },
                 { href: '/seguranca-e-integridade-financeira', label: 'Segurança',     ai: false },
                 { href: '/operators',                          label: 'Operadores',    ai: false },
@@ -148,9 +148,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs text-bz-muted">
-                <Link href="/o-que-e-o-banzami" className="hover:text-bz-primary">O que é o Banzami</Link>
-                <Link href="/banza-para-programadores" className="hover:text-bz-primary">Programadores</Link>
-                <Link href="/banza-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
+                <Link href="/o-que-e-o-banza" className="hover:text-bz-primary">O que é o Banza?</Link>
+                <Link href="/banzami-para-programadores" className="hover:text-bz-primary">Programadores</Link>
+                <Link href="/banzami-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
                 <Link href="/arquitectura-tecnica" className="hover:text-bz-primary">Arquitectura</Link>
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
                 <Link href="/operators" className="hover:text-bz-primary">Operadores</Link>
