@@ -68,9 +68,8 @@ export function SectionNav({ sections }: Props) {
       </div>
 
       {navLink('/', 'Início')}
-      {navLink('/reference', 'Referência completa')}
-      {navLink('/validacao', 'Validação')}
       {navLink('/sobre-banzamia', 'BanzamIA')}
+      {navLink('/reference', 'Referência completa')}
 
       <div className="my-3 border-t border-bz-border" />
 
