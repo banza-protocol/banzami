@@ -779,20 +779,40 @@ Cada componente do ecossistema torna-se mais acessível e mais eficaz quando com
 
 ### Arquitectura do Produto
 
-O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por oito módulos especializados:
+O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por dezasseis módulos especializados, organizados em três camadas:
 
-![Arquitectura do Produto BanzamIA — 8 módulos especializados](/images/architecture/banzamia-product-architecture.svg)
+![Protocol Operating System — 8 capacidades em órbita em torno do núcleo BanzamIA](/images/architecture/protocol-operating-system.svg)
+
+**Camada de Protocolo — Conhecimento e Raciocínio**
 
 | Módulo | Função |
 |--------|--------|
 | **Chat** | Q&A sobre o protocolo, fundamentado em citações de RFC e ADR |
+| **Protocol Research** | Pesquisa multi-passo agentic — planeia, recupera, percorre o grafo, sintetiza |
+| **Protocol Graph** | Explorador visual do grafo de protocolo (17 tipos de nó, 11 tipos de relação) |
+| **Knowledge Search** | Pesquisa semântica sobre documentação do protocolo via Qdrant |
+| **RFC/ADR Explorer** | Pesquisa e explicação de documentos de governança |
+
+**Camada de Operador — Construção e Certificação**
+
+| Módulo | Função |
+|--------|--------|
 | **Operator Builder** | Criação guiada de manifesto de operador |
+| **Certification Copilot** | Análise de readiness L0–L4, score 0–100%, roadmap de certificação |
 | **Conformance** | Runner de testes de conformidade e análise de resultados |
 | **Manifest Validator** | Validação estrutural e semântica de manifestos |
+| **Protocol Simulator** | Análise what-if determinística — impacto de alterações de capacidades |
+
+**Camada de Inteligência — Análise e Federação**
+
+| Módulo | Função |
+|--------|--------|
 | **Trace Explainer** | Reconstrução de linha temporal causal e verificação de invariantes |
 | **SDK Assistant** | Geração de código e orientação de integração SDK |
-| **RFC/ADR Explorer** | Pesquisa e explicação de documentos de governança |
-| **Knowledge Search** | Pesquisa semântica sobre documentação do protocolo via Qdrant |
+| **Federation Intelligence** | Análise de compatibilidade de federação — score 0–100, conflitos, bloqueadores |
+| **Protocol Memory** | Registo contínuo da jornada do operador — assessments, milestones, trajectória |
+| **Digital Twin** | Representação virtual completa do operador no protocolo |
+| **Quality Dashboard** | Métricas do sistema BanzamIA — RAG, Protocol Graph, Qdrant, ferramentas |
 
 ---
 

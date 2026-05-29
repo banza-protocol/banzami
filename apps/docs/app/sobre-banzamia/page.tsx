@@ -7,10 +7,10 @@ import { notFound } from 'next/navigation'
 
 export const metadata: Metadata = {
   title: 'Sobre o BanzamIA',
-  description: 'BanzamIA — o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami.',
+  description: 'BanzamIA — o Sistema Operativo do Protocolo Banzami. Compreender, explicar, validar, simular, certificar e federar operadores. Ferramentas determinam a verdade. A IA explica a verdade.',
   openGraph: {
     title: 'Sobre o BanzamIA · Banzami',
-    description: 'O Agente de Protocolo nativo de IA. Public Product · Developer Portal · Operator Platform.',
+    description: 'O Sistema Operativo do Protocolo Banzami. 16 módulos — Protocol Graph, RAG, Certification Copilot, Federation Intelligence, Digital Twin, Protocol Simulator.',
     locale: 'pt_AO',
   },
 }

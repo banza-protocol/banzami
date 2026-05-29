@@ -46,7 +46,7 @@ const ITEMS: RoadmapItem[] = [
   { id: 'r24', status: 'research', title: 'Predictive Readiness',            description: 'Given current velocity of operator changes, predict when they will reach each certification level.', tags: ['Memory', 'Analytics'] },
   { id: 'r25', status: 'research', title: 'Protocol Change Impact Analysis', description: 'When a new RFC is published, automatically identify all affected operators and certification levels.', tags: ['Protocol', 'Graph'] },
   // Vision
-  { id: 'r26', status: 'vision', title: 'Protocol Operating System',         description: 'BanzamIA becomes the OS of the Banzami ecosystem — understand, explain, validate, simulate, predict, guide, and certify.', tags: ['Vision'] },
+  { id: 'r26', status: 'completed', title: 'Protocol Operating System',       description: 'BanzamIA is the Protocol Operating System — Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. 16 modules. Tools determine truth. AI explains truth.', tags: ['Protocol OS'] },
   { id: 'r27', status: 'vision', title: 'Ecosystem-level Intelligence',      description: 'Aggregate insights across all operators — identify ecosystem-wide certification patterns, bottlenecks, and opportunities.', tags: ['Vision', 'Analytics'] },
   { id: 'r28', status: 'vision', title: 'Self-improving Knowledge Base',     description: 'BanzamIA identifies gaps in its own knowledge base and proposes new documentation to fill them.', tags: ['Vision', 'RAG'] },
 ]
