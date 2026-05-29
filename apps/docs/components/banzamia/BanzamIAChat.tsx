@@ -271,9 +271,9 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
   // Welcome screen
   if (messages.length === 0) {
     return (
-      <div className="flex h-full flex-col">
-        {/* Hero */}
-        <div className="flex flex-1 flex-col items-center justify-center p-8">
+      <div className="absolute inset-0 flex flex-col overflow-hidden">
+        {/* Hero — min-h-0 + overflow-y-auto so it shrinks when composer grows */}
+        <div className="flex flex-1 min-h-0 flex-col items-center justify-center p-8 overflow-y-auto overscroll-contain">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-bia-primary shadow-bia-glow">
             <BanzamIAIcon size={32} className="text-white" />
           </div>
@@ -319,9 +319,9 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
+    <div className="absolute inset-0 flex flex-col overflow-hidden">
+      {/* Messages — min-h-0 required for flex-1 scroll area to shrink correctly */}
+      <div className="flex-1 min-h-0 overflow-y-auto p-5 space-y-4 overscroll-contain">
         {messages.map(msg => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
@@ -364,11 +364,14 @@ function ChatInput({
     const el = inputRef.current
     if (!el) return
     el.style.height = '0px'
-    el.style.height = `${Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)}px`
+    const nextHeight = Math.min(el.scrollHeight, COMPOSER_MAX_HEIGHT)
+    el.style.height = `${nextHeight}px`
+    // Only show scrollbar when content actually exceeds max height
+    el.style.overflowY = el.scrollHeight > COMPOSER_MAX_HEIGHT ? 'auto' : 'hidden'
   }, [value, inputRef])
 
   return (
-    <div className="shrink-0 border-t border-bia-border bg-bia-surface p-4">
+    <div className="shrink-0 sticky bottom-0 z-20 border-t border-bia-border bg-bia-surface p-4">
       <div className="flex items-end gap-3 rounded-xl border border-bia-border bg-bia-surface-2 px-4 py-3 focus-within:border-bia-primary/50">
         <textarea
           ref={inputRef}
@@ -379,7 +382,7 @@ function ChatInput({
           rows={1}
           disabled={disabled}
           className="flex-1 resize-none bg-transparent text-sm text-bia-text placeholder-bia-muted-2 outline-none disabled:opacity-50"
-          style={{ overflowY: 'auto', maxHeight: `${COMPOSER_MAX_HEIGHT}px` }}
+          style={{ minHeight: '24px', maxHeight: `${COMPOSER_MAX_HEIGHT}px`, overflowY: 'hidden' }}
         />
         <button
           onClick={onSubmit}

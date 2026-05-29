@@ -142,8 +142,8 @@ export function BanzamIAApp() {
           )}
         </div>
 
-        {/* Module content */}
-        <div className="min-h-0 flex-1 overflow-hidden">
+        {/* Module content — relative so BanzamIAChat can use absolute inset-0 */}
+        <div className="relative min-h-0 flex-1 overflow-hidden">
           {renderModule()}
         </div>
       </div>
