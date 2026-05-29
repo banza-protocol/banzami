@@ -1064,6 +1064,172 @@ O relatório de cobertura mostra quantos chunks e documentos estão indexados po
 
 ---
 
+### Protocol Graph Explorer
+
+O Protocol Graph Explorer é um módulo visual interactivo que permite navegar o grafo de protocolo directamente no BanzamIA. Acesse em `/banzamia` → **Protocol Graph**.
+
+![Protocol Graph Explorer — painel de pesquisa, lista de nós, detalhe com relações](/images/architecture/protocol-graph-explorer.svg)
+
+**Funcionalidades:**
+
+- **Pesquisa de nós** — pesquisa por nome, path, ou tipo com debounce de 300ms
+- **Filtros por tipo** — RFC, ADR, OpenAPI, Invariant, Concept, Conformance Vector, etc.
+- **Detalhe de nó** — path canónico, autoridade (0–1.00), relações outbound e inbound
+- **Tipos de relação** — extends, implements, enforces, depends_on, documents, validates, references, supersedes
+
+**API:**
+
+```
+GET /graph/stats                — estatísticas globais (nós, arestas, by_type)
+GET /graph/node/:id             — nó + vizinhos directos
+GET /graph/search?q=            — pesquisa por path e título
+GET /graph/related/:id?depth=   — nós relacionados por BFS (máx. profundidade 4)
+GET /graph/path?from=&to=       — caminho mais curto entre dois nós
+```
+
+**Indexação do grafo:**
+
+```bash
+cd apps/banzamia && npm run graph:index
+```
+
+O indexador lê todos os ficheiros Markdown e extrai referências cruzadas para construir `.banzamia-graph.json`. Deve ser re-executado sempre que documentos do protocolo forem adicionados ou alterados.
+
+---
+
+### Agentic Protocol Research
+
+O módulo Protocol Research executa pesquisa multi-passo sobre a base de conhecimento do protocolo. Ao contrário do Chat simples, o Research Agent não responde imediatamente — planeia, recupera, percorre o grafo, e sintetiza antes de responder.
+
+![Agentic Protocol Research — fluxo multi-passo: plan, retrieval, graph, synthesis](/images/architecture/agentic-research-flow.svg)
+
+**Pipeline de pesquisa:**
+
+| Etapa | Tipo | Descrição |
+|-------|------|-----------|
+| 1 | `plan` | Decomposição da pergunta em sub-queries |
+| 2 | `retrieval` | Pesquisa Qdrant primária (top-10) |
+| 3 | `graph` | Travessia BFS do grafo de protocolo (profundidade 2) |
+| 4 | `retrieval` | Pesquisa secundária sobre os 3 nós de grafo principais |
+| 5 | `tool` | Detecção de contradições entre conformance_result e validation_result |
+| 6 | `synthesis` | Síntese por modelo LLM com evidências + contexto de grafo |
+
+**Saída — ResearchReport:**
+
+```typescript
+{
+  answer: string                    // síntese em linguagem natural
+  evidence: ResearchEvidence[]      // fontes com score, autoridade, excerpt
+  graph_nodes: GraphNode[]          // nós de protocolo encontrados
+  relationship_chains: string[]     // cadeias de relação (ex: "RFC-001 → ADR-016 → OAS-TRANSFER")
+  contradictions: Contradiction[]   // conflitos detectados
+  steps: ResearchStep[]             // passos executados com duração
+  research_quality: 'high'|'medium'|'low'
+  duration_ms: number
+}
+```
+
+**Activação:**
+
+```
+POST /research    { "question": "..." }
+```
+
+Ou directamente no módulo **Protocol Research** do BanzamIA em `/banzamia`.
+
+---
+
+### Certification Copilot
+
+O Certification Copilot analisa um manifesto de operador e capacidades declaradas face aos requisitos de cada nível de certificação Banzami (L0–L4).
+
+![Certification Copilot — análise de readiness, score, roadmap L0→L4](/images/architecture/certification-copilot.svg)
+
+**Níveis de certificação:**
+
+| Nível | Nome | Requisitos principais |
+|-------|------|-----------------------|
+| L0 | Reference-compatible | Manifesto válido, ambiente sandbox, protocol_version presente |
+| L1 | Protocol-compatible | supports_wallets + supports_transfers + supports_qr |
+| L2 | Trace-compatible | supports_traces + suporte a trace IDs + correlação de eventos |
+| L3 | Federation-ready | supports_federation + supports_cross_operator + suporte a manifests |
+| L4 | Settlement-compatible | supports_payment_requests + supports_webhooks + conformidade de liquidação |
+
+**Saída — CopilotResult:**
+
+```typescript
+{
+  current_level: number             // nível mais alto totalmente atingido
+  target_level: number              // nível alvo solicitado
+  readiness_score: number           // 0–100 (percentagem de requisitos cumpridos)
+  certification_ready: boolean      // true se score ≥ 100 para o nível alvo
+  level_statuses: LevelStatus[]     // status por nível: achieved | partial | not_started
+  missing_for_target: Requirement[] // requisitos em falta para o nível alvo
+  blocking_issues: string[]         // problemas que bloqueiam qualquer certificação
+  next_actions: string[]            // próximas acções recomendadas (ordenadas)
+  roadmap: RoadmapSegment[]         // segmentos L→L+1 com esforço estimado e passos
+}
+```
+
+**Activação:**
+
+```
+POST /certification/copilot    { "manifest": {...}, "capabilities": [...], "target_level": 2 }
+```
+
+Ou directamente no módulo **Certification Copilot** do BanzamIA em `/banzamia`.
+
+---
+
+### Quality Dashboard
+
+O Quality Dashboard torna as métricas internas do BanzamIA públicas e verificáveis. O princípio orientador é: **não pedimos confiança — mostramos medições.**
+
+![Quality Dashboard — fontes de dados, agregador /rag/stats, painel de métricas](/images/architecture/quality-dashboard-architecture.svg)
+
+**Métricas expostas:**
+
+| Categoria | Métricas |
+|-----------|----------|
+| Knowledge Base | documents_indexed, chunks_indexed, embedding_provider, last_indexed_at |
+| Protocol Graph | node_count, edge_count, by_type (distribuição) |
+| Retrieval Analytics | total_queries, avg_latency_ms, weak_retrieval_rate, avg_top_authority |
+| Citações | avg_citations, top_sources por tipo, task_type_distribution |
+| Benchmark | MRR, Precision@K, Recall@K — gerado por `npm run rag:eval` |
+
+**Definição de recuperação fraca:**
+
+Uma recuperação é considerada "fraca" quando o score de similaridade do top resultado é inferior a 0.45, activando o fallback por keyword. A taxa de recuperação forte (`1 − weak_retrieval_rate`) é o indicador primário de qualidade do knowledge base.
+
+**Activação:**
+
+```
+GET /rag/stats    — snapshot completo em tempo real
+```
+
+Acessível no módulo **Quality Dashboard** do BanzamIA em `/banzamia`.
+
+---
+
+### Ecosystem Intelligence Layer
+
+O BanzamIA é organizado em quatro camadas de inteligência, cada uma construída sobre a anterior:
+
+![Ecosystem Intelligence Layer — 4 camadas: Knowledge, Retrieval+Graph, Intelligence Modules, Trust](/images/architecture/ecosystem-intelligence-layer.svg)
+
+| Camada | Componentes | Propósito |
+|--------|-------------|-----------|
+| 1 — Knowledge Foundation | RFCs, ADRs, OpenAPI, Invariants, SDK, Tests | Base documental canónica |
+| 2 — Retrieval + Graph | Qdrant, Protocol Graph, Keyword Fallback | Recuperação híbrida multi-modal |
+| 3 — Intelligence Modules | Chat, Graph Explorer, Research Agent, Certification Copilot | Interfaces de inteligência especializadas |
+| 4 — Trust + Verifiability | Quality Dashboard, Benchmark Suite, Adversarial Eval, Tool-Verified Answers | Medição pública de qualidade |
+
+A Camada 3 nunca responde sem evidências da Camada 2. A Camada 4 mede continuamente a qualidade das Camadas 2 e 3.
+
+> **Tools determine truth. AI explains truth.**
+
+---
+
 ### Impacto no Ecossistema
 
 #### A Visão do Protocolo Autónomo

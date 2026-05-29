@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <linearGradient id="goldG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#C89B3C"/>
+      <stop offset="100%" style="stop-color:#D4A843"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <rect width="700" height="500" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="20" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">Ecosystem Intelligence Layer</text>
+  <text x="350" y="59" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CAMADAS DE INTELIGÊNCIA DO BANZAMIA</text>
+
+  <!-- Layer 1: Knowledge Foundation -->
+  <rect x="40" y="82" width="620" height="70" rx="10" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="100" text-anchor="middle" fill="#475569" font-size="9" font-weight="700" letter-spacing="0.8">CAMADA 1 — BASE DE CONHECIMENTO</text>
+  <!-- boxes inside -->
+  <rect x="56" y="106" width="110" height="36" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="111" y="121" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">RFCs · ADRs</text>
+  <text x="111" y="133" text-anchor="middle" fill="#9CA3AF" font-size="7">Protocolo canónico</text>
+
+  <rect x="176" y="106" width="110" height="36" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="231" y="121" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">OpenAPI · Schemas</text>
+  <text x="231" y="133" text-anchor="middle" fill="#9CA3AF" font-size="7">Contratos de API</text>
+
+  <rect x="296" y="106" width="110" height="36" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="351" y="121" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">Invariantes</text>
+  <text x="351" y="133" text-anchor="middle" fill="#9CA3AF" font-size="7">Propriedades financeiras</text>
+
+  <rect x="416" y="106" width="110" height="36" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="471" y="121" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">Conceitos · SDK</text>
+  <text x="471" y="133" text-anchor="middle" fill="#9CA3AF" font-size="7">Documentação técnica</text>
+
+  <rect x="536" y="106" width="108" height="36" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="590" y="121" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">Conformance Tests</text>
+  <text x="590" y="133" text-anchor="middle" fill="#9CA3AF" font-size="7">Resultados de validação</text>
+
+  <!-- Arrow -->
+  <line x1="350" y1="152" x2="350" y2="168" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 2: RAG + Graph -->
+  <rect x="40" y="170" width="620" height="70" rx="10" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="188" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="700" letter-spacing="0.8">CAMADA 2 — RECUPERAÇÃO E GRAFO</text>
+
+  <rect x="56" y="194" width="172" height="36" rx="6" fill="white" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="142" y="209" text-anchor="middle" fill="#1D4ED8" font-size="8" font-weight="600">Qdrant — Vector Search</text>
+  <text x="142" y="221" text-anchor="middle" fill="#93C5FD" font-size="7">Semântica × Autoridade × Frescura</text>
+
+  <rect x="238" y="194" width="224" height="36" rx="6" fill="white" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="350" y="209" text-anchor="middle" fill="#1D4ED8" font-size="8" font-weight="600">Protocol Graph — .banzamia-graph.json</text>
+  <text x="350" y="221" text-anchor="middle" fill="#93C5FD" font-size="7">10 tipos de nó · 8 tipos de aresta · BFS multi-hop</text>
+
+  <rect x="472" y="194" width="172" height="36" rx="6" fill="white" stroke="#BFDBFE" stroke-width="1"/>
+  <text x="558" y="209" text-anchor="middle" fill="#1D4ED8" font-size="8" font-weight="600">Keyword Fallback</text>
+  <text x="558" y="221" text-anchor="middle" fill="#93C5FD" font-size="7">Activado quando score &lt; 0.45</text>
+
+  <!-- Arrow -->
+  <line x1="350" y1="240" x2="350" y2="256" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 3: Intelligence modules -->
+  <rect x="40" y="258" width="620" height="90" rx="10" fill="#FFF7F7" stroke="#990011" stroke-width="1" stroke-opacity="0.3" filter="url(#sh)"/>
+  <text x="350" y="276" text-anchor="middle" fill="#990011" font-size="9" font-weight="700" letter-spacing="0.8">CAMADA 3 — MÓDULOS DE INTELIGÊNCIA</text>
+
+  <rect x="56" y="282" width="122" height="54" rx="8" fill="#990011" filter="url(#sh)"/>
+  <text x="117" y="303" text-anchor="middle" fill="white" font-size="9" font-weight="700">Chat</text>
+  <text x="117" y="315" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Streaming · Citations</text>
+  <text x="117" y="327" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Task routing</text>
+
+  <rect x="188" y="282" width="122" height="54" rx="8" fill="#0E7490" filter="url(#sh)"/>
+  <text x="249" y="303" text-anchor="middle" fill="white" font-size="9" font-weight="700">Graph Explorer</text>
+  <text x="249" y="315" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Pesquisa interactiva</text>
+  <text x="249" y="327" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Detalhe de nó</text>
+
+  <rect x="320" y="282" width="122" height="54" rx="8" fill="#7C3AED" filter="url(#sh)"/>
+  <text x="381" y="303" text-anchor="middle" fill="white" font-size="9" font-weight="700">Research Agent</text>
+  <text x="381" y="315" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Multi-step · Multi-hop</text>
+  <text x="381" y="327" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Contradições</text>
+
+  <rect x="452" y="282" width="122" height="54" rx="8" fill="url(#goldG)" filter="url(#sh)"/>
+  <text x="513" y="303" text-anchor="middle" fill="white" font-size="9" font-weight="700">Cert. Copilot</text>
+  <text x="513" y="315" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">L0–L4 · Score</text>
+  <text x="513" y="327" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7">Roadmap</text>
+
+  <!-- Arrow -->
+  <line x1="350" y1="348" x2="350" y2="364" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Layer 4: Trust Layer -->
+  <rect x="40" y="366" width="620" height="60" rx="10" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="384" text-anchor="middle" fill="#166534" font-size="9" font-weight="700" letter-spacing="0.8">CAMADA 4 — CONFIANÇA E VERIFICABILIDADE</text>
+
+  <rect x="56" y="390" width="130" height="28" rx="6" fill="white" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="121" y="408" text-anchor="middle" fill="#15803D" font-size="8" font-weight="600">Quality Dashboard</text>
+
+  <rect x="196" y="390" width="130" height="28" rx="6" fill="white" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="261" y="408" text-anchor="middle" fill="#15803D" font-size="8" font-weight="600">Benchmark Suite</text>
+
+  <rect x="336" y="390" width="130" height="28" rx="6" fill="white" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="401" y="408" text-anchor="middle" fill="#15803D" font-size="8" font-weight="600">Adversarial Eval</text>
+
+  <rect x="476" y="390" width="168" height="28" rx="6" fill="white" stroke="#BBF7D0" stroke-width="1"/>
+  <text x="560" y="408" text-anchor="middle" fill="#15803D" font-size="8" font-weight="600">Tool-Verified Answers</text>
+
+  <!-- Bottom label -->
+  <text x="350" y="472" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Ecosystem Intelligence Layer · banzami.org</text>
+
+  <!-- Tagline -->
+  <text x="350" y="488" text-anchor="middle" fill="#C89B3C" font-size="8" font-weight="600">Tools determine truth. AI explains truth.</text>
+</svg>

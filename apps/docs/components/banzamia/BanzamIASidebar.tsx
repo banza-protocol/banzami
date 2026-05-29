@@ -94,6 +94,51 @@ const MODULES: Array<{ id: ModuleId; label: string; icon: React.ReactNode; liveO
       </>
     ),
   },
+  {
+    id: 'graph-explorer',
+    label: 'Protocol Graph',
+    icon: (
+      <>
+        <circle cx="4" cy="8" r="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <circle cx="12" cy="4" r="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <circle cx="12" cy="12" r="2" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <line x1="5.8" y1="7" x2="10.2" y2="4.8" stroke="currentColor" strokeWidth="1.5"/>
+        <line x1="5.8" y1="9" x2="10.2" y2="11.2" stroke="currentColor" strokeWidth="1.5"/>
+      </>
+    ),
+  },
+  {
+    id: 'research',
+    label: 'Protocol Research',
+    icon: (
+      <>
+        <circle cx="7" cy="6" r="3.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M10 9l3.5 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+        <path d="M3 13h4M3 11h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+      </>
+    ),
+  },
+  {
+    id: 'certification-copilot',
+    label: 'Cert. Copilot',
+    icon: (
+      <>
+        <path d="M8 2L4 4v4c0 3 1.8 5.7 4 6.5C10.2 13.7 12 11 12 8V4L8 2z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" fill="none"/>
+        <path d="M6 8l1.5 1.5L10 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+      </>
+    ),
+  },
+  {
+    id: 'quality',
+    label: 'Quality Dashboard',
+    icon: (
+      <>
+        <rect x="2" y="10" width="3" height="4" rx="0.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <rect x="6.5" y="6" width="3" height="8" rx="0.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <rect x="11" y="2" width="3" height="12" rx="0.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+      </>
+    ),
+  },
 ]
 
 export function BanzamIASidebar({ active, onSelect, mode }: Props) {

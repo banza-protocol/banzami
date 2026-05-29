@@ -258,6 +258,192 @@ export async function getSystemStatus(): Promise<SystemStatus> {
   return unavailable
 }
 
+// ─── Protocol Graph ───────────────────────────────────────────────────────────
+
+export interface GraphNodeClient {
+  id: string
+  type: string
+  title: string
+  path: string
+  status: string
+  summary: string
+  authority: number
+}
+
+export interface GraphEdgeClient {
+  from: string
+  to: string
+  relationship: string
+  reason?: string
+}
+
+export interface GraphNeighbourClient {
+  node: GraphNodeClient
+  relationship: string
+  direction: 'outbound' | 'inbound'
+}
+
+export interface GraphStatsResponse {
+  node_count: number
+  edge_count: number
+  indexed_at: string
+  nodes_by_type: Record<string, number>
+  edges_by_relationship: Record<string, number>
+}
+
+export interface GraphNodeResponse {
+  node: GraphNodeClient
+  neighbours: GraphNeighbourClient[]
+}
+
+export interface GraphSearchResponse {
+  query: string
+  count: number
+  nodes: GraphNodeClient[]
+}
+
+export interface GraphRelatedResponse {
+  node: GraphNodeClient
+  depth: number
+  related_count: number
+  related: GraphNodeClient[]
+}
+
+async function get<T>(path: string): Promise<T> {
+  const res = await fetch(`${BANZAMIA_API_URL}${path}`, { cache: 'no-store' })
+  if (!res.ok) throw new Error(`BanzamIA API ${path}: ${res.status}`)
+  return res.json() as Promise<T>
+}
+
+export async function getGraphStats(): Promise<GraphStatsResponse | null> {
+  if (!isLiveMode) return _demoGraphStats()
+  try { return await get<GraphStatsResponse>('/graph/stats') }
+  catch { return _demoGraphStats() }
+}
+
+export async function getGraphNode(id: string): Promise<GraphNodeResponse | null> {
+  if (!isLiveMode) return _demoGraphNode(id)
+  try { return await get<GraphNodeResponse>(`/graph/node/${encodeURIComponent(id)}`) }
+  catch { return _demoGraphNode(id) }
+}
+
+export async function searchGraph(q: string): Promise<GraphSearchResponse> {
+  if (!isLiveMode) return _demoGraphSearch(q)
+  try { return await get<GraphSearchResponse>(`/graph/search?q=${encodeURIComponent(q)}`) }
+  catch { return _demoGraphSearch(q) }
+}
+
+export async function getGraphRelated(id: string, depth = 2): Promise<GraphRelatedResponse | null> {
+  if (!isLiveMode) return null
+  try { return await get<GraphRelatedResponse>(`/graph/related/${encodeURIComponent(id)}?depth=${depth}`) }
+  catch { return null }
+}
+
+// ─── Protocol Research ────────────────────────────────────────────────────────
+
+export interface ResearchStep {
+  step: number
+  type: 'plan' | 'retrieval' | 'graph' | 'tool' | 'synthesis'
+  description: string
+  sources_found?: number
+  nodes_found?: number
+  duration_ms?: number
+}
+
+export interface ResearchEvidence {
+  source_path: string
+  source_type: string
+  title: string
+  excerpt: string
+  authority: number
+  score: number
+}
+
+export interface ResearchReport {
+  question: string
+  answer: string
+  steps: ResearchStep[]
+  evidence: ResearchEvidence[]
+  graph_nodes: Array<{ id: string; title: string; type: string }>
+  relationship_chains: string[]
+  contradictions: Array<{ sources: string[]; topic: string; description: string }>
+  authority_summary: { highest: number; avg: number; sources_used: number }
+  research_quality: 'high' | 'medium' | 'low'
+  model: string
+  duration_ms: number
+}
+
+export async function researchQuestion(question: string): Promise<ResearchReport> {
+  if (!isLiveMode) return _demoResearch(question)
+  try { return await post<ResearchReport>('/research', { question }) }
+  catch { return _demoResearch(question) }
+}
+
+// ─── Certification Copilot ────────────────────────────────────────────────────
+
+export interface LevelRequirement {
+  id: string
+  description: string
+  rfc?: string
+  adr?: string
+  capability?: string
+}
+
+export interface LevelStatus {
+  level: number
+  name: string
+  status: 'achieved' | 'partial' | 'blocked'
+  missing: LevelRequirement[]
+  achieved_count: number
+  total_count: number
+}
+
+export interface CopilotResult {
+  current_level: number
+  target_level: number
+  readiness_score: number
+  level_statuses: LevelStatus[]
+  missing_for_target: LevelRequirement[]
+  next_actions: string[]
+  roadmap: Array<{ from_level: number; to_level: number; steps: string[]; estimated_effort: string }>
+  certification_ready: boolean
+  blocking_issues: string[]
+}
+
+export async function certificationCopilot(input: {
+  manifest?: Record<string, unknown>
+  capabilities?: string[]
+  conformance_results?: Array<{ id: string; status: 'PASS' | 'FAIL' | 'SKIP'; level: number }>
+  target_level?: number
+}): Promise<CopilotResult> {
+  if (!isLiveMode) return _demoCopilot(input)
+  try { return await post<CopilotResult>('/certification/copilot', input) }
+  catch { return _demoCopilot(input) }
+}
+
+// ─── RAG Stats ────────────────────────────────────────────────────────────────
+
+export interface RagStatsResponse {
+  generated_at: string
+  knowledge_base: { documents_indexed: number; chunks_indexed: number; last_indexed_at: string | null; embedding_provider: string; embedding_dims: number }
+  query_analytics: {
+    total_queries: number
+    avg_latency_ms: number
+    weak_retrieval_rate: number
+    avg_citations: number
+    avg_top_authority: number
+    task_type_distribution: Record<string, number>
+    top_sources: Array<{ source_type: string; count: number }>
+  } | null
+  protocol_graph: GraphStatsResponse | null
+}
+
+export async function getRagStats(): Promise<RagStatsResponse> {
+  if (!isLiveMode) return _demoRagStats()
+  try { return await get<RagStatsResponse>('/rag/stats') }
+  catch { return _demoRagStats() }
+}
+
 // ─── Demo mode ────────────────────────────────────────────────────────────────
 
 const DEMO_RESPONSES: Array<{ pattern: RegExp; model: string; taskType: string; text: string; citations: Citation[] }> = [
@@ -575,4 +761,186 @@ function _demoKnowledgeSearch(query: string): KnowledgeResult[] {
     { id: 'protocol-transfer', title: 'Transfer Protocol', path: 'contexts/banzami-protocol.md',
       type: 'protocol', snippet: `A transfer moves value between wallets matching query: "${query}".`, score: 0.85 },
   ]
+}
+
+// ─── Demo: Graph ──────────────────────────────────────────────────────────────
+
+const DEMO_NODES: GraphNodeClient[] = [
+  { id: 'rfc:RFC-0001', type: 'rfc', title: 'RFC-0001 — Wallet Model', path: 'docs/rfc/RFC-0001.md', status: 'accepted', summary: 'Defines the wallet entity, balance model, ownership rules and currency constraints.', authority: 0.95 },
+  { id: 'rfc:RFC-0002', type: 'rfc', title: 'RFC-0002 — Transfer Protocol', path: 'docs/rfc/RFC-0002.md', status: 'accepted', summary: 'Defines the transfer entity, gross/net/fee decomposition, idempotency, and state machine.', authority: 0.95 },
+  { id: 'rfc:RFC-0003', type: 'rfc', title: 'RFC-0003 — Ledger Invariants', path: 'docs/rfc/RFC-0003.md', status: 'accepted', summary: 'Formalises INV-LEDGER-001 through INV-LEDGER-003: double-entry, non-negative balances, immutability.', authority: 0.95 },
+  { id: 'rfc:RFC-0004', type: 'rfc', title: 'RFC-0004 — QR Payment Protocol', path: 'docs/rfc/RFC-0004.md', status: 'accepted', summary: 'Defines QR payment lifecycle: creation, scan, payment, expiry.', authority: 0.95 },
+  { id: 'rfc:RFC-0005', type: 'rfc', title: 'RFC-0005 — Settlement Model', path: 'docs/rfc/RFC-0005.md', status: 'accepted', summary: 'Defines settlement batches, batch assignment rules, and INV-STL-001/INV-STL-002.', authority: 0.95 },
+  { id: 'rfc:RFC-0006', type: 'rfc', title: 'RFC-0006 — Operator Manifest', path: 'docs/rfc/RFC-0006.md', status: 'accepted', summary: 'Defines /.well-known/banzami/operator.json schema and sandbox safety invariants.', authority: 0.95 },
+  { id: 'rfc:RFC-0007', type: 'rfc', title: 'RFC-0007 — Trace Model', path: 'docs/rfc/RFC-0007.md', status: 'accepted', summary: 'Defines trace_id propagation rules and INV-TRACE-001. Required for Level 2.', authority: 0.95 },
+  { id: 'rfc:RFC-0008', type: 'rfc', title: 'RFC-0008 — Federation Protocol', path: 'docs/rfc/RFC-0008.md', status: 'draft', summary: 'Defines inter-operator communication, trust anchors, and capability negotiation for Level 3.', authority: 0.50 },
+  { id: 'adr:ADR-001', type: 'adr', title: 'ADR-001 — Minor Units Only', path: 'docs/adr/ADR-001.md', status: 'accepted', summary: 'All monetary amounts stored as integers in minor units. No floating-point in financial calculations.', authority: 0.90 },
+  { id: 'adr:ADR-002', type: 'adr', title: 'ADR-002 — Double-Entry Ledger', path: 'docs/adr/ADR-002.md', status: 'accepted', summary: 'Every transfer produces exactly one DEBIT and one CREDIT of equal amount.', authority: 0.90 },
+  { id: 'adr:ADR-006', type: 'adr', title: 'ADR-006 — QR Code Format', path: 'docs/adr/ADR-006.md', status: 'accepted', summary: 'BANZAMI: prefix for production QR codes. BANZAMI-SBX: for sandbox. Never mix.', authority: 0.90 },
+  { id: 'adr:ADR-012', type: 'adr', title: 'ADR-012 — Certification Architecture', path: 'docs/adr/ADR-012.md', status: 'accepted', summary: 'Certification is always a tool result, never LLM inference. Deterministic-first principle.', authority: 0.90 },
+  { id: 'openapi:transfers', type: 'openapi', title: 'Transfers API Contract', path: 'contracts/openapi/transfers.yaml', status: 'active', summary: 'OpenAPI specification for transfer creation, retrieval, and state management.', authority: 0.90 },
+  { id: 'openapi:wallets', type: 'openapi', title: 'Wallets API Contract', path: 'contracts/openapi/wallets.yaml', status: 'active', summary: 'OpenAPI specification for wallet creation, balance queries, and ownership.', authority: 0.90 },
+  { id: 'vector:transfers', type: 'conformance_vector', title: 'Transfer Conformance Vectors', path: 'conformance/vectors/transfers.yaml', status: 'active', summary: 'Test vectors for transfer protocol conformance including invariant checks.', authority: 0.85 },
+  { id: 'vector:ledger-postings', type: 'conformance_vector', title: 'Ledger Posting Vectors', path: 'conformance/vectors/ledger-postings.yaml', status: 'active', summary: 'Test vectors for double-entry ledger invariant verification.', authority: 0.85 },
+  { id: 'certification:conformance', type: 'certification_rule', title: 'Conformance Certification Rules', path: 'docs/conformance.md', status: 'active', summary: 'Defines the conformance test suite structure and level progression rules.', authority: 0.85 },
+  { id: 'glossary:main', type: 'glossary_term', title: 'Protocol Glossary', path: 'docs/glossary.md', status: 'active', summary: 'Canonical definitions for all Banzami protocol terms.', authority: 0.80 },
+]
+
+const DEMO_EDGES: Array<{ from: string; to: string; relationship: string }> = [
+  { from: 'adr:ADR-002', to: 'rfc:RFC-0002', relationship: 'IMPLEMENTS' },
+  { from: 'adr:ADR-002', to: 'rfc:RFC-0003', relationship: 'IMPLEMENTS' },
+  { from: 'adr:ADR-001', to: 'rfc:RFC-0001', relationship: 'IMPLEMENTS' },
+  { from: 'adr:ADR-006', to: 'rfc:RFC-0004', relationship: 'IMPLEMENTS' },
+  { from: 'adr:ADR-012', to: 'rfc:RFC-0006', relationship: 'IMPLEMENTS' },
+  { from: 'vector:transfers', to: 'rfc:RFC-0002', relationship: 'VALIDATES' },
+  { from: 'vector:ledger-postings', to: 'adr:ADR-002', relationship: 'VALIDATES' },
+  { from: 'rfc:RFC-0004', to: 'rfc:RFC-0001', relationship: 'REQUIRES' },
+  { from: 'rfc:RFC-0004', to: 'rfc:RFC-0002', relationship: 'REQUIRES' },
+  { from: 'rfc:RFC-0005', to: 'rfc:RFC-0002', relationship: 'REQUIRES' },
+  { from: 'rfc:RFC-0007', to: 'rfc:RFC-0002', relationship: 'REQUIRES' },
+  { from: 'rfc:RFC-0008', to: 'rfc:RFC-0006', relationship: 'REQUIRES' },
+  { from: 'openapi:transfers', to: 'rfc:RFC-0002', relationship: 'REFERENCES' },
+  { from: 'openapi:wallets', to: 'rfc:RFC-0001', relationship: 'REFERENCES' },
+  { from: 'glossary:main', to: 'rfc:RFC-0001', relationship: 'EXPLAINS' },
+  { from: 'certification:conformance', to: 'adr:ADR-012', relationship: 'REQUIRES' },
+]
+
+function _demoGraphStats(): GraphStatsResponse {
+  const nodesByType: Record<string, number> = {}
+  const edgesByRel: Record<string, number> = {}
+  for (const n of DEMO_NODES) nodesByType[n.type] = (nodesByType[n.type] ?? 0) + 1
+  for (const e of DEMO_EDGES) edgesByRel[e.relationship] = (edgesByRel[e.relationship] ?? 0) + 1
+  return { node_count: DEMO_NODES.length, edge_count: DEMO_EDGES.length, indexed_at: '2026-05-29T00:00:00Z', nodes_by_type: nodesByType, edges_by_relationship: edgesByRel }
+}
+
+function _demoGraphNode(id: string): GraphNodeResponse | null {
+  const node = DEMO_NODES.find(n => n.id === id || n.path.includes(id))
+  if (!node) return null
+  const neighbours: GraphNeighbourClient[] = DEMO_EDGES
+    .filter(e => e.from === node.id || e.to === node.id)
+    .map(e => {
+      const isOut = e.from === node.id
+      const otherId = isOut ? e.to : e.from
+      const other = DEMO_NODES.find(n => n.id === otherId)
+      if (!other) return null
+      return { node: other, relationship: e.relationship, direction: isOut ? 'outbound' : 'inbound' } as GraphNeighbourClient
+    })
+    .filter((n): n is GraphNeighbourClient => n !== null)
+  return { node, neighbours }
+}
+
+function _demoGraphSearch(q: string): GraphSearchResponse {
+  const lower = q.toLowerCase()
+  const nodes = DEMO_NODES.filter(n =>
+    n.id.toLowerCase().includes(lower) ||
+    n.title.toLowerCase().includes(lower) ||
+    n.summary.toLowerCase().includes(lower)
+  )
+  return { query: q, count: nodes.length, nodes: nodes.slice(0, 10) }
+}
+
+// ─── Demo: Research ───────────────────────────────────────────────────────────
+
+function _demoResearch(question: string): ResearchReport {
+  return {
+    question,
+    answer: `**Protocol Research Report — Demo Mode**
+
+This is a demonstration of BanzamIA's Agentic Protocol Research capability.
+
+In **Live API mode**, the Research Agent:
+
+1. **Plans** a multi-step research strategy based on your question
+2. **Retrieves** relevant protocol documents from the Qdrant knowledge base
+3. **Traverses** the Protocol Graph to find related RFCs, ADRs, and invariants
+4. **Executes** secondary retrievals on graph-discovered topics
+5. **Synthesises** all evidence into a grounded, cited protocol report
+
+**Key capabilities:**
+
+- Multi-hop retrieval across the full protocol knowledge base
+- Automatic relationship chain discovery (e.g. RFC-0004 → ADR-006 → INV-STL-001)
+- Source authority ranking (reference 1.00 → draft_rfc 0.50)
+- Contradiction detection across sources
+- Protocol truth enforcement: tools determine truth, AI explains truth
+
+Connect Live API to enable full agentic research.`,
+    steps: [
+      { step: 1, type: 'plan', description: `Research plan for: "${question.slice(0, 60)}"` },
+      { step: 2, type: 'retrieval', description: 'Primary vector search', sources_found: 8 },
+      { step: 3, type: 'graph', description: 'Graph traversal — 12 related nodes', nodes_found: 12 },
+      { step: 4, type: 'retrieval', description: 'Secondary retrieval on graph-discovered topics', sources_found: 5 },
+      { step: 5, type: 'synthesis', description: 'Synthesis of 13 evidence sources' },
+    ],
+    evidence: [
+      { source_path: 'docs/rfc/RFC-0002.md', source_type: 'accepted_rfc', title: 'RFC-0002 — Transfer Protocol', excerpt: 'Defines the transfer entity, gross/net/fee decomposition, idempotency, and state machine.', authority: 0.95, score: 0.91 },
+      { source_path: 'docs/adr/ADR-002.md', source_type: 'accepted_adr', title: 'ADR-002 — Double-Entry Ledger', excerpt: 'Every transfer produces exactly one DEBIT and one CREDIT of equal amount.', authority: 0.90, score: 0.87 },
+    ],
+    graph_nodes: [
+      { id: 'rfc:RFC-0002', title: 'RFC-0002 — Transfer Protocol', type: 'rfc' },
+      { id: 'adr:ADR-002', title: 'ADR-002 — Double-Entry Ledger', type: 'adr' },
+    ],
+    relationship_chains: ['rfc:RFC-0002 —[REQUIRES]→ rfc:RFC-0001', 'adr:ADR-002 —[IMPLEMENTS]→ rfc:RFC-0002'],
+    contradictions: [],
+    authority_summary: { highest: 0.95, avg: 0.88, sources_used: 8 },
+    research_quality: 'high',
+    model: 'demo',
+    duration_ms: 1240,
+  }
+}
+
+// ─── Demo: Copilot ────────────────────────────────────────────────────────────
+
+function _demoCopilot(input: { target_level?: number }): CopilotResult {
+  const target = input.target_level ?? 2
+  return {
+    current_level: 1,
+    target_level: target,
+    readiness_score: 62,
+    level_statuses: [
+      { level: 0, name: 'Reference-compatible', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
+      { level: 1, name: 'Protocol-compatible', status: 'achieved', missing: [], achieved_count: 4, total_count: 4 },
+      { level: 2, name: 'Trace-compatible', status: 'partial', missing: [
+        { id: 'L2-001', description: 'GET /v1/traces/:trace_id endpoint', rfc: 'RFC-0007' },
+        { id: 'L2-002', description: 'INV-TRACE-001: trace_id propagation', rfc: 'RFC-0007' },
+      ], achieved_count: 1, total_count: 3 },
+      { level: 3, name: 'Federation-ready', status: 'blocked', missing: [
+        { id: 'L3-001', description: 'Operator manifest /.well-known/banzami/operator.json', rfc: 'RFC-0006' },
+        { id: 'L3-002', description: 'Federation discovery endpoint', rfc: 'RFC-0008' },
+        { id: 'L3-003', description: 'Cross-operator event exchange', rfc: 'RFC-0008' },
+      ], achieved_count: 0, total_count: 3 },
+      { level: 4, name: 'Settlement-compatible', status: 'blocked', missing: [
+        { id: 'L4-001', description: 'Settlement batch lifecycle', rfc: 'RFC-0005' },
+        { id: 'L4-002', description: 'INV-STL-001: net + fee = gross', rfc: 'RFC-0005' },
+      ], achieved_count: 0, total_count: 2 },
+    ],
+    missing_for_target: [
+      { id: 'L2-001', description: 'GET /v1/traces/:trace_id endpoint', rfc: 'RFC-0007' },
+      { id: 'L2-002', description: 'INV-TRACE-001: trace_id propagates to all flow entities', rfc: 'RFC-0007' },
+    ],
+    next_actions: [
+      'Implement GET /v1/traces/:trace_id endpoint (RFC-0007)',
+      'Propagate trace_id to all flow entities — QR, Transfer, Ledger entries (INV-TRACE-001)',
+      'Add webhook delivery with correlation_id',
+      'Run Level 2 conformance suite and verify all checks pass',
+    ],
+    roadmap: [
+      { from_level: 1, to_level: 2, steps: ['Implement traces endpoint', 'Propagate trace_id', 'Add webhooks', 'Run Level 2 suite'], estimated_effort: '1–2 weeks' },
+      { from_level: 2, to_level: 3, steps: ['Publish operator.json manifest', 'Implement federation discovery', 'Add cross-operator events', 'Network review'], estimated_effort: '3–6 weeks' },
+      { from_level: 3, to_level: 4, steps: ['Settlement batch lifecycle', 'Enforce INV-STL-001', 'CI invariant checks', 'Level 4 suite'], estimated_effort: '2–4 weeks' },
+    ],
+    certification_ready: false,
+    blocking_issues: [],
+  }
+}
+
+// ─── Demo: RAG Stats ──────────────────────────────────────────────────────────
+
+function _demoRagStats(): RagStatsResponse {
+  return {
+    generated_at: new Date().toISOString(),
+    knowledge_base: { documents_indexed: 0, chunks_indexed: 0, last_indexed_at: null, embedding_provider: 'mock', embedding_dims: 1024 },
+    query_analytics: null,
+    protocol_graph: null,
+  }
 }

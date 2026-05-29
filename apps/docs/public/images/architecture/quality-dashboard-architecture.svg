@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 480" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <rect width="700" height="480" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="20" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">Quality Dashboard — Trust Through Measurement</text>
+  <text x="350" y="59" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">MEÇA-NOS. NÃO CONFIE APENAS EM NÓS.</text>
+
+  <!-- Manifesto box -->
+  <rect x="40" y="82" width="620" height="36" rx="8" fill="#FFF7F7" stroke="#990011" stroke-width="1" stroke-opacity="0.3"/>
+  <text x="350" y="99" text-anchor="middle" fill="#990011" font-size="10" font-weight="600">
+    "Não pedimos confiança. Mostramos medições. Cada número aqui é derivado de operações reais."
+  </text>
+  <text x="350" y="112" text-anchor="middle" fill="#9CA3AF" font-size="8">Latência de recuperação · Autoridade de citações · Cobertura de grafo · Taxa de recuperação forte</text>
+
+  <!-- Data sources (left column) -->
+  <text x="155" y="140" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.8">FONTES DE DADOS</text>
+
+  <rect x="40" y="148" width="230" height="36" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="155" y="163" text-anchor="middle" fill="#1E293B" font-size="9" font-weight="600">Qdrant — Colecção de chunks</text>
+  <text x="155" y="176" text-anchor="middle" fill="#9CA3AF" font-size="8">documents_indexed · chunks_indexed · last_indexed</text>
+
+  <rect x="40" y="190" width="230" height="36" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="155" y="205" text-anchor="middle" fill="#1E293B" font-size="9" font-weight="600">Analytics Tracker — In-memory</text>
+  <text x="155" y="218" text-anchor="middle" fill="#9CA3AF" font-size="8">latência · task_type · weak_retrieval · authority</text>
+
+  <rect x="40" y="232" width="230" height="36" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="155" y="247" text-anchor="middle" fill="#1E293B" font-size="9" font-weight="600">Protocol Graph — .banzamia-graph.json</text>
+  <text x="155" y="260" text-anchor="middle" fill="#9CA3AF" font-size="8">node_count · edge_count · by_type</text>
+
+  <rect x="40" y="274" width="230" height="36" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="155" y="289" text-anchor="middle" fill="#1E293B" font-size="9" font-weight="600">Benchmark Suite — rag:eval</text>
+  <text x="155" y="302" text-anchor="middle" fill="#9CA3AF" font-size="8">MRR · Precision@K · Recall@K · citation authority</text>
+
+  <!-- Arrow to aggregator -->
+  <line x1="270" y1="226" x2="310" y2="226" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Aggregator -->
+  <rect x="312" y="192" width="176" height="68" rx="8" fill="#990011" filter="url(#sh)"/>
+  <text x="400" y="215" text-anchor="middle" fill="white" font-size="10" font-weight="700">GET /rag/stats</text>
+  <text x="400" y="229" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">collectionInfo()</text>
+  <text x="400" y="241" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">getAnalyticsReport()</text>
+  <text x="400" y="253" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">graphStats(graph)</text>
+
+  <!-- Arrow to dashboard -->
+  <line x1="488" y1="226" x2="528" y2="226" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Dashboard panels -->
+  <text x="600" y="140" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.8">DASHBOARD</text>
+
+  <rect x="530" y="148" width="130" height="28" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="595" y="166" text-anchor="middle" fill="#64748B" font-size="9">Knowledge Base</text>
+
+  <rect x="530" y="180" width="130" height="28" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="595" y="198" text-anchor="middle" fill="#64748B" font-size="9">Protocol Graph</text>
+
+  <rect x="530" y="212" width="130" height="28" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="595" y="230" text-anchor="middle" fill="#64748B" font-size="9">Query Analytics</text>
+
+  <rect x="530" y="244" width="130" height="28" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="595" y="262" text-anchor="middle" fill="#64748B" font-size="9">Retrieval Quality</text>
+
+  <rect x="530" y="276" width="130" height="28" rx="6" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="595" y="294" text-anchor="middle" fill="#64748B" font-size="9">Benchmark Suite</text>
+
+  <!-- Metric examples (bottom) -->
+  <text x="350" y="334" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.8">MÉTRICAS PÚBLICAS</text>
+
+  <rect x="40" y="342" width="148" height="60" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="114" y="360" text-anchor="middle" fill="#9CA3AF" font-size="8">Docs indexados</text>
+  <text x="114" y="380" text-anchor="middle" fill="#1E293B" font-size="20" font-weight="700">142</text>
+  <rect x="50" y="390" width="128" height="4" rx="2" fill="#F1F5F9"/>
+  <rect x="50" y="390" width="128" height="4" rx="2" fill="#C89B3C"/>
+
+  <rect x="196" y="342" width="148" height="60" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="270" y="360" text-anchor="middle" fill="#9CA3AF" font-size="8">Recuperação forte</text>
+  <text x="270" y="380" text-anchor="middle" fill="#15803D" font-size="20" font-weight="700">84%</text>
+  <rect x="206" y="390" width="128" height="4" rx="2" fill="#F1F5F9"/>
+  <rect x="206" y="390" width="107" height="4" rx="2" fill="#15803D"/>
+
+  <rect x="352" y="342" width="148" height="60" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="426" y="360" text-anchor="middle" fill="#9CA3AF" font-size="8">Autoridade média</text>
+  <text x="426" y="380" text-anchor="middle" fill="#990011" font-size="20" font-weight="700">0.82</text>
+  <rect x="362" y="390" width="128" height="4" rx="2" fill="#F1F5F9"/>
+  <rect x="362" y="390" width="105" height="4" rx="2" fill="#990011"/>
+
+  <rect x="508" y="342" width="152" height="60" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="584" y="360" text-anchor="middle" fill="#9CA3AF" font-size="8">Latência média</text>
+  <text x="584" y="380" text-anchor="middle" fill="#1E293B" font-size="20" font-weight="700">312 ms</text>
+  <rect x="518" y="390" width="132" height="4" rx="2" fill="#F1F5F9"/>
+  <rect x="518" y="390" width="52" height="4" rx="2" fill="#2A3A8C"/>
+
+  <!-- Bottom label -->
+  <text x="350" y="462" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Quality Dashboard · banzami.org</text>
+</svg>

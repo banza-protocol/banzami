@@ -14,6 +14,10 @@ import { RFCExplorerModule } from './modules/RFCExplorerModule'
 import { KnowledgeModule } from './modules/KnowledgeModule'
 import { StatusModule } from './modules/StatusModule'
 import { OperatorBuilderModule } from './modules/OperatorBuilderModule'
+import { GraphExplorerModule } from './modules/GraphExplorerModule'
+import { ResearchModule } from './modules/ResearchModule'
+import { CertificationCopilotModule } from './modules/CertificationCopilotModule'
+import { QualityModule } from './modules/QualityModule'
 
 export type ModuleId =
   | 'chat'
@@ -25,17 +29,25 @@ export type ModuleId =
   | 'rfc-explorer'
   | 'knowledge'
   | 'status'
+  | 'graph-explorer'
+  | 'research'
+  | 'certification-copilot'
+  | 'quality'
 
 const MODULE_TITLES: Record<ModuleId, string> = {
-  'chat':             'Chat',
-  'operator-builder': 'Operator Builder',
-  'conformance':      'Conformance',
-  'manifest':         'Manifest Validator',
-  'trace':            'Trace Explainer',
-  'sdk':              'SDK Assistant',
-  'rfc-explorer':     'RFC / ADR Explorer',
-  'knowledge':        'Knowledge Search',
-  'status':           'System Status',
+  'chat':                  'Chat',
+  'operator-builder':      'Operator Builder',
+  'conformance':           'Conformance',
+  'manifest':              'Manifest Validator',
+  'trace':                 'Trace Explainer',
+  'sdk':                   'SDK Assistant',
+  'rfc-explorer':          'RFC / ADR Explorer',
+  'knowledge':             'Knowledge Search',
+  'status':                'System Status',
+  'graph-explorer':        'Protocol Graph',
+  'research':              'Protocol Research',
+  'certification-copilot': 'Certification Copilot',
+  'quality':               'Quality Dashboard',
 }
 
 export function BanzamIAApp() {
@@ -68,14 +80,18 @@ export function BanzamIAApp() {
             autoSubmit={autoSubmit}
           />
         )
-      case 'operator-builder': return <OperatorBuilderModule />
-      case 'conformance':      return <ConformanceModule mode={mode} />
-      case 'manifest':         return <ManifestModule />
-      case 'trace':            return <TraceModule />
-      case 'sdk':              return <SDKModule />
-      case 'rfc-explorer':     return <RFCExplorerModule />
-      case 'knowledge':        return <KnowledgeModule />
-      case 'status':           return <StatusModule />
+      case 'operator-builder':      return <OperatorBuilderModule />
+      case 'conformance':           return <ConformanceModule mode={mode} />
+      case 'manifest':              return <ManifestModule />
+      case 'trace':                 return <TraceModule />
+      case 'sdk':                   return <SDKModule />
+      case 'rfc-explorer':          return <RFCExplorerModule />
+      case 'knowledge':             return <KnowledgeModule />
+      case 'status':                return <StatusModule />
+      case 'graph-explorer':        return <GraphExplorerModule />
+      case 'research':              return <ResearchModule />
+      case 'certification-copilot': return <CertificationCopilotModule />
+      case 'quality':               return <QualityModule />
     }
   }
 

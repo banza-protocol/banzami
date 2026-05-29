@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 480" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="480" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Protocol Graph Explorer</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">GRAFO DE PROTOCOLO — VISUALIZAÇÃO INTERATIVA</text>
+
+  <!-- Left panel: search + filter -->
+  <rect x="30" y="84" width="190" height="370" rx="10" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="125" y="104" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.8">PAINEL DE PESQUISA</text>
+  <!-- Search box -->
+  <rect x="42" y="110" width="166" height="24" rx="6" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="90" y="126" fill="#9CA3AF" font-size="9">Pesquisar nós…</text>
+  <circle cx="197" cy="122" r="4" fill="none" stroke="#9CA3AF" stroke-width="1.2"/>
+  <!-- Type filters -->
+  <text x="42" y="150" fill="#64748B" font-size="8" font-weight="700" letter-spacing="0.5">TIPO DE NÓ</text>
+  <!-- RFC -->
+  <rect x="42" y="156" width="50" height="16" rx="4" fill="#990011"/>
+  <text x="67" y="167" text-anchor="middle" fill="white" font-size="8" font-weight="600">RFC</text>
+  <!-- ADR -->
+  <rect x="97" y="156" width="50" height="16" rx="4" fill="#2A3A8C"/>
+  <text x="122" y="167" text-anchor="middle" fill="white" font-size="8" font-weight="600">ADR</text>
+  <!-- OAS -->
+  <rect x="152" y="156" width="54" height="16" rx="4" fill="#0E7490"/>
+  <text x="179" y="167" text-anchor="middle" fill="white" font-size="8" font-weight="600">OPENAPI</text>
+  <!-- INVARIANT -->
+  <rect x="42" y="177" width="64" height="16" rx="4" fill="#7C3AED"/>
+  <text x="74" y="188" text-anchor="middle" fill="white" font-size="8" font-weight="600">INVARIANT</text>
+  <!-- CONCEPT -->
+  <rect x="111" y="177" width="57" height="16" rx="4" fill="#C89B3C"/>
+  <text x="139" y="188" text-anchor="middle" fill="white" font-size="8" font-weight="600">CONCEPT</text>
+  <!-- Node list -->
+  <text x="42" y="210" fill="#64748B" font-size="8" font-weight="700" letter-spacing="0.5">NÓS ENCONTRADOS — 142</text>
+  <!-- list items -->
+  <rect x="42" y="216" width="166" height="28" rx="6" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <rect x="48" y="221" width="8" height="8" rx="2" fill="#990011"/>
+  <text x="62" y="230" fill="#1E293B" font-size="9" font-weight="600">RFC-001</text>
+  <text x="62" y="240" fill="#9CA3AF" font-size="8">Banza Protocol Spec</text>
+
+  <rect x="42" y="248" width="166" height="28" rx="6" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <rect x="48" y="253" width="8" height="8" rx="2" fill="#2A3A8C"/>
+  <text x="62" y="262" fill="#1E293B" font-size="9" font-weight="600">ADR-016</text>
+  <text x="62" y="272" fill="#9CA3AF" font-size="8">Brand Architecture</text>
+
+  <rect x="42" y="280" width="166" height="28" rx="6" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <rect x="48" y="285" width="8" height="8" rx="2" fill="#0E7490"/>
+  <text x="62" y="294" fill="#1E293B" font-size="9" font-weight="600">OAS-TRANSFER</text>
+  <text x="62" y="304" fill="#9CA3AF" font-size="8">Transfer Endpoint Spec</text>
+
+  <rect x="42" y="312" width="166" height="28" rx="6" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <rect x="48" y="317" width="8" height="8" rx="2" fill="#7C3AED"/>
+  <text x="62" y="326" fill="#1E293B" font-size="9" font-weight="600">INV-LEDGER-001</text>
+  <text x="62" y="336" fill="#9CA3AF" font-size="8">Conservation invariant</text>
+
+  <text x="125" y="360" text-anchor="middle" fill="#CBD5E1" font-size="8">… 138 mais</text>
+
+  <!-- Right panel: node detail -->
+  <rect x="234" y="84" width="436" height="370" rx="10" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="452" y="104" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.8">DETALHE DO NÓ SELECCIONADO</text>
+
+  <!-- Node header -->
+  <rect x="248" y="110" width="408" height="60" rx="8" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <rect x="256" y="118" width="12" height="12" rx="3" fill="#990011"/>
+  <text x="276" y="128" fill="#1E293B" font-size="12" font-weight="700">RFC-001</text>
+  <text x="276" y="141" fill="#64748B" font-size="9">Banza Protocol Specification v1.0.0</text>
+  <rect x="356" y="117" width="60" height="16" rx="4" fill="#990011"/>
+  <text x="386" y="128" text-anchor="middle" fill="white" font-size="8" font-weight="600">rfc</text>
+  <!-- Authority bar -->
+  <text x="256" y="163" fill="#9CA3AF" font-size="8">Authority</text>
+  <rect x="290" y="157" width="80" height="6" rx="3" fill="#E2D9D7"/>
+  <rect x="290" y="157" width="80" height="6" rx="3" fill="#C89B3C"/>
+  <text x="376" y="163" fill="#64748B" font-size="8">1.00</text>
+
+  <!-- Path -->
+  <text x="248" y="186" fill="#9CA3AF" font-size="8">Path:</text>
+  <text x="276" y="186" fill="#990011" font-size="8" font-family="ui-monospace, monospace">docs/rfcs/RFC-001.md</text>
+
+  <!-- Outbound relationships -->
+  <text x="248" y="206" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">REFERENCIADO POR (OUTBOUND)</text>
+  <!-- rel rows -->
+  <rect x="248" y="212" width="408" height="22" rx="4" fill="#F5F1EE"/>
+  <rect x="254" y="215" width="8" height="8" rx="2" fill="#2A3A8C"/>
+  <text x="268" y="225" fill="#1E293B" font-size="9">ADR-016</text>
+  <text x="380" y="225" fill="#9CA3AF" font-size="8">extends</text>
+  <text x="440" y="225" fill="#64748B" font-size="8">Brand Architecture</text>
+
+  <rect x="248" y="237" width="408" height="22" rx="4" fill="#F5F1EE"/>
+  <rect x="254" y="240" width="8" height="8" rx="2" fill="#0E7490"/>
+  <text x="268" y="250" fill="#1E293B" font-size="9">OAS-TRANSFER</text>
+  <text x="380" y="250" fill="#9CA3AF" font-size="8">implements</text>
+  <text x="440" y="250" fill="#64748B" font-size="8">Transfer Endpoint</text>
+
+  <rect x="248" y="262" width="408" height="22" rx="4" fill="#F5F1EE"/>
+  <rect x="254" y="265" width="8" height="8" rx="2" fill="#7C3AED"/>
+  <text x="268" y="275" fill="#1E293B" font-size="9">INV-LEDGER-001</text>
+  <text x="380" y="275" fill="#9CA3AF" font-size="8">enforces</text>
+  <text x="440" y="275" fill="#64748B" font-size="8">Conservation invariant</text>
+
+  <!-- Inbound -->
+  <text x="248" y="302" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">REFERENCIADO POR (INBOUND)</text>
+  <rect x="248" y="308" width="408" height="22" rx="4" fill="#F5F1EE"/>
+  <rect x="254" y="311" width="8" height="8" rx="2" fill="#C89B3C"/>
+  <text x="268" y="321" fill="#1E293B" font-size="9">CONCEPT-P2P</text>
+  <text x="380" y="321" fill="#9CA3AF" font-size="8">depends_on</text>
+  <text x="440" y="321" fill="#64748B" font-size="8">P2P Transfer concept</text>
+
+  <!-- Legend -->
+  <text x="248" y="368" fill="#9CA3AF" font-size="8" font-weight="700" letter-spacing="0.5">TIPOS DE RELAÇÃO</text>
+  <text x="248" y="381" fill="#9CA3AF" font-size="8">extends · implements · enforces · depends_on · documents · validates · references · supersedes</text>
+
+  <!-- Graph stats footer -->
+  <rect x="248" y="394" width="408" height="44" rx="8" fill="#F5F1EE" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="328" y="412" text-anchor="middle" fill="#64748B" font-size="11" font-weight="700">142</text>
+  <text x="328" y="426" text-anchor="middle" fill="#9CA3AF" font-size="8">Nós</text>
+  <line x1="380" y1="405" x2="380" y2="432" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="432" y="412" text-anchor="middle" fill="#64748B" font-size="11" font-weight="700">387</text>
+  <text x="432" y="426" text-anchor="middle" fill="#9CA3AF" font-size="8">Arestas</text>
+  <line x1="484" y1="405" x2="484" y2="432" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="544" y="412" text-anchor="middle" fill="#C89B3C" font-size="11" font-weight="700">2.73</text>
+  <text x="544" y="426" text-anchor="middle" fill="#9CA3AF" font-size="8">Ligações / nó</text>
+
+  <!-- Bottom label -->
+  <text x="350" y="462" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Protocol Graph Explorer · banzami.org</text>
+</svg>
