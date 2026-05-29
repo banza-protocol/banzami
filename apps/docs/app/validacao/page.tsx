@@ -32,7 +32,7 @@ export default function ValidacaoPage() {
           </div>
 
           <h1 className="mb-3 text-3xl font-bold tracking-tight text-bz-text sm:text-4xl">
-            Execução e Validação do Ecossistema Banzami
+            Execução e Validação do Protocolo Banza
           </h1>
 
           <p className="mb-4 text-base text-bz-muted max-w-2xl">

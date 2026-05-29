@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   title: 'Sobre o BanzAI',
   description: 'BanzAI — o Sistema Operativo do Protocolo Banza. Compreender, explicar, validar, simular, certificar e federar operadores. Ferramentas determinam a verdade. A IA explica a verdade.',
   openGraph: {
-    title: 'Sobre o BanzAI · Banzami',
+    title: 'Sobre o BanzAI · Banza',
     description: 'O Sistema Operativo do Protocolo Banza. 16 módulos — Protocol Graph, RAG, Certification Copilot, Federation Intelligence, Digital Twin, Protocol Simulator.',
     locale: 'pt_AO',
   },

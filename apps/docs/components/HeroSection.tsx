@@ -54,7 +54,7 @@ export function HeroSection({ tagline }: Props) {
 
         {/* 3 — Subheadline */}
         <p className="mx-auto mb-7 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
-          Banzami é o produto de pagamentos de Angola, construído sobre o Banza — protocolo aberto de infraestrutura financeira.
+          Banza define como o dinheiro se move digitalmente em Angola — através de operadores certificados, regras verificáveis e infraestrutura aberta.
         </p>
 
         {/* 4 — Capability tags — single row, scroll on mobile */}

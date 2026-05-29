@@ -199,15 +199,15 @@ export default function HomePage() {
           SDK-first. Integração em Kwanza.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          O Banzami é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banzami SDK oficial.
+          O Banza é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banzami SDK oficial.
         </p>
         <SDKArchitectureVisual />
         <div className="mt-8 flex flex-wrap gap-3">
-          <Link href="/banza-para-programadores" className="btn-primary">
+          <Link href="/banzami-para-programadores" className="btn-primary">
             Ver documentação de programadores
           </Link>
-          <Link href="/o-motor-de-crescimento-do-banza" className="btn-ghost">
-            O Motor de Crescimento do Banza
+          <Link href="/visao-geral-do-ecossistema" className="btn-ghost">
+            Visão geral do ecossistema
           </Link>
         </div>
       </section>

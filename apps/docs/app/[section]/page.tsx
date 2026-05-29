@@ -35,10 +35,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!section) return {}
   return {
     title: section.title,
-    description: `Banzami — §${section.number}: ${section.title}`,
+    description: `Banza — §${section.number}: ${section.title}`,
     openGraph: {
-      title: `${section.title} · Banzami`,
-      description: `Referência oficial Banzami — secção ${section.number}: ${section.title}`,
+      title: `${section.title} · Banza`,
+      description: `Referência oficial Banza — §${section.number}: ${section.title}`,
       locale: 'pt_AO',
     },
   }

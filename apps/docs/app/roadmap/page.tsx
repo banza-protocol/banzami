@@ -107,7 +107,7 @@ export default function RoadmapPage() {
         <h1 className="text-3xl font-bold text-bz-text mb-3">BanzAI Roadmap</h1>
         <p className="text-bz-muted leading-relaxed max-w-2xl">
           Roadmap público do BanzAI — Protocol Operating System
-          for the Banzami ecosystem. We publish this transparently because trust begins with visibility.
+          for the Banza protocol. We publish this transparently because trust begins with visibility.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-bz-border bg-white px-4 py-3">
           <span className="text-bz-gold font-semibold text-sm">Protocol Operating System</span>
