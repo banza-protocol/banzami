@@ -68,7 +68,7 @@ export function OperatorBuilderModule() {
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">Operator Builder</h2>
-          <p className="text-sm text-bia-muted">Step-by-step guide to building and certifying a Banzami operator.</p>
+          <p className="text-sm text-bia-muted">Step-by-step guide to building and certifying a Banza protocol operator.</p>
         </div>
 
         {/* Step nav */}

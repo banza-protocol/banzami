@@ -29,7 +29,7 @@ export function ConformanceModule({ mode }: { mode: 'demo' | 'live' }) {
       <div className="max-w-2xl mx-auto space-y-6">
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">Conformance Runner</h2>
-          <p className="text-sm text-bia-muted">Run the Banzami certification suite against any operator endpoint.</p>
+          <p className="text-sm text-bia-muted">Run the Banza certification suite against any operator endpoint.</p>
         </div>
 
         {/* Certification levels */}

@@ -59,7 +59,7 @@ export function CertificationCopilotModule() {
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">Certification Copilot</h2>
           <p className="text-sm text-bia-muted">
-            Analyse your operator manifest and capabilities against Banzami certification requirements.
+            Analyse your operator manifest and capabilities against Banza protocol certification requirements.
             Get your current level, missing items, readiness score, and a step-by-step roadmap.
           </p>
         </div>
