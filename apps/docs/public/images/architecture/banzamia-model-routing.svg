@@ -14,7 +14,7 @@
 
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzamIA — Encaminhamento de Modelos</text>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzAI — Encaminhamento de Modelos</text>
   <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CADA TAREFA ENCAMINHADA PARA O MODELO + FERRAMENTAS CORRECTOS</text>
 
   <!-- Column headers -->
@@ -76,5 +76,5 @@
   <text x="460" y="374" text-anchor="middle" fill="#4B7A51" font-size="8">Linha temporal causal · Invariantes verificados · Entradas ledger</text>
 
   <!-- Caption -->
-  <text x="350" y="398" text-anchor="middle" fill="#9B8E8C" font-size="9">BanzamIA não envia todos os pedidos para o mesmo modelo. Cada tarefa recebe o modelo e as ferramentas certas.</text>
+  <text x="350" y="398" text-anchor="middle" fill="#9B8E8C" font-size="9">BanzAI não envia todos os pedidos para o mesmo modelo. Cada tarefa recebe o modelo e as ferramentas certas.</text>
 </svg>

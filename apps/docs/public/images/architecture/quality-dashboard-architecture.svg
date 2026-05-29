@@ -105,5 +105,5 @@
   <rect x="518" y="390" width="52" height="4" rx="2" fill="#2A3A8C"/>
 
   <!-- Bottom label -->
-  <text x="350" y="462" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Quality Dashboard · banzami.org</text>
+  <text x="350" y="462" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzAI · Quality Dashboard · banzami.org</text>
 </svg>

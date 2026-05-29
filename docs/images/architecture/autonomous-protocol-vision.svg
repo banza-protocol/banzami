@@ -56,16 +56,16 @@
   <!-- Arrow 3→4 -->
   <polygon points="500,127 500,137 514,132" fill="#EA580C"/>
 
-  <!-- PHASE 4: BanzamIA (x=514, w=140, center=584) — highlighted -->
+  <!-- PHASE 4: BanzAI (x=514, w=140, center=584) — highlighted -->
   <rect x="514" y="82" width="140" height="100" rx="8" fill="#FFF7F0" stroke="#FED7AA" stroke-width="2" filter="url(#sh)"/>
   <rect x="514" y="82" width="140" height="18" rx="8" fill="#EA580C"/>
   <rect x="514" y="91" width="140" height="9" fill="#EA580C"/>
   <text x="584" y="95" text-anchor="middle" fill="white" font-size="8" font-weight="700">FASE 4 · AI-NATIVE</text>
-  <text x="584" y="118" text-anchor="middle" fill="#C2410C" font-size="11" font-weight="700">BanzamIA</text>
+  <text x="584" y="118" text-anchor="middle" fill="#C2410C" font-size="11" font-weight="700">BanzAI</text>
   <text x="584" y="134" text-anchor="middle" fill="#EA580C" font-size="9">IA Nativa · Interactiva</text>
   <text x="584" y="150" text-anchor="middle" fill="#C2410C" font-size="8" font-style="italic">Protocolo guia</text>
   <text x="584" y="166" text-anchor="middle" fill="#C2410C" font-size="8" font-style="italic">Capacidade: ilimitada</text>
 
   <!-- Caption -->
-  <text x="350" y="198" text-anchor="middle" fill="#9B8E8C" font-size="9">O BanzamIA representa a quarta fase — o protocolo que se explica a si mesmo, 24 horas por dia, sem limite de escala.</text>
+  <text x="350" y="198" text-anchor="middle" fill="#9B8E8C" font-size="9">O BanzAI representa a quarta fase — o protocolo que se explica a si mesmo, 24 horas por dia, sem limite de escala.</text>
 </svg>

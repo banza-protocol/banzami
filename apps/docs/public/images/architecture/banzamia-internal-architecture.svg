@@ -14,8 +14,8 @@
 
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Arquitectura Interna do BanzamIA</text>
-  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">COMO O BANZAMIA RESPONDE A UMA PERGUNTA</text>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Arquitectura Interna do BanzAI</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">COMO O BANZAI RESPONDE A UMA PERGUNTA</text>
 
   <!-- USER QUESTION -->
   <rect x="230" y="82" width="240" height="30" rx="7" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5" filter="url(#sh)"/>
@@ -27,7 +27,7 @@
 
   <!-- TASK ROUTER -->
   <rect x="185" y="130" width="330" height="34" rx="8" fill="#EA580C" filter="url(#sh)"/>
-  <text x="350" y="145" text-anchor="middle" fill="white" font-size="10" font-weight="700">BanzamIA — Task Router</text>
+  <text x="350" y="145" text-anchor="middle" fill="white" font-size="10" font-weight="700">BanzAI — Task Router</text>
   <text x="350" y="158" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">Classifica e encaminha cada pedido para modelo + ferramentas correctos</text>
 
   <!-- Branch: trunk down, horizontal bar, drops to each column -->

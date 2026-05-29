@@ -20,12 +20,12 @@
 
   <!-- Title -->
   <rect x="30" y="16" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="41" text-anchor="middle" fill="white" font-size="14" font-weight="700">Banzami — Arquitectura Canónica do Ecossistema</text>
-  <text x="350" y="55" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">PROTOCOLO · OPERADORES · CERTIFICAÇÃO · BANZAMIA · APLICAÇÕES</text>
+  <text x="350" y="41" text-anchor="middle" fill="white" font-size="14" font-weight="700">Banza — Arquitectura Canónica do Ecossistema</text>
+  <text x="350" y="55" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">PROTOCOLO · OPERADORES · CERTIFICAÇÃO · BANZAI · APLICAÇÕES</text>
 
   <!-- ═══ LAYER 1: Protocol Kernel (bottom of stack) ═══ -->
   <rect x="30" y="76" width="640" height="58" rx="10" fill="url(#kernelG)" filter="url(#sh)"/>
-  <text x="350" y="98" text-anchor="middle" fill="white" font-size="11" font-weight="700">Protocolo Banzami — Kernel (Rust)</text>
+  <text x="350" y="98" text-anchor="middle" fill="white" font-size="11" font-weight="700">Protocolo Banza — Kernel (Rust)</text>
   <text x="350" y="114" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="8.5">Ledger · Wallets · QR Protocol · Settlement · Federation · Conformance Engine · Jobs · Audit</text>
   <text x="350" y="128" text-anchor="middle" fill="rgba(255,255,255,0.45)" font-size="8">Infraestrutura financeira aberta e programável — RFC-0001 a RFC-0008</text>
 
@@ -38,7 +38,7 @@
 
   <!-- Operator pills -->
   <rect x="42" y="184" width="130" height="32" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="107" y="198" text-anchor="middle" fill="#990011" font-size="9" font-weight="700">Banza</text>
+  <text x="107" y="198" text-anchor="middle" fill="#990011" font-size="9" font-weight="700">Banzami</text>
   <text x="107" y="210" text-anchor="middle" fill="#9CA3AF" font-size="7.5">L1 — Payment Operator</text>
 
   <rect x="184" y="184" width="130" height="32" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
@@ -81,12 +81,12 @@
   <text x="602" y="279" text-anchor="middle" fill="#92400E" font-size="8" font-weight="700">L4 · Infrastructure</text>
   <text x="602" y="290" text-anchor="middle" fill="#9CA3AF" font-size="7">Nó de protocolo</text>
 
-  <!-- Connector: Certification → BanzamIA -->
+  <!-- Connector: Certification → BanzAI -->
   <line x1="350" y1="296" x2="350" y2="310" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3"/>
 
-  <!-- ═══ LAYER 4: BanzamIA — Protocol OS ═══ -->
+  <!-- ═══ LAYER 4: BanzAI — Protocol OS ═══ -->
   <rect x="30" y="310" width="640" height="34" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="330" text-anchor="middle" fill="white" font-size="12" font-weight="700">BanzamIA — Protocol Operating System</text>
+  <text x="350" y="330" text-anchor="middle" fill="white" font-size="12" font-weight="700">BanzAI — Protocol Operating System</text>
   <text x="350" y="341" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="8">8 capacidades · 16 módulos · 3 camadas · Ferramentas determinam a verdade. A IA explica a verdade.</text>
 
   <!-- 3 module layers -->
@@ -116,7 +116,7 @@
   <text x="530" y="456" text-anchor="middle" fill="#9CA3AF" font-size="7.5">RAG (Qdrant) ←→ Protocol Graph (17 nós · 11 relações)</text>
   <text x="516" y="466" text-anchor="middle" fill="#9CA3AF" font-size="7">Recuperação híbrida — vectorial + estrutural</text>
 
-  <!-- Connector: BanzamIA → Applications -->
+  <!-- Connector: BanzAI → Applications -->
   <line x1="350" y1="470" x2="350" y2="484" stroke="#9CA3AF" stroke-width="1.5" stroke-dasharray="4,3"/>
 
   <!-- ═══ LAYER 5: Applications (top of user experience) ═══ -->
@@ -125,7 +125,7 @@
 
   <!-- Application pills -->
   <rect x="30" y="520" width="108" height="26" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="84" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">Banza · App</text>
+  <text x="84" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">Banzami · App</text>
 
   <rect x="146" y="520" width="108" height="26" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
   <text x="200" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">banzami.org</text>
@@ -137,7 +137,7 @@
   <text x="432" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">Admin · Dashboard</text>
 
   <rect x="494" y="520" width="106" height="26" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="547" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">BanzamIA · OS</text>
+  <text x="547" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">BanzAI · OS</text>
 
   <rect x="608" y="520" width="62" height="26" rx="7" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
   <text x="639" y="537" text-anchor="middle" fill="#374151" font-size="8.5" font-weight="700">Partner API</text>

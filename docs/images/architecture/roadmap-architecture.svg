@@ -16,7 +16,7 @@
 
   <!-- Title -->
   <rect x="30" y="20" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzamIA — Public Roadmap Architecture</text>
+  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzAI — Public Roadmap Architecture</text>
   <text x="350" y="59" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CONCLUÍDO · EM CURSO · PLANEADO · INVESTIGAÇÃO · VISÃO</text>
 
   <!-- Status legend row -->
@@ -116,5 +116,5 @@
   <rect x="180" y="362" width="340" height="24" rx="6" fill="url(#goldG)" filter="url(#sh)"/>
   <text x="350" y="378" text-anchor="middle" fill="white" font-size="10" font-weight="700">Building the Operating System for Open Money</text>
 
-  <text x="350" y="492" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Public Roadmap · banzami.org/roadmap</text>
+  <text x="350" y="492" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzAI · Public Roadmap · banzami.org/roadmap</text>
 </svg>

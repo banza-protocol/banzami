@@ -20,7 +20,7 @@
   <!-- Layer 1: Consumer -->
   <rect x="200" y="86" width="300" height="52" rx="10" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
   <text x="350" y="108" text-anchor="middle" fill="#1A1A1A" font-size="12" font-weight="700">Consumidor / Comerciante</text>
-  <text x="350" y="127" text-anchor="middle" fill="#6B6265" font-size="9">App Banza · Banza Business · SDK</text>
+  <text x="350" y="127" text-anchor="middle" fill="#6B6265" font-size="9">App Banzami · Banzami Business · SDK</text>
 
   <!-- Arrow 1 -->
   <line x1="350" y1="138" x2="350" y2="162" stroke="#C4B8B6" stroke-width="2"/>

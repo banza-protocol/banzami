@@ -16,13 +16,13 @@
 
   <!-- Title -->
   <rect x="30" y="20" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">Protocol Operating System — BanzamIA Vision</text>
+  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">Protocol Operating System — BanzAI Vision</text>
   <text x="350" y="59" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">COMPREENDER · EXPLICAR · VALIDAR · SIMULAR · PREVER · GUIAR</text>
 
   <!-- Central OS ring -->
   <circle cx="350" cy="260" r="110" fill="none" stroke="#990011" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.3"/>
   <circle cx="350" cy="260" r="75" fill="#990011" filter="url(#sh)"/>
-  <text x="350" y="249" text-anchor="middle" fill="white" font-size="13" font-weight="700">BanzamIA</text>
+  <text x="350" y="249" text-anchor="middle" fill="white" font-size="13" font-weight="700">BanzAI</text>
   <text x="350" y="264" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="9">Protocol</text>
   <text x="350" y="277" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="9">Operating System</text>
   <text x="350" y="293" text-anchor="middle" fill="rgba(255,255,255,0.6)" font-size="8">v2026</text>
@@ -80,5 +80,5 @@
   <rect x="180" y="450" width="340" height="30" rx="8" fill="url(#goldG)" filter="url(#sh)"/>
   <text x="350" y="469" text-anchor="middle" fill="white" font-size="11" font-weight="700">Tools determine truth. AI explains truth.</text>
 
-  <text x="350" y="492" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Protocol Operating System · banzami.org</text>
+  <text x="350" y="492" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzAI · Protocol Operating System · banzami.org</text>
 </svg>

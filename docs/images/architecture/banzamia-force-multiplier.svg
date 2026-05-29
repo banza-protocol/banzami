@@ -14,12 +14,12 @@
 
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzamIA como Multiplicador de Força</text>
-  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CADA COMPONENTE AMPLIFICADO PELA BANZAMIA</text>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzAI como Multiplicador de Força</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CADA COMPONENTE AMPLIFICADO PELA BANZAI</text>
 
   <!-- Column headers -->
   <text x="130" y="90" text-anchor="middle" fill="#6B6265" font-size="9" font-weight="600" letter-spacing="0.5">COMPONENTE</text>
-  <text x="338" y="90" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700" letter-spacing="0.5">× BANZAMIA</text>
+  <text x="338" y="90" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700" letter-spacing="0.5">× BANZAI</text>
   <text x="554" y="90" text-anchor="middle" fill="#6B6265" font-size="9" font-weight="600" letter-spacing="0.5">RESULTADO</text>
 
   <!-- Row 1: Kernel -->
@@ -28,7 +28,7 @@
   <text x="130" y="133" text-anchor="middle" fill="#6B6265" font-size="9">Rust Financial Core</text>
 
   <rect x="248" y="106" width="180" height="28" rx="14" fill="#EA580C"/>
-  <text x="338" y="125" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <text x="338" y="125" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzAI</text>
 
   <rect x="446" y="98" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
   <text x="558" y="117" text-anchor="middle" fill="#166534" font-size="11" font-weight="700">Integrações mais fáceis</text>
@@ -40,7 +40,7 @@
   <text x="130" y="187" text-anchor="middle" fill="#6B6265" font-size="9">Níveis 0–4</text>
 
   <rect x="248" y="160" width="180" height="28" rx="14" fill="#EA580C"/>
-  <text x="338" y="179" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <text x="338" y="179" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzAI</text>
 
   <rect x="446" y="152" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
   <text x="558" y="171" text-anchor="middle" fill="#166534" font-size="11" font-weight="700">Progressão mais rápida</text>
@@ -52,7 +52,7 @@
   <text x="130" y="241" text-anchor="middle" fill="#6B6265" font-size="9">Documentos de governança</text>
 
   <rect x="248" y="214" width="180" height="28" rx="14" fill="#EA580C"/>
-  <text x="338" y="233" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <text x="338" y="233" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzAI</text>
 
   <rect x="446" y="206" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
   <text x="558" y="225" text-anchor="middle" fill="#166534" font-size="11" font-weight="700">Conhecimento acessível</text>
@@ -64,13 +64,13 @@
   <text x="130" y="295" text-anchor="middle" fill="#6B6265" font-size="9">TypeScript · Dart · PHP · Go</text>
 
   <rect x="248" y="268" width="180" height="28" rx="14" fill="#EA580C"/>
-  <text x="338" y="287" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <text x="338" y="287" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzAI</text>
 
   <rect x="446" y="260" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
   <text x="558" y="279" text-anchor="middle" fill="#166534" font-size="11" font-weight="700">Desenvolvimento mais rápido</text>
   <text x="558" y="295" text-anchor="middle" fill="#4B7A51" font-size="9">Geração de código · Guia de integração</text>
 
   <!-- Caption -->
-  <text x="350" y="344" text-anchor="middle" fill="#9B8E8C" font-size="9">BanzamIA não é um módulo adicional. É um multiplicador de força de todo o ecossistema.</text>
+  <text x="350" y="344" text-anchor="middle" fill="#9B8E8C" font-size="9">BanzAI não é um módulo adicional. É um multiplicador de força de todo o ecossistema.</text>
 
 </svg>

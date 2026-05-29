@@ -14,14 +14,14 @@
 
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzamIA como Camada Cognitiva</text>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzAI como Camada Cognitiva</text>
   <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">ARQUITECTURA EM QUATRO CAMADAS</text>
 
   <!-- Connector line on left showing stack -->
   <line x1="54" y1="90" x2="54" y2="340" stroke="#D4C9C7" stroke-width="2"/>
   <polygon points="50,340 58,340 54,346" fill="#D4C9C7"/>
 
-  <!-- ─── LAYER 4 (top): COGNITIVE — BanzamIA ─── -->
+  <!-- ─── LAYER 4 (top): COGNITIVE — BanzAI ─── -->
   <rect x="68" y="82" width="602" height="66" rx="10" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#sh)"/>
   <!-- Left label bar -->
   <rect x="68" y="82" width="148" height="66" rx="10" fill="#EA580C"/>
@@ -29,7 +29,7 @@
   <text x="142" y="111" text-anchor="middle" fill="white" font-size="9" font-weight="700" letter-spacing="1">CAMADA</text>
   <text x="142" y="126" text-anchor="middle" fill="white" font-size="9" font-weight="700" letter-spacing="1">COGNITIVA</text>
   <!-- Modules text -->
-  <text x="232" y="108" fill="#C2410C" font-size="9" font-weight="700">BanzamIA — AI-native Protocol Agent</text>
+  <text x="232" y="108" fill="#C2410C" font-size="9" font-weight="700">BanzAI — Protocol Operating System</text>
   <text x="232" y="124" fill="#9A3412" font-size="9">Chat · Operator Builder · Conformance · Manifest Validator</text>
   <text x="232" y="138" fill="#9A3412" font-size="9">Trace Explainer · SDK Assistant · RFC/ADR Explorer · Knowledge Search</text>
   <!-- Pulse dot -->
@@ -57,7 +57,7 @@
   <rect x="194" y="220" width="22" height="52" fill="#990011"/>
   <text x="142" y="243" text-anchor="middle" fill="white" font-size="9" font-weight="700" letter-spacing="1">CAMADA</text>
   <text x="142" y="258" text-anchor="middle" fill="white" font-size="9" font-weight="700" letter-spacing="1">FINANCEIRA</text>
-  <text x="232" y="245" fill="#990011" font-size="9" font-weight="700">Kernel Banzami — Rust Financial Core</text>
+  <text x="232" y="245" fill="#990011" font-size="9" font-weight="700">Kernel Banza — Rust Financial Core</text>
   <text x="232" y="261" fill="#6B6265" font-size="9">Ledger · Wallets · Transactions · Settlement · QR · Payouts</text>
 
   <!-- Connector -->
@@ -73,6 +73,6 @@
   <text x="232" y="321" fill="#64748B" font-size="9">Banks · EMIS · Settlement Rails · Central Bank</text>
 
   <!-- Caption -->
-  <text x="350" y="356" text-anchor="middle" fill="#9B8E8C" font-size="9">O Kernel move valor. BanzamIA move compreensão. O Kernel executa regras. BanzamIA explica regras.</text>
+  <text x="350" y="356" text-anchor="middle" fill="#9B8E8C" font-size="9">O Kernel move valor. BanzAI move compreensão. O Kernel executa regras. BanzAI explica regras.</text>
 
 </svg>

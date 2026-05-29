@@ -23,14 +23,14 @@
 
   <!-- ─── TITLE BANNER ─── -->
   <rect x="40" y="28" width="880" height="52" rx="12" fill="url(#headerGrad)" filter="url(#shadow)"/>
-  <text x="480" y="60" text-anchor="middle" fill="white" font-size="18" font-weight="700" letter-spacing="0.5">Banzami Ecosystem</text>
+  <text x="480" y="60" text-anchor="middle" fill="white" font-size="18" font-weight="700" letter-spacing="0.5">Banza Ecosystem</text>
   <text x="480" y="74" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="10" letter-spacing="2">PROGRAMMABLE FINANCIAL INFRASTRUCTURE FOR ANGOLA</text>
 
-  <!-- ─── BANZAMI KERNEL ─── -->
+  <!-- ─── BANZA KERNEL ─── -->
   <rect x="40" y="102" width="420" height="310" rx="14" fill="url(#kernelGrad)" stroke="#DBBCB2" stroke-width="1.5" filter="url(#shadow)"/>
   <rect x="40" y="102" width="420" height="36" rx="14" fill="#990011"/>
   <rect x="40" y="124" width="420" height="14" fill="#990011"/>
-  <text x="250" y="125" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMI KERNEL — Rust Financial Core (18 crates)</text>
+  <text x="250" y="125" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZA KERNEL — Rust Financial Core (18 crates)</text>
 
   <!-- Kernel grid: 3 cols x 5 rows -->
   <rect x="56"  y="150" width="118" height="32" rx="7" fill="white" stroke="#E8D8D4" stroke-width="1"/>
@@ -92,21 +92,21 @@
   <!-- Reference Operator -->
   <rect x="492" y="150" width="196" height="72" rx="10" fill="white" stroke="#DDB954" stroke-width="1.5"/>
   <text x="590" y="168" text-anchor="middle" fill="#C89B3C" font-size="9" font-weight="700" letter-spacing="1">REFERENCE OPERATOR</text>
-  <text x="590" y="186" text-anchor="middle" fill="#333" font-size="12" font-weight="700">Banza</text>
+  <text x="590" y="186" text-anchor="middle" fill="#333" font-size="12" font-weight="700">Banzami</text>
   <text x="590" y="203" text-anchor="middle" fill="#666" font-size="9">Full protocol · Level 3 certified</text>
   <text x="590" y="217" text-anchor="middle" fill="#666" font-size="9">Consumer + Merchant + QR + P2P</text>
 
   <!-- Sandbox Operator -->
   <rect x="704" y="150" width="196" height="72" rx="10" fill="white" stroke="#DDB954" stroke-width="1.5"/>
   <text x="802" y="168" text-anchor="middle" fill="#C89B3C" font-size="9" font-weight="700" letter-spacing="1">SANDBOX OPERATOR</text>
-  <text x="802" y="186" text-anchor="middle" fill="#333" font-size="12" font-weight="700">Banza Sandbox</text>
+  <text x="802" y="186" text-anchor="middle" fill="#333" font-size="12" font-weight="700">Banzami Sandbox</text>
   <text x="802" y="203" text-anchor="middle" fill="#666" font-size="9">Same kernel · Virtual funds</text>
   <text x="802" y="217" text-anchor="middle" fill="#666" font-size="9">No real settlement rails</text>
 
   <!-- Certified Operators -->
   <rect x="492" y="234" width="408" height="62" rx="10" fill="white" stroke="#DDB954" stroke-width="1" stroke-dasharray="4 3"/>
   <text x="696" y="259" text-anchor="middle" fill="#C89B3C" font-size="9" font-weight="700" letter-spacing="1">CERTIFIED OPERATORS</text>
-  <text x="696" y="278" text-anchor="middle" fill="#999" font-size="9">Any certified party can implement the Banzami protocol · Levels 1–4</text>
+  <text x="696" y="278" text-anchor="middle" fill="#999" font-size="9">Any certified party can implement the Banza protocol · Levels 1–4</text>
 
   <!-- ─── CERTIFICATION MODEL ─── -->
   <rect x="476" y="322" width="444" height="90" rx="14" fill="#F0F8FF" stroke="#93C5FD" stroke-width="1.5" filter="url(#shadow)"/>
@@ -140,18 +140,18 @@
   <text x="480" y="438" text-anchor="middle" fill="#2A3A8C" font-size="10" font-weight="700" letter-spacing="1">FEDERATION LAYER</text>
   <text x="480" y="452" text-anchor="middle" fill="#4B5A9C" font-size="9">Inter-Operator Protocol · Event Exchange · Operator Discovery · Settlement Rails</text>
 
-  <!-- ─── BANZAMIA — first-class ecosystem product ─── -->
+  <!-- ─── BANZAI — first-class ecosystem product ─── -->
   <!-- Outer card: h=126 to accommodate role subtitle in header -->
   <rect x="40" y="470" width="880" height="126" rx="14" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#shadow)"/>
   <!-- Header bar: h=44 (8px taller than other sections for role subtitle) -->
   <rect x="40" y="470" width="880" height="44" rx="14" fill="#EA580C"/>
   <rect x="40" y="500" width="880" height="14" fill="#EA580C"/>
   <!-- Primary title -->
-  <text x="480" y="489" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMIA — AI-native Protocol Agent · "Tools determine truth. AI explains truth."</text>
+  <text x="480" y="489" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAI — Protocol Operating System · "Tools determine truth. AI explains truth."</text>
   <!-- Role subtitle -->
   <text x="480" y="508" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9" letter-spacing="0.5">Public Product · Developer Portal · Operator Platform · banzami.org/banzamia</text>
 
-  <!-- BanzamIA modules (y=520, 6px below header bottom at 514) -->
+  <!-- BanzAI modules (y=520, 6px below header bottom at 514) -->
   <rect x="56"  y="520" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
   <text x="104" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Chat</text>
   <text x="104" y="559" text-anchor="middle" fill="#666" font-size="8">Protocol Q&amp;A</text>
@@ -242,7 +242,7 @@
   <line x1="250" y1="412" x2="250" y2="696" stroke="#DBBCB2" stroke-width="1.5" stroke-dasharray="4 3"/>
   <!-- Operators → Kernel -->
   <path d="M 476 207 L 460 207" stroke="#DDB954" stroke-width="1.5" fill="none"/>
-  <!-- BanzamIA ↔ Kernel (dashed) -->
+  <!-- BanzAI ↔ Kernel (dashed) -->
   <line x1="250" y1="596" x2="250" y2="470" stroke="#FDBA74" stroke-width="1.5" stroke-dasharray="4 3"/>
   <!-- Integration Surface → Reference Applications -->
   <line x1="460" y1="646" x2="476" y2="646" stroke="#86EFAC" stroke-width="1.5" stroke-dasharray="4 3"/>

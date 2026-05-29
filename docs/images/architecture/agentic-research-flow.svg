@@ -90,5 +90,5 @@
   <text x="520" y="473" text-anchor="middle" fill="#64748B" font-size="9">Nós de grafo relevantes</text>
 
   <!-- Bottom label -->
-  <text x="350" y="494" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Protocol Research Agent · banzami.org</text>
+  <text x="350" y="494" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzAI · Protocol Research Agent · banzami.org</text>
 </svg>

@@ -27,7 +27,7 @@
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
   <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Protocol Graph Architecture</text>
-  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">TYPED NODES AND RELATIONSHIPS — BANZAMIA KNOWLEDGE GRAPH</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">TYPED NODES AND RELATIONSHIPS — BANZAI KNOWLEDGE GRAPH</text>
 
   <!-- CENTER: RFC node (authority hub) -->
   <rect x="265" y="170" width="170" height="52" rx="10" fill="url(#hG)" filter="url(#sh)"/>
