@@ -248,7 +248,7 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
       if ((err as Error).name !== 'AbortError') {
         setMessages(prev => prev.map(m =>
           m.id === assistantMsg.id
-            ? { ...m, content: 'Erro ao conectar com BanzamIA. Verifique a configuração do endpoint.', streaming: false }
+            ? { ...m, content: 'Erro ao conectar com BanzAI. Verifique a configuração do endpoint.', streaming: false }
             : m
         ))
       }
@@ -277,9 +277,9 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-bia-primary shadow-bia-glow">
             <BanzamIAIcon size={32} className="text-white" />
           </div>
-          <h1 className="mb-2 text-xl font-bold text-bia-text tracking-tight">BanzamIA</h1>
+          <h1 className="mb-2 text-xl font-bold text-bia-text tracking-tight">BanzAI</h1>
           <p className="mb-1 text-sm text-bia-muted text-center max-w-md">
-            BanzamIA é o Sistema Operativo do Protocolo Banzami. 16 módulos. Ferramentas determinam a verdade. A IA explica a verdade.
+            BanzAI é o Sistema Operativo do Protocolo Banza. 16 módulos. Ferramentas determinam a verdade. A IA explica a verdade.
           </p>
           <p className="mb-8 text-xs text-bia-muted-2 text-center italic">
             Tools determine truth. AI explains truth.

@@ -82,7 +82,7 @@ export function HomeBanzamIAEntry() {
             <div className="min-w-0">
               <h2 className="text-base font-bold text-bz-text tracking-tight">Pergunte ao BanzAI</h2>
               <p className="mt-0.5 text-xs text-bz-muted max-w-lg">
-                A interface inteligente oficial para entender, integrar e validar o ecossistema Banzami.
+                O Sistema Operativo do Protocolo Banza — para entender, integrar e validar o ecossistema Banzami.
               </p>
             </div>
           </div>
@@ -126,7 +126,7 @@ export function HomeBanzamIAEntry() {
               {!isLiveMode && <span className="text-amber-600 font-medium">◯ Demo Mode</span>}
             </span>
             <Link href="/banzamia" className="text-[11px] font-semibold text-bz-muted hover:text-bz-primary transition-colors">
-              Abrir BanzamIA completo →
+              Abrir BanzAI completo →
             </Link>
           </div>
 
@@ -163,7 +163,7 @@ export function HomeBanzamIAEntry() {
               <p className="text-sm text-bz-muted">
                 Não consegui contactar a API agora.{' '}
                 <Link href="/banzamia" className="font-semibold text-bz-primary hover:underline">
-                  Pode abrir o BanzamIA completo
+                  Pode abrir o BanzAI completo
                 </Link>{' '}
                 ou tentar novamente.
               </p>

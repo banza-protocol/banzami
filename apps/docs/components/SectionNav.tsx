@@ -62,9 +62,9 @@ export function SectionNav({ sections }: Props) {
       {/* Logo mark */}
       <div className="mb-4 px-3">
         <div className="flex items-center gap-2">
-          <div className="text-xs font-bold tracking-widest text-bz-primary uppercase">Banzami</div>
+          <div className="text-xs font-bold tracking-widest text-bz-primary uppercase">Banza</div>
         </div>
-        <div className="mt-0.5 text-[10px] text-bz-muted">Documentação oficial</div>
+        <div className="mt-0.5 text-[10px] text-bz-muted">Documentação do Protocolo</div>
       </div>
 
       {navLink('/', 'Início')}

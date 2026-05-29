@@ -15,9 +15,9 @@ import { SectionCard } from '@/components/SectionCard'
 import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
-  title: 'Banzami — Pagamentos Instantâneos em Kwanza',
+  title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
   description:
-    'Banzami é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banzami SDKs oficiais.',
+    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — pagamentos wallet-to-wallet em Kwanza, QR-native, com Banzami SDKs para programadores e Banzami Business para comerciantes.',
 }
 
 // ---- Problem cards -----------------------------------------------------------

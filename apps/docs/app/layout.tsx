@@ -14,29 +14,30 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Banzami — Pagamentos Instantâneos em Kwanza',
-    template: '%s · Banzami',
+    default: 'Banza — Protocolo de Infraestrutura Financeira Programável',
+    template: '%s · Banza',
   },
   description:
-    'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banzami é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banzami SDK para programadores e Banzami Business para comerciantes.',
+    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — wallet-to-wallet, liquidação instantânea, QR-native em Kwanza, Banzami SDK para programadores e Banzami Business para comerciantes.',
   keywords: [
     'Banza',
     'Banzami',
+    'protocolo financeiro Angola',
     'pagamentos Angola',
     'QR Code Angola',
     'pagamentos em Kwanza',
     'carteira digital Angola',
     'Banzami Business',
     'Banzami SDK',
+    'infraestrutura financeira Angola',
     'pagamentos instantâneos Angola',
     'ecommerce Angola',
-    'pagamentos para táxi Angola',
   ],
   openGraph: {
-    title: 'Banzami — Pagamentos Instantâneos em Kwanza',
+    title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
     description:
-      'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banzami é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banzami SDK e Banzami Business.',
-    siteName: 'Banzami',
+      'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — wallet-to-wallet, liquidação instantânea, QR-native em Kwanza.',
+    siteName: 'Banza',
     locale: 'pt_AO',
     type: 'website',
   },
@@ -142,7 +143,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <span className="font-bold text-bz-text">Banzami</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
-                  Banzami — Rede Angolana de Pagamentos Instantâneos por QR Code
+                  Banza — Protocolo Aberto de Infraestrutura Financeira para Angola
                 </p>
               </div>
 

@@ -123,7 +123,7 @@ export function BanzamIASourcesPanel({ citations, model, taskType, isStreaming, 
         <div className="rounded-lg border border-bia-border bg-bia-surface-2 px-3 py-2.5">
           <div className="text-[10px] font-semibold uppercase tracking-widest text-bia-muted-2 mb-1.5">Mode</div>
           <div className={`text-xs font-medium ${mode === 'live' ? 'text-bia-green' : 'text-bia-amber'}`}>
-            {mode === 'live' ? '⬤ Live — connected to BanzamIA API' : '◯ Demo — set NEXT_PUBLIC_BANZAMIA_API_URL for live mode'}
+            {mode === 'live' ? '⬤ Live — connected to BanzAI API' : '◯ Demo — set NEXT_PUBLIC_BANZAMIA_API_URL for live mode'}
           </div>
         </div>
       </div>
