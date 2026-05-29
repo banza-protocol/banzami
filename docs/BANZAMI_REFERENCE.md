@@ -629,11 +629,24 @@ Requisitos para federação:
 
 ## 9. BanzamIA
 
+A BanzamIA é um produto de primeira classe do ecossistema Banzami — não um componente interno. É a interface cognitiva do protocolo, da mesma forma que o Kernel é o cérebro financeiro.
+
 ### O que é a BanzamIA
 
-A BanzamIA é o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami. Está disponível em `banzami.org/banzamia`.
+A BanzamIA é o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami. Disponível publicamente em `banzami.org/banzamia`.
 
 > Ferramentas determinam a verdade. A IA explica a verdade.
+
+A BanzamIA desempenha três papéis simultaneamente:
+
+**1. Interface Pública de IA**
+O ponto de entrada principal para utilizadores que querem compreender o protocolo.
+
+**2. Plataforma de Habilitação de Operadores**
+Utilizada por programadores, operadores, auditores e contribuidores para construir e validar integrações.
+
+**3. Agente de Protocolo nativo de IA**
+A camada de inteligência capaz de explicação de protocolo, geração de manifesto, orientação de conformidade, análise de traces, geração de código SDK e exploração de RFC.
 
 A BanzamIA não substitui ferramentas determinísticas. Ela:
 - Explica a documentação do protocolo fundamentada em citações
