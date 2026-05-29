@@ -78,7 +78,7 @@ Esta arquitectura de marca está definida no ADR-016.
 
 ### Ferramentas determinam a verdade. A IA explica a verdade.
 
-Os invariantes financeiros são verificados por ferramentas determinísticas, não inferidos por inteligência artificial. A BanzamIA apresenta os resultados da execução de ferramentas — não substitui as ferramentas.
+Os invariantes financeiros são verificados por ferramentas determinísticas, não inferidos por inteligência artificial. O BanzamIA apresenta os resultados da execução de ferramentas — não substitui as ferramentas.
 
 ### A correcção financeira não é negociável
 
@@ -219,7 +219,7 @@ Cada fluxo de pagamento produz um `trace_id`. O trace captura:
 
 ![Sistema de rastreabilidade — fluxo de eventos desde qr.created até settlement.assigned, todos partilhando o mesmo trace_id](/images/architecture/trace-flow.svg)
 
-Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer da BanzamIA reconstrói e verifica qualquer trace interactivamente.
+Os traces são a ferramenta de auditoria primária. O módulo Trace Explainer do BanzamIA reconstrói e verifica qualquer trace interactivamente.
 
 ---
 
@@ -629,9 +629,9 @@ Requisitos para federação:
 
 ## 9. BanzamIA
 
-A BanzamIA é um produto de primeira classe do ecossistema Banzami — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
+O BanzamIA é um produto de primeira classe do ecossistema Banzami — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
 
-Se o Kernel é o motor financeiro do Banzami, a BanzamIA é a interface cognitiva do Banzami. Um move valor. O outro torna o valor compreensível.
+Se o Kernel é o motor financeiro do Banzami, o BanzamIA é a interface cognitiva do Banzami. Um move valor. O outro torna o valor compreensível.
 
 > **Ferramentas determinam a verdade. A IA explica a verdade.**
 
@@ -639,7 +639,7 @@ Se o Kernel é o motor financeiro do Banzami, a BanzamIA é a interface cognitiv
 
 ---
 
-### Porquê existe a BanzamIA
+### Porquê existe o BanzamIA
 
 Os protocolos financeiros modernos tornam-se progressivamente mais difíceis de compreender.
 
@@ -663,17 +663,17 @@ Sem assistência:
 - Os erros tornam-se mais comuns
 - A adopção do protocolo desacelera
 
-A BanzamIA existe para resolver este problema.
+O BanzamIA existe para resolver este problema.
 
 ---
 
 ### O Fosso de Conhecimento do Protocolo
 
-Sem a BanzamIA, um programador que quer integrar o protocolo Banzami tem de navegar centenas de páginas de documentação, pesquisar RFCs manualmente, interpretar ADRs e tentar implementar sem orientação contextual. O resultado são semanas de aprendizagem, erros de implementação e ciclos de validação falhados.
+Sem o BanzamIA, um programador que quer integrar o protocolo Banzami tem de navegar centenas de páginas de documentação, pesquisar RFCs manualmente, interpretar ADRs e tentar implementar sem orientação contextual. O resultado são semanas de aprendizagem, erros de implementação e ciclos de validação falhados.
 
-Com a BanzamIA, o mesmo programador faz uma pergunta e recebe uma resposta contextual fundamentada em fontes do protocolo. Recebe referências exactas. Recebe orientação de implementação. Constrói correctamente.
+Com o BanzamIA, o mesmo programador faz uma pergunta e recebe uma resposta contextual fundamentada em fontes do protocolo. Recebe referências exactas. Recebe orientação de implementação. Constrói correctamente.
 
-**A BanzamIA comprime semanas de aprendizagem do protocolo em minutos.**
+**O BanzamIA comprime semanas de aprendizagem do protocolo em minutos.**
 
 ![O Fosso de Conhecimento do Protocolo — comparação sem e com BanzamIA](/images/architecture/banzamia-knowledge-gap.svg)
 
@@ -681,13 +681,13 @@ Com a BanzamIA, o mesmo programador faz uma pergunta e recebe uma resposta conte
 
 ### Por que é diferente de IA genérica
 
-A BanzamIA **não é**:
+O BanzamIA **não é**:
 
 - ChatGPT para pagamentos
 - Um assistente genérico
 - Um wrapper de LLM público
 
-A BanzamIA **é**:
+O BanzamIA **é**:
 
 - Protocol-native — construída sobre o corpus do protocolo Banzami
 - RFC-aware — conhece todos os RFCs e ADRs publicados
@@ -695,7 +695,7 @@ A BanzamIA **é**:
 - Certification-aware — guia operadores no processo de certificação
 - Citation-first — fundamenta todas as respostas em fontes verificáveis
 
-O propósito da BanzamIA não é criatividade. É compreensão do protocolo.
+O propósito do BanzamIA não é criatividade. É compreensão do protocolo.
 
 A verdade nunca vem da imaginação do modelo. A verdade vem de:
 
@@ -720,9 +720,9 @@ O protocolo Banzami tem quatro camadas:
 
 **Camada Cognitiva — BanzamIA** — A interface humana de todo o protocolo. Explica o que as outras camadas fazem, guia quem trabalha com elas, e torna o protocolo acessível.
 
-O Kernel move valor. A BanzamIA move compreensão.
-O Kernel executa regras. A BanzamIA explica regras.
-O Kernel garante verdade. A BanzamIA torna a verdade acessível.
+O Kernel move valor. O BanzamIA move compreensão.
+O Kernel executa regras. O BanzamIA explica regras.
+O Kernel garante verdade. O BanzamIA torna a verdade acessível.
 
 ---
 
@@ -742,7 +742,7 @@ Muito poucos fornecem:
 - Orientação de conformidade contextual
 - Explicação de invariantes em linguagem natural
 
-A BanzamIA transforma o conhecimento do protocolo numa capacidade interactiva.
+O BanzamIA transforma o conhecimento do protocolo numa capacidade interactiva.
 
 Isto representa uma inovação arquitectónica significativa: um protocolo que não apenas define regras, mas as explica activamente a todos os que trabalham com ele.
 
@@ -763,11 +763,11 @@ Isto representa uma inovação arquitectónica significativa: um protocolo que n
 
 ### BanzamIA multiplica o ecossistema
 
-A BanzamIA não é apenas mais um módulo. É um multiplicador de força de todo o ecossistema.
+O BanzamIA não é apenas mais um módulo. É um multiplicador de força de todo o ecossistema.
 
 ![BanzamIA como Multiplicador de Força — cada componente amplificado](/images/architecture/banzamia-force-multiplier.svg)
 
-Cada componente do ecossistema torna-se mais acessível e mais eficaz quando combinado com a BanzamIA:
+Cada componente do ecossistema torna-se mais acessível e mais eficaz quando combinado com o BanzamIA:
 
 - **Kernel × BanzamIA** = integrações mais fáceis para programadores
 - **Certificação × BanzamIA** = progressão mais rápida de operadores através dos níveis
@@ -779,7 +779,7 @@ Cada componente do ecossistema torna-se mais acessível e mais eficaz quando com
 
 ### Arquitectura do Produto
 
-A BanzamIA disponível publicamente em `banzami.org/banzamia` é composta por oito módulos especializados:
+O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por oito módulos especializados:
 
 ![Arquitectura do Produto BanzamIA — 8 módulos especializados](/images/architecture/banzamia-product-architecture.svg)
 
@@ -796,9 +796,9 @@ A BanzamIA disponível publicamente em `banzami.org/banzamia` é composta por oi
 
 ---
 
-### O futuro da BanzamIA
+### O futuro do BanzamIA
 
-A BanzamIA deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.
+O BanzamIA deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.
 
 Capacidades futuras podem incluir:
 
@@ -815,7 +815,7 @@ Capacidades futuras podem incluir:
 
 O Kernel é o motor financeiro do Banzami.
 
-A BanzamIA é a interface cognitiva do Banzami.
+O BanzamIA é a interface cognitiva do Banzami.
 
 Um move valor. O outro torna o valor compreensível.
 
@@ -825,7 +825,7 @@ Juntos transformam um protocolo de pagamentos numa infraestrutura financeira ace
 
 ### Postura de segurança
 
-A BanzamIA é read-only. Não pode:
+O BanzamIA é read-only. Não pode:
 - Iniciar operações financeiras
 - Modificar a validation matrix sem frases de governança
 - Aprovar certificações de forma autónoma

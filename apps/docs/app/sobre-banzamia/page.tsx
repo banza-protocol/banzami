@@ -6,10 +6,10 @@ import { SectionHero } from '@/components/SectionHero'
 import { notFound } from 'next/navigation'
 
 export const metadata: Metadata = {
-  title: 'Sobre a BanzamIA',
+  title: 'Sobre o BanzamIA',
   description: 'BanzamIA — o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami.',
   openGraph: {
-    title: 'Sobre a BanzamIA · Banzami',
+    title: 'Sobre o BanzamIA · Banzami',
     description: 'O Agente de Protocolo nativo de IA. Public Product · Developer Portal · Operator Platform.',
     locale: 'pt_AO',
   },
@@ -34,7 +34,7 @@ export default function SobreBanzamiaPage() {
         {/* CTA to live interface */}
         <div className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-bz-primary/20 bg-bz-primary/5 px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-bz-primary">Experimentar a BanzamIA</p>
+            <p className="text-sm font-semibold text-bz-primary">Experimentar o BanzamIA</p>
             <p className="mt-0.5 text-xs text-bz-muted">Chat ao vivo com o Agente de Protocolo</p>
           </div>
           <Link

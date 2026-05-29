@@ -156,7 +156,7 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M8 7v5M8 5v.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          Sobre a BanzamIA
+          Sobre o BanzamIA
         </Link>
         <div className="rounded-lg bg-bz-primary/5 border border-bz-primary/10 px-3 py-2">
           <p className="text-[10px] text-bia-muted leading-relaxed italic">
