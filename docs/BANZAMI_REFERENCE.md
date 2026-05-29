@@ -918,6 +918,152 @@ Exemplo completo — *utilizador pergunta: "Como certifico um operador de Nível
 
 ---
 
+### Avaliação da Qualidade de Recuperação
+
+O BanzamIA inclui um framework de avaliação contínua que mede a qualidade das respostas ao longo de quatro dimensões.
+
+![Arquitectura de Avaliação RAG — framework de medição de qualidade do BanzamIA](/images/architecture/rag-evaluation-architecture.svg)
+
+#### Dataset de Referência
+
+200 perguntas sobre o protocolo, organizadas em 12 categorias e três níveis de dificuldade (easy, medium, hard). Cada pergunta inclui `expected_sources`, `expected_answer_keywords`, `category` e `difficulty`.
+
+Categorias cobertas: fundamentos do protocolo, certificação, invariantes financeiros, geração de código SDK, rastreamento de trace, conformidade, glossário, QR, liquidação, SDKs, federação, gateway.
+
+#### Métricas de Recuperação
+
+| Métrica | Significado |
+|---------|-------------|
+| **Top-1 Accuracy** | O documento mais relevante está na posição 1? |
+| **Top-3 / Top-5 Accuracy** | Documento relevante encontrado nos primeiros 3 / 5 resultados |
+| **MRR** | Mean Reciprocal Rank — distância ao resultado correcto |
+| **Recall@5** | Fracção de fontes esperadas encontradas nos 5 primeiros |
+| **Weak Retrieval Rate** | Taxa de queries com pontuação máxima < 0.45 |
+
+#### Classificação por Autoridade
+
+Cada fonte é ponderada por tipo e antiguidade. A pontuação final combina similaridade semântica, peso de autoridade e decaimento por frescura:
+
+```
+pontuação_final = semântica × autoridade × frescura
+```
+
+| Tipo de Fonte | Autoridade |
+|---------------|-----------|
+| `reference` (BANZAMI_REFERENCE.md) | 1.00 |
+| `accepted_rfc` | 0.95 |
+| `accepted_adr` | 0.90 |
+| `openapi` | 0.90 |
+| `conformance` | 0.85 |
+| `certification` | 0.85 |
+| `invariant` | 0.85 |
+| `manifest_schema` | 0.85 |
+| `glossary` | 0.80 |
+| `banzamia_doc` | 0.80 |
+| `architecture_doc` | 0.75 |
+| `readme` | 0.70 |
+| `sdk_doc` | 0.70 |
+| `website` | 0.60 |
+| `draft_rfc` | 0.50 |
+
+O decaimento por frescura tem semi-vida de 180 dias e piso de 0.80 — documentos históricos mantêm relevância.
+
+#### Validação Adversarial
+
+12 perguntas-armadilha que testam se o BanzamIA resiste a afirmações incorrectas sobre o protocolo:
+
+| Armadilha | Critério |
+|-----------|---------|
+| Nível 1 faz liquidação cross-operador | FAIL se afirmar que sim |
+| Operador sandbox pode entrar na federação | FAIL se não mencionar isolamento |
+| RFC draft anula BANZAMI_REFERENCE.md | FAIL se inverter prioridade |
+| Níveis de certificação podem ser saltados | FAIL se afirmar que sim |
+| Saldo de carteira pode ser negativo | FAIL se afirmar que sim |
+| Liquidação cria dinheiro novo | FAIL se afirmar que sim |
+| BanzamIA pode inventar factos do protocolo | FAIL se afirmar que pode |
+
+**Princípio:** *Tools determine truth. AI explains truth.* — quando uma ferramenta determinística (validador de manifesto, runner de conformidade) conflitua com o modelo, a ferramenta ganha sempre.
+
+---
+
+### Grafo de Protocolo
+
+O BanzamIA indexa todos os documentos do protocolo numa estrutura de grafo de conhecimento tipado, com nós e arestas extraídos automaticamente do markdown.
+
+![Arquitectura do Grafo de Protocolo — nós tipados e relações](/images/architecture/protocol-graph-architecture.svg)
+
+#### Tipos de Nó
+
+| Tipo | Exemplos |
+|------|---------|
+| `rfc` | RFC-0001…RFC-0006 |
+| `adr` | ADR-001…ADR-024 |
+| `openapi` | transfers, wallets, auth |
+| `conformance_vector` | transfers, ledger-postings, qr-payloads |
+| `certification_rule` | conformance.md, certification.md |
+| `invariant` | balance-never-negative, no-money-creation |
+| `manifest_schema` | schemas/operator, schemas/link |
+| `sdk_doc` | TypeScript, Dart, PHP, Go |
+| `architecture_doc` | decisões de arquitectura |
+| `glossary_term` | glossário do protocolo |
+
+#### Tipos de Aresta
+
+| Relação | Significado |
+|---------|-------------|
+| `IMPLEMENTS` | ADR implementa RFC |
+| `SUPERSEDES` | RFC novo substitui RFC anterior |
+| `REQUIRES` | Documento depende de outro |
+| `VALIDATES` | Vector de conformidade valida RFC/ADR |
+| `REFERENCES` | Referência cruzada em texto ou markdown link |
+| `EXPLAINS` | Glossário explica conceito de RFC |
+| `DEPENDS_ON` | Dependência técnica |
+| `RELATED_TO` | Relação temática |
+
+#### Indexação e API
+
+```bash
+npm run graph:index    # constrói e guarda .banzamia-graph.json
+```
+
+Endpoints de exploração:
+
+```
+GET /graph/stats           — estatísticas do grafo (nós, arestas, por tipo)
+GET /graph/node/:id        — nó + vizinhos directos
+GET /graph/search?q=...    — pesquisa por path ou título
+GET /graph/related/:id     — BFS até depth 2 (configurável até 4)
+GET /graph/path?from=&to=  — caminho mais curto entre dois nós
+```
+
+#### Recuperação Enriquecida por Grafo
+
+![Retrieval enriquecido pelo Grafo de Protocolo — Qdrant + vizinhos de grafo](/images/architecture/graph-enhanced-retrieval.svg)
+
+O pipeline de recuperação combina pesquisa vectorial Qdrant com enriquecimento por grafo:
+
+1. **Pesquisa Qdrant** — top-5 resultados por similaridade coseno
+2. **Lookup de grafo** — encontra nós de grafo correspondentes aos resultados
+3. **Vizinhos** — obtém nós ligados por IMPLEMENTS, SUPERSEDES, VALIDATES, REQUIRES
+4. **Enriquecimento** — adiciona até 3 nós adicionais ao contexto (pontuação 0.4)
+5. **Ranking final** — pesquisa semântica × autoridade × frescura
+
+Este mecanismo garante que um resultado sobre RFC-0002 traz automaticamente contexto de ADRs que o implementam, vectores de conformidade que o validam, e outros RFCs que o RFC requer.
+
+---
+
+### Análise de Cobertura
+
+```bash
+npm run rag:coverage    # analisa cobertura por tipo de fonte
+npm run rag:eval        # executa benchmark completo
+GET /rag/stats          # estatísticas em tempo real via API
+```
+
+O relatório de cobertura mostra quantos chunks e documentos estão indexados por tipo de fonte, identifica tipos sem cobertura, e lista os documentos com mais chunks. A saúde do knowledge base é classificada como `good` / `partial` / `sparse`.
+
+---
+
 ### Impacto no Ecossistema
 
 #### A Visão do Protocolo Autónomo

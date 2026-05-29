@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 530" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="530" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">RAG Evaluation Architecture</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">BANZAMIA PROTOCOL INTELLIGENCE PLATFORM — QUALITY MEASUREMENT</text>
+
+  <!-- Golden Dataset -->
+  <rect x="220" y="86" width="260" height="48" rx="8" fill="#EA580C" filter="url(#sh)"/>
+  <text x="350" y="106" text-anchor="middle" fill="white" font-size="10" font-weight="700">Golden Dataset — 200 Questions</text>
+  <text x="350" y="121" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8">12 categories · easy / medium / hard · expected_sources</text>
+
+  <!-- Arrow down to 4 eval boxes -->
+  <line x1="350" y1="134" x2="350" y2="148" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="88" y1="148" x2="612" y2="148" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="88" y1="148" x2="88" y2="158" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="242" y1="148" x2="242" y2="158" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="458" y1="148" x2="458" y2="158" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="612" y1="148" x2="612" y2="158" stroke="#D4C9C7" stroke-width="1.5"/>
+
+  <!-- BOX 1: Retrieval Metrics -->
+  <rect x="30" y="158" width="156" height="140" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="30" y="158" width="156" height="26" rx="8" fill="#2A3A8C"/>
+  <rect x="30" y="174" width="156" height="10" fill="#2A3A8C"/>
+  <text x="108" y="174" text-anchor="middle" fill="white" font-size="9" font-weight="700">Retrieval Metrics</text>
+  <rect x="40" y="188" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="108" y="200" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Top-1 / Top-3 / Top-5</text>
+  <rect x="40" y="208" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="108" y="220" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">MRR — Mean Reciprocal Rank</text>
+  <rect x="40" y="228" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="108" y="240" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Recall@5</text>
+  <rect x="40" y="248" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="108" y="260" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Weak Retrieval Rate</text>
+  <rect x="40" y="268" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="108" y="280" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">By Category + Difficulty</text>
+
+  <!-- BOX 2: Citation Quality -->
+  <rect x="196" y="158" width="156" height="140" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="196" y="158" width="156" height="26" rx="8" fill="#2A3A8C"/>
+  <rect x="196" y="174" width="156" height="10" fill="#2A3A8C"/>
+  <text x="274" y="174" text-anchor="middle" fill="white" font-size="9" font-weight="700">Citation Quality</text>
+  <rect x="206" y="188" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="274" y="200" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Coverage Score (0.5×)</text>
+  <rect x="206" y="208" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="274" y="220" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Authority Score (0.3×)</text>
+  <rect x="206" y="228" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="274" y="240" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Dedup Score (0.2×)</text>
+  <rect x="206" y="248" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="274" y="260" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Weak Authority Flagging</text>
+  <rect x="206" y="268" width="136" height="16" rx="4" fill="#EFF2FF"/>
+  <text x="274" y="280" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Citation Rate</text>
+
+  <!-- BOX 3: Adversarial Tests -->
+  <rect x="362" y="158" width="156" height="140" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="362" y="158" width="156" height="26" rx="8" fill="#EA580C"/>
+  <rect x="362" y="174" width="156" height="10" fill="#EA580C"/>
+  <text x="440" y="174" text-anchor="middle" fill="white" font-size="9" font-weight="700">Adversarial Tests</text>
+  <rect x="372" y="188" width="136" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="440" y="200" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">12 Trap Questions</text>
+  <rect x="372" y="208" width="136" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="440" y="220" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Forbidden Claim Detection</text>
+  <rect x="372" y="228" width="136" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="440" y="240" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Required Concept Check</text>
+  <rect x="372" y="248" width="136" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="440" y="260" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Negative Balance · No-Money-Creat.</text>
+  <rect x="372" y="268" width="136" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="440" y="280" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Level Skipping · Sandbox Isolation</text>
+
+  <!-- BOX 4: Protocol Truth -->
+  <rect x="528" y="158" width="142" height="140" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="528" y="158" width="142" height="26" rx="8" fill="#EA580C"/>
+  <rect x="528" y="174" width="142" height="10" fill="#EA580C"/>
+  <text x="599" y="174" text-anchor="middle" fill="white" font-size="9" font-weight="700">Protocol Truth</text>
+  <rect x="538" y="188" width="122" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="599" y="200" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Tools Determine Truth</text>
+  <rect x="538" y="208" width="122" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="599" y="220" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">AI Explains Truth</text>
+  <rect x="538" y="228" width="122" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="599" y="240" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Validator Wins on Conflict</text>
+  <rect x="538" y="248" width="122" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="599" y="260" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Conformance Runner</text>
+  <rect x="538" y="268" width="122" height="16" rx="4" fill="#FFF7F0"/>
+  <text x="599" y="280" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Manifest Validator</text>
+
+  <!-- Converge arrows to Benchmark Runner -->
+  <line x1="88" y1="298" x2="88" y2="318" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="274" y1="298" x2="274" y2="318" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="440" y1="298" x2="440" y2="318" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="599" y1="298" x2="599" y2="318" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="88" y1="318" x2="599" y2="318" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="350" y1="318" x2="350" y2="330" stroke="#D4C9C7" stroke-width="1.5"/>
+  <polygon points="345,330 355,330 350,336" fill="#D4C9C7"/>
+
+  <!-- Benchmark Runner -->
+  <rect x="170" y="336" width="360" height="48" rx="8" fill="#EA580C" filter="url(#sh)"/>
+  <text x="350" y="356" text-anchor="middle" fill="white" font-size="10" font-weight="700">Benchmark Runner — npm run rag:eval</text>
+  <text x="350" y="372" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8">Unified report across all 4 evaluation dimensions</text>
+
+  <!-- Arrow to Reports -->
+  <line x1="350" y1="384" x2="350" y2="396" stroke="#D4C9C7" stroke-width="1.5"/>
+  <polygon points="345,396 355,396 350,402" fill="#D4C9C7"/>
+
+  <!-- Reports row -->
+  <rect x="30" y="402" width="300" height="40" rx="8" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="180" y="420" text-anchor="middle" fill="#475569" font-size="8.5" font-weight="600">reports/retrieval-report.json</text>
+  <text x="180" y="434" text-anchor="middle" fill="#94A3B8" font-size="7.5">citation-report.json · adversarial-report.json</text>
+  <rect x="340" y="402" width="330" height="40" rx="8" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="505" y="420" text-anchor="middle" fill="#475569" font-size="8.5" font-weight="600">reports/benchmark-summary.json</text>
+  <text x="505" y="434" text-anchor="middle" fill="#94A3B8" font-size="7.5">authority-ranking-report.json · coverage-report.json</text>
+
+  <!-- Authority Ranking note -->
+  <rect x="170" y="460" width="360" height="30" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5"/>
+  <text x="350" y="474" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Authority Ranking — 15 Source Types</text>
+  <text x="350" y="486" text-anchor="middle" fill="#4B5A9C" font-size="7.5">reference 1.00 · accepted_rfc 0.95 · accepted_adr 0.90 · openapi 0.90 · … · draft_rfc 0.50</text>
+
+  <!-- footer -->
+  <text x="350" y="519" text-anchor="middle" fill="#94A3B8" font-size="7.5">banzamia.org · Protocol Intelligence Platform</text>
+</svg>

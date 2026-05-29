@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#8B9DB0"/>
+    </marker>
+    <marker id="arr-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#B11226"/>
+    </marker>
+    <marker id="arr-ora" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#EA580C"/>
+    </marker>
+    <marker id="arr-blu" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#2A3A8C"/>
+    </marker>
+  </defs>
+
+  <rect width="700" height="500" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Protocol Graph Architecture</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">TYPED NODES AND RELATIONSHIPS — BANZAMIA KNOWLEDGE GRAPH</text>
+
+  <!-- CENTER: RFC node (authority hub) -->
+  <rect x="265" y="170" width="170" height="52" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="192" text-anchor="middle" fill="white" font-size="11" font-weight="700">RFC</text>
+  <text x="350" y="208" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">RFC-0001…RFC-0006</text>
+  <text x="350" y="219" text-anchor="middle" fill="rgba(255,255,255,0.65)" font-size="7.5">authority 0.95 (accepted) · 0.50 (draft)</text>
+
+  <!-- TOP-LEFT: ADR -->
+  <rect x="60" y="90" width="150" height="50" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="60" y="90" width="150" height="22" rx="8" fill="#2A3A8C"/>
+  <rect x="60" y="103" width="150" height="9" fill="#2A3A8C"/>
+  <text x="135" y="105" text-anchor="middle" fill="white" font-size="9" font-weight="700">ADR</text>
+  <text x="135" y="127" text-anchor="middle" fill="#4B5A9C" font-size="8">ADR-001…ADR-024 · auth 0.90</text>
+
+  <!-- TOP-RIGHT: OpenAPI -->
+  <rect x="490" y="90" width="150" height="50" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="490" y="90" width="150" height="22" rx="8" fill="#2A3A8C"/>
+  <rect x="490" y="103" width="150" height="9" fill="#2A3A8C"/>
+  <text x="565" y="105" text-anchor="middle" fill="white" font-size="9" font-weight="700">OpenAPI Contract</text>
+  <text x="565" y="127" text-anchor="middle" fill="#4B5A9C" font-size="8">transfers · wallets · auth · auth 0.90</text>
+
+  <!-- BOTTOM-LEFT: Conformance Vector -->
+  <rect x="60" y="310" width="150" height="50" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="60" y="310" width="150" height="22" rx="8" fill="#EA580C"/>
+  <rect x="60" y="323" width="150" height="9" fill="#EA580C"/>
+  <text x="135" y="325" text-anchor="middle" fill="white" font-size="9" font-weight="700">Conformance Vector</text>
+  <text x="135" y="347" text-anchor="middle" fill="#9A3412" font-size="8">transfers · ledger-postings · auth 0.85</text>
+
+  <!-- BOTTOM-CENTER: Invariant -->
+  <rect x="265" y="340" width="170" height="50" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="265" y="340" width="170" height="22" rx="8" fill="#EA580C"/>
+  <rect x="265" y="353" width="170" height="9" fill="#EA580C"/>
+  <text x="350" y="355" text-anchor="middle" fill="white" font-size="9" font-weight="700">Invariant</text>
+  <text x="350" y="377" text-anchor="middle" fill="#9A3412" font-size="8">balance-never-neg · no-money-creation · auth 0.85</text>
+
+  <!-- BOTTOM-RIGHT: Certification Rule -->
+  <rect x="490" y="310" width="150" height="50" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="490" y="310" width="150" height="22" rx="8" fill="#EA580C"/>
+  <rect x="490" y="323" width="150" height="9" fill="#EA580C"/>
+  <text x="565" y="325" text-anchor="middle" fill="white" font-size="9" font-weight="700">Certification Rule</text>
+  <text x="565" y="347" text-anchor="middle" fill="#9A3412" font-size="8">Level 0-4 · conformance.md · auth 0.85</text>
+
+  <!-- FAR-LEFT: Glossary -->
+  <rect x="30" y="208" width="130" height="36" rx="8" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="95" y="223" text-anchor="middle" fill="#475569" font-size="8.5" font-weight="700">Glossary Term</text>
+  <text x="95" y="237" text-anchor="middle" fill="#94A3B8" font-size="7.5">auth 0.80</text>
+
+  <!-- FAR-RIGHT: Architecture Doc -->
+  <rect x="540" y="208" width="130" height="36" rx="8" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="605" y="223" text-anchor="middle" fill="#475569" font-size="8.5" font-weight="700">Architecture Doc</text>
+  <text x="605" y="237" text-anchor="middle" fill="#94A3B8" font-size="7.5">auth 0.75</text>
+
+  <!-- EDGES: ADR → RFC (IMPLEMENTS) -->
+  <line x1="210" y1="120" x2="270" y2="182" stroke="#B11226" stroke-width="1.5" stroke-dasharray="none" marker-end="url(#arr-red)"/>
+  <rect x="196" y="148" width="68" height="14" rx="4" fill="#FEE2E2"/>
+  <text x="230" y="158" text-anchor="middle" fill="#B11226" font-size="7" font-weight="700">IMPLEMENTS</text>
+
+  <!-- EDGES: OpenAPI → RFC (REFERENCES) -->
+  <line x1="490" y1="120" x2="430" y2="182" stroke="#8B9DB0" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="436" y="148" width="68" height="14" rx="4" fill="#F1F5F9"/>
+  <text x="470" y="158" text-anchor="middle" fill="#64748B" font-size="7" font-weight="700">REFERENCES</text>
+
+  <!-- EDGES: Conformance Vector → RFC (VALIDATES) -->
+  <line x1="210" y1="330" x2="270" y2="220" stroke="#EA580C" stroke-width="1.5" marker-end="url(#arr-ora)"/>
+  <rect x="186" y="270" width="68" height="14" rx="4" fill="#FFF7F0"/>
+  <text x="220" y="280" text-anchor="middle" fill="#EA580C" font-size="7" font-weight="700">VALIDATES</text>
+
+  <!-- EDGES: Invariant → RFC (REQUIRES) -->
+  <line x1="330" y1="340" x2="330" y2="222" stroke="#B11226" stroke-width="1.5" stroke-dasharray="4,2" marker-end="url(#arr-red)"/>
+  <rect x="295" y="278" width="60" height="14" rx="4" fill="#FEE2E2"/>
+  <text x="325" y="288" text-anchor="middle" fill="#B11226" font-size="7" font-weight="700">REQUIRES</text>
+
+  <!-- EDGES: Certification Rule → ADR (VALIDATES) -->
+  <line x1="490" y1="330" x2="430" y2="220" stroke="#EA580C" stroke-width="1.5" marker-end="url(#arr-ora)"/>
+  <rect x="434" y="270" width="62" height="14" rx="4" fill="#FFF7F0"/>
+  <text x="465" y="280" text-anchor="middle" fill="#EA580C" font-size="7" font-weight="700">VALIDATES</text>
+
+  <!-- EDGES: Glossary → RFC (EXPLAINS) -->
+  <line x1="160" y1="222" x2="265" y2="196" stroke="#8B9DB0" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+  <rect x="168" y="200" width="54" height="14" rx="4" fill="#F1F5F9"/>
+  <text x="195" y="210" text-anchor="middle" fill="#64748B" font-size="7" font-weight="700">EXPLAINS</text>
+
+  <!-- EDGES: RFC → RFC (SUPERSEDES) -->
+  <path d="M 350 170 Q 420 140 390 170" stroke="#B11226" stroke-width="1.5" fill="none" marker-end="url(#arr-red)"/>
+  <rect x="396" y="140" width="70" height="14" rx="4" fill="#FEE2E2"/>
+  <text x="431" y="150" text-anchor="middle" fill="#B11226" font-size="7" font-weight="700">SUPERSEDES</text>
+
+  <!-- Legend -->
+  <rect x="30" y="420" width="640" height="60" rx="8" fill="white" stroke="#D4C9C7" stroke-width="1.5"/>
+  <text x="350" y="438" text-anchor="middle" fill="#475569" font-size="8.5" font-weight="700">Relationship Types</text>
+  <line x1="50" y1="452" x2="80" y2="452" stroke="#B11226" stroke-width="1.5" marker-end="url(#arr-red)"/>
+  <text x="84" y="456" fill="#B11226" font-size="7.5" font-weight="600">IMPLEMENTS · SUPERSEDES · REQUIRES</text>
+  <line x1="300" y1="452" x2="330" y2="452" stroke="#EA580C" stroke-width="1.5" marker-end="url(#arr-ora)"/>
+  <text x="334" y="456" fill="#EA580C" font-size="7.5" font-weight="600">VALIDATES · EXPLAINS</text>
+  <line x1="490" y1="452" x2="520" y2="452" stroke="#8B9DB0" stroke-width="1.5" stroke-dasharray="3,2" marker-end="url(#arr)"/>
+  <text x="524" y="456" fill="#64748B" font-size="7.5" font-weight="600">REFERENCES</text>
+  <text x="350" y="472" text-anchor="middle" fill="#94A3B8" font-size="7.5">Graph indexed from markdown cross-references · npm run graph:index · stored in .banzamia-graph.json</text>
+</svg>
