@@ -15,7 +15,7 @@
 
 ## Índice
 
-1. [O que é o Banza?](#1-o-que-é-o-banzami)
+1. [O que é o Banza?](#1-o-que-e-o-banza)
 2. [Princípios Fundamentais](#2-princípios-fundamentais)
 3. [Visão Geral do Ecossistema](#3-visão-geral-do-ecossistema)
 4. [Arquitectura Técnica](#4-arquitectura-técnica)
@@ -23,9 +23,9 @@
 6. [Governança](#6-governança)
 7. [Modelo de Certificação](#7-modelo-de-certificação)
 8. [Federação](#8-federação)
-9. [BanzAI](#9-banzamia)
-10. [Banzami para Programadores](#10-banza-para-programadores)
-11. [Banzami para Comerciantes](#11-banza-para-comerciantes)
+9. [BanzAI](#9-banzai)
+10. [Banzami para Programadores](#10-banzami-para-programadores)
+11. [Banzami para Comerciantes](#11-banzami-para-comerciantes)
 12. [Para Consumidores](#12-para-consumidores)
 13. [Segurança e Integridade Financeira](#13-segurança-e-integridade-financeira)
 14. [Sandbox e Ambiente de Testes](#14-sandbox-e-ambiente-de-testes)
@@ -1424,7 +1424,7 @@ A chamada a `/digital-twin` regista automaticamente um snapshot de assessment na
 
 ### Protocol Operating System Vision
 
-O BanzAI evoluiu de assistant de documentação para **Protocol Operating System** — a camada de inteligência que torna o protocolo Banzami auto-gerível e auto-explicativo.
+O BanzAI evoluiu de assistant de documentação para **Protocol Operating System** — a camada de inteligência que torna o protocolo Banza auto-gerível e auto-explicativo.
 
 ![Protocol Operating System — BanzAI Vision: 8 capabilities em órbita ao redor do hub central BanzAI POS](/images/architecture/protocol-operating-system.svg)
 
@@ -1927,7 +1927,7 @@ Para Angola.
 - ADR-012 — Ecossistema SDK-first
 - ADR-013 — Identidade wallet-native
 - ADR-014 — Missão nacional Angola-first
-- ADR-016 — Arquitectura de marca Banza/Banzami
+- ADR-016 — Arquitectura de marca Banza/Banzami (superseded for brand hierarchy by ADR-025)
 - `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` — Referência técnica completa
 - `docs/validation/INVARIANT_TAXONOMY.md` — Registo completo de invariantes
 - `docs/sandbox/README.md` — Referência do ambiente sandbox
