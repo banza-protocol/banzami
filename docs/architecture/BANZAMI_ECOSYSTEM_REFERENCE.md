@@ -90,9 +90,9 @@ Banzami serves one market exceptionally before considering expansion. The protoc
 │  reconciliation            │          CERTIFICATION                   │
 │  payouts                   │                                         │
 │  qr                        │  Level 0 — Sandbox                      │
-│  payment-links             │  Level 1 — Core Payments                │
-│  identity                  │  Level 2 — Advanced Payments            │
-│  consumer-wallets          │  Level 3 — Full Protocol                │
+│  payment-links             │  Level 1 — Payment Operator             │
+│  identity                  │  Level 2 — Settlement Operator          │
+│  consumer-wallets          │  Level 3 — Federation Operator          │
 │  acquiring                 │  Level 4 — Infrastructure Operator      │
 │  risk                      │                                         │
 │  compliance                ├─────────────────────────────────────────┤
@@ -394,10 +394,10 @@ Certification is earned by passing the conformance suite for the corresponding l
 
 | Level | Name | Required Capabilities | Description |
 |-------|------|----------------------|-------------|
-| **0** | Sandbox Certified | Basic sandbox ops | Can operate in sandbox; no live certification |
-| **1** | Core Payments | wallet.consumer, wallet.merchant, qr.static, p2p.transfer | Basic QR and wallet operations |
-| **2** | Advanced Payments | Level 1 + qr.dynamic, payment_links, settlement.t0 | Dynamic QR, payment links, instant settlement |
-| **3** | Full Protocol | Level 2 + payout.batch, reconciliation | Full payment lifecycle |
+| **0** | Sandbox Operator | Basic sandbox ops | Can operate in sandbox; no live certification |
+| **1** | Payment Operator | wallet.consumer, wallet.merchant, qr.static, p2p.transfer | Basic QR and wallet operations |
+| **2** | Settlement Operator | Level 1 + qr.dynamic, payment_links, settlement.t0 | Dynamic QR, payment links, instant settlement |
+| **3** | Federation Operator | Level 2 + payout.batch, reconciliation | Full payment lifecycle |
 | **4** | Infrastructure Operator | Level 3 + acquiring.emis, federation_ready | Infrastructure-grade operator |
 
 ### 8.2 Certification Process

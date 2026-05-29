@@ -42,7 +42,7 @@ export default function OperatorsPage() {
             {[
               { value: operators.length, label: 'Operadores registados' },
               { value: totalActive, label: 'Activos' },
-              { value: totalLevel2Plus, label: 'Level 2+ (Trace-compatible)' },
+              { value: totalLevel2Plus, label: 'Level 2+ (Settlement Operator)' },
             ].map(({ value, label }) => (
               <div key={label}>
                 <div className="text-2xl font-bold text-bz-text">{value}</div>

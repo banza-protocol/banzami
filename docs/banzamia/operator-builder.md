@@ -46,7 +46,7 @@ Capabilities are atomic, independently testable units. Each is associated with a
 | `qr.static` | Static QR code generation and payment processing | `suites/core-payments/qr-static.json` |
 | `p2p.transfer` | Consumer-to-consumer @handle transfers | `suites/core-payments/p2p.json` |
 
-### Advanced Capabilities (Level 2)
+### Settlement Operator Capabilities (Level 2)
 
 | Capability | Description | Conformance suite |
 |------------|-------------|------------------|
@@ -54,7 +54,7 @@ Capabilities are atomic, independently testable units. Each is associated with a
 | `payment_links` | Pull-payment URLs | `suites/advanced-payments/payment-links.json` |
 | `settlement.t0` | Instant (T+0) settlement to merchant wallet | `suites/advanced-payments/settlement.json` |
 
-### Full Protocol Capabilities (Level 3)
+### Federation Operator Capabilities (Level 3)
 
 | Capability | Description | Conformance suite |
 |------------|-------------|------------------|
@@ -72,7 +72,7 @@ Capabilities are atomic, independently testable units. Each is associated with a
 
 ## Example Manifests
 
-### Level 1 — Core Payments
+### Level 1 — Payment Operator
 
 ```json
 {
@@ -108,7 +108,7 @@ Capabilities are atomic, independently testable units. Each is associated with a
 }
 ```
 
-### Level 2 — Advanced Payments
+### Level 2 — Settlement Operator
 
 ```json
 {

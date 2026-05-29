@@ -1149,11 +1149,11 @@ O Certification Copilot analisa um manifesto de operador e capacidades declarada
 
 | Nível | Nome | Requisitos principais |
 |-------|------|-----------------------|
-| L0 | Reference-compatible | Manifesto válido, ambiente sandbox, protocol_version presente |
-| L1 | Protocol-compatible | supports_wallets + supports_transfers + supports_qr |
-| L2 | Trace-compatible | supports_traces + suporte a trace IDs + correlação de eventos |
-| L3 | Federation-ready | supports_federation + supports_cross_operator + suporte a manifests |
-| L4 | Settlement-compatible | supports_payment_requests + supports_webhooks + conformidade de liquidação |
+| L0 | Sandbox Operator | Manifesto válido, ambiente sandbox, protocol_version presente |
+| L1 | Payment Operator | supports_wallets + supports_transfers + supports_qr |
+| L2 | Settlement Operator | supports_traces + suporte a trace IDs + correlação de eventos |
+| L3 | Federation Operator | supports_federation + supports_cross_operator + suporte a manifests |
+| L4 | Infrastructure Operator | supports_payment_requests + supports_webhooks + conformidade de liquidação |
 
 **Saída — CopilotResult:**
 

@@ -351,8 +351,8 @@ export default async function OperatorDetailPage({ params }: { params: Promise<{
                     <path d="M6 2v5M6 9.5v.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
                   <p className="text-xs text-bz-muted">
-                    Federação requer Level 3 (Federation-ready) e um manifest válido.
-                    A certificação Level 2 (Trace-compatible) é pré-requisito.
+                    Federação requer Level 3 (Federation Operator) e um manifest válido.
+                    A certificação Level 2 (Settlement Operator) é pré-requisito.
                   </p>
                 </div>
               )}

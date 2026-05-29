@@ -214,6 +214,6 @@ See `deploy.sh` → `deploy_banzamia_api()` for the full deployment procedure.
 
 - `apps/docs/components/banzamia/` — frontend components
 - `apps/docs/lib/banzamia-client.ts` — client library
-- `/Users/fm65/BanzamIA/apps/api/` — BanzamIA API server
+- `github.com/banzami/banzamia/apps/api/` — BanzamIA API server
 - [Overview](overview.md) — what BanzamIA is and isn't
 - [API Reference](api.md) — full API contract

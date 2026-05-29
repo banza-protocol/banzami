@@ -196,5 +196,5 @@ Rate limit headers follow standard `X-RateLimit-*` convention.
 ## References
 
 - `apps/docs/lib/banzamia-client.ts` — client implementation
-- `/Users/fm65/BanzamIA/apps/api/` — server implementation
+- `github.com/banzami/banzamia/apps/api/` — server implementation
 - [Architecture](architecture.md) — system architecture

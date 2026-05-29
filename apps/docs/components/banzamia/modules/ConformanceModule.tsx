@@ -3,11 +3,11 @@
 import { useState } from 'react'
 
 const CERT_LEVELS = [
-  { level: 0, name: 'Reference-compatible', suites: 'health, wallets, transfers' },
-  { level: 1, name: 'Protocol-compatible',  suites: '+ QR, payment-requests, events, ledger, settlement' },
-  { level: 2, name: 'Trace-compatible',     suites: '+ traces' },
-  { level: 3, name: 'Federation-ready',     suites: '+ manifest, capabilities' },
-  { level: 4, name: 'Settlement-compatible',suites: '+ settlement invariants' },
+  { level: 0, name: 'Sandbox Operator',     suites: 'health, wallets, transfers' },
+  { level: 1, name: 'Payment Operator',     suites: '+ QR, payment-requests, events, ledger, settlement' },
+  { level: 2, name: 'Settlement Operator',  suites: '+ traces' },
+  { level: 3, name: 'Federation Operator',  suites: '+ manifest, capabilities' },
+  { level: 4, name: 'Infrastructure Operator', suites: '+ settlement invariants' },
 ]
 
 export function ConformanceModule({ mode }: { mode: 'demo' | 'live' }) {

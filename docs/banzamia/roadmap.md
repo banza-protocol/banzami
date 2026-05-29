@@ -126,7 +126,7 @@ Deploy the BanzamIA API in production:
 - Localised SDK examples for Portuguese/English/French markets
 - ADR and RFC translation pipeline
 
-### BanzamIA for Third-Party Operators
+### BanzamIA for Certified Operators
 
 - Isolated BanzamIA instances per certified operator
 - Operator-specific knowledge base (their own manifests, traces, conformance history)

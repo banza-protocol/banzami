@@ -735,7 +735,7 @@ QR.trace_id ─── must equal ──► Transfer.trace_id
 
 The \`GET /v1/traces/:trace_id\` endpoint reconstructs the full causal graph.
 
-**Certification:** Required for Level 2 (Trace-compatible).
+**Certification:** Required for Level 2 (Settlement Operator).
 
 **Conformance check:** \`traces.propagation\` sub-suite validates this for every test flow.`,
     citations: [
@@ -806,11 +806,11 @@ Use the **SDK Assistant** module for full templates including Python and Dart.`,
 
 | Level | Name | Requirements |
 |-------|------|-------------|
-| 0 | Reference-compatible | health, wallets, transfers |
-| 1 | Protocol-compatible | + QR, payment requests, ledger, settlement |
-| 2 | Trace-compatible | + traces, INV-TRACE-001 |
-| 3 | Federation-ready | + operator.json manifest |
-| 4 | Settlement-compatible | + all settlement invariants PASS |
+| 0 | Sandbox Operator | health, wallets, transfers |
+| 1 | Payment Operator | + QR, payment requests, ledger, settlement |
+| 2 | Settlement Operator | + traces, INV-TRACE-001 |
+| 3 | Federation Operator | + operator.json manifest |
+| 4 | Infrastructure Operator | + all settlement invariants PASS |
 
 **ADR-012:** Certification is always a tool result. Never AI inference.
 
@@ -1050,18 +1050,18 @@ function _demoCopilot(input: { target_level?: number }): CopilotResult {
     target_level: target,
     readiness_score: 62,
     level_statuses: [
-      { level: 0, name: 'Reference-compatible', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
-      { level: 1, name: 'Protocol-compatible', status: 'achieved', missing: [], achieved_count: 4, total_count: 4 },
-      { level: 2, name: 'Trace-compatible', status: 'partial', missing: [
+      { level: 0, name: 'Sandbox Operator', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
+      { level: 1, name: 'Payment Operator', status: 'achieved', missing: [], achieved_count: 4, total_count: 4 },
+      { level: 2, name: 'Settlement Operator', status: 'partial', missing: [
         { id: 'L2-001', description: 'GET /v1/traces/:trace_id endpoint', rfc: 'RFC-0007' },
         { id: 'L2-002', description: 'INV-TRACE-001: trace_id propagation', rfc: 'RFC-0007' },
       ], achieved_count: 1, total_count: 3 },
-      { level: 3, name: 'Federation-ready', status: 'blocked', missing: [
+      { level: 3, name: 'Federation Operator', status: 'blocked', missing: [
         { id: 'L3-001', description: 'Operator manifest /.well-known/banzami/operator.json', rfc: 'RFC-0006' },
         { id: 'L3-002', description: 'Federation discovery endpoint', rfc: 'RFC-0008' },
         { id: 'L3-003', description: 'Cross-operator event exchange', rfc: 'RFC-0008' },
       ], achieved_count: 0, total_count: 3 },
-      { level: 4, name: 'Settlement-compatible', status: 'blocked', missing: [
+      { level: 4, name: 'Infrastructure Operator', status: 'blocked', missing: [
         { id: 'L4-001', description: 'Settlement batch lifecycle', rfc: 'RFC-0005' },
         { id: 'L4-002', description: 'INV-STL-001: net + fee = gross', rfc: 'RFC-0005' },
       ], achieved_count: 0, total_count: 2 },
@@ -1103,11 +1103,11 @@ function _demoCopilotBase(score: number, level: number, target: number): Copilot
     target_level: target,
     readiness_score: score,
     level_statuses: [
-      { level: 0, name: 'Reference-compatible', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
-      { level: 1, name: 'Protocol-compatible', status: level >= 1 ? 'achieved' : 'partial', missing: [], achieved_count: level >= 1 ? 4 : 2, total_count: 4 },
-      { level: 2, name: 'Trace-compatible', status: level >= 2 ? 'achieved' : 'partial', missing: level < 2 ? [{ id: 'L2-001', description: 'Trace endpoint', rfc: 'RFC-0007' }] : [], achieved_count: level >= 2 ? 3 : 1, total_count: 3 },
-      { level: 3, name: 'Federation-ready', status: 'blocked', missing: [{ id: 'L3-001', description: 'Operator manifest', rfc: 'RFC-0006' }, { id: 'L3-002', description: 'Federation discovery', rfc: 'RFC-0008' }], achieved_count: 0, total_count: 3 },
-      { level: 4, name: 'Settlement-compatible', status: 'blocked', missing: [{ id: 'L4-001', description: 'Settlement batch lifecycle', rfc: 'RFC-0005' }], achieved_count: 0, total_count: 2 },
+      { level: 0, name: 'Sandbox Operator', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
+      { level: 1, name: 'Payment Operator', status: level >= 1 ? 'achieved' : 'partial', missing: [], achieved_count: level >= 1 ? 4 : 2, total_count: 4 },
+      { level: 2, name: 'Settlement Operator', status: level >= 2 ? 'achieved' : 'partial', missing: level < 2 ? [{ id: 'L2-001', description: 'Trace endpoint', rfc: 'RFC-0007' }] : [], achieved_count: level >= 2 ? 3 : 1, total_count: 3 },
+      { level: 3, name: 'Federation Operator', status: 'blocked', missing: [{ id: 'L3-001', description: 'Operator manifest', rfc: 'RFC-0006' }, { id: 'L3-002', description: 'Federation discovery', rfc: 'RFC-0008' }], achieved_count: 0, total_count: 3 },
+      { level: 4, name: 'Infrastructure Operator', status: 'blocked', missing: [{ id: 'L4-001', description: 'Settlement batch lifecycle', rfc: 'RFC-0005' }], achieved_count: 0, total_count: 2 },
     ],
     missing_for_target: target <= level ? [] : [{ id: `L${target}-001`, description: `Requirement for Level ${target}`, rfc: `RFC-000${target}` }],
     next_actions: ['Implement trace endpoint (RFC-0007)', 'Add webhook support', 'Publish operator manifest'],

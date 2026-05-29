@@ -51,7 +51,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ## Certification Levels
 
-### Level 0 — Sandbox Certified
+### Level 0 — Sandbox Operator
 
 **Purpose:** Prove the operator can run the Banzami protocol in a test environment.
 
@@ -66,7 +66,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ---
 
-### Level 1 — Core Payments
+### Level 1 — Payment Operator
 
 **Purpose:** Consumer wallets, static QR payments, and @handle P2P transfers.
 
@@ -93,7 +93,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ---
 
-### Level 2 — Advanced Payments
+### Level 2 — Settlement Operator
 
 **Purpose:** Dynamic QR, payment links, and instant settlement.
 
@@ -114,7 +114,7 @@ See `BANZAMI_REFERENCE.md §5` for the full monetary representation specificatio
 
 ---
 
-### Level 3 — Full Protocol
+### Level 3 — Federation Operator
 
 **Purpose:** Complete payment lifecycle including payouts and automated reconciliation.
 
@@ -249,10 +249,10 @@ Certified operators receive a badge for each level:
 
 | Badge | Level | Label |
 |-------|-------|-------|
-| 🔵 | 0 | Banzami Sandbox Certified |
-| 🟡 | 1 | Banzami Certified — Core Payments |
-| 🟠 | 2 | Banzami Certified — Advanced Payments |
-| 🟤 | 3 | Banzami Certified — Full Protocol |
+| 🔵 | 0 | Banzami Sandbox Operator |
+| 🟡 | 1 | Banzami Payment Operator |
+| 🟠 | 2 | Banzami Settlement Operator |
+| 🟤 | 3 | Banzami Federation Operator |
 | ⭐ | 4 | Banzami Infrastructure Operator |
 
 ---

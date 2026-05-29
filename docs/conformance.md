@@ -103,7 +103,7 @@ Each conformance test file is a JSON document with this structure:
 
 ## Certification Level Requirements
 
-### Level 1 — Core Payments
+### Level 1 — Payment Operator
 
 Pass all tests in `core-payments/`:
 
@@ -117,7 +117,7 @@ Pass all tests in `core-payments/`:
 
 **Minimum passing threshold:** 100% of all Level 1 tests.
 
-### Level 2 — Advanced Payments
+### Level 2 — Settlement Operator
 
 Pass all Level 1 tests PLUS all tests in `advanced-payments/`:
 
@@ -127,7 +127,7 @@ Pass all Level 1 tests PLUS all tests in `advanced-payments/`:
 | `payment-links.json` | 8 | INV-STL-001, INV-TRACE-001 |
 | `settlement-t0.json` | 6 | INV-STL-001, INV-STL-002 |
 
-### Level 3 — Full Protocol
+### Level 3 — Federation Operator
 
 Pass all Level 1–2 tests PLUS all tests in `full-protocol/`:
 
