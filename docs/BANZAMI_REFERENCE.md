@@ -814,6 +814,24 @@ O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por de
 | **Digital Twin** | Representação virtual completa do operador no protocolo |
 | **Quality Dashboard** | Métricas do sistema BanzamIA — RAG, Protocol Graph, Qdrant, ferramentas |
 
+![BanzamIA — 16 módulos em 3 camadas: Protocolo, Operador, Inteligência](/images/architecture/banzamia-product-architecture.svg)
+
+---
+
+### Arquitectura Canónica do Ecossistema
+
+O BanzamIA existe dentro de um ecossistema completo que vai do protocolo às aplicações. A arquitectura canónica mostra como todas as peças se ligam: o Kernel Rust, os operadores certificados, o quadro de certificação, o BanzamIA como Protocol OS, e as aplicações de utilizador.
+
+![Arquitectura Canónica do Ecossistema Banzami — do Kernel ao BanzamIA às Aplicações](/images/architecture/banzamia-canonical-architecture.svg)
+
+Esta arquitectura tem cinco camadas:
+
+1. **Protocolo Kernel** — crates Rust (Ledger, Wallets, QR, Settlement, Federation, Conformance)
+2. **Operadores** — entidades certificadas que operam sobre o protocolo (Banza, sandbox, futuros operadores) e SDKs oficiais
+3. **Quadro de Certificação** — L0 Sandbox → L1 Payment → L2 Settlement → L3 Federation → L4 Infrastructure
+4. **BanzamIA** — Protocol OS: 3 camadas, 16 módulos, Model Router, Retrieval híbrido (RAG + Protocol Graph)
+5. **Aplicações** — Banza app, banzami.org, Mobile (Flutter), Admin, BanzamIA, Partner API
+
 ---
 
 ### Como o BanzamIA Funciona

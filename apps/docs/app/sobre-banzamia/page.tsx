@@ -31,6 +31,13 @@ export default function SobreBanzamiaPage() {
 
         <SectionHero section={section} total={sections.length} />
 
+        {/* Protocol OS context */}
+        <p className="mb-6 text-sm leading-relaxed text-bz-muted">
+          O BanzamIA é o Sistema Operativo do Protocolo Banzami — 16 módulos especializados que tornam o protocolo
+          compreensível, validável, simulável e certificável. Não é um chatbot. É a interface cognitiva do protocolo:
+          onde as ferramentas determinam a verdade e a IA explica a verdade.
+        </p>
+
         {/* CTA to live interface */}
         <div className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-bz-primary/20 bg-bz-primary/5 px-5 py-4">
           <div>
