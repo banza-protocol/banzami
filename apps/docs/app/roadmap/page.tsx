@@ -4,7 +4,7 @@ import Link from 'next/link'
 export const metadata: Metadata = {
   title: 'Roadmap — BanzamIA Protocol Operating System',
   description:
-    'Public roadmap for BanzamIA — the AI-native Protocol Agent and Protocol Operating System for the Banzami ecosystem. Transparent evolution of ecosystem intelligence.',
+    'Roadmap público do BanzamIA — Protocol Operating System do ecossistema Banzami. 16 módulos, 8 capacidades. Evolução transparente do sistema.',
 }
 
 interface RoadmapItem {
@@ -106,7 +106,7 @@ export default function RoadmapPage() {
         </div>
         <h1 className="text-3xl font-bold text-bz-text mb-3">BanzamIA Roadmap</h1>
         <p className="text-bz-muted leading-relaxed max-w-2xl">
-          Public roadmap for BanzamIA — the AI-native Protocol Agent and Protocol Operating System
+          Roadmap público do BanzamIA — Protocol Operating System
           for the Banzami ecosystem. We publish this transparently because trust begins with visibility.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-bz-border bg-white px-4 py-3">

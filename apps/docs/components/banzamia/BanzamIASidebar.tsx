@@ -196,7 +196,7 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold tracking-tight text-bia-text">BanzamIA</div>
-          <div className="text-[10px] text-bia-muted leading-none">AI-native Protocol Agent</div>
+          <div className="text-[10px] text-bia-muted leading-none">Protocol Operating System</div>
         </div>
       </div>
 
