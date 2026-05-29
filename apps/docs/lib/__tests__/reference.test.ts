@@ -26,7 +26,7 @@ describe('toSlug', () => {
   })
 
   it('handles full Portuguese section titles', () => {
-    expect(toSlug('O que é o Banzami?')).toBe('o-que-e-o-banzami')
+    expect(toSlug('O que é o Banza?')).toBe('o-que-e-o-banza')
     expect(toSlug('A Visão')).toBe('a-visao')
     expect(toSlug('Declaração de Visão Final')).toBe('declaracao-de-visao-final')
   })
@@ -68,13 +68,13 @@ describe('getReference — overall structure', () => {
     expect(ref).toHaveProperty('sections')
   })
 
-  it('returns exactly 20 sections', () => {
-    expect(getReference().sections).toHaveLength(20)
+  it('returns exactly 17 sections', () => {
+    expect(getReference().sections).toHaveLength(17)
   })
 
-  it('sections are numbered sequentially from 1 to 20', () => {
+  it('sections are numbered sequentially from 1 to 17', () => {
     const numbers = getReference().sections.map((s) => s.number)
-    expect(numbers).toEqual(Array.from({ length: 20 }, (_, i) => i + 1))
+    expect(numbers).toEqual(Array.from({ length: 17 }, (_, i) => i + 1))
   })
 
   it('each section has all required fields', () => {
@@ -148,9 +148,9 @@ describe('getReference — document metadata', () => {
 // ─── getReference — subsections (DOC-002: rendering subsections) ──────────────
 
 describe('getReference — subsections', () => {
-  it('total subsection count across all sections is ≥ 100', () => {
+  it('total subsection count across all sections is ≥ 90', () => {
     const total = getReference().sections.reduce((sum, s) => sum + s.subsections.length, 0)
-    expect(total).toBeGreaterThanOrEqual(100)
+    expect(total).toBeGreaterThanOrEqual(90)
   })
 
   it('each subsection has id, title, slug, anchor and content', () => {
@@ -184,10 +184,10 @@ describe('getReference — subsections', () => {
 
 describe('getSection — navigation by slug', () => {
   it('returns the correct section for a known slug', () => {
-    const s = getSection('a-visao')
+    const s = getSection('arquitectura-tecnica')
     expect(s).toBeDefined()
     expect(s?.number).toBe(4)
-    expect(s?.title).toBe('A Visão')
+    expect(s?.title).toBe('Arquitectura Técnica')
   })
 
   it('returns undefined for an unknown slug', () => {
@@ -204,7 +204,7 @@ describe('getSection — navigation by slug', () => {
     const sections = getReference().sections
     const last = sections[sections.length - 1]
     const found = getSection(last.slug)
-    expect(found?.number).toBe(20)
+    expect(found?.number).toBe(17)
   })
 
   it('every slug from getAllSectionSlugs resolves via getSection', () => {
@@ -220,25 +220,25 @@ describe('getSectionByNumber — navigation by number', () => {
   it('returns section 1 correctly', () => {
     const s = getSectionByNumber(1)
     expect(s?.number).toBe(1)
-    expect(s?.title).toBe('O que é o Banzami?')
+    expect(s?.title).toBe('O que é o Banza?')
   })
 
-  it('returns section 20 correctly', () => {
-    const s = getSectionByNumber(20)
-    expect(s?.number).toBe(20)
-    expect(s?.title).toBe('Declaração de Visão Final')
+  it('returns section 17 correctly', () => {
+    const s = getSectionByNumber(17)
+    expect(s?.number).toBe(17)
+    expect(s?.title).toBe('Declaração de Visão')
   })
 
   it('returns undefined for section 0', () => {
     expect(getSectionByNumber(0)).toBeUndefined()
   })
 
-  it('returns undefined for section 21 (out of range)', () => {
-    expect(getSectionByNumber(21)).toBeUndefined()
+  it('returns undefined for section 18 (out of range)', () => {
+    expect(getSectionByNumber(18)).toBeUndefined()
   })
 
   it('is consistent with getSection — same object for same section', () => {
-    for (let n = 1; n <= 20; n++) {
+    for (let n = 1; n <= 17; n++) {
       const byNum = getSectionByNumber(n)
       const bySlug = getSection(byNum!.slug)
       expect(byNum?.number).toBe(bySlug?.number)
@@ -249,8 +249,8 @@ describe('getSectionByNumber — navigation by number', () => {
 // ─── getAllSectionSlugs (DOC-003 navigation index) ────────────────────────────
 
 describe('getAllSectionSlugs', () => {
-  it('returns an array of 20 slugs', () => {
-    expect(getAllSectionSlugs()).toHaveLength(20)
+  it('returns an array of 17 slugs', () => {
+    expect(getAllSectionSlugs()).toHaveLength(17)
   })
 
   it('all slugs are strings and non-empty', () => {
@@ -265,7 +265,7 @@ describe('getAllSectionSlugs', () => {
     expect(new Set(slugs).size).toBe(slugs.length)
   })
 
-  it('slugs are in section number order (1 → 20)', () => {
+  it('slugs are in section number order (1 → 17)', () => {
     const slugs = getAllSectionSlugs()
     const sections = getReference().sections
     slugs.forEach((slug, i) => {
@@ -277,9 +277,9 @@ describe('getAllSectionSlugs', () => {
 // ─── BANZAMI_REFERENCE.md — content integrity (IDT-001) ──────────────────────
 
 describe('BANZAMI_REFERENCE.md — content integrity', () => {
-  it('contains the section "O que é o Banzami?" as section 1', () => {
+  it('contains the section "O que é o Banza?" as section 1', () => {
     const s = getSectionByNumber(1)
-    expect(s?.title).toBe('O que é o Banzami?')
+    expect(s?.title).toBe('O que é o Banza?')
   })
 
   it('contains a section about the wallet-native philosophy', () => {
@@ -312,7 +312,7 @@ describe('BANZAMI_REFERENCE.md — content integrity', () => {
     }
   })
 
-  it('section numbering has no gaps (sequential 1–20)', () => {
+  it('section numbering has no gaps (sequential 1–17)', () => {
     const numbers = getReference().sections.map((s) => s.number)
     for (let i = 0; i < numbers.length; i++) {
       expect(numbers[i]).toBe(i + 1)
