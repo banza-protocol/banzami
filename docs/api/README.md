@@ -1,6 +1,6 @@
 # Banza API Reference
 
-Banzami is Angola's programmable instant payments infrastructure. The API is the developer entry point — enabling any Angolan application to accept instant Kwanza payments, generate QR codes, create payment links, and process wallet transfers natively within their product.
+Banza is Angola's open programmable financial infrastructure. Banzami is the reference operator — the payment product built on Banza. This API is the developer entry point — enabling any Angolan application to accept instant Kwanza payments, generate QR codes, create payment links, and process wallet transfers natively within their product.
 
 For most integrations, use an official [Banzami SDK](../../sdk/) rather than calling the API directly. The SDK handles idempotency, retries, webhook signature verification, and type safety automatically.
 

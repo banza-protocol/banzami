@@ -4,7 +4,7 @@
     "lastUpdated": "2026-05-22",
     "referenceVersion": "1.0",
     "referenceFile": "docs/BANZAMI_REFERENCE.md",
-    "description": "Implementation and validation matrix for the Banzami ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
+    "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
   },
   "categories": [
     {
@@ -570,7 +570,7 @@
       "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1 — §20",
-      "description": "Fonte única de verdade para todo o ecossistema Banzami — definição canónica de produto, arquitectura, filosofia, UX e posicionamento.",
+      "description": "Fonte única de verdade para todo o ecossistema Banza — definição canónica de protocolo, arquitectura, filosofia, UX e posicionamento.",
       "requirement": "Documento completo, coerente e actualizado cobrindo todas as 20 secções do ecossistema. Nada pode aparecer no site sem existir primeiro aqui.",
       "status": "VALIDATED",
       "priority": "CRITICAL",

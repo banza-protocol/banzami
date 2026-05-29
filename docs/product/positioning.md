@@ -1,46 +1,66 @@
 # Banza Market Positioning
 
 **Version:** 1.0  
-**Date:** 2026-05-19  
-**Status:** Active  
+**Date:** 2026-05-30  
+**Status:** Active — updated for ADR-025 (naming inversion)
 
 ---
 
 ## The One-Line Position
 
-**Banzami é a infraestrutura programável de pagamentos instantâneos de Angola — QR-native, wallet-native, developer-first.**
+**Banza é o protocolo aberto de infraestrutura financeira programável. Banzami é o operador de referência — a rede de pagamentos instantâneos construída sobre o Banza.**
 
-*English: Banzami is Angola's programmable instant payments infrastructure — QR-native, wallet-native, developer-first.*
+*English: Banza is the open programmable financial infrastructure protocol. Banzami is the reference operator — the instant payment network built on Banza.*
 
 ---
 
-## What Banza IS
+## Canonical Three-Tier Hierarchy (ADR-025)
+
+| Entity | What it is | What it is NOT |
+|---|---|---|
+| **BANZA** | Open programmable financial infrastructure — protocol, ledger, settlement engine, certification system, verifiable rules | A wallet app, QR product, company name, consumer-facing product |
+| **BanzAI** | Native Protocol Operating System — explains, validates, simulates, certifies, traces the BANZA protocol | A chatbot, documentation assistant, support tool |
+| **Banzami** | Reference operator and payment product built on BANZA — consumer wallets, merchant QR, Banzami SDK, Banzami Business | The organization, the protocol, the infrastructure, the ecosystem |
+
+**Strategic differentiator:** Most financial protocols define rules. BANZA defines rules AND includes a native operating system (BanzAI) capable of explaining, validating, researching, simulating, certifying and tracing those rules.
+
+---
+
+## What BANZA IS
 
 | Statement | Meaning |
 |-----------|---------|
-| Angola's programmable instant payments infrastructure | Not just a wallet app — a full payments platform with QR, wallets, APIs, SDKs, and financial identity |
-| Angola's QR-native instant payment network | QR codes are the primary merchant payment surface; settlement is instant, not delayed |
-| The first Angola-native SDK payment infrastructure | Any Angolan app integrates Banzami SDK and accepts AOA instantly — this infrastructure did not exist before |
-| The wallet layer for Angolan digital commerce | Every account is a wallet; every payment is a wallet transfer; not card-centric |
-| The payment API for Angolan applications | Taxi apps, delivery platforms, ecommerce, donation platforms — all use Banzami as their payment engine |
-| The replacement for cash and WhatsApp payment confirmation | The explicit product target: eliminate manual transfer confirmation in Angolan commerce |
+| Open programmable financial infrastructure | Not a payment app — a protocol with certified operators, verifiable rules, and an open implementation surface |
+| Angola's QR-native instant payment protocol | QR codes are a protocol-native primitive any certified operator can implement; settlement is instant |
+| The first Angola-native SDK payment infrastructure | Any Angolan app integrates via Banzami SDK and accepts AOA instantly — this infrastructure did not exist before |
+| The certified operator network | Any organisation meeting BANZA certification requirements can become a protocol operator |
+| A protocol with a native OS | BanzAI is the first-class cognitive interface of the BANZA protocol — not an optional module |
 
 ---
 
-## What Banza Is NOT
+## What BANZA Is NOT
 
 | Wrong Description | Why It Is Wrong |
 |-------------------|-----------------|
-| "Pan-African payment aggregator" | Premature. Angola first; expansion second. Claiming pan-African before achieving Angolan density is dishonest and distracts from what matters. |
-| "Stripe for Africa" | Wrong model. Stripe is card-first, designed for Western card infrastructure. Banza is wallet-native, QR-first, kwanza-native. The models are different. |
-| "Generic African fintech platform" | Too vague to mean anything. Banza solves Angola's specific payment problems. |
-| "Cryptocurrency platform" | Out of scope. Banza handles AOA via regulated banking infrastructure. |
-| "Traditional banking app" | Banza is not a bank. It is the commerce layer above banks. |
-| "Card processor" | Cards are a future wallet top-up rail only. The core network is wallet ↔ wallet. |
+| "Pan-African payment aggregator" | Premature. Angola first; expansion second. Claiming pan-African before achieving Angolan density is dishonest. |
+| "Stripe for Africa" | Wrong model. Stripe is card-first, designed for Western card infrastructure. BANZA is wallet-native, QR-first, kwanza-native. |
+| "Generic African fintech platform" | Too vague to mean anything. BANZA solves Angola's specific payment infrastructure gap. |
+| "Cryptocurrency platform" | Out of scope. BANZA handles AOA via regulated banking infrastructure. |
+| "Traditional banking app" | BANZA is not a bank. It is the protocol layer above banks. |
+| "Banzami is the infrastructure" | Inversion: BANZA is the infrastructure; Banzami is the reference operator built on BANZA. |
 
 ---
 
 ## Positioning by Audience
+
+### For developers integrating payments
+
+> "The BANZA protocol provides the developer layer of Angola's programmable payments infrastructure. Integrate instant Kwanza payments inside your app in hours using the Banzami SDK. QR generation, payment links, webhooks — fully typed, idempotency-safe, webhook-verified."
+
+Core proof points:
+- Angola-native: AOA, pt-AO locale, @handle-based identity, EMIS-compatible
+- SDK-first: typed APIs, automatic idempotency, retry handling, webhook signature verification
+- No card complexity: wallet ↔ wallet transfers, QR generation, payment requests
 
 ### For Angolan merchants
 
@@ -51,45 +71,49 @@ Core proof points:
 - QR-native — no card terminal, no POS hardware required for small merchants
 - SDK for apps — taxi apps, delivery platforms, and ecommerce sites integrate in hours
 
-### For Angolan developers
-
-> "The developer layer of Angola's programmable payments platform. Accept instant Kwanza payments inside your app in hours. QR generation, payment links, webhooks — fully typed, idempotency-safe, webhook-verified."
-
-Core proof points:
-- Angola-native: AOA, pt-AO locale, @handle-based identity, EMIS-compatible
-- SDK-first: typed APIs, automatic idempotency, retry handling, webhook signature verification
-- No card complexity: wallet ↔ wallet transfers, QR generation, payment requests — not card tokenization forms
-
 ### For investors
 
-> "Banza is building the programmable payments infrastructure of Angola — the QR-native national network with consumer wallets, merchant rails, and a developer SDK ecosystem that replaces cash and WhatsApp confirmation in the largest Portuguese-speaking country in Africa."
+> "Banza is building Angola's open programmable financial infrastructure — the QR-native protocol with consumer wallets, merchant rails, and a developer SDK ecosystem that replaces cash and WhatsApp confirmation in the largest Portuguese-speaking country in Africa. BanzAI is the native protocol OS that makes BANZA uniquely explainable, validatable, and certifiable."
 
 Core proof points:
 - National mission with a specific market, not a vague continental play
-- Defensible network effect: wallet density + merchant QR density = switching cost
-- SDK ecosystem: every Angolan app that integrates Banza is a node in the network
+- Defensible network effect: wallet density + merchant QR density + certified operator network
+- BanzAI as strategic moat: protocol intelligence is embedded in infrastructure, not bolted on
 - EMIS integration: not building rails from scratch; using Angola's existing regulated interbank infrastructure
 - Reference models: Pix (Brazil), UPI (India) — both achieved national scale from focused initial deployment
-- Revenue model: transaction fees on instant settlement, payout fees, enterprise SDK licensing
 
 ### For Angolan banks (partnership framing)
 
-> "Banza is not competing with Angolan banks. We are the commerce layer above your infrastructure — bringing your customers instant digital payment UX, QR-native experiences, and developer SDKs that increase your platform's relevance in digital commerce."
+> "Banza is not competing with Angolan banks. We are the protocol layer above your infrastructure — bringing your customers instant digital payment UX, QR-native experiences, and developer SDKs that increase your platform's relevance in digital commerce."
+
+---
+
+## Infrastructure Layers
+
+The BANZA protocol operates across three tiers:
+
+| Tier | Entity | Surface | Who Uses It |
+|------|--------|---------|-------------|
+| **Protocol tier** | BANZA | Ledger engine, settlement rails, EMIS integration, certification, verifiable rules | Banks, certified operators, regulated integrators |
+| **Intelligence tier** | BanzAI | Protocol OS — 16 modules: understand, explain, validate, simulate, predict, guide, certify, federate | Protocol operators, developers, governance reviewers |
+| **Product tier** | Banzami (reference operator) | Consumer mobile app, Banzami Business (merchant), Banzami SDK (developer), QR payments | Consumers, merchants, Angolan developers |
+
+Banzami is the reference operator that builds on top of BANZA. Other certified operators can build their own products on the same protocol.
 
 ---
 
 ## Reference Models
 
-These platforms are cited as analogues for specific aspects of what Banza builds. They are not competitors — none has meaningful Angolan presence.
+These platforms are cited as analogues for specific aspects of what BANZA builds. They are not competitors — none has meaningful Angolan presence.
 
-| Platform | What Banza Borrows |
+| Platform | What BANZA Borrows |
 |----------|---------------------|
 | **Pix (Brazil)** | QR-native national payment network; instant settlement as the default; mass merchant adoption via simplicity |
-| **UPI (India)** | @handle-based identity for payment addressing; national scale from focused domestic deployment |
+| **UPI (India)** | @handle-based identity for payment addressing; national scale from focused domestic deployment; open operator model |
 | **M-Pesa (East Africa)** | Mobile-first financial inclusion; informal merchant adoption; trust via simplicity |
 | **WeChat Pay (China)** | QR scan as the dominant consumer payment habit; wallet-native ecosystem |
 
-Banza is explicitly NOT modeled on:
+BANZA is explicitly NOT modeled on:
 - Stripe (card-first, Western infrastructure)
 - PayPal (card-linked, remittance-adjacent, not local-rail-native)
 - Adyen (enterprise card processing, no Angolan presence)
@@ -97,43 +121,29 @@ Banza is explicitly NOT modeled on:
 
 ---
 
-## Infrastructure Layers
-
-Banzami operates across four stacked layers. This framing helps explain why Banzami is an infrastructure, not just an app:
-
-| Layer | Surface | Who Uses It |
-|-------|---------|-------------|
-| **Consumer layer** | Banzami mobile app (iOS/Android) | Every Angolan — pay, receive, transfer, QR scan |
-| **Merchant layer** | Banzami Business app + static/dynamic QR | Cantinas, ecommerce, taxi apps, institutions |
-| **Developer layer** | Banzami SDK + Banzami API + payment links + webhooks | Developers building Angolan apps |
-| **Infrastructure layer** | Ledger engine, settlement rails, EMIS integration, wallets | Banks, financial partners, regulated integrators |
-
-The first three layers are Banzami's product surface. The fourth is the financial engineering underneath. All four are part of what "programmable payments infrastructure" means.
-
----
-
 ## Language Rules
 
 ### Always use
 
-- "programmable payments infrastructure" or "programmable instant payments" — not "wallet app"
-- "instant payment" or "instant settlement" — not "fast payment" (fast is relative; instant is a product commitment)
-- "wallet" — not "account" (accounts are bank constructs; Banzami has wallets)
+- "programmable financial infrastructure" or "open protocol" — not "wallet app" for BANZA
+- "reference operator" for Banzami — not "the infrastructure"
+- "instant payment" or "instant settlement" — not "fast payment"
+- "wallet" — not "account"
 - "AOA" or "Kwanza" — not generic "African currency"
-- "@handle" — not "username" (the handle IS the payment address)
-- "scan and pay" — not "tap to pay" (NFC is not the primary surface)
-- "QR-native" — not "QR-enabled" (QR is not a feature; it is the primary payment UX)
-- "Angola's payment infrastructure" or "Angola's payment network" — not "African payment network"
-- "developer layer" or "payment API" — not "thin wrapper" or "helper library" when describing the SDK
+- "@handle" — not "username"
+- "scan and pay" — not "tap to pay"
+- "QR-native" — not "QR-enabled"
+- "Angola's payment infrastructure" or "Angola's payment protocol" — not "African payment network"
+- "Banzami SDK" for the SDK — it belongs to the Banzami product layer
 
 ### Avoid
 
-- "carteira digital simples" or "app de pagamentos básico" — undersells what the platform is
+- "Banzami é a infraestrutura" — inversion; BANZA is the infrastructure, Banzami is the product
+- "Banzami protocol" or "protocolo Banzami" — the protocol is BANZA, not Banzami
 - "pan-African" in any current-tense claim
-- "Stripe for Africa" or "X for Africa" analogies (lazy positioning, wrong model)
-- "fintech" alone without context (too generic)
-- "card payment" in any primary context (card is a future top-up rail, not the product)
-- "bank transfer" framed as a feature (bank transfers are the *problem* Banzami solves)
+- "Stripe for Africa" analogies
+- "card payment" in any primary context
+- "bank transfer" framed as a feature
 
 ---
 
@@ -141,17 +151,19 @@ The first three layers are Banzami's product surface. The fourth is the financia
 
 > In Angola, most businesses still get paid via manual bank transfers, verified by WhatsApp screenshots. It's slow, error-prone, and doesn't scale for apps.
 >
-> Banza is Angola's QR-native instant payment network. A merchant prints a QR. A customer scans it. Money moves instantly — confirmed on both sides, no WhatsApp, no waiting, no reconciliation.
+> Banza is Angola's open programmable financial infrastructure — the protocol with instant settlement, QR-native payments, and verifiable rules that any certified operator can implement. Banzami is the first certified operator: a consumer wallet, a merchant QR tool, and a developer SDK, all built on the Banza protocol.
 >
-> For developers, we provide the first Angola-native SDK: any taxi app, delivery platform, or ecommerce site integrates Banzami in hours and starts accepting instant Kwanza payments inside their product.
+> What makes Banza different: BanzAI is the native protocol OS — it can explain, validate, simulate, and certify the entire protocol. Most protocols define rules. Banza defines rules AND includes a cognitive operating system for those rules.
 >
-> We're building what Pix did for Brazil — but for Angola. Angola first, then the region.
+> We're building what Pix did for Brazil — but with an open protocol architecture. Angola first, then the region.
 
 ---
 
 ## References
 
-- [Product Strategy](strategy.md)
+- [ADR-025 — Naming Inversion](../adr/ADR-025-naming-inversion.md)
+- [ADR-016 — Banzami/Banza Brand Architecture](../adr/ADR-016-banzami-banza-brand-architecture.md) (superseded by ADR-025 on hierarchy)
 - [ADR-014 — Angola-First National Mission](../adr/ADR-014-angola-national-mission.md)
 - [ADR-013 — Wallet-Native Payment Network Identity](../adr/ADR-013-wallet-native-identity.md)
-- [CLAUDE.md §1 — Mission](../../CLAUDE.md)
+- [BANZA-POSITIONING-AUDIT-002](../migration/banza-positioning-audit.md)
+- [BANZA-CANONICAL-IDENTITY-AUDIT Phase 2](../migration/banza-identity-deep-audit.md)

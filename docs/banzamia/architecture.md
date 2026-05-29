@@ -123,7 +123,7 @@ Content-Type: application/json
 ```
 data: {"type":"meta","model":"qwen-14b","taskType":"DOCS"}
 
-data: {"type":"chunk","content":"The Banzami protocol..."}
+data: {"type":"chunk","content":"The Banza protocol..."}
 data: {"type":"chunk","content":" enforces..."}
 
 data: {"type":"citations","citations":[

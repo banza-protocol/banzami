@@ -1822,7 +1822,7 @@ Angola não precisa de copiar o modelo de pagamentos de outro país. Angola prec
 
 Angola tem penetração móvel crescente, uma geração de programadores prontos, e um sector informal que representa a maioria do comércio — que nunca foi bem servido pelas soluções de pagamento existentes.
 
-O modelo está provado: o Pix no Brasil, o UPI na Índia, o M-Pesa em Moçambique. Angola tem as mesmas pré-condições. O Banzami é a infraestrutura.
+O modelo está provado: o Pix no Brasil, o UPI na Índia, o M-Pesa em Moçambique. Angola tem as mesmas pré-condições. O Banza é a infraestrutura.
 
 ### O salto tecnológico
 

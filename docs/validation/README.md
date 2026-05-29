@@ -1,6 +1,6 @@
 # BANZAMI_IMPLEMENTATION_MATRIX.json
 
-Sistema de execução e validação do ecossistema Banzami.
+Sistema de execução e validação do ecossistema Banza.
 
 ---
 
