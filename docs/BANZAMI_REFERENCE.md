@@ -796,6 +796,128 @@ O BanzamIA disponível publicamente em `banzami.org/banzamia` é composto por oi
 
 ---
 
+### Como o BanzamIA Funciona
+
+O BanzamIA não é um único modelo de IA. É um sistema orquestrado que combina múltiplos modelos de linguagem, recuperação de conhecimento do protocolo, ferramentas de validação determinísticas e lógica de certificação numa única interface.
+
+![Arquitectura Interna do BanzamIA — fluxo completo de pergunta a resposta fundamentada](/images/architecture/banzamia-internal-architecture.svg)
+
+#### Não é um único modelo
+
+O BanzamIA não é:
+
+- Um chatbot treinado no Banzami
+- Um wrapper de LLM único
+- Um assistente genérico com branding Banzami
+
+O BanzamIA é um sistema AI-native que encaminha cada pedido para a combinação correcta de modelo de linguagem, fonte de conhecimento, ferramenta determinística e validador de protocolo.
+
+#### Estratégia de Modelos de IA
+
+O BanzamIA usa uma arquitectura de encaminhamento de modelos (model routing). Cada tipo de tarefa é classificado e enviado para o modelo mais adequado.
+
+![Encaminhamento de Modelos BanzamIA — routing de tarefas por modelo e ferramentas](/images/architecture/banzamia-model-routing.svg)
+
+**Qwen — Compreensão Geral do Protocolo**
+
+Modelo principal para compreensão e explicação do protocolo. Responsável por: documentação e Q&A geral, clarificação de conceitos, sumário de RFCs e ADRs, orientação de onboarding, navegação geral do ecossistema.
+
+*Exemplos: "O que é um trace_id?", "Como funciona a federação?", "Qual a diferença entre Banzami e Banza?"*
+
+**Qwen Coder — Assistência de Implementação**
+
+Usado para tarefas orientadas a implementação e geração de código. Responsável por: exemplos de integração SDK, snippets TypeScript · Dart · PHP · Go, scaffolding de manifestos de operador, assistência em workflows de desenvolvimento.
+
+*Exemplos: "Gera uma integração TypeScript para payment requests", "Mostra como chamar a API de traces"*
+
+**DeepSeek — Raciocínio e Validação**
+
+Usado para tarefas de raciocínio profundo. Responsável por: debugging de invariantes, raciocínio de certificação, análise de prontidão de operadores, explicação de falhas de conformidade, análise de arquitectura.
+
+*Exemplos: "Por que falhou este operador no nível 2?", "Qual invariante é violado por este batch de liquidação?"*
+
+#### Recuperação de Conhecimento do Protocolo (RAG)
+
+O BanzamIA não depende da memória do modelo. Recupera conhecimento da base de conhecimento viva do Banzami — em tempo real, com citações verificáveis.
+
+Fontes incluem: `BANZAMI_REFERENCE.md`, RFCs e ADRs, contratos OpenAPI, invariantes financeiros, schemas de manifesto, vectores de conformidade, documentação de SDK e glossário oficial.
+
+Fluxo de recuperação:
+
+```
+Pergunta do utilizador
+↓ Classificação do pedido
+↓ Pesquisa vectorial / keyword (Qdrant)
+↓ Fontes do protocolo relevantes
+↓ Raciocínio do modelo
+↓ Resposta fundamentada com citações
+```
+
+**Por que não fine-tuning**
+
+O fine-tuning torna-se obsoleto quando o protocolo evolui. O BanzamIA usa em vez disso recuperação em tempo real de documentos versionados, validadores determinísticos e saídas verificadas por ferramentas.
+
+> *Os modelos são substituíveis. O conhecimento do protocolo não é.*
+
+#### Modelo de Verdade do Protocolo
+
+![Modelo de Verdade do Protocolo — ferramentas determinam a verdade, IA explica a verdade](/images/architecture/banzamia-truth-model.svg)
+
+> **Ferramentas determinam a verdade. A IA explica a verdade.**
+
+A verdade vem de schemas de protocolo, motores de conformidade, validadores, manifestos, traces, RFCs, ADRs e especificações. A IA não inventa verdade do protocolo — traduz verdade verificada em orientação humana.
+
+#### Ferramentas Determinísticas
+
+Muitas funções do BanzamIA não são inferências do modelo. São ferramentas determinísticas:
+
+| Ferramenta | Função |
+|-----------|--------|
+| **Manifest Validator** | Estrutura JSON, campos obrigatórios, capacidades, requisitos de federação |
+| **Conformance Runner** | Suites de teste, compatibilidade de protocolo, nível de certificação |
+| **Trace Explainer** | Estrutura de trace, cadeia causal, entradas ledger e batches de liquidação |
+| **SDK Generator** | Contratos OpenAPI + templates determinísticos → código correcto |
+| **Knowledge Search** | Documentos fonte com citações, fundamenta respostas do modelo |
+
+#### Modos de Deployment
+
+| Modo | Estado | Descrição |
+|------|--------|-----------|
+| **Demo Mode** | Disponível | Frontend-only · demonstração pública · sem backend · exemplos estáticos |
+| **Live API** | Activo | Backend real · ferramentas determinísticas · sem inferência GPU |
+| **Live AI** | Futuro | RunPod / vLLM · Qwen · Qwen Coder · DeepSeek · model routing completo |
+
+A arquitectura é desenhada para que o Live AI Mode possa ser activado sem redesenhar o sistema. O nó GPU é responsável apenas pela inferência — dados do protocolo, índices, ferramentas e verificação ficam fora do nó GPU, mantendo o sistema mais barato, mais seguro e mais fácil de escalar.
+
+**Modo actual: Live API — ferramentas reais, sem inferência GPU activa**
+
+#### Desenhado para Auto-Hospedagem
+
+O BanzamIA deve permanecer auto-hospedável. Operadores, reguladores ou sandboxes governamentais devem poder implantar a sua própria instância — porque a infraestrutura financeira requer soberania de dados, e a federação futura pode requerer validação independente.
+
+#### Como uma Pergunta é Respondida
+
+Exemplo completo — *utilizador pergunta: "Como certifico um operador de Nível 2?"*
+
+1. O BanzamIA recebe a pergunta
+2. O Task Router classifica-a como `CERTIFICATION`
+3. A recuperação de conhecimento encontra docs de certificação e regras de conformidade
+4. As ferramentas determinísticas inspeccionam os requisitos disponíveis
+5. O Model Router selecciona DeepSeek para raciocínio
+6. O DeepSeek explica o resultado usando o contexto recuperado
+7. O BanzamIA devolve: resposta clara · requisitos em falta · testes relevantes · referências a fontes · próximas acções
+
+#### Exemplos de Encaminhamento por Modelo
+
+| Pergunta | Rota |
+|---------|------|
+| "O que é um trace_id?" | Qwen + RAG |
+| "Gera uma integração TypeScript para payment requests" | Qwen Coder + SDK templates + contratos OpenAPI |
+| "Por que falhou este operador na conformidade de liquidação?" | Conformance Runner + DeepSeek |
+| "Este manifesto está pronto para federação?" | Manifest Validator + DeepSeek |
+
+---
+
 ### O futuro do BanzamIA
 
 O BanzamIA deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.

@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 464" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="464" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">Arquitectura Interna do BanzamIA</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">COMO O BANZAMIA RESPONDE A UMA PERGUNTA</text>
+
+  <!-- USER QUESTION -->
+  <rect x="230" y="82" width="240" height="30" rx="7" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="101" text-anchor="middle" fill="#475569" font-size="10" font-weight="600">Pergunta do Utilizador</text>
+
+  <!-- Arrow down to Task Router -->
+  <line x1="350" y1="112" x2="350" y2="124" stroke="#D4C9C7" stroke-width="1.5"/>
+  <polygon points="345,124 355,124 350,130" fill="#D4C9C7"/>
+
+  <!-- TASK ROUTER -->
+  <rect x="185" y="130" width="330" height="34" rx="8" fill="#EA580C" filter="url(#sh)"/>
+  <text x="350" y="145" text-anchor="middle" fill="white" font-size="10" font-weight="700">BanzamIA — Task Router</text>
+  <text x="350" y="158" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">Classifica e encaminha cada pedido para modelo + ferramentas correctos</text>
+
+  <!-- Branch: trunk down, horizontal bar, drops to each column -->
+  <line x1="350" y1="164" x2="350" y2="172" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="130" y1="172" x2="570" y2="172" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="130" y1="172" x2="130" y2="180" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="350" y1="172" x2="350" y2="180" stroke="#D4C9C7" stroke-width="1.5"/>
+  <line x1="570" y1="172" x2="570" y2="180" stroke="#D4C9C7" stroke-width="1.5"/>
+
+  <!-- COL 1: MODEL ROUTER (x=30, w=200, center=130) -->
+  <rect x="30" y="180" width="200" height="114" rx="8" fill="white" stroke="#FED7AA" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="30" y="180" width="200" height="26" rx="8" fill="#EA580C"/>
+  <rect x="30" y="197" width="200" height="9" fill="#EA580C"/>
+  <text x="130" y="197" text-anchor="middle" fill="white" font-size="9" font-weight="700">Model Router</text>
+  <rect x="40" y="210" width="180" height="20" rx="5" fill="#FFF7F0" stroke="#FED7AA" stroke-width="1"/>
+  <text x="130" y="224" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Qwen · Documentação · Q&amp;A</text>
+  <rect x="40" y="234" width="180" height="20" rx="5" fill="#FFF7F0" stroke="#FED7AA" stroke-width="1"/>
+  <text x="130" y="248" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">Qwen Coder · Código · SDKs</text>
+  <rect x="40" y="258" width="180" height="20" rx="5" fill="#FFF7F0" stroke="#FED7AA" stroke-width="1"/>
+  <text x="130" y="272" text-anchor="middle" fill="#9A3412" font-size="8" font-weight="600">DeepSeek · Raciocínio · Certificação</text>
+
+  <!-- COL 2: KNOWLEDGE RETRIEVAL (x=250, w=200, center=350) -->
+  <rect x="250" y="180" width="200" height="114" rx="8" fill="white" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="250" y="180" width="200" height="26" rx="8" fill="#2A3A8C"/>
+  <rect x="250" y="197" width="200" height="9" fill="#2A3A8C"/>
+  <text x="350" y="197" text-anchor="middle" fill="white" font-size="9" font-weight="700">Recuperação de Conhecimento</text>
+  <text x="350" y="214" text-anchor="middle" fill="#4B5A9C" font-size="7.5">RFCs · ADRs · BANZAMI_REFERENCE.md</text>
+  <text x="350" y="228" text-anchor="middle" fill="#4B5A9C" font-size="7.5">Invariantes · Contratos OpenAPI</text>
+  <text x="350" y="242" text-anchor="middle" fill="#4B5A9C" font-size="7.5">Schemas · Glossário · Vectores</text>
+  <text x="350" y="258" text-anchor="middle" fill="#2A3A8C" font-size="8" font-weight="600">Qdrant vector store</text>
+  <text x="350" y="274" text-anchor="middle" fill="#6B6265" font-size="7.5" font-style="italic">Pesquisa semântica + keyword</text>
+  <text x="350" y="288" text-anchor="middle" fill="#6B6265" font-size="7.5" font-style="italic">Citações verificáveis</text>
+
+  <!-- COL 3: DETERMINISTIC TOOLS (x=470, w=200, center=570) -->
+  <rect x="470" y="180" width="200" height="114" rx="8" fill="white" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="470" y="180" width="200" height="26" rx="8" fill="#166534"/>
+  <rect x="470" y="197" width="200" height="9" fill="#166534"/>
+  <text x="570" y="197" text-anchor="middle" fill="white" font-size="9" font-weight="700">Ferramentas Determinísticas</text>
+  <text x="570" y="214" text-anchor="middle" fill="#166534" font-size="8">Manifest Validator</text>
+  <text x="570" y="228" text-anchor="middle" fill="#166534" font-size="8">Conformance Runner</text>
+  <text x="570" y="242" text-anchor="middle" fill="#166534" font-size="8">Trace Explainer</text>
+  <text x="570" y="256" text-anchor="middle" fill="#166534" font-size="8">SDK Generator</text>
+  <text x="570" y="270" text-anchor="middle" fill="#166534" font-size="8">Knowledge Search (Qdrant)</text>
+  <text x="570" y="286" text-anchor="middle" fill="#6B6265" font-size="7.5" font-style="italic">sem inferência de modelo</text>
+
+  <!-- Merge lines from box bottoms (y=294) converging to center -->
+  <line x1="130" y1="294" x2="130" y2="312" stroke="#D4C9C7" stroke-width="1"/>
+  <line x1="350" y1="294" x2="350" y2="304" stroke="#D4C9C7" stroke-width="1"/>
+  <line x1="570" y1="294" x2="570" y2="312" stroke="#D4C9C7" stroke-width="1"/>
+  <line x1="130" y1="312" x2="570" y2="312" stroke="#D4C9C7" stroke-width="1"/>
+  <line x1="350" y1="312" x2="350" y2="320" stroke="#D4C9C7" stroke-width="1.5"/>
+  <polygon points="345,320 355,320 350,326" fill="#D4C9C7"/>
+
+  <!-- RESPONSE GROUNDING -->
+  <rect x="185" y="326" width="330" height="34" rx="8" fill="#FEF9F5" stroke="#DBBCB2" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="341" text-anchor="middle" fill="#990011" font-size="10" font-weight="700">Response Grounding</text>
+  <text x="350" y="354" text-anchor="middle" fill="#6B6265" font-size="8">Fundamentação em fontes · Citações · Incerteza declarada</text>
+
+  <!-- Arrow to grounded answer -->
+  <line x1="350" y1="360" x2="350" y2="370" stroke="#D4C9C7" stroke-width="1.5"/>
+  <polygon points="345,370 355,370 350,376" fill="#D4C9C7"/>
+
+  <!-- GROUNDED ANSWER -->
+  <rect x="185" y="376" width="330" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="350" y="396" text-anchor="middle" fill="#166534" font-size="12" font-weight="700">Resposta Fundamentada ✓</text>
+  <text x="350" y="412" text-anchor="middle" fill="#4B7A51" font-size="8">Resposta · Fontes citadas · Raciocínio · Próximos passos</text>
+
+  <!-- Caption -->
+  <text x="350" y="452" text-anchor="middle" fill="#9B8E8C" font-size="9">Os modelos raciocinam. O protocolo fornece a verdade. As ferramentas verificam a verdade.</text>
+</svg>
