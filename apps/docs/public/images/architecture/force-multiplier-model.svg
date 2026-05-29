@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 420" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="420" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">BanzamIA como Multiplicador de Força</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">SEIS COMPONENTES DO ECOSSISTEMA AMPLIFICADOS</text>
+
+  <!-- Column headers -->
+  <text x="130" y="90" text-anchor="middle" fill="#6B6265" font-size="9" font-weight="600" letter-spacing="0.5">COMPONENTE</text>
+  <text x="338" y="90" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700" letter-spacing="0.5">× BANZAMIA</text>
+  <text x="558" y="90" text-anchor="middle" fill="#6B6265" font-size="9" font-weight="600" letter-spacing="0.5">RESULTADO</text>
+
+  <!-- ROW 1: Kernel (y=98) -->
+  <rect x="30" y="98" width="200" height="44" rx="8" fill="#FEF9F5" stroke="#DBBCB2" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="117" text-anchor="middle" fill="#990011" font-size="11" font-weight="700">Kernel</text>
+  <text x="130" y="133" text-anchor="middle" fill="#6B6265" font-size="9">Rust Financial Core</text>
+  <rect x="248" y="106" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="125" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="98" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="117" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Integrações mais fáceis</text>
+  <text x="558" y="133" text-anchor="middle" fill="#4B7A51" font-size="8">SDKs mais rápidos de adoptar</text>
+
+  <!-- ROW 2: Certificação (y=150) -->
+  <rect x="30" y="150" width="200" height="44" rx="8" fill="#EEF2FF" stroke="#9BA8D4" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="169" text-anchor="middle" fill="#2A3A8C" font-size="11" font-weight="700">Certificação</text>
+  <text x="130" y="185" text-anchor="middle" fill="#6B6265" font-size="9">Níveis 0–4 de operadores</text>
+  <rect x="248" y="158" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="177" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="150" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="169" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Mais sucesso de certificação</text>
+  <text x="558" y="185" text-anchor="middle" fill="#4B7A51" font-size="8">Progressão mais rápida nos níveis</text>
+
+  <!-- ROW 3: Conformidade (y=202) -->
+  <rect x="30" y="202" width="200" height="44" rx="8" fill="#FEF2F2" stroke="#FECACA" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="221" text-anchor="middle" fill="#991B1B" font-size="11" font-weight="700">Conformidade</text>
+  <text x="130" y="237" text-anchor="middle" fill="#6B6265" font-size="9">Validators · Test suites</text>
+  <rect x="248" y="210" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="229" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="202" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="221" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Menos erros de implementação</text>
+  <text x="558" y="237" text-anchor="middle" fill="#4B7A51" font-size="8">Validação guiada e explicada</text>
+
+  <!-- ROW 4: RFCs / ADRs (y=254) -->
+  <rect x="30" y="254" width="200" height="44" rx="8" fill="#FFFBF0" stroke="#DDB954" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="273" text-anchor="middle" fill="#7A5800" font-size="11" font-weight="700">RFCs · ADRs</text>
+  <text x="130" y="289" text-anchor="middle" fill="#6B6265" font-size="9">Documentos de governança</text>
+  <rect x="248" y="262" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="281" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="254" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="273" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Conhecimento acessível a todos</text>
+  <text x="558" y="289" text-anchor="middle" fill="#4B7A51" font-size="8">Protocolo explicável a qualquer um</text>
+
+  <!-- ROW 5: Integration Surface (y=306) -->
+  <rect x="30" y="306" width="200" height="44" rx="8" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="325" text-anchor="middle" fill="#166534" font-size="11" font-weight="700">Integration Surface</text>
+  <text x="130" y="341" text-anchor="middle" fill="#6B6265" font-size="9">TypeScript · Dart · PHP · Go</text>
+  <rect x="248" y="314" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="333" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="306" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="325" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Desenvolvimento mais rápido</text>
+  <text x="558" y="341" text-anchor="middle" fill="#4B7A51" font-size="8">Geração de código · Guia de integração</text>
+
+  <!-- ROW 6: Federação (y=358) -->
+  <rect x="30" y="358" width="200" height="44" rx="8" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="377" text-anchor="middle" fill="#6D28D9" font-size="11" font-weight="700">Federação</text>
+  <text x="130" y="393" text-anchor="middle" fill="#6B6265" font-size="9">Rede de operadores certificados</text>
+  <rect x="248" y="366" width="180" height="28" rx="14" fill="#EA580C"/>
+  <text x="338" y="385" text-anchor="middle" fill="white" font-size="10" font-weight="700">× BanzamIA</text>
+  <rect x="446" y="358" width="224" height="44" rx="8" fill="#EDF7ED" stroke="#86EFAC" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="558" y="377" text-anchor="middle" fill="#166534" font-size="10" font-weight="700">Onboarding mais fácil</text>
+  <text x="558" y="393" text-anchor="middle" fill="#4B7A51" font-size="8">Operadores adoptam a federação mais rápido</text>
+
+  <!-- Caption -->
+  <text x="350" y="412" text-anchor="middle" fill="#9B8E8C" font-size="9">O BanzamIA amplifica cada componente do ecossistema. Quanto maior o protocolo, mais valioso o BanzamIA.</text>
+</svg>

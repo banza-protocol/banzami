@@ -918,6 +918,102 @@ Exemplo completo — *utilizador pergunta: "Como certifico um operador de Nível
 
 ---
 
+### Impacto no Ecossistema
+
+#### A Visão do Protocolo Autónomo
+
+Historicamente, a infraestrutura financeira requeria mediação humana. Um operador que queria integrar um protocolo de pagamento necessitava de equipas de suporte, especialistas de integração, architects de solução e formadores de certificação.
+
+A adopção do protocolo era limitada pelo número de humanos disponíveis para explicar o protocolo.
+
+O BanzamIA muda este modelo.
+
+![A Visão do Protocolo Autónomo — quatro fases na evolução de protocolos financeiros](/images/architecture/autonomous-protocol-vision.svg)
+
+O protocolo torna-se capaz de se explicar a si mesmo, de guiar integrações de forma autónoma, de ajudar operadores a certificar-se, de responder a questões de implementação 24 horas por dia, sem limite de escala.
+
+Isto é a Visão do Protocolo Autónomo.
+
+#### A Economia de Adopção do Protocolo
+
+O BanzamIA muda fundamentalmente a economia de adopção do protocolo.
+
+![A Economia de Adopção — como o BanzamIA muda a relação entre crescimento e custo](/images/architecture/protocol-adoption-economics.svg)
+
+Sem BanzamIA, o crescimento do ecossistema cria custo: mais operadores significa mais pedidos de suporte, mais carga de certificação, mais documentação manual. O custo escala linearmente com o crescimento.
+
+Com BanzamIA, o crescimento do ecossistema cria valor: mais operadores significa mais adopção self-service, melhor qualidade do RAG, protocolo mais acessível. O custo cresce sub-linearmente.
+
+#### O Custo de Compreensão
+
+Cada protocolo financeiro tem dois custos distintos:
+
+1. **Custo de implementação** — o trabalho técnico de integrar o protocolo
+2. **Custo de compreensão** — o tempo e esforço de aprender o protocolo
+
+A maioria dos projectos foca-se apenas no custo de implementação.
+
+O BanzamIA ataca o custo de compreensão. O protocolo torna-se mais fácil de aprender, mais fácil de certificar, mais fácil de integrar, mais fácil de adoptar.
+
+#### O Protocolo que se Explica a Si Mesmo
+
+![O Protocolo que se Explica — modelo tradicional vs BanzamIA](/images/architecture/protocol-self-explanation.svg)
+
+Os protocolos financeiros tradicionais dependem de humanos para explicar o comportamento do protocolo. A escala é limitada pela capacidade humana disponível.
+
+O BanzamIA permite um modelo diferente. O protocolo pode agora explicar-se a si mesmo — 24 horas por dia, sem limite de escala, com citações verificáveis para cada afirmação.
+
+O protocolo torna-se parcialmente auto-descritivo.
+
+#### Além da Interface de Chat
+
+O BanzamIA não é uma funcionalidade de chat. A interface de chat é apenas uma manifestação do sistema.
+
+O BanzamIA também alimenta:
+
+- Criação guiada de operadores e geração de manifestos
+- Fluxos de validação e orientação de certificação
+- Explicação de traces e assistência de SDK
+- Navegação de governança e exploração de RFCs/ADRs
+
+A camada de inteligência existe independentemente da interface de utilizador. Pode ser integrada em IDEs, portais de operador, painéis de certificação e ferramentas de auditoria.
+
+#### Uma Nova Categoria de Infraestrutura
+
+![Modelo de Força Multiplicadora — seis componentes do ecossistema amplificados](/images/architecture/force-multiplier-model.svg)
+
+A maioria dos ecossistemas de pagamento fornece APIs, SDKs e documentação. Alguns fornecem portais de suporte e fóruns. Muito poucos fornecem inteligência nativa ao protocolo.
+
+O BanzamIA introduz uma nova categoria arquitectónica: **Infraestrutura de Protocolo AI-native**.
+
+O BanzamIA não é simplesmente IA anexada a um protocolo. É inteligência de protocolo construída no ecossistema do protocolo — que cresce em valor à medida que o protocolo cresce em complexidade.
+
+À medida que o ecossistema cresce:
+
+- RFCs crescem → BanzamIA torna-os pesquisáveis e compreensíveis
+- Operadores crescem → BanzamIA escala o onboarding de forma autónoma
+- Regras de certificação crescem → BanzamIA guia automaticamente
+- SDKs crescem → BanzamIA gera código correcto
+
+O valor do BanzamIA cresce com a complexidade do protocolo. Isto cria uma vantagem composta.
+
+#### A Interface Humana do Protocolo
+
+O protocolo Banzami tem quatro pilares fundamentais:
+
+| Pilar | Função |
+|-------|--------|
+| **Kernel** | Move valor · executa verdade financeira com precisão determinística |
+| **Certificação** | Protege valor · garante conformidade e confiança entre operadores |
+| **Federação** | Conecta valor · interliga a rede de operadores certificados |
+| **BanzamIA** | Torna o valor compreensível · é a interface humana de todo o sistema |
+
+O Kernel é o motor financeiro. A Federação é a rede. A Certificação protege a confiança. O BanzamIA é a interface humana.
+
+Juntos transformam um protocolo de pagamentos numa infraestrutura financeira autónoma — onde qualquer programador, operador, auditor ou regulador pode compreender o que o protocolo exige, validar o que implementou e construir com confiança.
+
+---
+
 ### O futuro do BanzamIA
 
 O BanzamIA deve evoluir para se tornar a interface primária através da qual humanos interagem com o protocolo.

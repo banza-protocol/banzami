@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 210" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/>
+    </filter>
+  </defs>
+
+  <rect width="700" height="210" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="47" text-anchor="middle" fill="white" font-size="14" font-weight="700">A Visão do Protocolo Autónomo</text>
+  <text x="350" y="61" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">QUATRO FASES NA EVOLUÇÃO DE PROTOCOLOS FINANCEIROS</text>
+
+  <!-- PHASE 1: PDF Docs (x=46, w=140, center=116) -->
+  <rect x="46" y="82" width="140" height="100" rx="8" fill="white" stroke="#CBD5E1" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="46" y="82" width="140" height="18" rx="8" fill="#E2E8F0"/>
+  <rect x="46" y="91" width="140" height="9" fill="#E2E8F0"/>
+  <text x="116" y="95" text-anchor="middle" fill="#475569" font-size="8" font-weight="700">FASE 1</text>
+  <text x="116" y="118" text-anchor="middle" fill="#334155" font-size="11" font-weight="700">Documentação</text>
+  <text x="116" y="134" text-anchor="middle" fill="#64748B" font-size="9">PDF · Estática · Passiva</text>
+  <text x="116" y="150" text-anchor="middle" fill="#94A3B8" font-size="8" font-style="italic">Utilizador lê</text>
+  <text x="116" y="166" text-anchor="middle" fill="#94A3B8" font-size="8" font-style="italic">Capacidade: limitada</text>
+
+  <!-- Arrow 1→2 -->
+  <polygon points="188,127 188,137 202,132" fill="#FDBA74"/>
+
+  <!-- PHASE 2: Dev Portal (x=202, w=140, center=272) -->
+  <rect x="202" y="82" width="140" height="100" rx="8" fill="#EFF6FF" stroke="#BFDBFE" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="202" y="82" width="140" height="18" rx="8" fill="#DBEAFE"/>
+  <rect x="202" y="91" width="140" height="9" fill="#DBEAFE"/>
+  <text x="272" y="95" text-anchor="middle" fill="#1E40AF" font-size="8" font-weight="700">FASE 2</text>
+  <text x="272" y="118" text-anchor="middle" fill="#1E3A8A" font-size="11" font-weight="700">Dev Portal</text>
+  <text x="272" y="134" text-anchor="middle" fill="#3B82F6" font-size="9">Web · Self-service</text>
+  <text x="272" y="150" text-anchor="middle" fill="#60A5FA" font-size="8" font-style="italic">Utilizador navega</text>
+  <text x="272" y="166" text-anchor="middle" fill="#60A5FA" font-size="8" font-style="italic">Capacidade: melhorada</text>
+
+  <!-- Arrow 2→3 -->
+  <polygon points="344,127 344,137 358,132" fill="#FDBA74"/>
+
+  <!-- PHASE 3: SDKs (x=358, w=140, center=428) -->
+  <rect x="358" y="82" width="140" height="100" rx="8" fill="#F0FDF4" stroke="#BBF7D0" stroke-width="1.5" filter="url(#sh)"/>
+  <rect x="358" y="82" width="140" height="18" rx="8" fill="#DCFCE7"/>
+  <rect x="358" y="91" width="140" height="9" fill="#DCFCE7"/>
+  <text x="428" y="95" text-anchor="middle" fill="#166534" font-size="8" font-weight="700">FASE 3</text>
+  <text x="428" y="118" text-anchor="middle" fill="#14532D" font-size="11" font-weight="700">SDKs</text>
+  <text x="428" y="134" text-anchor="middle" fill="#16A34A" font-size="9">Programático · Automatizado</text>
+  <text x="428" y="150" text-anchor="middle" fill="#4ADE80" font-size="8" font-style="italic">Utilizador integra</text>
+  <text x="428" y="166" text-anchor="middle" fill="#4ADE80" font-size="8" font-style="italic">Capacidade: alta</text>
+
+  <!-- Arrow 3→4 -->
+  <polygon points="500,127 500,137 514,132" fill="#EA580C"/>
+
+  <!-- PHASE 4: BanzamIA (x=514, w=140, center=584) — highlighted -->
+  <rect x="514" y="82" width="140" height="100" rx="8" fill="#FFF7F0" stroke="#FED7AA" stroke-width="2" filter="url(#sh)"/>
+  <rect x="514" y="82" width="140" height="18" rx="8" fill="#EA580C"/>
+  <rect x="514" y="91" width="140" height="9" fill="#EA580C"/>
+  <text x="584" y="95" text-anchor="middle" fill="white" font-size="8" font-weight="700">FASE 4 · AI-NATIVE</text>
+  <text x="584" y="118" text-anchor="middle" fill="#C2410C" font-size="11" font-weight="700">BanzamIA</text>
+  <text x="584" y="134" text-anchor="middle" fill="#EA580C" font-size="9">IA Nativa · Interactiva</text>
+  <text x="584" y="150" text-anchor="middle" fill="#C2410C" font-size="8" font-style="italic">Protocolo guia</text>
+  <text x="584" y="166" text-anchor="middle" fill="#C2410C" font-size="8" font-style="italic">Capacidade: ilimitada</text>
+
+  <!-- Caption -->
+  <text x="350" y="198" text-anchor="middle" fill="#9B8E8C" font-size="9">O BanzamIA representa a quarta fase — o protocolo que se explica a si mesmo, 24 horas por dia, sem limite de escala.</text>
+</svg>
