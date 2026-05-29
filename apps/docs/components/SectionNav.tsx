@@ -70,6 +70,7 @@ export function SectionNav({ sections }: Props) {
       {navLink('/', 'Início')}
       {navLink('/reference', 'Referência completa')}
       {navLink('/validacao', 'Validação')}
+      {navLink('/sobre-banzamia', 'BanzamIA')}
 
       <div className="my-3 border-t border-bz-border" />
 
