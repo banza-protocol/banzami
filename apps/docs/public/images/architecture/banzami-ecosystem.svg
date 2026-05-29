@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 960 720" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+<svg viewBox="0 0 960 760" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
   <defs>
     <linearGradient id="headerGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#990011;stop-opacity:1" />
@@ -19,7 +19,7 @@
   </defs>
 
   <!-- Background -->
-  <rect width="960" height="720" fill="#F5F1EE" rx="0"/>
+  <rect width="960" height="760" fill="#F5F1EE" rx="0"/>
 
   <!-- ─── TITLE BANNER ─── -->
   <rect x="40" y="28" width="880" height="52" rx="12" fill="url(#headerGrad)" filter="url(#shadow)"/>
@@ -32,7 +32,7 @@
   <rect x="40" y="124" width="420" height="14" fill="#990011"/>
   <text x="250" y="125" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMI KERNEL — Rust Financial Core (18 crates)</text>
 
-  <!-- Kernel grid: 3 cols x 3 rows -->
+  <!-- Kernel grid: 3 cols x 5 rows -->
   <!-- Row 1 -->
   <rect x="56"  y="150" width="118" height="32" rx="7" fill="white" stroke="#E8D8D4" stroke-width="1"/>
   <text x="115" y="171" text-anchor="middle" fill="#333" font-size="10" font-weight="600">ledger</text>
@@ -108,145 +108,147 @@
   <text x="802" y="203" text-anchor="middle" fill="#666" font-size="9">Same kernel · Virtual funds</text>
   <text x="802" y="217" text-anchor="middle" fill="#666" font-size="9">No real settlement rails</text>
 
-  <!-- Future operators -->
+  <!-- Certified Operators -->
   <rect x="492" y="234" width="408" height="62" rx="10" fill="white" stroke="#DDB954" stroke-width="1" stroke-dasharray="4 3"/>
-  <text x="696" y="259" text-anchor="middle" fill="#C89B3C" font-size="9" font-weight="700" letter-spacing="1">FUTURE THIRD-PARTY OPERATORS</text>
+  <text x="696" y="259" text-anchor="middle" fill="#C89B3C" font-size="9" font-weight="700" letter-spacing="1">CERTIFIED OPERATORS</text>
   <text x="696" y="278" text-anchor="middle" fill="#999" font-size="9">Any certified party can implement the Banzami protocol · Levels 1–4</text>
 
-  <!-- ─── CERTIFICATION ─── -->
+  <!-- ─── CERTIFICATION MODEL ─── -->
   <rect x="476" y="322" width="444" height="90" rx="14" fill="#F0F8FF" stroke="#93C5FD" stroke-width="1.5" filter="url(#shadow)"/>
   <rect x="476" y="322" width="444" height="28" rx="14" fill="#3B82F6"/>
   <rect x="476" y="336" width="444" height="14" fill="#3B82F6"/>
   <text x="698" y="339" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">CERTIFICATION MODEL</text>
 
-  <!-- Level badges -->
+  <!-- Level badges — operator responsibility labels -->
   <rect x="492" y="360" width="70" height="40" rx="8" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
   <text x="527" y="377" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="700">Level 0</text>
-  <text x="527" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Sandbox</text>
+  <text x="527" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Sandbox Op.</text>
 
   <rect x="570" y="360" width="70" height="40" rx="8" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
   <text x="605" y="377" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="700">Level 1</text>
-  <text x="605" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Core Payments</text>
+  <text x="605" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Payment Op.</text>
 
   <rect x="648" y="360" width="70" height="40" rx="8" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
   <text x="683" y="377" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="700">Level 2</text>
-  <text x="683" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Advanced</text>
+  <text x="683" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Settlement Op.</text>
 
   <rect x="726" y="360" width="70" height="40" rx="8" fill="#DBEAFE" stroke="#93C5FD" stroke-width="1"/>
   <text x="761" y="377" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="700">Level 3</text>
-  <text x="761" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Full Protocol</text>
+  <text x="761" y="391" text-anchor="middle" fill="#1D4ED8" font-size="8">Federation Op.</text>
 
   <rect x="804" y="360" width="96" height="40" rx="8" fill="#1D4ED8"/>
   <text x="852" y="377" text-anchor="middle" fill="white" font-size="9" font-weight="700">Level 4</text>
-  <text x="852" y="391" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8">Infrastructure Op</text>
+  <text x="852" y="391" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="8">Infra. Op.</text>
+
+  <!-- ─── FEDERATION LAYER ─── -->
+  <rect x="40" y="424" width="880" height="36" rx="10" fill="#EEF2FF" stroke="#9BA8D4" stroke-width="1.5" filter="url(#shadow)"/>
+  <text x="480" y="438" text-anchor="middle" fill="#2A3A8C" font-size="10" font-weight="700" letter-spacing="1">FEDERATION LAYER</text>
+  <text x="480" y="452" text-anchor="middle" fill="#4B5A9C" font-size="9">Inter-Operator Protocol · Event Exchange · Operator Discovery · Settlement Rails</text>
 
   <!-- ─── BANZAMIA ─── -->
-  <rect x="40" y="430" width="880" height="118" rx="14" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#shadow)"/>
-  <rect x="40" y="430" width="880" height="36" rx="14" fill="#EA580C"/>
-  <rect x="40" y="452" width="880" height="14" fill="#EA580C"/>
-  <text x="480" y="454" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMIA — AI-native Protocol Agent · "Tools determine truth. AI explains truth."</text>
+  <rect x="40" y="470" width="880" height="118" rx="14" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="40" y="470" width="880" height="36" rx="14" fill="#EA580C"/>
+  <rect x="40" y="492" width="880" height="14" fill="#EA580C"/>
+  <text x="480" y="494" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMIA — AI-native Protocol Agent · "Tools determine truth. AI explains truth."</text>
 
   <!-- BanzamIA modules -->
-  <rect x="56"  y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="104" y="498" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Chat</text>
-  <text x="104" y="513" text-anchor="middle" fill="#666" font-size="8">Protocol Q&amp;A</text>
-  <text x="104" y="526" text-anchor="middle" fill="#666" font-size="8">with citations</text>
+  <rect x="56"  y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="104" y="538" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Chat</text>
+  <text x="104" y="553" text-anchor="middle" fill="#666" font-size="8">Protocol Q&amp;A</text>
+  <text x="104" y="566" text-anchor="middle" fill="#666" font-size="8">with citations</text>
 
-  <rect x="162" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="210" y="498" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Operator</text>
-  <text x="210" y="511" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Builder</text>
-  <text x="210" y="526" text-anchor="middle" fill="#666" font-size="8">Manifest creation</text>
+  <rect x="162" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="210" y="538" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Operator</text>
+  <text x="210" y="551" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Builder</text>
+  <text x="210" y="566" text-anchor="middle" fill="#666" font-size="8">Manifest creation</text>
 
-  <rect x="268" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="316" y="498" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Conformance</text>
-  <text x="316" y="513" text-anchor="middle" fill="#666" font-size="8">Test runner</text>
-  <text x="316" y="526" text-anchor="middle" fill="#666" font-size="8">result analysis</text>
+  <rect x="268" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="316" y="538" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Conformance</text>
+  <text x="316" y="553" text-anchor="middle" fill="#666" font-size="8">Test runner</text>
+  <text x="316" y="566" text-anchor="middle" fill="#666" font-size="8">result analysis</text>
 
-  <rect x="374" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="422" y="491" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Manifest</text>
-  <text x="422" y="504" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Validator</text>
-  <text x="422" y="519" text-anchor="middle" fill="#666" font-size="8">Structural</text>
-  <text x="422" y="530" text-anchor="middle" fill="#666" font-size="8">validation</text>
+  <rect x="374" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="422" y="531" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Manifest</text>
+  <text x="422" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Validator</text>
+  <text x="422" y="559" text-anchor="middle" fill="#666" font-size="8">Structural</text>
+  <text x="422" y="570" text-anchor="middle" fill="#666" font-size="8">validation</text>
 
-  <rect x="480" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="528" y="491" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Trace</text>
-  <text x="528" y="504" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Explainer</text>
-  <text x="528" y="519" text-anchor="middle" fill="#666" font-size="8">Causal timeline</text>
-  <text x="528" y="530" text-anchor="middle" fill="#666" font-size="8">+ invariants</text>
+  <rect x="480" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="528" y="531" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Trace</text>
+  <text x="528" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Explainer</text>
+  <text x="528" y="559" text-anchor="middle" fill="#666" font-size="8">Causal timeline</text>
+  <text x="528" y="570" text-anchor="middle" fill="#666" font-size="8">+ invariants</text>
 
-  <rect x="586" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="634" y="491" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">SDK</text>
-  <text x="634" y="504" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Assistant</text>
-  <text x="634" y="519" text-anchor="middle" fill="#666" font-size="8">Code generation</text>
-  <text x="634" y="530" text-anchor="middle" fill="#666" font-size="8">integration guide</text>
+  <rect x="586" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="634" y="531" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">SDK</text>
+  <text x="634" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Assistant</text>
+  <text x="634" y="559" text-anchor="middle" fill="#666" font-size="8">Code generation</text>
+  <text x="634" y="570" text-anchor="middle" fill="#666" font-size="8">integration guide</text>
 
-  <rect x="692" y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="740" y="491" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">RFC/ADR</text>
-  <text x="740" y="504" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Explorer</text>
-  <text x="740" y="519" text-anchor="middle" fill="#666" font-size="8">Governance docs</text>
-  <text x="740" y="530" text-anchor="middle" fill="#666" font-size="8">search + explain</text>
+  <rect x="692" y="514" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="740" y="531" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">RFC/ADR</text>
+  <text x="740" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Explorer</text>
+  <text x="740" y="559" text-anchor="middle" fill="#666" font-size="8">Governance docs</text>
+  <text x="740" y="570" text-anchor="middle" fill="#666" font-size="8">search + explain</text>
 
-  <rect x="798" y="474" width="106" height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
-  <text x="851" y="491" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Knowledge</text>
-  <text x="851" y="504" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Search</text>
-  <text x="851" y="519" text-anchor="middle" fill="#666" font-size="8">Semantic search</text>
-  <text x="851" y="530" text-anchor="middle" fill="#666" font-size="8">Qdrant vector DB</text>
+  <rect x="798" y="514" width="106" height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
+  <text x="851" y="531" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Knowledge</text>
+  <text x="851" y="544" text-anchor="middle" fill="#EA580C" font-size="9" font-weight="700">Search</text>
+  <text x="851" y="559" text-anchor="middle" fill="#666" font-size="8">Semantic search</text>
+  <text x="851" y="570" text-anchor="middle" fill="#666" font-size="8">Qdrant vector DB</text>
 
-  <!-- ─── SDKs ─── -->
-  <rect x="40" y="564" width="420" height="70" rx="12" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5" filter="url(#shadow)"/>
-  <rect x="40" y="564" width="420" height="26" rx="12" fill="#16A34A"/>
-  <rect x="40" y="578" width="420" height="12" fill="#16A34A"/>
-  <text x="250" y="580" text-anchor="middle" fill="white" font-size="10" font-weight="700" letter-spacing="1">SDKs — Official Integration Surface</text>
+  <!-- ─── INTEGRATION SURFACE ─── -->
+  <rect x="40" y="604" width="420" height="70" rx="12" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="40" y="604" width="420" height="26" rx="12" fill="#16A34A"/>
+  <rect x="40" y="618" width="420" height="12" fill="#16A34A"/>
+  <text x="250" y="620" text-anchor="middle" fill="white" font-size="10" font-weight="700" letter-spacing="1">INTEGRATION SURFACE — Official SDKs for Developers</text>
 
-  <rect x="56"  y="598" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
-  <text x="100" y="616" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">TypeScript</text>
+  <rect x="56"  y="638" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
+  <text x="100" y="656" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">TypeScript</text>
 
-  <rect x="154" y="598" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
-  <text x="198" y="616" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">Flutter/Dart</text>
+  <rect x="154" y="638" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
+  <text x="198" y="656" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">Flutter/Dart</text>
 
-  <rect x="252" y="598" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
-  <text x="296" y="616" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">PHP</text>
+  <rect x="252" y="638" width="88" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1"/>
+  <text x="296" y="656" text-anchor="middle" fill="#166534" font-size="10" font-weight="600">PHP</text>
 
-  <rect x="350" y="598" width="94" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1" stroke-dasharray="3 2"/>
-  <text x="397" y="616" text-anchor="middle" fill="#999" font-size="10" font-weight="600">Go (internal)</text>
+  <rect x="350" y="638" width="94" height="28" rx="7" fill="white" stroke="#86EFAC" stroke-width="1" stroke-dasharray="3 2"/>
+  <text x="397" y="656" text-anchor="middle" fill="#999" font-size="10" font-weight="600">Go (internal)</text>
 
-  <!-- ─── APPLICATIONS ─── -->
-  <rect x="476" y="564" width="444" height="70" rx="12" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1.5" filter="url(#shadow)"/>
-  <rect x="476" y="564" width="444" height="26" rx="12" fill="#7C3AED"/>
-  <rect x="476" y="578" width="444" height="12" fill="#7C3AED"/>
-  <text x="698" y="580" text-anchor="middle" fill="white" font-size="10" font-weight="700" letter-spacing="1">APPLICATIONS</text>
+  <!-- ─── REFERENCE APPLICATIONS ─── -->
+  <rect x="476" y="604" width="444" height="70" rx="12" fill="#F5F3FF" stroke="#C4B5FD" stroke-width="1.5" filter="url(#shadow)"/>
+  <rect x="476" y="604" width="444" height="26" rx="12" fill="#7C3AED"/>
+  <rect x="476" y="618" width="444" height="12" fill="#7C3AED"/>
+  <text x="698" y="620" text-anchor="middle" fill="white" font-size="10" font-weight="700" letter-spacing="1">REFERENCE APPLICATIONS</text>
 
-  <rect x="492" y="598" width="82" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
-  <text x="533" y="616" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Banza Mobile</text>
+  <rect x="492" y="638" width="98" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="541" y="656" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Consumer Apps</text>
 
-  <rect x="584" y="598" width="82" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
-  <text x="625" y="616" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Banza Business</text>
+  <rect x="596" y="638" width="98" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="645" y="656" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Merchant Apps</text>
 
-  <rect x="676" y="598" width="82" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
-  <text x="717" y="616" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Checkout</text>
+  <rect x="700" y="638" width="98" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="749" y="656" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Operator Apps</text>
 
-  <rect x="768" y="598" width="72" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
-  <text x="804" y="616" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Docs</text>
+  <rect x="804" y="638" width="100" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
+  <text x="854" y="656" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Developer Portal</text>
 
-  <rect x="850" y="598" width="54" height="28" rx="7" fill="white" stroke="#C4B5FD" stroke-width="1"/>
-  <text x="877" y="616" text-anchor="middle" fill="#5B21B6" font-size="9" font-weight="600">Admin</text>
+  <!-- ─── REFERENCE PERSISTENCE LAYER ─── -->
+  <rect x="40" y="690" width="880" height="42" rx="10" fill="#1E293B" filter="url(#shadow)"/>
+  <text x="480" y="716" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="0.5">Reference Persistence Layer — PostgreSQL Reference Implementation · ACID</text>
 
-  <!-- ─── PostgreSQL ─── -->
-  <rect x="40" y="650" width="880" height="42" rx="10" fill="#1E293B" filter="url(#shadow)"/>
-  <text x="480" y="676" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="0.5">PostgreSQL — Single Source of Financial Truth · ACID Guarantees</text>
-
-  <!-- ─── CONNECTOR ARROWS ─── -->
-  <!-- Kernel → PostgreSQL -->
-  <line x1="250" y1="412" x2="250" y2="650" stroke="#DBBCB2" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- ─── CONNECTOR LINES ─── -->
+  <!-- Kernel → Persistence (dashed) -->
+  <line x1="250" y1="412" x2="250" y2="690" stroke="#DBBCB2" stroke-width="1.5" stroke-dasharray="4 3"/>
   <!-- Operators → Kernel -->
-  <path d="M 476 207 L 460 207" stroke="#DDB954" stroke-width="1.5" marker-end="url(#arrowGold)" fill="none"/>
-  <!-- BanzamIA → Kernel -->
-  <line x1="250" y1="548" x2="250" y2="430" stroke="#FDBA74" stroke-width="1.5" stroke-dasharray="4 3"/>
-  <!-- SDKs → Operators -->
-  <line x1="460" y1="600" x2="476" y2="600" stroke="#86EFAC" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <path d="M 476 207 L 460 207" stroke="#DDB954" stroke-width="1.5" fill="none"/>
+  <!-- BanzamIA ↔ Kernel (dashed) -->
+  <line x1="250" y1="588" x2="250" y2="470" stroke="#FDBA74" stroke-width="1.5" stroke-dasharray="4 3"/>
+  <!-- Integration Surface → Reference Applications -->
+  <line x1="460" y1="640" x2="476" y2="640" stroke="#86EFAC" stroke-width="1.5" stroke-dasharray="4 3"/>
 
   <!-- ─── GOVERNANCE BADGE ─── -->
-  <rect x="40" y="693" width="880" height="20" rx="6" fill="none"/>
-  <text x="480" y="706" text-anchor="middle" fill="#9B928D" font-size="9">RFC Governance · ADR-001→017 · BANZAMI_IMPLEMENTATION_MATRIX · Validation Domains</text>
+  <rect x="40" y="733" width="880" height="20" rx="6" fill="none"/>
+  <text x="480" y="746" text-anchor="middle" fill="#9B928D" font-size="9">RFC Governance · ADR-001→017 · BANZAMI_IMPLEMENTATION_MATRIX · Validation Domains</text>
 
 </svg>

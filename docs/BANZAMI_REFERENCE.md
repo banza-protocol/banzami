@@ -145,6 +145,8 @@ Os operadores:
 
 **Operador Sandbox:** Ambiente de desenvolvimento e testes totalmente isolado. Mesmo kernel, dados fictícios, sem carris de liquidação reais.
 
+**Operadores Certificados:** Qualquer entidade que obtenha certificação Banzami pode implementar o protocolo. Operadores certificados são o resultado intencional do protocolo — não um conceito futuro.
+
 ---
 
 ## 4. Arquitectura Técnica
@@ -157,7 +159,7 @@ Os operadores:
 | Orquestração | Go | Simplicidade operacional, concorrência, padrões HTTP gateway |
 | Frontend | Next.js (TypeScript) | SSR, performance, ecossistema developer |
 | Mobile | Flutter/Dart | Codebase única para Android/iOS, performance nativa |
-| Base de dados | PostgreSQL | Garantias ACID, correcção financeira |
+| Persistência (referência) | PostgreSQL | Garantias ACID, correcção financeira — implementação de referência; o protocolo é agnóstico ao storage |
 | Cache / filas | Redis | Rate limiting, chaves de idempotência, sessões |
 | Observabilidade | OpenTelemetry | Traces, métricas e logs vendor-neutral |
 
@@ -541,13 +543,13 @@ Alterações à matrix requerem frases de governança com verificação de finge
 
 A certificação é obtida passando no conformance suite para o nível correspondente.
 
-| Nível | Nome | Capacidades necessárias | Descrição |
-|-------|------|------------------------|-----------|
-| **0** | Sandbox Certificado | Operações básicas sandbox | Pode operar em sandbox; sem certificação live |
-| **1** | Pagamentos Base | wallet.consumer, wallet.merchant, qr.static, p2p.transfer | QR básico e operações de carteira |
-| **2** | Pagamentos Avançados | Nível 1 + qr.dynamic, payment_links, settlement.t0 | QR dinâmico, payment links, liquidação instantânea |
-| **3** | Protocolo Completo | Nível 2 + payout.batch, reconciliation | Ciclo de vida completo de pagamento |
-| **4** | Operador de Infraestrutura | Nível 3 + acquiring.emis, federation_ready | Operador de grau de infraestrutura |
+| Nível | Nome | Capacidades necessárias | Responsabilidade |
+|-------|------|------------------------|-----------------|
+| **0** | Sandbox Operator | Operações básicas sandbox | Experimentação e desenvolvimento; sem operações live; sem federação |
+| **1** | Payment Operator | wallet.consumer, wallet.merchant, qr.static, p2p.transfer | Operar produtos de pagamento — carteiras, QR, transferências, checkout |
+| **2** | Settlement Operator | Nível 1 + qr.dynamic, payment_links, settlement.t0 | Participar na infraestrutura de liquidação, reconciliação e traceabilidade financeira |
+| **3** | Federation Operator | Nível 2 + payout.batch, reconciliation | Participar na federação do protocolo — interoperabilidade entre operadores |
+| **4** | Infrastructure Operator | Nível 3 + acquiring.emis, federation_ready | Operar infraestrutura crítica do ecossistema — routing, serviços partilhados |
 
 ### Processo de certificação
 
@@ -592,13 +594,13 @@ As certificações são vinculadas a versões:
 
 ## 8. Federação
 
+A federação é uma camada de primeira classe na arquitectura Banzami. Define como operadores certificados comunicam, encaminham pagamentos e liquidam entre si.
+
 ### Estado actual
 
-O Banzami não suporta actualmente federação (encaminhamento entre operadores). Todos os pagamentos são processados pelo operador de referência Banza.
-
-As capacidades de fundação foram desenhadas para permitir federação:
+A federação encontra-se na fase de desenho. Todos os pagamentos são actualmente processados pelo operador de referência Banza. O kernel, no entanto, foi desenhado desde o início com os primitivos necessários:
 - Propagação de `trace_id` através de fronteiras de serviço
-- Declaração de manifesto de operador
+- Declaração de manifesto de operador com capacidades de encaminhamento
 - Arquitectura de encaminhamento baseada em capacidades
 - Isolamento de liquidação entre operadores
 
@@ -609,7 +611,7 @@ A federação permite o encaminhamento de pagamentos entre operadores certificad
 ![Arquitectura de federação — Operador X encaminha pagamento para Operador Y através da camada de federação Banzami](/images/architecture/federation.svg)
 
 Requisitos para federação:
-- Ambos os operadores com Certificação Nível 3+
+- Ambos os operadores com Certificação Nível 3+ (Federation Operator)
 - Conta de liquidação partilhada com Banzami
 - Manifesto de federação com capacidades de encaminhamento
 - Propagação cross-operador de trace_id
@@ -621,7 +623,7 @@ Requisitos para federação:
 |-------|-----------|------|
 | RFC de federação | Definir protocolo inter-operadores | H1 2027 |
 | Operadores piloto | Dois operadores em federação controlada | H2 2027 |
-| Federação aberta | Qualquer operador Nível 4 pode federar | 2028 |
+| Federação aberta | Qualquer operador Nível 4 (Infrastructure Operator) pode federar | 2028 |
 
 ---
 
@@ -629,7 +631,7 @@ Requisitos para federação:
 
 ### O que é a BanzamIA
 
-A BanzamIA é a interface nativa de IA para construir, validar e certificar operadores Banzami. Está disponível em `banzami.org/banzamia`.
+A BanzamIA é o Agente de Protocolo nativo de IA para construir, validar e certificar operadores Banzami. Está disponível em `banzami.org/banzamia`.
 
 > Ferramentas determinam a verdade. A IA explica a verdade.
 
@@ -667,7 +669,7 @@ Cita fontes para todas as afirmações sobre o protocolo. Delega decisões de ce
 
 ### Integração em horas
 
-O Banza SDK é a forma recomendada de integrar pagamentos Banzami. SDKs oficiais:
+A superfície de integração oficial do Banzami são os SDKs. Integrações directas via HTTP não são o caminho recomendado. SDKs oficiais:
 
 | SDK | Pacote | Casos de uso |
 |-----|--------|-------------|
