@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: '%s · Banza',
   },
   description:
-    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — wallet-to-wallet, liquidação instantânea, QR-native em Kwanza, Banzami SDK para programadores e Banzami Business para comerciantes.',
+    'Banza é o protocolo aberto de infraestrutura financeira programável. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo. Banzami é o operador de referência — wallets, QR e SDKs em Kwanza.',
   keywords: [
     'Banza',
     'Banzami',
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
     description:
-      'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — wallet-to-wallet, liquidação instantânea, QR-native em Kwanza.',
+      'Banza é o protocolo aberto de infraestrutura financeira programável. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo.',
     siteName: 'Banza',
     locale: 'pt_AO',
     type: 'website',

@@ -17,7 +17,7 @@ import { BackToTop } from '@/components/BackToTop'
 export const metadata: Metadata = {
   title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
   description:
-    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Banzami é o produto de pagamentos construído sobre o Banza — pagamentos wallet-to-wallet em Kwanza, QR-native, com Banzami SDKs para programadores e Banzami Business para comerciantes.',
+    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo. Banzami é o operador de referência — wallets, QR e SDKs em Kwanza.',
 }
 
 // ---- Problem cards -----------------------------------------------------------
@@ -107,10 +107,10 @@ export default function HomePage() {
           Como funciona
         </div>
         <h2 className="mb-2 text-2xl font-bold tracking-tight text-bz-text md:text-3xl">
-          Escanear. Confirmar. Pago instantaneamente.
+          Liquidação atómica. Ledger imutável. Confirmação instantânea.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Cada pagamento Banza é uma transferência directa entre carteiras, registada no ledger de forma atómica e imutável.
+          Cada pagamento Banza é uma transferência directa entre carteiras, registada no ledger de forma atómica e imutável. Sem intermediários. Sem estado partilhado externo.
         </p>
         <PaymentFlowDiagram />
       </section>
@@ -149,10 +149,10 @@ export default function HomePage() {
           QR Commerce
         </div>
         <h2 className="mb-2 text-2xl font-bold tracking-tight text-bz-text md:text-3xl">
-          Um QR code. Todo o comércio angolano.
+          QR como primitiva nativa do protocolo.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Do táxi à escola, da cantina à plataforma de doações — o Banzami QR serve todos os casos de uso do mercado angolano.
+          Do táxi à escola, da cantina à plataforma de doações — qualquer operador Banza pode emitir e aceitar pagamentos QR. Sem hardware dedicado. Sem intermediários.
         </p>
         <QRCommerceVisual />
       </section>

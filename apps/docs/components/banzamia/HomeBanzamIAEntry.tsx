@@ -82,7 +82,7 @@ export function HomeBanzamIAEntry() {
             <div className="min-w-0">
               <h2 className="text-base font-bold text-bz-text tracking-tight">Pergunte ao BanzAI</h2>
               <p className="mt-0.5 text-xs text-bz-muted max-w-lg">
-                O Sistema Operativo do Protocolo Banza — para entender, integrar e validar o ecossistema Banzami.
+                O Sistema Operativo nativo do Protocolo Banza — para entender, integrar e evoluir o protocolo.
               </p>
             </div>
           </div>

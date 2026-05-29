@@ -54,7 +54,7 @@ export function HeroSection({ tagline }: Props) {
 
         {/* 3 — Subheadline */}
         <p className="mx-auto mb-7 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
-          Banza define como o dinheiro se move digitalmente em Angola — através de operadores certificados, regras verificáveis e infraestrutura aberta.
+          Banza define como o dinheiro se move digitalmente — através de operadores certificados, regras verificáveis, infraestrutura aberta e um sistema operativo nativo capaz de explicar, validar e evoluir o protocolo.
         </p>
 
         {/* 4 — Capability tags — single row, scroll on mobile */}
