@@ -10,7 +10,7 @@
 
 BanzamIA is the AI-native interface for building, validating, and certifying Banzami protocol operators. It is deployed at `banzami.org/banzamia`.
 
-BanzamIA is not a chatbot. It is a **protocol intelligence layer** — an AI system specifically grounded in the Banzami protocol, financial invariants, conformance specifications, and governance documents.
+BanzamIA is not a chatbot. It is an **AI-native Protocol Agent** — an AI system specifically grounded in the Banzami protocol, financial invariants, conformance specifications, and governance documents.
 
 > **Tools determine truth. AI explains truth.**
 

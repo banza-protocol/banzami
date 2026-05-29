@@ -4,9 +4,9 @@ import { BanzamIAApp } from '@/components/banzamia/BanzamIAApp'
 import { NoBodyScroll } from '@/components/NoBodyScroll'
 
 export const metadata: Metadata = {
-  title: 'BanzamIA — AI-native protocol intelligence',
+  title: 'BanzamIA — AI-native Protocol Agent',
   description:
-    'BanzamIA is the AI-native interface for building, validating and certifying Banzami operators. Tools determine truth. AI explains truth.',
+    'BanzamIA is the AI-native Protocol Agent for building, validating and certifying Banzami operators. Tools determine truth. AI explains truth.',
 }
 
 export default function BanzamIAPage() {

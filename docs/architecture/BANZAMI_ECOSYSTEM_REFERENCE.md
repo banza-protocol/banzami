@@ -103,7 +103,7 @@ Banzami serves one market exceptionally before considering expansion. The protoc
 │                            │  Operator Manifest Validation           │
 ├───────────────────────────┴─────────────────────────────────────────┤
 │                          BANZAMIA                                    │
-│              (AI-native Protocol Intelligence)                       │
+│              (AI-native Protocol Agent)                              │
 │                                                                      │
 │  Chat · Operator Builder · Conformance · Manifest Validator          │
 │  Trace Explainer · SDK Assistant · RFC/ADR Explorer · Knowledge Search│
@@ -127,7 +127,7 @@ Per ADR-016:
 |------|------|
 | **Banzami** | Organisation, protocol, ecosystem, infrastructure, governance |
 | **Banza** | Consumer payment product (primary reference implementation) |
-| **BanzamIA** | AI-native protocol intelligence layer |
+| **BanzamIA** | AI-native Protocol Agent |
 
 `Banzami constrói a infraestrutura. Banza move o dinheiro.`
 

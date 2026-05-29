@@ -279,7 +279,7 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
           </div>
           <h1 className="mb-2 text-xl font-bold text-bia-text tracking-tight">BanzamIA</h1>
           <p className="mb-1 text-sm text-bia-muted text-center max-w-md">
-            AI-native interface for building, validating and certifying Banzami operators.
+            BanzamIA is the AI-native Protocol Agent for building, validating and certifying Banzami operators.
           </p>
           <p className="mb-8 text-xs text-bia-muted-2 text-center italic">
             Tools determine truth. AI explains truth.

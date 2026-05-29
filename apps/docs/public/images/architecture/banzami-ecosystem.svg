@@ -144,7 +144,7 @@
   <rect x="40" y="430" width="880" height="118" rx="14" fill="#FFF7F0" stroke="#FDBA74" stroke-width="1.5" filter="url(#shadow)"/>
   <rect x="40" y="430" width="880" height="36" rx="14" fill="#EA580C"/>
   <rect x="40" y="452" width="880" height="14" fill="#EA580C"/>
-  <text x="480" y="454" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMIA — AI-Native Protocol Intelligence · "Tools determine truth. AI explains truth."</text>
+  <text x="480" y="454" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAMIA — AI-native Protocol Agent · "Tools determine truth. AI explains truth."</text>
 
   <!-- BanzamIA modules -->
   <rect x="56"  y="474" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>

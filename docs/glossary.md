@@ -67,7 +67,7 @@ The official SDK for integrating Banza payments into external applications. Avai
 
 ## BanzamIA
 
-The AI-native protocol intelligence layer for the Banzami ecosystem. Deployed at `banzami.org/banzamia`. An 8-module interface for building, validating, and certifying Banzami operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
+The AI-native Protocol Agent for the Banzami ecosystem. Deployed at `banzami.org/banzamia`. An 8-module interface for building, validating, and certifying Banzami operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
 
 ---
 

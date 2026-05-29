@@ -64,7 +64,7 @@
   <!-- BanzamIA column -->
   <rect x="410" y="190" width="240" height="56" rx="10" fill="url(#iaG)" stroke="#D4A800" stroke-width="1.5" filter="url(#sh)"/>
   <text x="530" y="214" text-anchor="middle" fill="#7A5800" font-size="13" font-weight="700">BanzamIA</text>
-  <text x="530" y="232" text-anchor="middle" fill="#6B6265" font-size="9">inteligência de protocolo</text>
+  <text x="530" y="232" text-anchor="middle" fill="#6B6265" font-size="9">Agente de Protocolo nativo de IA</text>
 
   <line x1="530" y1="246" x2="530" y2="268" stroke="#D4C9C7" stroke-width="1.5"/>
 

@@ -171,7 +171,7 @@ When in doubt about a term, see [docs/glossary.md](glossary.md).
 |--------------|-------------|
 | Banzami | The organisation and protocol |
 | Banza | The consumer payment product |
-| BanzamIA | The AI protocol intelligence layer |
+| BanzamIA | The AI-native Protocol Agent |
 | Kernel | The Rust financial core (18 crates) |
 | Operator | Protocol implementor |
 | Manifest | Operator capability declaration |

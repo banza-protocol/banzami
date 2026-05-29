@@ -43,7 +43,7 @@ export function HeroBanzamIAWidget() {
           <div className="min-w-0 flex-1">
             <p className="text-sm font-bold tracking-tight text-bz-text">Pergunte ao BanzamIA</p>
             <p className="mt-0.5 text-[11px] leading-snug text-bz-muted">
-              A camada de inteligência oficial do ecossistema Banzami.
+              O Agente de Protocolo nativo de IA do ecossistema Banzami.
             </p>
           </div>
 
