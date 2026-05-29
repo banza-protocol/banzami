@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { type ModuleId } from './BanzamIAApp'
 import { BanzamIAIcon } from './BanzamIAIcon'
 
@@ -146,7 +147,17 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-bia-border p-3">
+      <div className="border-t border-bia-border p-3 space-y-2">
+        <Link
+          href="/sobre-banzamia"
+          className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs text-bia-muted hover:bg-white hover:text-bia-text transition-colors"
+        >
+          <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none">
+            <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
+            <path d="M8 7v5M8 5v.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+          </svg>
+          Sobre a BanzamIA
+        </Link>
         <div className="rounded-lg bg-bz-primary/5 border border-bz-primary/10 px-3 py-2">
           <p className="text-[10px] text-bia-muted leading-relaxed italic">
             Tools determine truth.<br />AI explains truth.
