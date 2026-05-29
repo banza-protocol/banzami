@@ -179,3 +179,35 @@ This SVG may still use old "intelligence layer" framing. Verify and update to us
 | **Overall** | **56/100** | **77/100** |
 
 Applying the P0 + P1 + P2 items would bring documentation maturity from 56/100 to approximately 77/100.
+
+---
+
+## Naming Inversion — BANZA-NAMING-INVERSION-STEP-001
+
+**Status:** Planning complete (2026-05-29) — migration not yet started  
+**ADR:** `docs/adr/ADR-025-ecosystem-naming-inversion.md` (Banzami kernel repo)
+
+The legal company name (Banzami) is currently assigned to the protocol layer, not the product. ADR-025 inverts this:
+
+| Role | Before | After |
+|------|--------|-------|
+| Protocol / ecosystem | Banzami | Banza |
+| Product / reference operator | Banza | Banzami |
+| Protocol Operating System | BanzamIA | BanzAI |
+
+Migration is semantic — a global search-and-replace is explicitly forbidden. Every occurrence must be classified before renaming. See:
+
+- `docs/migration/naming-inversion-map.md` — full legacy → new name table
+- `docs/migration/naming-classification-rules.md` — occurrence class definitions
+- `docs/migration/DO-NOT-GLOBAL-REPLACE.md` — why batch replace fails
+
+**Protected (do not rename):** `banzami.org`, `contact@banzami.org`, `github.com/banzami`
+
+Migration waves (each a separate commit wave):
+
+| Wave | Scope |
+|------|-------|
+| 1 | Documentation (ADRs, READMEs, BANZAMI_REFERENCE.md) |
+| 2 | Website copy (banzami.org pages, metadata, SVG text) |
+| 3 | AI OS rename (BanzamIA → BanzAI, components, routes) |
+| 4+ | Repository, package, domain renames (each requires separate ADR) |
