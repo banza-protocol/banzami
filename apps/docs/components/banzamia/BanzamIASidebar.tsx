@@ -195,7 +195,7 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
           <BanzamIAIcon size={16} className="text-white" />
         </div>
         <div className="min-w-0">
-          <div className="text-sm font-bold tracking-tight text-bia-text">BanzamIA</div>
+          <div className="text-sm font-bold tracking-tight text-bia-text">BanzAI</div>
           <div className="text-[10px] text-bia-muted leading-none">Protocol Operating System</div>
         </div>
       </div>
@@ -246,7 +246,7 @@ export function BanzamIASidebar({ active, onSelect, mode }: Props) {
             <circle cx="8" cy="8" r="6.5" stroke="currentColor" strokeWidth="1.5"/>
             <path d="M8 7v5M8 5v.01" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
           </svg>
-          Sobre o BanzamIA
+          Sobre o BanzAI
         </Link>
         <div className="rounded-lg bg-bz-primary/5 border border-bz-primary/10 px-3 py-2">
           <p className="text-[10px] text-bia-muted leading-relaxed italic">

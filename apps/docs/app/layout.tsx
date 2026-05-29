@@ -14,11 +14,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
+    default: 'Banzami — Pagamentos Instantâneos em Kwanza',
     template: '%s · Banzami',
   },
   description:
-    'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banza SDK para programadores e Banza Business para comerciantes.',
+    'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banzami é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banzami SDK para programadores e Banzami Business para comerciantes.',
   keywords: [
     'Banza',
     'Banzami',
@@ -26,16 +26,16 @@ export const metadata: Metadata = {
     'QR Code Angola',
     'pagamentos em Kwanza',
     'carteira digital Angola',
-    'Banza Business',
-    'Banza SDK',
+    'Banzami Business',
+    'Banzami SDK',
     'pagamentos instantâneos Angola',
     'ecommerce Angola',
     'pagamentos para táxi Angola',
   ],
   openGraph: {
-    title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
+    title: 'Banzami — Pagamentos Instantâneos em Kwanza',
     description:
-      'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banza é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banza SDK e Banza Business.',
+      'Banzami constrói a infraestrutura que permitirá Angola pagar digitalmente. Banzami é a rede de pagamentos instantâneos QR-native em Kwanza — wallet-to-wallet, liquidação instantânea, Banzami SDK e Banzami Business.',
     siteName: 'Banzami',
     locale: 'pt_AO',
     type: 'website',
@@ -84,7 +84,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 { href: '/seguranca-e-integridade-financeira', label: 'Segurança',     ai: false },
                 { href: '/operators',                          label: 'Operadores',    ai: false },
                 { href: '/validacao',                          label: 'Validação',     ai: false },
-                { href: '/banzamia',                           label: 'BanzamIA',      ai: true  },
+                { href: '/banzamia',                           label: 'BanzAI',        ai: true  },
               ].map(({ href, label, ai }) => (
                 <Link
                   key={href}
@@ -142,7 +142,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <span className="font-bold text-bz-text">Banzami</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
-                  Banza — Rede Angolana de Pagamentos Instantâneos por QR Code
+                  Banzami — Rede Angolana de Pagamentos Instantâneos por QR Code
                 </p>
               </div>
 
@@ -154,7 +154,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
                 <Link href="/operators" className="hover:text-bz-primary">Operadores</Link>
                 <Link href="/validacao" className="hover:text-bz-primary">Validação</Link>
-                <Link href="/banzamia" className="hover:text-bz-gold text-bz-gold/70">BanzamIA</Link>
+                <Link href="/banzamia" className="hover:text-bz-gold text-bz-gold/70">BanzAI</Link>
               </div>
             </div>
 

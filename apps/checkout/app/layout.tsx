@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Banza Checkout',
-  description: 'Pagamento seguro via Banza',
+  title: 'Banzami Checkout',
+  description: 'Pagamento seguro via Banzami',
   manifest: '/site.webmanifest',
   icons: {
     icon: [

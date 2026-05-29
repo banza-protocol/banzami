@@ -80,7 +80,7 @@ export function HomeBanzamIAEntry() {
               <BanzamIAIcon size={22} className="text-white" />
             </div>
             <div className="min-w-0">
-              <h2 className="text-base font-bold text-bz-text tracking-tight">Pergunte ao BanzamIA</h2>
+              <h2 className="text-base font-bold text-bz-text tracking-tight">Pergunte ao BanzAI</h2>
               <p className="mt-0.5 text-xs text-bz-muted max-w-lg">
                 A interface inteligente oficial para entender, integrar e validar o ecossistema Banzami.
               </p>
@@ -142,7 +142,7 @@ export function HomeBanzamIAEntry() {
                   />
                 ))}
               </div>
-              <span className="text-sm text-bz-muted">BanzamIA está a consultar o protocolo…</span>
+              <span className="text-sm text-bz-muted">BanzAI está a consultar o protocolo…</span>
             </div>
           )}
 

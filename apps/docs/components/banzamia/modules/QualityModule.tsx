@@ -66,7 +66,7 @@ export function QualityModule() {
             <div>
               <h2 className="text-base font-bold text-bia-text mb-1">Trust Through Measurement</h2>
               <p className="text-sm text-bia-muted leading-relaxed">
-                We do not ask you to trust BanzamIA. We show you measurements. Every number on this dashboard
+                We do not ask you to trust BanzAI. We show you measurements. Every number on this dashboard
                 is derived from real operations — retrieval latency, citation authority, graph coverage, and
                 retrieval success rates. Measure us. Do not merely trust us.
               </p>

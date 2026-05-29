@@ -119,7 +119,7 @@ export function KnowledgeModule() {
             ))}
 
             <div className="rounded-lg border border-bia-border bg-bia-surface-2 px-3 py-2.5 text-center text-xs text-bia-muted">
-              Connect BanzamIA API with indexed Qdrant vector DB for real semantic search
+              Connect BanzAI API with indexed Qdrant vector DB for real semantic search
             </div>
           </div>
         )}

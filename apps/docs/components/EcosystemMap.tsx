@@ -13,7 +13,7 @@ export function EcosystemMap() {
     <div className="my-8 overflow-hidden rounded-3xl border border-bz-border bg-gradient-to-br from-bz-bg to-white p-6 shadow-card md:p-10">
       <div className="mb-6 text-center">
         <span className="badge-gold">Ecossistema Banza</span>
-        <p className="mt-2 text-sm text-bz-muted">Uma rede centrada no Core do Banzami</p>
+        <p className="mt-2 text-sm text-bz-muted">Uma rede centrada no Core do Banza</p>
       </div>
 
       {/* Desktop SVG map */}
@@ -35,7 +35,7 @@ export function EcosystemMap() {
 
           {/* Center node — Banzami Core */}
           <circle cx="300" cy="200" r="52" fill="#990011" />
-          <text x="300" y="194" textAnchor="middle" fill="white" fontSize="11" fontWeight="700">BANZAMI</text>
+          <text x="300" y="194" textAnchor="middle" fill="white" fontSize="11" fontWeight="700">BANZA</text>
           <text x="300" y="209" textAnchor="middle" fill="rgba(255,255,255,0.75)" fontSize="9">API · Ledger · Core Rust</text>
 
           {/* Outer nodes */}
@@ -62,7 +62,7 @@ export function EcosystemMap() {
       <div className="grid grid-cols-2 gap-3 md:hidden">
         <div className="col-span-2 flex items-center justify-center rounded-2xl bg-bz-primary p-4 text-white">
           <div className="text-center">
-            <div className="text-sm font-bold">BANZAMI CORE</div>
+            <div className="text-sm font-bold">BANZA CORE</div>
             <div className="text-xs opacity-75">API · Ledger · Rust</div>
           </div>
         </div>

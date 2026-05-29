@@ -46,7 +46,7 @@ export function MemoryModule() {
           <h2 className="text-lg font-bold text-bia-text mb-1">Protocol Memory</h2>
           <p className="text-sm text-bia-muted">
             Operator journey history — assessments, certification milestones, federation events, and
-            research history. Memory accumulates across sessions as the operator interacts with BanzamIA.
+            research history. Memory accumulates across sessions as the operator interacts with BanzAI.
           </p>
         </div>
 

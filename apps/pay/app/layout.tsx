@@ -3,8 +3,8 @@ import { headers } from 'next/headers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Banza Pay',
-  description: 'Pague com a app Banza',
+  title: 'Banzami Pay',
+  description: 'Pague com a app Banzami',
   manifest: '/site.webmanifest',
   icons: {
     icon: [

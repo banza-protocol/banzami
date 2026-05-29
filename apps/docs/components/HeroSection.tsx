@@ -11,7 +11,7 @@ const CAPABILITY_TAGS = [
   'Liquidação',
   'Rastreabilidade',
   'Conformidade',
-  'BanzamIA',
+  'BanzAI',
 ]
 
 export function HeroSection({ tagline }: Props) {
@@ -54,7 +54,7 @@ export function HeroSection({ tagline }: Props) {
 
         {/* 3 — Subheadline */}
         <p className="mx-auto mb-7 max-w-2xl text-lg leading-relaxed text-bz-muted md:text-xl">
-          Banzami é um protocolo aberto para operadores, pagamentos, liquidação, certificação e rastreabilidade financeira.
+          Banzami é o produto de pagamentos de Angola, construído sobre o Banza — protocolo aberto de infraestrutura financeira.
         </p>
 
         {/* 4 — Capability tags — single row, scroll on mobile */}

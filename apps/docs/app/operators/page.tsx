@@ -5,7 +5,7 @@ import { RegistryFilters } from '@/components/operators/RegistryFilters'
 export const metadata: Metadata = {
   title: 'Registo de Operadores',
   description:
-    'Registo público de operadores Banzami — manifests, capacidades, conformidade e preparação para federação. Transparência de infraestrutura, não vigilância financeira.',
+    'Registo público de operadores Banza — manifests, capacidades, conformidade e preparação para federação. Transparência de infraestrutura, não vigilância financeira.',
 }
 
 export default function OperatorsPage() {
@@ -28,11 +28,11 @@ export default function OperatorsPage() {
           </div>
 
           <h1 className="mb-3 text-3xl font-bold tracking-tight text-bz-text sm:text-4xl">
-            Registo de Operadores Banzami
+            Registo de Operadores Banza
           </h1>
 
           <p className="mb-6 max-w-2xl text-base text-bz-muted">
-            Registo curado de operadores que implementam o protocolo Banzami.
+            Registo curado de operadores que implementam o protocolo Banza.
             Manifests validados, capacidades declaradas, níveis de conformidade
             e preparação para federação — visibilidade de infraestrutura, não exposição de dados financeiros.
           </p>
@@ -97,7 +97,7 @@ export default function OperatorsPage() {
                   <><path d="M4 8l2.5 2.5L12 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></>
                 ),
                 title: 'Conformidade pública',
-                body: 'Os níveis de conformidade (0–4) são determinados pelo runner oficial do Banzami. Nenhum operador pode auto-declarar certificação sem ter passado os testes.',
+                body: 'Os níveis de conformidade (0–4) são determinados pelo runner oficial do Banza. Nenhum operador pode auto-declarar certificação sem ter passado os testes.',
               },
             ].map(({ icon, title, body }) => (
               <div key={title} className="flex items-start gap-3">

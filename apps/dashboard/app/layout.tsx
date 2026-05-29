@@ -3,7 +3,7 @@ import { headers } from 'next/headers';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title:       'Banza Business',
+  title:       'Banzami Business',
   description: 'Business dashboard — Banzami',
   manifest: '/site.webmanifest',
   icons: {

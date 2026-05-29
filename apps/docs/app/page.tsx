@@ -15,9 +15,9 @@ import { SectionCard } from '@/components/SectionCard'
 import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
-  title: 'Banza — Pagamentos Instantâneos em Kwanza | Banzami',
+  title: 'Banzami — Pagamentos Instantâneos em Kwanza',
   description:
-    'Banza é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banza SDKs oficiais.',
+    'Banzami é a rede angolana de pagamentos instantâneos por QR Code, criada pela organização Banzami, permitindo pagamentos wallet-to-wallet em Kwanza através de Banzami SDKs oficiais.',
 }
 
 // ---- Problem cards -----------------------------------------------------------
@@ -138,7 +138,7 @@ export default function HomePage() {
           Uma rede. Múltiplos actores.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Consumidores, comerciantes, apps externas, Banza SDKs, bancos e o core financeiro — todos ligados através de uma infraestrutura do Banzami.
+          Consumidores, comerciantes, apps externas, Banzami SDKs, bancos e o core financeiro — todos ligados através de uma infraestrutura do Banza.
         </p>
         <EcosystemMap />
       </section>
@@ -152,7 +152,7 @@ export default function HomePage() {
           Um QR code. Todo o comércio angolano.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          Do táxi à escola, da cantina à plataforma de doações — o Banza QR serve todos os casos de uso do mercado angolano.
+          Do táxi à escola, da cantina à plataforma de doações — o Banzami QR serve todos os casos de uso do mercado angolano.
         </p>
         <QRCommerceVisual />
       </section>
@@ -199,7 +199,7 @@ export default function HomePage() {
           SDK-first. Integração em Kwanza.
         </h2>
         <p className="mb-8 max-w-2xl text-bz-muted">
-          O Banza é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banza SDK oficial.
+          O Banzami é SDK-first. Qualquer app — táxi, delivery, escola, ecommerce — integra pagamentos em Kwanza com uma única chamada ao Banzami SDK oficial.
         </p>
         <SDKArchitectureVisual />
         <div className="mt-8 flex flex-wrap gap-3">

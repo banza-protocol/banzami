@@ -4,9 +4,9 @@ import { BanzamIAApp } from '@/components/banzamia/BanzamIAApp'
 import { NoBodyScroll } from '@/components/NoBodyScroll'
 
 export const metadata: Metadata = {
-  title: 'BanzamIA — Protocol Operating System',
+  title: 'BanzAI — Protocol Operating System',
   description:
-    'BanzamIA é o Sistema Operativo do Protocolo Banzami. 16 módulos. Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. Ferramentas determinam a verdade. A IA explica a verdade.',
+    'BanzAI é o Sistema Operativo do Protocolo Banza. 16 módulos. Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. Ferramentas determinam a verdade. A IA explica a verdade.',
 }
 
 export default function BanzamIAPage() {

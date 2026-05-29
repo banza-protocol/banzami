@@ -2,9 +2,9 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Roadmap — BanzamIA Protocol Operating System',
+  title: 'Roadmap — BanzAI Protocol Operating System',
   description:
-    'Roadmap público do BanzamIA — Protocol Operating System do ecossistema Banzami. 16 módulos, 8 capacidades. Evolução transparente do sistema.',
+    'Roadmap público do BanzAI — Protocol Operating System do ecossistema Banzami. 16 módulos, 8 capacidades. Evolução transparente do sistema.',
 }
 
 interface RoadmapItem {
@@ -41,14 +41,14 @@ const ITEMS: RoadmapItem[] = [
   { id: 'r20', status: 'planned', title: 'SDK Intelligence Assistant',       description: 'TypeScript and Flutter SDK-specific guidance. Code generation, integration patterns, error diagnosis.', tags: ['SDK', 'Agent'] },
   { id: 'r21', status: 'planned', title: 'Webhook Intelligence',             description: 'Parse and explain webhook payloads. Detect missing correlation_id, trace propagation gaps.', tags: ['Tooling'] },
   // Research
-  { id: 'r22', status: 'research', title: 'Autonomous Certification',        description: 'BanzamIA submits, monitors, and completes certification on behalf of an operator with human-in-the-loop approval.', tags: ['Agent', 'Certification'] },
+  { id: 'r22', status: 'research', title: 'Autonomous Certification',        description: 'BanzAI submits, monitors, and completes certification on behalf of an operator with human-in-the-loop approval.', tags: ['Agent', 'Certification'] },
   { id: 'r23', status: 'research', title: 'Multi-Agent Protocol Reasoning',  description: 'Parallel agent swarm — one for retrieval, one for graph traversal, one for invariant checking. Consensus synthesis.', tags: ['Agent', 'Research'] },
   { id: 'r24', status: 'research', title: 'Predictive Readiness',            description: 'Given current velocity of operator changes, predict when they will reach each certification level.', tags: ['Memory', 'Analytics'] },
   { id: 'r25', status: 'research', title: 'Protocol Change Impact Analysis', description: 'When a new RFC is published, automatically identify all affected operators and certification levels.', tags: ['Protocol', 'Graph'] },
   // Vision
-  { id: 'r26', status: 'completed', title: 'Protocol Operating System',       description: 'BanzamIA is the Protocol Operating System — Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. 16 modules. Tools determine truth. AI explains truth.', tags: ['Protocol OS'] },
+  { id: 'r26', status: 'completed', title: 'Protocol Operating System',       description: 'BanzAI is the Protocol Operating System — Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. 16 modules. Tools determine truth. AI explains truth.', tags: ['Protocol OS'] },
   { id: 'r27', status: 'vision', title: 'Ecosystem-level Intelligence',      description: 'Aggregate insights across all operators — identify ecosystem-wide certification patterns, bottlenecks, and opportunities.', tags: ['Vision', 'Analytics'] },
-  { id: 'r28', status: 'vision', title: 'Self-improving Knowledge Base',     description: 'BanzamIA identifies gaps in its own knowledge base and proposes new documentation to fill them.', tags: ['Vision', 'RAG'] },
+  { id: 'r28', status: 'vision', title: 'Self-improving Knowledge Base',     description: 'BanzAI identifies gaps in its own knowledge base and proposes new documentation to fill them.', tags: ['Vision', 'RAG'] },
 ]
 
 const STATUS_CONFIG = {
@@ -100,13 +100,13 @@ export default function RoadmapPage() {
         <div className="flex items-center gap-2 text-xs text-bz-muted mb-3">
           <Link href="/" className="hover:text-bz-primary">Banzami</Link>
           <span>/</span>
-          <Link href="/banzamia" className="hover:text-bz-primary">BanzamIA</Link>
+          <Link href="/banzamia" className="hover:text-bz-primary">BanzAI</Link>
           <span>/</span>
           <span>Roadmap</span>
         </div>
-        <h1 className="text-3xl font-bold text-bz-text mb-3">BanzamIA Roadmap</h1>
+        <h1 className="text-3xl font-bold text-bz-text mb-3">BanzAI Roadmap</h1>
         <p className="text-bz-muted leading-relaxed max-w-2xl">
-          Roadmap público do BanzamIA — Protocol Operating System
+          Roadmap público do BanzAI — Protocol Operating System
           for the Banzami ecosystem. We publish this transparently because trust begins with visibility.
         </p>
         <div className="mt-5 inline-flex items-center gap-2 rounded-xl border border-bz-border bg-white px-4 py-3">
@@ -145,10 +145,10 @@ export default function RoadmapPage() {
 
       {/* CTA */}
       <div className="mt-10 rounded-2xl border border-bz-border bg-white p-6">
-        <h3 className="text-base font-bold text-bz-text mb-2">Experimente o BanzamIA</h3>
+        <h3 className="text-base font-bold text-bz-text mb-2">Experimente o BanzAI</h3>
         <p className="text-sm text-bz-muted mb-4">
           Todos os módulos marcados como Completed estão disponíveis agora.
-          Aceda ao BanzamIA e explore o protocolo.
+          Aceda ao BanzAI e explore o protocolo.
         </p>
         <Link
           href="/banzamia"
@@ -157,7 +157,7 @@ export default function RoadmapPage() {
           <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">
             <path d="M6 1l1.2 3.8H11l-3 2.2 1.1 3.6L6 8.3 2.9 10.6 4 7 1 4.8h3.8z" fill="currentColor"/>
           </svg>
-          Abrir BanzamIA
+          Abrir BanzAI
         </Link>
       </div>
     </div>

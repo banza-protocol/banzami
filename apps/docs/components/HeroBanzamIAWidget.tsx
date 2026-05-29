@@ -41,14 +41,14 @@ export function HeroBanzamIAWidget() {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold tracking-tight text-bz-text">Pergunte ao BanzamIA</p>
+            <p className="text-sm font-bold tracking-tight text-bz-text">Pergunte ao BanzAI</p>
             <p className="mt-0.5 text-[11px] leading-snug text-bz-muted">
-              O Agente de Protocolo nativo de IA do ecossistema Banzami.
+              O Sistema Operativo de Protocolo do ecossistema Banzami.
             </p>
           </div>
 
           <span className="shrink-0 rounded-full border border-bz-primary/20 bg-bz-primary-light px-2.5 py-0.5 text-[10px] font-semibold tracking-wide text-bz-primary">
-            BanzamIA
+            BanzAI
           </span>
         </div>
 

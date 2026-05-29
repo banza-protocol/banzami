@@ -39,7 +39,7 @@ async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promi
     body:    JSON.stringify(body),
     signal,
   })
-  if (!res.ok) throw new Error(`BanzamIA API ${path}: ${res.status}`)
+  if (!res.ok) throw new Error(`BanzAI API ${path}: ${res.status}`)
   return res.json() as Promise<T>
 }
 
@@ -311,7 +311,7 @@ export interface GraphRelatedResponse {
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BANZAMIA_API_URL}${path}`, { cache: 'no-store' })
-  if (!res.ok) throw new Error(`BanzamIA API ${path}: ${res.status}`)
+  if (!res.ok) throw new Error(`BanzAI API ${path}: ${res.status}`)
   return res.json() as Promise<T>
 }
 
@@ -602,16 +602,17 @@ const DEMO_RESPONSES: Array<{ pattern: RegExp; model: string; taskType: string; 
   {
     pattern: /o que.*banzami|banzami.*o que|banzami.*é|what is banzami|o que é.*banzami/i,
     model: 'qwen-14b', taskType: 'DOCS',
-    text: `**Banzami — A organização por detrás da rede Banza**
+    text: `**Banzami — O produto de pagamentos de Angola, construído sobre o Banza**
 
-A **Banzami** é a organização de infraestrutura financeira que cria e mantém:
+A **Banzami** é o operador de referência do protocolo Banza. A Organização Banzami cria e mantém:
 
-- **Banza** — o produto de pagamentos instantâneos em Kwanza por QR Code
-- **Banza SDKs** — bibliotecas oficiais TypeScript, Python e Dart para programadores
-- **BanzamIA** — interface inteligente para integrar, validar e certificar o ecossistema
+- **Banza** — o protocolo aberto de infraestrutura financeira (kernel, ledger, certificação, federação)
+- **Banzami** — o produto de pagamentos: carteiras, QR, checkout, app móvel, Banzami Business
+- **Banzami SDKs** — bibliotecas oficiais TypeScript, Python e Dart para programadores
+- **BanzAI** — o Sistema Operativo de Protocolo: 16 módulos para compreender, validar e certificar
 - **Core financeiro** — motor em Rust com invariantes de ledger de grau bancário
 
-O Banzami não é um banco. É a camada de infraestrutura protocolar que permite a qualquer app angolana aceitar pagamentos em Kwanza — do táxi à escola, da cantina ao ecommerce.
+Banzami não é um banco. É a camada de produto que permite a qualquer app angolana aceitar pagamentos em Kwanza — do táxi à escola, da cantina ao ecommerce. O protocolo Banza pode ser implementado por qualquer operador certificado.
 
 **Modelo de acesso:**
 Operadores certificados integram via SDK oficial. Cada pagamento é uma transferência wallet-to-wallet liquidada instantaneamente e registada no ledger de forma atómica e imutável.`,
@@ -623,21 +624,22 @@ Operadores certificados integram via SDK oficial. Cada pagamento é uma transfer
   {
     pattern: /diferença|difference|banzami.*banza|banza.*banzami|brand.*archit/i,
     model: 'qwen-14b', taskType: 'DOCS',
-    text: `**Banzami vs Banza — Arquitectura de marca (ADR-016)**
+    text: `**Banzami vs Banza — Arquitectura de marca (ADR-025)**
 
-| | Banzami | Banza |
+| | Banza | Banzami |
 |---|---|---|
-| O que é | Organização e infraestrutura | O produto de pagamentos |
-| Papel | Protocolo, SDKs, certificação | App, QR, carteiras, UI |
-| SDK | \`@banzami/sdk\` (organização) | \`@banza/sdk\` (produto) |
-| Domínio | banzami.org | app.banza.ao |
-| BanzamIA | Pertence à Banzami | Serve os utilizadores Banza |
+| O que é | Protocolo aberto de infraestrutura financeira | Produto de pagamentos e operador de referência |
+| Papel | Kernel, ledger, certificação, federação, governança | App, QR, carteiras, checkout, Banzami Business |
+| SDK | \`@banza/sdk\` (protocolo) | Banzami SDKs para programadores |
+| Domínio | — (protocolo, não website) | banzami.org |
+| BanzAI | Pertence ao ecossistema Banza | Protocol Operating System |
 
-**Regra de conteúdo (ADR-016):**
-- Use **Banzami** para: protocolo, infraestrutura, certificação, SDKs, BanzamIA, organização
-- Use **Banza** para: pagamentos, QR codes, carteiras, app móvel, experiência do utilizador
+**Regra de conteúdo (ADR-025, inverte ADR-016):**
+- Use **Banza** para: protocolo, infraestrutura, certificação, federação, kernel, governança
+- Use **Banzami** para: pagamentos, QR codes, carteiras, app móvel, Banzami Business, operador de referência
+- Use **BanzAI** para: Protocol Operating System, 16 módulos, sistema cognitivo do protocolo
 
-Esta separação é deliberada — distingue a camada de infraestrutura da camada de produto.`,
+Esta inversão é deliberada — ADR-025 corrigiu a arquitectura de marca anterior (ADR-016).`,
     citations: [
       { type: 'adr',  label: 'ADR-016 — Brand architecture', ref: 'docs/adrs/ADR-016.md' },
       { type: 'file', label: 'BANZAMI_REFERENCE.md §1', ref: 'docs/BANZAMI_REFERENCE.md' },
@@ -679,7 +681,7 @@ const qr = await client.qr.create({
 // qr.id · qr.url · qr.trace_id (propaga para todo o fluxo)
 \`\`\`
 
-Use o módulo **SDK Assistant** no BanzamIA completo para gerar código para o seu caso de uso específico.`,
+Use o módulo **SDK Assistant** no BanzAI completo para gerar código para o seu caso de uso específico.`,
     citations: [
       { type: 'file', label: '@banza/sdk', ref: 'sdk/typescript/README.md' },
       { type: 'adr',  label: 'ADR-001 — Minor units', ref: 'docs/adrs/ADR-001.md' },
@@ -760,7 +762,7 @@ The \`GET /v1/traces/:trace_id\` endpoint reconstructs the full causal graph.
 
 **INV-STL-001 is the most critical:** if \`net + fee ≠ gross\`, money is either created or destroyed.
 
-BanzamIA treats invariant violations as hard findings — never softened, never suppressed.`,
+BanzAI treats invariant violations as hard findings — never softened, never suppressed.`,
     citations: [
       { type: 'invariant', label: 'INV-LEDGER-001', ref: 'conformance/ledger/suite.json' },
       { type: 'invariant', label: 'INV-STL-001', ref: 'conformance/settlement/suite.json' },
@@ -849,7 +851,7 @@ Use the **Manifest Validator** module to validate your manifest deterministicall
 
 const DEMO_FALLBACK = {
   model: 'qwen-14b', taskType: 'DOCS',
-  text: `BanzamIA is the AI-native interface for building, validating and certifying Banzami operators.
+  text: `BanzAI is the Protocol Operating System for the Banza ecosystem. I help you build, validate and certify Banza protocol operators.
 
 **What I can help with:**
 
@@ -862,8 +864,8 @@ const DEMO_FALLBACK = {
 
 **Core principle:** Tools determine truth. AI explains truth.
 
-Ask me anything about the Banzami protocol.`,
-  citations: [{ type: 'file' as const, label: 'BanzamIA README', ref: 'https://github.com/banzami/banzamia' }],
+Ask me anything about the Banza protocol.`,
+  citations: [{ type: 'file' as const, label: 'BanzAI README', ref: 'https://github.com/banzami/banzamia' }],
 }
 
 async function _demoStream(
@@ -998,7 +1000,7 @@ function _demoResearch(question: string): ResearchReport {
     question,
     answer: `**Protocol Research Report — Demo Mode**
 
-This is a demonstration of BanzamIA's Agentic Protocol Research capability.
+This is a demonstration of BanzAI's Agentic Protocol Research capability.
 
 In **Live API mode**, the Research Agent:
 

@@ -6,11 +6,11 @@ import { SectionHero } from '@/components/SectionHero'
 import { notFound } from 'next/navigation'
 
 export const metadata: Metadata = {
-  title: 'Sobre o BanzamIA',
-  description: 'BanzamIA — o Sistema Operativo do Protocolo Banzami. Compreender, explicar, validar, simular, certificar e federar operadores. Ferramentas determinam a verdade. A IA explica a verdade.',
+  title: 'Sobre o BanzAI',
+  description: 'BanzAI — o Sistema Operativo do Protocolo Banza. Compreender, explicar, validar, simular, certificar e federar operadores. Ferramentas determinam a verdade. A IA explica a verdade.',
   openGraph: {
-    title: 'Sobre o BanzamIA · Banzami',
-    description: 'O Sistema Operativo do Protocolo Banzami. 16 módulos — Protocol Graph, RAG, Certification Copilot, Federation Intelligence, Digital Twin, Protocol Simulator.',
+    title: 'Sobre o BanzAI · Banzami',
+    description: 'O Sistema Operativo do Protocolo Banza. 16 módulos — Protocol Graph, RAG, Certification Copilot, Federation Intelligence, Digital Twin, Protocol Simulator.',
     locale: 'pt_AO',
   },
 }
@@ -33,7 +33,7 @@ export default function SobreBanzamiaPage() {
 
         {/* Protocol OS context */}
         <p className="mb-6 text-sm leading-relaxed text-bz-muted">
-          O BanzamIA é o Sistema Operativo do Protocolo Banzami — 16 módulos especializados que tornam o protocolo
+          O BanzAI é o Sistema Operativo do Protocolo Banza — 16 módulos especializados que tornam o protocolo
           compreensível, validável, simulável e certificável. Não é um chatbot. É a interface cognitiva do protocolo:
           onde as ferramentas determinam a verdade e a IA explica a verdade.
         </p>
@@ -41,14 +41,14 @@ export default function SobreBanzamiaPage() {
         {/* CTA to live interface */}
         <div className="mb-8 flex items-center justify-between gap-4 rounded-2xl border border-bz-primary/20 bg-bz-primary/5 px-5 py-4">
           <div>
-            <p className="text-sm font-semibold text-bz-primary">Experimentar o BanzamIA</p>
-            <p className="mt-0.5 text-xs text-bz-muted">Chat ao vivo com o Agente de Protocolo</p>
+            <p className="text-sm font-semibold text-bz-primary">Experimentar o BanzAI</p>
+            <p className="mt-0.5 text-xs text-bz-muted">Chat ao vivo com o BanzAI</p>
           </div>
           <Link
             href="/banzamia"
             className="shrink-0 rounded-xl bg-bz-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
-            Abrir BanzamIA →
+            Abrir BanzAI →
           </Link>
         </div>
 
@@ -100,7 +100,7 @@ export default function SobreBanzamiaPage() {
             </Link>
             <span className="text-bz-muted">·</span>
             <Link href="/banzamia" className="text-xs font-semibold text-bz-primary hover:underline">
-              Abrir BanzamIA
+              Abrir BanzAI
             </Link>
           </div>
         </div>

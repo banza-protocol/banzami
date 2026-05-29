@@ -57,7 +57,7 @@ export function StatusModule() {
       <div className="max-w-2xl mx-auto space-y-5">
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">System Status</h2>
-          <p className="text-sm text-bia-muted">BanzamIA infrastructure, model availability, and tool status.</p>
+          <p className="text-sm text-bia-muted">BanzAI infrastructure, model availability, and tool status.</p>
         </div>
 
         {/* Mode + API */}

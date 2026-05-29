@@ -82,7 +82,7 @@ export function ConformanceModule({ mode }: { mode: 'demo' | 'live' }) {
             )}
           </button>
           {mode === 'demo' && (
-            <p className="text-center text-[11px] text-bia-muted-2">Demo mode — connect BanzamIA API for real execution</p>
+            <p className="text-center text-[11px] text-bia-muted-2">Demo mode — connect BanzAI API for real execution</p>
           )}
         </div>
 
@@ -103,7 +103,7 @@ export function ConformanceModule({ mode }: { mode: 'demo' | 'live' }) {
               ))}
               <div className="mt-3 rounded-lg border border-bia-green/30 bg-bia-green/5 px-3 py-2.5 text-center">
                 <div className="text-sm font-bold text-bia-green">Level {level} — Certified</div>
-                <div className="text-xs text-bia-muted mt-0.5">Connect BanzamIA API for real certification report</div>
+                <div className="text-xs text-bia-muted mt-0.5">Connect BanzAI API for real certification report</div>
               </div>
             </div>
           </div>

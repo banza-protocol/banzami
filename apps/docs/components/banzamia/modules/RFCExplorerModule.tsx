@@ -17,7 +17,7 @@ const RFCS = [
 const ADRS = [
   { id: 'ADR-001', title: 'Minor units only', status: 'ACCEPTED', summary: 'All monetary amounts are stored as integers in minor units. No floating-point ever in financial calculations.' },
   { id: 'ADR-012', title: 'Certification architecture', status: 'ACCEPTED', summary: 'Certification is always a tool result, never LLM inference. Deterministic-first principle.' },
-  { id: 'ADR-016', title: 'Brand architecture', status: 'ACCEPTED', summary: 'Banzami = org/infra. Banza = product. BanzamIA = AI layer. Separation preserved in all naming.' },
+  { id: 'ADR-016', title: 'Brand architecture', status: 'ACCEPTED', summary: 'Banza = open financial protocol. Banzami = product operator. BanzAI = Protocol OS. (ADR-025 — see ADR-016 for prior model.)' },
 ]
 
 type Tab = 'rfc' | 'adr'
@@ -39,7 +39,7 @@ export function RFCExplorerModule() {
       <div className="max-w-2xl mx-auto space-y-4">
         <div>
           <h2 className="text-lg font-bold text-bia-text mb-1">RFC / ADR Explorer</h2>
-          <p className="text-sm text-bia-muted">Browse Banzami protocol decisions, specifications, and rationale.</p>
+          <p className="text-sm text-bia-muted">Browse Banza protocol decisions, specifications, and rationale.</p>
         </div>
 
         {/* Tabs */}

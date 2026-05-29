@@ -113,7 +113,7 @@ export function QuickAnswerCard({ text, streaming, citations, mode, question }: 
       <div className="flex items-center justify-between px-5 py-2.5 border-b border-bz-border bg-bz-surface">
         <div className="flex items-center gap-2">
           <span className="h-1.5 w-1.5 rounded-full bg-bz-primary" />
-          <span className="text-xs font-semibold text-bz-text">BanzamIA</span>
+          <span className="text-xs font-semibold text-bz-text">BanzAI</span>
         </div>
         <span className={`rounded-full border px-2 py-px text-[10px] font-semibold ${badge.cls}`}>
           {badge.label}
@@ -142,7 +142,7 @@ export function QuickAnswerCard({ text, streaming, citations, mode, question }: 
             href={deepLink}
             className="text-xs font-semibold text-bz-primary hover:underline whitespace-nowrap"
           >
-            Continuar no BanzamIA completo →
+            Continuar no BanzAI completo →
           </Link>
         </div>
       )}
