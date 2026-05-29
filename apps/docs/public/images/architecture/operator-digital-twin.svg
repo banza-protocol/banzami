@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+  <defs>
+    <linearGradient id="hG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#990011"/>
+      <stop offset="100%" style="stop-color:#B11226"/>
+    </linearGradient>
+    <filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000012"/></filter>
+    <marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L8,3 z" fill="#94A3B8"/>
+    </marker>
+  </defs>
+
+  <rect width="700" height="500" fill="#F5F1EE"/>
+
+  <!-- Title -->
+  <rect x="30" y="20" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
+  <text x="350" y="45" text-anchor="middle" fill="white" font-size="14" font-weight="700">Operator Digital Twin — Protocol-Aware Virtual Representation</text>
+  <text x="350" y="59" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" letter-spacing="1">CERTIFICAÇÃO · FEDERAÇÃO · INVARIANTES · RFCs · TIMELINE · RECOMENDAÇÕES</text>
+
+  <!-- Inputs -->
+  <rect x="30" y="82" width="640" height="48" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1" filter="url(#sh)"/>
+  <text x="84" y="100" text-anchor="middle" fill="#64748B" font-size="8" font-weight="700">MANIFESTO</text>
+  <text x="84" y="112" text-anchor="middle" fill="#9CA3AF" font-size="7">operator_id · env</text>
+  <line x1="138" y1="90" x2="138" y2="122" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="208" y="100" text-anchor="middle" fill="#64748B" font-size="8" font-weight="700">CAPACIDADES</text>
+  <text x="208" y="112" text-anchor="middle" fill="#9CA3AF" font-size="7">9 declared</text>
+  <line x1="278" y1="90" x2="278" y2="122" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="370" y="100" text-anchor="middle" fill="#64748B" font-size="8" font-weight="700">NÍVEL ALVO</text>
+  <text x="370" y="112" text-anchor="middle" fill="#9CA3AF" font-size="7">L4 — Settlement</text>
+  <line x1="462" y1="90" x2="462" y2="122" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="552" y="100" text-anchor="middle" fill="#64748B" font-size="8" font-weight="700">PARCEIROS FEDERAÇÃO</text>
+  <text x="552" y="112" text-anchor="middle" fill="#9CA3AF" font-size="7">optional — 0 defined</text>
+
+  <!-- Engine -->
+  <line x1="350" y1="130" x2="350" y2="148" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+  <rect x="200" y="150" width="300" height="40" rx="8" fill="#990011" filter="url(#sh)"/>
+  <text x="350" y="169" text-anchor="middle" fill="white" font-size="11" font-weight="700">buildDigitalTwin()</text>
+  <text x="350" y="183" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8">Cert · Federation · Memory · Invariants · RFCs</text>
+
+  <!-- Dashboard panels -->
+  <line x1="350" y1="190" x2="350" y2="210" stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arr)"/>
+
+  <!-- Overview panel -->
+  <rect x="30" y="212" width="200" height="100" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="230" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">OVERVIEW</text>
+  <circle cx="70" cy="272" r="24" fill="#2A3A8C"/>
+  <text x="70" y="277" text-anchor="middle" fill="white" font-size="20" font-weight="700">1</text>
+  <text x="104" y="262" fill="#1E293B" font-size="8" font-weight="600">op_example_001</text>
+  <text x="104" y="274" fill="#9CA3AF" font-size="7">Protocol-compatible</text>
+  <text x="104" y="286" fill="#990011" font-size="11" font-weight="700">67%</text>
+  <text x="136" y="286" fill="#9CA3AF" font-size="7">Readiness</text>
+  <text x="130" y="302" text-anchor="middle" fill="#15803D" font-size="7">Trajectory: Improving</text>
+
+  <!-- Certification panel -->
+  <rect x="244" y="212" width="200" height="100" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="344" y="230" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">CERTIFICAÇÃO</text>
+  {[
+    { l: 0, w: 100, color: '#374151', s: 'achieved' },
+    { l: 1, w: 100, color: '#2A3A8C', s: 'achieved' },
+    { l: 2, w: 40,  color: '#0E7490', s: 'partial'  },
+    { l: 3, w: 0,   color: '#7C3AED', s: 'blocked'  },
+    { l: 4, w: 0,   color: '#990011', s: 'blocked'  },
+  ].map((row, i) => (
+    <g key={i} transform={`translate(258, ${238 + i * 14})`}>
+      <rect width="10" height="10" rx="2" fill={row.color}/>
+      <rect x="14" y="2" width="100" height="6" rx="3" fill="#F1F5F9"/>
+      <rect x="14" y="2" width={row.w} height="6" rx="3" fill={row.color} opacity={row.s === 'achieved' ? 1 : 0.4}/>
+      <text x="118" y="9" fill={row.s === 'achieved' ? '#15803D' : row.s === 'partial' ? '#92400E' : '#9CA3AF'} font-size="6">{row.s}</text>
+    </g>
+  ))}
+
+  <!-- Invariants panel -->
+  <rect x="458" y="212" width="212" height="100" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="564" y="230" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">INVARIANTES RELEVANTES</text>
+  <text x="472" y="247" fill="#C89B3C" font-size="7" font-family="ui-monospace, monospace">INV-LEDGER-001</text>
+  <text x="472" y="259" fill="#64748B" font-size="7">Conservação: soma dos saldos constante</text>
+  <text x="472" y="273" fill="#C89B3C" font-size="7" font-family="ui-monospace, monospace">INV-LEDGER-002</text>
+  <text x="472" y="285" fill="#64748B" font-size="7">Double-entry: 1 DEBIT + 1 CREDIT</text>
+  <text x="472" y="299" fill="#C89B3C" font-size="7" font-family="ui-monospace, monospace">INV-TRACE-001</text>
+  <text x="472" y="311" fill="#64748B" font-size="7">trace_id propaga a todas as entidades</text>
+
+  <!-- RFCs panel -->
+  <rect x="30" y="326" width="200" height="90" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="130" y="344" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">RFCs RELEVANTES</text>
+  <text x="44" y="360" fill="#990011" font-size="8" font-weight="600" font-family="ui-monospace, monospace">RFC-0001</text>
+  <text x="100" y="360" fill="#64748B" font-size="7">Wallet Model</text>
+  <text x="44" y="373" fill="#990011" font-size="8" font-weight="600" font-family="ui-monospace, monospace">RFC-0002</text>
+  <text x="100" y="373" fill="#64748B" font-size="7">Transfer Model</text>
+  <text x="44" y="386" fill="#990011" font-size="8" font-weight="600" font-family="ui-monospace, monospace">RFC-0007</text>
+  <text x="100" y="386" fill="#64748B" font-size="7">Trace Model</text>
+  <text x="44" y="399" fill="#990011" font-size="8" font-weight="600" font-family="ui-monospace, monospace">RFC-0008</text>
+  <text x="100" y="399" fill="#64748B" font-size="7">Federation Protocol</text>
+
+  <!-- Timeline panel -->
+  <rect x="244" y="326" width="200" height="90" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="344" y="344" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">TIMELINE</text>
+  <circle cx="262" cy="360" r="3.5" fill="#990011"/>
+  <text x="272" y="364" fill="#1E293B" font-size="7">Avaliação inicial — 45%</text>
+  <circle cx="262" cy="377" r="3.5" fill="#C89B3C"/>
+  <text x="272" y="381" fill="#1E293B" font-size="7">Manifesto actualizado</text>
+  <circle cx="262" cy="394" r="3.5" fill="#15803D"/>
+  <text x="272" y="398" fill="#15803D" font-size="7" font-weight="600">Level 1 atingido ✓</text>
+  <circle cx="262" cy="407" r="3.5" fill="#990011" opacity="0.4"/>
+  <text x="272" y="411" fill="#9CA3AF" font-size="7">→ preparação Level 2…</text>
+
+  <!-- Recommendations panel -->
+  <rect x="458" y="326" width="212" height="90" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1.5" filter="url(#sh)"/>
+  <text x="564" y="344" text-anchor="middle" fill="#64748B" font-size="9" font-weight="700" letter-spacing="0.5">RECOMENDAÇÕES</text>
+  <text x="472" y="360" fill="#64748B" font-size="7">① Implementar endpoint de traces (RFC-0007)</text>
+  <text x="472" y="374" fill="#64748B" font-size="7">② Adicionar supports_webhooks</text>
+  <text x="472" y="388" fill="#64748B" font-size="7">③ Executar suite de conformidade L2</text>
+  <text x="472" y="402" fill="#64748B" font-size="7">④ Publicar operator manifest (RFC-0006)</text>
+
+  <!-- Capability summary -->
+  <rect x="30" y="430" width="640" height="34" rx="8" fill="white" stroke="#E2D9D7" stroke-width="1"/>
+  <text x="350" y="445" text-anchor="middle" fill="#64748B" font-size="8" font-weight="600">Gap Summary:</text>
+  <text x="350" y="457" text-anchor="middle" fill="#9CA3AF" font-size="7">3 requisitos em falta para Level 4: L2-001, L3-001, L3-002… · Snapshot: 2026-07-15T10:00:00Z</text>
+
+  <text x="350" y="482" text-anchor="middle" fill="#9CA3AF" font-size="8">BanzamIA · Operator Digital Twin · banzami.org</text>
+</svg>

@@ -1230,6 +1230,190 @@ A Camada 3 nunca responde sem evidências da Camada 2. A Camada 4 mede continuam
 
 ---
 
+### Protocol Simulator
+
+O Protocol Simulator permite a qualquer operador simular o impacto de alterações de capacidades **antes** de as implementar. É uma análise what-if determinística baseada em `analyzeCertificationReadiness()`.
+
+![Protocol Simulator — What-If Analysis: estado actual, mudanças propostas, motor de simulação, delta de readiness](/images/architecture/protocol-simulator.svg)
+
+**Como funciona:**
+
+1. O operador submete o manifesto actual + capacidades declaradas
+2. O operador propõe mudanças: `+ supports_traces`, `+ supports_webhooks`, target L2
+3. O simulador corre `analyzeCertificationReadiness()` com o estado actual (before) e com o estado proposto (after)
+4. O diff produz: `readiness_delta`, `requirements_satisfied`, `still_missing`, `level_unlocked`, `estimated_effort`
+
+**Endpoint:** `POST /simulate`
+
+```json
+{
+  "manifest": { "operator_id": "...", "capabilities": [...] },
+  "proposed_changes": [
+    { "type": "add_capability", "capability": "supports_traces" },
+    { "type": "add_capability", "capability": "supports_webhooks" }
+  ],
+  "target_level": 2
+}
+```
+
+**Output:**
+
+| Campo | Descrição |
+|-------|-----------|
+| `readiness_delta` | Variação percentual de readiness (ex: +17%) |
+| `certification_impact.level_unlocked` | Nível desbloqueado pelas mudanças propostas |
+| `certification_impact.requirements_satisfied` | IDs de requisitos satisfeitos (ex: L2-001) |
+| `estimated_effort` | `low` / `medium` / `high` baseado no número de requisitos em falta |
+| `federation_impact` | Se as mudanças afectam compatibilidade de federação |
+
+O simulador nunca modifica estado. É uma função pura e determinística.
+
+---
+
+### Federation Intelligence
+
+A Federation Intelligence analisa a compatibilidade de dois operadores para estabelecer uma relação de federação de acordo com o RFC-0008.
+
+![Federation Intelligence — Operator Compatibility Analysis: dois operadores, motor de análise, compatibility score, capacidades em falta](/images/architecture/federation-intelligence.svg)
+
+**Modelo de análise:**
+
+1. Ambos os operadores são avaliados com `analyzeCertificationReadiness()` com target L3
+2. Verifica-se compatibilidade de `protocol_version` (mapa de versões compatíveis)
+3. Verifica-se match de `environment` (sandbox vs production = conflito bloqueante)
+4. Verifica-se presença de `FEDERATION_REQUIRED_CAPS`: `supports_federation` + `supports_cross_operator`
+5. Calcula-se `compatibility_score` de 0–100 com penalizações por conflitos e capacidades em falta
+
+**Endpoint:** `POST /federation/analyze`
+
+```json
+{
+  "operator_a": {
+    "manifest": { "operator_id": "op_alpha_001", "environment": "sandbox" },
+    "capabilities": ["supports_wallets", "supports_transfers"]
+  },
+  "operator_b": {
+    "manifest": { "operator_id": "op_beta_002", "environment": "sandbox" },
+    "capabilities": ["supports_wallets", "supports_transfers", "supports_traces"]
+  }
+}
+```
+
+**Output:**
+
+| Campo | Descrição |
+|-------|-----------|
+| `compatibility_score` | 0–100: ≥80 = pronto, 50–79 = parcial, <50 = não pronto |
+| `federation_ready` | `true` apenas se score ≥ 80 e sem conflitos bloqueantes |
+| `shared_capabilities` | Capacidades declaradas por ambos |
+| `missing_in_a` / `missing_in_b` | Capacidades que cada operador precisa de adicionar |
+| `conflicts` | Incompatibilidades detectadas (ex: environment mismatch) |
+| `suggested_next_actions` | Lista de passos concretos para atingir federação |
+
+A chamada a `/federation/analyze` actualiza automaticamente a memória de ambos os operadores.
+
+---
+
+### Protocol Memory
+
+O Protocol Memory é um registo contínuo da jornada de cada operador no protocolo. É actualizado automaticamente pelas chamadas a `/copilot`, `/federation/analyze` e `/digital-twin`.
+
+![Protocol Memory — Operator Journey History: timeline, armazém de memória, trajectória de readiness](/images/architecture/protocol-memory.svg)
+
+**Estrutura de memória:**
+
+```typescript
+interface OperatorMemory {
+  operator_id: string;
+  assessments: AssessmentRecord[];   // snapshots de certification readiness
+  timeline: TimelineEvent[];         // eventos ordenados cronologicamente
+  research_history: ResearchRecord[];// queries feitas pelo operador
+  federation_analyses: string[];     // parceiros analisados
+  notes: string[];                   // notas manuais
+  current_level: number;             // nível actual inferido dos assessments
+  updated_at: string;
+}
+```
+
+**Endpoints:**
+
+| Método | Path | Descrição |
+|--------|------|-----------|
+| `GET` | `/memory` | Listar todos os operadores com memória |
+| `GET` | `/memory/:operatorId` | Obter memória completa do operador |
+| `POST` | `/memory/:operatorId` | Criar/actualizar memória manualmente |
+| `DELETE` | `/memory/:operatorId` | Apagar memória do operador |
+
+**Memória activa na resposta do copilot:**
+
+Quando o copilot detecta um operador com histórico, a resposta inclui contexto de sessões anteriores: "Da última vez faltavam `supports_traces` e `supports_webhooks`. Agora satisfeitos. 78% → 91%."
+
+A memória é actualmente em-memória (sem persistência). Persistência em base de dados está planeada (ver Roadmap).
+
+---
+
+### Operator Digital Twin
+
+O Digital Twin é a representação virtual completa de um operador no protocolo. Agrega todas as dimensões: manifesto, capacidades, certificação, conformidade, federação, memória histórica, invariantes relevantes, RFCs aplicáveis, recomendações e trajectória.
+
+![Operator Digital Twin — Protocol-Aware Virtual Representation: manifesto, capacidades, nível alvo, parceiros federação, buildDigitalTwin(), 6 painéis de dashboard](/images/architecture/operator-digital-twin.svg)
+
+**Endpoint:** `POST /digital-twin`
+
+O Digital Twin é construído por `buildDigitalTwin()` que:
+
+1. Corre `analyzeCertificationReadiness()` para o nível alvo
+2. Filtra `INVARIANTS` relevantes baseado nas capacidades declaradas
+3. Filtra `RFCS` relevantes baseado em capacidades e requisitos em falta
+4. Lê memória histórica via `getOrCreate()`
+5. Gera recomendações automáticas com base no estado actual
+6. Calcula `readiness_trajectory` a partir dos últimos 3 snapshots
+
+**Dashboard (6 painéis):**
+
+| Painel | Conteúdo |
+|--------|----------|
+| Overview | Operator ID, readiness score, trajectória (improving/stable/declining) |
+| Certificação | Progresso por nível L0–L4 com barra de progresso |
+| Invariantes | INV-LEDGER-001, INV-LEDGER-002, INV-TRACE-001 relevantes ao operador |
+| RFCs | RFC-0001, RFC-0002, RFC-0007, RFC-0008 aplicáveis |
+| Timeline | Histórico de eventos do operador (from memory) |
+| Recomendações | Passos concretos ordenados para o próximo nível |
+
+A chamada a `/digital-twin` regista automaticamente um snapshot de assessment na memória do operador.
+
+---
+
+### Protocol Operating System Vision
+
+O BanzamIA evoluiu de assistant de documentação para **Protocol Operating System** — a camada de inteligência que torna o protocolo Banza auto-gerível e auto-explicativo.
+
+![Protocol Operating System — BanzamIA Vision: 8 capabilities em órbita ao redor do hub central BanzamIA POS](/images/architecture/protocol-operating-system.svg)
+
+**As 6 capacidades do Protocol OS:**
+
+| Capacidade | Módulo | Descrição |
+|------------|--------|-----------|
+| **Compreender** | RAG + Knowledge Base + Protocol Graph | Recupera contexto protocolar relevante |
+| **Explicar** | Chat + Research Agent + Citations | Responde com evidências verificáveis |
+| **Validar** | Conformance + Manifest + Trace | Confirma conformidade com o protocolo |
+| **Simular** | Protocol Simulator + What-If | Projecta impacto de mudanças antes de implementar |
+| **Prever** | Memory + Trajectory + Analytics | Antecipa a trajectória do operador |
+| **Guiar** | Digital Twin + Recommendations | Orienta o operador com contexto personalizado |
+
+Duas capacidades adicionais emergem da interacção entre estas:
+
+| Capacidade | Módulo | Descrição |
+|------------|--------|-----------|
+| **Certificar** | Certification Copilot + L0–L4 Roadmap | Guia o operador por cada nível de certificação |
+| **Federar** | Federation Intelligence + Federation Graph | Analisa compatibilidade entre operadores |
+
+**Princípio fundador:** *Tools determine truth. AI explains truth.*
+
+O protocolo define as regras. As ferramentas verificam a conformidade. A IA explica o que as ferramentas encontraram — nunca o contrário.
+
+---
+
 ### Impacto no Ecossistema
 
 #### A Visão do Protocolo Autónomo

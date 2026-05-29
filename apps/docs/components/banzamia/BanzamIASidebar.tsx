@@ -139,6 +139,51 @@ const MODULES: Array<{ id: ModuleId; label: string; icon: React.ReactNode; liveO
       </>
     ),
   },
+  {
+    id: 'simulator',
+    label: 'Protocol Simulator',
+    icon: (
+      <>
+        <path d="M3 8h10M8 3v10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+        <circle cx="8" cy="8" r="6" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M11 5l-3 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      </>
+    ),
+  },
+  {
+    id: 'federation',
+    label: 'Federation Intel.',
+    icon: (
+      <>
+        <circle cx="4" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <circle cx="12" cy="8" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M6.5 8h3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+        <path d="M4 4V2M12 4V2M4 12v2M12 12v2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      </>
+    ),
+  },
+  {
+    id: 'memory',
+    label: 'Protocol Memory',
+    icon: (
+      <>
+        <path d="M3 4h10M3 8h10M3 12h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+        <circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M12 10.5V12l1 1" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      </>
+    ),
+  },
+  {
+    id: 'digital-twin',
+    label: 'Digital Twin',
+    icon: (
+      <>
+        <rect x="2" y="3" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <rect x="9" y="3" width="5" height="10" rx="1" stroke="currentColor" strokeWidth="1.5" fill="none"/>
+        <path d="M7 6h2M7 8h2M7 10h2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" fill="none"/>
+      </>
+    ),
+  },
 ]
 
 export function BanzamIASidebar({ active, onSelect, mode }: Props) {

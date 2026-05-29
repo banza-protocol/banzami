@@ -18,6 +18,10 @@ import { GraphExplorerModule } from './modules/GraphExplorerModule'
 import { ResearchModule } from './modules/ResearchModule'
 import { CertificationCopilotModule } from './modules/CertificationCopilotModule'
 import { QualityModule } from './modules/QualityModule'
+import { SimulatorModule } from './modules/SimulatorModule'
+import { FederationModule } from './modules/FederationModule'
+import { MemoryModule } from './modules/MemoryModule'
+import { DigitalTwinModule } from './modules/DigitalTwinModule'
 
 export type ModuleId =
   | 'chat'
@@ -33,6 +37,10 @@ export type ModuleId =
   | 'research'
   | 'certification-copilot'
   | 'quality'
+  | 'simulator'
+  | 'federation'
+  | 'memory'
+  | 'digital-twin'
 
 const MODULE_TITLES: Record<ModuleId, string> = {
   'chat':                  'Chat',
@@ -48,6 +56,10 @@ const MODULE_TITLES: Record<ModuleId, string> = {
   'research':              'Protocol Research',
   'certification-copilot': 'Certification Copilot',
   'quality':               'Quality Dashboard',
+  'simulator':             'Protocol Simulator',
+  'federation':            'Federation Intelligence',
+  'memory':                'Protocol Memory',
+  'digital-twin':          'Digital Twin',
 }
 
 export function BanzamIAApp() {
@@ -92,6 +104,10 @@ export function BanzamIAApp() {
       case 'research':              return <ResearchModule />
       case 'certification-copilot': return <CertificationCopilotModule />
       case 'quality':               return <QualityModule />
+      case 'simulator':             return <SimulatorModule />
+      case 'federation':            return <FederationModule />
+      case 'memory':                return <MemoryModule />
+      case 'digital-twin':          return <DigitalTwinModule />
     }
   }
 

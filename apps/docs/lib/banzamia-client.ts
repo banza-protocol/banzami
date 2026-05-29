@@ -444,6 +444,158 @@ export async function getRagStats(): Promise<RagStatsResponse> {
   catch { return _demoRagStats() }
 }
 
+// ─── Protocol Simulator ───────────────────────────────────────────────────────
+
+export interface SimulationChange {
+  type: 'add_capability' | 'remove_capability' | 'update_manifest'
+  capability?: string
+  manifest_patch?: Record<string, unknown>
+}
+
+export interface SimulatorResult {
+  before: CopilotResult
+  after: CopilotResult
+  readiness_delta: number
+  applied_changes: string[]
+  new_capabilities: string[]
+  removed_capabilities: string[]
+  certification_impact: {
+    level_unlocked: boolean
+    new_level: number
+    requirements_satisfied: string[]
+    requirements_still_missing: string[]
+  }
+  federation_impact: {
+    eligible_before: boolean
+    eligible_after: boolean
+    newly_eligible: boolean
+  }
+  estimated_effort: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'extensive'
+  summary: string
+}
+
+export async function runSimulation(input: {
+  manifest: Record<string, unknown>
+  capabilities: string[]
+  target_level: number
+  proposed_changes: SimulationChange[]
+}): Promise<SimulatorResult> {
+  if (!isLiveMode) return _demoSimulation(input)
+  try { return await post<SimulatorResult>('/simulate', input) }
+  catch { return _demoSimulation(input) }
+}
+
+// ─── Federation Intelligence ──────────────────────────────────────────────────
+
+export interface CompatibilityConflict {
+  field: string
+  operator_a_value: unknown
+  operator_b_value: unknown
+  description: string
+}
+
+export interface FederationResult {
+  operator_a_id: string
+  operator_b_id: string
+  compatibility_score: number
+  federation_ready: boolean
+  operator_a_level: number
+  operator_b_level: number
+  shared_capabilities: string[]
+  missing_in_a: string[]
+  missing_in_b: string[]
+  conflicts: CompatibilityConflict[]
+  blocking_issues: string[]
+  suggested_next_actions: string[]
+  analysis_notes: string[]
+  estimated_effort_a: string
+  estimated_effort_b: string
+}
+
+export async function analyzeFederation(input: {
+  operator_a: { operator_id: string; manifest: Record<string, unknown>; capabilities: string[] }
+  operator_b: { operator_id: string; manifest: Record<string, unknown>; capabilities: string[] }
+}): Promise<FederationResult> {
+  if (!isLiveMode) return _demoFederation(input)
+  try { return await post<FederationResult>('/federation/analyze', input) }
+  catch { return _demoFederation(input) }
+}
+
+// ─── Protocol Memory ──────────────────────────────────────────────────────────
+
+export interface TimelineEvent {
+  date: string
+  type: 'assessment' | 'certification' | 'federation' | 'conformance' | 'research' | 'manifest_change'
+  title: string
+  detail?: string
+  level?: number
+  score?: number
+}
+
+export interface OperatorMemory {
+  operator_id: string
+  created_at: string
+  updated_at: string
+  current_manifest: Record<string, unknown>
+  current_capabilities: string[]
+  current_level: number
+  assessments: Array<{
+    timestamp: string
+    target_level: number
+    readiness_score: number
+    current_level: number
+    missing_count: number
+    capabilities: string[]
+  }>
+  timeline: TimelineEvent[]
+  research_history: Array<{ question: string; timestamp: string }>
+  notes: string[]
+}
+
+export async function getOperatorMemory(operatorId: string): Promise<OperatorMemory | null> {
+  if (!isLiveMode) return _demoMemory(operatorId)
+  try { return await get<OperatorMemory>(`/memory/${encodeURIComponent(operatorId)}`) }
+  catch { return _demoMemory(operatorId) }
+}
+
+export async function saveOperatorMemory(
+  operatorId: string,
+  payload: { note?: string }
+): Promise<OperatorMemory> {
+  if (!isLiveMode) return _demoMemory(operatorId)!
+  try { return await post<OperatorMemory>(`/memory/${encodeURIComponent(operatorId)}`, payload) }
+  catch { return _demoMemory(operatorId)! }
+}
+
+// ─── Digital Twin ─────────────────────────────────────────────────────────────
+
+export interface DigitalTwinResult {
+  operator_id: string
+  snapshot_at: string
+  manifest: Record<string, unknown>
+  capabilities: string[]
+  certification: CopilotResult
+  federation_profiles: FederationResult[]
+  memory: OperatorMemory
+  relevant_invariants: Array<{ invariant_id: string; description: string; relevant: boolean; reason: string }>
+  relevant_rfcs: Array<{ rfc_id: string; title: string; relevance: string }>
+  recommendations: string[]
+  capability_gap_summary: string
+  readiness_trajectory: string
+}
+
+export async function buildDigitalTwin(input: {
+  operator_id: string
+  manifest: Record<string, unknown>
+  capabilities: string[]
+  target_level?: number
+  partner_manifests?: Array<{ operator_id: string; manifest: Record<string, unknown>; capabilities: string[] }>
+}): Promise<DigitalTwinResult> {
+  if (!isLiveMode) return _demoDigitalTwin(input)
+  try { return await post<DigitalTwinResult>('/digital-twin', input) }
+  catch { return _demoDigitalTwin(input) }
+}
+
 // ─── Demo mode ────────────────────────────────────────────────────────────────
 
 const DEMO_RESPONSES: Array<{ pattern: RegExp; model: string; taskType: string; text: string; citations: Citation[] }> = [
@@ -942,5 +1094,134 @@ function _demoRagStats(): RagStatsResponse {
     knowledge_base: { documents_indexed: 0, chunks_indexed: 0, last_indexed_at: null, embedding_provider: 'mock', embedding_dims: 1024 },
     query_analytics: null,
     protocol_graph: null,
+  }
+}
+
+function _demoCopilotBase(score: number, level: number, target: number): CopilotResult {
+  return {
+    current_level: level,
+    target_level: target,
+    readiness_score: score,
+    level_statuses: [
+      { level: 0, name: 'Reference-compatible', status: 'achieved', missing: [], achieved_count: 3, total_count: 3 },
+      { level: 1, name: 'Protocol-compatible', status: level >= 1 ? 'achieved' : 'partial', missing: [], achieved_count: level >= 1 ? 4 : 2, total_count: 4 },
+      { level: 2, name: 'Trace-compatible', status: level >= 2 ? 'achieved' : 'partial', missing: level < 2 ? [{ id: 'L2-001', description: 'Trace endpoint', rfc: 'RFC-0007' }] : [], achieved_count: level >= 2 ? 3 : 1, total_count: 3 },
+      { level: 3, name: 'Federation-ready', status: 'blocked', missing: [{ id: 'L3-001', description: 'Operator manifest', rfc: 'RFC-0006' }, { id: 'L3-002', description: 'Federation discovery', rfc: 'RFC-0008' }], achieved_count: 0, total_count: 3 },
+      { level: 4, name: 'Settlement-compatible', status: 'blocked', missing: [{ id: 'L4-001', description: 'Settlement batch lifecycle', rfc: 'RFC-0005' }], achieved_count: 0, total_count: 2 },
+    ],
+    missing_for_target: target <= level ? [] : [{ id: `L${target}-001`, description: `Requirement for Level ${target}`, rfc: `RFC-000${target}` }],
+    next_actions: ['Implement trace endpoint (RFC-0007)', 'Add webhook support', 'Publish operator manifest'],
+    roadmap: [{ from_level: level, to_level: level + 1, steps: ['Implement missing requirements', 'Run conformance suite'], estimated_effort: '2–4 weeks' }],
+    certification_ready: false,
+    blocking_issues: [],
+  }
+}
+
+function _demoSimulation(input: { capabilities: string[]; target_level: number; proposed_changes: SimulationChange[] }): SimulatorResult {
+  const addedCaps = input.proposed_changes.filter(c => c.type === 'add_capability').map(c => c.capability!).filter(Boolean)
+  const newScore = Math.min(100, 67 + addedCaps.length * 8)
+  const delta = newScore - 67
+  const before = _demoCopilotBase(67, 1, input.target_level)
+  const after = _demoCopilotBase(newScore, addedCaps.includes('supports_traces') ? 2 : 1, input.target_level)
+  return {
+    before, after,
+    readiness_delta: delta,
+    applied_changes: addedCaps.map(c => `+ Add capability: ${c}`),
+    new_capabilities: addedCaps,
+    removed_capabilities: [],
+    certification_impact: {
+      level_unlocked: addedCaps.includes('supports_traces'),
+      new_level: addedCaps.includes('supports_traces') ? 2 : 1,
+      requirements_satisfied: addedCaps.includes('supports_traces') ? ['L2-001', 'L2-002'] : [],
+      requirements_still_missing: ['L3-001', 'L3-002'],
+    },
+    federation_impact: { eligible_before: false, eligible_after: false, newly_eligible: false },
+    estimated_effort: delta === 0 ? 'none' : delta < 20 ? 'low' : 'medium',
+    summary: `Readiness improves ${delta} points (67% → ${newScore}%). ${addedCaps.includes('supports_traces') ? 'Level 2 certification becomes achievable.' : ''}`,
+  }
+}
+
+function _demoFederation(input: { operator_a: { operator_id: string }; operator_b: { operator_id: string } }): FederationResult {
+  return {
+    operator_a_id: input.operator_a.operator_id,
+    operator_b_id: input.operator_b.operator_id,
+    compatibility_score: 52,
+    federation_ready: false,
+    operator_a_level: 1,
+    operator_b_level: 2,
+    shared_capabilities: ['supports_wallets', 'supports_transfers', 'supports_qr'],
+    missing_in_a: ['supports_manifest', 'supports_federation', 'supports_cross_operator'],
+    missing_in_b: ['supports_federation', 'supports_cross_operator'],
+    conflicts: [],
+    blocking_issues: [
+      `${input.operator_a.operator_id} has not reached Level 3 (current: 1).`,
+      `${input.operator_b.operator_id} has not reached Level 3 (current: 2).`,
+    ],
+    suggested_next_actions: [
+      `[BLOCKER] ${input.operator_a.operator_id} must reach Level 3 first.`,
+      `[BLOCKER] ${input.operator_b.operator_id} must reach Level 3 first.`,
+      `${input.operator_a.operator_id}: add supports_manifest, supports_federation, supports_cross_operator.`,
+    ],
+    analysis_notes: ['Shared capabilities (3): supports_wallets, supports_transfers, supports_qr.', 'No protocol conflicts detected.'],
+    estimated_effort_a: '3–6 weeks',
+    estimated_effort_b: '1–2 weeks',
+  }
+}
+
+function _demoMemory(operatorId: string): OperatorMemory {
+  const now = new Date().toISOString()
+  return {
+    operator_id: operatorId,
+    created_at: '2026-01-15T10:00:00Z',
+    updated_at: now,
+    current_manifest: { operator_id: operatorId, environment: 'sandbox', protocol_version: '1.0.0' },
+    current_capabilities: ['supports_wallets', 'supports_transfers', 'supports_qr'],
+    current_level: 1,
+    assessments: [
+      { timestamp: '2026-01-15T10:00:00Z', target_level: 2, readiness_score: 45, current_level: 0, missing_count: 5, capabilities: ['supports_wallets'] },
+      { timestamp: '2026-03-01T14:30:00Z', target_level: 2, readiness_score: 67, current_level: 1, missing_count: 3, capabilities: ['supports_wallets', 'supports_transfers', 'supports_qr'] },
+      { timestamp: now, target_level: 2, readiness_score: 67, current_level: 1, missing_count: 3, capabilities: ['supports_wallets', 'supports_transfers', 'supports_qr'] },
+    ],
+    timeline: [
+      { date: '2026-01-15', type: 'assessment', title: 'Initial certification assessment (target L2)', detail: 'Readiness score: 45%', score: 45 },
+      { date: '2026-02-10', type: 'manifest_change', title: 'Manifest updated', detail: 'Added supports_transfers, supports_qr capabilities.' },
+      { date: '2026-03-01', type: 'certification', title: 'Reached Level 1', detail: 'Upgraded from Level 0 to Level 1.', level: 1, score: 67 },
+      { date: '2026-03-01', type: 'assessment', title: 'Certification assessment (target L2)', detail: 'Readiness score: 67% (+22 pts from last assessment)', score: 67 },
+    ],
+    research_history: [
+      { question: 'What do I need for Level 2?', timestamp: '2026-02-05T09:00:00Z' },
+      { question: 'How do trace IDs propagate?', timestamp: '2026-02-20T16:45:00Z' },
+    ],
+    notes: [],
+  }
+}
+
+function _demoDigitalTwin(input: { operator_id: string; capabilities: string[]; target_level?: number }): DigitalTwinResult {
+  const cert = _demoCopilotBase(67, 1, input.target_level ?? 4)
+  const mem = _demoMemory(input.operator_id)
+  return {
+    operator_id: input.operator_id,
+    snapshot_at: new Date().toISOString(),
+    manifest: { operator_id: input.operator_id, environment: 'sandbox', protocol_version: '1.0.0' },
+    capabilities: input.capabilities,
+    certification: cert,
+    federation_profiles: [],
+    memory: mem,
+    relevant_invariants: [
+      { invariant_id: 'INV-LEDGER-001', description: 'Conservation: sum of all balances is constant', relevant: true, reason: 'Operator handles transfers and wallets.' },
+      { invariant_id: 'INV-LEDGER-002', description: 'Double-entry: every transfer has 1 DEBIT + 1 CREDIT', relevant: true, reason: 'Operator handles transfers and wallets.' },
+    ],
+    relevant_rfcs: [
+      { rfc_id: 'RFC-0001', title: 'Wallet Model', relevance: 'wallet' },
+      { rfc_id: 'RFC-0002', title: 'Transfer Model', relevance: 'transfer' },
+      { rfc_id: 'RFC-0007', title: 'Trace Model', relevance: 'trace' },
+    ],
+    recommendations: [
+      'Implement trace endpoint (RFC-0007) to satisfy L2-001.',
+      'Add webhook support (supports_webhooks) — required for Level 2.',
+      'Run conformance suite to verify Level 1 requirements.',
+    ],
+    capability_gap_summary: '3 requirement(s) remain before reaching Level 4: L2-001, L3-001, L3-002…',
+    readiness_trajectory: 'Improving',
   }
 }
