@@ -105,7 +105,7 @@ function InlineMarkdown({ text }: { text: string }) {
 
 export function QuickAnswerCard({ text, streaming, citations, mode, question }: Props) {
   const badge = MODE_BADGE[mode] ?? { label: 'Live API', cls: 'bg-bz-primary-light text-bz-primary border-bz-primary/20' }
-  const deepLink = `/banzamia?question=${encodeURIComponent(question)}&auto=1`
+  const deepLink = `/banzai?question=${encodeURIComponent(question)}&auto=1`
 
   return (
     <div className="mt-5 rounded-2xl border border-bz-primary/20 bg-white shadow-card-md overflow-hidden">

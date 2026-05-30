@@ -100,7 +100,7 @@ export function QualityModule() {
                 <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
                   <p className="text-xs text-amber-700">
                     Knowledge base is empty. Run <code className="font-mono bg-amber-100 px-1 rounded">npm run index</code> in{' '}
-                    <code className="font-mono bg-amber-100 px-1 rounded">apps/banzamia</code> to ingest protocol documents.
+                    <code className="font-mono bg-amber-100 px-1 rounded">apps/banzai</code> to ingest protocol documents.
                   </p>
                 </div>
               )}
@@ -251,7 +251,7 @@ export function QualityModule() {
                     run the evaluation suite:
                   </p>
                   <div className="mt-2 rounded-lg bg-bia-surface-2 border border-bia-border px-3 py-2 font-mono text-xs text-bia-text">
-                    cd apps/banzamia && npm run rag:eval
+                    cd apps/banzai && npm run rag:eval
                   </div>
                   <p className="mt-2 text-[10px] text-bia-muted-2">
                     Results are written to <code className="font-mono">apps/banzai/reports/</code>. The suite evaluates against the embedded benchmark corpus and reports MRR, Precision@K, Recall@K, and citation authority distribution.

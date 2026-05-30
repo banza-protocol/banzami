@@ -125,7 +125,7 @@ export function HomeBanzAIEntry() {
             <span className="text-[11px]">
               {!isLiveMode && <span className="text-amber-600 font-medium">◯ Demo Mode</span>}
             </span>
-            <Link href="/banzamia" className="text-[11px] font-semibold text-bz-muted hover:text-bz-primary transition-colors">
+            <Link href="/banzai" className="text-[11px] font-semibold text-bz-muted hover:text-bz-primary transition-colors">
               Abrir BanzAI completo →
             </Link>
           </div>
@@ -162,7 +162,7 @@ export function HomeBanzAIEntry() {
             <div className="mt-5 rounded-xl border border-bz-border bg-bz-surface px-5 py-4">
               <p className="text-sm text-bz-muted">
                 Não consegui contactar a API agora.{' '}
-                <Link href="/banzamia" className="font-semibold text-bz-primary hover:underline">
+                <Link href="/banzai" className="font-semibold text-bz-primary hover:underline">
                   Pode abrir o BanzAI completo
                 </Link>{' '}
                 ou tentar novamente.

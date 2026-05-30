@@ -45,7 +45,7 @@ export default function SobreBanzAIPage() {
             <p className="mt-0.5 text-xs text-bz-muted">Chat ao vivo com o BanzAI</p>
           </div>
           <Link
-            href="/banzamia"
+            href="/banzai"
             className="shrink-0 rounded-xl bg-bz-primary px-4 py-2 text-sm font-semibold text-white transition-opacity hover:opacity-90"
           >
             Abrir BanzAI →
@@ -99,7 +99,7 @@ export default function SobreBanzAIPage() {
               Ver referência completa
             </Link>
             <span className="text-bz-muted">·</span>
-            <Link href="/banzamia" className="text-xs font-semibold text-bz-primary hover:underline">
+            <Link href="/banzai" className="text-xs font-semibold text-bz-primary hover:underline">
               Abrir BanzAI
             </Link>
           </div>

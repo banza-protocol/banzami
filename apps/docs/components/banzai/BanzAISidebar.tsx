@@ -239,7 +239,7 @@ export function BanzAISidebar({ active, onSelect, mode }: Props) {
       {/* Footer */}
       <div className="border-t border-bia-border p-3 space-y-2">
         <Link
-          href="/sobre-banzamia"
+          href="/sobre-o-banzai"
           className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs text-bia-muted hover:bg-white hover:text-bia-text transition-colors"
         >
           <svg className="h-3.5 w-3.5 shrink-0" viewBox="0 0 16 16" fill="none">

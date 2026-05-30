@@ -68,7 +68,7 @@ export function SectionNav({ sections }: Props) {
       </div>
 
       {navLink('/', 'Início')}
-      {navLink('/sobre-banzamia', 'BanzAI')}
+      {navLink('/sobre-o-banzai', 'BanzAI')}
       {navLink('/reference', 'Referência completa')}
 
       <div className="my-3 border-t border-bz-border" />
@@ -78,7 +78,7 @@ export function SectionNav({ sections }: Props) {
       </div>
 
       {sections.map((section) => {
-        const href = section.slug === 'banzai' ? '/sobre-banzamia' : `/${section.slug}`
+        const href = section.slug === 'banzai' ? '/sobre-o-banzai' : `/${section.slug}`
         // On /reference: highlight based on scroll position
         // On individual section pages: highlight based on pathname
         const active =

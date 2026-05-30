@@ -100,7 +100,7 @@ export default function RoadmapPage() {
         <div className="flex items-center gap-2 text-xs text-bz-muted mb-3">
           <Link href="/" className="hover:text-bz-primary">Banza</Link>
           <span>/</span>
-          <Link href="/banzamia" className="hover:text-bz-primary">BanzAI</Link>
+          <Link href="/banzai" className="hover:text-bz-primary">BanzAI</Link>
           <span>/</span>
           <span>Roadmap</span>
         </div>
@@ -151,7 +151,7 @@ export default function RoadmapPage() {
           Aceda ao BanzAI e explore o protocolo.
         </p>
         <Link
-          href="/banzamia"
+          href="/banzai"
           className="inline-flex items-center gap-2 rounded-lg bg-bz-primary px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 transition-opacity"
         >
           <svg className="h-4 w-4" viewBox="0 0 16 16" fill="none">

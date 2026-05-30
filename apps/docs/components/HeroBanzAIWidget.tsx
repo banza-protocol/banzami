@@ -21,7 +21,7 @@ export function HeroBanzAIWidget() {
   const submit = (question: string) => {
     const q = question.trim()
     if (!q) return
-    router.push(`/banzamia?question=${encodeURIComponent(q)}&auto=1`)
+    router.push(`/banzai?question=${encodeURIComponent(q)}&auto=1`)
   }
 
   return (

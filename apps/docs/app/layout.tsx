@@ -85,7 +85,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 { href: '/seguranca-e-integridade-financeira', label: 'Segurança',     ai: false },
                 { href: '/operators',                          label: 'Operadores',    ai: false },
                 { href: '/validacao',                          label: 'Validação',     ai: false },
-                { href: '/banzamia',                           label: 'BanzAI',        ai: true  },
+                { href: '/banzai',                           label: 'BanzAI',        ai: true  },
               ].map(({ href, label, ai }) => (
                 <Link
                   key={href}
@@ -155,7 +155,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
                 <Link href="/operators" className="hover:text-bz-primary">Operadores</Link>
                 <Link href="/validacao" className="hover:text-bz-primary">Validação</Link>
-                <Link href="/banzamia" className="hover:text-bz-gold text-bz-gold/70">BanzAI</Link>
+                <Link href="/banzai" className="hover:text-bz-gold text-bz-gold/70">BanzAI</Link>
               </div>
             </div>
 

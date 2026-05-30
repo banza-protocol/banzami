@@ -19,8 +19,8 @@ interface Props {
 export const dynamicParams = false
 
 // Statically generate all section routes from BANZA_REFERENCE.md.
-// 'banzamia' is excluded — that path is handled by app/banzai/page.tsx (live AI interface).
-const STATIC_ROUTE_OVERRIDES = new Set(['banzamia'])
+// 'banzai' slug is excluded — handled by app/banzai/page.tsx (live BanzAI interface).
+const STATIC_ROUTE_OVERRIDES = new Set(['banzai'])
 
 export async function generateStaticParams() {
   return getAllSectionSlugs()
