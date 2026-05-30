@@ -1,4 +1,4 @@
-module github.com/banzami/banzami/services/admin-api
+module github.com/banza-protocol/banzami/services/admin-api
 
 go 1.25.0
 

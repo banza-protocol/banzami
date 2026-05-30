@@ -13,7 +13,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/webhook"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/webhook"
 )
 
 // backoffSchedule defines how long to wait before each retry attempt.

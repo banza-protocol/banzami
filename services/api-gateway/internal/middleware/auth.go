@@ -10,8 +10,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
-	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
 )
 
 // Principal represents an authenticated caller extracted from a verified JWT.

@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/service"
 )
 
 // PayoutHandler manages the admin-side payout lifecycle.

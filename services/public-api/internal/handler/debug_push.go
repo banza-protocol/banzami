@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/middleware"
-	"github.com/banzami/banzami/services/public-api/internal/notify"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/public-api/internal/notify"
 )
 
 // DebugPushHandler provides a manual push-notification test endpoint.

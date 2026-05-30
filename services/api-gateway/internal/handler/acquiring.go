@@ -11,9 +11,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
-	"github.com/banzami/banzami/services/api-gateway/internal/notify"
-	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/notify"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
 )
 
 type AcquiringHandler struct {

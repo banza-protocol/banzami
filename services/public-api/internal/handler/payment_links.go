@@ -10,10 +10,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/middleware"
-	"github.com/banzami/banzami/services/public-api/internal/notify"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/public-api/internal/notify"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 // paymentLinkView is the public response shape — PaymentLink fields plus

@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 // ConsumerHandler exposes public consumer lookups and handle search.

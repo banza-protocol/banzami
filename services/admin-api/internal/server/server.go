@@ -11,11 +11,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	"github.com/banzami/banzami/services/admin-api/internal/config"
-	"github.com/banzami/banzami/services/admin-api/internal/email"
-	"github.com/banzami/banzami/services/admin-api/internal/handler"
-	"github.com/banzami/banzami/services/admin-api/internal/middleware"
-	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/config"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/email"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/handler"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/service"
 )
 
 type Server struct {

@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
-	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
-	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/middleware"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
 )
 
 // SandboxHandler provides developer utilities for integration testing.

@@ -9,8 +9,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/config"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/config"
 )
 
 // Consumer represents an authenticated consumer extracted from a verified JWT.

@@ -8,10 +8,10 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/config"
-	"github.com/banzami/banzami/services/public-api/internal/middleware"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/config"
+	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 const consumerTokenTTL = 24 * time.Hour

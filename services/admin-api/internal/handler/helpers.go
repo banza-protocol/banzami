@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/banzami/banzami/services/admin-api/internal/service"
+	"github.com/banza-protocol/banzami/services/admin-api/internal/service"
 )
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

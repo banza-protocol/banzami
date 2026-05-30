@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
-	"github.com/banzami/banzami/services/api-gateway/internal/config"
-	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
-	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/middleware"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
 )
 
 const tokenTTL = 24 * time.Hour

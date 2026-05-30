@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 // OnboardingHandler implements the consumer wallet onboarding flow:

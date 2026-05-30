@@ -11,11 +11,11 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	"github.com/banzami/banzami/services/public-api/internal/config"
-	"github.com/banzami/banzami/services/public-api/internal/handler"
-	"github.com/banzami/banzami/services/public-api/internal/middleware"
-	"github.com/banzami/banzami/services/public-api/internal/notify"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/config"
+	"github.com/banza-protocol/banzami/services/public-api/internal/handler"
+	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/public-api/internal/notify"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 // transferRateLimit: 20 transfers per minute per consumer.

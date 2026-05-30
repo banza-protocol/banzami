@@ -11,10 +11,10 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 
-	"github.com/banzami/banzami/services/public-api/internal/apierror"
-	"github.com/banzami/banzami/services/public-api/internal/middleware"
-	"github.com/banzami/banzami/services/public-api/internal/notify"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/apierror"
+	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banza-protocol/banzami/services/public-api/internal/notify"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 // consumerPayLinkExecutor is satisfied by *service.CorePublicClient and by test fakes.

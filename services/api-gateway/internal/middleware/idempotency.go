@@ -11,7 +11,7 @@ import (
 
 	"github.com/redis/go-redis/v9"
 
-	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
 )
 
 const (

@@ -12,11 +12,11 @@ import (
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/banzami/banzami/services/public-api/internal/config"
-	"github.com/banzami/banzami/services/public-api/internal/notify"
-	"github.com/banzami/banzami/services/public-api/internal/observability"
-	"github.com/banzami/banzami/services/public-api/internal/server"
-	"github.com/banzami/banzami/services/public-api/internal/service"
+	"github.com/banza-protocol/banzami/services/public-api/internal/config"
+	"github.com/banza-protocol/banzami/services/public-api/internal/notify"
+	"github.com/banza-protocol/banzami/services/public-api/internal/observability"
+	"github.com/banza-protocol/banzami/services/public-api/internal/server"
+	"github.com/banza-protocol/banzami/services/public-api/internal/service"
 )
 
 func main() {
