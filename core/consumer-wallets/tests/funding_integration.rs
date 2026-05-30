@@ -131,7 +131,7 @@ fn funding_req(
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn happy_path_full_funding_flow(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
-    let (engine, _transit) = make_engine(pool.clone()).await;
+    let (engine, transit) = make_engine(pool.clone()).await;
     let (wallet_id, consumer_id, avail_id) = make_wallet(&pool, &ledger).await;
 
     // Step 1: create session
@@ -308,7 +308,7 @@ async fn inv_wal_004_3_duplicate_callback_rejected(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn delayed_callback_settles_eventually(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
-    let (engine, _transit) = make_engine(pool.clone()).await;
+    let (engine, transit) = make_engine(pool.clone()).await;
     let (wallet_id, consumer_id, avail_id) = make_wallet(&pool, &ledger).await;
 
     let session = engine
@@ -368,7 +368,7 @@ async fn delayed_callback_settles_eventually(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn inv_wal_004_4_reversal_preserves_audit_trail(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
-    let (engine, _transit) = make_engine(pool.clone()).await;
+    let (engine, transit) = make_engine(pool.clone()).await;
     let (wallet_id, consumer_id, avail_id) = make_wallet(&pool, &ledger).await;
 
     // Settle a session.
@@ -510,7 +510,7 @@ async fn inv_wal_004_5_expired_session_cannot_be_settled(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn reconcile_is_idempotent(pool: PgPool) {
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
-    let (engine, _transit) = make_engine(pool.clone()).await;
+    let (engine, transit) = make_engine(pool.clone()).await;
     let (wallet_id, consumer_id, avail_id) = make_wallet(&pool, &ledger).await;
 
     let session = engine

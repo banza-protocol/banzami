@@ -51,7 +51,7 @@ pub struct StaticRoutingEngine {
 
 impl StaticRoutingEngine {
     pub fn new(mut rules: Vec<RoutingRule>) -> Self {
-        rules.sort_by(|a, b| b.priority.cmp(&a.priority));
+        rules.sort_by_key(|r| std::cmp::Reverse(r.priority));
         Self { rules }
     }
 
