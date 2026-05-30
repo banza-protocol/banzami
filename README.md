@@ -10,7 +10,7 @@
 
 **Banzami is the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one operator — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
 
-The open-source ecosystem (SDKs, contracts, protocol specs, integrations) lives at [github.com/banzami/banzami](https://github.com/banzami/banzami).
+The open BANZA protocol (kernel, SDKs, contracts, protocol specs) lives at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
 
 ---
 
@@ -38,7 +38,7 @@ Banzami is an API-first infrastructure layer. External integrations use official
 
 ## Engineering Philosophy
 
-Banza is built with:
+Banzami is built with:
 
 * fintech-grade agility,
 * banking-grade reliability,
@@ -66,7 +66,7 @@ See [CLAUDE.md](CLAUDE.md) for the full Engineering Constitution.
 
 ## Architectural Principles
 
-Banza follows a modular monolith architecture with strong internal domain boundaries.
+Banzami follows a modular monolith architecture with strong internal domain boundaries.
 
 * Rust powers the financial core:
   ledger, wallets, settlements, reconciliation, payouts, and financial invariants.
@@ -94,7 +94,7 @@ A cantina owner prints a QR. A customer scans it. Payment is instant. No confirm
 
 **2. First Angola-native SDK payment infrastructure**
 
-Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates Banza in hours and accepts instant Kwanza payments natively.
+Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates the BANZA SDK via Banzami in hours and accepts instant Kwanza payments natively.
 
 ---
 
@@ -111,7 +111,7 @@ Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, d
 
 ## Product Vision
 
-Banza is building the digital payment layer for Angola.
+Banzami is building the digital payment layer for Angola.
 
 The vision: `SCAN → CONFIRM → PAID INSTANTLY` — eliminating cash dependency, manual transfer confirmations, and WhatsApp proof-of-payment flows from Angolan commerce.
 
@@ -580,7 +580,7 @@ Kubernetes is intentionally deferred. The modular monolith approach provides sim
 
 ## Design System
 
-Banza maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
+Banzami maintains a unified design system shared across all web and mobile surfaces. The single source of truth for design tokens is:
 
 - **Web / TypeScript:** [`sdk/typescript/src/theme/index.ts`](sdk/typescript/src/theme/index.ts)
 - **Mobile / Flutter:** [`sdk/flutter/lib/theme/banza_theme.dart`](sdk/flutter/lib/theme/banza_theme.dart)
@@ -626,7 +626,7 @@ See [`docs/brand/audit-2026-05-15.md`](docs/brand/audit-2026-05-15.md) for the f
 
 ## Integration Ecosystem
 
-> The integration layer is not built on top of Banza — it **is** Banza from the merchant's and developer's perspective.
+> The integration layer is not built on top of Banzami — it **is** Banzami from the merchant's and developer's perspective.
 
 Every SDK, plugin, and checkout interface is production infrastructure, held to the same engineering standards as the Rust ledger. See [ADR-011](docs/adr/ADR-011-integration-ecosystem-strategy.md) and the [Integration Ecosystem Strategy](docs/architecture/integration-ecosystem.md) for the full rationale.
 
@@ -696,7 +696,7 @@ QR is the primary payment modality for Angola's market — it works offline, req
 
 ### SDK-First Ecosystem Policy
 
-**Banza is an SDK-first platform.** All external integrations MUST use official Banza SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
+**Banzami is an SDK-first operator.** All external integrations MUST use official BANZA SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
 
 The SDKs are not optional helper libraries. They are security boundaries, DX infrastructure, and payment orchestration layers. Without SDK standardization, integrations become inconsistent, security mistakes multiply, and ecosystem maintenance becomes impossible at scale.
 
@@ -704,7 +704,7 @@ The SDKs are not optional helper libraries. They are security boundaries, DX inf
 
 ### Official Example Integrations
 
-Reference implementations that demonstrate correct, production-grade Banza merchant integration. These serve as canonical guides for specific integration patterns.
+Reference implementations that demonstrate correct, production-grade Banzami merchant integration. These serve as canonical guides for specific integration patterns.
 
 | Integration | Platform | Patterns Demonstrated |
 |-------------|----------|----------------------|
@@ -712,7 +712,7 @@ Reference implementations that demonstrate correct, production-grade Banza merch
 
 **Doa** (`doadoa.app`) is the canonical reference for:
 - Merchant-presented QR payment flows
-- Banza webhook integration with HMAC-SHA256 signature verification
+- BANZA webhook integration with HMAC-SHA256 signature verification
 - Sandbox mode detection and developer UX (`bz_test_` prefix → SANDBOX badge)
 - Three-layer idempotency (initiation → confirmation → receipt)
 - Next.js `server-only` credential isolation
@@ -832,7 +832,7 @@ A settlement batch covers a merchant's wallet for a given period: `gross_amount 
 ---
 
 #### `banzami-payouts`
-Merchant payout orchestration — the flow of funds from Banza to merchant bank accounts.
+Merchant payout orchestration — the flow of funds from Banzami to merchant bank accounts.
 
 ```
 Payout state machine:
@@ -1256,7 +1256,7 @@ The same operations are available at `/internal/v1/*` on port 8081. These are th
 
 ## Sandbox
 
-Banza operates two fully isolated environments. Sandbox is a complete replica of the production stack — same API surface, same state machines, same webhook retry logic — but no real money ever moves.
+Banzami operates two fully isolated environments. Sandbox is a complete replica of the production stack — same API surface, same state machines, same webhook retry logic — but no real money ever moves.
 
 ### Environment isolation
 
