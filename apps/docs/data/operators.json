@@ -8,7 +8,7 @@
     "jurisdiction": "Global",
     "public_endpoint": "http://localhost:3000",
     "manifest_url": "http://localhost:3000/.well-known/banzami/operator.json",
-    "website": "https://github.com/banzami/banzami",
+    "website": "https://github.com/banza-protocol/banzami",
     "security_contact": "security@banzami.com",
     "protocol_version": "1.0",
     "manifest_version": "1.0",

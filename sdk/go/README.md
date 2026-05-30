@@ -7,7 +7,7 @@ Official Go SDK for the Banza payment platform.
 ## Installation
 
 ```bash
-go get github.com/banzami/banzami-go
+go get github.com/banza-protocol/banzami-go
 ```
 
 ## Quick start
@@ -20,7 +20,7 @@ import (
     "fmt"
     "log"
 
-    "github.com/banzami/banzami-go/banzami"
+    "github.com/banza-protocol/banzami-go/banzami"
 )
 
 func main() {

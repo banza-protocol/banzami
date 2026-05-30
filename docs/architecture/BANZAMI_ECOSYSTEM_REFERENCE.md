@@ -236,7 +236,7 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 
 ## 5. Public vs Private Components
 
-### Private (this repository — `github.com/banzami/banza`)
+### Private (this repository — `github.com/banza-protocol/banzami`)
 
 | Component | Description |
 |-----------|-------------|
@@ -249,7 +249,7 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 | `infra/` | Infrastructure as code |
 | `tools/` | Operational tooling |
 
-### Public (open-source — `github.com/banzami/banzami`)
+### Public (open-source — `github.com/banza-protocol/banzamimi`)
 
 | Component | Description |
 |-----------|-------------|

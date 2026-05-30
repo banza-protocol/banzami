@@ -39,8 +39,8 @@ dev = [
 
 [project.urls]
 Homepage    = "https://banzami.org"
-Repository  = "https://github.com/banzami/sdk-python"
-"Bug Tracker" = "https://github.com/banzami/sdk-python/issues"
+Repository  = "https://github.com/banza-protocol/sdk-python"
+"Bug Tracker" = "https://github.com/banza-protocol/sdk-python/issues"
 
 [tool.hatch.build.targets.wheel]
 packages = ["banza"]

@@ -18,7 +18,7 @@ dependencies:
   banzami_sdk:
     path: ../  # local path during development
     # git:
-    #   url: https://github.com/banzami/flutter-sdk.git
+    #   url: https://github.com/banza-protocol/flutter-sdk.git
     #   ref: v0.1.0
 ```
 
