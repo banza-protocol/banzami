@@ -59,7 +59,7 @@ impl PaymentLinkRepository for MemRepo {
             .filter(|l| l.merchant_id == merchant_id)
             .cloned()
             .collect();
-        links.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+        links.sort_by_key(|l| std::cmp::Reverse(l.created_at));
         links.truncate(limit as usize);
         Ok(links)
     }
