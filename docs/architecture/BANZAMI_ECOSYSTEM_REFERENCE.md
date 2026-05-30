@@ -509,7 +509,7 @@ Requirements for federation:
 
 ### 11.1 What BanzAI Is
 
-BanzAI is the AI-native interface for building, validating, and certifying Banza operators. It is deployed at `banzami.org/banzamia`.
+BanzAI is the AI-native interface for building, validating, and certifying Banza operators. It is deployed at `banzami.org/banzai`.
 
 > Tools determine truth. AI explains truth.
 

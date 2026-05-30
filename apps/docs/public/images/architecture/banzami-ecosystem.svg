@@ -149,7 +149,7 @@
   <!-- Primary title -->
   <text x="480" y="489" text-anchor="middle" fill="white" font-size="11" font-weight="700" letter-spacing="1">BANZAI — Protocol Operating System · "Tools determine truth. AI explains truth."</text>
   <!-- Role subtitle -->
-  <text x="480" y="508" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9" letter-spacing="0.5">Public Product · Developer Portal · Operator Platform · banzami.org/banzamia</text>
+  <text x="480" y="508" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9" letter-spacing="0.5">Public Product · Developer Portal · Operator Platform · banzami.org/banzai</text>
 
   <!-- BanzAI modules (y=520, 6px below header bottom at 514) -->
   <rect x="56"  y="520" width="96"  height="60" rx="8" fill="white" stroke="#FED7AA" stroke-width="1"/>
