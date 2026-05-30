@@ -2,7 +2,7 @@
 # deploy.sh runs:
 #   docker build -f /srv/banzami/src/apps/docs/Dockerfile /srv/banzami/src/
 #
-# This gives the build access to both apps/docs/ and docs/BANZAMI_REFERENCE.md
+# This gives the build access to both apps/docs/ and docs/BANZA_REFERENCE.md
 # which is read at build time by lib/reference.ts (ADR-015 — source of truth).
 # All 20 section pages are statically generated at build time; the runtime
 # container does NOT need the markdown file.
@@ -19,7 +19,7 @@ COPY apps/docs/ ./
 
 # Place content docs where lib/ expects them (ADR-015):
 # process.cwd() = /app → ../../docs resolves to /docs/
-COPY docs/BANZAMI_REFERENCE.md /docs/BANZAMI_REFERENCE.md
+COPY docs/BANZA_REFERENCE.md /docs/BANZA_REFERENCE.md
 COPY docs/validation/ /docs/validation/
 
 ENV NEXT_TELEMETRY_DISABLED=1
