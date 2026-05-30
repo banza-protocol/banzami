@@ -17,8 +17,8 @@ export default async function HandlePayPage({ params, searchParams }: Props) {
     : `banzami:@${handle}`;
 
   const shareUrl = validAmount
-    ? `https://pay.banzami.org/u/${handle}?amount=${validAmount}`
-    : `https://pay.banzami.org/u/${handle}`;
+    ? `https://pay.banzami.com/u/${handle}?amount=${validAmount}`
+    : `https://pay.banzami.com/u/${handle}`;
 
   const qrDataUrl = await QRCode.toDataURL(qrPayload, {
     width:                220,

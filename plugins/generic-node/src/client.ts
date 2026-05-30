@@ -120,7 +120,7 @@ export interface Merchant {
  * import { BanzaClient } from '@banzami/node';
  *
  * const client = new BanzaClient({
- *   gatewayUrl: 'https://api.banzami.org',
+ *   gatewayUrl: 'https://api.banzami.com',
  *   apiKey:     'bz_live_...',
  * });
  *
@@ -130,7 +130,7 @@ export interface Merchant {
  *   amount_minor: 50000,
  *   currency:     'AOA',
  * });
- * // Redirect customer to: https://pay.banzami.org/${link.slug}
+ * // Redirect customer to: https://pay.banzami.com/${link.slug}
  * ```
  */
 export class BanzaClient {

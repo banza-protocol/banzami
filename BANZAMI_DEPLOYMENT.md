@@ -36,7 +36,7 @@ All deployments go through `./deploy.sh` at the repository root.
 | `admin-frontend` | Next.js admin portal |
 | `pay-frontend` | Next.js consumer pay page |
 | `checkout-frontend` | Next.js hosted checkout |
-| `docs-frontend` | Next.js public docs site (banzami.org) |
+| `docs-frontend` | Next.js public docs site (banzami.com) |
 | `banzai-api` | Node.js BanzAI Protocol OS API |
 | `staging` | Full staging environment |
 

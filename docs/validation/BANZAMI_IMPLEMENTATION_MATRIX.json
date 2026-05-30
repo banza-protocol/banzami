@@ -147,7 +147,7 @@
         "unit_tests"
       ],
       "acceptanceCriteria": [
-        "Site acessível e funcional em produção (banzami.org)",
+        "Site acessível e funcional em produção (banzami.com)",
         "Conteúdo renderizado exclusivamente a partir de BANZA_REFERENCE.md",
         "Navegação por secções operacional (20 rotas + sidebar)",
         "Design responsivo em mobile e desktop",
@@ -427,7 +427,7 @@
       ],
       "acceptanceCriteria": [
         "Matriz JSON parseável e válida sem erros de schema",
-        "Página /validacao acessível em produção (banzami.org/validacao)",
+        "Página /validacao acessível em produção (banzami.com/validacao)",
         "Todas as categorias do ecossistema representadas na matriz",
         "Filtros por status, prioridade, categoria e domínio operacionais",
         "Pesquisa por palavra-chave em tempo real funcional",
@@ -1913,7 +1913,7 @@
       "categoryId": "cat-qr",
       "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§9.3, §11.6",
-      "description": "Página pública por comerciante em pay.banzami.org/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
+      "description": "Página pública por comerciante em pay.banzami.com/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
       "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
       "status": "PLANNED",
       "priority": "HIGH",
@@ -1924,7 +1924,7 @@
         "integration_tests"
       ],
       "acceptanceCriteria": [
-        "Página acessível em pay.banzami.org/profiles/@banza",
+        "Página acessível em pay.banzami.com/profiles/@banza",
         "QR estático exibido correctamente",
         "Informações do comerciante correctas",
         "Botão 'Pagar agora' funcional",
@@ -2484,7 +2484,7 @@
       ],
       "acceptanceCriteria": [
         "Link criado via SDK com montante, descrição e expiração",
-        "URL partilhável gerada (pay.banzami.org/{slug})",
+        "URL partilhável gerada (pay.banzami.com/{slug})",
         "Link expira conforme configurado",
         "Link marcado como pago após liquidação",
         "Webhook disparado após pagamento"
@@ -2520,7 +2520,7 @@
     },
     {
       "id": "PL-002",
-      "title": "Página pública de pagamento (pay.banzami.org)",
+      "title": "Página pública de pagamento (pay.banzami.com)",
       "categoryId": "cat-paylinks",
       "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.5",

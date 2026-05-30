@@ -1,6 +1,6 @@
 # Banza Python SDK
 
-Official async Python SDK for the [Banza](https://banzami.org) payments platform — Angola's modern payment infrastructure.
+Official async Python SDK for the [Banza](https://banzami.com) payments platform — Angola's modern payment infrastructure.
 
 ## Requirements
 
@@ -196,7 +196,7 @@ dispute = await client.disputes.open(
 # Merchant submits evidence
 dispute = await client.disputes.add_evidence(
     dispute.id,
-    evidence="https://storage.banzami.org/receipts/rec_001.pdf",
+    evidence="https://storage.banzami.com/receipts/rec_001.pdf",
 )
 
 # List open disputes

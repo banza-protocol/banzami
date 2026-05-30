@@ -7,9 +7,9 @@ Banza operates two completely isolated environments:
 | | **Sandbox** | **Live** |
 |---|---|---|
 | API key prefix | `bz_test_…` | `bz_live_…` |
-| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
-| Dashboard | `https://sandbox-dashboard.banzami.org` | `https://dashboard.banzami.org` |
-| Checkout | `https://sandbox-checkout.banzami.org` | `https://checkout.banzami.org` |
+| Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
+| Dashboard | `https://sandbox-dashboard.banzami.com` | `https://dashboard.banzami.com` |
+| Checkout | `https://sandbox-checkout.banzami.com` | `https://checkout.banzami.com` |
 | Money | Virtual — no real funds | Real Angolan Kwanza |
 | Database | Completely separate | Completely separate |
 | Redis | Completely separate | Completely separate |
@@ -187,7 +187,7 @@ Returns `403 SANDBOX_ONLY` if the public-api instance is not running with `ENVIR
 
 ```dart
 final client = ConsumerPublicClient(
-  baseUrl:     'https://sandbox-api.banzami.org',
+  baseUrl:     'https://sandbox-api.banzami.com',
   environment: BanzamiEnvironment.sandbox,
 );
 
@@ -395,13 +395,13 @@ All mutating endpoints accept an `Idempotency-Key` header. Submitting the same k
 
 ```bash
 # First call — creates transaction
-curl -X POST https://sandbox-api.banzami.org/v1/transactions \
+curl -X POST https://sandbox-api.banzami.com/v1/transactions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Idempotency-Key: my-unique-key-001" \
   -d '{"amount_minor": 5000, "currency": "AOA", "idempotency_key": "my-unique-key-001"}'
 
 # Second call — returns the same response (idempotent)
-curl -X POST https://sandbox-api.banzami.org/v1/transactions \
+curl -X POST https://sandbox-api.banzami.com/v1/transactions \
   -H "Authorization: Bearer $TOKEN" \
   -H "Idempotency-Key: my-unique-key-001" \
   -d '{"amount_minor": 5000, "currency": "AOA", "idempotency_key": "my-unique-key-001"}'

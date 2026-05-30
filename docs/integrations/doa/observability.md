@@ -158,11 +158,11 @@ Check Banza's delivery history for a specific event:
 
 ```bash
 # List recent webhook events for the merchant
-curl "https://api.banzami.org/v1/webhooks/events?merchant_id=mer_01jqx..." \
+curl "https://api.banzami.com/v1/webhooks/events?merchant_id=mer_01jqx..." \
   -H "Authorization: Bearer $BANZAMI_JWT"
 
 # Inspect delivery attempts for a specific event
-curl "https://api.banzami.org/v1/webhooks/events/evt_01jqx.../deliveries" \
+curl "https://api.banzami.com/v1/webhooks/events/evt_01jqx.../deliveries" \
   -H "Authorization: Bearer $BANZAMI_JWT"
 ```
 
@@ -227,7 +227,7 @@ ngrok http 3000
 # { action: 'banzami_webhook_ok', ... }
 
 # 4. Trigger a test payment
-curl -X POST https://sandbox-api.banzami.org/v1/payment-links/{id}/mark-used \
+curl -X POST https://sandbox-api.banzami.com/v1/payment-links/{id}/mark-used \
   -H "Authorization: Bearer $SANDBOX_JWT"
 
 # 5. Within seconds, logs should show the webhook

@@ -16,13 +16,13 @@ use Psr\Http\Message\StreamFactoryInterface;
  * client. Direct HTTP integrations bypass idempotency, retry logic, and
  * signature verification provided by the SDK layer.
  *
- * @see https://banzami.org/docs/sdk/php
+ * @see https://banzami.com/docs/sdk/php
  */
 class BanzamiClient
 {
     private const DEFAULT_BASE_URLS = [
-        'live'    => 'https://api.banzami.org',
-        'sandbox' => 'https://sandbox-api.banzami.org',
+        'live'    => 'https://api.banzami.com',
+        'sandbox' => 'https://sandbox-api.banzami.com',
     ];
 
     private string $baseUrl;

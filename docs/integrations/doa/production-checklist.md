@@ -11,15 +11,15 @@ Complete checklist for going live with the Banza payment method. Work through ea
   - Verify the prefix starts with `bz_live_` — not `bz_test_`
 
 - [ ] **Point to live gateway**
-  - `BANZAMI_GATEWAY_URL=https://api.banzami.org`
-  - Previously: `https://sandbox-api.banzami.org`
+  - `BANZAMI_GATEWAY_URL=https://api.banzami.com`
+  - Previously: `https://sandbox-api.banzami.com`
 
 - [ ] **Set production merchant and wallet IDs**
   - `BANZAMI_MERCHANT_ID=mer_...` (your live merchant UUID)
   - `BANZAMI_WALLET_ID=wlt_...` (your live AOA wallet UUID)
 
 - [ ] **Verify pay page base URL**
-  - `BANZAMI_PAY_BASE_URL=https://pay.banzami.org`
+  - `BANZAMI_PAY_BASE_URL=https://pay.banzami.com`
   - This is the same domain for both environments — verify the value is set
 
 - [ ] **Enable Banza in method list**
@@ -32,7 +32,7 @@ Complete checklist for going live with the Banza payment method. Work through ea
 - [ ] **Register production webhook endpoint**
 
   ```bash
-  curl -X POST https://api.banzami.org/v1/webhooks/endpoints \
+  curl -X POST https://api.banzami.com/v1/webhooks/endpoints \
     -H "Authorization: Bearer $LIVE_JWT" \
     -H "Content-Type: application/json" \
     -d '{
@@ -84,7 +84,7 @@ Perform a real end-to-end test with a small amount (e.g., 100 AOA = 10,000 centa
   - Go through the full Doa donation flow on the production URL
   - Select Banza
   - Confirm the QR code renders correctly
-  - Confirm the pay URL format is `https://pay.banzami.org/{slug}` (not the sandbox domain)
+  - Confirm the pay URL format is `https://pay.banzami.com/{slug}` (not the sandbox domain)
 
 - [ ] **Complete the payment in the Banza consumer app**
   - Scan the QR with a real Banza account

@@ -61,7 +61,7 @@ The first 100 skew toward Angolan product engineers and hackathon builders. The 
 | Sandbox sign-up is self-service (email → key in 30s) | Backend team | Test with new email, no human involved |
 | `banza.sandbox.simulateQrPayment` works | SDK + API team | Quickstart `payment.ts` runs end-to-end |
 | Pre-seeded consumer demo wallet exists | Backend team | `wlt_sandbox_consumer_demo` has balance |
-| Quickstart page is live at banzami.org/docs/quickstart | Docs team | Complete 15-min path verified by external tester |
+| Quickstart page is live at banzami.com/docs/quickstart | Docs team | Complete 15-min path verified by external tester |
 | BanzAI answers "how do I accept payments in TypeScript?" with SDK reference | BanzAI | Live test |
 
 **Gate:** All prerequisites checked. First outreach only after this.
@@ -97,7 +97,7 @@ I'd love to have you be one of the first 10 developers to try it.
 
 If you have 30 minutes this week:
 1. npm install @banza/sdk
-2. Run the quickstart: banzami.org/docs/quickstart
+2. Run the quickstart: banzami.com/docs/quickstart
 3. Tell me what broke
 
 No expectations — if it doesn't work for your use case, that feedback is valuable too.
@@ -140,7 +140,7 @@ This log drives the first SDK patch (`0.1.1`) and the first quickstart revision.
 
 By Week 3, the first 10 have shipped something. Now use their work:
 
-1. **GitHub showcase** — create a `github.com/banza-protocol/banzami/wiki/Built-with-BANZA` page listing the first 10 repos with one-line descriptions
+1. **GitHub showcase** — create a `github.com/banzami/banzami/wiki/Built-with-BANZA` page listing the first 10 repos with one-line descriptions
 
 2. **First public post** — a blog post or Twitter/X thread written by one of the first 10 builders (not by BANZA) describing what they built and why. The builder's authentic voice is more credible than BANZA's own marketing.
 
@@ -160,7 +160,7 @@ What I built: [2-sentence description with screenshot]
 How: npm install @banza/sdk + 40 lines of TypeScript.
 No bank negotiations. Sandbox is free and instant.
 
-Try it: banzami.org/docs/quickstart
+Try it: banzami.com/docs/quickstart
 ```
 
 A post with a screenshot of a working QR payment is more persuasive than any description of the protocol architecture.
@@ -250,7 +250,7 @@ Acquiring a builder is the first step. Retaining them as an advocate is the goal
 
 | Retention mechanism | Description |
 |--------------------|-------------|
-| **Builder showcase** | `banzami.org/builders` — a page featuring every builder who has shipped something. Photo, project name, one-line description, link. It costs nothing to be featured. It is socially motivating. |
+| **Builder showcase** | `banzami.com/builders` — a page featuring every builder who has shipped something. Photo, project name, one-line description, link. It costs nothing to be featured. It is socially motivating. |
 | **SDK changelog** | Every `@banza/sdk` release includes a "builders who contributed to this release" section. Feedback that led to a change is attributed. |
 | **"First 100" badge** | A GitHub badge, a Discord role, and a note on the builder showcase: "Original BANZA Builder." This has value because it is permanent and limited. |
 | **Production access fast-track** | Builders who have shipped something in sandbox get priority review for production access. Their experience demonstrates readiness. |

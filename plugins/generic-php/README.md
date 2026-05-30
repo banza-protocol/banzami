@@ -20,7 +20,7 @@ composer require banzami/banzami-php
 use Banza\BanzaClient;
 use Banza\BanzamiException;
 
-$client = new BanzaClient('https://api.banzami.org', 'bz_live_YOUR_KEY');
+$client = new BanzaClient('https://api.banzami.com', 'bz_live_YOUR_KEY');
 
 // 1. Create a payment link
 $link = $client->createPaymentLink([
@@ -32,7 +32,7 @@ $link = $client->createPaymentLink([
 ]);
 
 // 2. Redirect the customer
-header('Location: https://pay.banzami.org/' . $link['slug']);
+header('Location: https://pay.banzami.com/' . $link['slug']);
 exit;
 
 // 3. Handle the webhook (in your webhook endpoint)
@@ -60,7 +60,7 @@ try {
 
 ```php
 $client = new BanzaClient(
-    string $baseUrl,          // e.g. 'https://api.banzami.org'
+    string $baseUrl,          // e.g. 'https://api.banzami.com'
     string $apiKey,           // e.g. 'bz_live_...'
     int    $timeout = 30,     // cURL timeout in seconds
     ?callable $httpHandler = null  // test seam only — never pass in production
@@ -85,7 +85,7 @@ $link = $client->createPaymentLink([
     'expires_at'   => '2026-12-31T23:59:59Z',    // optional ISO-8601
 ]);
 
-// $link['slug'] — share as https://pay.banzami.org/{slug}
+// $link['slug'] — share as https://pay.banzami.com/{slug}
 // $link['id']   — use for cancellation or status queries
 ```
 
@@ -399,7 +399,7 @@ $handler = function (string $method, string $url, array $headers, ?string $body)
     ];
 };
 
-$client = new BanzaClient('https://api.banzami.org', 'bz_test_key', 30, $handler);
+$client = new BanzaClient('https://api.banzami.com', 'bz_test_key', 30, $handler);
 ```
 
 Never pass `$httpHandler` in production code.

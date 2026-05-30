@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/middleware"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 // SandboxHandler provides developer utilities for integration testing.
@@ -276,6 +276,6 @@ func (h *SandboxHandler) Status(w http.ResponseWriter, r *http.Request) {
 		"environment": "SANDBOX",
 		"merchant_id": p.MerchantID,
 		"message":     "You are operating in sandbox mode. All financial operations are simulated.",
-		"docs":        "https://docs.banzami.org/sandbox",
+		"docs":        "https://docs.banzami.com/sandbox",
 	})
 }

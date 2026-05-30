@@ -10,8 +10,8 @@ import (
 
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 
-	apimiddleware "github.com/banza-protocol/banzami/services/public-api/internal/middleware"
-	"github.com/banza-protocol/banzami/services/public-api/internal/service"
+	apimiddleware "github.com/banzami/banzami/services/public-api/internal/middleware"
+	"github.com/banzami/banzami/services/public-api/internal/service"
 )
 
 // ---------------------------------------------------------------------------

@@ -236,7 +236,7 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 
 ## 5. Public vs Private Components
 
-### Private (this repository — `github.com/banza-protocol/banzami`)
+### Private (this repository — `github.com/banzami/banzami`)
 
 | Component | Description |
 |-----------|-------------|
@@ -249,7 +249,7 @@ Changes to the matrix require governance phrases with fingerprint verification. 
 | `infra/` | Infrastructure as code |
 | `tools/` | Operational tooling |
 
-### Public (open-source — `github.com/banza-protocol/banzamimi`)
+### Public (open-source — `github.com/banzami/banzamimi`)
 
 | Component | Description |
 |-----------|-------------|
@@ -509,7 +509,7 @@ Requirements for federation:
 
 ### 11.1 What BanzAI Is
 
-BanzAI is the AI-native interface for building, validating, and certifying Banza operators. It is deployed at `banzami.org/banzai`.
+BanzAI is the AI-native interface for building, validating, and certifying Banza operators. It is deployed at `banzami.com/banzai`.
 
 > Tools determine truth. AI explains truth.
 

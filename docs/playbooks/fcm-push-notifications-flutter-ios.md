@@ -768,13 +768,13 @@ Obter o JWT do device (logs de startup) e chamar directamente:
 JWT="eyJ..."  # token sandbox do consumer
 
 # Teste por tópico
-curl -s -X POST https://staging.banzami.org/v1/debug/push-test \
+curl -s -X POST https://staging.banzami.com/v1/debug/push-test \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{}' | jq .
 
 # Teste por token
-curl -s -X POST https://staging.banzami.org/v1/debug/push-test \
+curl -s -X POST https://staging.banzami.com/v1/debug/push-test \
   -H "Authorization: Bearer $JWT" \
   -H "Content-Type: application/json" \
   -d '{"fcm_token": "edSTrkNd..."}' | jq .
@@ -893,7 +893,7 @@ docker exec banzami-public-api-staging-1 env | grep FIREBASE
 
 **Causa combinada:**
 
-1. O endpoint `POST /v1/debug/push-test` foi deployado apenas no container de produção (`public-api`), não no de staging (`public-api-staging`). O mobile com `ENVIRONMENT=sandbox` aponta para `staging.banzami.org` que serve o container de staging — que não tinha a rota.
+1. O endpoint `POST /v1/debug/push-test` foi deployado apenas no container de produção (`public-api`), não no de staging (`public-api-staging`). O mobile com `ENVIRONMENT=sandbox` aponta para `staging.banzami.com` que serve o container de staging — que não tinha a rota.
 
 2. O cliente HTTP do mobile fazia `jsonDecode(resp.body)` **antes** de verificar o status code. Uma resposta `404 text/plain` do nginx causava `FormatException: Unexpected character (at character 5)` em vez de uma mensagem legível.
 
@@ -1167,7 +1167,7 @@ Pagamentos reais
 
 ## 18. Regra de deploy — staging obrigatório
 
-> **Atenção:** O mobile sandbox aponta para `staging.banzami.org`. Qualquer alteração ao `public-api` que afecte o mobile sandbox (novas rotas, variáveis de ambiente, config FCM) **tem de ser deployada também no staging**.
+> **Atenção:** O mobile sandbox aponta para `staging.banzami.com`. Qualquer alteração ao `public-api` que afecte o mobile sandbox (novas rotas, variáveis de ambiente, config FCM) **tem de ser deployada também no staging**.
 
 ```bash
 # Correcto — ambos os ambientes actualizados:

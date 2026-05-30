@@ -15,8 +15,8 @@ import (
 )
 
 const (
-	defaultLiveURL    = "https://api.banzami.org"
-	defaultSandboxURL = "https://sandbox-api.banzami.org"
+	defaultLiveURL    = "https://api.banzami.com"
+	defaultSandboxURL = "https://sandbox-api.banzami.com"
 	defaultMaxRetries = 3
 	defaultRetryDelay = 500 * time.Millisecond
 	sdkVersion        = "0.1.0"

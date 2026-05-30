@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.org';
+const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.com';
 
 export async function GET(
   _req: Request,

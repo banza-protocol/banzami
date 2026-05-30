@@ -88,7 +88,7 @@ $link = $client->createPaymentLink([
 ]);
 
 echo $link['slug'];   // e.g. "abc123"
-// Share: https://pay.banzami.org/abc123
+// Share: https://pay.banzami.com/abc123
 
 // Open-amount link (consumer sets the amount)
 $link = $client->createPaymentLink([

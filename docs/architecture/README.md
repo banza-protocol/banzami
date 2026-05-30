@@ -37,12 +37,12 @@ Banza is a **modular monolith** deployed as a set of coordinated processes. The 
 ```
 Internet
   │
-  ├─ pay.banzami.org          → apps/pay/          (Next.js 14, port 3003)
-  ├─ pay.banzami.org/{slug}   → apps/checkout/     (Next.js 14, port 3004)  ← hosted checkout
-  ├─ dashboard.banzami.org    → apps/dashboard/    (Next.js 14, port 3000)
+  ├─ pay.banzami.com          → apps/pay/          (Next.js 14, port 3003)
+  ├─ pay.banzami.com/{slug}   → apps/checkout/     (Next.js 14, port 3004)  ← hosted checkout
+  ├─ dashboard.banzami.com    → apps/dashboard/    (Next.js 14, port 3000)
   │
-  ├─ api.banzami.org          → api-gateway        (Go, port 8080)  ← merchants
-  └─ consumer.banzami.org     → public-api         (Go, port 8083)  ← consumers
+  ├─ api.banzami.com          → api-gateway        (Go, port 8080)  ← merchants
+  └─ consumer.banzami.com     → public-api         (Go, port 8083)  ← consumers
 
 Internal network only
   └─ admin.internal          → admin-api          (Go, port 8082)  ← operators
@@ -127,19 +127,19 @@ Loopback only (127.0.0.1)
 
 ```
 1. Merchant creates link
-   POST api.banzami.org/v1/payment-links
+   POST api.banzami.com/v1/payment-links
      → api-gateway → POST core-api/internal/v1/payment-links
      → Returns slug: "a3f7c2d19b40"
-     → Merchant shares: https://pay.banzami.org/a3f7c2d19b40
+     → Merchant shares: https://pay.banzami.com/a3f7c2d19b40
 
 2. Consumer opens pay page
-   GET pay.banzami.org/a3f7c2d19b40
+   GET pay.banzami.com/a3f7c2d19b40
      → Next.js server component
      → GET api-gateway/public/pay/a3f7c2d19b40
      → Server-renders page with amount, description, QR
 
 3. Consumer pays (logged in)
-   POST consumer.banzami.org/v1/payment-links/a3f7c2d19b40/pay
+   POST consumer.banzami.com/v1/payment-links/a3f7c2d19b40/pay
      → public-api verifies JWT
      → GET core-api/internal/v1/payment-links/by-slug/a3f7c2d19b40
      → GET core-api/internal/v1/consumer-wallets?consumer_id=...
@@ -158,12 +158,12 @@ Loopback only (127.0.0.1)
 
 ```
 1. Consumer authenticates
-   POST consumer.banzami.org/v1/auth/token
+   POST consumer.banzami.com/v1/auth/token
      → public-api verifies PIN against public_api_credentials
      → Returns JWT { customer_id: "...", scopes: ["consumer"] }
 
 2. Consumer sends money
-   POST consumer.banzami.org/v1/transfers
+   POST consumer.banzami.com/v1/transfers
      { recipient_handle: "maria_shop", amount_minor: 25000, currency: "AOA" }
      → public-api resolves sender wallet via consumer_id
      → public-api resolves recipient consumer by handle

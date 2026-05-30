@@ -25,7 +25,7 @@ Diagnostic guide for common integration problems. Each section describes symptom
 echo $BANZAMI_WEBHOOK_SECRET  # should start with whsec_
 
 # If secret is wrong or lost, register a new endpoint
-curl -X POST https://api.banzami.org/v1/webhooks/endpoints \
+curl -X POST https://api.banzami.com/v1/webhooks/endpoints \
   -H "Authorization: Bearer $BANZAMI_JWT" \
   -d '{ "url": "https://doadoa.app/api/webhooks/banzami", "events": ["payment_link.paid"] }'
 # Deactivate old endpoint in Banzami dashboard
@@ -134,7 +134,7 @@ WHERE id = 'di_01jqx...';
 ```typescript
 // Check browser console for errors
 // Check that payUrl is set correctly:
-console.log('payUrl:', payUrl);  // should be https://pay.banzami.org/{slug}
+console.log('payUrl:', payUrl);  // should be https://pay.banzami.com/{slug}
 ```
 
 **Resolution**: Verify `BANZAMI_PAY_BASE_URL` and that the payment link response includes a `slug`. The external link ("Ou abre o link de pagamento") is always present as a fallback — donors can complete payment even without the QR.
@@ -180,7 +180,7 @@ curl "https://doadoa.app/api/donations/banzami-status?intent_id=di_01jqx...&link
 
 ```bash
 # Verify the link status in Banzami directly
-curl "https://api.banzami.org/v1/payment-links/lnk_01jqx..." \
+curl "https://api.banzami.com/v1/payment-links/lnk_01jqx..." \
   -H "Authorization: Bearer $BANZAMI_JWT"
 # Look for: "status": "USED"
 ```

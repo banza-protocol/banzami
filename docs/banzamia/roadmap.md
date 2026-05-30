@@ -8,7 +8,7 @@
 
 ## Current State (May 2026)
 
-BanzAI is deployed at `banzami.org/banzai` with 8 fully functional modules. All modules operate in **demo mode** (static responses) by default. Live mode requires the BanzAI API to be running and connected.
+BanzAI is deployed at `banzami.com/banzai` with 8 fully functional modules. All modules operate in **demo mode** (static responses) by default. Live mode requires the BanzAI API to be running and connected.
 
 ### What is live
 

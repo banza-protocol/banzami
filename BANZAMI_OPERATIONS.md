@@ -24,7 +24,7 @@ The Banzami reference operator runs the following services in production:
 | `admin-frontend` | Next.js | 3001 | Operator admin portal |
 | `pay-frontend` | Next.js | 3003 | Consumer pay page |
 | `checkout-frontend` | Next.js | 3004 | Hosted checkout page |
-| `docs-frontend` | Next.js | 3005 | Public documentation site (banzami.org) |
+| `docs-frontend` | Next.js | 3005 | Public documentation site (banzami.com) |
 | `banzai-api` | Node.js | 4200 | BanzAI Protocol OS API |
 
 ---
@@ -133,14 +133,14 @@ Both use `tokio::time::interval` with `MissedTickBehavior::Skip`.
 - Completely isolated from production
 - Separate database, separate API keys (`bz_test_…`)
 - No real EMIS rails, no real money movement
-- Available at `https://sandbox-api.banzami.org`
+- Available at `https://sandbox-api.banzami.com`
 
 ### Production (Live)
 
 - Real Angolan Kwanza
 - Real EMIS integration
 - API keys prefixed `bz_live_…`
-- Available at `https://api.banzami.org`
+- Available at `https://api.banzami.com`
 
 **The sandbox and live environments share no data, no credentials, and no infrastructure.**
 

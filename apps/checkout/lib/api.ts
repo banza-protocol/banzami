@@ -2,7 +2,7 @@
 // accidentally override it with a consumer-facing URL).
 // Client bundles fall through to the hardcoded default (process.env.PAY_API_URL
 // is replaced with `undefined` in browser bundles by Next.js).
-const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.org';
+const API_URL = process.env.PAY_API_URL ?? 'https://api.banzami.com';
 
 export interface PaymentLink {
   id:            string;

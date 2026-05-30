@@ -40,7 +40,7 @@ func main() {
     if err != nil {
         log.Fatal(err)
     }
-    fmt.Printf("Payment link: https://pay.banzami.org/%s\n", link.Slug)
+    fmt.Printf("Payment link: https://pay.banzami.com/%s\n", link.Slug)
 }
 ```
 
@@ -75,7 +75,7 @@ client := banzami.NewClient(banzami.ClientOptions{APIKey: "bz_test_..."})
 fmt.Println(client.IsSandbox()) // true
 ```
 
-The client automatically routes to the sandbox gateway (`https://sandbox-api.banzami.org`) when a `bz_test_` key is provided. No additional configuration is needed.
+The client automatically routes to the sandbox gateway (`https://sandbox-api.banzami.com`) when a `bz_test_` key is provided. No additional configuration is needed.
 
 ## Running tests
 

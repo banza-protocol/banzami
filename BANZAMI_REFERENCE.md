@@ -256,7 +256,7 @@ A liquidação T+0 é um invariante do protocolo BANZA — qualquer operador cer
 ### Payment Links
 
 ```
-https://pay.banzami.org/abc123
+https://pay.banzami.com/abc123
 ```
 
 Um link de pagamento é um URL partilhável com um pedido de pagamento pré-configurado. O consumidor abre-o num browser e paga com a Banzami Wallet. Substitui directamente o fluxo "envia-me o screenshot do WhatsApp".
@@ -267,7 +267,7 @@ O saldo da carteira é transferido para uma conta bancária angolana a pedido �
 
 ### A Loja QR
 
-Cada comerciante tem um perfil público permanente em `pay.banzami.org/profiles/@banza`. Partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
+Cada comerciante tem um perfil público permanente em `pay.banzami.com/profiles/@banza`. Partilhável como link, imprimível como QR, descobrível via pesquisa. Qualquer consumidor que chegue pode pagar instantaneamente.
 
 ---
 
@@ -453,7 +453,7 @@ Todos os serviços emitem traces OpenTelemetry com o atributo `deployment.enviro
 | | **Sandbox** | **Live** |
 |---|---|---|
 | Prefixo de API key | `bz_test_…` | `bz_live_…` |
-| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
+| Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
 | Dinheiro | Virtual — sem fundos reais | Kwanza angolano real |
 | Base de dados | Completamente separada | Completamente separada |
 
@@ -591,4 +591,4 @@ Para Angola.
 Ver também:
 - [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — O protocolo BANZA
 - [BANZAI_REFERENCE.md](../banzai/BANZAI_REFERENCE.md) — O BanzAI Protocol OS
-- `docs/BANZA_REFERENCE.md` — Fonte de conteúdo do website banzami.org
+- `docs/BANZA_REFERENCE.md` — Fonte de conteúdo do website banzami.com

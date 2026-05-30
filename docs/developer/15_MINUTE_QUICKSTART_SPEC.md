@@ -191,7 +191,7 @@ H2: Prerequisites
     [Single item: Node.js >= 18]
 
 H2: 1. Get your sandbox key     [1 min]
-    [Direct link to sandbox.banzami.org/signup]
+    [Direct link to sandbox.banzami.com/signup]
     [Screenshot: what the email looks like with keys]
 
 H2: 2. Install the SDK           [1.5 min]
@@ -263,7 +263,7 @@ Each failure message block is a collapsed/expandable section at the bottom of th
 
 ## The Sandbox Sign-Up Page Specification
 
-The sandbox sign-up page (`sandbox.banzami.org/signup`) must:
+The sandbox sign-up page (`sandbox.banzami.com/signup`) must:
 
 1. Accept **email address only** (no password at this stage — deliver a magic link)
 2. Send a response email within 30 seconds containing:

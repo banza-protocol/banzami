@@ -11,11 +11,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/handler"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/middleware"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/notify"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/handler"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 // Dependencies holds the runtime dependencies injected into the server.

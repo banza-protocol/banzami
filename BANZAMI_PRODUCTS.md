@@ -131,7 +131,7 @@ URL partilhável como QR. O consumidor abre a URL no telemóvel e paga.
 Links de pagamento partilháveis por qualquer canal — WhatsApp, email, Instagram, SMS:
 
 ```
-https://pay.banzami.org/a3f7c2d19b40
+https://pay.banzami.com/a3f7c2d19b40
 
 Descrição: "Mesa 5 — Almoço"
 Montante: 4.500 Kz
@@ -246,7 +246,7 @@ app.post('/webhooks/banza', express.raw({ type: 'application/json' }), (req, res
 | | **Sandbox** | **Live** |
 |---|---|---|
 | Prefixo de API key | `bz_test_…` | `bz_live_…` |
-| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
+| Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
 | Dinheiro | Virtual — sem fundos reais | Kwanza angolano real |
 | Base de dados | Completamente separada | Completamente separada |
 

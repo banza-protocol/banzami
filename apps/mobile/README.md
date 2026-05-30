@@ -24,11 +24,11 @@ flutter run --flavor consumer -t lib/main_consumer.dart \
 
 # Produção
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org --debug
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com --debug
 
 # Staging (sandbox)
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
   --dart-define=ENVIRONMENT=sandbox --debug
 ```
 
@@ -41,7 +41,7 @@ flutter run --flavor merchant -t lib/main_merchant.dart \
 
 # Produção
 flutter run --flavor merchant -t lib/main_merchant.dart \
-  --dart-define=GATEWAY_URL=https://api.banzami.org --debug
+  --dart-define=GATEWAY_URL=https://api.banzami.com --debug
 ```
 
 ## Build para App Store
@@ -52,14 +52,14 @@ cd ios && pod install && cd ..
 
 # Consumer app
 flutter build ipa --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org \
-  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.com \
   --export-options-plist=ios/ExportOptions.plist
 
 # Merchant app
 flutter build ipa --flavor merchant -t lib/main_merchant.dart \
-  --dart-define=GATEWAY_URL=https://api.banzami.org \
-  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --dart-define=GATEWAY_URL=https://api.banzami.com \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.com \
   --export-options-plist=ios/ExportOptions.plist
 ```
 
@@ -75,7 +75,7 @@ Constrói o IPA sandbox (sem mutação de ícones — flavor `consumer_sandbox` 
 
 ```bash
 flutter build ipa --flavor consumer_sandbox -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+  --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
   --dart-define=ENVIRONMENT=sandbox \
   --export-options-plist=ios/ExportOptions.plist
 ```

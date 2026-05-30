@@ -67,7 +67,7 @@ The official SDK for integrating Banzami payments into external applications. Av
 
 ## BanzAI
 
-The Protocol Operating System of the Banza ecosystem. Deployed at `banzami.org/banzai`. 16 specialized modules across 3 layers for understanding, validating, simulating, and certifying Banza operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
+The Protocol Operating System of the Banza ecosystem. Deployed at `banzami.com/banzai`. 16 specialized modules across 3 layers for understanding, validating, simulating, and certifying Banza operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
 
 ---
 

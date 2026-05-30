@@ -35,7 +35,7 @@ import 'package:banza_flutter/banza_flutter.dart';
 ```dart
 final client = BanzaClient(
   apiKey:  'bz_live_...',
-  baseUrl: 'https://api.banzami.org',
+  baseUrl: 'https://api.banzami.com',
 );
 
 // Fetch merchant details
@@ -72,13 +72,13 @@ The client transparently exchanges your API key for a short-lived JWT on the fir
 ```dart
 // Production
 final client = ConsumerPublicClient(
-  baseUrl:     'https://api.banzami.org',
+  baseUrl:     'https://api.banzami.com',
   environment: BanzamiEnvironment.production,
 );
 
 // Sandbox (test environment)
 final client = ConsumerPublicClient(
-  baseUrl:     'https://sandbox-api.banzami.org',
+  baseUrl:     'https://sandbox-api.banzami.com',
   environment: BanzamiEnvironment.sandbox,
 );
 

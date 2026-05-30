@@ -34,7 +34,7 @@ import 'server-only';
 
 This is a Next.js build-time compiler directive. Importing either file from a `'use client'` component causes the build to fail with an explicit error. Credentials in these modules are unreachable from the browser by construction — not just by convention.
 
-**What reaches the browser**: Only the pay URL (`https://pay.banzami.org/{slug}`) and link ID. The pay URL is the public interaction surface — it is intended to be shared with the donor.
+**What reaches the browser**: Only the pay URL (`https://pay.banzami.com/{slug}`) and link ID. The pay URL is the public interaction surface — it is intended to be shared with the donor.
 
 ---
 
@@ -141,8 +141,8 @@ A `bz_test_` API key cannot be used against the live gateway, and vice versa. Th
 
 | Scenario | Outcome |
 |----------|---------|
-| `bz_test_` key → `api.banzami.org` | `403 SANDBOX_KEY_REJECTED` |
-| `bz_live_` key → `sandbox-api.banzami.org` | `403 LIVE_ONLY` |
+| `bz_test_` key → `api.banzami.com` | `403 SANDBOX_KEY_REJECTED` |
+| `bz_live_` key → `sandbox-api.banzami.com` | `403 LIVE_ONLY` |
 | Sandbox payment link in live Banzami app | Link marked as environment-incompatible |
 | Sandbox webhook → live endpoint | Banza filters at dispatch — never delivered |
 

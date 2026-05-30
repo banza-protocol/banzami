@@ -28,7 +28,7 @@ All components are in `app/(public)/c/[slug]/doar/`.
 
 ```typescript
 interface BanzaPanelProps {
-  payUrl:    string;   // e.g. "https://pay.banzami.org/abc123def"
+  payUrl:    string;   // e.g. "https://pay.banzami.com/abc123def"
   linkId:    string;   // e.g. "lnk_01jqx..." — used as &link_id param in status poll
   intentId:  string;   // donation_intent.id — used as &intent_id param in status poll
   returnUrl: string;   // redirect target after confirmed (e.g. "/c/{slug}/doar/obrigado?intent=...")
@@ -173,7 +173,7 @@ These steps are rendered in Portuguese (pt-AO) — the primary language of Doa's
 </a>
 ```
 
-This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.org/{slug}` either in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
+This link is critical for donors on mobile — a donor cannot scan a QR displayed on the same screen. Tapping this opens `pay.banzami.com/{slug}` either in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
 
 `rel="noopener noreferrer"` prevents the opened tab from accessing `window.opener` — a standard security practice for `target="_blank"` links.
 
@@ -299,6 +299,6 @@ The QR code uses dark navy (`#0f172a`) ink on white background — high contrast
 
 ## No Client-Side Banza Credentials
 
-The `BanzaPanel` never sees any Banza API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.org/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
+The `BanzaPanel` never sees any Banza API key, JWT, or webhook secret. The pay URL (`https://pay.banzami.com/{slug}`) is public — it was created server-side and returned to the browser as the `token` field. The donor scanning or clicking this URL is the intended public interaction.
 
-All API calls to `api.banzami.org` are made from Next.js API routes, where credentials live in server-only environment variables.
+All API calls to `api.banzami.com` are made from Next.js API routes, where credentials live in server-only environment variables.

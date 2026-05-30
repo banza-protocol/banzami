@@ -139,5 +139,5 @@ See [BANZA_REFERENCE.md §7](../banza/BANZA_REFERENCE.md) for the full invariant
 ## Contact
 
 - Bug reports: open a GitHub issue
-- Security vulnerabilities: **security@banzami.org** (do NOT open a public issue)
+- Security vulnerabilities: **security@banzami.com** (do NOT open a public issue)
 - Protocol questions: open an issue or discussion in `github.com/banza-protocol/banza`

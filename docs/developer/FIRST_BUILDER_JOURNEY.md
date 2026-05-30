@@ -120,7 +120,7 @@ The builder follows the link and gets a sandbox API key.
 **Required experience:**
 
 ```
-→ Go to sandbox.banzami.org
+→ Go to sandbox.banzami.com
 → Enter email address
 → Receive email with:
      bz_test_<24-char-key>

@@ -631,7 +631,7 @@ Operadores certificados integram via SDK oficial. Cada pagamento é uma transfer
 | O que é | Protocolo aberto de infraestrutura financeira | Produto de pagamentos e operador de referência |
 | Papel | Kernel, ledger, certificação, federação, governança | App, QR, carteiras, checkout, Banzami Business |
 | SDK | \`@banza/sdk\` (protocolo) | Banzami SDKs para programadores |
-| Domínio | — (protocolo, não website) | banzami.org |
+| Domínio | — (protocolo, não website) | banzami.com |
 | BanzAI | Pertence ao ecossistema Banza | Protocol Operating System |
 
 **Regra de conteúdo (ADR-025, inverte ADR-016):**

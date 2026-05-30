@@ -179,7 +179,7 @@ Creates a payment link the donor will pay via QR.
 **Request**
 
 ```
-POST https://api.banzami.org/v1/payment-links
+POST https://api.banzami.com/v1/payment-links
 Authorization: Bearer <JWT>
 Content-Type: application/json
 Idempotency-Key: banzami:<intent_id>
@@ -239,7 +239,7 @@ Fetches current link state. Called on every poll tick.
 **Request**
 
 ```
-GET https://api.banzami.org/v1/payment-links/lnk_01jqxyzabc123
+GET https://api.banzami.com/v1/payment-links/lnk_01jqxyzabc123
 Authorization: Bearer <JWT>
 ```
 

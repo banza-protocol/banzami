@@ -9,14 +9,14 @@
 #   ./tools/staging-seed.sh --delete @handle     # delete a single staging consumer
 #   ./tools/staging-seed.sh --inspect @handle    # show transfers for a consumer
 #
-# Endpoint: https://staging.banzami.org  (or override STAGING_URL)
+# Endpoint: https://staging.banzami.com  (or override STAGING_URL)
 #
 # SAFETY: This script is hardcoded to connect only to banzami_staging.
 #         It MUST NEVER run against the production database.
 
 set -euo pipefail
 
-STAGING_URL="${STAGING_URL:-https://staging.banzami.org}"
+STAGING_URL="${STAGING_URL:-https://staging.banzami.com}"
 DEFAULT_PIN="123456"
 
 GREEN='\033[1;32m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; CYAN='\033[1;36m'; RESET='\033[0m'

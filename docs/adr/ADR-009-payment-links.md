@@ -22,7 +22,7 @@ Banza needs a zero-friction payment primitive that:
 
 **Implement a Payment Links domain as a first-class primitive.**
 
-A payment link is a shareable URL (`https://pay.banzami.org/{slug}`) backed by a `payment_links` record. The merchant creates a link, shares it anywhere, and the customer opens it in a browser to pay.
+A payment link is a shareable URL (`https://pay.banzami.com/{slug}`) backed by a `payment_links` record. The merchant creates a link, shares it anywhere, and the customer opens it in a browser to pay.
 
 **Slug format:** First 12 hex characters of a UUID v4 `simple` string.
 
@@ -71,7 +71,7 @@ The pay page polls `GET /public/pay/{slug}/status` every 3 seconds. The endpoint
 
 **Negative:**
 - Open links require consumers to have a registered Banza account — anonymous payment is not supported in V1.
-- Pay page requires a separate domain (`pay.banzami.org`) and TLS certificate.
+- Pay page requires a separate domain (`pay.banzami.com`) and TLS certificate.
 - Slug enumeration is theoretically possible; rate limiting and monitoring are required controls.
 
 ---

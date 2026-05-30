@@ -29,8 +29,8 @@ import type {
 } from './types.js';
 
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
-  live:    'https://api.banzami.org',
-  sandbox: 'https://sandbox-api.banzami.org',
+  live:    'https://api.banzami.com',
+  sandbox: 'https://sandbox-api.banzami.com',
 };
 
 export interface BanzamiHooks {

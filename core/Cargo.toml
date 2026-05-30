@@ -30,7 +30,7 @@ license    = "UNLICENSED"
 # Target: banzami-ledger = { path = "../../Banzami/core/crates/banzami-ledger" }
 # Until then, private copies are maintained here in sync with the public versions.
 repository = "https://github.com/banza-protocol/banzami"
-authors    = ["Banzami Engineering <engineering@banzami.org>"]
+authors    = ["Banzami Engineering <engineering@banzami.com>"]
 
 # ---------------------------------------------------------------------------
 # Shared dependency versions — crates opt-in with { workspace = true }

@@ -269,7 +269,7 @@ Written by `initiatePayment()` after a successful Banza API call:
     "provider_ref": "lnk_01jqxyzabc123",
     "initiate": {
       "kind":         "inline",
-      "token":        "https://pay.banzami.org/abc123def",
+      "token":        "https://pay.banzami.com/abc123def",
       "provider_ref": "lnk_01jqxyzabc123"
     }
   }
@@ -334,7 +334,7 @@ All Banza backend behavior is controlled by environment variables:
 
 ```env
 # Banzami API
-BANZAMI_GATEWAY_URL=https://api.banzami.org
+BANZAMI_GATEWAY_URL=https://api.banzami.com
 BANZAMI_API_KEY=bz_live_your_key_here
 
 # Merchant identity
@@ -342,7 +342,7 @@ BANZAMI_MERCHANT_ID=mer_01jqx...
 BANZAMI_WALLET_ID=wlt_01jqx...
 
 # Pay page base URL (used to construct QR target URL)
-BANZAMI_PAY_BASE_URL=https://pay.banzami.org
+BANZAMI_PAY_BASE_URL=https://pay.banzami.com
 
 # Webhook verification (optional — enables push confirmation path)
 BANZAMI_WEBHOOK_SECRET=whsec_...

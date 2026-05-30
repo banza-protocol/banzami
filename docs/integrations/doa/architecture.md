@@ -28,7 +28,7 @@ The Doa integration sits entirely within the **merchant application** tier. Doa 
                           BANZAMI API  │
                                        ▼
                           ┌────────────────────────┐
-                          │  api.banzami.org        │
+                          │  api.banzami.com        │
                           │                         │
                           │  POST /v1/payment-links │
                           │  GET  /v1/payment-links │

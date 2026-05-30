@@ -97,6 +97,6 @@ If the Banzami operator ceased operations, the BANZA protocol would continue. Ot
 ## Contact
 
 - Engineering decisions: open a GitHub issue or PR
-- Security vulnerabilities: **security@banzami.org** (do NOT open a public issue)
+- Security vulnerabilities: **security@banzami.com** (do NOT open a public issue)
 - Protocol questions: open a discussion in `github.com/banza-protocol/banza`
-- Code of conduct: conduct@banzami.org
+- Code of conduct: conduct@banzami.com

@@ -11,7 +11,7 @@
 #
 # Build command (replaces the old generate+build+restore sequence):
 #   flutter build ipa --flavor consumer_sandbox -t lib/main_consumer.dart \
-#     --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+#     --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
 #     --dart-define=ENVIRONMENT=sandbox
 #
 # This script is kept for historical reference. It will exit immediately.

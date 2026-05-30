@@ -10,7 +10,7 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { Spinner } from '@/components/ui/spinner';
 import { QrDisplay } from '@/components/ui/qr-display';
 
-const PAY_BASE = process.env.NEXT_PUBLIC_PAY_URL ?? 'https://pay.banzami.org';
+const PAY_BASE = process.env.NEXT_PUBLIC_PAY_URL ?? 'https://pay.banzami.com';
 const STATUSES = ['', 'ACTIVE', 'USED', 'EXPIRED', 'CANCELLED'] as const;
 
 // Converts a user-typed Kz string to minor units (centimos).

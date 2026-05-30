@@ -24,13 +24,13 @@ This is distinct from a customer-presented QR (where the merchant scans the cust
 The QR encodes the Banza pay-page URL:
 
 ```
-https://pay.banzami.org/{slug}
+https://pay.banzami.com/{slug}
 ```
 
 Where `{slug}` is the short, URL-safe identifier returned by the payment link API. Example:
 
 ```
-https://pay.banzami.org/abc123def
+https://pay.banzami.com/abc123def
 ```
 
 The Banza consumer app handles this URL natively — opening it in the app directly presents the payment confirmation screen without going through the browser.
@@ -90,7 +90,7 @@ The QR panel always renders an external link:
 </a>
 ```
 
-This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.org/{slug}` in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
+This is critical for donors who are already on their phone — they cannot scan a QR displayed on the same device. Tapping this link opens `pay.banzami.com/{slug}` in the browser or, if the Banzami app is installed and handles the URL scheme, directly in the app.
 
 ---
 
@@ -210,7 +210,7 @@ BanzamiPanel renders:
   └─────────────────────────────┘
 
 Donor taps "Ou abre o link"
-  → Banza app opens at pay.banzami.org/abc123def
+  → Banza app opens at pay.banzami.com/abc123def
   → Shows: "Banza Business — 1,500.00 AOA"
   → Donor enters PIN
   → Banzami confirms

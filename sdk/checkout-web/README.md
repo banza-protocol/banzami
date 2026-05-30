@@ -12,7 +12,7 @@ npm install @banzami/checkout
 import { BanzamiCheckout } from '@banzami/checkout';
 
 const checkout = new BanzamiCheckout({
-  gatewayUrl: 'https://api.banzami.org',
+  gatewayUrl: 'https://api.banzami.com',
   apiKey:     'bz_live_...',
   merchantId: 'your-merchant-id',
   walletId:   'your-wallet-id',
@@ -33,10 +33,10 @@ document.getElementById('pay-btn').addEventListener('click', () => {
 ## Script tag (CDN)
 
 ```html
-<script src="https://cdn.banzami.org/checkout/0.1.0/checkout.iife.js"></script>
+<script src="https://cdn.banzami.com/checkout/0.1.0/checkout.iife.js"></script>
 <script>
   const checkout = new BanzamiCheckout({
-    gatewayUrl: 'https://api.banzami.org',
+    gatewayUrl: 'https://api.banzami.com',
     apiKey:     'bz_live_...',
     merchantId: '...',
     walletId:   '...',

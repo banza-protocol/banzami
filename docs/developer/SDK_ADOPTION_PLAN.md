@@ -38,10 +38,10 @@
   "description": "Official TypeScript/JavaScript SDK for BANZA payments — Angola's instant payment protocol",
   "repository": {
     "type": "git",
-    "url": "https://github.com/banza-protocol/banzami.git",
+    "url": "https://github.com/banzami/banzami.git",
     "directory": "sdk/typescript"
   },
-  "homepage": "https://banzami.org/docs/developer",
+  "homepage": "https://banzami.com/docs/developer",
   "keywords": ["banza", "payments", "angola", "kwanza", "qr", "fintech", "wallet"],
   "publishConfig": {
     "access": "public",
@@ -125,14 +125,14 @@ This is not usable by external builders. Required changes:
 name: banza_flutter
 description: Official Flutter SDK for BANZA payments — Angola's instant payment protocol
 version: 0.1.0
-homepage: https://banzami.org/docs/developer
+homepage: https://banzami.com/docs/developer
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
   flutter: '>=3.19.0'
 
-repository: https://github.com/banza-protocol/banzami
-issue_tracker: https://github.com/banza-protocol/banzami/issues
+repository: https://github.com/banzami/banzami
+issue_tracker: https://github.com/banzami/banzami/issues
 ```
 
 **Publication command:**
@@ -181,12 +181,12 @@ flutter pub get   # must resolve
       "Banza\\": "src/"
     }
   },
-  "homepage": "https://banzami.org/docs/developer",
+  "homepage": "https://banzami.com/docs/developer",
   "keywords": ["banza", "payments", "angola", "kwanza"]
 }
 ```
 
-**Publication:** Submit `github.com/banza-protocol/banzami` to packagist.org under the `banza` namespace. Packagist auto-syncs from GitHub tags.
+**Publication:** Submit `github.com/banzami/banzami` to packagist.org under the `banza` namespace. Packagist auto-syncs from GitHub tags.
 
 ---
 
@@ -195,11 +195,11 @@ flutter pub get   # must resolve
 Go modules are served directly from GitHub — no registry submission required. The package becomes importable as:
 
 ```go
-import "github.com/banza-protocol/banzami/sdk/go"
+import "github.com/banzami/banzami/sdk/go"
 ```
 
 **Requirements:**
-- Module path must be `github.com/banza-protocol/banzami/sdk/go`
+- Module path must be `github.com/banzami/banzami/sdk/go`
 - `go.mod` must declare this path
 - A `v1.0.0` git tag makes it a stable module
 
@@ -256,7 +256,7 @@ Every published SDK must have:
 | **Error reference** | README or inline | Every error class, what triggers it, how to handle it |
 | **Webhook guide** | README section | Signature verification code, replay protection, event types |
 
-**README length cap for npm/pub.dev:** 500 words + code blocks. The full reference is on banzami.org.
+**README length cap for npm/pub.dev:** 500 words + code blocks. The full reference is on banzami.com.
 
 ---
 
@@ -302,7 +302,7 @@ After publication, builders discover the SDK via:
 
 1. **npm/pub.dev search** — keywords "angola payments", "kwanza", "banza", "banzami"
 2. **GitHub trending** — if the repo has activity and stars
-3. **README on github.com/banza-protocol/banzami** — the main repo README must have `npm install @banza/sdk` visible above the fold
+3. **README on github.com/banzami/banzami** — the main repo README must have `npm install @banza/sdk` visible above the fold
 4. **BanzAI** — `POST /ask "how do I accept payments in TypeScript?"` returns `npm install @banza/sdk` as the first line of the answer
 
 ---
@@ -320,7 +320,7 @@ Before announcing to the first 100 builders:
 - [ ] Flutter SDK pubspec.yaml has correct name, version, and repository
 - [ ] Both SDKs pass their own test suites at time of publish
 - [ ] `@banza/sdk` CHANGELOG exists with `0.1.0` entry
-- [ ] SDK README links to quickstart at banzami.org/docs/quickstart
+- [ ] SDK README links to quickstart at banzami.com/docs/quickstart
 
 ---
 

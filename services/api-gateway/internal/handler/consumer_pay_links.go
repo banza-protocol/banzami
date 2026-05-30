@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/apierror"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 // ConsumerPayLinkHandler serves the public /public/consumer-pay-links/:code endpoint.

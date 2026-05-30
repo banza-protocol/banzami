@@ -13,11 +13,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/notify"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/observability"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/server"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/service"
+	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/notify"
+	"github.com/banzami/banzami/services/api-gateway/internal/observability"
+	"github.com/banzami/banzami/services/api-gateway/internal/server"
+	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
 func main() {

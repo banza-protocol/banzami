@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	"github.com/banza-protocol/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
 // MerchantHandler exposes read-only merchant views for the admin dashboard.

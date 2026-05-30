@@ -6,7 +6,7 @@ If you discover a security vulnerability in Banzami, please report it responsibl
 
 **Do NOT open a public GitHub issue for security vulnerabilities.**
 
-Instead, email: **security@banzami.org**
+Instead, email: **security@banzami.com**
 
 Include:
 - A description of the vulnerability
@@ -96,5 +96,5 @@ We follow a 90-day responsible disclosure policy:
 
 ## Security Contact
 
-Email: **security@banzami.org**  
+Email: **security@banzami.com**  
 PGP: available on request

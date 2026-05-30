@@ -32,7 +32,7 @@ php artisan vendor:publish --tag=banzami-config
 This creates `config/banzami.php`. Set your credentials in `.env`:
 
 ```env
-BANZAMI_GATEWAY_URL=https://api.banzami.org
+BANZAMI_GATEWAY_URL=https://api.banzami.com
 BANZAMI_API_KEY=your_api_key_here
 BANZAMI_WEBHOOK_SECRET=your_webhook_secret_here
 BANZAMI_MERCHANT_ID=your_merchant_id
@@ -41,7 +41,7 @@ BANZAMI_WALLET_ID=your_default_wallet_id
 
 | Variable | Description |
 |---|---|
-| `BANZAMI_GATEWAY_URL` | Banza API base URL (default: `https://api.banzami.org`) |
+| `BANZAMI_GATEWAY_URL` | Banza API base URL (default: `https://api.banzami.com`) |
 | `BANZAMI_API_KEY` | Your merchant API key |
 | `BANZAMI_WEBHOOK_SECRET` | HMAC secret for webhook signature verification |
 | `BANZAMI_MERCHANT_ID` | Default merchant ID (optional, can be passed per-request) |

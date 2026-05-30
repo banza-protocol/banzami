@@ -25,7 +25,7 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
 
-    const base = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'https://api.banzami.org').replace(/\/$/, '');
+    const base = (process.env.NEXT_PUBLIC_GATEWAY_URL ?? 'https://api.banzami.com').replace(/\/$/, '');
 
     try {
       // Exchange API key for a short-lived JWT
@@ -130,8 +130,8 @@ export default function LoginPage() {
 
         <p className="text-xs text-center text-gray-400">
           Não tem credenciais? Contacte{' '}
-          <a href="mailto:contact@banzami.org" className="text-wine hover:underline">
-            contact@banzami.org
+          <a href="mailto:contact@banzami.com" className="text-wine hover:underline">
+            contact@banzami.com
           </a>
         </p>
       </div>

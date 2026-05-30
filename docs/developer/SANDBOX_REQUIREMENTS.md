@@ -25,7 +25,7 @@ Everything that requires human approval or business verification belongs at the 
 
 | Capability | Available Now | Gap |
 |-----------|--------------|-----|
-| Separate API URL (`sandbox-api.banzami.org`) | ✓ | — |
+| Separate API URL (`sandbox-api.banzami.com`) | ✓ | — |
 | Separate database (no data mixing) | ✓ | — |
 | API key prefix signal (`bz_test_`) | ✓ | — |
 | `GET /v1/sandbox/status` | ✓ | — |
@@ -88,10 +88,10 @@ Pre-seeded consumer wallet (for testing payments):
   Balance: 500 Kz (auto-restored if depleted)
 
 Sandbox API base URL:
-  https://sandbox-api.banzami.org
+  https://sandbox-api.banzami.com
 
 Get started:
-  https://banzami.org/docs/quickstart
+  https://banzami.com/docs/quickstart
 ```
 
 ### Implementation notes

@@ -10,11 +10,11 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/banza-protocol/banzami/services/admin-api/internal/config"
-	"github.com/banza-protocol/banzami/services/admin-api/internal/email"
-	"github.com/banza-protocol/banzami/services/admin-api/internal/observability"
-	"github.com/banza-protocol/banzami/services/admin-api/internal/server"
-	"github.com/banza-protocol/banzami/services/admin-api/internal/service"
+	"github.com/banzami/banzami/services/admin-api/internal/config"
+	"github.com/banzami/banzami/services/admin-api/internal/email"
+	"github.com/banzami/banzami/services/admin-api/internal/observability"
+	"github.com/banzami/banzami/services/admin-api/internal/server"
+	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
 func main() {

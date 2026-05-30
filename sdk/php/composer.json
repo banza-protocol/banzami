@@ -4,7 +4,7 @@
   "type": "library",
   "license": "MIT",
   "keywords": ["banzami", "payments", "angola", "qr", "wallets", "fintech"],
-  "homepage": "https://banzami.org",
+  "homepage": "https://banzami.com",
   "require": {
     "php": "^8.1",
     "psr/http-client": "^1.0",

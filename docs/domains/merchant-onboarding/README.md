@@ -82,7 +82,7 @@ Onboarding is only considered complete for SDK merchants when a successful sandb
 
 ## Merchant Profile
 
-Each merchant has a `merchant_profile` record that controls the public-facing presentation on `pay.banzami.org/profiles/{handle}`.
+Each merchant has a `merchant_profile` record that controls the public-facing presentation on `pay.banzami.com/profiles/{handle}`.
 
 Fields:
 - `handle` — unique, @handle-addressable (e.g. `@cantina.luanda`)

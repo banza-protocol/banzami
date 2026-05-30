@@ -134,7 +134,7 @@ dependencies:
 import 'package:banzami_sdk/banzami_sdk.dart';
 
 final client = ConsumerPublicClient(
-  baseUrl:     'https://api.banzami.org',
+  baseUrl:     'https://api.banzami.com',
   environment: BanzamiEnvironment.live,
 );
 
@@ -153,7 +153,7 @@ final result = await client.payQR(payload: scannedPayload);
 
 ```dart
 final sandboxClient = ConsumerPublicClient(
-  baseUrl:     'https://sandbox-api.banzami.org',
+  baseUrl:     'https://sandbox-api.banzami.com',
   environment: BanzamiEnvironment.sandbox,
 );
 

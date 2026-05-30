@@ -15,9 +15,9 @@
 #   public-api         Go public REST API
 #   admin-frontend     Next.js admin panel
 #   dashboard-frontend Next.js merchant dashboard
-#   pay-frontend       Next.js pay page (pay.banzami.org)
+#   pay-frontend       Next.js pay page (pay.banzami.com)
 #   checkout-frontend  Next.js checkout page
-#   docs-frontend      Next.js public website (banzami.org)
+#   docs-frontend      Next.js public website (banzami.com)
 #   staging            Staging sandbox (core-api-staging + public-api-staging)
 
 set -euo pipefail
@@ -161,7 +161,7 @@ deploy_dashboard_frontend() {
 }
 
 deploy_pay_frontend() {
-  step "pay-frontend" "Next.js pay page (pay.banzami.org)"
+  step "pay-frontend" "Next.js pay page (pay.banzami.com)"
   _deploy_frontend "pay" "pay-frontend" "banzami/pay-frontend:latest" "banzami-pay-frontend-1"
 }
 
@@ -171,7 +171,7 @@ deploy_checkout_frontend() {
 }
 
 deploy_docs_frontend() {
-  step "docs-frontend" "Next.js public website (banzami.org)"
+  step "docs-frontend" "Next.js public website (banzami.com)"
 
   info "Syncing app source to server..."
   rsync -az --delete \
@@ -195,7 +195,7 @@ deploy_docs_frontend() {
   ok "Reference doc and validation matrix synced"
 
   info "Building Docker image on server (context = repo root)..."
-  # Pass BanzAI API URL if set — enables Live API mode on banzami.org/banzai
+  # Pass BanzAI API URL if set — enables Live API mode on banzami.com/banzai
   # Accepts NEXT_PUBLIC_BANZAI_API_URL (canonical) or NEXT_PUBLIC_BANZAMIA_API_URL (deprecated)
   local BANZAI_URL="${NEXT_PUBLIC_BANZAI_API_URL:-${NEXT_PUBLIC_BANZAMIA_API_URL:-}}"
   local BANZAMIA_ARG=""
@@ -303,7 +303,7 @@ deploy_banzai_api() {
       --restart unless-stopped \
       -p 4200:4200 \
       -e BANZAI_MODE=live-api-no-model \
-      -e BANZAI_ALLOWED_ORIGINS=https://banzami.org \
+      -e BANZAI_ALLOWED_ORIGINS=https://banzami.com \
       banzami/banzai-api:latest
   "
   ok "Container started"

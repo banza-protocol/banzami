@@ -57,7 +57,7 @@ No part of this integration is mocked, stubbed, or simplified for demo purposes.
                ▼                                ▼
 ┌──────────────────────────┐      ┌─────────────────────────────┐
 │  Banzami API Gateway     │      │  Banzami Webhook Delivery   │
-│  api.banzami.org         │      │  (push on payment_link.paid)│
+│  api.banzami.com         │      │  (push on payment_link.paid)│
 │                          │      └─────────────────────────────┘
 │  POST /v1/payment-links  │
 │  GET  /v1/payment-links/ │
@@ -67,7 +67,7 @@ No part of this integration is mocked, stubbed, or simplified for demo purposes.
                ▼
 ┌──────────────────────────┐
 │  Banza Pay Page        │
-│  pay.banzami.org/{slug}  │
+│  pay.banzami.com/{slug}  │
 │  (QR target — donor      │
 │   scans with Banza app)│
 └──────────────────────────┘
@@ -116,7 +116,7 @@ regardless of which path wins the race.
 ## QR Flow Overview
 
 ```
-pay.banzami.org/{slug}  ← URL encoded in QR
+pay.banzami.com/{slug}  ← URL encoded in QR
          │
          ▼
 Donor opens Banza app → taps "Pagar" → scans QR
@@ -146,7 +146,7 @@ BanzamiProvider.sandbox = true
 display_name = "Banzami (Sandbox)"
          │
          ▼
-Doa routes to https://sandbox-api.banzami.org
+Doa routes to https://sandbox-api.banzami.com
 Payment links are virtual — no real money
          │
          ▼
@@ -203,11 +203,11 @@ cp .env.example .env.local
 ### 2. Configure Banza sandbox credentials
 
 ```env
-BANZAMI_GATEWAY_URL=https://sandbox-api.banzami.org
+BANZAMI_GATEWAY_URL=https://sandbox-api.banzami.com
 BANZAMI_API_KEY=bz_test_your_sandbox_key
 BANZAMI_MERCHANT_ID=your-test-merchant-uuid
 BANZAMI_WALLET_ID=your-test-wallet-uuid
-BANZAMI_PAY_BASE_URL=https://pay.banzami.org
+BANZAMI_PAY_BASE_URL=https://pay.banzami.com
 PAYMENT_PROVIDERS=stripe,bank-transfer,banzami
 ```
 
@@ -221,7 +221,7 @@ npm run dev
 
 ### 4. Simulate payment
 
-In the Banza sandbox dashboard (`https://sandbox-dashboard.banzami.org`), find the payment link and click **Simulate Payment**. The Doa UI confirms within 3 seconds.
+In the Banza sandbox dashboard (`https://sandbox-dashboard.banzami.com`), find the payment link and click **Simulate Payment**. The Doa UI confirms within 3 seconds.
 
 ---
 
@@ -232,7 +232,7 @@ See [production-checklist.md](production-checklist.md) for the complete go-live 
 Key environment variables for production:
 
 ```env
-BANZAMI_GATEWAY_URL=https://api.banzami.org
+BANZAMI_GATEWAY_URL=https://api.banzami.com
 BANZAMI_API_KEY=bz_live_...
 BANZAMI_MERCHANT_ID=<uuid>
 BANZAMI_WALLET_ID=<uuid>

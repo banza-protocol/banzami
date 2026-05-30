@@ -14,7 +14,7 @@ import (
 
 	"github.com/google/uuid"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/webhook"
+	"github.com/banzami/banzami/services/api-gateway/internal/webhook"
 )
 
 var (

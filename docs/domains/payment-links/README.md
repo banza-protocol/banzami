@@ -11,7 +11,7 @@ This is the primary commerce primitive for Angola's informal economy, where merc
 ## Link Anatomy
 
 ```
-https://pay.banzami.org/{slug}
+https://pay.banzami.com/{slug}
 ```
 
 - **slug** — 12 hex characters derived from the first 12 characters of a UUID v4 `simple` (no-hyphens) string.  
@@ -73,7 +73,7 @@ Terminal states (`USED`, `CANCELLED`, `EXPIRED`) are immutable.
 ## Payment Flow (Consumer-Initiated)
 
 ```
-Consumer opens pay.banzami.org/{slug}
+Consumer opens pay.banzami.com/{slug}
   │
   ├─ GET /public/pay/{slug}          ← no auth, api-gateway
   │    Returns: link details

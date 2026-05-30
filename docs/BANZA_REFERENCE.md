@@ -3,12 +3,14 @@
 **Version:** 1.0  
 **Date:** 2026-05-28  
 **Status:** Official  
-**Author:** Banza
+**Author:** Banzami
 
 ---
 
-> **BANZA é o protocolo. BanzAI é o Sistema Operativo. Banzami é a implementação de referência.**  
+> **BANZA é o protocolo. BanzAI é o Sistema Operativo. Banzami é o operador de referência — uma startup independente.**  
 > Ferramentas determinam a verdade. A IA explica a verdade.
+
+> **Nota institucional:** Banzami é uma empresa comercial independente. Não é parte da organização do protocolo BANZA (`github.com/banza-protocol`). Banzami opera em `github.com/banzami` e em `banzami.com`.
 
 ---
 
@@ -1078,7 +1080,7 @@ Cada componente do ecossistema torna-se mais acessível e mais eficaz quando com
 
 ### Arquitectura do Produto
 
-O BanzAI disponível publicamente em `banzami.org/banzai` é composto por dezasseis módulos especializados, organizados em três camadas:
+O BanzAI disponível publicamente em `banzami.com/banzai` é composto por dezasseis módulos especializados, organizados em três camadas:
 
 ![Protocol Operating System — 8 capacidades em órbita em torno do núcleo BanzAI](/images/architecture/protocol-operating-system.svg)
 
@@ -1129,7 +1131,7 @@ Esta arquitectura tem cinco camadas:
 2. **Operadores** — entidades certificadas que operam sobre o protocolo (Banzami, sandbox, futuros operadores) e SDKs oficiais
 3. **Quadro de Certificação** — L0 Sandbox → L1 Payment → L2 Settlement → L3 Federation → L4 Infrastructure
 4. **BanzAI** — Protocol OS: 3 camadas, 16 módulos, Model Router, Retrieval híbrido (RAG + Protocol Graph)
-5. **Aplicações** — Banzami app, banzami.org, Mobile (Flutter), Admin, BanzAI, Partner API
+5. **Aplicações** — Banzami app, banzami.com, Mobile (Flutter), Admin, BanzAI, Partner API
 
 ---
 
@@ -2091,7 +2093,7 @@ A separação é imposta ao nível da infraestrutura e não pode ser contornada 
 | | **Sandbox** | **Live** |
 |---|---|---|
 | Prefixo de API key | `bz_test_…` | `bz_live_…` |
-| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
+| Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
 | Dinheiro | Virtual — sem fundos reais | Kwanza angolano real |
 | Base de dados | Completamente separada | Completamente separada |
 

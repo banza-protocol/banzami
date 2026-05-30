@@ -71,8 +71,8 @@ The Reference Operator implements all standard protocol capabilities:
   "environment": "LIVE",
   "sandbox_available": true,
   "endpoints": {
-    "sandbox": "https://sandbox-api.banzami.org",
-    "live":    "https://api.banzami.org"
+    "sandbox": "https://sandbox-api.banzami.com",
+    "live":    "https://api.banzami.com"
   }
 }
 ```

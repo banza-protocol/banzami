@@ -265,13 +265,13 @@ services:
 
   # ─── Frontend applications ────────────────────────────────────────────────────
 
-  # Next.js pay page — public payment link checkout (pay.banzami.org).
+  # Next.js pay page — public payment link checkout (pay.banzami.com).
   pay-frontend:
     build:
       context: ../../apps/pay
       dockerfile: Dockerfile
     environment:
-      NEXT_PUBLIC_GATEWAY_URL: https://api.banzami.org
+      NEXT_PUBLIC_GATEWAY_URL: https://api.banzami.com
       STAGING_GATEWAY_URL:     http://public-api-staging:8083
     ports:
       - "3002:3002"

@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/banza-protocol/banzami/services/public-api/internal/middleware"
+	"github.com/banzami/banzami/services/public-api/internal/middleware"
 )
 
 // buildSandboxHandler creates a SandboxHandler with the given environment.

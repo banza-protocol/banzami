@@ -222,7 +222,7 @@ Para desactivar: `POST /v1/consumers/8d94dd9c-73d6-4743-94f5-4235249dbb79/suspen
 | API Key     | bz_test_87a03087cf16455da674da1e44c1c0c8eca8bab761fb49a69966151198e741e2  | Revogar no dashboard  |
 | Ambiente    | SANDBOX                                                                    | —                     |
 
-Para desactivar: revogar a API Key acima em dashboard.banzami.org → Definições → API Keys.
+Para desactivar: revogar a API Key acima em dashboard.banzami.com → Definições → API Keys.
 
 ---
 

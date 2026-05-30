@@ -7,7 +7,7 @@ import { saveSession } from '@/lib/session';
 export default function LoginPage() {
   const router = useRouter();
   const [form, setForm] = useState({
-    apiUrl:   process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://api.banzami.org/admin',
+    apiUrl:   process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://api.banzami.com/admin',
     adminKey: '',
   });
   const [error, setError]     = useState('');
@@ -49,7 +49,7 @@ export default function LoginPage() {
           <div className="flex flex-col gap-xs">
             <label className="text-xs font-medium text-gray-700">Admin API URL</label>
             <input type="url" value={form.apiUrl} onChange={set('apiUrl')} required
-              className={cls} placeholder="https://api.banzami.org/admin" />
+              className={cls} placeholder="https://api.banzami.com/admin" />
           </div>
           <div className="flex flex-col gap-xs">
             <label className="text-xs font-medium text-gray-700">Admin Key</label>

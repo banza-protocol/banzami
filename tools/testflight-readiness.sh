@@ -5,7 +5,7 @@
 # functionally ready before submitting a TestFlight build.
 #
 # Usage:
-#   ./tools/testflight-readiness.sh                  # check staging.banzami.org
+#   ./tools/testflight-readiness.sh                  # check staging.banzami.com
 #   STAGING_URL=https://my-staging ./tools/testflight-readiness.sh
 #
 # Exit code: 0 = all checks passed. 1 = one or more checks failed.
@@ -15,8 +15,8 @@
 
 set -euo pipefail
 
-STAGING_URL="${STAGING_URL:-https://staging.banzami.org}"
-LIVE_URL="${LIVE_URL:-https://api.banzami.org}"
+STAGING_URL="${STAGING_URL:-https://staging.banzami.com}"
+LIVE_URL="${LIVE_URL:-https://api.banzami.com}"
 
 GREEN='\033[1;32m'; YELLOW='\033[1;33m'; RED='\033[1;31m'; CYAN='\033[1;36m'; RESET='\033[0m'
 BOLD='\033[1m'
@@ -318,7 +318,7 @@ else
   printf "  1. Run sandbox icon swap : ./tools/gen-icons-sandbox.sh\n"
   printf "  2. Build the IPA         : flutter build ipa \\\n"
   printf "       --dart-define=ENVIRONMENT=sandbox \\\n"
-  printf "       --dart-define=PUBLIC_API_URL=https://staging.banzami.org\n"
+  printf "       --dart-define=PUBLIC_API_URL=https://staging.banzami.com\n"
   printf "  3. Restore live icon     : ./tools/gen-icons-sandbox.sh --restore\n"
   printf "  4. Upload to TestFlight  : xcrun altool --upload-app ...\n\n"
 fi

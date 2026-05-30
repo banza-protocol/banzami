@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/middleware"
+	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 )
 
 const testSecret = "test-secret-at-least-32-bytes-long-xyz"

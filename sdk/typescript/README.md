@@ -26,7 +26,7 @@ npm install @banza/sdk
 import { BanzaClient } from '@banza/sdk';
 
 const client = new BanzaClient({
-  baseUrl: 'https://api.banzami.org',
+  baseUrl: 'https://api.banzami.com',
   apiKey:  'bz_live_...',
 });
 ```
@@ -204,7 +204,7 @@ const link = await client.createPaymentLink({
 
 console.log(link.slug);    // e.g. "abc123"
 console.log(link.status);  // "ACTIVE"
-// Share: https://pay.banzami.org/abc123
+// Share: https://pay.banzami.com/abc123
 ```
 
 ### Open link (consumer sets amount)

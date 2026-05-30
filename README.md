@@ -1,16 +1,17 @@
-# Banzami — Reference Operator Implementation
+# Banzami
+
+> **Banzami is an independent commercial startup — not part of the BANZA protocol organization.**
 
 > **BANZA** = open financial infrastructure protocol · [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)  
 > **BanzAI** = Protocol Operating System · [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai)  
-> **Banzami** = reference operator implementation ← this repository
+> **Banzami** = independent startup and reference operator · [github.com/banzami/banzami](https://github.com/banzami/banzami) ← this repository
 
-> **Naming note:** Banzami was formerly called Banza (the product). The naming inversion (ADR-025, 2026-05-29) assigned Banzami to the reference operator and BANZA to the protocol. See `docs/migration/` for the full migration record.
+> Angola's instant payment startup — QR-native, wallet-native, built on the BANZA protocol.  
+> Website: [banzami.com](https://banzami.com) · Contact: contact@banzami.com
 
-> Angola's instant payment network — QR-native, wallet-native, built on the BANZA protocol.
+**Banzami is a startup and the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one company — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
 
-**Banzami is the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one operator — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
-
-The open BANZA protocol (kernel, SDKs, contracts, protocol specs) lives at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
+Banzami operates independently from the BANZA protocol organization. Protocol governance, SDKs, and contracts live at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
 
 ---
 
@@ -154,18 +155,18 @@ The platform is live on an IONOS VPS (`217.160.9.248`, Ubuntu 24.04, 4 vCores / 
 
 | URL | Service | Description |
 |-----|---------|-------------|
-| `https://api.banzami.org` | API Gateway | Merchant REST API — authenticated with JWT |
-| `https://consumer.banzami.org` | Public API | Consumer mobile API — authenticated with PIN + JWT |
-| `https://pay.banzami.org` | Checkout Frontend | Hosted payment links and QR checkout (Next.js) |
-| `https://admin.banzami.org` | Admin Frontend | Internal operations portal (Next.js) |
-| `https://business.banzami.org` | Business Dashboard | Merchant self-service dashboard (Next.js) |
+| `https://api.banzami.com` | API Gateway | Merchant REST API — authenticated with JWT |
+| `https://consumer.banzami.com` | Public API | Consumer mobile API — authenticated with PIN + JWT |
+| `https://pay.banzami.com` | Checkout Frontend | Hosted payment links and QR checkout (Next.js) |
+| `https://admin.banzami.com` | Admin Frontend | Internal operations portal (Next.js) |
+| `https://business.banzami.com` | Business Dashboard | Merchant self-service dashboard (Next.js) |
 
 **Sandbox (test environment)**
 
 | URL | Service | Description |
 |-----|---------|-------------|
-| `https://sandbox-api.banzami.org` | API Gateway (sandbox) | Same API surface — virtual money, no real transactions |
-| `https://sandbox-dashboard.banzami.org` | Business Dashboard (sandbox) | Merchant dashboard for test integrations |
+| `https://sandbox-api.banzami.com` | API Gateway (sandbox) | Same API surface — virtual money, no real transactions |
+| `https://sandbox-dashboard.banzami.com` | Business Dashboard (sandbox) | Merchant dashboard for test integrations |
 
 Sandbox and live data never mix. A `bz_test_` key is rejected by the live gateway; a `bz_live_` key is rejected by the sandbox. See the [Sandbox](#sandbox) section for full details.
 
@@ -232,7 +233,7 @@ Build directories on the server:
 
 ### SSL
 
-Cloudflare Origin Certificate (RSA 2048, wildcard `*.banzami.org` + `banzami.org`).
+Cloudflare Origin Certificate (RSA 2048, wildcard `*.banzami.com` + `banzami.com`).
 Valid until May 2041. Cloudflare SSL/TLS mode: **Full (strict)**.
 
 ```
@@ -263,7 +264,7 @@ Certificates are mounted read-only into the nginx container. No certbot or autom
 │   DDoS protection  │  WAF rules  │  Bot management  │  SSL/TLS Full strict   │
 │   Origin Certificate validation   │  CF-Connecting-IP header injection        │
 │                                                                               │
-│   *.banzami.org  →  217.160.9.248 (IONOS VPS)  — proxied, orange cloud       │
+│   *.banzami.com  →  217.160.9.248 (IONOS VPS)  — proxied, orange cloud       │
 └───────────────────────────────────┬──────────────────────────────────────────┘
                                     │  HTTPS  (Cloudflare Origin Certificate)
                                     ▼
@@ -271,11 +272,11 @@ Certificates are mounted read-only into the nginx container. No certbot or autom
 │                     nginx  :80 / :443  (Docker container)                     │
 │                     TLS termination  ·  virtual host routing                  │
 │                                                                               │
-│  api.banzami.org      →  api-gateway:8080   (CORS: admin + business origins)  │
-│  consumer.banzami.org →  public-api:8083                                      │
-│  admin.banzami.org    →  admin-frontend:3002  +  /api/ → admin-api:8082       │
-│  business.banzami.org →  dashboard-frontend:3001                              │
-│  pay.banzami.org      →  checkout-frontend:3003                               │
+│  api.banzami.com      →  api-gateway:8080   (CORS: admin + business origins)  │
+│  consumer.banzami.com →  public-api:8083                                      │
+│  admin.banzami.com    →  admin-frontend:3002  +  /api/ → admin-api:8082       │
+│  business.banzami.com →  dashboard-frontend:3001                              │
+│  pay.banzami.com      →  checkout-frontend:3003                               │
 └──┬──────────────┬──────────────┬──────────────┬──────────────┬───────────────┘
    │              │              │              │              │
    ▼              ▼              ▼              ▼              ▼
@@ -445,7 +446,7 @@ banzami/
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
 │   ├── merchant/                  Standalone Flutter merchant app (reference project)
-│   ├── docs/          [→ platforms/docs]       Developer documentation site (banzami.org)
+│   ├── docs/          [→ platforms/docs]       Developer documentation site (banzami.com)
 │   └── validation-studio/ [→ platforms/validation-studio]  LOCAL-ONLY governance workstation (:3099)
 │
 │   ── platforms/ (semantic concept — physical home: apps/docs and apps/validation-studio)
@@ -1019,7 +1020,7 @@ Internal-only service for compliance operations, settlement management, and reco
 | `SMTP_PORT`           | `587`                     | SMTP port (`465` for SSL, `587` for STARTTLS) |
 | `SMTP_USER`           | optional                  | SMTP username                            |
 | `SMTP_PASSWORD`       | optional                  | SMTP password                            |
-| `SMTP_FROM`           | `noreply@banzami.org`     | Sender address                           |
+| `SMTP_FROM`           | `noreply@banzami.com`     | Sender address                           |
 | `SMTP_FROM_NAME`      | `Banzami`                 | Sender display name                      |
 | `OTLP_ENDPOINT`       | optional                  | OTLP HTTP endpoint                       |
 | `LOG_LEVEL`           | `info`                    | Log verbosity                            |
@@ -1263,8 +1264,8 @@ Banzami operates two fully isolated environments. Sandbox is a complete replica 
 | | Sandbox | Live |
 |---|---|---|
 | API key prefix | `bz_test_…` | `bz_live_…` |
-| Base URL | `https://sandbox-api.banzami.org` | `https://api.banzami.org` |
-| Dashboard | `https://sandbox-dashboard.banzami.org` | `https://business.banzami.org` |
+| Base URL | `https://sandbox-api.banzami.com` | `https://api.banzami.com` |
+| Dashboard | `https://sandbox-dashboard.banzami.com` | `https://business.banzami.com` |
 | Money | Virtual AOA — no real funds | Real Angolan Kwanza |
 | Database | Physically separate | Physically separate |
 | Redis | Physically separate | Physically separate |
@@ -1689,7 +1690,7 @@ After the stack is running, create a test merchant with API key and wallet:
 ```bash
 ./tools/seed.sh
 # or with custom name and email:
-./tools/seed.sh "Farmácia Central" farmacia@banzami.org
+./tools/seed.sh "Farmácia Central" farmacia@banzami.com
 ```
 
 The script prints credentials ready to paste into the dashboard at `http://localhost:3010/login`:
@@ -1702,7 +1703,7 @@ Wallet ID     wlt_xxxxxxxx-...
 
 To create a sandbox API key for local integration testing, pass `"environment": "SANDBOX"` to `POST /v1/merchants/{id}/api-keys`. The returned `bz_test_` key routes to the sandbox stack and shows the amber banner in the dashboard.
 
-**Admin panel** (`http://localhost:3002/login` locally, `https://admin.banzami.org` in production) uses the `ADMIN_API_KEY` from `.env`.
+**Admin panel** (`http://localhost:3002/login` locally, `https://admin.banzami.com` in production) uses the `ADMIN_API_KEY` from `.env`.
 
 ### Test Bank Account (for Payouts)
 
@@ -1767,7 +1768,7 @@ flutter run --flavor consumer -t lib/main_consumer.dart \
 
 # Consumer app — production backend
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org --debug
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com --debug
 
 # Merchant app — local backend
 flutter run --flavor merchant -t lib/main_merchant.dart \
@@ -1775,7 +1776,7 @@ flutter run --flavor merchant -t lib/main_merchant.dart \
 
 # Merchant app — production backend
 flutter run --flavor merchant -t lib/main_merchant.dart \
-  --dart-define=GATEWAY_URL=https://api.banzami.org --debug
+  --dart-define=GATEWAY_URL=https://api.banzami.com --debug
 ```
 
 **Build for release:**
@@ -1785,12 +1786,12 @@ cd apps/mobile
 
 # iOS IPA (requires Xcode and Apple Developer account)
 flutter build ipa --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.org \
+  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com \
   --export-options-plist=ios/ExportOptions.plist
 
 flutter build ipa --flavor merchant -t lib/main_merchant.dart \
-  --dart-define=GATEWAY_URL=https://api.banzami.org \
-  --dart-define=PAY_BASE_URL=https://pay.banzami.org \
+  --dart-define=GATEWAY_URL=https://api.banzami.com \
+  --dart-define=PAY_BASE_URL=https://pay.banzami.com \
   --export-options-plist=ios/ExportOptions.plist
 
 # Android APK

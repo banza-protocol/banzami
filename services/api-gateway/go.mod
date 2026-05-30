@@ -1,4 +1,4 @@
-module github.com/banza-protocol/banzami/services/api-gateway
+module github.com/banzami/banzami/services/api-gateway
 
 go 1.25.0
 

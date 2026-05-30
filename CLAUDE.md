@@ -1,16 +1,25 @@
 # Banzami — Reference Operator Engineering Constitution
 
-> **I am working on the reference operator implementation of BANZA.**  
-> Banzami is one implementation of BANZA. The protocol is not owned by Banzami.
+> **I am working on Banzami — an independent commercial startup and reference operator built on the BANZA protocol.**  
+> Banzami is a company. It does not own or govern the BANZA protocol.
 
 ---
+
+## Institutional Identity
+
+**Banzami is a startup.** It is:
+- An independent commercial company
+- The reference operator implementation of BANZA
+- Governed separately from the BANZA protocol organization
+- Hosted at `github.com/banzami` (not `github.com/banza-protocol`)
+- The product domain is `banzami.com`
 
 ## Ecosystem Identity (ADR-025)
 
 ```
-BANZA    = open financial infrastructure protocol        ~/banza
-BanzAI   = Protocol Operating System                    ~/banzai
-Banzami  = Reference operator implementation            ← THIS REPO
+BANZA    = open financial infrastructure protocol        ~/banza   github.com/banza-protocol/banza
+BanzAI   = Protocol Operating System                    ~/banzai  github.com/banza-protocol/banzai
+Banzami  = Independent startup / reference operator     ← THIS REPO  github.com/banzami/banzami
 ```
 
 Read the shared operating rules first: [../banza/docs/governance/CLAUDE_BASE.md](../banza/docs/governance/CLAUDE_BASE.md)
@@ -437,7 +446,7 @@ Kubernetes is intentionally deferred until operational maturity requires it.
     /apps
         /dashboard       ← Merchant dashboard (Next.js)
         /admin           ← Admin portal (Next.js)
-        /docs            ← banzami.org website (Next.js — driven by BANZA_REFERENCE.md)
+        /docs            ← banzami.com website (Next.js — driven by BANZA_REFERENCE.md)
         /pay             ← Pay page (Next.js)
         /checkout        ← Checkout page (Next.js)
 
@@ -628,7 +637,7 @@ It is simultaneously:
 * the official public positioning,
 * the official architecture reference,
 * the official payment philosophy,
-* the authoritative content source for banzami.org.
+* the authoritative content source for banzami.com.
 
 Think of it as: **The Constitution of the Banza Ecosystem — rendered by Banzami.**
 
@@ -643,14 +652,14 @@ structured parsing / rendering
 ↓
 website sections
 ↓
-banzami.org
+banzami.com
 ```
 
 NEVER the reverse. Website first → markdown later is FORBIDDEN.
 
 ## 14.4 The Publication Rule
 
-NOTHING may appear on banzami.org WITHOUT FIRST existing inside `docs/BANZA_REFERENCE.md`.
+NOTHING may appear on banzami.com WITHOUT FIRST existing inside `docs/BANZA_REFERENCE.md`.
 
 ## 14.5 The Update Rule
 
@@ -747,13 +756,16 @@ Both brand names are grammatically **masculine** in Portuguese:
 | a Banza | o Banza |
 | da Banza | do Banza |
 
-## 15.7 Protected names (ADR-025 — deferred, do not rename yet)
+## 15.7 Canonical names (BANZAMI-INSTITUTIONAL-SEPARATION-001, 2026-05-30)
 
-* `@banza` — permanent
-* `banzami.org` — domain, deferred
-* `contact@banzami.org`, `security@banzami.org` — emails, deferred
-* `github.com/banzami` — old GitHub org, deferred
-* Rust crate names (`banzami-types`, `banzami-ledger`, etc.) — out of scope
+The institutional separation is complete. These are the current canonical names:
+
+* `@banza` — permanent handle identity (protocol level)
+* `banzami.com` — **active** primary domain
+* `contact@banzami.com`, `security@banzami.com` — **active** contact emails
+* `github.com/banzami/banzami` — **active** GitHub repo (post-transfer)
+* `github.com/banza-protocol` — BANZA protocol org (banza + banzai only)
+* Rust crate names (`banzami-types`, `banzami-ledger`, etc.) — out of scope (deferred)
 
 ## 15.8 Canonical positioning phrases
 

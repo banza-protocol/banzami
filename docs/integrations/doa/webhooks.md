@@ -19,7 +19,7 @@ Doa's webhook endpoint: `POST /api/webhooks/banzami`
 Register your endpoint using the Banza API:
 
 ```bash
-curl -X POST https://api.banzami.org/v1/webhooks/endpoints \
+curl -X POST https://api.banzami.com/v1/webhooks/endpoints \
   -H "Authorization: Bearer $BANZAMI_JWT" \
   -H "Content-Type: application/json" \
   -d '{
@@ -297,11 +297,11 @@ The Banza API lets you inspect delivery history:
 
 ```bash
 # List events for a merchant
-curl "https://api.banzami.org/v1/webhooks/events?merchant_id=mer_01jqx..." \
+curl "https://api.banzami.com/v1/webhooks/events?merchant_id=mer_01jqx..." \
   -H "Authorization: Bearer $BANZAMI_JWT"
 
 # Inspect delivery attempts for a specific event
-curl "https://api.banzami.org/v1/webhooks/events/evt_01jqx.../deliveries" \
+curl "https://api.banzami.com/v1/webhooks/events/evt_01jqx.../deliveries" \
   -H "Authorization: Bearer $BANZAMI_JWT"
 ```
 
@@ -326,7 +326,7 @@ cloudflared tunnel --url http://localhost:3000
 Register the tunnel URL as your webhook endpoint:
 
 ```bash
-curl -X POST https://sandbox-api.banzami.org/v1/webhooks/endpoints \
+curl -X POST https://sandbox-api.banzami.com/v1/webhooks/endpoints \
   -H "Authorization: Bearer $SANDBOX_JWT" \
   -d '{ "url": "https://abc.ngrok.io/api/webhooks/banzami",
          "events": ["payment_link.paid"] }'
@@ -342,7 +342,7 @@ Manual test sequence:
 
 ```bash
 # 1. Create a payment link
-curl -X POST https://sandbox-api.banzami.org/v1/payment-links \
+curl -X POST https://sandbox-api.banzami.com/v1/payment-links \
   -H "Authorization: Bearer $SANDBOX_JWT" \
   -d '{
     "merchant_id":  "...",
@@ -353,7 +353,7 @@ curl -X POST https://sandbox-api.banzami.org/v1/payment-links \
 # → Note the link id
 
 # 2. Simulate payment (marks link as USED + fires webhook)
-curl -X POST https://sandbox-api.banzami.org/v1/payment-links/{id}/mark-used \
+curl -X POST https://sandbox-api.banzami.com/v1/payment-links/{id}/mark-used \
   -H "Authorization: Bearer $SANDBOX_JWT"
 
 # 3. Inspect your server logs for:

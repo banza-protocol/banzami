@@ -112,7 +112,7 @@ Banzami (organização / ecossistema)
 - Relações com bancos e reguladores ("o Banzami ganha acesso a...")
 - O ecossistema no seu conjunto ("ecossistema Banzami", "o Ecossistema Banzami")
 - Futuros produtos não-Banza da organização
-- Nomes de domínio de infraestrutura (pay.banzami.org, api.banzami.org)
+- Nomes de domínio de infraestrutura (pay.banzami.com, api.banzami.com)
 
 **Exemplos correctos:**
 - "Banzami é a organização que constrói..."
@@ -163,9 +163,9 @@ Prefixo de chaves API: `bz_live_...`, `bz_sandbox_...` (prefixo `bz` mantém-se)
 
 Os domínios de infraestrutura mantêm o nome `banzami` por serem activos da organização, não do produto:
 
-- `pay.banzami.org` — página de pagamento e lojas de comerciantes
-- `api.banzami.org` — endpoint da API REST
-- `banzami.org` — website público da organização
+- `pay.banzami.com` — página de pagamento e lojas de comerciantes
+- `api.banzami.com` — endpoint da API REST
+- `banzami.com` — website público da organização
 
 Os protocolos QR usam o prefixo `banza` por serem activos do produto:
 

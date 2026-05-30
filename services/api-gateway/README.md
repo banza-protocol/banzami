@@ -172,9 +172,9 @@ CORS is handled at two layers. An origin must appear in exactly one layer — ne
 
 | Origin | Layer |
 |--------|-------|
-| `https://admin.banzami.org` | nginx (`/srv/banzami/nginx/banzami.conf`) |
-| `https://business.banzami.org` | nginx |
-| `https://pay.banzami.org` | Go middleware (`internal/middleware/cors.go`) |
+| `https://admin.banzami.com` | nginx (`/srv/banzami/nginx/banzami.conf`) |
+| `https://business.banzami.com` | nginx |
+| `https://pay.banzami.com` | Go middleware (`internal/middleware/cors.go`) |
 | `http://localhost:3010/3002/3003/3004` | Go middleware (local dev only) |
 
 When adding a new production frontend, choose one layer and add it there only.

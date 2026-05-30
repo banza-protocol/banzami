@@ -151,7 +151,7 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
 <body>
   <div class="wrap">
     <div class="header">
-      <img src="https://pay.banzami.org/banzami-icon.png" alt="Banzami" />
+      <img src="https://pay.banzami.com/banzami-icon.png" alt="Banzami" />
       <h1>Banzami</h1>
       <p>Pagamentos instantâneos para Angola</p>
     </div>
@@ -175,7 +175,7 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
       </div>
 
       <p>Para começar a receber pagamentos, descarregue a app <strong>Banzami Comerciante</strong> e introduza as credenciais acima quando solicitado.</p>
-      <p>Se tiver alguma dúvida, contacte-nos em <a href="mailto:contact@banzami.org">contact@banzami.org</a>.</p>
+      <p>Se tiver alguma dúvida, contacte-nos em <a href="mailto:contact@banzami.com">contact@banzami.com</a>.</p>
     </div>
     <div class="footer">
       <p>Este email foi enviado automaticamente pela Banzami.<br>© 2025 Banzami — Todos os direitos reservados.</p>

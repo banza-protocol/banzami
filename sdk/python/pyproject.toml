@@ -38,7 +38,7 @@ dev = [
 ]
 
 [project.urls]
-Homepage    = "https://banzami.org"
+Homepage    = "https://banzami.com"
 Repository  = "https://github.com/banza-protocol/sdk-python"
 "Bug Tracker" = "https://github.com/banza-protocol/sdk-python/issues"
 

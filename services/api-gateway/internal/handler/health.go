@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/banza-protocol/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/config"
 )
 
 // Liveness handles GET /health.

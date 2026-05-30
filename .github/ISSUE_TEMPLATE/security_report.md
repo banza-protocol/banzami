@@ -7,7 +7,7 @@ about: Report a security vulnerability in Banzami
 
 Please report security vulnerabilities by **private email** to:
 
-**security@banzami.org**
+**security@banzami.com**
 
 See [BANZAMI_SECURITY.md](../BANZAMI_SECURITY.md) for the full security policy.
 

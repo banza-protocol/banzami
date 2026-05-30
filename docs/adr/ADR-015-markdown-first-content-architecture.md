@@ -36,14 +36,14 @@ BANZA_REFERENCE.md
         ↓
    website sections
         ↓
-    banzami.org
+    banzami.com
 ```
 
 The website is **only the visual presentation layer**. It renders the markdown document elegantly. It does not own content.
 
 ### The Publication Rule
 
-Nothing may appear on any public surface — banzami.org, landing pages, docs pages, manifesto pages, ecosystem pages, architecture pages, SDK explanation pages, marketing pages, or investor pages — without first existing inside `docs/BANZA_REFERENCE.md`.
+Nothing may appear on any public surface — banzami.com, landing pages, docs pages, manifesto pages, ecosystem pages, architecture pages, SDK explanation pages, marketing pages, or investor pages — without first existing inside `docs/BANZA_REFERENCE.md`.
 
 ### The Update Rule
 
