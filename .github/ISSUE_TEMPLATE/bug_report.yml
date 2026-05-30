@@ -1,0 +1,58 @@
+name: Bug Report
+description: Report a bug or unexpected behavior in Banzami
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Fill in as much detail as possible.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Payment flows (QR, P2P, payment links)
+        - Wallet (balance, funding, payout)
+        - Merchant dashboard
+        - Admin portal
+        - Go API services
+        - Rust financial core
+        - SDK (TypeScript, Flutter, PHP)
+        - Infrastructure / deployment
+        - Documentation
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What happened? What did you expect?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - Critical — financial invariant violated, money lost/created, duplicate transactions
+        - High — payment flow broken, wallet inaccessible
+        - Medium — degraded functionality
+        - Low — cosmetic, minor issue
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Environment (sandbox/live), relevant transaction IDs, logs
