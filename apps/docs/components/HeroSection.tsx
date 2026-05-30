@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { HeroBanzamIAWidget } from './HeroBanzamIAWidget'
+import { HeroBanzAIWidget } from './HeroBanzAIWidget'
 
 interface Props {
   tagline: string
@@ -70,7 +70,7 @@ export function HeroSection({ tagline }: Props) {
         </div>
 
         {/* 5 — BanzAI entry (centerpiece) */}
-        <HeroBanzamIAWidget />
+        <HeroBanzAIWidget />
 
         {/* 6 — CTA buttons */}
         <div className="flex flex-wrap items-center justify-center gap-3">

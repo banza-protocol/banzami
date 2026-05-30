@@ -2,8 +2,8 @@
 
 import { useState, useRef } from 'react'
 import Link from 'next/link'
-import { chatStream, isLiveMode, type Citation } from '@/lib/banzamia-client'
-import { BanzamIAIcon } from './BanzamIAIcon'
+import { chatStream, isLiveMode, type Citation } from '@/lib/banzai-client'
+import { BanzAIIcon } from './BanzAIIcon'
 import { QuickPromptChip } from './QuickPromptChip'
 import { QuickAnswerCard } from './QuickAnswerCard'
 
@@ -18,7 +18,7 @@ const QUICK_PROMPTS = [
   'Como funciona o sandbox operator?',
 ]
 
-export function HomeBanzamIAEntry() {
+export function HomeBanzAIEntry() {
   const [input, setInput] = useState('')
   const [status, setStatus] = useState<Status>('idle')
   const [answer, setAnswer] = useState('')
@@ -77,7 +77,7 @@ export function HomeBanzamIAEntry() {
           {/* Header */}
           <div className="flex items-start gap-4 mb-5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-bz-primary shadow-primary">
-              <BanzamIAIcon size={22} className="text-white" />
+              <BanzAIIcon size={22} className="text-white" />
             </div>
             <div className="min-w-0">
               <h2 className="text-base font-bold text-bz-text tracking-tight">Pergunte ao BanzAI</h2>

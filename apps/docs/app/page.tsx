@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import Link from 'next/link'
 import { getReference, getSectionByNumber } from '@/lib/reference'
 import { HeroSection } from '@/components/HeroSection'
-import { HomeBanzamIAEntry } from '@/components/banzamia/HomeBanzamIAEntry'
+import { HomeBanzAIEntry } from '@/components/banzai/HomeBanzAIEntry'
 import { ManifestoQuote } from '@/components/ManifestoQuote'
 import { PaymentFlowDiagram } from '@/components/PaymentFlowDiagram'
 import { EcosystemMap } from '@/components/EcosystemMap'
@@ -54,7 +54,7 @@ export default function HomePage() {
       </div>
 
       {/* ─── 1b. BANZAMIA ENTRYPOINT ──────────────────────────────────────── */}
-      <HomeBanzamIAEntry />
+      <HomeBanzAIEntry />
 
       {/* ─── 2. MANIFESTO QUOTE ───────────────────────────────────────────── */}
       <div className="px-5 md:px-8 lg:px-12">

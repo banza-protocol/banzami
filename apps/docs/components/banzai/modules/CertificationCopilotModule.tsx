@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { certificationCopilot, type CopilotResult, type LevelStatus } from '@/lib/banzamia-client'
+import { certificationCopilot, type CopilotResult, type LevelStatus } from '@/lib/banzai-client'
 
 const LEVEL_COLORS = ['#374151', '#2A3A8C', '#0E7490', '#7C3AED', '#990011']
 

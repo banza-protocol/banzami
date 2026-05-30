@@ -19,7 +19,7 @@ interface Props {
 export const dynamicParams = false
 
 // Statically generate all section routes from BANZAMI_REFERENCE.md.
-// 'banzamia' is excluded — that path is handled by app/banzamia/page.tsx (live AI interface).
+// 'banzamia' is excluded — that path is handled by app/banzai/page.tsx (live AI interface).
 const STATIC_ROUTE_OVERRIDES = new Set(['banzamia'])
 
 export async function generateStaticParams() {

@@ -1,8 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { type ModuleId } from './BanzamIAApp'
-import { BanzamIAIcon } from './BanzamIAIcon'
+import { type ModuleId } from './BanzAIApp'
+import { BanzAIIcon } from './BanzAIIcon'
 
 interface Props {
   active: ModuleId
@@ -186,13 +186,13 @@ const MODULES: Array<{ id: ModuleId; label: string; icon: React.ReactNode; liveO
   },
 ]
 
-export function BanzamIASidebar({ active, onSelect, mode }: Props) {
+export function BanzAISidebar({ active, onSelect, mode }: Props) {
   return (
     <aside className="flex h-full w-52 shrink-0 flex-col border-r border-bia-border bg-bia-surface-2">
       {/* Logo area */}
       <div className="flex h-14 items-center gap-2.5 border-b border-bia-border px-4">
         <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-bia-primary shadow-bia-glow">
-          <BanzamIAIcon size={16} className="text-white" />
+          <BanzAIIcon size={16} className="text-white" />
         </div>
         <div className="min-w-0">
           <div className="text-sm font-bold tracking-tight text-bia-text">BanzAI</div>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { BanzamIAIcon } from './banzamia/BanzamIAIcon'
+import { BanzAIIcon } from './banzai/BanzAIIcon'
 
 const QUICK_PROMPTS = [
   'Como integrar o Banzami?',
@@ -14,7 +14,7 @@ const QUICK_PROMPTS = [
   'O que é um trace_id?',
 ]
 
-export function HeroBanzamIAWidget() {
+export function HeroBanzAIWidget() {
   const [input, setInput] = useState('')
   const router = useRouter()
 
@@ -37,7 +37,7 @@ export function HeroBanzamIAWidget() {
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-bz-primary"
             style={{ boxShadow: '0 2px 10px rgba(153,0,17,0.30)' }}
           >
-            <BanzamIAIcon size={18} className="text-white" />
+            <BanzAIIcon size={18} className="text-white" />
           </div>
 
           <div className="min-w-0 flex-1">

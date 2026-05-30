@@ -2,10 +2,10 @@
 
 import { useState } from 'react'
 import { useSearchParams } from 'next/navigation'
-import { isLiveMode, type Citation } from '@/lib/banzamia-client'
-import { BanzamIASidebar } from './BanzamIASidebar'
-import { BanzamIAChat } from './BanzamIAChat'
-import { BanzamIASourcesPanel } from './BanzamIASourcesPanel'
+import { isLiveMode, type Citation } from '@/lib/banzai-client'
+import { BanzAISidebar } from './BanzAISidebar'
+import { BanzAIChat } from './BanzAIChat'
+import { BanzAISourcesPanel } from './BanzAISourcesPanel'
 import { ConformanceModule } from './modules/ConformanceModule'
 import { ManifestModule } from './modules/ManifestModule'
 import { TraceModule } from './modules/TraceModule'
@@ -62,7 +62,7 @@ const MODULE_TITLES: Record<ModuleId, string> = {
   'digital-twin':          'Digital Twin',
 }
 
-export function BanzamIAApp() {
+export function BanzAIApp() {
   const searchParams = useSearchParams()
   const initialQuestion = searchParams.get('question') ?? undefined
   const autoSubmit = searchParams.get('auto') === '1'
@@ -84,7 +84,7 @@ export function BanzamIAApp() {
     switch (activeModule) {
       case 'chat':
         return (
-          <BanzamIAChat
+          <BanzAIChat
             onCitationsChange={setCitations}
             onModelChange={handleModelChange}
             onStreamingChange={setIsStreaming}
@@ -117,7 +117,7 @@ export function BanzamIAApp() {
   return (
     <div className="flex h-full bg-bia-bg text-bia-text">
       {/* Left sidebar */}
-      <BanzamIASidebar
+      <BanzAISidebar
         active={activeModule}
         onSelect={mod => {
           setActiveModule(mod)
@@ -142,7 +142,7 @@ export function BanzamIAApp() {
           )}
         </div>
 
-        {/* Module content — relative so BanzamIAChat can use absolute inset-0 */}
+        {/* Module content — relative so BanzAIChat can use absolute inset-0 */}
         <div className="relative min-h-0 flex-1 overflow-hidden">
           {renderModule()}
         </div>
@@ -150,7 +150,7 @@ export function BanzamIAApp() {
 
       {/* Right panel — only for chat */}
       {showSources && (
-        <BanzamIASourcesPanel
+        <BanzAISourcesPanel
           citations={citations}
           model={model}
           taskType={taskType}

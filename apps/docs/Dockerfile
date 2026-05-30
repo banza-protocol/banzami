@@ -24,8 +24,11 @@ COPY docs/validation/ /docs/validation/
 
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# BanzamIA Live API URL — set at build time to enable Live API mode on banzami.org/banzamia
+# BanzAI Live API URL — set at build time to enable Live API mode on banzami.org/banzai
 # Leave unset to keep Demo Mode (default).
+# Both canonical (BANZAI_) and deprecated (BANZAMIA_) names accepted.
+ARG NEXT_PUBLIC_BANZAI_API_URL
+ENV NEXT_PUBLIC_BANZAI_API_URL=${NEXT_PUBLIC_BANZAI_API_URL}
 ARG NEXT_PUBLIC_BANZAMIA_API_URL
 ENV NEXT_PUBLIC_BANZAMIA_API_URL=${NEXT_PUBLIC_BANZAMIA_API_URL}
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { getOperatorMemory, saveOperatorMemory, type OperatorMemory, type TimelineEvent } from '@/lib/banzamia-client'
+import { getOperatorMemory, saveOperatorMemory, type OperatorMemory, type TimelineEvent } from '@/lib/banzai-client'
 
 const LEVEL_COLORS = ['#374151', '#2A3A8C', '#0E7490', '#7C3AED', '#990011']
 

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getSystemStatus, type SystemStatus } from '@/lib/banzamia-client'
+import { getSystemStatus, type SystemStatus } from '@/lib/banzai-client'
 
 const MODE_LABELS: Record<string, { color: string; label: string }> = {
   demo:                { color: 'text-bia-amber', label: 'Demo' },

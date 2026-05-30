@@ -1,6 +1,6 @@
 'use client'
 
-import type { Citation } from '@/lib/banzamia-client'
+import type { Citation } from '@/lib/banzai-client'
 
 interface Props {
   citations: Citation[]
@@ -43,7 +43,7 @@ const TASK_LABELS: Record<string, string> = {
   CERTIFY:  'Certification',
 }
 
-export function BanzamIASourcesPanel({ citations, model, taskType, isStreaming, mode }: Props) {
+export function BanzAISourcesPanel({ citations, model, taskType, isStreaming, mode }: Props) {
   const modelInfo = MODEL_LABELS[model] ?? { label: model, color: 'text-bia-muted' }
 
   return (

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { getRagStats, type RagStatsResponse } from '@/lib/banzamia-client'
+import { getRagStats, type RagStatsResponse } from '@/lib/banzai-client'
 
 function StatCard({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
   return (
@@ -254,7 +254,7 @@ export function QualityModule() {
                     cd apps/banzamia && npm run rag:eval
                   </div>
                   <p className="mt-2 text-[10px] text-bia-muted-2">
-                    Results are written to <code className="font-mono">apps/banzamia/reports/</code>. The suite evaluates against the embedded benchmark corpus and reports MRR, Precision@K, Recall@K, and citation authority distribution.
+                    Results are written to <code className="font-mono">apps/banzai/reports/</code>. The suite evaluates against the embedded benchmark corpus and reports MRR, Precision@K, Recall@K, and citation authority distribution.
                   </p>
                 </div>
               </div>

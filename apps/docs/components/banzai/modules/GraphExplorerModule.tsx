@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { getGraphStats, getGraphNode, searchGraph, type GraphNodeClient, type GraphNeighbourClient, type GraphStatsResponse } from '@/lib/banzamia-client'
+import { getGraphStats, getGraphNode, searchGraph, type GraphNodeClient, type GraphNeighbourClient, type GraphStatsResponse } from '@/lib/banzai-client'
 
 const NODE_TYPE_COLOR: Record<string, string> = {
   rfc:                 '#990011',

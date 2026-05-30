@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { type Citation } from '@/lib/banzamia-client'
+import { type Citation } from '@/lib/banzai-client'
 
 interface Props {
   text: string

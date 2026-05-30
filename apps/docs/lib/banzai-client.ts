@@ -1,14 +1,14 @@
 // BanzAI API client
 // Mode detection:
-//   Demo Mode         — NEXT_PUBLIC_BANZAMIA_API_URL is not set
+//   Demo Mode         — NEXT_PUBLIC_BANZAI_API_URL is not set
 //   Live API No Model — API set, models not configured
 //   Live AI Mode      — API set + RunPod/vLLM configured
 
-export const BANZAMIA_API_URL = (
-  process.env.NEXT_PUBLIC_BANZAMIA_API_URL ?? ''
-).replace(/\/$/, '')
+// Read NEXT_PUBLIC_BANZAI_API_URL; fall back to NEXT_PUBLIC_BANZAI_API_URL (deprecated)
+const _apiUrl = process.env.NEXT_PUBLIC_BANZAI_API_URL ?? process.env.NEXT_PUBLIC_BANZAI_API_URL ?? ''
+export const BANZAI_API_URL = _apiUrl.replace(/\/$/, '')
 
-export const isLiveMode = !!process.env.NEXT_PUBLIC_BANZAMIA_API_URL
+export const isLiveMode = !!_apiUrl
 
 export interface ChatMessage {
   role: 'user' | 'assistant' | 'system'
@@ -33,7 +33,7 @@ export interface SystemStatus {
 // ─── Live API helpers ─────────────────────────────────────────────────────────
 
 async function post<T>(path: string, body: unknown, signal?: AbortSignal): Promise<T> {
-  const res = await fetch(`${BANZAMIA_API_URL}${path}`, {
+  const res = await fetch(`${BANZAI_API_URL}${path}`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body:    JSON.stringify(body),
@@ -57,7 +57,7 @@ export async function chatStream(
 
   let res: Response
   try {
-    res = await fetch(`${BANZAMIA_API_URL}/chat`, {
+    res = await fetch(`${BANZAI_API_URL}/chat`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ messages }),
@@ -251,7 +251,7 @@ export async function getSystemStatus(): Promise<SystemStatus> {
   }
 
   try {
-    const res = await fetch(`${BANZAMIA_API_URL}/status`, { cache: 'no-store' })
+    const res = await fetch(`${BANZAI_API_URL}/status`, { cache: 'no-store' })
     if (res.ok) return res.json() as Promise<SystemStatus>
   } catch { /* fall through */ }
 
@@ -310,7 +310,7 @@ export interface GraphRelatedResponse {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BANZAMIA_API_URL}${path}`, { cache: 'no-store' })
+  const res = await fetch(`${BANZAI_API_URL}${path}`, { cache: 'no-store' })
   if (!res.ok) throw new Error(`BanzAI API ${path}: ${res.status}`)
   return res.json() as Promise<T>
 }

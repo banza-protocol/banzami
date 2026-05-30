@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { runSimulation, type SimulatorResult, type SimulationChange } from '@/lib/banzamia-client'
+import { runSimulation, type SimulatorResult, type SimulationChange } from '@/lib/banzai-client'
 
 const ALL_CAPABILITIES = [
   'supports_wallets', 'supports_transfers', 'supports_qr', 'supports_payment_requests',

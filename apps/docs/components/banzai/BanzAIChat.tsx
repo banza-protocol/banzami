@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect, useLayoutEffect, useCallback } from 'react'
-import { chatStream, type ChatMessage, type Citation, isLiveMode } from '@/lib/banzamia-client'
-import { BanzamIAIcon } from './BanzamIAIcon'
+import { chatStream, type ChatMessage, type Citation, isLiveMode } from '@/lib/banzai-client'
+import { BanzAIIcon } from './BanzAIIcon'
 
 interface Message extends ChatMessage {
   id: string
@@ -45,7 +45,7 @@ function MessageBubble({ message }: { message: Message }) {
     <div className="flex gap-3">
       {/* AI avatar */}
       <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-bia-primary shadow-bia-glow mt-0.5">
-        <BanzamIAIcon size={16} className="text-white" />
+        <BanzAIIcon size={16} className="text-white" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -179,7 +179,7 @@ function renderInline(text: string): React.ReactNode {
   })
 }
 
-export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChange, initialQuestion, autoSubmit }: Props) {
+export function BanzAIChat({ onCitationsChange, onModelChange, onStreamingChange, initialQuestion, autoSubmit }: Props) {
   const [messages, setMessages] = useState<Message[]>([])
   const [input, setInput] = useState('')
   const [isStreaming, setIsStreaming] = useState(false)
@@ -275,7 +275,7 @@ export function BanzamIAChat({ onCitationsChange, onModelChange, onStreamingChan
         {/* Hero — min-h-0 + overflow-y-auto so it shrinks when composer grows */}
         <div className="flex flex-1 min-h-0 flex-col items-center justify-center p-8 overflow-y-auto overscroll-contain">
           <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-bia-primary shadow-bia-glow">
-            <BanzamIAIcon size={32} className="text-white" />
+            <BanzAIIcon size={32} className="text-white" />
           </div>
           <h1 className="mb-2 text-xl font-bold text-bia-text tracking-tight">BanzAI</h1>
           <p className="mb-1 text-sm text-bia-muted text-center max-w-md">

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   },
 }
 
-export default function SobreBanzamiaPage() {
+export default function SobreBanzAIPage() {
   const reference = getReference()
   const section = getSectionByNumber(11)
   if (!section) notFound()

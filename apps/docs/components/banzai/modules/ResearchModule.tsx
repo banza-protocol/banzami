@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { researchQuestion, type ResearchReport, type ResearchStep } from '@/lib/banzamia-client'
+import { researchQuestion, type ResearchReport, type ResearchStep } from '@/lib/banzai-client'
 
 const EXAMPLE_QUESTIONS = [
   'What do I need to become a Federation Operator?',

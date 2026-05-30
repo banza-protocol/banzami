@@ -12,7 +12,7 @@ const VARIANT_CLASS: Record<NonNullable<Props['variant']>, string> = {
   outline: 'text-bia-text',
 }
 
-export function BanzamIAIcon({ size = 16, variant = 'primary', className, glow = false }: Props) {
+export function BanzAIIcon({ size = 16, variant = 'primary', className, glow = false }: Props) {
   const colorClass = className ?? VARIANT_CLASS[variant]
   const filter = glow ? 'drop-shadow(0 0 4px rgb(153 0 17 / 0.6))' : undefined
 

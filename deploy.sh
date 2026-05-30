@@ -195,11 +195,13 @@ deploy_docs_frontend() {
   ok "Reference doc and validation matrix synced"
 
   info "Building Docker image on server (context = repo root)..."
-  # Pass BanzamIA API URL if set — enables Live API mode on banzami.org/banzamia
+  # Pass BanzAI API URL if set — enables Live API mode on banzami.org/banzai
+  # Accepts NEXT_PUBLIC_BANZAI_API_URL (canonical) or NEXT_PUBLIC_BANZAMIA_API_URL (deprecated)
+  local BANZAI_URL="${NEXT_PUBLIC_BANZAI_API_URL:-${NEXT_PUBLIC_BANZAMIA_API_URL:-}}"
   local BANZAMIA_ARG=""
-  if [ -n "${NEXT_PUBLIC_BANZAMIA_API_URL:-}" ]; then
-    BANZAMIA_ARG="--build-arg NEXT_PUBLIC_BANZAMIA_API_URL=${NEXT_PUBLIC_BANZAMIA_API_URL}"
-    info "BanzamIA Live API mode: ${NEXT_PUBLIC_BANZAMIA_API_URL}"
+  if [ -n "${BANZAI_URL}" ]; then
+    BANZAMIA_ARG="--build-arg NEXT_PUBLIC_BANZAI_API_URL=${BANZAI_URL} --build-arg NEXT_PUBLIC_BANZAMIA_API_URL=${BANZAI_URL}"
+    info "BanzAI Live API mode: ${BANZAI_URL}"
   fi
   ssh "$REMOTE" "docker build $NO_CACHE $BANZAMIA_ARG \
     -f /srv/banzami/src/apps/docs/Dockerfile \
