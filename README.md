@@ -1,10 +1,14 @@
-# Banzami — Private Commercial Product
+# Banzami — Reference Operator Implementation
 
-> **Naming note:** Banzami was formerly called Banza (the product). The naming inversion (ADR-025, 2026-05-29) assigned Banzami to the product and Banza to the protocol. See `docs/migration/` for the full migration record.
+> **BANZA** = open financial infrastructure protocol · [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)  
+> **BanzAI** = Protocol Operating System · [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai)  
+> **Banzami** = reference operator implementation ← this repository
 
-> Angola's instant payment network — QR-native, wallet-native, built on Banza infrastructure.
+> **Naming note:** Banzami was formerly called Banza (the product). The naming inversion (ADR-025, 2026-05-29) assigned Banzami to the reference operator and BANZA to the protocol. See `docs/migration/` for the full migration record.
 
-**This is the private commercial repository for Banzami**, the payment product built by Banzami. It contains the product applications, backend services, financial core, infrastructure, and operational tooling.
+> Angola's instant payment network — QR-native, wallet-native, built on the BANZA protocol.
+
+**Banzami is the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one operator — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
 
 The open-source ecosystem (SDKs, contracts, protocol specs, integrations) lives at [github.com/banzami/banzami](https://github.com/banzami/banzami).
 
