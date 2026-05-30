@@ -11,7 +11,7 @@
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    BanzamIA Frontend                            │
-│              (Next.js — banzami.org/banzamia)                   │
+│              (Next.js — banzami.org/banzai)                   │
 │                                                                 │
 │  Sidebar  │  Module Panel (Chat/Builder/Conformance/...)  │ Sources│
 └───────────────────────────┬─────────────────────────────────────┘

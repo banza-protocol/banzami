@@ -1078,7 +1078,7 @@ Cada componente do ecossistema torna-se mais acessível e mais eficaz quando com
 
 ### Arquitectura do Produto
 
-O BanzAI disponível publicamente em `banzami.org/banzamia` é composto por dezasseis módulos especializados, organizados em três camadas:
+O BanzAI disponível publicamente em `banzami.org/banzai` é composto por dezasseis módulos especializados, organizados em três camadas:
 
 ![Protocol Operating System — 8 capacidades em órbita em torno do núcleo BanzAI](/images/architecture/protocol-operating-system.svg)
 
@@ -1403,7 +1403,7 @@ O relatório de cobertura mostra quantos chunks e documentos estão indexados po
 
 ### Protocol Graph Explorer
 
-O Protocol Graph Explorer é um módulo visual interactivo que permite navegar o grafo de protocolo directamente no BanzAI. Acesse em `/banzamia` → **Protocol Graph**.
+O Protocol Graph Explorer é um módulo visual interactivo que permite navegar o grafo de protocolo directamente no BanzAI. Acesse em `/banzai` → **Protocol Graph**.
 
 ![Protocol Graph Explorer — painel de pesquisa, lista de nós, detalhe com relações](/images/architecture/protocol-graph-explorer.svg)
 
@@ -1472,7 +1472,7 @@ O módulo Protocol Research executa pesquisa multi-passo sobre a base de conheci
 POST /research    { "question": "..." }
 ```
 
-Ou directamente no módulo **Protocol Research** do BanzAI em `/banzamia`.
+Ou directamente no módulo **Protocol Research** do BanzAI em `/banzai`.
 
 ---
 
@@ -1514,7 +1514,7 @@ O Certification Copilot analisa um manifesto de operador e capacidades declarada
 POST /certification/copilot    { "manifest": {...}, "capabilities": [...], "target_level": 2 }
 ```
 
-Ou directamente no módulo **Certification Copilot** do BanzAI em `/banzamia`.
+Ou directamente no módulo **Certification Copilot** do BanzAI em `/banzai`.
 
 ---
 
@@ -1544,7 +1544,7 @@ Uma recuperação é considerada "fraca" quando o score de similaridade do top r
 GET /rag/stats    — snapshot completo em tempo real
 ```
 
-Acessível no módulo **Quality Dashboard** do BanzAI em `/banzamia`.
+Acessível no módulo **Quality Dashboard** do BanzAI em `/banzai`.
 
 ---
 

@@ -8,7 +8,7 @@
 
 ## What is BanzAI?
 
-BanzAI is the AI-native interface for building, validating, and certifying Banza protocol operators. It is deployed at `banzami.org/banzamia`.
+BanzAI is the AI-native interface for building, validating, and certifying Banza protocol operators. It is deployed at `banzami.org/banzai`.
 
 BanzAI is not a chatbot. It is the **Protocol Operating System** — an orchestrated AI system specifically grounded in the Banza protocol, financial invariants, conformance specifications, and governance documents.
 
@@ -100,7 +100,7 @@ A lightweight BanzAI entry card is embedded on the Banza homepage. It provides:
 - 6 quick-prompt chips for common protocol questions
 - Inline streaming answer (read-only, no tools)
 - Source chips showing citation types
-- "Continuar no BanzAI completo →" deep link to `/banzamia?question=...&auto=1`
+- "Continuar no BanzAI completo →" deep link to `/banzai?question=...&auto=1`
 
 Deep links to the full BanzAI interface auto-submit the question and show the complete module panel.
 

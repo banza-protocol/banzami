@@ -23,7 +23,7 @@
 1. Read [docs/sandbox/README.md](sandbox/README.md) — get started in sandbox
 2. Read [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) — SDK examples
 3. Read [docs/BANZA_REFERENCE.md §9](BANZA_REFERENCE.md) — programadores section
-4. Ask [BanzAI](https://banzami.org/banzamia) — generates integration code
+4. Ask [BanzAI](https://banzami.org/banzai) — generates integration code
 
 ### Operator building on the Banza protocol
 
@@ -31,7 +31,7 @@
 2. Read [docs/certification.md](certification.md) — certification levels and process
 3. Read [docs/conformance.md](conformance.md) — conformance suite reference
 4. Read [docs/banzamia/operator-builder.md](banzamia/operator-builder.md) — manifest creation
-5. Use [BanzAI Operator Builder](https://banzami.org/banzamia) — guided manifest creation
+5. Use [BanzAI Operator Builder](https://banzami.org/banzai) — guided manifest creation
 
 ### Understanding the protocol governance
 
@@ -45,7 +45,7 @@
 1. Read [docs/banzamia/overview.md](banzamia/overview.md) — what BanzAI is
 2. Read [docs/banzamia/architecture.md](banzamia/architecture.md) — technical architecture
 3. Read [docs/banzamia/roadmap.md](banzamia/roadmap.md) — what's coming
-4. Visit [banzami.org/banzamia](https://banzami.org/banzamia) — live interface
+4. Visit [banzami.org/banzai](https://banzami.org/banzai) — live interface
 
 ---
 
