@@ -168,7 +168,7 @@ export function StatusModule() {
           {[
             { label: 'Demo', desc: 'Frontend only. No API. All responses simulated in browser.' },
             { label: 'Live API — No Model', desc: 'Real backend + deterministic tools + mock model. Current mode.' },
-            { label: 'Live AI', desc: 'Real backend + RunPod/vLLM GPU models. Available when BANZAMIA_*_URL env vars are set.' },
+            { label: 'Live AI', desc: 'Real backend + RunPod/vLLM GPU models. Available when BANZAI_*_URL env vars are set.' },
           ].map(row => (
             <div key={row.label} className="text-xs text-bia-muted leading-relaxed">
               <span className="font-semibold text-bia-text">{row.label}: </span>

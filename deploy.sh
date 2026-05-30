@@ -28,7 +28,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend banzamia-api staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend banzai-api staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -268,45 +268,43 @@ _wait_healthy() {
   warn "$container health check timed out (may still be starting)"
 }
 
-deploy_banzamia_api() {
-  step "banzamia-api" "BanzamIA protocol intelligence API (Hono/Node)"
-  local BANZAMIA_REPO="${BANZAMIA_REPO:-$HOME/BanzamIA}"
+deploy_banzai_api() {
+  step "banzai-api" "BanzAI Protocol Operating System API (Hono/Node)"
+  local BANZAI_REPO="${BANZAI_REPO:-${BANZAMIA_REPO:-$HOME/Banzami}}"
 
-  if [ ! -d "$BANZAMIA_REPO" ]; then
-    die "BanzamIA repo not found at $BANZAMIA_REPO. Set BANZAMIA_REPO env var."
+  if [ ! -d "$BANZAI_REPO" ]; then
+    die "BanzAI repo not found at $BANZAI_REPO. Set BANZAI_REPO env var."
   fi
 
-  info "Syncing BanzamIA source to server..."
-  ssh "$REMOTE" "mkdir -p /srv/banzamia/src"
+  info "Syncing BanzAI source to server..."
+  ssh "$REMOTE" "mkdir -p /srv/banzai/src"
   rsync -az --delete \
     --exclude='.git' \
     --exclude='node_modules/' \
-    --exclude='apps/api/dist/' \
-    --exclude='apps/web/' \
-    --exclude='apps/cli/' \
-    "$BANZAMIA_REPO/" \
-    "$REMOTE:/srv/banzamia/src/"
+    --exclude='apps/banzai/dist/' \
+    "$BANZAI_REPO/" \
+    "$REMOTE:/srv/banzai/src/"
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzamia/src && docker build $NO_CACHE \
-    -f apps/api/Dockerfile \
-    -t banzami/banzamia-api:latest \
-    . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzai/src && docker build $NO_CACHE \
+    -f docker/banzai/Dockerfile \
+    -t banzami/banzai-api:latest \
+    apps/banzai/ 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
   info "Recreating container..."
   ssh "$REMOTE" "
-    mkdir -p /srv/banzamia
-    docker rm -f banzamia-api-1 2>/dev/null || true
+    mkdir -p /srv/banzai
+    docker rm -f banzai-api-1 2>/dev/null || true
     docker run -d \
-      --name banzamia-api-1 \
+      --name banzai-api-1 \
       --restart unless-stopped \
-      -p 4001:4001 \
-      -e BANZAMIA_MODE=live-api-no-model \
-      -e BANZAMIA_ALLOWED_ORIGINS=https://banzami.org \
-      banzami/banzamia-api:latest
+      -p 4200:4200 \
+      -e BANZAI_MODE=live-api-no-model \
+      -e BANZAI_ALLOWED_ORIGINS=https://banzami.org \
+      banzami/banzai-api:latest
   "
   ok "Container started"
 }
@@ -347,7 +345,7 @@ for svc in "${SERVICES[@]}"; do
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
     docs-frontend)      deploy_docs_frontend ;;
-    banzamia-api)       deploy_banzamia_api ;;
+    banzai-api)         deploy_banzai_api ;;
     staging)            deploy_staging ;;
   esac
 done

@@ -53,7 +53,7 @@ export default function HomePage() {
         <HeroSection tagline={reference.tagline} />
       </div>
 
-      {/* ─── 1b. BANZAMIA ENTRYPOINT ──────────────────────────────────────── */}
+      {/* ─── 1b. BanzAI ENTRYPOINT ──────────────────────────────────────── */}
       <HomeBanzAIEntry />
 
       {/* ─── 2. MANIFESTO QUOTE ───────────────────────────────────────────── */}
