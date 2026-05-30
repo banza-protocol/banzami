@@ -45,17 +45,19 @@ Não é um banco. Não é uma carteira digital simples. Não é uma plataforma f
 
 > *Banza constrói a infraestrutura. Banzami move o dinheiro.*
 
-### Arquitectura de dois níveis
+### Arquitectura de três níveis
 
-![Arquitectura de dois níveis — Banza (protocolo) ramifica em Banzami (produto) e BanzAI (inteligência)](/images/architecture/brand-architecture.svg)
+![Arquitectura de três níveis — BANZA (protocolo) ramifica em BanzAI (Sistema Operativo do Protocolo) e Banzami (Operador de Referência)](/images/architecture/brand-architecture.svg)
 
-Esta arquitectura de marca está definida no ADR-016.
+Esta arquitectura está definida no ADR-025. O ADR-016 documenta a história da separação Banza/Banzami; o ADR-025 estabelece a hierarquia de três níveis com BanzAI como Sistema Operativo do Protocolo.
 
-### Os quatro pilares do Banzami
+### Os quatro princípios do protocolo
 
-| Pilar | O que significa |
-|-------|----------------|
-| **Programmable** | Qualquer aplicação angolana integra pagamentos via SDK em horas. O Banzami não é só uma app — é a camada de pagamentos de Angola. |
+Qualquer operador certificado Banza implementa estes quatro princípios. O Banzami é a implementação de referência — não o detentor exclusivo destas propriedades.
+
+| Princípio | O que significa |
+|-----------|----------------|
+| **Programmable** | Qualquer aplicação integra pagamentos via SDK em horas. O protocolo é SDK-first — qualquer operador certificado expõe esta superfície. |
 | **Wallet-native** | Cada conta é uma carteira em Kwanza. Pagamentos são transferências directas entre carteiras. Sem IBAN. Sem código bancário. |
 | **QR-native** | A superfície principal de pagamento é um código QR. O comerciante imprime. O consumidor faz o scan. Instantâneo. Sem terminal. |
 | **Instant settlement** | O dinheiro move-se no momento da confirmação — confirmado, liquidado e visível em segundos. |
@@ -291,7 +293,7 @@ A infraestrutura financeira DEVE evitar erros de arredondamento em vírgula flut
 
 ### Semântica de Montantes de Liquidação
 
-Todo o fluxo de pagamento Banzami produz três montantes monetários com semântica exacta:
+Todo o fluxo de pagamento Banza produz três montantes monetários com semântica exacta:
 
 **`gross_minor`** — Montante pago pelo consumidor antes de quaisquer deduções. É o valor total que sai da carteira do consumidor.
 
@@ -629,7 +631,7 @@ Requisitos para federação:
 
 ## 9. BanzAI
 
-O BanzAI é um produto de primeira classe do ecossistema Banza — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
+O BanzAI é o Sistema Operativo nativo do protocolo Banza — não um componente interno, não um chatbot, não um wrapper genérico de LLM. É a interface cognitiva do protocolo.
 
 Se o Kernel é o motor financeiro do Banza, o BanzAI é a interface cognitiva do Banza. Um move valor. O outro torna o valor compreensível.
 
@@ -1874,7 +1876,7 @@ Não infraestrutura adaptada de um modelo estrangeiro que nunca foi concebido pa
 
 Infraestrutura construída aqui. Para aqui.
 
-**Isso é o Banzami — construído pelo Banza.**
+**Isso é a infraestrutura Banza em acção. O Banzami é como Angola a acede.**
 
 ### A transformação
 
@@ -1927,7 +1929,8 @@ Para Angola.
 - ADR-012 — Ecossistema SDK-first
 - ADR-013 — Identidade wallet-native
 - ADR-014 — Missão nacional Angola-first
-- ADR-016 — Arquitectura de marca Banza/Banzami (superseded for brand hierarchy by ADR-025)
+- ADR-025 — Hierarquia canónica de três níveis: BANZA (protocolo) · BanzAI (Sistema Operativo) · Banzami (Operador de Referência)
+- ADR-016 — Arquitectura de marca Banza/Banzami (histórico — superseded por ADR-025)
 - `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` — Referência técnica completa
 - `docs/validation/INVARIANT_TAXONOMY.md` — Registo completo de invariantes
 - `docs/sandbox/README.md` — Referência do ambiente sandbox

@@ -22,12 +22,12 @@
 
   <!-- Title -->
   <rect x="30" y="22" width="640" height="44" rx="10" fill="url(#hG)" filter="url(#sh)"/>
-  <text x="350" y="50" text-anchor="middle" fill="white" font-size="16" font-weight="700">Arquitectura de Dois Níveis</text>
+  <text x="350" y="50" text-anchor="middle" fill="white" font-size="16" font-weight="700">Arquitectura de Três Níveis</text>
 
-  <!-- Banza root -->
+  <!-- BANZA root — protocol is the root, not BANZAMI organization -->
   <rect x="220" y="84" width="260" height="56" rx="12" fill="#990011" filter="url(#sh)"/>
-  <text x="350" y="108" text-anchor="middle" fill="white" font-size="14" font-weight="700">BANZAMI</text>
-  <text x="350" y="127" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">organização · protocolo · ecossistema</text>
+  <text x="350" y="108" text-anchor="middle" fill="white" font-size="14" font-weight="700">BANZA</text>
+  <text x="350" y="127" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">protocolo · infraestrutura · ecossistema</text>
 
   <!-- Trunk line down -->
   <line x1="350" y1="140" x2="350" y2="166" stroke="#C4B8B6" stroke-width="2"/>
@@ -40,10 +40,10 @@
   <!-- Drop to BanzAI -->
   <line x1="530" y1="166" x2="530" y2="190" stroke="#C4B8B6" stroke-width="2"/>
 
-  <!-- Banzami column -->
+  <!-- Banzami column (left) — reference operator, not the root -->
   <rect x="60" y="190" width="240" height="56" rx="10" fill="url(#bzG)" stroke="#DBBCB2" stroke-width="1.5" filter="url(#sh)"/>
   <text x="180" y="214" text-anchor="middle" fill="#990011" font-size="13" font-weight="700">Banzami</text>
-  <text x="180" y="232" text-anchor="middle" fill="#6B6265" font-size="9">produto principal de pagamento</text>
+  <text x="180" y="232" text-anchor="middle" fill="#6B6265" font-size="9">operador de referência · produto</text>
 
   <!-- Banzami product tree -->
   <line x1="180" y1="246" x2="180" y2="268" stroke="#D4C9C7" stroke-width="1.5"/>
@@ -61,22 +61,21 @@
   <text x="85" y="391" fill="#6B6265" font-size="8">pagamento sem hardware</text>
   <text x="85" y="407" fill="#1A1A1A" font-size="9" font-weight="600">Banzami SDK · API · @banza</text>
 
-  <!-- BanzAI column -->
+  <!-- BanzAI column (right) — Protocol OS, not a product -->
   <rect x="410" y="190" width="240" height="56" rx="10" fill="url(#iaG)" stroke="#D4A800" stroke-width="1.5" filter="url(#sh)"/>
   <text x="530" y="214" text-anchor="middle" fill="#7A5800" font-size="13" font-weight="700">BanzAI</text>
-  <text x="530" y="232" text-anchor="middle" fill="#6B6265" font-size="9">Sistema Operativo de Protocolo</text>
+  <text x="530" y="232" text-anchor="middle" fill="#6B6265" font-size="9">Sistema Operativo do Protocolo</text>
 
   <line x1="530" y1="246" x2="530" y2="268" stroke="#D4C9C7" stroke-width="1.5"/>
 
-  <!-- BanzAI features -->
+  <!-- BanzAI capabilities — 6 protocol OS verbs -->
   <rect x="410" y="268" width="240" height="142" rx="10" fill="white" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh)"/>
-  <text x="530" y="287" text-anchor="middle" fill="#9B8E8C" font-size="8" font-weight="600" letter-spacing="0.5">MÓDULOS</text>
+  <text x="530" y="287" text-anchor="middle" fill="#9B8E8C" font-size="8" font-weight="600" letter-spacing="0.5">CAPACIDADES</text>
 
-  <text x="430" y="307" fill="#1A1A1A" font-size="9" font-weight="600">Chat — Q&amp;A do protocolo</text>
-  <text x="430" y="323" fill="#1A1A1A" font-size="9" font-weight="600">Operator Builder</text>
-  <text x="430" y="339" fill="#6B6265" font-size="8">criação de manifesto</text>
-  <text x="430" y="357" fill="#1A1A1A" font-size="9" font-weight="600">Conformance · Validador</text>
-  <text x="430" y="373" fill="#1A1A1A" font-size="9" font-weight="600">Trace Explainer</text>
-  <text x="430" y="389" fill="#1A1A1A" font-size="9" font-weight="600">SDK Assistant</text>
-  <text x="430" y="405" fill="#1A1A1A" font-size="9" font-weight="600">RFC/ADR Explorer · Knowledge</text>
+  <text x="430" y="309" fill="#1A1A1A" font-size="9" font-weight="600">Compreender</text>
+  <text x="430" y="327" fill="#1A1A1A" font-size="9" font-weight="600">Explicar</text>
+  <text x="430" y="345" fill="#1A1A1A" font-size="9" font-weight="600">Validar</text>
+  <text x="430" y="363" fill="#1A1A1A" font-size="9" font-weight="600">Simular</text>
+  <text x="430" y="381" fill="#1A1A1A" font-size="9" font-weight="600">Certificar</text>
+  <text x="430" y="399" fill="#1A1A1A" font-size="9" font-weight="600">Federar</text>
 </svg>
