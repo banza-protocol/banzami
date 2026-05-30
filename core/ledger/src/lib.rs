@@ -14,7 +14,9 @@ use thiserror::Error;
 
 #[derive(Debug, Error)]
 pub enum LedgerError {
-    #[error("posting is not balanced: debits {debits_minor} ≠ credits {credits_minor} ({currency})")]
+    #[error(
+        "posting is not balanced: debits {debits_minor} ≠ credits {credits_minor} ({currency})"
+    )]
     UnbalancedPosting {
         debits_minor: i64,
         credits_minor: i64,

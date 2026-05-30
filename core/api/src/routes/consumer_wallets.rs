@@ -11,7 +11,10 @@ use banzami_consumer_wallets::{
 };
 use banzami_types::{AccountId, Currency, LedgerEntryId, LedgerPostingId, Money};
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request / query types
@@ -20,28 +23,28 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 #[derive(Deserialize)]
 pub struct CreateConsumerWalletBody {
     pub consumer_id: String,
-    pub currency:    String,
+    pub currency: String,
 }
 
 #[derive(Deserialize)]
 pub struct GetForConsumerQuery {
     pub consumer_id: String,
-    pub currency:    String,
+    pub currency: String,
 }
 
 #[derive(Deserialize)]
 pub struct TestCreditBody {
-    pub consumer_id:  String,
+    pub consumer_id: String,
     pub amount_minor: i64,
-    pub currency:     Option<String>,
+    pub currency: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct TestCreditResponse {
-    pub consumer_id:   String,
-    pub currency:      String,
-    pub amount_minor:  i64,
-    pub new_balance:   i64,
+    pub consumer_id: String,
+    pub currency: String,
+    pub amount_minor: i64,
+    pub new_balance: i64,
 }
 
 // ---------------------------------------------------------------------------
@@ -65,7 +68,10 @@ pub async fn create(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&wallet).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&wallet).unwrap()),
+    ))
 }
 
 pub async fn get(
@@ -82,7 +88,7 @@ pub async fn get(
         .await
         .map_err(|e| match e {
             ConsumerWalletError::NotFound(_) => ApiError::not_found("consumer wallet not found"),
-            other                            => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&wallet).unwrap()))
@@ -102,7 +108,7 @@ pub async fn balance(
         .await
         .map_err(|e| match e {
             ConsumerWalletError::NotFound(_) => ApiError::not_found("consumer wallet not found"),
-            other                            => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&bal).unwrap()))
@@ -139,9 +145,9 @@ pub async fn get_for_consumer(
 
 #[derive(Deserialize)]
 pub struct ReserveBody {
-    pub amount_minor:    i64,
-    pub currency:        Option<String>,
-    pub reason:          String,
+    pub amount_minor: i64,
+    pub currency: Option<String>,
+    pub reason: String,
     pub idempotency_key: String,
 }
 
@@ -152,7 +158,7 @@ pub struct ReleaseBody {
 
 #[derive(Deserialize)]
 pub struct CommitBody {
-    pub reserve_id:        uuid::Uuid,
+    pub reserve_id: uuid::Uuid,
     pub target_account_id: String,
 }
 
@@ -165,7 +171,8 @@ pub async fn reserve(
     if body.amount_minor <= 0 {
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
-    let wallet_id = id.parse()
+    let wallet_id = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
     let currency_code = body.currency.as_deref().unwrap_or("AOA");
     let currency = Currency::from_code(currency_code)
@@ -175,16 +182,20 @@ pub async fn reserve(
         .consumer_wallet
         .reserve(ReserveRequest {
             wallet_id,
-            amount:          Money::new(body.amount_minor, currency),
-            reason:          body.reason,
+            amount: Money::new(body.amount_minor, currency),
+            reason: body.reason,
             idempotency_key: body.idempotency_key,
         })
         .await
         .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_)         => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::NotActive(_)        => ApiError::bad_request("wallet is not active"),
-            ConsumerWalletError::InsufficientFunds { .. } => ApiError::bad_request("insufficient available balance"),
-            ConsumerWalletError::CurrencyMismatch { .. }  => ApiError::bad_request("currency mismatch"),
+            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
+            ConsumerWalletError::NotActive(_) => ApiError::bad_request("wallet is not active"),
+            ConsumerWalletError::InsufficientFunds { .. } => {
+                ApiError::bad_request("insufficient available balance")
+            }
+            ConsumerWalletError::CurrencyMismatch { .. } => {
+                ApiError::bad_request("currency mismatch")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -197,17 +208,25 @@ pub async fn release(
     Path(id): Path<String>,
     Json(body): Json<ReleaseBody>,
 ) -> ApiResult<StatusCode> {
-    let wallet_id = id.parse()
+    let wallet_id = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
 
     state
         .consumer_wallet
-        .release(ReleaseRequest { wallet_id, reserve_id: body.reserve_id })
+        .release(ReleaseRequest {
+            wallet_id,
+            reserve_id: body.reserve_id,
+        })
         .await
         .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_)           => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::ReservationNotFound(_)  => ApiError::not_found("reservation not found"),
-            ConsumerWalletError::ReservationNotActive(_) => ApiError::bad_request("reservation is not active"),
+            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
+            ConsumerWalletError::ReservationNotFound(_) => {
+                ApiError::not_found("reservation not found")
+            }
+            ConsumerWalletError::ReservationNotActive(_) => {
+                ApiError::bad_request("reservation is not active")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -220,23 +239,30 @@ pub async fn commit_reserved(
     Path(id): Path<String>,
     Json(body): Json<CommitBody>,
 ) -> ApiResult<StatusCode> {
-    let wallet_id = id.parse()
+    let wallet_id = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
-    let target_account_id: AccountId = body.target_account_id.parse()
+    let target_account_id: AccountId = body
+        .target_account_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid target_account_id"))?;
 
     state
         .consumer_wallet
         .commit_reserved(CommitReservedRequest {
             wallet_id,
-            reserve_id:        body.reserve_id,
+            reserve_id: body.reserve_id,
             target_account_id,
         })
         .await
         .map_err(|e| match e {
-            ConsumerWalletError::NotFound(_)           => ApiError::not_found("wallet not found"),
-            ConsumerWalletError::ReservationNotFound(_)  => ApiError::not_found("reservation not found"),
-            ConsumerWalletError::ReservationNotActive(_) => ApiError::bad_request("reservation is not active"),
+            ConsumerWalletError::NotFound(_) => ApiError::not_found("wallet not found"),
+            ConsumerWalletError::ReservationNotFound(_) => {
+                ApiError::not_found("reservation not found")
+            }
+            ConsumerWalletError::ReservationNotActive(_) => {
+                ApiError::bad_request("reservation is not active")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -293,9 +319,12 @@ pub async fn test_credit(
     let amount = Money::new(body.amount_minor, currency);
     let idempotency_key = format!("admin-test-credit-{}-{}", consumer_id, uuid::Uuid::new_v4());
     let posting_id = LedgerPostingId::new();
-    let now        = chrono::Utc::now();
+    let now = chrono::Utc::now();
 
-    let mut tx = state.pool.begin().await
+    let mut tx = state
+        .pool
+        .begin()
+        .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
     sqlx::query(
@@ -342,7 +371,9 @@ pub async fn test_credit(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    tx.commit().await.map_err(|e| ApiError::internal(e.to_string()))?;
+    tx.commit()
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
 
     // Derive new balance for the consumer's available account.
     // LIABILITY account: net = SUM(DEBIT) - SUM(CREDIT); consumer balance = -net.
@@ -372,8 +403,8 @@ pub async fn test_credit(
     );
 
     Ok(Json(TestCreditResponse {
-        consumer_id:  body.consumer_id,
-        currency:     currency_code.to_owned(),
+        consumer_id: body.consumer_id,
+        currency: currency_code.to_owned(),
         amount_minor: body.amount_minor,
         new_balance,
     }))

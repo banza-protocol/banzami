@@ -20,11 +20,7 @@ pub trait PayoutRepository: Send + Sync {
         merchant_id: MerchantId,
         limit: i64,
     ) -> Result<Vec<Payout>, PayoutError>;
-    async fn list_all(
-        &self,
-        limit: i64,
-        status: Option<&str>,
-    ) -> Result<Vec<Payout>, PayoutError>;
+    async fn list_all(&self, limit: i64, status: Option<&str>) -> Result<Vec<Payout>, PayoutError>;
     async fn update_status(
         &self,
         id: PayoutId,
@@ -39,25 +35,26 @@ pub trait PayoutRepository: Send + Sync {
 // ---------------------------------------------------------------------------
 
 #[derive(sqlx::FromRow)]
+#[allow(dead_code)]
 struct PayoutRow {
-    id:                  Uuid,
-    merchant_id:         Uuid,
-    wallet_id:           Uuid,
-    idempotency_key:     String,
-    status:              String,
-    environment:         String,
-    amount_minor:        i64,
-    currency:            String,
+    id: Uuid,
+    merchant_id: Uuid,
+    wallet_id: Uuid,
+    idempotency_key: String,
+    status: String,
+    environment: String,
+    amount_minor: i64,
+    currency: String,
     bank_account_number: String,
-    bank_code:           String,
+    bank_code: String,
     account_holder_name: String,
-    ledger_posting_id:   Option<Uuid>,
-    failure_reason:      Option<String>,
-    created_at:          chrono::DateTime<Utc>,
-    sent_at:             Option<chrono::DateTime<Utc>>,
-    confirmed_at:        Option<chrono::DateTime<Utc>>,
-    returned_at:         Option<chrono::DateTime<Utc>>,
-    failed_at:           Option<chrono::DateTime<Utc>>,
+    ledger_posting_id: Option<Uuid>,
+    failure_reason: Option<String>,
+    created_at: chrono::DateTime<Utc>,
+    sent_at: Option<chrono::DateTime<Utc>>,
+    confirmed_at: Option<chrono::DateTime<Utc>>,
+    returned_at: Option<chrono::DateTime<Utc>>,
+    failed_at: Option<chrono::DateTime<Utc>>,
 }
 
 fn row_to_payout(row: PayoutRow) -> Result<Payout, PayoutError> {
@@ -66,24 +63,24 @@ fn row_to_payout(row: PayoutRow) -> Result<Payout, PayoutError> {
     let status = PayoutStatus::try_from_str(&row.status)
         .ok_or_else(|| PayoutError::UnknownStatus(row.status.clone()))?;
     Ok(Payout {
-        id:              PayoutId::from_uuid(row.id),
-        merchant_id:     MerchantId::from_uuid(row.merchant_id),
-        wallet_id:       WalletId::from_uuid(row.wallet_id),
+        id: PayoutId::from_uuid(row.id),
+        merchant_id: MerchantId::from_uuid(row.merchant_id),
+        wallet_id: WalletId::from_uuid(row.wallet_id),
         idempotency_key: row.idempotency_key,
         status,
-        amount:          Money::new(row.amount_minor, currency),
+        amount: Money::new(row.amount_minor, currency),
         destination: BankDestination {
-            account_number:      row.bank_account_number,
-            bank_code:           row.bank_code,
+            account_number: row.bank_account_number,
+            bank_code: row.bank_code,
             account_holder_name: row.account_holder_name,
         },
         ledger_posting_id: row.ledger_posting_id.map(LedgerPostingId::from_uuid),
-        failure_reason:    row.failure_reason,
-        created_at:        row.created_at,
-        sent_at:           row.sent_at,
-        confirmed_at:      row.confirmed_at,
-        returned_at:       row.returned_at,
-        failed_at:         row.failed_at,
+        failure_reason: row.failure_reason,
+        created_at: row.created_at,
+        sent_at: row.sent_at,
+        confirmed_at: row.confirmed_at,
+        returned_at: row.returned_at,
+        failed_at: row.failed_at,
     })
 }
 
@@ -178,11 +175,7 @@ impl PayoutRepository for PostgresPayoutRepository {
         rows.into_iter().map(row_to_payout).collect()
     }
 
-    async fn list_all(
-        &self,
-        limit: i64,
-        status: Option<&str>,
-    ) -> Result<Vec<Payout>, PayoutError> {
+    async fn list_all(&self, limit: i64, status: Option<&str>) -> Result<Vec<Payout>, PayoutError> {
         let rows = if let Some(s) = status {
             sqlx::query_as!(
                 PayoutRow,

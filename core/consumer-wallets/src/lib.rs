@@ -6,32 +6,21 @@ pub mod routing;
 pub mod wallet;
 
 pub use engine::{ConsumerWalletEngine, PostgresConsumerWalletEngine};
-pub use routing::{RoutingStatus, WalletRoutingDestination};
 pub use funding::{
     CreateFundingSessionRequest, FundingEngine, FundingError, FundingProvider, FundingSession,
     FundingStatus, PostgresFundingEngine, ReceiveCallbackRequest, ReconcileRequest,
 };
 pub use onboarding::{CompletedOnboarding, OnboardingSession, OnboardingStatus};
 pub use repository::{
-    ConsumerWalletRepository, OnboardingRepository,
-    PostgresConsumerWalletRepository, PostgresOnboardingRepository,
+    ConsumerWalletRepository, OnboardingRepository, PostgresConsumerWalletRepository,
+    PostgresOnboardingRepository,
 };
+pub use routing::{RoutingStatus, WalletRoutingDestination};
 pub use wallet::{
-    ChangePinRequest,
-    CommitReservedRequest,
-    CompleteOnboardingRequest,
-    ConsumerWallet,
-    ConsumerWalletBalance,
-    ConsumerWalletStatus,
-    CreateConsumerWalletRequest,
-    KycStatus,
-    ReleaseRequest,
-    ReservationStatus,
-    ReserveRequest,
-    StartOnboardingRequest,
-    VerifyOtpRequest,
-    VerifyPinRequest,
-    WalletReservation,
+    ChangePinRequest, CommitReservedRequest, CompleteOnboardingRequest, ConsumerWallet,
+    ConsumerWalletBalance, ConsumerWalletStatus, CreateConsumerWalletRequest, KycStatus,
+    ReleaseRequest, ReservationStatus, ReserveRequest, StartOnboardingRequest, VerifyOtpRequest,
+    VerifyPinRequest, WalletReservation,
 };
 
 use thiserror::Error;
@@ -50,7 +39,7 @@ pub enum ConsumerWalletError {
     #[error("no active wallet for consumer {consumer_id} in {currency}")]
     NoWalletForConsumer {
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     },
 
     #[error("wallet {0} is not active")]
@@ -59,7 +48,7 @@ pub enum ConsumerWalletError {
     #[error("invalid status transition: {from:?} → {to:?}")]
     InvalidStatusTransition {
         from: ConsumerWalletStatus,
-        to:   ConsumerWalletStatus,
+        to: ConsumerWalletStatus,
     },
 
     #[error("duplicate wallet: consumer already has an active wallet in this currency")]
@@ -73,7 +62,7 @@ pub enum ConsumerWalletError {
 
     #[error("currency mismatch: wallet is {wallet_currency}, operation is {operation_currency}")]
     CurrencyMismatch {
-        wallet_currency:    Currency,
+        wallet_currency: Currency,
         operation_currency: Currency,
     },
 

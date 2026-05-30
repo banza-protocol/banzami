@@ -19,19 +19,19 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct RefundResponse {
-    pub id:             String,
+    pub id: String,
     pub transaction_id: String,
-    pub merchant_id:    String,
-    pub consumer_id:    Option<String>,
-    pub wallet_id:      String,
-    pub amount_minor:   i64,
-    pub currency:       String,
-    pub reason:         Option<String>,
-    pub status:         String,
+    pub merchant_id: String,
+    pub consumer_id: Option<String>,
+    pub wallet_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub reason: Option<String>,
+    pub status: String,
     pub failure_reason: Option<String>,
-    pub processed_at:   Option<DateTime<Utc>>,
-    pub created_at:     DateTime<Utc>,
-    pub updated_at:     DateTime<Utc>,
+    pub processed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -40,10 +40,10 @@ pub struct RefundResponse {
 
 #[derive(Deserialize)]
 pub struct CreateRefundBody {
-    pub transaction_id:  String,
-    pub merchant_id:     String,
-    pub amount_minor:    i64,
-    pub reason:          Option<String>,
+    pub transaction_id: String,
+    pub merchant_id: String,
+    pub amount_minor: i64,
+    pub reason: Option<String>,
     pub idempotency_key: String,
 }
 
@@ -58,9 +58,13 @@ pub async fn create(
         return Err(ApiError::bad_request("idempotency_key is required"));
     }
 
-    let transaction_id: Uuid = body.transaction_id.parse()
+    let transaction_id: Uuid = body
+        .transaction_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction_id"))?;
-    let merchant_id: Uuid = body.merchant_id.parse()
+    let merchant_id: Uuid = body
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     // Look up the transaction — must be CAPTURED or SETTLED
@@ -70,7 +74,8 @@ pub async fn create(
         FROM transactions
         WHERE id = $1 AND merchant_id = $2
         "#,
-        transaction_id, merchant_id,
+        transaction_id,
+        merchant_id,
     )
     .fetch_optional(&state.pool)
     .await
@@ -148,15 +153,13 @@ pub async fn create(
     // If conflict (idempotent replay) — fetch and return existing record
     let actual_id = match insert_result {
         Some(row) => row.id,
-        None => {
-            sqlx::query_scalar!(
-                "SELECT id FROM refunds WHERE idempotency_key = $1",
-                body.idempotency_key,
-            )
-            .fetch_one(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-        }
+        None => sqlx::query_scalar!(
+            "SELECT id FROM refunds WHERE idempotency_key = $1",
+            body.idempotency_key,
+        )
+        .fetch_one(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?,
     };
 
     // Process immediately: post ledger entries and mark SUCCEEDED
@@ -175,13 +178,13 @@ pub async fn create(
 
     // Refund credit goes to transit — transactions have no consumer_id,
     // so we can't look up the consumer wallet at this point.
-    let consumer_account_id: Uuid = state.transit_account_id.as_uuid().clone();
+    let consumer_account_id: Uuid = state.transit_account_id.as_uuid();
 
     // Double-entry ledger posting — merchant wallet DR, consumer wallet CR
     // ON CONFLICT DO NOTHING ensures idempotency on retries
     let posting_id = Uuid::new_v4();
-    let entry_id   = Uuid::new_v4();
-    let now        = Utc::now();
+    let entry_id = Uuid::new_v4();
+    let now = Utc::now();
 
     sqlx::query!(
         r#"
@@ -242,7 +245,8 @@ pub async fn create(
         SET status = 'SUCCEEDED', processed_at = $1, updated_at = $1
         WHERE id = $2 AND status = 'PENDING'
         "#,
-        now, actual_id,
+        now,
+        actual_id,
     )
     .execute(&state.pool)
     .await
@@ -269,7 +273,8 @@ pub async fn create(
         &format!("transaction:{transaction_id}"),
         serde_json::json!({ "refund_id": actual_id, "amount_minor": body.amount_minor }),
         None,
-    ).await;
+    )
+    .await;
 
     let refund = fetch_refund(&state.pool, actual_id).await?;
     Ok((StatusCode::CREATED, Json(refund)))
@@ -283,7 +288,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<RefundResponse>> {
-    let id: Uuid = id.parse()
+    let id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid refund id"))?;
     let refund = fetch_refund(&state.pool, id).await?;
     Ok(Json(refund))
@@ -296,8 +302,8 @@ pub async fn get(
 #[derive(Deserialize)]
 pub struct ListRefundsQuery {
     pub transaction_id: Option<String>,
-    pub merchant_id:    Option<String>,
-    pub limit:          Option<i64>,
+    pub merchant_id: Option<String>,
+    pub limit: Option<i64>,
 }
 
 pub async fn list(
@@ -317,29 +323,38 @@ pub async fn list(
         ORDER BY created_at DESC
         LIMIT $3
         "#,
-        q.transaction_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
-        q.merchant_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
+        q.transaction_id
+            .as_deref()
+            .and_then(|s| s.parse::<Uuid>().ok()),
+        q.merchant_id
+            .as_deref()
+            .and_then(|s| s.parse::<Uuid>().ok()),
         limit,
     )
     .fetch_all(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let data: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id":             r.id,
-        "transaction_id": r.transaction_id,
-        "merchant_id":    r.merchant_id,
-        "consumer_id":    r.consumer_id,
-        "wallet_id":      r.wallet_id,
-        "amount_minor":   r.amount_minor,
-        "currency":       r.currency,
-        "reason":         r.reason,
-        "status":         r.status,
-        "failure_reason": r.failure_reason,
-        "processed_at":   r.processed_at,
-        "created_at":     r.created_at,
-        "updated_at":     r.updated_at,
-    })).collect();
+    let data: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id":             r.id,
+                "transaction_id": r.transaction_id,
+                "merchant_id":    r.merchant_id,
+                "consumer_id":    r.consumer_id,
+                "wallet_id":      r.wallet_id,
+                "amount_minor":   r.amount_minor,
+                "currency":       r.currency,
+                "reason":         r.reason,
+                "status":         r.status,
+                "failure_reason": r.failure_reason,
+                "processed_at":   r.processed_at,
+                "created_at":     r.created_at,
+                "updated_at":     r.updated_at,
+            })
+        })
+        .collect();
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
@@ -362,19 +377,19 @@ async fn fetch_refund(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<RefundResponse
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .map(|r| RefundResponse {
-        id:             r.id.to_string(),
+        id: r.id.to_string(),
         transaction_id: r.transaction_id.to_string(),
-        merchant_id:    r.merchant_id.to_string(),
-        consumer_id:    r.consumer_id.map(|u| u.to_string()),
-        wallet_id:      r.wallet_id.to_string(),
-        amount_minor:   r.amount_minor,
-        currency:       r.currency,
-        reason:         r.reason,
-        status:         r.status,
+        merchant_id: r.merchant_id.to_string(),
+        consumer_id: r.consumer_id.map(|u| u.to_string()),
+        wallet_id: r.wallet_id.to_string(),
+        amount_minor: r.amount_minor,
+        currency: r.currency,
+        reason: r.reason,
+        status: r.status,
         failure_reason: r.failure_reason,
-        processed_at:   r.processed_at,
-        created_at:     r.created_at,
-        updated_at:     r.updated_at,
+        processed_at: r.processed_at,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
     })
     .ok_or_else(|| ApiError::not_found("refund not found"))
 }

@@ -80,7 +80,11 @@ pub struct PostgresTransactionEngine<W: WalletEngine, R: TransactionRepository> 
 
 impl<W: WalletEngine, R: TransactionRepository> PostgresTransactionEngine<W, R> {
     pub fn new(wallet: Arc<W>, repo: R, transit_account_id: AccountId) -> Self {
-        Self { wallet, repo, transit_account_id }
+        Self {
+            wallet,
+            repo,
+            transit_account_id,
+        }
     }
 }
 
@@ -229,7 +233,9 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
         before_id: Option<TransactionId>,
         since_ts: Option<DateTime<Utc>>,
     ) -> Result<Vec<Transaction>, TransactionError> {
-        self.repo.list_for_merchant(merchant_id, limit, before_ts, before_id, since_ts).await
+        self.repo
+            .list_for_merchant(merchant_id, limit, before_ts, before_id, since_ts)
+            .await
     }
 }
 
@@ -237,7 +243,10 @@ fn guard_transition(tx: &Transaction, to: TransactionStatus) -> Result<(), Trans
     if tx.status.can_transition_to(to) {
         Ok(())
     } else {
-        Err(TransactionError::InvalidStatusTransition { from: tx.status, to })
+        Err(TransactionError::InvalidStatusTransition {
+            from: tx.status,
+            to,
+        })
     }
 }
 
@@ -305,7 +314,9 @@ mod tests {
 
     impl MockRepo {
         fn new() -> Self {
-            Self { rows: Mutex::new(vec![]) }
+            Self {
+                rows: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -373,7 +384,7 @@ mod tests {
             Ok(rows
                 .iter()
                 .filter(|tx| tx.merchant_id == merchant_id)
-                .filter(|tx| since_ts.map_or(true, |since| tx.created_at >= since))
+                .filter(|tx| since_ts.is_none_or(|since| tx.created_at >= since))
                 .take(limit as usize)
                 .cloned()
                 .collect())
@@ -381,20 +392,14 @@ mod tests {
     }
 
     fn make_engine() -> PostgresTransactionEngine<MockWallet, MockRepo> {
-        PostgresTransactionEngine::new(
-            Arc::new(MockWallet),
-            MockRepo::new(),
-            AccountId::new(),
-        )
+        PostgresTransactionEngine::new(Arc::new(MockWallet), MockRepo::new(), AccountId::new())
     }
 
     fn kz(minor: i64) -> Money {
         Money::new(minor, Currency::AOA)
     }
 
-    async fn pending_tx(
-        engine: &PostgresTransactionEngine<MockWallet, MockRepo>,
-    ) -> Transaction {
+    async fn pending_tx(engine: &PostgresTransactionEngine<MockWallet, MockRepo>) -> Transaction {
         engine
             .create(CreateTransactionRequest {
                 idempotency_key: "idem-001".into(),
@@ -436,7 +441,10 @@ mod tests {
             })
             .await
             .unwrap();
-        assert_eq!(tx1.id, tx2.id, "idempotent create must return the same transaction");
+        assert_eq!(
+            tx1.id, tx2.id,
+            "idempotent create must return the same transaction"
+        );
     }
 
     #[tokio::test]
@@ -463,7 +471,9 @@ mod tests {
             .unwrap();
 
         let captured = engine
-            .capture(CaptureRequest { tx_id: authorized.id })
+            .capture(CaptureRequest {
+                tx_id: authorized.id,
+            })
             .await
             .unwrap();
 
@@ -481,7 +491,9 @@ mod tests {
             .unwrap();
 
         let reversed = engine
-            .reverse(ReverseRequest { tx_id: authorized.id })
+            .reverse(ReverseRequest {
+                tx_id: authorized.id,
+            })
             .await
             .unwrap();
 
@@ -502,10 +514,7 @@ mod tests {
             .unwrap();
 
         assert_eq!(failed.status, TransactionStatus::Failed);
-        assert_eq!(
-            failed.failure_reason.as_deref(),
-            Some("acquirer declined")
-        );
+        assert_eq!(failed.failure_reason.as_deref(), Some("acquirer declined"));
     }
 
     #[tokio::test]
@@ -535,12 +544,13 @@ mod tests {
         let tx = pending_tx(&engine).await;
 
         // PENDING → CAPTURED is not a valid transition.
-        let result = engine
-            .capture(CaptureRequest { tx_id: tx.id })
-            .await;
+        let result = engine.capture(CaptureRequest { tx_id: tx.id }).await;
 
         assert!(
-            matches!(result, Err(TransactionError::InvalidStatusTransition { .. })),
+            matches!(
+                result,
+                Err(TransactionError::InvalidStatusTransition { .. })
+            ),
             "PENDING → CAPTURED must be rejected"
         );
     }
@@ -556,12 +566,13 @@ mod tests {
             .unwrap();
 
         // AUTHORIZED → AUTHORIZED is not valid.
-        let result = engine
-            .authorize(AuthorizeRequest { tx_id: tx.id })
-            .await;
+        let result = engine.authorize(AuthorizeRequest { tx_id: tx.id }).await;
 
         assert!(
-            matches!(result, Err(TransactionError::InvalidStatusTransition { .. })),
+            matches!(
+                result,
+                Err(TransactionError::InvalidStatusTransition { .. })
+            ),
             "double authorize must be rejected"
         );
     }

@@ -1,9 +1,8 @@
-use chrono::{DateTime, Utc};
 use banzami_types::{AccountId, Currency, MerchantId, Money, WalletId};
+use chrono::{DateTime, Utc};
 
 /// Lifecycle state of a wallet.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum WalletStatus {
     Active,
@@ -14,17 +13,17 @@ pub enum WalletStatus {
 impl WalletStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            WalletStatus::Active    => "ACTIVE",
+            WalletStatus::Active => "ACTIVE",
             WalletStatus::Suspended => "SUSPENDED",
-            WalletStatus::Closed    => "CLOSED",
+            WalletStatus::Closed => "CLOSED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "ACTIVE"    => Some(WalletStatus::Active),
+            "ACTIVE" => Some(WalletStatus::Active),
             "SUSPENDED" => Some(WalletStatus::Suspended),
-            "CLOSED"    => Some(WalletStatus::Closed),
+            "CLOSED" => Some(WalletStatus::Closed),
             _ => None,
         }
     }
@@ -48,8 +47,7 @@ impl WalletStatus {
 /// Both accounts are `LIABILITY` type — from Banzami's perspective, merchant funds
 /// are obligations the platform owes. A credit to a LIABILITY account increases the
 /// obligation (we owe more); a debit decreases it.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Wallet {
     pub id: WalletId,
     pub merchant_id: MerchantId,
@@ -65,8 +63,7 @@ pub struct Wallet {
 /// Point-in-time balance derived from ledger entries — never persisted.
 ///
 /// Always recomputed on demand; the wallet table stores no balance columns.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct WalletBalance {
     pub wallet_id: WalletId,
     pub currency: Currency,

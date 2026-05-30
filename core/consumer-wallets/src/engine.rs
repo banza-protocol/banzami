@@ -4,7 +4,9 @@ use chrono::{Duration, Utc};
 use sqlx::PgPool;
 
 use banzami_ledger::{Account, AccountType, LedgerEngine};
-use banzami_types::{ConsumerId, ConsumerWalletId, Currency, LedgerEntryId, LedgerPostingId, Money};
+use banzami_types::{
+    ConsumerId, ConsumerWalletId, Currency, LedgerEntryId, LedgerPostingId, Money,
+};
 
 use banzami_identity::ConsumerStatus;
 
@@ -72,15 +74,9 @@ pub trait ConsumerWalletEngine: Send + Sync {
 
     // ── PIN operations ─────────────────────────────────────────────────────
 
-    async fn verify_pin(
-        &self,
-        req: VerifyPinRequest,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn verify_pin(&self, req: VerifyPinRequest) -> Result<(), ConsumerWalletError>;
 
-    async fn change_pin(
-        &self,
-        req: ChangePinRequest,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn change_pin(&self, req: ChangePinRequest) -> Result<(), ConsumerWalletError>;
 
     // ── Reads ──────────────────────────────────────────────────────────────
 
@@ -90,7 +86,7 @@ pub trait ConsumerWalletEngine: Send + Sync {
     async fn get_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError>;
 
     async fn balance(
@@ -105,28 +101,19 @@ pub trait ConsumerWalletEngine: Send + Sync {
     /// Atomically: checks available balance, posts DR available / CR reserved,
     /// records the reservation. Idempotent on `req.idempotency_key`.
     /// Returns `InsufficientFunds` if available < amount.
-    async fn reserve(
-        &self,
-        req: ReserveRequest,
-    ) -> Result<WalletReservation, ConsumerWalletError>;
+    async fn reserve(&self, req: ReserveRequest) -> Result<WalletReservation, ConsumerWalletError>;
 
     /// Reverse a reservation — moves funds back from reserved to available.
     ///
     /// Posts DR reserved / CR available. Marks the reservation RELEASED.
     /// Only ACTIVE reservations can be released.
-    async fn release(
-        &self,
-        req: ReleaseRequest,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn release(&self, req: ReleaseRequest) -> Result<(), ConsumerWalletError>;
 
     /// Commit a reservation to a target account — consumes the reservation.
     ///
     /// Posts DR reserved / CR target_account_id. Marks the reservation COMMITTED.
     /// Only ACTIVE reservations can be committed.
-    async fn commit_reserved(
-        &self,
-        req: CommitReservedRequest,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn commit_reserved(&self, req: CommitReservedRequest) -> Result<(), ConsumerWalletError>;
 
     // ── Routing (HDL-002) ──────────────────────────────────────────────────
 
@@ -144,7 +131,7 @@ pub trait ConsumerWalletEngine: Send + Sync {
     ///         `ClosedIdentity`, `WalletCannotReceive`, `RoutingUnavailable`.
     async fn resolve_to_wallet(
         &self,
-        handle:   &str,
+        handle: &str,
         currency: Currency,
     ) -> Result<WalletRoutingDestination, ConsumerWalletError>;
 
@@ -154,15 +141,15 @@ pub trait ConsumerWalletEngine: Send + Sync {
     /// Errors per handle are independent; one failure does not abort the batch.
     async fn resolve_many(
         &self,
-        handles:  &[&str],
+        handles: &[&str],
         currency: Currency,
-    ) -> Vec<(String, Result<WalletRoutingDestination, ConsumerWalletError>)>;
+    ) -> Vec<(
+        String,
+        Result<WalletRoutingDestination, ConsumerWalletError>,
+    )>;
 
     /// Check if a wallet (by ID) can currently receive inbound transfers.
-    async fn can_receive(
-        &self,
-        wallet_id: ConsumerWalletId,
-    ) -> Result<bool, ConsumerWalletError>;
+    async fn can_receive(&self, wallet_id: ConsumerWalletId) -> Result<bool, ConsumerWalletError>;
 
     // ── Legacy / internal ──────────────────────────────────────────────────
 
@@ -176,7 +163,7 @@ pub trait ConsumerWalletEngine: Send + Sync {
     async fn get_or_create(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError>;
 }
 
@@ -186,31 +173,41 @@ pub trait ConsumerWalletEngine: Send + Sync {
 
 pub struct PostgresConsumerWalletEngine<L, OR, WR>
 where
-    L:  LedgerEngine,
+    L: LedgerEngine,
     OR: OnboardingRepository,
     WR: ConsumerWalletRepository,
 {
     /// Present only in production wiring. None in unit-test mocks.
-    pool:    Option<PgPool>,
-    ledger:  Arc<L>,
+    pool: Option<PgPool>,
+    ledger: Arc<L>,
     onboard: OR,
     wallets: WR,
 }
 
 impl<L, OR, WR> PostgresConsumerWalletEngine<L, OR, WR>
 where
-    L:  LedgerEngine,
+    L: LedgerEngine,
     OR: OnboardingRepository,
     WR: ConsumerWalletRepository,
 {
     /// Unit-test constructor — no pool; reserve/release/commit will return an error.
     pub fn new(ledger: Arc<L>, onboard: OR, wallets: WR) -> Self {
-        Self { pool: None, ledger, onboard, wallets }
+        Self {
+            pool: None,
+            ledger,
+            onboard,
+            wallets,
+        }
     }
 
     /// Production constructor — includes pool for transactional reserve/release/commit.
     pub fn with_pool(pool: PgPool, ledger: Arc<L>, onboard: OR, wallets: WR) -> Self {
-        Self { pool: Some(pool), ledger, onboard, wallets }
+        Self {
+            pool: Some(pool),
+            ledger,
+            onboard,
+            wallets,
+        }
     }
 
     fn require_pool(&self) -> Result<&PgPool, ConsumerWalletError> {
@@ -221,7 +218,7 @@ where
 
     async fn fetch_reservation(
         &self,
-        pool:           &PgPool,
+        pool: &PgPool,
         reservation_id: uuid::Uuid,
     ) -> Result<WalletReservation, ConsumerWalletError> {
         let row: ReservationFetchRow = sqlx::query_as(
@@ -241,23 +238,23 @@ where
             .ok_or_else(|| ConsumerWalletError::UnknownStatus(row.status.clone()))?;
 
         Ok(WalletReservation {
-            id:                 row.id,
-            wallet_id:          ConsumerWalletId::from_uuid(row.wallet_id),
-            amount:             Money::new(row.amount_minor, currency),
-            reason:             row.reason,
+            id: row.id,
+            wallet_id: ConsumerWalletId::from_uuid(row.wallet_id),
+            amount: Money::new(row.amount_minor, currency),
+            reason: row.reason,
             status,
             reserve_posting_id: LedgerPostingId::from_uuid(row.reserve_posting_id),
-            idempotency_key:    row.idempotency_key,
-            created_at:         row.created_at,
-            released_at:        row.released_at,
-            committed_at:       row.committed_at,
+            idempotency_key: row.idempotency_key,
+            created_at: row.created_at,
+            released_at: row.released_at,
+            committed_at: row.committed_at,
         })
     }
 
     async fn provision_ledger_accounts(
         &self,
         label_prefix: &str,
-        currency:     Currency,
+        currency: Currency,
     ) -> Result<(banzami_types::AccountId, banzami_types::AccountId), ConsumerWalletError> {
         let available = self
             .ledger
@@ -285,7 +282,7 @@ where
 
 impl<L, OR, WR> ConsumerWalletEngine for PostgresConsumerWalletEngine<L, OR, WR>
 where
-    L:  LedgerEngine + 'static,
+    L: LedgerEngine + 'static,
     OR: OnboardingRepository,
     WR: ConsumerWalletRepository,
 {
@@ -294,7 +291,11 @@ where
         req: StartOnboardingRequest,
     ) -> Result<OnboardingSession, ConsumerWalletError> {
         // Idempotency: return any non-expired session for this phone number.
-        if let Some(existing) = self.onboard.find_session_by_phone(&req.phone_number).await? {
+        if let Some(existing) = self
+            .onboard
+            .find_session_by_phone(&req.phone_number)
+            .await?
+        {
             if !existing.is_expired() {
                 return Ok(existing);
             }
@@ -302,7 +303,7 @@ where
             let _ = self.onboard.delete_session(existing.id).await;
         }
 
-        let now         = Utc::now();
+        let now = Utc::now();
         let otp_expires = now + Duration::minutes(OTP_TTL_MINUTES);
         let session_exp = now + Duration::minutes(OTP_TTL_MINUTES + 1);
 
@@ -334,7 +335,9 @@ where
             .ok_or(ConsumerWalletError::OnboardingNotFound(req.session_id))?;
 
         if session.is_expired() {
-            return Err(ConsumerWalletError::OnboardingExpiredSession(req.session_id));
+            return Err(ConsumerWalletError::OnboardingExpiredSession(
+                req.session_id,
+            ));
         }
         if session.otp_is_expired() {
             return Err(ConsumerWalletError::OtpInvalid);
@@ -372,7 +375,9 @@ where
             .ok_or(ConsumerWalletError::OnboardingNotFound(req.session_id))?;
 
         if session.is_expired() {
-            return Err(ConsumerWalletError::OnboardingExpiredSession(req.session_id));
+            return Err(ConsumerWalletError::OnboardingExpiredSession(
+                req.session_id,
+            ));
         }
 
         // Handle validation: ^[a-z][a-z0-9_]{2,19}$
@@ -392,23 +397,20 @@ where
 
         self.wallets
             .activate(CompletedOnboarding {
-                session_id:          session.id,
-                phone_number:        session.phone_number,
-                banza_handle:        req.banza_handle,
+                session_id: session.id,
+                phone_number: session.phone_number,
+                banza_handle: req.banza_handle,
                 pin_hash,
-                currency:            session.currency,
+                currency: session.currency,
                 available_account_id: avail_id,
-                reserved_account_id:  res_id,
+                reserved_account_id: res_id,
             })
             .await
     }
 
     // ── PIN operations ─────────────────────────────────────────────────────
 
-    async fn verify_pin(
-        &self,
-        req: VerifyPinRequest,
-    ) -> Result<(), ConsumerWalletError> {
+    async fn verify_pin(&self, req: VerifyPinRequest) -> Result<(), ConsumerWalletError> {
         let wallet = self.wallets.get(req.wallet_id).await?;
 
         if wallet.status == ConsumerWalletStatus::Locked {
@@ -418,7 +420,9 @@ where
             return Err(ConsumerWalletError::NotActive(wallet.id));
         }
 
-        let hash = wallet.pin_hash.as_deref()
+        let hash = wallet
+            .pin_hash
+            .as_deref()
             .ok_or(ConsumerWalletError::PinNotSet(wallet.id))?;
 
         if argon2id_verify(&req.pin, hash)? {
@@ -439,19 +443,16 @@ where
         Err(ConsumerWalletError::PinInvalid)
     }
 
-    async fn change_pin(
-        &self,
-        req: ChangePinRequest,
-    ) -> Result<(), ConsumerWalletError> {
+    async fn change_pin(&self, req: ChangePinRequest) -> Result<(), ConsumerWalletError> {
         // Verify current PIN (also enforces lockout check).
         self.verify_pin(VerifyPinRequest {
             wallet_id: req.wallet_id,
-            pin:       req.current_pin,
+            pin: req.current_pin,
         })
         .await?;
 
-        let mut wallet    = self.wallets.get(req.wallet_id).await?;
-        wallet.pin_hash   = Some(argon2id_hash(&req.new_pin)?);
+        let mut wallet = self.wallets.get(req.wallet_id).await?;
+        wallet.pin_hash = Some(argon2id_hash(&req.new_pin)?);
         wallet.updated_at = Utc::now();
         self.wallets.update(wallet).await?;
         Ok(())
@@ -469,7 +470,7 @@ where
     async fn get_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError> {
         self.wallets.get_for_consumer(consumer_id, currency).await
     }
@@ -480,9 +481,11 @@ where
     ) -> Result<ConsumerWalletBalance, ConsumerWalletError> {
         let wallet = self.wallets.get(wallet_id).await?;
 
-        let avail_id = wallet.available_account_id
+        let avail_id = wallet
+            .available_account_id
             .ok_or(ConsumerWalletError::NotActive(wallet.id))?;
-        let res_id = wallet.reserved_account_id
+        let res_id = wallet
+            .reserved_account_id
             .ok_or(ConsumerWalletError::NotActive(wallet.id))?;
 
         // LIABILITY accounts: negate to get consumer-facing positive balance.
@@ -500,12 +503,14 @@ where
             .map_err(ConsumerWalletError::Ledger)?
             .negate();
 
-        let total = available.checked_add(reserved).map_err(ConsumerWalletError::Money)?;
+        let total = available
+            .checked_add(reserved)
+            .map_err(ConsumerWalletError::Money)?;
 
         Ok(ConsumerWalletBalance {
-            wallet_id:   wallet.id,
+            wallet_id: wallet.id,
             consumer_id: wallet.consumer_id,
-            currency:    wallet.currency,
+            currency: wallet.currency,
             available,
             reserved,
             total,
@@ -515,10 +520,7 @@ where
 
     // ── Balance engine (WAL-002) ───────────────────────────────────────────
 
-    async fn reserve(
-        &self,
-        req: ReserveRequest,
-    ) -> Result<WalletReservation, ConsumerWalletError> {
+    async fn reserve(&self, req: ReserveRequest) -> Result<WalletReservation, ConsumerWalletError> {
         let pool = self.require_pool()?;
 
         if !req.amount.is_positive() {
@@ -530,13 +532,12 @@ where
         let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
 
         // Idempotency check: return existing reservation if key already processed.
-        let existing: Option<uuid::Uuid> = sqlx::query_scalar(
-            "SELECT id FROM wallet_reservations WHERE idempotency_key = $1",
-        )
-        .bind(&req.idempotency_key)
-        .fetch_optional(&mut *tx)
-        .await
-        .map_err(ConsumerWalletError::Database)?;
+        let existing: Option<uuid::Uuid> =
+            sqlx::query_scalar("SELECT id FROM wallet_reservations WHERE idempotency_key = $1")
+                .bind(&req.idempotency_key)
+                .fetch_optional(&mut *tx)
+                .await
+                .map_err(ConsumerWalletError::Database)?;
 
         if let Some(id) = existing {
             tx.rollback().await.ok();
@@ -565,7 +566,7 @@ where
         if req.amount.currency != currency {
             tx.rollback().await.ok();
             return Err(ConsumerWalletError::CurrencyMismatch {
-                wallet_currency:    currency,
+                wallet_currency: currency,
                 operation_currency: req.amount.currency,
             });
         }
@@ -596,7 +597,7 @@ where
 
         // Post the ledger entry: DR available / CR reserved (balanced).
         let posting_id = LedgerPostingId::new();
-        let now        = Utc::now();
+        let now = Utc::now();
 
         sqlx::query(
             "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -672,23 +673,20 @@ where
         );
 
         Ok(WalletReservation {
-            id:                 reservation_id,
-            wallet_id:          req.wallet_id,
-            amount:             req.amount,
-            reason:             req.reason,
-            status:             ReservationStatus::Active,
+            id: reservation_id,
+            wallet_id: req.wallet_id,
+            amount: req.amount,
+            reason: req.reason,
+            status: ReservationStatus::Active,
             reserve_posting_id: posting_id,
-            idempotency_key:    req.idempotency_key,
-            created_at:         now,
-            released_at:        None,
-            committed_at:       None,
+            idempotency_key: req.idempotency_key,
+            created_at: now,
+            released_at: None,
+            committed_at: None,
         })
     }
 
-    async fn release(
-        &self,
-        req: ReleaseRequest,
-    ) -> Result<(), ConsumerWalletError> {
+    async fn release(&self, req: ReleaseRequest) -> Result<(), ConsumerWalletError> {
         let pool = self.require_pool()?;
         let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
 
@@ -718,7 +716,7 @@ where
 
         // Post the reversal: DR reserved / CR available.
         let posting_id = LedgerPostingId::new();
-        let now        = Utc::now();
+        let now = Utc::now();
 
         sqlx::query(
             "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -788,10 +786,7 @@ where
         Ok(())
     }
 
-    async fn commit_reserved(
-        &self,
-        req: CommitReservedRequest,
-    ) -> Result<(), ConsumerWalletError> {
+    async fn commit_reserved(&self, req: CommitReservedRequest) -> Result<(), ConsumerWalletError> {
         let pool = self.require_pool()?;
         let mut tx = pool.begin().await.map_err(ConsumerWalletError::Database)?;
 
@@ -821,7 +816,7 @@ where
 
         // Post the commit: DR reserved / CR target_account (balanced).
         let posting_id = LedgerPostingId::new();
-        let now        = Utc::now();
+        let now = Utc::now();
 
         sqlx::query(
             "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -899,30 +894,27 @@ where
         req: CreateConsumerWalletRequest,
     ) -> Result<ConsumerWallet, ConsumerWalletError> {
         let (avail_id, res_id) = self
-            .provision_ledger_accounts(
-                &format!("Consumer {}", req.consumer_id),
-                req.currency,
-            )
+            .provision_ledger_accounts(&format!("Consumer {}", req.consumer_id), req.currency)
             .await?;
 
         let now = Utc::now();
         let w = ConsumerWallet {
-            id:                   ConsumerWalletId::new(),
-            consumer_id:          req.consumer_id,
-            phone_number:         String::new(),
-            banza_handle:         None,
-            currency:             req.currency,
-            status:               ConsumerWalletStatus::Active,
+            id: ConsumerWalletId::new(),
+            consumer_id: req.consumer_id,
+            phone_number: String::new(),
+            banza_handle: None,
+            currency: req.currency,
+            status: ConsumerWalletStatus::Active,
             available_account_id: Some(avail_id),
-            reserved_account_id:  Some(res_id),
-            kyc_status:           KycStatus::None,
-            pin_hash:             None,
-            failed_pin_attempts:  0,
-            locked_at:            None,
-            activated_at:         Some(now),
-            closed_at:            None,
-            created_at:           now,
-            updated_at:           now,
+            reserved_account_id: Some(res_id),
+            kyc_status: KycStatus::None,
+            pin_hash: None,
+            failed_pin_attempts: 0,
+            locked_at: None,
+            activated_at: Some(now),
+            closed_at: None,
+            created_at: now,
+            updated_at: now,
         };
         self.wallets.create(w).await
     }
@@ -930,17 +922,25 @@ where
     async fn get_or_create(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError> {
-        if let Some(w) = self.wallets.find_for_consumer(consumer_id, currency).await? {
+        if let Some(w) = self
+            .wallets
+            .find_for_consumer(consumer_id, currency)
+            .await?
+        {
             return Ok(w);
         }
-        self.create(CreateConsumerWalletRequest { consumer_id, currency }).await
+        self.create(CreateConsumerWalletRequest {
+            consumer_id,
+            currency,
+        })
+        .await
     }
 
     async fn resolve_to_wallet(
         &self,
-        handle:   &str,
+        handle: &str,
         currency: Currency,
     ) -> Result<WalletRoutingDestination, ConsumerWalletError> {
         let normalized = banzami_identity::normalize_handle(handle);
@@ -949,14 +949,15 @@ where
         banzami_identity::validate_handle(&normalized)
             .map_err(ConsumerWalletError::InvalidHandle)?;
 
-        let lookup = self.wallets
+        let lookup = self
+            .wallets
             .find_by_handle_for_routing(&normalized, currency)
             .await?
             .ok_or_else(|| ConsumerWalletError::HandleNotFound(normalized.clone()))?;
 
         // Identity status gate.
         match lookup.consumer_status {
-            ConsumerStatus::Active    => {}
+            ConsumerStatus::Active => {}
             ConsumerStatus::Suspended => {
                 return Err(ConsumerWalletError::SuspendedIdentity(normalized));
             }
@@ -965,7 +966,7 @@ where
             }
         }
 
-        let wallet         = lookup.wallet;
+        let wallet = lookup.wallet;
         let routing_status = routing_status_from_wallet(wallet.status);
 
         // Wallet status gate — only ROUTABLE and LOCKED may receive.
@@ -981,22 +982,25 @@ where
         );
 
         Ok(WalletRoutingDestination {
-            consumer_id:       wallet.consumer_id,
-            wallet_id:         wallet.id,
+            consumer_id: wallet.consumer_id,
+            wallet_id: wallet.id,
             normalized_handle: normalized,
-            display_name:      lookup.display_name,
-            currency:          wallet.currency,
-            wallet_status:     wallet.status,
+            display_name: lookup.display_name,
+            currency: wallet.currency,
+            wallet_status: wallet.status,
             routing_status,
-            activated_at:      wallet.activated_at,
+            activated_at: wallet.activated_at,
         })
     }
 
     async fn resolve_many(
         &self,
-        handles:  &[&str],
+        handles: &[&str],
         currency: Currency,
-    ) -> Vec<(String, Result<WalletRoutingDestination, ConsumerWalletError>)> {
+    ) -> Vec<(
+        String,
+        Result<WalletRoutingDestination, ConsumerWalletError>,
+    )> {
         let mut results = Vec::with_capacity(handles.len());
         for &handle in handles {
             let result = self.resolve_to_wallet(handle, currency).await;
@@ -1005,10 +1009,7 @@ where
         results
     }
 
-    async fn can_receive(
-        &self,
-        wallet_id: ConsumerWalletId,
-    ) -> Result<bool, ConsumerWalletError> {
+    async fn can_receive(&self, wallet_id: ConsumerWalletId) -> Result<bool, ConsumerWalletError> {
         let wallet = self.wallets.get(wallet_id).await?;
         Ok(wallet.status.can_receive())
     }
@@ -1021,37 +1022,37 @@ where
 #[derive(sqlx::FromRow)]
 struct WalletLockRow {
     available_account_id: uuid::Uuid,
-    reserved_account_id:  uuid::Uuid,
-    currency:             String,
-    status:               String,
+    reserved_account_id: uuid::Uuid,
+    currency: String,
+    status: String,
 }
 
 #[derive(sqlx::FromRow)]
 struct ReservationRow {
     #[allow(dead_code)]
-    id:                   uuid::Uuid,
+    id: uuid::Uuid,
     #[allow(dead_code)]
-    wallet_id:            uuid::Uuid,
-    amount_minor:         i64,
-    currency:             String,
-    status:               String,
+    wallet_id: uuid::Uuid,
+    amount_minor: i64,
+    currency: String,
+    status: String,
     available_account_id: uuid::Uuid,
-    reserved_account_id:  uuid::Uuid,
+    reserved_account_id: uuid::Uuid,
 }
 
 #[derive(sqlx::FromRow)]
 struct ReservationFetchRow {
-    id:                  uuid::Uuid,
-    wallet_id:           uuid::Uuid,
-    amount_minor:        i64,
-    currency:            String,
-    reason:              String,
-    status:              String,
-    reserve_posting_id:  uuid::Uuid,
-    idempotency_key:     String,
-    created_at:          chrono::DateTime<Utc>,
-    released_at:         Option<chrono::DateTime<Utc>>,
-    committed_at:        Option<chrono::DateTime<Utc>>,
+    id: uuid::Uuid,
+    wallet_id: uuid::Uuid,
+    amount_minor: i64,
+    currency: String,
+    reason: String,
+    status: String,
+    reserve_posting_id: uuid::Uuid,
+    idempotency_key: String,
+    created_at: chrono::DateTime<Utc>,
+    released_at: Option<chrono::DateTime<Utc>>,
+    committed_at: Option<chrono::DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -1059,8 +1060,7 @@ struct ReservationFetchRow {
 // ---------------------------------------------------------------------------
 
 fn validate_handle_format(handle: &str) -> Result<(), ConsumerWalletError> {
-    banzami_identity::validate_handle(handle)
-        .map_err(ConsumerWalletError::InvalidHandle)
+    banzami_identity::validate_handle(handle).map_err(ConsumerWalletError::InvalidHandle)
 }
 
 // ---------------------------------------------------------------------------
@@ -1073,14 +1073,14 @@ fn validate_handle_format(handle: &str) -> Result<(), ConsumerWalletError> {
 fn argon2id_hash(pin: &str) -> Result<String, ConsumerWalletError> {
     use argon2::{
         password_hash::{PasswordHasher, SaltString},
-        Argon2, Params, Algorithm, Version,
+        Algorithm, Argon2, Params, Version,
     };
     use rand::rngs::OsRng;
 
     let params = Params::new(65536, 3, 4, None)
         .map_err(|e| ConsumerWalletError::Posting(format!("argon2 params: {e}")))?;
     let argon2 = Argon2::new(Algorithm::Argon2id, Version::V0x13, params);
-    let salt   = SaltString::generate(&mut OsRng);
+    let salt = SaltString::generate(&mut OsRng);
 
     argon2
         .hash_password(pin.as_bytes(), &salt)
@@ -1097,7 +1097,9 @@ fn argon2id_verify(pin: &str, hash: &str) -> Result<bool, ConsumerWalletError> {
     let parsed = PasswordHash::new(hash)
         .map_err(|e| ConsumerWalletError::Posting(format!("argon2 parse: {e}")))?;
 
-    Ok(Argon2::default().verify_password(pin.as_bytes(), &parsed).is_ok())
+    Ok(Argon2::default()
+        .verify_password(pin.as_bytes(), &parsed)
+        .is_ok())
 }
 
 // ---------------------------------------------------------------------------
@@ -1117,8 +1119,8 @@ fn sha256_hex(input: &str) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::sync::{Arc, Mutex};
     use std::collections::HashMap;
+    use std::sync::{Arc, Mutex};
 
     use banzami_ledger::{Account, LedgerEngine, LedgerEntry, LedgerPosting};
     use banzami_types::{AccountId, ConsumerId, ConsumerWalletId, Currency, Money};
@@ -1129,9 +1131,8 @@ mod tests {
     use crate::{
         onboarding::{CompletedOnboarding, OnboardingSession, OnboardingStatus},
         wallet::{
-            ConsumerWallet, ConsumerWalletStatus,
-            CreateConsumerWalletRequest, KycStatus, StartOnboardingRequest, VerifyOtpRequest,
-            VerifyPinRequest,
+            ConsumerWallet, ConsumerWalletStatus, CreateConsumerWalletRequest, KycStatus,
+            StartOnboardingRequest, VerifyOtpRequest, VerifyPinRequest,
         },
         ConsumerWalletError,
     };
@@ -1140,12 +1141,15 @@ mod tests {
 
     struct MockLedger {
         accounts: Mutex<Vec<Account>>,
-        entries:  Mutex<Vec<LedgerEntry>>,
+        entries: Mutex<Vec<LedgerEntry>>,
     }
 
     impl MockLedger {
         fn new() -> Self {
-            Self { accounts: Mutex::new(vec![]), entries: Mutex::new(vec![]) }
+            Self {
+                accounts: Mutex::new(vec![]),
+                entries: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -1171,10 +1175,13 @@ mod tests {
             account_id: AccountId,
         ) -> Result<Money, banzami_ledger::LedgerError> {
             let accounts = self.accounts.lock().unwrap();
-            let account  = accounts.iter().find(|a| a.id == account_id)
+            let account = accounts
+                .iter()
+                .find(|a| a.id == account_id)
                 .ok_or(banzami_ledger::LedgerError::AccountNotFound(account_id))?;
-            let entries  = self.entries.lock().unwrap();
-            let net: i64 = entries.iter()
+            let entries = self.entries.lock().unwrap();
+            let net: i64 = entries
+                .iter()
                 .filter(|e| e.account_id == account_id)
                 .map(|e| e.signed_minor_units())
                 .sum();
@@ -1185,7 +1192,11 @@ mod tests {
             &self,
             account_id: AccountId,
         ) -> Result<Vec<LedgerEntry>, banzami_ledger::LedgerError> {
-            Ok(self.entries.lock().unwrap().iter()
+            Ok(self
+                .entries
+                .lock()
+                .unwrap()
+                .iter()
                 .filter(|e| e.account_id == account_id)
                 .cloned()
                 .collect())
@@ -1201,11 +1212,13 @@ mod tests {
             let mut builder = PostingBuilder::new(description.into(), new_idempotency_key.into());
             for entry in &original.entries {
                 builder = match entry.entry_type {
-                    EntryType::Debit  => builder.credit(entry.account_id, entry.amount),
+                    EntryType::Debit => builder.credit(entry.account_id, entry.amount),
                     EntryType::Credit => builder.debit(entry.account_id, entry.amount),
                 };
             }
-            let reversal = builder.build().map_err(|_| banzami_ledger::LedgerError::InsufficientEntries)?;
+            let reversal = builder
+                .build()
+                .map_err(|_| banzami_ledger::LedgerError::InsufficientEntries)?;
             self.post(reversal).await
         }
 
@@ -1227,26 +1240,29 @@ mod tests {
     impl OnboardingRepository for MockOnboardingRepo {
         async fn create_session(
             &self,
-            phone_number:   String,
-            otp_code_hash:  String,
+            phone_number: String,
+            otp_code_hash: String,
             otp_expires_at: chrono::DateTime<Utc>,
-            currency:       Currency,
-            expires_at:     chrono::DateTime<Utc>,
+            currency: Currency,
+            expires_at: chrono::DateTime<Utc>,
         ) -> Result<OnboardingSession, ConsumerWalletError> {
             let session = OnboardingSession {
-                id:           Uuid::new_v4(),
+                id: Uuid::new_v4(),
                 phone_number,
-                otp_code_hash:   Some(otp_code_hash),
-                otp_expires_at:  Some(otp_expires_at),
-                desired_handle:  None,
+                otp_code_hash: Some(otp_code_hash),
+                otp_expires_at: Some(otp_expires_at),
+                desired_handle: None,
                 currency,
-                status:          OnboardingStatus::PendingOtp,
+                status: OnboardingStatus::PendingOtp,
                 provisional_available_account_id: None,
-                provisional_reserved_account_id:  None,
+                provisional_reserved_account_id: None,
                 created_at: Utc::now(),
                 expires_at,
             };
-            self.sessions.lock().unwrap().insert(session.id, session.clone());
+            self.sessions
+                .lock()
+                .unwrap()
+                .insert(session.id, session.clone());
             Ok(session)
         }
 
@@ -1254,7 +1270,11 @@ mod tests {
             &self,
             phone_number: &str,
         ) -> Result<Option<OnboardingSession>, ConsumerWalletError> {
-            Ok(self.sessions.lock().unwrap().values()
+            Ok(self
+                .sessions
+                .lock()
+                .unwrap()
+                .values()
                 .find(|s| s.phone_number == phone_number)
                 .cloned())
         }
@@ -1268,37 +1288,37 @@ mod tests {
 
         async fn advance_to_pending_pin(
             &self,
-            session_id:          Uuid,
+            session_id: Uuid,
             available_account_id: AccountId,
-            reserved_account_id:  AccountId,
-            new_expires_at:      chrono::DateTime<Utc>,
+            reserved_account_id: AccountId,
+            new_expires_at: chrono::DateTime<Utc>,
         ) -> Result<OnboardingSession, ConsumerWalletError> {
             let mut sessions = self.sessions.lock().unwrap();
-            let s = sessions.get_mut(&session_id)
+            let s = sessions
+                .get_mut(&session_id)
                 .ok_or(ConsumerWalletError::OnboardingNotFound(session_id))?;
-            s.status        = OnboardingStatus::PendingPin;
+            s.status = OnboardingStatus::PendingPin;
             s.otp_code_hash = None;
             s.provisional_available_account_id = Some(available_account_id);
-            s.provisional_reserved_account_id  = Some(reserved_account_id);
-            s.expires_at    = new_expires_at;
+            s.provisional_reserved_account_id = Some(reserved_account_id);
+            s.expires_at = new_expires_at;
             Ok(s.clone())
         }
 
         async fn set_desired_handle(
             &self,
-            session_id:     Uuid,
+            session_id: Uuid,
             desired_handle: String,
         ) -> Result<(), ConsumerWalletError> {
             let mut sessions = self.sessions.lock().unwrap();
-            let s = sessions.get_mut(&session_id)
+            let s = sessions
+                .get_mut(&session_id)
                 .ok_or(ConsumerWalletError::OnboardingNotFound(session_id))?;
             s.desired_handle = Some(desired_handle);
             Ok(())
         }
 
-        async fn delete_session(&self, session_id: Uuid)
-            -> Result<(), ConsumerWalletError>
-        {
+        async fn delete_session(&self, session_id: Uuid) -> Result<(), ConsumerWalletError> {
             self.sessions.lock().unwrap().remove(&session_id);
             Ok(())
         }
@@ -1322,10 +1342,11 @@ mod tests {
     impl ConsumerWalletRepository for MockWalletRepo {
         async fn create(&self, w: ConsumerWallet) -> Result<ConsumerWallet, ConsumerWalletError> {
             // INV-WALLET-004: reject duplicate (consumer_id, currency) where not CLOSED
-            let dup = self.wallets.lock().unwrap().values()
-                .any(|x| x.consumer_id == w.consumer_id
+            let dup = self.wallets.lock().unwrap().values().any(|x| {
+                x.consumer_id == w.consumer_id
                     && x.currency == w.currency
-                    && x.status != ConsumerWalletStatus::Closed);
+                    && x.status != ConsumerWalletStatus::Closed
+            });
             if dup {
                 return Err(ConsumerWalletError::DuplicateWallet);
             }
@@ -1335,8 +1356,8 @@ mod tests {
 
         async fn update(&self, w: ConsumerWallet) -> Result<ConsumerWallet, ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            if wallets.contains_key(&w.id) {
-                wallets.insert(w.id, w.clone());
+            if let std::collections::hash_map::Entry::Occupied(mut e) = wallets.entry(w.id) {
+                e.insert(w.clone());
                 Ok(w)
             } else {
                 Err(ConsumerWalletError::NotFound(w.id))
@@ -1344,45 +1365,68 @@ mod tests {
         }
 
         async fn get(&self, id: ConsumerWalletId) -> Result<ConsumerWallet, ConsumerWalletError> {
-            self.wallets.lock().unwrap().get(&id).cloned()
+            self.wallets
+                .lock()
+                .unwrap()
+                .get(&id)
+                .cloned()
                 .ok_or(ConsumerWalletError::NotFound(id))
         }
 
         async fn get_for_consumer(
             &self,
             consumer_id: ConsumerId,
-            currency:    Currency,
+            currency: Currency,
         ) -> Result<ConsumerWallet, ConsumerWalletError> {
-            self.find_for_consumer(consumer_id, currency).await?
-                .ok_or(ConsumerWalletError::NoWalletForConsumer { consumer_id, currency })
+            self.find_for_consumer(consumer_id, currency).await?.ok_or(
+                ConsumerWalletError::NoWalletForConsumer {
+                    consumer_id,
+                    currency,
+                },
+            )
         }
 
         async fn find_for_consumer(
             &self,
             consumer_id: ConsumerId,
-            currency:    Currency,
+            currency: Currency,
         ) -> Result<Option<ConsumerWallet>, ConsumerWalletError> {
-            Ok(self.wallets.lock().unwrap().values()
-                .find(|w| w.consumer_id == consumer_id
-                    && w.currency == currency
-                    && w.status != ConsumerWalletStatus::Closed)
+            Ok(self
+                .wallets
+                .lock()
+                .unwrap()
+                .values()
+                .find(|w| {
+                    w.consumer_id == consumer_id
+                        && w.currency == currency
+                        && w.status != ConsumerWalletStatus::Closed
+                })
                 .cloned())
         }
 
-        async fn find_by_handle(&self, handle: &str)
-            -> Result<Option<ConsumerWallet>, ConsumerWalletError>
-        {
-            Ok(self.wallets.lock().unwrap().values()
+        async fn find_by_handle(
+            &self,
+            handle: &str,
+        ) -> Result<Option<ConsumerWallet>, ConsumerWalletError> {
+            Ok(self
+                .wallets
+                .lock()
+                .unwrap()
+                .values()
                 .find(|w| w.banza_handle.as_deref() == Some(handle))
                 .cloned())
         }
 
         async fn find_by_handle_for_routing(
             &self,
-            handle:   &str,
+            handle: &str,
             currency: Currency,
         ) -> Result<Option<crate::repository::RoutingLookup>, ConsumerWalletError> {
-            let wallet = self.wallets.lock().unwrap().values()
+            let wallet = self
+                .wallets
+                .lock()
+                .unwrap()
+                .values()
                 .find(|w| {
                     w.banza_handle.as_deref() == Some(handle)
                         && w.currency == currency
@@ -1396,10 +1440,15 @@ mod tests {
             }))
         }
 
-        async fn find_by_phone(&self, phone: &str)
-            -> Result<Option<ConsumerWallet>, ConsumerWalletError>
-        {
-            Ok(self.wallets.lock().unwrap().values()
+        async fn find_by_phone(
+            &self,
+            phone: &str,
+        ) -> Result<Option<ConsumerWallet>, ConsumerWalletError> {
+            Ok(self
+                .wallets
+                .lock()
+                .unwrap()
+                .values()
                 .find(|w| w.phone_number == phone)
                 .cloned())
         }
@@ -1409,31 +1458,38 @@ mod tests {
             c: CompletedOnboarding,
         ) -> Result<ConsumerWallet, ConsumerWalletError> {
             // INV-WALLET-008: reject duplicate handles
-            let dup_handle = self.wallets.lock().unwrap().values()
+            let dup_handle = self
+                .wallets
+                .lock()
+                .unwrap()
+                .values()
                 .any(|w| w.banza_handle.as_deref() == Some(&c.banza_handle));
             if dup_handle {
                 return Err(ConsumerWalletError::HandleTaken(c.banza_handle));
             }
-            let now    = Utc::now();
+            let now = Utc::now();
             let wallet = ConsumerWallet {
-                id:                   ConsumerWalletId::new(),
-                consumer_id:          ConsumerId::new(),
-                phone_number:         c.phone_number,
-                banza_handle:         Some(c.banza_handle),
-                status:               ConsumerWalletStatus::Active,
-                currency:             c.currency,
+                id: ConsumerWalletId::new(),
+                consumer_id: ConsumerId::new(),
+                phone_number: c.phone_number,
+                banza_handle: Some(c.banza_handle),
+                status: ConsumerWalletStatus::Active,
+                currency: c.currency,
                 available_account_id: Some(c.available_account_id),
-                reserved_account_id:  Some(c.reserved_account_id),
-                kyc_status:           KycStatus::None,
-                pin_hash:             Some(c.pin_hash),
-                failed_pin_attempts:  0,
-                locked_at:            None,
-                activated_at:         Some(now),
-                closed_at:            None,
-                created_at:           now,
-                updated_at:           now,
+                reserved_account_id: Some(c.reserved_account_id),
+                kyc_status: KycStatus::None,
+                pin_hash: Some(c.pin_hash),
+                failed_pin_attempts: 0,
+                locked_at: None,
+                activated_at: Some(now),
+                closed_at: None,
+                created_at: now,
+                updated_at: now,
             };
-            self.wallets.lock().unwrap().insert(wallet.id, wallet.clone());
+            self.wallets
+                .lock()
+                .unwrap()
+                .insert(wallet.id, wallet.clone());
             Ok(wallet)
         }
 
@@ -1442,7 +1498,9 @@ mod tests {
             id: ConsumerWalletId,
         ) -> Result<i32, ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            let w = wallets.get_mut(&id).ok_or(ConsumerWalletError::NotFound(id))?;
+            let w = wallets
+                .get_mut(&id)
+                .ok_or(ConsumerWalletError::NotFound(id))?;
             w.failed_pin_attempts += 1;
             Ok(w.failed_pin_attempts)
         }
@@ -1452,46 +1510,54 @@ mod tests {
             id: ConsumerWalletId,
         ) -> Result<(), ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            if let Some(w) = wallets.get_mut(&id) { w.failed_pin_attempts = 0; }
+            if let Some(w) = wallets.get_mut(&id) {
+                w.failed_pin_attempts = 0;
+            }
             Ok(())
         }
 
         async fn lock_wallet(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            let w = wallets.get_mut(&id).ok_or(ConsumerWalletError::NotFound(id))?;
+            let w = wallets
+                .get_mut(&id)
+                .ok_or(ConsumerWalletError::NotFound(id))?;
             if w.status != ConsumerWalletStatus::Active {
                 return Err(ConsumerWalletError::NotActive(id));
             }
-            w.status    = ConsumerWalletStatus::Locked;
+            w.status = ConsumerWalletStatus::Locked;
             w.locked_at = Some(Utc::now());
             Ok(())
         }
 
         async fn unlock_wallet(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            let w = wallets.get_mut(&id).ok_or(ConsumerWalletError::NotFound(id))?;
-            w.status              = ConsumerWalletStatus::Active;
-            w.locked_at           = None;
+            let w = wallets
+                .get_mut(&id)
+                .ok_or(ConsumerWalletError::NotFound(id))?;
+            w.status = ConsumerWalletStatus::Active;
+            w.locked_at = None;
             w.failed_pin_attempts = 0;
             Ok(())
         }
 
         async fn update_status(
             &self,
-            id:         ConsumerWalletId,
+            id: ConsumerWalletId,
             new_status: ConsumerWalletStatus,
-            closed_at:  Option<chrono::DateTime<Utc>>,
+            closed_at: Option<chrono::DateTime<Utc>>,
         ) -> Result<(), ConsumerWalletError> {
             let mut wallets = self.wallets.lock().unwrap();
-            let w = wallets.get_mut(&id).ok_or(ConsumerWalletError::NotFound(id))?;
+            let w = wallets
+                .get_mut(&id)
+                .ok_or(ConsumerWalletError::NotFound(id))?;
             // INV-WALLET-006: enforce state machine
             if !w.status.can_transition_to(new_status) {
                 return Err(ConsumerWalletError::InvalidStatusTransition {
                     from: w.status,
-                    to:   new_status,
+                    to: new_status,
                 });
             }
-            w.status    = new_status;
+            w.status = new_status;
             w.closed_at = closed_at;
             Ok(())
         }
@@ -1514,7 +1580,7 @@ mod tests {
     ) -> ConsumerWallet {
         eng.create(CreateConsumerWalletRequest {
             consumer_id: ConsumerId::new(),
-            currency:    Currency::AOA,
+            currency: Currency::AOA,
         })
         .await
         .unwrap()
@@ -1524,9 +1590,9 @@ mod tests {
 
     #[tokio::test]
     async fn fresh_wallet_has_zero_balance() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
-        let bal    = eng.balance(wallet.id).await.unwrap();
+        let bal = eng.balance(wallet.id).await.unwrap();
         assert!(bal.available.is_zero());
         assert!(bal.reserved.is_zero());
         assert!(bal.total.is_zero());
@@ -1538,11 +1604,18 @@ mod tests {
     async fn duplicate_wallet_for_same_consumer_rejected() {
         let eng = make_engine();
         let cid = ConsumerId::new();
-        eng.create(CreateConsumerWalletRequest { consumer_id: cid, currency: Currency::AOA })
-            .await
-            .unwrap();
+        eng.create(CreateConsumerWalletRequest {
+            consumer_id: cid,
+            currency: Currency::AOA,
+        })
+        .await
+        .unwrap();
 
-        let err = eng.create(CreateConsumerWalletRequest { consumer_id: cid, currency: Currency::AOA })
+        let err = eng
+            .create(CreateConsumerWalletRequest {
+                consumer_id: cid,
+                currency: Currency::AOA,
+            })
             .await
             .unwrap_err();
 
@@ -1554,10 +1627,10 @@ mod tests {
 
     #[tokio::test]
     async fn get_or_create_returns_existing_wallet() {
-        let eng   = make_engine();
-        let cid   = ConsumerId::new();
+        let eng = make_engine();
+        let cid = ConsumerId::new();
         let first = eng.get_or_create(cid, Currency::AOA).await.unwrap();
-        let second= eng.get_or_create(cid, Currency::AOA).await.unwrap();
+        let second = eng.get_or_create(cid, Currency::AOA).await.unwrap();
         assert_eq!(first.id, second.id);
     }
 
@@ -1565,7 +1638,7 @@ mod tests {
 
     #[tokio::test]
     async fn currency_field_unchanged_after_creation() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
         assert_eq!(wallet.currency, Currency::AOA);
         // Verify: re-fetch does not change currency
@@ -1577,7 +1650,7 @@ mod tests {
 
     #[tokio::test]
     async fn illegal_transition_closed_to_active_rejected() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
 
         eng.wallets
@@ -1585,7 +1658,8 @@ mod tests {
             .await
             .unwrap();
 
-        let err = eng.wallets
+        let err = eng
+            .wallets
             .update_status(wallet.id, ConsumerWalletStatus::Active, None)
             .await
             .unwrap_err();
@@ -1598,7 +1672,7 @@ mod tests {
 
     #[tokio::test]
     async fn active_wallet_locks_after_five_failed_pins() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
 
         // Inject a PIN hash directly.
@@ -1608,23 +1682,39 @@ mod tests {
         }
 
         for _ in 0..4 {
-            let _ = eng.verify_pin(VerifyPinRequest { wallet_id: wallet.id, pin: "wrong".into() })
+            let _ = eng
+                .verify_pin(VerifyPinRequest {
+                    wallet_id: wallet.id,
+                    pin: "wrong".into(),
+                })
                 .await;
         }
         let w = eng.get(wallet.id).await.unwrap();
-        assert_eq!(w.status, ConsumerWalletStatus::Active, "still active after 4 failures");
+        assert_eq!(
+            w.status,
+            ConsumerWalletStatus::Active,
+            "still active after 4 failures"
+        );
         assert_eq!(w.failed_pin_attempts, 4);
 
-        let _ = eng.verify_pin(VerifyPinRequest { wallet_id: wallet.id, pin: "wrong".into() })
+        let _ = eng
+            .verify_pin(VerifyPinRequest {
+                wallet_id: wallet.id,
+                pin: "wrong".into(),
+            })
             .await;
         let w = eng.get(wallet.id).await.unwrap();
-        assert_eq!(w.status, ConsumerWalletStatus::Locked, "locked after 5 failures");
+        assert_eq!(
+            w.status,
+            ConsumerWalletStatus::Locked,
+            "locked after 5 failures"
+        );
         assert!(w.locked_at.is_some());
     }
 
     #[tokio::test]
     async fn pin_counter_resets_on_successful_verification() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
 
         {
@@ -1634,12 +1724,19 @@ mod tests {
 
         // Two failures then one success.
         for _ in 0..2 {
-            let _ = eng.verify_pin(VerifyPinRequest { wallet_id: wallet.id, pin: "wrong".into() })
+            let _ = eng
+                .verify_pin(VerifyPinRequest {
+                    wallet_id: wallet.id,
+                    pin: "wrong".into(),
+                })
                 .await;
         }
-        eng.verify_pin(VerifyPinRequest { wallet_id: wallet.id, pin: "1234".into() })
-            .await
-            .unwrap();
+        eng.verify_pin(VerifyPinRequest {
+            wallet_id: wallet.id,
+            pin: "1234".into(),
+        })
+        .await
+        .unwrap();
 
         let w = eng.get(wallet.id).await.unwrap();
         assert_eq!(w.failed_pin_attempts, 0, "counter must reset after success");
@@ -1650,10 +1747,16 @@ mod tests {
 
     #[tokio::test]
     async fn active_wallet_has_both_ledger_accounts() {
-        let eng    = make_engine();
+        let eng = make_engine();
         let wallet = activated_wallet(&eng).await;
-        assert!(wallet.available_account_id.is_some(), "missing available account");
-        assert!(wallet.reserved_account_id.is_some(),  "missing reserved account");
+        assert!(
+            wallet.available_account_id.is_some(),
+            "missing available account"
+        );
+        assert!(
+            wallet.reserved_account_id.is_some(),
+            "missing reserved account"
+        );
     }
 
     // ── INV-WALLET-008: @banza uniqueness ─────────────────────────────────
@@ -1663,29 +1766,36 @@ mod tests {
         let eng = make_engine();
 
         // Activate two wallets manually sharing the same handle.
-        let avail  = AccountId::new();
-        let res    = AccountId::new();
-        eng.wallets.activate(CompletedOnboarding {
-            session_id:          Uuid::new_v4(),
-            phone_number:        "+244923000001".into(),
-            banza_handle:        "alice".into(),
-            pin_hash:            argon2id_hash("1234").unwrap(),
-            currency:            Currency::AOA,
-            available_account_id: avail,
-            reserved_account_id:  res,
-        }).await.unwrap();
+        let avail = AccountId::new();
+        let res = AccountId::new();
+        eng.wallets
+            .activate(CompletedOnboarding {
+                session_id: Uuid::new_v4(),
+                phone_number: "+244923000001".into(),
+                banza_handle: "alice".into(),
+                pin_hash: argon2id_hash("1234").unwrap(),
+                currency: Currency::AOA,
+                available_account_id: avail,
+                reserved_account_id: res,
+            })
+            .await
+            .unwrap();
 
         let avail2 = AccountId::new();
-        let res2   = AccountId::new();
-        let err = eng.wallets.activate(CompletedOnboarding {
-            session_id:          Uuid::new_v4(),
-            phone_number:        "+244923000002".into(),
-            banza_handle:        "alice".into(),  // same handle
-            pin_hash:            argon2id_hash("5678").unwrap(),
-            currency:            Currency::AOA,
-            available_account_id: avail2,
-            reserved_account_id:  res2,
-        }).await.unwrap_err();
+        let res2 = AccountId::new();
+        let err = eng
+            .wallets
+            .activate(CompletedOnboarding {
+                session_id: Uuid::new_v4(),
+                phone_number: "+244923000002".into(),
+                banza_handle: "alice".into(), // same handle
+                pin_hash: argon2id_hash("5678").unwrap(),
+                currency: Currency::AOA,
+                available_account_id: avail2,
+                reserved_account_id: res2,
+            })
+            .await
+            .unwrap_err();
 
         assert!(
             matches!(err, ConsumerWalletError::HandleTaken(_)),
@@ -1725,11 +1835,14 @@ mod tests {
     #[tokio::test]
     async fn onboarding_session_starts_as_pending_otp() {
         let eng = make_engine();
-        let session = eng.start_onboarding(StartOnboardingRequest {
-            phone_number:           "+244923000001".into(),
-            currency:               Currency::AOA,
-            otp_plaintext_for_test: Some("123456".into()),
-        }).await.unwrap();
+        let session = eng
+            .start_onboarding(StartOnboardingRequest {
+                phone_number: "+244923000001".into(),
+                currency: Currency::AOA,
+                otp_plaintext_for_test: Some("123456".into()),
+            })
+            .await
+            .unwrap();
 
         assert_eq!(session.status, OnboardingStatus::PendingOtp);
         assert!(session.provisional_available_account_id.is_none());
@@ -1739,35 +1852,53 @@ mod tests {
     #[tokio::test]
     async fn otp_verification_provisions_ledger_accounts() {
         let eng = make_engine();
-        let session = eng.start_onboarding(StartOnboardingRequest {
-            phone_number:           "+244923000002".into(),
-            currency:               Currency::AOA,
-            otp_plaintext_for_test: Some("654321".into()),
-        }).await.unwrap();
+        let session = eng
+            .start_onboarding(StartOnboardingRequest {
+                phone_number: "+244923000002".into(),
+                currency: Currency::AOA,
+                otp_plaintext_for_test: Some("654321".into()),
+            })
+            .await
+            .unwrap();
 
-        let session = eng.verify_otp(VerifyOtpRequest {
-            session_id: session.id,
-            otp_code:   "654321".into(),  // correct OTP
-        }).await.unwrap();
+        let session = eng
+            .verify_otp(VerifyOtpRequest {
+                session_id: session.id,
+                otp_code: "654321".into(), // correct OTP
+            })
+            .await
+            .unwrap();
 
         assert_eq!(session.status, OnboardingStatus::PendingPin);
-        assert!(session.provisional_available_account_id.is_some(), "available account must be provisioned");
-        assert!(session.provisional_reserved_account_id.is_some(),  "reserved account must be provisioned");
+        assert!(
+            session.provisional_available_account_id.is_some(),
+            "available account must be provisioned"
+        );
+        assert!(
+            session.provisional_reserved_account_id.is_some(),
+            "reserved account must be provisioned"
+        );
     }
 
     #[tokio::test]
     async fn wrong_otp_returns_otp_invalid() {
         let eng = make_engine();
-        let session = eng.start_onboarding(StartOnboardingRequest {
-            phone_number:           "+244923000003".into(),
-            currency:               Currency::AOA,
-            otp_plaintext_for_test: Some("111111".into()),
-        }).await.unwrap();
+        let session = eng
+            .start_onboarding(StartOnboardingRequest {
+                phone_number: "+244923000003".into(),
+                currency: Currency::AOA,
+                otp_plaintext_for_test: Some("111111".into()),
+            })
+            .await
+            .unwrap();
 
-        let err = eng.verify_otp(VerifyOtpRequest {
-            session_id: session.id,
-            otp_code:   "999999".into(),  // wrong OTP
-        }).await.unwrap_err();
+        let err = eng
+            .verify_otp(VerifyOtpRequest {
+                session_id: session.id,
+                otp_code: "999999".into(), // wrong OTP
+            })
+            .await
+            .unwrap_err();
 
         assert!(matches!(err, ConsumerWalletError::OtpInvalid), "{err:?}");
     }

@@ -9,7 +9,10 @@ use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError, Routin
 use banzami_transfers::{SendTransferRequest, TransferEngine, TransferError};
 use banzami_types::{Currency, TransferId};
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request / query types
@@ -18,19 +21,19 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 #[derive(Deserialize)]
 pub struct SendTransferBody {
     pub idempotency_key: String,
-    pub sender_id:       String,
-    pub recipient_id:    String,
-    pub amount_minor:    i64,
-    pub currency:        String,
-    pub description:     Option<String>,
+    pub sender_id: String,
+    pub recipient_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub description: Option<String>,
 }
 
 #[derive(Deserialize)]
 pub struct ListTransfersQuery {
-    pub consumer_id:       String,
-    pub limit:             Option<i64>,
+    pub consumer_id: String,
+    pub limit: Option<i64>,
     pub before_created_at: Option<chrono::DateTime<chrono::Utc>>,
-    pub before_id:         Option<String>,
+    pub before_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -57,24 +60,25 @@ pub async fn send(
     let transfer = state
         .transfer
         .send(SendTransferRequest {
-            idempotency_key:  body.idempotency_key,
+            idempotency_key: body.idempotency_key,
             sender_id,
             recipient_id,
-            amount_minor:     body.amount_minor,
+            amount_minor: body.amount_minor,
             currency,
-            description:      body.description,
+            description: body.description,
             recipient_handle: None, // UUID-based internal route — no handle snapshot
         })
         .await
         .map_err(|e| match e {
-            TransferError::SelfTransfer     => ApiError::bad_request("cannot transfer to yourself"),
-            TransferError::InvalidAmount    => ApiError::bad_request("amount_minor must be positive"),
-            TransferError::InsufficientFunds { available, requested } => {
-                ApiError::unprocessable(
-                    "INSUFFICIENT_FUNDS",
-                    format!("available {available}, requested {requested}"),
-                )
-            }
+            TransferError::SelfTransfer => ApiError::bad_request("cannot transfer to yourself"),
+            TransferError::InvalidAmount => ApiError::bad_request("amount_minor must be positive"),
+            TransferError::InsufficientFunds {
+                available,
+                requested,
+            } => ApiError::unprocessable(
+                "INSUFFICIENT_FUNDS",
+                format!("available {available}, requested {requested}"),
+            ),
             TransferError::WalletNotFound { .. } => {
                 ApiError::unprocessable("WALLET_NOT_FOUND", "sender or recipient has no wallet")
             }
@@ -84,7 +88,10 @@ pub async fn send(
             other => ApiError::internal(other.to_string()),
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&transfer).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&transfer).unwrap()),
+    ))
 }
 
 pub async fn get(
@@ -95,14 +102,10 @@ pub async fn get(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid transfer id"))?;
 
-    let transfer = state
-        .transfer
-        .get(transfer_id)
-        .await
-        .map_err(|e| match e {
-            TransferError::NotFound(_) => ApiError::not_found("transfer not found"),
-            other                      => ApiError::internal(other.to_string()),
-        })?;
+    let transfer = state.transfer.get(transfer_id).await.map_err(|e| match e {
+        TransferError::NotFound(_) => ApiError::not_found("transfer not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&transfer).unwrap()))
 }
@@ -148,13 +151,13 @@ pub async fn list(
 pub struct SendP2pBody {
     pub idempotency_key: String,
     /// Sender's @banza handle (with or without @). Resolved to a consumer_id.
-    pub sender:          String,
+    pub sender: String,
     /// Recipient's @banza handle (with or without @). Resolved via HDL-002.
-    pub recipient:       String,
-    pub amount_minor:    i64,
-    pub currency:        String,
+    pub recipient: String,
+    pub amount_minor: i64,
+    pub currency: String,
     /// Consumer-visible memo (stored as description on the transfer).
-    pub note:            Option<String>,
+    pub note: Option<String>,
 }
 
 /// POST /internal/v1/consumer/transfers
@@ -163,7 +166,7 @@ pub struct SendP2pBody {
 /// then atomically posts the double-entry ledger transfer.
 pub async fn send_p2p(
     State(state): State<AppState>,
-    Json(body):   Json<SendP2pBody>,
+    Json(body): Json<SendP2pBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
     let currency = Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
@@ -174,8 +177,9 @@ pub async fn send_p2p(
         .resolve_to_wallet(&body.sender, currency)
         .await
         .map_err(|e| match e {
-            ConsumerWalletError::HandleNotFound(_)
-            | ConsumerWalletError::InvalidHandle(_)      => ApiError::bad_request("invalid or unknown sender handle"),
+            ConsumerWalletError::HandleNotFound(_) | ConsumerWalletError::InvalidHandle(_) => {
+                ApiError::bad_request("invalid or unknown sender handle")
+            }
             ConsumerWalletError::SuspendedIdentity(_)
             | ConsumerWalletError::ClosedIdentity(_)
             | ConsumerWalletError::WalletCannotReceive(_) => {
@@ -202,14 +206,16 @@ pub async fn send_p2p(
                 ApiError::not_found(format!("recipient @{h} not found"))
             }
             ConsumerWalletError::InvalidHandle(m) => ApiError::bad_request(m),
-            ConsumerWalletError::SuspendedIdentity(h)
-            | ConsumerWalletError::ClosedIdentity(h) => ApiError::unprocessable(
-                "RECIPIENT_NOT_ROUTABLE",
-                format!("recipient @{h} cannot receive funds"),
-            ),
-            ConsumerWalletError::WalletCannotReceive(_) => {
-                ApiError::unprocessable("RECIPIENT_NOT_ROUTABLE", "recipient wallet cannot receive funds")
+            ConsumerWalletError::SuspendedIdentity(h) | ConsumerWalletError::ClosedIdentity(h) => {
+                ApiError::unprocessable(
+                    "RECIPIENT_NOT_ROUTABLE",
+                    format!("recipient @{h} cannot receive funds"),
+                )
             }
+            ConsumerWalletError::WalletCannotReceive(_) => ApiError::unprocessable(
+                "RECIPIENT_NOT_ROUTABLE",
+                "recipient wallet cannot receive funds",
+            ),
             other => ApiError::internal(other.to_string()),
         })?;
 
@@ -221,24 +227,26 @@ pub async fn send_p2p(
     let transfer = state
         .transfer
         .send(SendTransferRequest {
-            idempotency_key:  body.idempotency_key,
-            sender_id:        sender_dest.consumer_id,
-            recipient_id:     recipient_dest.consumer_id,
-            amount_minor:     body.amount_minor,
+            idempotency_key: body.idempotency_key,
+            sender_id: sender_dest.consumer_id,
+            recipient_id: recipient_dest.consumer_id,
+            amount_minor: body.amount_minor,
             currency,
-            description:      body.note,
+            description: body.note,
             recipient_handle: Some(recipient_dest.normalized_handle.clone()),
         })
         .await
         .map_err(|e| match e {
-            TransferError::SelfTransfer   => ApiError::bad_request("cannot transfer to yourself"),
-            TransferError::InvalidAmount  => ApiError::bad_request("amount_minor must be positive"),
-            TransferError::InsufficientFunds { available, requested } => ApiError::unprocessable(
+            TransferError::SelfTransfer => ApiError::bad_request("cannot transfer to yourself"),
+            TransferError::InvalidAmount => ApiError::bad_request("amount_minor must be positive"),
+            TransferError::InsufficientFunds {
+                available,
+                requested,
+            } => ApiError::unprocessable(
                 "INSUFFICIENT_FUNDS",
                 format!("available {available}, requested {requested}"),
             ),
-            TransferError::WalletNotFound { .. }
-            | TransferError::WalletNotActive(_) => {
+            TransferError::WalletNotFound { .. } | TransferError::WalletNotActive(_) => {
                 ApiError::unprocessable("SENDER_WALLET_NOT_ACTIVE", "sender wallet is not active")
             }
             other => ApiError::internal(other.to_string()),

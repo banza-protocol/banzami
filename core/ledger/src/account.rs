@@ -8,8 +8,7 @@ use banzami_types::{AccountId, Currency};
 ///   Asset    → Debit    |   Liability → Credit
 ///   Expense  → Debit    |   Equity    → Credit
 ///                       |   Revenue   → Credit
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum AccountType {
     /// Funds owned or owed to us (customer wallet funds, bank float, reserves)
@@ -33,21 +32,21 @@ impl AccountType {
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            AccountType::Asset     => "ASSET",
+            AccountType::Asset => "ASSET",
             AccountType::Liability => "LIABILITY",
-            AccountType::Equity    => "EQUITY",
-            AccountType::Revenue   => "REVENUE",
-            AccountType::Expense   => "EXPENSE",
+            AccountType::Equity => "EQUITY",
+            AccountType::Revenue => "REVENUE",
+            AccountType::Expense => "EXPENSE",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "ASSET"     => Some(AccountType::Asset),
+            "ASSET" => Some(AccountType::Asset),
             "LIABILITY" => Some(AccountType::Liability),
-            "EQUITY"    => Some(AccountType::Equity),
-            "REVENUE"   => Some(AccountType::Revenue),
-            "EXPENSE"   => Some(AccountType::Expense),
+            "EQUITY" => Some(AccountType::Equity),
+            "REVENUE" => Some(AccountType::Revenue),
+            "EXPENSE" => Some(AccountType::Expense),
             _ => None,
         }
     }
@@ -57,8 +56,7 @@ impl AccountType {
 ///
 /// Accounts are immutable after creation — never change `account_type` or `currency`.
 /// All monetary state flows from [`LedgerEntry`] records against this account.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Account {
     pub id: AccountId,
     pub account_type: AccountType,

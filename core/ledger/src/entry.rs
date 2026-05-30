@@ -6,8 +6,7 @@ use banzami_types::{AccountId, LedgerEntryId, LedgerPostingId, Money};
 ///
 /// Whether a Debit or Credit *increases* or *decreases* a balance depends on
 /// the account's [`AccountType`] — use `AccountType::normal_balance_is_debit()`.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "UPPERCASE")]
 pub enum EntryType {
     Debit,
@@ -24,14 +23,14 @@ impl EntryType {
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            EntryType::Debit  => "DEBIT",
+            EntryType::Debit => "DEBIT",
             EntryType::Credit => "CREDIT",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "DEBIT"  => Some(EntryType::Debit),
+            "DEBIT" => Some(EntryType::Debit),
             "CREDIT" => Some(EntryType::Credit),
             _ => None,
         }
@@ -44,8 +43,7 @@ impl EntryType {
 /// - `amount` is always positive. Direction is encoded in `entry_type`.
 /// - `amount.currency` must match the currency of the target `Account`.
 /// - Entries are immutable after posting — corrections happen via reversal postings.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LedgerEntry {
     pub id: LedgerEntryId,
     pub posting_id: LedgerPostingId,

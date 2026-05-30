@@ -14,13 +14,13 @@ pub trait PaymentLinkRepository: Send + Sync {
     async fn list_for_merchant(
         &self,
         merchant_id: MerchantId,
-        limit:       i64,
-        cursor:      Option<PaymentLinkId>,
+        limit: i64,
+        cursor: Option<PaymentLinkId>,
     ) -> Result<Vec<PaymentLink>, PaymentLinkError>;
     async fn update_status(
         &self,
-        id:      PaymentLinkId,
-        status:  PaymentLinkStatus,
+        id: PaymentLinkId,
+        status: PaymentLinkStatus,
         paid_at: Option<DateTime<Utc>>,
     ) -> Result<PaymentLink, PaymentLinkError>;
     /// Mark all ACTIVE links whose `expires_at` is in the past as EXPIRED.
@@ -33,43 +33,42 @@ pub trait PaymentLinkRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct LinkRow {
-    id:           Uuid,
-    slug:         String,
-    merchant_id:  Uuid,
-    wallet_id:    Uuid,
+    id: Uuid,
+    slug: String,
+    merchant_id: Uuid,
+    wallet_id: Uuid,
     amount_minor: Option<i64>,
-    currency:     String,
-    description:  Option<String>,
-    status:       String,
-    expires_at:   Option<DateTime<Utc>>,
-    paid_at:      Option<DateTime<Utc>>,
-    created_at:   DateTime<Utc>,
-    updated_at:   DateTime<Utc>,
+    currency: String,
+    description: Option<String>,
+    status: String,
+    expires_at: Option<DateTime<Utc>>,
+    paid_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 impl LinkRow {
     fn into_link(self) -> PaymentLink {
         use banzami_types::WalletId;
         PaymentLink {
-            id:           PaymentLinkId::from_uuid(self.id),
-            slug:         self.slug,
-            merchant_id:  MerchantId::from_uuid(self.merchant_id),
-            wallet_id:    WalletId::from_uuid(self.wallet_id),
+            id: PaymentLinkId::from_uuid(self.id),
+            slug: self.slug,
+            merchant_id: MerchantId::from_uuid(self.merchant_id),
+            wallet_id: WalletId::from_uuid(self.wallet_id),
             amount_minor: self.amount_minor,
-            currency:     self.currency,
-            description:  self.description,
-            status:       PaymentLinkStatus::try_from_str(&self.status)
-                              .unwrap_or(PaymentLinkStatus::Active),
-            expires_at:   self.expires_at,
-            paid_at:      self.paid_at,
-            created_at:   self.created_at,
-            updated_at:   self.updated_at,
+            currency: self.currency,
+            description: self.description,
+            status: PaymentLinkStatus::try_from_str(&self.status)
+                .unwrap_or(PaymentLinkStatus::Active),
+            expires_at: self.expires_at,
+            paid_at: self.paid_at,
+            created_at: self.created_at,
+            updated_at: self.updated_at,
         }
     }
 }
 
-const SELECT: &str =
-    "SELECT id, slug, merchant_id, wallet_id, amount_minor, currency, description,
+const SELECT: &str = "SELECT id, slug, merchant_id, wallet_id, amount_minor, currency, description,
             status, expires_at, paid_at, created_at, updated_at
      FROM payment_links";
 
@@ -133,8 +132,8 @@ impl PaymentLinkRepository for PostgresPaymentLinkRepository {
     async fn list_for_merchant(
         &self,
         merchant_id: MerchantId,
-        limit:       i64,
-        cursor:      Option<PaymentLinkId>,
+        limit: i64,
+        cursor: Option<PaymentLinkId>,
     ) -> Result<Vec<PaymentLink>, PaymentLinkError> {
         let rows = if let Some(c) = cursor {
             sqlx::query_as::<_, LinkRow>(&format!(
@@ -163,8 +162,8 @@ impl PaymentLinkRepository for PostgresPaymentLinkRepository {
 
     async fn update_status(
         &self,
-        id:      PaymentLinkId,
-        status:  PaymentLinkStatus,
+        id: PaymentLinkId,
+        status: PaymentLinkStatus,
         paid_at: Option<DateTime<Utc>>,
     ) -> Result<PaymentLink, PaymentLinkError> {
         let row = sqlx::query_as::<_, LinkRow>(

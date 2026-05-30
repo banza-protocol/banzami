@@ -5,12 +5,13 @@ use axum::{
 };
 use serde::Deserialize;
 
-use banzami_qr::{
-    CreateDynamicQrRequest, CreateStaticQrRequest, QrEngine, QrError, QrOwnerType,
-};
+use banzami_qr::{CreateDynamicQrRequest, CreateStaticQrRequest, QrEngine, QrError, QrOwnerType};
 use banzami_types::Currency;
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request bodies
@@ -18,20 +19,20 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Deserialize)]
 pub struct CreateStaticQrBody {
-    pub owner_id:     String,
-    pub owner_type:   String,
-    pub currency:     String,
+    pub owner_id: String,
+    pub owner_type: String,
+    pub currency: String,
     pub amount_minor: Option<i64>,
 }
 
 #[derive(Deserialize)]
 pub struct CreateDynamicQrBody {
-    pub owner_id:    String,
-    pub owner_type:  String,
-    pub currency:    String,
+    pub owner_id: String,
+    pub owner_type: String,
+    pub currency: String,
     pub amount_minor: i64,
-    pub expires_at:  chrono::DateTime<chrono::Utc>,
-    pub reference:   Option<String>,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+    pub reference: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -47,7 +48,9 @@ fn parse_owner_type(s: &str) -> Result<QrOwnerType, ApiError> {
     match s.to_uppercase().as_str() {
         "CONSUMER" => Ok(QrOwnerType::Consumer),
         "MERCHANT" => Ok(QrOwnerType::Merchant),
-        _          => Err(ApiError::bad_request("owner_type must be CONSUMER or MERCHANT")),
+        _ => Err(ApiError::bad_request(
+            "owner_type must be CONSUMER or MERCHANT",
+        )),
     }
 }
 
@@ -121,7 +124,7 @@ pub async fn create_dynamic(
         .await
         .map_err(|e| match e {
             QrError::AlreadyExpired => ApiError::bad_request("expires_at is in the past"),
-            other                   => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     let payload = state
@@ -146,14 +149,10 @@ pub async fn get(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid QR code id"))?;
 
-    let qr = state
-        .qr
-        .get(qr_id)
-        .await
-        .map_err(|e| match e {
-            QrError::NotFound(_) => ApiError::not_found("QR code not found"),
-            other                => ApiError::internal(other.to_string()),
-        })?;
+    let qr = state.qr.get(qr_id).await.map_err(|e| match e {
+        QrError::NotFound(_) => ApiError::not_found("QR code not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     let payload = state
         .qr
@@ -170,13 +169,10 @@ pub async fn decode(
     State(state): State<AppState>,
     Json(body): Json<DecodeQrBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let parsed = state
-        .qr
-        .decode(&body.payload)
-        .map_err(|e| match e {
-            QrError::InvalidPayload(msg) => ApiError::bad_request(msg),
-            other                        => ApiError::internal(other.to_string()),
-        })?;
+    let parsed = state.qr.decode(&body.payload).map_err(|e| match e {
+        QrError::InvalidPayload(msg) => ApiError::bad_request(msg),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&parsed).unwrap()))
 }
@@ -189,23 +185,17 @@ pub async fn mark_used(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid QR code id"))?;
 
-    let qr = state
-        .qr
-        .mark_used(qr_id)
-        .await
-        .map_err(|e| match e {
-            QrError::NotFound(_)           => ApiError::not_found("QR code not found"),
-            QrError::AlreadyExpired        => {
-                ApiError::unprocessable("QR_EXPIRED", "QR code has expired")
-            }
-            QrError::AlreadyUsedOrExpired  => {
-                ApiError::unprocessable("QR_ALREADY_USED", "QR code has already been used")
-            }
-            QrError::CannotMarkStaticAsUsed => {
-                ApiError::bad_request("static QR codes cannot be marked as used")
-            }
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let qr = state.qr.mark_used(qr_id).await.map_err(|e| match e {
+        QrError::NotFound(_) => ApiError::not_found("QR code not found"),
+        QrError::AlreadyExpired => ApiError::unprocessable("QR_EXPIRED", "QR code has expired"),
+        QrError::AlreadyUsedOrExpired => {
+            ApiError::unprocessable("QR_ALREADY_USED", "QR code has already been used")
+        }
+        QrError::CannotMarkStaticAsUsed => {
+            ApiError::bad_request("static QR codes cannot be marked as used")
+        }
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&qr).unwrap()))
 }

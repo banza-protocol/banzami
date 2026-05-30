@@ -3,8 +3,7 @@ use chrono::{DateTime, Utc};
 use banzami_types::{Currency, MerchantId, Money, TransactionId, WalletId};
 
 /// Classification of a transaction.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionType {
     Payment,
@@ -16,19 +15,19 @@ pub enum TransactionType {
 impl TransactionType {
     pub const fn as_str(self) -> &'static str {
         match self {
-            TransactionType::Payment  => "PAYMENT",
-            TransactionType::Refund   => "REFUND",
+            TransactionType::Payment => "PAYMENT",
+            TransactionType::Refund => "REFUND",
             TransactionType::Reversal => "REVERSAL",
-            TransactionType::Payout   => "PAYOUT",
+            TransactionType::Payout => "PAYOUT",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "PAYMENT"  => Some(TransactionType::Payment),
-            "REFUND"   => Some(TransactionType::Refund),
+            "PAYMENT" => Some(TransactionType::Payment),
+            "REFUND" => Some(TransactionType::Refund),
             "REVERSAL" => Some(TransactionType::Reversal),
-            "PAYOUT"   => Some(TransactionType::Payout),
+            "PAYOUT" => Some(TransactionType::Payout),
             _ => None,
         }
     }
@@ -46,8 +45,7 @@ impl TransactionType {
 ///
 ///   CAPTURED ──► REFUNDED
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransactionStatus {
     /// Created, awaiting acquirer authorization.
@@ -67,23 +65,23 @@ pub enum TransactionStatus {
 impl TransactionStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            TransactionStatus::Pending    => "PENDING",
+            TransactionStatus::Pending => "PENDING",
             TransactionStatus::Authorized => "AUTHORIZED",
-            TransactionStatus::Captured   => "CAPTURED",
-            TransactionStatus::Failed     => "FAILED",
-            TransactionStatus::Reversed   => "REVERSED",
-            TransactionStatus::Refunded   => "REFUNDED",
+            TransactionStatus::Captured => "CAPTURED",
+            TransactionStatus::Failed => "FAILED",
+            TransactionStatus::Reversed => "REVERSED",
+            TransactionStatus::Refunded => "REFUNDED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "PENDING"    => Some(TransactionStatus::Pending),
+            "PENDING" => Some(TransactionStatus::Pending),
             "AUTHORIZED" => Some(TransactionStatus::Authorized),
-            "CAPTURED"   => Some(TransactionStatus::Captured),
-            "FAILED"     => Some(TransactionStatus::Failed),
-            "REVERSED"   => Some(TransactionStatus::Reversed),
-            "REFUNDED"   => Some(TransactionStatus::Refunded),
+            "CAPTURED" => Some(TransactionStatus::Captured),
+            "FAILED" => Some(TransactionStatus::Failed),
+            "REVERSED" => Some(TransactionStatus::Reversed),
+            "REFUNDED" => Some(TransactionStatus::Refunded),
             _ => None,
         }
     }
@@ -95,12 +93,12 @@ impl TransactionStatus {
     pub const fn can_transition_to(self, next: Self) -> bool {
         matches!(
             (self, next),
-            (TransactionStatus::Pending,    TransactionStatus::Authorized) |
-            (TransactionStatus::Pending,    TransactionStatus::Failed)     |
-            (TransactionStatus::Authorized, TransactionStatus::Captured)   |
-            (TransactionStatus::Authorized, TransactionStatus::Reversed)   |
-            (TransactionStatus::Authorized, TransactionStatus::Failed)     |
-            (TransactionStatus::Captured,   TransactionStatus::Refunded)
+            (TransactionStatus::Pending, TransactionStatus::Authorized)
+                | (TransactionStatus::Pending, TransactionStatus::Failed)
+                | (TransactionStatus::Authorized, TransactionStatus::Captured)
+                | (TransactionStatus::Authorized, TransactionStatus::Reversed)
+                | (TransactionStatus::Authorized, TransactionStatus::Failed)
+                | (TransactionStatus::Captured, TransactionStatus::Refunded)
         )
     }
 }
@@ -110,8 +108,7 @@ impl TransactionStatus {
 /// `status` and `updated_at` are the only mutable fields; all other fields are
 /// set at creation and never changed. Status changes are recorded by writing a
 /// new ledger posting and updating these two fields atomically in a DB transaction.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transaction {
     pub id: TransactionId,
     /// Caller-supplied key for exactly-once creation. (CLAUDE.md §8.3)

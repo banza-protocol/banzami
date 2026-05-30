@@ -10,7 +10,7 @@
 use sqlx::PgPool;
 
 use banzami_ledger::{
-    Account, AccountType, LedgerEngine, PostingBuilder, PostgresLedgerRepository,
+    Account, AccountType, LedgerEngine, PostgresLedgerRepository, PostingBuilder,
 };
 use banzami_types::{Currency, Money};
 
@@ -32,12 +32,15 @@ fn liability_account(name: &str) -> Account {
 async fn balanced_posting_is_stored_with_correct_entries(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let bank   = ledger.create_account(asset_account("bank")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("merchant-wallet")).await.unwrap();
+    let bank = ledger.create_account(asset_account("bank")).await.unwrap();
+    let wallet = ledger
+        .create_account(liability_account("merchant-wallet"))
+        .await
+        .unwrap();
 
     let posting = PostingBuilder::new("test payment", "idem-store-01")
-        .debit(bank.id, kz(10_000_00))
-        .credit(wallet.id, kz(10_000_00))
+        .debit(bank.id, kz(1_000_000))
+        .credit(wallet.id, kz(1_000_000))
         .build()
         .unwrap();
 
@@ -54,20 +57,23 @@ async fn idempotent_posting_returns_existing_without_duplicate(pool: PgPool) -> 
     let ledger = PostgresLedgerRepository::new(pool);
 
     let src = ledger.create_account(asset_account("src")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst")).await.unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst"))
+        .await
+        .unwrap();
 
     let posting = PostingBuilder::new("payment", "idem-dedup-01")
-        .debit(src.id, kz(5_000_00))
-        .credit(dst.id, kz(5_000_00))
+        .debit(src.id, kz(500_000))
+        .credit(dst.id, kz(500_000))
         .build()
         .unwrap();
 
-    let first  = ledger.post(posting.clone()).await.unwrap();
+    let first = ledger.post(posting.clone()).await.unwrap();
 
     // Re-build with the same idempotency key and same entries.
     let duplicate = PostingBuilder::new("payment", "idem-dedup-01")
-        .debit(src.id, kz(5_000_00))
-        .credit(dst.id, kz(5_000_00))
+        .debit(src.id, kz(500_000))
+        .credit(dst.id, kz(500_000))
         .build()
         .unwrap();
     let second = ledger.post(duplicate).await.unwrap();
@@ -77,9 +83,9 @@ async fn idempotent_posting_returns_existing_without_duplicate(pool: PgPool) -> 
 
     // Balance reflects one posting only.
     let balance = ledger.balance(dst.id).await.unwrap();
-    // LIABILITY account credited once → ledger balance is -5_000_00 (we owe merchant)
+    // LIABILITY account credited once → ledger balance is -500_000 (we owe merchant)
     // The raw ledger balance is negative for credits on a LIABILITY.
-    assert_eq!(balance.amount_minor().abs(), 5_000_00);
+    assert_eq!(balance.amount_minor().abs(), 500_000);
 
     Ok(())
 }
@@ -90,34 +96,46 @@ async fn idempotent_posting_returns_existing_without_duplicate(pool: PgPool) -> 
 async fn balance_is_derived_from_entries(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let bank   = ledger.create_account(asset_account("bank-bal")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-bal")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-bal"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-bal"))
+        .await
+        .unwrap();
 
-    // First posting: 100_00 AOA
-    ledger.post(
-        PostingBuilder::new("p1", "idem-bal-01")
-            .debit(bank.id, kz(100_00))
-            .credit(wallet.id, kz(100_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    // First posting: 10_000 AOA
+    ledger
+        .post(
+            PostingBuilder::new("p1", "idem-bal-01")
+                .debit(bank.id, kz(10_000))
+                .credit(wallet.id, kz(10_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    // Second posting: 50_00 AOA
-    ledger.post(
-        PostingBuilder::new("p2", "idem-bal-02")
-            .debit(bank.id, kz(50_00))
-            .credit(wallet.id, kz(50_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    // Second posting: 5_000 AOA
+    ledger
+        .post(
+            PostingBuilder::new("p2", "idem-bal-02")
+                .debit(bank.id, kz(5_000))
+                .credit(wallet.id, kz(5_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    // Bank is ASSET: debited twice → balance = 150_00 (positive)
+    // Bank is ASSET: debited twice → balance = 15_000 (positive)
     let bank_balance = ledger.balance(bank.id).await.unwrap();
-    assert_eq!(bank_balance.amount_minor(), 150_00);
+    assert_eq!(bank_balance.amount_minor(), 15_000);
 
     // Wallet is LIABILITY: credited twice → balance negative (raw ledger)
     let wallet_balance = ledger.balance(wallet.id).await.unwrap();
-    assert_eq!(wallet_balance.amount_minor().abs(), 150_00);
+    assert_eq!(wallet_balance.amount_minor().abs(), 15_000);
 
     Ok(())
 }
@@ -139,20 +157,26 @@ async fn fresh_account_has_zero_balance(pool: PgPool) -> sqlx::Result<()> {
 async fn entries_for_account_returns_chronological_history(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let bank   = ledger.create_account(asset_account("bank-hist")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-hist")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-hist"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-hist"))
+        .await
+        .unwrap();
 
     for i in 1u32..=3 {
-        ledger.post(
-            PostingBuilder::new(
-                format!("posting {i}"),
-                format!("idem-hist-{i:02}"),
+        ledger
+            .post(
+                PostingBuilder::new(format!("posting {i}"), format!("idem-hist-{i:02}"))
+                    .debit(bank.id, kz(i as i64 * 10_000))
+                    .credit(wallet.id, kz(i as i64 * 10_000))
+                    .build()
+                    .unwrap(),
             )
-            .debit(bank.id, kz(i as i64 * 100_00))
-            .credit(wallet.id, kz(i as i64 * 100_00))
-            .build()
-            .unwrap(),
-        ).await.unwrap();
+            .await
+            .unwrap();
     }
 
     let entries = ledger.entries_for_account(bank.id).await.unwrap();
@@ -171,15 +195,18 @@ async fn entries_for_account_returns_chronological_history(pool: PgPool) -> sqlx
 /// An unbalanced posting (debits ≠ credits) must be rejected before reaching the DB.
 #[test]
 fn unbalanced_posting_is_rejected_by_builder() {
-    let bank   = banzami_types::AccountId::new();
+    let bank = banzami_types::AccountId::new();
     let wallet = banzami_types::AccountId::new();
 
     let result = PostingBuilder::new("unbalanced", "idem-reject-01")
-        .debit(bank, kz(100_00))
-        .credit(wallet, kz(90_00))   // 10 Kz missing → not balanced
+        .debit(bank, kz(10_000))
+        .credit(wallet, kz(9_000)) // 10 Kz missing → not balanced
         .build();
 
-    assert!(result.is_err(), "expected Err for unbalanced posting, got Ok");
+    assert!(
+        result.is_err(),
+        "expected Err for unbalanced posting, got Ok"
+    );
 }
 
 /// A posting with only one entry must be rejected.
@@ -188,10 +215,13 @@ fn single_entry_posting_is_rejected() {
     let bank = banzami_types::AccountId::new();
 
     let result = PostingBuilder::new("single", "idem-reject-02")
-        .debit(bank, kz(50_00))
+        .debit(bank, kz(5_000))
         .build();
 
-    assert!(result.is_err(), "expected Err for single-entry posting, got Ok");
+    assert!(
+        result.is_err(),
+        "expected Err for single-entry posting, got Ok"
+    );
 }
 
 /// A posting with zero entries must be rejected.
@@ -208,15 +238,18 @@ fn multi_currency_imbalance_is_rejected() {
     use banzami_types::Money;
     let usd = |minor: i64| Money::new(minor, Currency::USD);
 
-    let bank   = banzami_types::AccountId::new();
+    let bank = banzami_types::AccountId::new();
     let wallet = banzami_types::AccountId::new();
 
     let result = PostingBuilder::new("mc-imbalance", "idem-reject-04")
-        .debit(bank, kz(100_00))
-        .credit(wallet, usd(100_00)) // different currencies → net ≠ 0 per currency
+        .debit(bank, kz(10_000))
+        .credit(wallet, usd(10_000)) // different currencies → net ≠ 0 per currency
         .build();
 
-    assert!(result.is_err(), "expected Err for cross-currency imbalance, got Ok");
+    assert!(
+        result.is_err(),
+        "expected Err for cross-currency imbalance, got Ok"
+    );
 }
 
 /// A multi-currency posting balanced within each currency must be accepted.
@@ -232,13 +265,17 @@ fn multi_currency_balanced_posting_is_accepted() {
 
     // Two separate balanced pairs in one posting — unusual but valid.
     let result = PostingBuilder::new("mc-balanced", "idem-mc-01")
-        .debit(bank_aoa, kz(100_00))
-        .credit(wallet_aoa, kz(100_00))
-        .debit(bank_usd, usd(50_00))
-        .credit(wallet_usd, usd(50_00))
+        .debit(bank_aoa, kz(10_000))
+        .credit(wallet_aoa, kz(10_000))
+        .debit(bank_usd, usd(5_000))
+        .credit(wallet_usd, usd(5_000))
         .build();
 
-    assert!(result.is_ok(), "expected Ok for balanced multi-currency posting, got {:?}", result);
+    assert!(
+        result.is_ok(),
+        "expected Ok for balanced multi-currency posting, got {:?}",
+        result
+    );
 }
 
 // ─── Idempotency — DB-level ───────────────────────────────────────────────────
@@ -249,32 +286,47 @@ fn multi_currency_balanced_posting_is_accepted() {
 async fn different_amount_same_key_returns_original(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let src = ledger.create_account(asset_account("src-idem")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-idem")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-idem"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-idem"))
+        .await
+        .unwrap();
 
-    let first = ledger.post(
-        PostingBuilder::new("payment A", "idem-amount-check")
-            .debit(src.id, kz(1_000_00))
-            .credit(dst.id, kz(1_000_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    let first = ledger
+        .post(
+            PostingBuilder::new("payment A", "idem-amount-check")
+                .debit(src.id, kz(100_000))
+                .credit(dst.id, kz(100_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Re-submit with the same key but different amounts.
     // The engine must return the original posting, not a second one.
-    let second = ledger.post(
-        PostingBuilder::new("payment B", "idem-amount-check")
-            .debit(src.id, kz(500_00))
-            .credit(dst.id, kz(500_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    let second = ledger
+        .post(
+            PostingBuilder::new("payment B", "idem-amount-check")
+                .debit(src.id, kz(50_000))
+                .credit(dst.id, kz(50_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    assert_eq!(first.id, second.id, "re-submission must return the original posting");
+    assert_eq!(
+        first.id, second.id,
+        "re-submission must return the original posting"
+    );
 
     // Balance must reflect exactly ONE posting of 1 000 Kz.
     let balance = ledger.balance(dst.id).await.unwrap();
-    assert_eq!(balance.amount_minor().abs(), 1_000_00);
+    assert_eq!(balance.amount_minor().abs(), 100_000);
 
     Ok(())
 }
@@ -287,20 +339,35 @@ async fn different_amount_same_key_returns_original(pool: PgPool) -> sqlx::Resul
 async fn reversal_offsets_original_and_preserves_history(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let bank   = ledger.create_account(asset_account("bank-rev")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-rev")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-rev"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-rev"))
+        .await
+        .unwrap();
 
-    let original = ledger.post(
-        PostingBuilder::new("payment for reversal test", "idem-rev-original")
-            .debit(bank.id, kz(10_000_00))
-            .credit(wallet.id, kz(10_000_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    let original = ledger
+        .post(
+            PostingBuilder::new("payment for reversal test", "idem-rev-original")
+                .debit(bank.id, kz(1_000_000))
+                .credit(wallet.id, kz(1_000_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Both accounts should reflect the posting.
-    assert_eq!(ledger.balance(bank.id).await.unwrap().amount_minor(),   10_000_00);
-    assert_eq!(ledger.balance(wallet.id).await.unwrap().amount_minor(), -10_000_00);
+    assert_eq!(
+        ledger.balance(bank.id).await.unwrap().amount_minor(),
+        1_000_000
+    );
+    assert_eq!(
+        ledger.balance(wallet.id).await.unwrap().amount_minor(),
+        -1_000_000
+    );
 
     // Post the reversal.
     let reversal = ledger
@@ -309,19 +376,26 @@ async fn reversal_offsets_original_and_preserves_history(pool: PgPool) -> sqlx::
         .unwrap();
 
     // Balances must return to zero.
-    assert_eq!(ledger.balance(bank.id).await.unwrap().amount_minor(),   0);
+    assert_eq!(ledger.balance(bank.id).await.unwrap().amount_minor(), 0);
     assert_eq!(ledger.balance(wallet.id).await.unwrap().amount_minor(), 0);
 
     // Both postings must exist (audit trail intact — original is not deleted).
     let bank_entries = ledger.entries_for_account(bank.id).await.unwrap();
-    assert_eq!(bank_entries.len(), 2, "original DEBIT + reversal CREDIT must both exist");
+    assert_eq!(
+        bank_entries.len(),
+        2,
+        "original DEBIT + reversal CREDIT must both exist"
+    );
 
     // Reversal is idempotent.
     let reversal2 = ledger
         .reverse(&original, "reversal of payment", "idem-rev-reversal")
         .await
         .unwrap();
-    assert_eq!(reversal.id, reversal2.id, "idempotent reversal must return same posting");
+    assert_eq!(
+        reversal.id, reversal2.id,
+        "idempotent reversal must return same posting"
+    );
 
     Ok(())
 }
@@ -331,16 +405,25 @@ async fn reversal_offsets_original_and_preserves_history(pool: PgPool) -> sqlx::
 async fn get_posting_returns_full_posting(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool);
 
-    let src = ledger.create_account(asset_account("src-get")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-get")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-get"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-get"))
+        .await
+        .unwrap();
 
-    let posted = ledger.post(
-        PostingBuilder::new("get test", "idem-get-01")
-            .debit(src.id, kz(5_000_00))
-            .credit(dst.id, kz(5_000_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    let posted = ledger
+        .post(
+            PostingBuilder::new("get test", "idem-get-01")
+                .debit(src.id, kz(500_000))
+                .credit(dst.id, kz(500_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let fetched = ledger.get_posting(posted.id).await.unwrap();
     assert_eq!(fetched.id, posted.id);
@@ -357,24 +440,31 @@ async fn get_posting_returns_full_posting(pool: PgPool) -> sqlx::Result<()> {
 async fn update_on_ledger_entry_is_rejected_by_db(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
-    let src = ledger.create_account(asset_account("src-imm")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-imm")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-imm"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-imm"))
+        .await
+        .unwrap();
 
-    ledger.post(
-        PostingBuilder::new("immutability test", "idem-imm-01")
-            .debit(src.id, kz(1_000_00))
-            .credit(dst.id, kz(1_000_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    ledger
+        .post(
+            PostingBuilder::new("immutability test", "idem-imm-01")
+                .debit(src.id, kz(100_000))
+                .credit(dst.id, kz(100_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     // Attempt to mutate a ledger_entry directly — must be blocked by trigger.
-    let result = sqlx::query(
-        "UPDATE ledger_entries SET amount_minor = 999 WHERE account_id = $1",
-    )
-    .bind(src.id.as_uuid())
-    .execute(&pool)
-    .await;
+    let result = sqlx::query("UPDATE ledger_entries SET amount_minor = 999 WHERE account_id = $1")
+        .bind(src.id.as_uuid())
+        .execute(&pool)
+        .await;
 
     assert!(result.is_err(), "UPDATE on ledger_entries must be rejected");
     let err_msg = result.unwrap_err().to_string();
@@ -384,7 +474,10 @@ async fn update_on_ledger_entry_is_rejected_by_db(pool: PgPool) -> sqlx::Result<
     );
 
     // Balance must be unchanged.
-    assert_eq!(ledger.balance(src.id).await.unwrap().amount_minor(), 1_000_00);
+    assert_eq!(
+        ledger.balance(src.id).await.unwrap().amount_minor(),
+        100_000
+    );
 
     Ok(())
 }
@@ -394,28 +487,35 @@ async fn update_on_ledger_entry_is_rejected_by_db(pool: PgPool) -> sqlx::Result<
 async fn delete_on_ledger_entry_is_rejected_by_db(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
-    let src = ledger.create_account(asset_account("src-del")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-del")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-del"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-del"))
+        .await
+        .unwrap();
 
-    ledger.post(
-        PostingBuilder::new("delete block test", "idem-del-01")
-            .debit(src.id, kz(500_00))
-            .credit(dst.id, kz(500_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    ledger
+        .post(
+            PostingBuilder::new("delete block test", "idem-del-01")
+                .debit(src.id, kz(50_000))
+                .credit(dst.id, kz(50_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
-    let result = sqlx::query(
-        "DELETE FROM ledger_entries WHERE account_id = $1",
-    )
-    .bind(src.id.as_uuid())
-    .execute(&pool)
-    .await;
+    let result = sqlx::query("DELETE FROM ledger_entries WHERE account_id = $1")
+        .bind(src.id.as_uuid())
+        .execute(&pool)
+        .await;
 
     assert!(result.is_err(), "DELETE on ledger_entries must be rejected");
 
     // Balance must be unchanged.
-    assert_eq!(ledger.balance(src.id).await.unwrap().amount_minor(), 500_00);
+    assert_eq!(ledger.balance(src.id).await.unwrap().amount_minor(), 50_000);
 
     Ok(())
 }
@@ -431,17 +531,24 @@ async fn entry_with_wrong_account_currency_is_rejected(pool: PgPool) -> sqlx::Re
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
     // AOA account
-    let aoa_src = ledger.create_account(asset_account("aoa-src")).await.unwrap();
+    let aoa_src = ledger
+        .create_account(asset_account("aoa-src"))
+        .await
+        .unwrap();
     // Separate USD account for the credit side
     let usd_dst = ledger
-        .create_account(Account::new(AccountType::Asset, "usd-dst", banzami_types::Currency::USD))
+        .create_account(Account::new(
+            AccountType::Asset,
+            "usd-dst",
+            banzami_types::Currency::USD,
+        ))
         .await
         .unwrap();
 
     // Build a posting where the USD account is credited with AOA — currency mismatch.
     let posting = PostingBuilder::new("wrong currency", "idem-ccy-01")
-        .debit(aoa_src.id, kz(100_00))
-        .credit(usd_dst.id, kz(100_00)) // kz() uses AOA but account is USD
+        .debit(aoa_src.id, kz(10_000))
+        .credit(usd_dst.id, kz(10_000)) // kz() uses AOA but account is USD
         .build()
         .unwrap(); // builder only checks balance per currency, not account currency
 
@@ -467,8 +574,14 @@ async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sql
     use std::sync::Arc;
     let ledger = Arc::new(PostgresLedgerRepository::new(pool));
 
-    let src = ledger.create_account(asset_account("src-conc")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-conc")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-conc"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-conc"))
+        .await
+        .unwrap();
 
     let l1 = ledger.clone();
     let l2 = ledger.clone();
@@ -477,20 +590,22 @@ async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sql
         tokio::spawn(async move {
             l1.post(
                 PostingBuilder::new("conc payment", "idem-conc-01")
-                    .debit(src.id, kz(200_00))
-                    .credit(dst.id, kz(200_00))
+                    .debit(src.id, kz(20_000))
+                    .credit(dst.id, kz(20_000))
                     .build()
                     .unwrap(),
-            ).await
+            )
+            .await
         }),
         tokio::spawn(async move {
             l2.post(
                 PostingBuilder::new("conc payment", "idem-conc-01")
-                    .debit(src.id, kz(200_00))
-                    .credit(dst.id, kz(200_00))
+                    .debit(src.id, kz(20_000))
+                    .credit(dst.id, kz(20_000))
                     .build()
                     .unwrap(),
-            ).await
+            )
+            .await
         }),
     );
 
@@ -499,11 +614,18 @@ async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sql
     let p2 = r2.unwrap().unwrap();
 
     // They must have the same posting ID.
-    assert_eq!(p1.id, p2.id, "concurrent submissions must return the same posting ID");
+    assert_eq!(
+        p1.id, p2.id,
+        "concurrent submissions must return the same posting ID"
+    );
 
     // Balance must reflect exactly one 200 Kz posting.
     let balance = ledger.balance(dst.id).await.unwrap();
-    assert_eq!(balance.amount_minor().abs(), 200_00, "balance must reflect exactly one posting");
+    assert_eq!(
+        balance.amount_minor().abs(),
+        20_000,
+        "balance must reflect exactly one posting"
+    );
 
     Ok(())
 }
@@ -521,8 +643,14 @@ async fn concurrent_identical_postings_produce_single_entry(pool: PgPool) -> sql
 async fn rollback_leaves_no_orphan_posting_or_entries(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
-    let src = ledger.create_account(asset_account("src-rb")).await.unwrap();
-    let dst = ledger.create_account(liability_account("dst-rb")).await.unwrap();
+    let src = ledger
+        .create_account(asset_account("src-rb"))
+        .await
+        .unwrap();
+    let dst = ledger
+        .create_account(liability_account("dst-rb"))
+        .await
+        .unwrap();
 
     let posting_id = uuid::Uuid::new_v4();
 
@@ -545,13 +673,15 @@ async fn rollback_leaves_no_orphan_posting_or_entries(pool: PgPool) -> sqlx::Res
     }
 
     // No posting header must remain.
-    let header_count: i64 = sqlx::query_scalar(
-        "SELECT COUNT(*) FROM ledger_postings WHERE id = $1",
-    )
-    .bind(posting_id)
-    .fetch_one(&pool)
-    .await?;
-    assert_eq!(header_count, 0, "rolled-back posting header must not persist");
+    let header_count: i64 =
+        sqlx::query_scalar("SELECT COUNT(*) FROM ledger_postings WHERE id = $1")
+            .bind(posting_id)
+            .fetch_one(&pool)
+            .await?;
+    assert_eq!(
+        header_count, 0,
+        "rolled-back posting header must not persist"
+    );
 
     // Balances must still be zero — no financial trace.
     assert_eq!(ledger.balance(src.id).await.unwrap().amount_minor(), 0);
@@ -567,29 +697,40 @@ async fn failed_posting_leaves_balances_unchanged(pool: PgPool) -> sqlx::Result<
     use banzami_types::AccountId;
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
-    let bank   = ledger.create_account(asset_account("bank-fail")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-fail")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-fail"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-fail"))
+        .await
+        .unwrap();
 
     // First, make a legitimate posting so balance is non-zero.
-    ledger.post(
-        PostingBuilder::new("initial credit", "idem-fail-pre")
-            .debit(bank.id, kz(50_000_00))
-            .credit(wallet.id, kz(50_000_00))
-            .build()
-            .unwrap(),
-    ).await.unwrap();
+    ledger
+        .post(
+            PostingBuilder::new("initial credit", "idem-fail-pre")
+                .debit(bank.id, kz(5_000_000))
+                .credit(wallet.id, kz(5_000_000))
+                .build()
+                .unwrap(),
+        )
+        .await
+        .unwrap();
 
     let balance_before = ledger.balance(wallet.id).await.unwrap().amount_minor();
 
     // Attempt to post with a phantom account (does not exist in ledger_accounts).
     let phantom_id = AccountId::new();
-    let result = ledger.post(
-        PostingBuilder::new("bad posting", "idem-fail-bad")
-            .debit(bank.id, kz(1_000_00))
-            .credit(phantom_id, kz(1_000_00))
-            .build()
-            .unwrap(),
-    ).await;
+    let result = ledger
+        .post(
+            PostingBuilder::new("bad posting", "idem-fail-bad")
+                .debit(bank.id, kz(100_000))
+                .credit(phantom_id, kz(100_000))
+                .build()
+                .unwrap(),
+        )
+        .await;
 
     // Must fail — phantom account not found.
     assert!(result.is_err(), "posting to non-existent account must fail");
@@ -607,7 +748,10 @@ async fn failed_posting_leaves_balances_unchanged(pool: PgPool) -> sqlx::Result<
     )
     .fetch_one(&pool)
     .await?;
-    assert_eq!(orphan_count, 0, "failed posting must leave no orphan header");
+    assert_eq!(
+        orphan_count, 0,
+        "failed posting must leave no orphan header"
+    );
 
     Ok(())
 }
@@ -618,9 +762,14 @@ async fn failed_posting_leaves_balances_unchanged(pool: PgPool) -> sqlx::Result<
 /// The ledger balance for an account with no entries must be zero.
 /// (Even if DB constraints allowed a lone header, it cannot corrupt balances.)
 #[sqlx::test(migrations = "../../db/migrations")]
-async fn posting_header_without_entries_has_zero_financial_effect(pool: PgPool) -> sqlx::Result<()> {
+async fn posting_header_without_entries_has_zero_financial_effect(
+    pool: PgPool,
+) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
-    let account = ledger.create_account(asset_account("headeronly")).await.unwrap();
+    let account = ledger
+        .create_account(asset_account("headeronly"))
+        .await
+        .unwrap();
 
     // Insert a header-only posting directly — bypassing the engine (simulates
     // an extreme crash scenario where entries were never committed).
@@ -635,7 +784,11 @@ async fn posting_header_without_entries_has_zero_financial_effect(pool: PgPool) 
 
     // Balance must still be zero — no entries, no financial state.
     let balance = ledger.balance(account.id).await.unwrap();
-    assert_eq!(balance.amount_minor(), 0, "lone posting header has no financial effect");
+    assert_eq!(
+        balance.amount_minor(),
+        0,
+        "lone posting header has no financial effect"
+    );
 
     Ok(())
 }
@@ -645,7 +798,10 @@ async fn posting_header_without_entries_has_zero_financial_effect(pool: PgPool) 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn entry_without_posting_header_fk_rejected(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
-    let account = ledger.create_account(asset_account("fk-test")).await.unwrap();
+    let account = ledger
+        .create_account(asset_account("fk-test"))
+        .await
+        .unwrap();
 
     let phantom_posting_id = uuid::Uuid::new_v4(); // does not exist in ledger_postings
 
@@ -659,7 +815,10 @@ async fn entry_without_posting_header_fk_rejected(pool: PgPool) -> sqlx::Result<
     .execute(&pool)
     .await;
 
-    assert!(result.is_err(), "orphan ledger_entry must be rejected by FK");
+    assert!(
+        result.is_err(),
+        "orphan ledger_entry must be rejected by FK"
+    );
 
     // Balance must be zero.
     assert_eq!(ledger.balance(account.id).await.unwrap().amount_minor(), 0);
@@ -677,8 +836,14 @@ async fn concurrent_different_postings_all_land_consistently(pool: PgPool) -> sq
     use std::sync::Arc;
     let ledger = Arc::new(PostgresLedgerRepository::new(pool));
 
-    let bank   = ledger.create_account(asset_account("bank-cd")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-cd")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-cd"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-cd"))
+        .await
+        .unwrap();
 
     let l1 = ledger.clone();
     let l2 = ledger.clone();
@@ -688,20 +853,22 @@ async fn concurrent_different_postings_all_land_consistently(pool: PgPool) -> sq
         tokio::spawn(async move {
             l1.post(
                 PostingBuilder::new("payment A", "idem-cd-A")
-                    .debit(bank.id, kz(300_00))
-                    .credit(wallet.id, kz(300_00))
+                    .debit(bank.id, kz(30_000))
+                    .credit(wallet.id, kz(30_000))
                     .build()
                     .unwrap(),
-            ).await
+            )
+            .await
         }),
         tokio::spawn(async move {
             l2.post(
                 PostingBuilder::new("payment B", "idem-cd-B")
-                    .debit(bank.id, kz(700_00))
-                    .credit(wallet.id, kz(700_00))
+                    .debit(bank.id, kz(70_000))
+                    .credit(wallet.id, kz(70_000))
                     .build()
                     .unwrap(),
-            ).await
+            )
+            .await
         }),
     );
 
@@ -711,18 +878,22 @@ async fn concurrent_different_postings_all_land_consistently(pool: PgPool) -> sq
     // Total credited to wallet must be exactly 1 000 Kz (300 + 700).
     let wallet_balance = ledger.balance(wallet.id).await.unwrap();
     assert_eq!(
-        wallet_balance.amount_minor().abs(), 1_000_00,
+        wallet_balance.amount_minor().abs(),
+        100_000,
         "both concurrent postings must land: expected 1 000 Kz, got {}",
         wallet_balance.amount_minor().abs()
     );
 
     // Bank balance must equal 1 000 Kz debited.
     let bank_balance = ledger.balance(bank.id).await.unwrap();
-    assert_eq!(bank_balance.amount_minor(), 1_000_00);
+    assert_eq!(bank_balance.amount_minor(), 100_000);
 
     // Net across both accounts must be zero (double-entry invariant preserved).
     let net = bank_balance.amount_minor() + wallet_balance.amount_minor();
-    assert_eq!(net, 0, "net across all accounts must be zero after concurrent postings");
+    assert_eq!(
+        net, 0,
+        "net across all accounts must be zero after concurrent postings"
+    );
 
     Ok(())
 }
@@ -741,21 +912,27 @@ async fn concurrent_different_postings_all_land_consistently(pool: PgPool) -> sq
 async fn sql_consistency_invariants_all_pass(pool: PgPool) -> sqlx::Result<()> {
     let ledger = PostgresLedgerRepository::new(pool.clone());
 
-    let bank   = ledger.create_account(asset_account("bank-sql")).await.unwrap();
-    let wallet = ledger.create_account(liability_account("wallet-sql")).await.unwrap();
+    let bank = ledger
+        .create_account(asset_account("bank-sql"))
+        .await
+        .unwrap();
+    let wallet = ledger
+        .create_account(liability_account("wallet-sql"))
+        .await
+        .unwrap();
 
     // Write several valid postings through the engine.
     for i in 1u32..=5 {
-        ledger.post(
-            PostingBuilder::new(
-                format!("sql-sweep posting {i}"),
-                format!("idem-sql-{i:02}"),
+        ledger
+            .post(
+                PostingBuilder::new(format!("sql-sweep posting {i}"), format!("idem-sql-{i:02}"))
+                    .debit(bank.id, kz(i as i64 * 10_000))
+                    .credit(wallet.id, kz(i as i64 * 10_000))
+                    .build()
+                    .unwrap(),
             )
-            .debit(bank.id, kz(i as i64 * 100_00))
-            .credit(wallet.id, kz(i as i64 * 100_00))
-            .build()
-            .unwrap(),
-        ).await.unwrap();
+            .await
+            .unwrap();
     }
 
     // 1. Zero unbalanced postings.
@@ -789,7 +966,10 @@ async fn sql_consistency_invariants_all_pass(pool: PgPool) -> sqlx::Result<()> {
     )
     .fetch_one(&pool)
     .await?;
-    assert_eq!(thin_postings, 0, "every committed posting must have at least 2 entries");
+    assert_eq!(
+        thin_postings, 0,
+        "every committed posting must have at least 2 entries"
+    );
 
     // 4. Zero duplicate idempotency keys (UNIQUE constraint proof).
     let dup_keys: i64 = sqlx::query_scalar(

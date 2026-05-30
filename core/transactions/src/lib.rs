@@ -21,7 +21,7 @@ pub enum TransactionError {
     #[error("invalid status transition: {from:?} → {to:?}")]
     InvalidStatusTransition {
         from: TransactionStatus,
-        to:   TransactionStatus,
+        to: TransactionStatus,
     },
 
     #[error("duplicate idempotency key: {0}")]

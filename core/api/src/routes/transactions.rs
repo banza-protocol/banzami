@@ -6,12 +6,15 @@ use axum::{
 use serde::Deserialize;
 
 use banzami_transactions::{
-    AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest,
-    ReverseRequest, TransactionEngine, TransactionError, TransactionType,
+    AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest, ReverseRequest,
+    TransactionEngine, TransactionError, TransactionType,
 };
 use banzami_types::{Currency, MerchantId, Money, TransactionId, WalletId};
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request bodies
@@ -19,13 +22,13 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Deserialize)]
 pub struct CreateTransactionBody {
-    pub idempotency_key:  String,
+    pub idempotency_key: String,
     pub transaction_type: String,
-    pub amount_minor:     i64,
-    pub currency:         String,
-    pub merchant_id:      String,
-    pub wallet_id:        String,
-    pub description:      Option<String>,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub merchant_id: String,
+    pub wallet_id: String,
+    pub description: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -35,14 +38,14 @@ pub struct FailBody {
 
 #[derive(Deserialize)]
 pub struct ListQuery {
-    pub merchant_id:       String,
-    pub limit:             Option<i64>,
+    pub merchant_id: String,
+    pub limit: Option<i64>,
     /// Keyset cursor: RFC3339 timestamp of the last returned transaction.
     pub before_created_at: Option<chrono::DateTime<chrono::Utc>>,
     /// Keyset cursor: UUID of the last returned transaction (tiebreaker).
-    pub before_id:         Option<String>,
+    pub before_id: Option<String>,
     /// Inclusive lower bound — returns only transactions created at or after this timestamp.
-    pub since_created_at:  Option<chrono::DateTime<chrono::Utc>>,
+    pub since_created_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -56,8 +59,12 @@ pub async fn create(
     let currency = Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
 
-    let tx_type = TransactionType::try_from_str(&body.transaction_type)
-        .ok_or_else(|| ApiError::bad_request(format!("unknown transaction_type: {}", body.transaction_type)))?;
+    let tx_type = TransactionType::try_from_str(&body.transaction_type).ok_or_else(|| {
+        ApiError::bad_request(format!(
+            "unknown transaction_type: {}",
+            body.transaction_type
+        ))
+    })?;
 
     let merchant_id: MerchantId = body
         .merchant_id
@@ -76,12 +83,12 @@ pub async fn create(
     let tx = state
         .tx_engine
         .create(CreateTransactionRequest {
-            idempotency_key:  body.idempotency_key,
+            idempotency_key: body.idempotency_key,
             transaction_type: tx_type,
-            amount:           Money::new(body.amount_minor, currency),
+            amount: Money::new(body.amount_minor, currency),
             merchant_id,
             wallet_id,
-            description:      body.description,
+            description: body.description,
         })
         .await
         .map_err(|e| match e {
@@ -91,7 +98,10 @@ pub async fn create(
             other => ApiError::internal(other.to_string()),
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&tx).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&tx).unwrap()),
+    ))
 }
 
 pub async fn get(
@@ -102,14 +112,10 @@ pub async fn get(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction id"))?;
 
-    let tx = state
-        .tx_engine
-        .get(tx_id)
-        .await
-        .map_err(|e| match e {
-            TransactionError::NotFound(_) => ApiError::not_found("transaction not found"),
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let tx = state.tx_engine.get(tx_id).await.map_err(|e| match e {
+        TransactionError::NotFound(_) => ApiError::not_found("transaction not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&tx).unwrap()))
 }
@@ -190,12 +196,15 @@ pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = q.merchant_id.parse()
+    let merchant_id: MerchantId = q
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     let limit = q.limit.unwrap_or(20).clamp(1, 100);
 
-    let before_id = q.before_id
+    let before_id = q
+        .before_id
         .map(|s| s.parse::<TransactionId>())
         .transpose()
         .map_err(|_| ApiError::bad_request("invalid before_id"))?;
@@ -203,7 +212,13 @@ pub async fn list(
     // Fetch one extra to determine whether a next page exists.
     let mut txs = state
         .tx_engine
-        .list(merchant_id, limit + 1, q.before_created_at, before_id, q.since_created_at)
+        .list(
+            merchant_id,
+            limit + 1,
+            q.before_created_at,
+            before_id,
+            q.since_created_at,
+        )
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
@@ -227,7 +242,10 @@ pub async fn fail(
 
     let tx = state
         .tx_engine
-        .fail(FailRequest { tx_id, reason: body.reason })
+        .fail(FailRequest {
+            tx_id,
+            reason: body.reason,
+        })
         .await
         .map_err(|e| match e {
             TransactionError::NotFound(_) => ApiError::not_found("transaction not found"),

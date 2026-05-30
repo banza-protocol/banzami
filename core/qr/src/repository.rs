@@ -10,11 +10,7 @@ use crate::{QrCode, QrCodeStatus, QrCodeType, QrError, QrOwnerType};
 pub trait QrRepository: Send + Sync {
     async fn create(&self, qr: QrCode) -> Result<QrCode, QrError>;
     async fn get(&self, id: QrCodeId) -> Result<QrCode, QrError>;
-    async fn update_status(
-        &self,
-        id:     QrCodeId,
-        status: QrCodeStatus,
-    ) -> Result<QrCode, QrError>;
+    async fn update_status(&self, id: QrCodeId, status: QrCodeStatus) -> Result<QrCode, QrError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -23,17 +19,17 @@ pub trait QrRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct QrRow {
-    id:           Uuid,
-    owner_id:     Uuid,
-    owner_type:   String,
-    qr_type:      String,
-    currency:     String,
+    id: Uuid,
+    owner_id: Uuid,
+    owner_type: String,
+    qr_type: String,
+    currency: String,
     amount_minor: Option<i64>,
-    status:       String,
-    expires_at:   Option<DateTime<Utc>>,
-    used_at:      Option<DateTime<Utc>>,
-    reference:    Option<String>,
-    created_at:   DateTime<Utc>,
+    status: String,
+    expires_at: Option<DateTime<Utc>>,
+    used_at: Option<DateTime<Utc>>,
+    reference: Option<String>,
+    created_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -50,8 +46,7 @@ impl PostgresQrRepository {
     }
 }
 
-const SELECT: &str =
-    "SELECT id, owner_id, owner_type, qr_type, currency, amount_minor, status,
+const SELECT: &str = "SELECT id, owner_id, owner_type, qr_type, currency, amount_minor, status,
             expires_at, used_at, reference, created_at
      FROM qr_codes";
 
@@ -92,11 +87,7 @@ impl QrRepository for PostgresQrRepository {
         qr_from_row(row)
     }
 
-    async fn update_status(
-        &self,
-        id:     QrCodeId,
-        status: QrCodeStatus,
-    ) -> Result<QrCode, QrError> {
+    async fn update_status(&self, id: QrCodeId, status: QrCodeStatus) -> Result<QrCode, QrError> {
         let used_at = if status == QrCodeStatus::Used {
             Some(Utc::now())
         } else {
@@ -124,24 +115,25 @@ impl QrRepository for PostgresQrRepository {
 fn qr_from_row(row: QrRow) -> Result<QrCode, QrError> {
     let currency = banzami_types::Currency::from_code(&row.currency)
         .ok_or_else(|| QrError::UnknownCurrency(row.currency.clone()))?;
-    let owner_type = QrOwnerType::try_from_str(&row.owner_type)
-        .ok_or_else(|| QrError::InvalidPayload(format!("unknown owner_type: {}", row.owner_type)))?;
+    let owner_type = QrOwnerType::try_from_str(&row.owner_type).ok_or_else(|| {
+        QrError::InvalidPayload(format!("unknown owner_type: {}", row.owner_type))
+    })?;
     let qr_type = QrCodeType::try_from_str(&row.qr_type)
         .ok_or_else(|| QrError::InvalidPayload(format!("unknown qr_type: {}", row.qr_type)))?;
     let status = QrCodeStatus::try_from_str(&row.status)
         .ok_or_else(|| QrError::InvalidPayload(format!("unknown status: {}", row.status)))?;
 
     Ok(QrCode {
-        id:           QrCodeId::from_uuid(row.id),
-        owner_id:     row.owner_id,
+        id: QrCodeId::from_uuid(row.id),
+        owner_id: row.owner_id,
         owner_type,
         qr_type,
         currency,
         amount_minor: row.amount_minor,
         status,
-        expires_at:   row.expires_at,
-        used_at:      row.used_at,
-        reference:    row.reference,
-        created_at:   row.created_at,
+        expires_at: row.expires_at,
+        used_at: row.used_at,
+        reference: row.reference,
+        created_at: row.created_at,
     })
 }

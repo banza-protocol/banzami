@@ -47,10 +47,7 @@ pub trait LedgerEngine: Send + Sync {
     ) -> Result<LedgerPosting, LedgerError>;
 
     /// Fetch a posting and all its entries by ID.
-    async fn get_posting(
-        &self,
-        posting_id: LedgerPostingId,
-    ) -> Result<LedgerPosting, LedgerError>;
+    async fn get_posting(&self, posting_id: LedgerPostingId) -> Result<LedgerPosting, LedgerError>;
 
     /// Derive the current balance of an account from its ledger entries.
     ///

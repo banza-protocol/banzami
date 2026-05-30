@@ -4,7 +4,10 @@ use chrono::{DateTime, Utc};
 
 use banzami_types::{AccountId, Currency, LedgerPostingId, Money};
 
-use crate::{entry::{EntryType, LedgerEntry}, LedgerError};
+use crate::{
+    entry::{EntryType, LedgerEntry},
+    LedgerError,
+};
 
 /// A balanced journal entry: the atomic unit of the ledger.
 ///
@@ -13,8 +16,7 @@ use crate::{entry::{EntryType, LedgerEntry}, LedgerError};
 /// - For every currency present: sum(debits) == sum(credits) in minor units.
 /// - Entries are immutable — this struct is append-only once posted.
 /// - `idempotency_key` is globally unique; re-posting the same key returns the existing posting.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct LedgerPosting {
     pub id: LedgerPostingId,
     pub entries: Vec<LedgerEntry>,
@@ -36,15 +38,23 @@ impl LedgerPosting {
         }
         for (currency, net) in sums {
             if net != 0 {
-                let debits_minor = self.entries.iter()
+                let debits_minor = self
+                    .entries
+                    .iter()
                     .filter(|e| e.amount.currency == currency && e.entry_type == EntryType::Debit)
                     .map(|e| e.amount.amount_minor())
                     .sum();
-                let credits_minor = self.entries.iter()
+                let credits_minor = self
+                    .entries
+                    .iter()
                     .filter(|e| e.amount.currency == currency && e.entry_type == EntryType::Credit)
                     .map(|e| e.amount.amount_minor())
                     .sum();
-                return Err(LedgerError::UnbalancedPosting { debits_minor, credits_minor, currency });
+                return Err(LedgerError::UnbalancedPosting {
+                    debits_minor,
+                    credits_minor,
+                    currency,
+                });
             }
         }
         Ok(())
@@ -83,12 +93,22 @@ impl PostingBuilder {
     }
 
     pub fn debit(mut self, account_id: AccountId, amount: Money) -> Self {
-        self.entries.push(LedgerEntry::new(self.id, account_id, EntryType::Debit, amount));
+        self.entries.push(LedgerEntry::new(
+            self.id,
+            account_id,
+            EntryType::Debit,
+            amount,
+        ));
         self
     }
 
     pub fn credit(mut self, account_id: AccountId, amount: Money) -> Self {
-        self.entries.push(LedgerEntry::new(self.id, account_id, EntryType::Credit, amount));
+        self.entries.push(LedgerEntry::new(
+            self.id,
+            account_id,
+            EntryType::Credit,
+            amount,
+        ));
         self
     }
 

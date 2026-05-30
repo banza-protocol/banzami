@@ -19,13 +19,13 @@ use crate::{
 
 #[derive(Deserialize)]
 pub struct InitiateBody {
-    pub idempotency_key:     String,
-    pub merchant_id:         String,
-    pub wallet_id:           String,
-    pub amount_minor:        i64,
-    pub currency:            String,
+    pub idempotency_key: String,
+    pub merchant_id: String,
+    pub wallet_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
     pub bank_account_number: String,
-    pub bank_code:           String,
+    pub bank_code: String,
     pub account_holder_name: String,
 }
 
@@ -40,36 +40,45 @@ pub async fn initiate(
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
 
-    let merchant_id: MerchantId = body.merchant_id.parse()
+    let merchant_id: MerchantId = body
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
-    let wallet_id: WalletId = body.wallet_id.parse()
+    let wallet_id: WalletId = body
+        .wallet_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
     let currency = banzami_types::Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request("unknown currency"))?;
 
-    let payout = state.payout.initiate(CreatePayoutRequest {
-        idempotency_key: body.idempotency_key,
-        merchant_id,
-        wallet_id,
-        amount: banzami_types::Money::new(body.amount_minor, currency),
-        destination: BankDestination {
-            account_number:      body.bank_account_number,
-            bank_code:           body.bank_code,
-            account_holder_name: body.account_holder_name,
-        },
-    })
-    .await
-    .map_err(|e| match e {
-        PayoutError::InsufficientBalance { .. } => {
-            ApiError::unprocessable("INSUFFICIENT_BALANCE", &e.to_string())
-        }
-        PayoutError::DuplicateIdempotencyKey(_) => {
-            ApiError::conflict("CONFLICT", "idempotency key already used")
-        }
-        other => ApiError::internal(other.to_string()),
-    })?;
+    let payout = state
+        .payout
+        .initiate(CreatePayoutRequest {
+            idempotency_key: body.idempotency_key,
+            merchant_id,
+            wallet_id,
+            amount: banzami_types::Money::new(body.amount_minor, currency),
+            destination: BankDestination {
+                account_number: body.bank_account_number,
+                bank_code: body.bank_code,
+                account_holder_name: body.account_holder_name,
+            },
+        })
+        .await
+        .map_err(|e| match e {
+            PayoutError::InsufficientBalance { .. } => {
+                ApiError::unprocessable("INSUFFICIENT_BALANCE", e.to_string())
+            }
+            PayoutError::DuplicateIdempotencyKey(_) => {
+                ApiError::conflict("CONFLICT", "idempotency key already used")
+            }
+            other => ApiError::internal(other.to_string()),
+        })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&payout).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&payout).unwrap()),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -80,7 +89,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let payout_id: PayoutId = id.parse()
+    let payout_id: PayoutId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid payout id"))?;
 
     let p = state.payout.get(payout_id).await.map_err(|e| match e {
@@ -102,16 +112,21 @@ pub struct ListQuery {
     pub limit: i64,
 }
 
-fn default_limit() -> i64 { 50 }
+fn default_limit() -> i64 {
+    50
+}
 
 pub async fn list_for_merchant(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = q.merchant_id.parse()
+    let merchant_id: MerchantId = q
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
-    let payouts = state.payout
+    let payouts = state
+        .payout
         .list_for_merchant(merchant_id, q.limit.clamp(1, 200))
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
@@ -134,7 +149,8 @@ pub async fn list_all(
     State(state): State<AppState>,
     Query(q): Query<ListAllQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let payouts = state.payout
+    let payouts = state
+        .payout
         .list_all(q.limit.clamp(1, 200), q.status)
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
@@ -149,7 +165,7 @@ fn transition_err(e: PayoutError) -> ApiError {
     match e {
         PayoutError::NotFound(_) => ApiError::not_found("payout not found"),
         PayoutError::InvalidStatusTransition { .. } => {
-            ApiError::unprocessable("INVALID_TRANSITION", &e.to_string())
+            ApiError::unprocessable("INVALID_TRANSITION", e.to_string())
         }
         other => ApiError::internal(other.to_string()),
     }
@@ -159,7 +175,9 @@ pub async fn process(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let pid: PayoutId = id.parse().map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    let pid: PayoutId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid payout id"))?;
     let p = state.payout.process(pid).await.map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
@@ -168,7 +186,9 @@ pub async fn mark_sent(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let pid: PayoutId = id.parse().map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    let pid: PayoutId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid payout id"))?;
     let p = state.payout.mark_sent(pid).await.map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
@@ -177,7 +197,9 @@ pub async fn confirm(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let pid: PayoutId = id.parse().map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    let pid: PayoutId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid payout id"))?;
     let p = state.payout.confirm(pid).await.map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
@@ -192,8 +214,14 @@ pub async fn fail(
     Path(id): Path<String>,
     Json(body): Json<FailBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let pid: PayoutId = id.parse().map_err(|_| ApiError::bad_request("invalid payout id"))?;
-    let p = state.payout.fail(pid, body.reason).await.map_err(transition_err)?;
+    let pid: PayoutId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    let p = state
+        .payout
+        .fail(pid, body.reason)
+        .await
+        .map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }
 
@@ -201,7 +229,13 @@ pub async fn mark_returned(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let pid: PayoutId = id.parse().map_err(|_| ApiError::bad_request("invalid payout id"))?;
-    let p = state.payout.mark_returned(pid).await.map_err(transition_err)?;
+    let pid: PayoutId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid payout id"))?;
+    let p = state
+        .payout
+        .mark_returned(pid)
+        .await
+        .map_err(transition_err)?;
     Ok(Json(serde_json::to_value(&p).unwrap()))
 }

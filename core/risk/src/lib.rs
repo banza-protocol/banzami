@@ -12,8 +12,7 @@ use banzami_types::{MerchantId, Money, TransactionId};
 // ---------------------------------------------------------------------------
 
 /// Outcome of a risk evaluation.
-#[derive(Debug, Clone, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RiskDecision {
     /// Transaction may proceed to authorization.
@@ -26,8 +25,7 @@ pub enum RiskDecision {
 // Signals — individual flags raised during evaluation
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RiskSignals {
     pub amount_exceeds_limit: bool,
     pub hourly_velocity_breach: bool,
@@ -44,17 +42,16 @@ impl RiskSignals {
 // Assessment — returned from every evaluation
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RiskAssessment {
     pub transaction_id: TransactionId,
-    pub merchant_id:    MerchantId,
-    pub amount:         Money,
-    pub decision:       RiskDecision,
-    pub signals:        RiskSignals,
+    pub merchant_id: MerchantId,
+    pub amount: Money,
+    pub decision: RiskDecision,
+    pub signals: RiskSignals,
     /// Human-readable explanation when decision = Decline.
     pub decline_reason: Option<String>,
-    pub assessed_at:    DateTime<Utc>,
+    pub assessed_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------

@@ -5,25 +5,22 @@ use chrono::{DateTime, Utc};
 use banzami_ledger::{LedgerEngine, PostingBuilder};
 use banzami_types::{AccountId, MerchantId, Money, SettlementId, WalletId};
 
-use crate::{
-    repository::SettlementRepository,
-    Settlement, SettlementError, SettlementStatus,
-};
+use crate::{repository::SettlementRepository, Settlement, SettlementError, SettlementStatus};
 
 // ---------------------------------------------------------------------------
 // Request
 // ---------------------------------------------------------------------------
 
 pub struct CreateSettlementBatchRequest {
-    pub idempotency_key:   String,
-    pub merchant_id:       MerchantId,
-    pub wallet_id:         WalletId,
-    pub gross_amount:      Money,
+    pub idempotency_key: String,
+    pub merchant_id: MerchantId,
+    pub wallet_id: WalletId,
+    pub gross_amount: Money,
     /// Must be ≤ gross_amount and in the same currency.
-    pub fee_amount:        Money,
+    pub fee_amount: Money,
     pub transaction_count: u32,
-    pub period_start:      DateTime<Utc>,
-    pub period_end:        DateTime<Utc>,
+    pub period_start: DateTime<Utc>,
+    pub period_end: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -45,11 +42,7 @@ pub trait SettlementEngine: Send + Sync {
     async fn confirm(&self, id: SettlementId) -> Result<Settlement, SettlementError>;
 
     /// PENDING|SUBMITTED → FAILED.
-    async fn fail(
-        &self,
-        id: SettlementId,
-        reason: String,
-    ) -> Result<Settlement, SettlementError>;
+    async fn fail(&self, id: SettlementId, reason: String) -> Result<Settlement, SettlementError>;
 
     async fn get(&self, id: SettlementId) -> Result<Settlement, SettlementError>;
 
@@ -70,10 +63,10 @@ pub trait SettlementEngine: Send + Sync {
 // ---------------------------------------------------------------------------
 
 pub struct PostgresSettlementEngine<L: LedgerEngine, R: SettlementRepository> {
-    ledger:             Arc<L>,
-    repo:               R,
+    ledger: Arc<L>,
+    repo: R,
     /// ASSET — the platform's actual bank account; debited when the acquirer pays.
-    bank_account_id:    AccountId,
+    bank_account_id: AccountId,
     /// ASSET — the acquirer float; credited (reduced) when cash arrives.
     transit_account_id: AccountId,
 }
@@ -85,7 +78,12 @@ impl<L: LedgerEngine, R: SettlementRepository> PostgresSettlementEngine<L, R> {
         bank_account_id: AccountId,
         transit_account_id: AccountId,
     ) -> Self {
-        Self { ledger, repo, bank_account_id, transit_account_id }
+        Self {
+            ledger,
+            repo,
+            bank_account_id,
+            transit_account_id,
+        }
     }
 }
 
@@ -98,7 +96,7 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
     ) -> Result<Settlement, SettlementError> {
         if req.fee_amount.amount_minor() > req.gross_amount.amount_minor() {
             return Err(SettlementError::FeeExceedsGross {
-                fee:   req.fee_amount,
+                fee: req.fee_amount,
                 gross: req.gross_amount,
             });
         }
@@ -108,23 +106,23 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         let now = Utc::now();
 
         let settlement = Settlement {
-            id:                SettlementId::new(),
-            merchant_id:       req.merchant_id,
-            wallet_id:         req.wallet_id,
+            id: SettlementId::new(),
+            merchant_id: req.merchant_id,
+            wallet_id: req.wallet_id,
             currency,
-            status:            SettlementStatus::Pending,
-            gross_amount:      req.gross_amount,
-            fee_amount:        req.fee_amount,
+            status: SettlementStatus::Pending,
+            gross_amount: req.gross_amount,
+            fee_amount: req.fee_amount,
             net_amount,
             transaction_count: req.transaction_count,
-            period_start:      req.period_start,
-            period_end:        req.period_end,
+            period_start: req.period_start,
+            period_end: req.period_end,
             ledger_posting_id: None,
-            failure_reason:    None,
-            submitted_at:      None,
-            settled_at:        None,
-            created_at:        now,
-            updated_at:        now,
+            failure_reason: None,
+            submitted_at: None,
+            settled_at: None,
+            created_at: now,
+            updated_at: now,
         };
 
         self.repo.create(settlement).await
@@ -156,11 +154,13 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         .debit(self.bank_account_id, s.net_amount)
         .credit(self.transit_account_id, s.net_amount)
         .build()
-        .map_err(|_| SettlementError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
-            debits_minor:  s.net_amount.amount_minor(),
-            credits_minor: 0,
-            currency:      s.currency,
-        }))?;
+        .map_err(|_| {
+            SettlementError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
+                debits_minor: s.net_amount.amount_minor(),
+                credits_minor: 0,
+                currency: s.currency,
+            })
+        })?;
 
         let posted = self.ledger.post(posting).await?;
 
@@ -178,11 +178,7 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
         Ok(updated)
     }
 
-    async fn fail(
-        &self,
-        id: SettlementId,
-        reason: String,
-    ) -> Result<Settlement, SettlementError> {
+    async fn fail(&self, id: SettlementId, reason: String) -> Result<Settlement, SettlementError> {
         let s = self.repo.get(id).await?;
         guard_transition(&s, SettlementStatus::Failed)?;
 
@@ -215,10 +211,7 @@ impl<L: LedgerEngine + 'static, R: SettlementRepository> SettlementEngine
     }
 }
 
-fn guard_transition(
-    s: &Settlement,
-    to: SettlementStatus,
-) -> Result<(), SettlementError> {
+fn guard_transition(s: &Settlement, to: SettlementStatus) -> Result<(), SettlementError> {
     if s.status.can_transition_to(to) {
         Ok(())
     } else {
@@ -234,8 +227,10 @@ fn guard_transition(
 mod tests {
     use std::sync::{Arc, Mutex};
 
-    use banzami_ledger::{LedgerEngine, LedgerError, Account, LedgerEntry, LedgerPosting};
-    use banzami_types::{AccountId, Currency, LedgerPostingId, MerchantId, Money, SettlementId, WalletId};
+    use banzami_ledger::{Account, LedgerEngine, LedgerEntry, LedgerError, LedgerPosting};
+    use banzami_types::{
+        AccountId, Currency, LedgerPostingId, MerchantId, Money, SettlementId, WalletId,
+    };
 
     use super::*;
     use crate::{repository::SettlementRepository, Settlement, SettlementError, SettlementStatus};
@@ -250,7 +245,9 @@ mod tests {
 
     impl MockLedger {
         fn new() -> Self {
-            Self { postings: Mutex::new(vec![]) }
+            Self {
+                postings: Mutex::new(vec![]),
+            }
         }
 
         fn posting_count(&self) -> usize {
@@ -273,10 +270,7 @@ mod tests {
             Ok(Money::zero(Currency::AOA))
         }
 
-        async fn entries_for_account(
-            &self,
-            _: AccountId,
-        ) -> Result<Vec<LedgerEntry>, LedgerError> {
+        async fn entries_for_account(&self, _: AccountId) -> Result<Vec<LedgerEntry>, LedgerError> {
             Ok(vec![])
         }
 
@@ -307,7 +301,9 @@ mod tests {
 
     impl MockSettlementRepo {
         fn new() -> Self {
-            Self { rows: Mutex::new(vec![]) }
+            Self {
+                rows: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -350,7 +346,9 @@ mod tests {
             Ok(rows
                 .iter()
                 .filter(|s| {
-                    status.map_or(true, |st| format!("{:?}", s.status).to_uppercase() == st.to_uppercase())
+                    status.is_none_or(|st| {
+                        format!("{:?}", s.status).to_uppercase() == st.to_uppercase()
+                    })
                 })
                 .cloned()
                 .collect())
@@ -400,14 +398,14 @@ mod tests {
     ) -> Settlement {
         engine
             .create_batch(CreateSettlementBatchRequest {
-                idempotency_key:   "settle-001".into(),
-                merchant_id:       MerchantId::new(),
-                wallet_id:         WalletId::new(),
-                gross_amount:      kz(100_000),
-                fee_amount:        kz(2_000),
+                idempotency_key: "settle-001".into(),
+                merchant_id: MerchantId::new(),
+                wallet_id: WalletId::new(),
+                gross_amount: kz(100_000),
+                fee_amount: kz(2_000),
                 transaction_count: 5,
-                period_start:      Utc::now(),
-                period_end:        Utc::now(),
+                period_start: Utc::now(),
+                period_end: Utc::now(),
             })
             .await
             .unwrap()
@@ -473,7 +471,10 @@ mod tests {
         let engine = make_engine();
         let s = pending_batch(&engine).await;
         let result = engine.confirm(s.id).await;
-        assert!(matches!(result, Err(SettlementError::InvalidStatusTransition { .. })));
+        assert!(matches!(
+            result,
+            Err(SettlementError::InvalidStatusTransition { .. })
+        ));
     }
 
     #[tokio::test]
@@ -481,16 +482,19 @@ mod tests {
         let engine = make_engine();
         let result = engine
             .create_batch(CreateSettlementBatchRequest {
-                idempotency_key:   "settle-bad".into(),
-                merchant_id:       MerchantId::new(),
-                wallet_id:         WalletId::new(),
-                gross_amount:      kz(1_000),
-                fee_amount:        kz(1_001), // more than gross
+                idempotency_key: "settle-bad".into(),
+                merchant_id: MerchantId::new(),
+                wallet_id: WalletId::new(),
+                gross_amount: kz(1_000),
+                fee_amount: kz(1_001), // more than gross
                 transaction_count: 1,
-                period_start:      Utc::now(),
-                period_end:        Utc::now(),
+                period_start: Utc::now(),
+                period_end: Utc::now(),
             })
             .await;
-        assert!(matches!(result, Err(SettlementError::FeeExceedsGross { .. })));
+        assert!(matches!(
+            result,
+            Err(SettlementError::FeeExceedsGross { .. })
+        ));
     }
 }

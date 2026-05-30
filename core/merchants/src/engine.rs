@@ -32,7 +32,8 @@ pub trait MerchantEngine: Send + Sync {
     async fn list_api_keys(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
     async fn revoke_api_key(&self, key_id: ApiKeyId) -> Result<ApiKey, MerchantError>;
 
-    async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError>;
+    async fn set_verified(&self, id: MerchantId, verified: bool)
+        -> Result<Merchant, MerchantError>;
 
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 
@@ -47,12 +48,15 @@ pub trait MerchantEngine: Send + Sync {
 
 pub struct PostgresMerchantEngine<MR: MerchantRepository, KR: ApiKeyRepository> {
     merchant_repo: MR,
-    api_key_repo:  KR,
+    api_key_repo: KR,
 }
 
 impl<MR: MerchantRepository, KR: ApiKeyRepository> PostgresMerchantEngine<MR, KR> {
     pub fn new(merchant_repo: MR, api_key_repo: KR) -> Self {
-        Self { merchant_repo, api_key_repo }
+        Self {
+            merchant_repo,
+            api_key_repo,
+        }
     }
 }
 
@@ -62,11 +66,11 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
     async fn create(&self, req: CreateMerchantRequest) -> Result<Merchant, MerchantError> {
         let now = Utc::now();
         let merchant = Merchant {
-            id:         MerchantId::new(),
-            name:       req.name,
-            email:      req.email,
-            status:     MerchantStatus::Active,
-            verified:   false,
+            id: MerchantId::new(),
+            name: req.name,
+            email: req.email,
+            status: MerchantStatus::Active,
+            verified: false,
             created_at: now,
             updated_at: now,
         };
@@ -81,7 +85,11 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
         self.merchant_repo.list(search).await
     }
 
-    async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError> {
+    async fn set_verified(
+        &self,
+        id: MerchantId,
+        verified: bool,
+    ) -> Result<Merchant, MerchantError> {
         self.merchant_repo.set_verified(id, verified).await
     }
 
@@ -110,21 +118,21 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
             return Err(MerchantError::NotActive(merchant_id));
         }
 
-        let raw    = generate_raw_key(environment);
+        let raw = generate_raw_key(environment);
         let prefix = key_prefix(&raw);
-        let hash   = hash_key(&raw);
-        let now    = Utc::now();
+        let hash = hash_key(&raw);
+        let now = Utc::now();
 
         let key = ApiKey {
-            id:           ApiKeyId::new(),
+            id: ApiKeyId::new(),
             merchant_id,
             name,
-            key_prefix:   prefix,
+            key_prefix: prefix,
             environment,
-            key_hash:     hash,
-            created_at:   now,
+            key_hash: hash,
+            created_at: now,
             last_used_at: None,
-            revoked_at:   None,
+            revoked_at: None,
         };
 
         let key = self.api_key_repo.create(key).await?;
@@ -195,7 +203,9 @@ mod tests {
 
     impl MockMerchantRepo {
         fn new() -> Self {
-            Self { rows: Mutex::new(vec![]) }
+            Self {
+                rows: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -233,18 +243,17 @@ mod tests {
             let rows = self.rows.lock().unwrap();
             Ok(rows
                 .iter()
-                .filter(|m| {
-                    search.map_or(true, |s| {
-                        m.name.contains(s) || m.email.contains(s)
-                    })
-                })
+                .filter(|m| search.is_none_or(|s| m.name.contains(s) || m.email.contains(s)))
                 .cloned()
                 .collect())
         }
 
         async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {
             let mut rows = self.rows.lock().unwrap();
-            let pos = rows.iter().position(|r| r.id == id).ok_or(MerchantError::NotFound(id))?;
+            let pos = rows
+                .iter()
+                .position(|r| r.id == id)
+                .ok_or(MerchantError::NotFound(id))?;
             rows.remove(pos);
             Ok(())
         }
@@ -259,18 +268,22 @@ mod tests {
                 .iter_mut()
                 .find(|r| r.id == id)
                 .ok_or(MerchantError::NotFound(id))?;
-            m.status     = status;
+            m.status = status;
             m.updated_at = Utc::now();
             Ok(m.clone())
         }
 
-        async fn set_verified(&self, id: MerchantId, verified: bool) -> Result<Merchant, MerchantError> {
+        async fn set_verified(
+            &self,
+            id: MerchantId,
+            verified: bool,
+        ) -> Result<Merchant, MerchantError> {
             let mut rows = self.rows.lock().unwrap();
             let m = rows
                 .iter_mut()
                 .find(|r| r.id == id)
                 .ok_or(MerchantError::NotFound(id))?;
-            m.verified   = verified;
+            m.verified = verified;
             m.updated_at = Utc::now();
             Ok(m.clone())
         }
@@ -282,7 +295,9 @@ mod tests {
 
     impl MockApiKeyRepo {
         fn new() -> Self {
-            Self { rows: Mutex::new(vec![]) }
+            Self {
+                rows: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -356,7 +371,7 @@ mod tests {
     ) -> Merchant {
         engine
             .create(CreateMerchantRequest {
-                name:  "Acme Lda".into(),
+                name: "Acme Lda".into(),
                 email: "acme@example.ao".into(),
             })
             .await
@@ -390,7 +405,7 @@ mod tests {
         create_acme(&engine).await;
         let result = engine
             .create(CreateMerchantRequest {
-                name:  "Acme 2".into(),
+                name: "Acme 2".into(),
                 email: "acme@example.ao".into(),
             })
             .await;
@@ -429,7 +444,10 @@ mod tests {
     async fn verify_valid_key_returns_key_and_merchant() {
         let engine = make_engine();
         let m = create_acme(&engine).await;
-        let issued = engine.create_api_key(m.id, "ci key".into(), ApiKeyEnvironment::Live).await.unwrap();
+        let issued = engine
+            .create_api_key(m.id, "ci key".into(), ApiKeyEnvironment::Live)
+            .await
+            .unwrap();
 
         let (key, merchant) = engine.verify_api_key(&issued.secret).await.unwrap();
         assert_eq!(key.id, issued.key.id);
@@ -448,7 +466,10 @@ mod tests {
     async fn verify_revoked_key_returns_error() {
         let engine = make_engine();
         let m = create_acme(&engine).await;
-        let issued = engine.create_api_key(m.id, "temp key".into(), ApiKeyEnvironment::Live).await.unwrap();
+        let issued = engine
+            .create_api_key(m.id, "temp key".into(), ApiKeyEnvironment::Live)
+            .await
+            .unwrap();
 
         engine.revoke_api_key(issued.key.id).await.unwrap();
 
@@ -462,7 +483,9 @@ mod tests {
         let m = create_acme(&engine).await;
         engine.suspend(m.id).await.unwrap();
 
-        let result = engine.create_api_key(m.id, "blocked key".into(), ApiKeyEnvironment::Live).await;
+        let result = engine
+            .create_api_key(m.id, "blocked key".into(), ApiKeyEnvironment::Live)
+            .await;
         assert!(matches!(result, Err(MerchantError::NotActive(_))));
     }
 }

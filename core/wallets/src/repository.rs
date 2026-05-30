@@ -27,13 +27,13 @@ pub trait WalletRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct WalletRow {
-    id:                   Uuid,
-    merchant_id:          Uuid,
-    currency:             String,
-    status:               String,
+    id: Uuid,
+    merchant_id: Uuid,
+    currency: String,
+    status: String,
     available_account_id: Uuid,
-    reserved_account_id:  Uuid,
-    created_at:           DateTime<Utc>,
+    reserved_account_id: Uuid,
+    created_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -102,7 +102,10 @@ impl WalletRepository for PostgresWalletRepository {
         .fetch_optional(&self.pool)
         .await
         .map_err(WalletError::Database)?
-        .ok_or(WalletError::NoWalletForMerchant { merchant_id, currency })?;
+        .ok_or(WalletError::NoWalletForMerchant {
+            merchant_id,
+            currency,
+        })?;
 
         wallet_from_row(row)
     }
@@ -119,12 +122,12 @@ fn wallet_from_row(row: WalletRow) -> Result<Wallet, WalletError> {
         .ok_or_else(|| WalletError::UnknownStatus(row.status.clone()))?;
 
     Ok(Wallet {
-        id:                   WalletId::from_uuid(row.id),
-        merchant_id:          MerchantId::from_uuid(row.merchant_id),
+        id: WalletId::from_uuid(row.id),
+        merchant_id: MerchantId::from_uuid(row.merchant_id),
         currency,
         status,
         available_account_id: AccountId::from_uuid(row.available_account_id),
-        reserved_account_id:  AccountId::from_uuid(row.reserved_account_id),
-        created_at:           row.created_at,
+        reserved_account_id: AccountId::from_uuid(row.reserved_account_id),
+        created_at: row.created_at,
     })
 }

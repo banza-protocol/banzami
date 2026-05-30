@@ -3,7 +3,7 @@ use std::time::Duration;
 use sqlx::PgPool;
 use tokio::time::MissedTickBehavior;
 
-use crate::{PostgresPaymentLinkRepository, PaymentLinkRepository};
+use crate::{PaymentLinkRepository, PostgresPaymentLinkRepository};
 
 /// Background worker that marks overdue payment links as EXPIRED.
 ///
@@ -18,8 +18,8 @@ pub async fn run_expiry_worker(pool: PgPool, interval: Duration) {
         ticker.tick().await;
         match repo.expire_overdue().await {
             Ok(n) if n > 0 => tracing::info!(expired = n, "payment links expired"),
-            Ok(_)          => {}
-            Err(e)         => tracing::error!(error = %e, "payment link expiry worker error"),
+            Ok(_) => {}
+            Err(e) => tracing::error!(error = %e, "payment link expiry worker error"),
         }
     }
 }

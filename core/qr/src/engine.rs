@@ -7,8 +7,8 @@ use banzami_types::QrCodeId;
 
 use crate::{
     qr_code::{
-        CreateDynamicQrRequest, CreateStaticQrRequest, ParsedQr, QrCode, QrCodeStatus,
-        QrCodeType, QrOwnerType,
+        CreateDynamicQrRequest, CreateStaticQrRequest, ParsedQr, QrCode, QrCodeStatus, QrCodeType,
+        QrOwnerType,
     },
     repository::QrRepository,
     QrError,
@@ -38,16 +38,10 @@ type HmacSha256 = Hmac<Sha256>;
 #[allow(async_fn_in_trait)]
 pub trait QrEngine: Send + Sync {
     /// Create a reusable static QR code.
-    async fn create_static(
-        &self,
-        req: CreateStaticQrRequest,
-    ) -> Result<QrCode, QrError>;
+    async fn create_static(&self, req: CreateStaticQrRequest) -> Result<QrCode, QrError>;
 
     /// Create a one-time dynamic QR code with a pre-set amount and expiry.
-    async fn create_dynamic(
-        &self,
-        req: CreateDynamicQrRequest,
-    ) -> Result<QrCode, QrError>;
+    async fn create_dynamic(&self, req: CreateDynamicQrRequest) -> Result<QrCode, QrError>;
 
     /// Fetch a QR code record by ID.
     async fn get(&self, id: QrCodeId) -> Result<QrCode, QrError>;
@@ -70,7 +64,7 @@ pub trait QrEngine: Send + Sync {
 // ---------------------------------------------------------------------------
 
 pub struct PostgresQrEngine<R: QrRepository> {
-    repo:        R,
+    repo: R,
     signing_key: Vec<u8>,
 }
 
@@ -84,8 +78,7 @@ impl<R: QrRepository> PostgresQrEngine<R> {
         let mut mac = HmacSha256::new_from_slice(&self.signing_key)
             .expect("HMAC can take keys of any length");
         mac.update(message.as_bytes());
-        base64::engine::general_purpose::URL_SAFE_NO_PAD
-            .encode(mac.finalize().into_bytes())
+        base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
     }
 
     #[allow(dead_code)]
@@ -115,45 +108,39 @@ impl<R: QrRepository> PostgresQrEngine<R> {
 }
 
 impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
-    async fn create_static(
-        &self,
-        req: CreateStaticQrRequest,
-    ) -> Result<QrCode, QrError> {
+    async fn create_static(&self, req: CreateStaticQrRequest) -> Result<QrCode, QrError> {
         let qr = QrCode {
-            id:           QrCodeId::new(),
-            owner_id:     req.owner_id,
-            owner_type:   req.owner_type,
-            qr_type:      QrCodeType::Static,
-            currency:     req.currency,
+            id: QrCodeId::new(),
+            owner_id: req.owner_id,
+            owner_type: req.owner_type,
+            qr_type: QrCodeType::Static,
+            currency: req.currency,
             amount_minor: req.amount_minor,
-            status:       QrCodeStatus::Active,
-            expires_at:   None,
-            used_at:      None,
-            reference:    None,
-            created_at:   Utc::now(),
+            status: QrCodeStatus::Active,
+            expires_at: None,
+            used_at: None,
+            reference: None,
+            created_at: Utc::now(),
         };
         self.repo.create(qr).await
     }
 
-    async fn create_dynamic(
-        &self,
-        req: CreateDynamicQrRequest,
-    ) -> Result<QrCode, QrError> {
+    async fn create_dynamic(&self, req: CreateDynamicQrRequest) -> Result<QrCode, QrError> {
         if req.expires_at <= Utc::now() {
             return Err(QrError::AlreadyExpired);
         }
         let qr = QrCode {
-            id:           QrCodeId::new(),
-            owner_id:     req.owner_id,
-            owner_type:   req.owner_type,
-            qr_type:      QrCodeType::Dynamic,
-            currency:     req.currency,
+            id: QrCodeId::new(),
+            owner_id: req.owner_id,
+            owner_type: req.owner_type,
+            qr_type: QrCodeType::Dynamic,
+            currency: req.currency,
             amount_minor: Some(req.amount_minor),
-            status:       QrCodeStatus::Active,
-            expires_at:   Some(req.expires_at),
-            used_at:      None,
-            reference:    req.reference,
-            created_at:   Utc::now(),
+            status: QrCodeStatus::Active,
+            expires_at: Some(req.expires_at),
+            used_at: None,
+            reference: req.reference,
+            created_at: Utc::now(),
         };
         self.repo.create(qr).await
     }
@@ -186,8 +173,8 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
             }
         };
 
-        let json = serde_json::to_string(&payload)
-            .map_err(|e| QrError::EncodingError(e.to_string()))?;
+        let json =
+            serde_json::to_string(&payload).map_err(|e| QrError::EncodingError(e.to_string()))?;
         Ok(base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(json.as_bytes()))
     }
 
@@ -199,7 +186,9 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
         let v: serde_json::Value = serde_json::from_slice(&json_bytes)
             .map_err(|_| QrError::InvalidPayload("invalid JSON".into()))?;
 
-        let t = v["t"].as_str().ok_or_else(|| QrError::InvalidPayload("missing 't'".into()))?;
+        let t = v["t"]
+            .as_str()
+            .ok_or_else(|| QrError::InvalidPayload("missing 't'".into()))?;
 
         match t {
             "S" => {
@@ -213,7 +202,7 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                 let ot = match v["ot"].as_str() {
                     Some("C") => QrOwnerType::Consumer,
                     Some("M") => QrOwnerType::Merchant,
-                    _         => return Err(QrError::InvalidPayload("invalid 'ot'".into())),
+                    _ => return Err(QrError::InvalidPayload("invalid 'ot'".into())),
                 };
 
                 let currency_code = v["c"]
@@ -223,10 +212,10 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     .ok_or_else(|| QrError::UnknownCurrency(currency_code.into()))?;
 
                 Ok(ParsedQr {
-                    qr_type:    QrCodeType::Static,
-                    owner_id:   Some(oid),
+                    qr_type: QrCodeType::Static,
+                    owner_id: Some(oid),
                     owner_type: Some(ot),
-                    currency:   Some(currency),
+                    currency: Some(currency),
                     qr_code_id: None,
                 })
             }
@@ -246,10 +235,10 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     .ok_or_else(|| QrError::InvalidPayload("missing 'sig'".into()))?;
 
                 Ok(ParsedQr {
-                    qr_type:    QrCodeType::Dynamic,
-                    owner_id:   None,
+                    qr_type: QrCodeType::Dynamic,
+                    owner_id: None,
                     owner_type: None,
-                    currency:   None,
+                    currency: None,
                     qr_code_id: Some(QrCodeId::from_uuid(qr_id)),
                 })
             }
@@ -295,7 +284,9 @@ mod tests {
 
     impl MockRepo {
         fn new() -> Self {
-            Self { codes: Mutex::new(vec![]) }
+            Self {
+                codes: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -317,7 +308,7 @@ mod tests {
 
         async fn update_status(
             &self,
-            id:     QrCodeId,
+            id: QrCodeId,
             status: QrCodeStatus,
         ) -> Result<QrCode, QrError> {
             let mut store = self.codes.lock().unwrap();
@@ -339,9 +330,9 @@ mod tests {
         let eng = engine();
         let qr = eng
             .create_static(CreateStaticQrRequest {
-                owner_id:     uuid::Uuid::new_v4(),
-                owner_type:   QrOwnerType::Consumer,
-                currency:     Currency::AOA,
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Consumer,
+                currency: Currency::AOA,
                 amount_minor: None,
             })
             .await
@@ -356,16 +347,16 @@ mod tests {
 
     #[tokio::test]
     async fn dynamic_qr_encode_decode_roundtrip() {
-        let eng    = engine();
+        let eng = engine();
         let future = Utc::now() + chrono::Duration::hours(1);
         let qr = eng
             .create_dynamic(CreateDynamicQrRequest {
-                owner_id:    uuid::Uuid::new_v4(),
-                owner_type:  QrOwnerType::Merchant,
-                currency:    Currency::AOA,
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
                 amount_minor: 50_000,
-                expires_at:  future,
-                reference:   Some("order-123".into()),
+                expires_at: future,
+                reference: Some("order-123".into()),
             })
             .await
             .unwrap();
@@ -379,16 +370,16 @@ mod tests {
 
     #[tokio::test]
     async fn mark_used_transitions_dynamic_qr() {
-        let eng    = engine();
+        let eng = engine();
         let future = Utc::now() + chrono::Duration::hours(1);
         let qr = eng
             .create_dynamic(CreateDynamicQrRequest {
-                owner_id:    uuid::Uuid::new_v4(),
-                owner_type:  QrOwnerType::Consumer,
-                currency:    Currency::AOA,
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Consumer,
+                currency: Currency::AOA,
                 amount_minor: 10_000,
-                expires_at:  future,
-                reference:   None,
+                expires_at: future,
+                reference: None,
             })
             .await
             .unwrap();
@@ -402,9 +393,9 @@ mod tests {
         let eng = engine();
         let qr = eng
             .create_static(CreateStaticQrRequest {
-                owner_id:     uuid::Uuid::new_v4(),
-                owner_type:   QrOwnerType::Merchant,
-                currency:     Currency::AOA,
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
                 amount_minor: None,
             })
             .await

@@ -18,26 +18,26 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct ProfileResponse {
-    pub id:           String,
-    pub merchant_id:  String,
-    pub handle:       String,
+    pub id: String,
+    pub merchant_id: String,
+    pub handle: String,
     pub display_name: String,
-    pub tagline:      Option<String>,
-    pub description:  Option<String>,
-    pub category:     Option<String>,
-    pub logo_url:     Option<String>,
-    pub cover_url:    Option<String>,
-    pub public:       bool,
-    pub wallet_id:    Option<String>,
+    pub tagline: Option<String>,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub logo_url: Option<String>,
+    pub cover_url: Option<String>,
+    pub public: bool,
+    pub wallet_id: Option<String>,
     pub social_links: Vec<SocialLink>,
-    pub created_at:   DateTime<Utc>,
-    pub updated_at:   DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 #[derive(Serialize, Clone)]
 pub struct SocialLink {
     pub platform: String,
-    pub url:      String,
+    pub url: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -46,22 +46,24 @@ pub struct SocialLink {
 
 #[derive(Deserialize)]
 pub struct CreateProfileBody {
-    pub merchant_id:  String,
-    pub handle:       String,
+    pub merchant_id: String,
+    pub handle: String,
     pub display_name: String,
-    pub tagline:      Option<String>,
-    pub description:  Option<String>,
-    pub category:     Option<String>,
-    pub logo_url:     Option<String>,
-    pub cover_url:    Option<String>,
-    pub wallet_id:    Option<String>,
+    pub tagline: Option<String>,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub logo_url: Option<String>,
+    pub cover_url: Option<String>,
+    pub wallet_id: Option<String>,
 }
 
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateProfileBody>,
 ) -> ApiResult<(StatusCode, Json<ProfileResponse>)> {
-    let merchant_id: Uuid = body.merchant_id.parse()
+    let merchant_id: Uuid = body
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     let handle = normalise_handle(&body.handle)?;
@@ -84,7 +86,9 @@ pub async fn create(
         return Err(ApiError::not_found("merchant not found"));
     }
 
-    let wallet_id: Option<Uuid> = body.wallet_id.as_deref()
+    let wallet_id: Option<Uuid> = body
+        .wallet_id
+        .as_deref()
         .map(|s| s.parse::<Uuid>())
         .transpose()
         .map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
@@ -113,7 +117,8 @@ pub async fn create(
     .await
     .map_err(|e| {
         if e.to_string().contains("merchant_profiles_handle_key")
-            || e.to_string().contains("unique") {
+            || e.to_string().contains("unique")
+        {
             ApiError::unprocessable("HANDLE_TAKEN", "this handle is already in use")
         } else if e.to_string().contains("merchant_profiles_merchant_id_key") {
             ApiError::unprocessable("PROFILE_EXISTS", "merchant already has a profile")
@@ -133,13 +138,13 @@ pub async fn create(
 #[derive(Deserialize)]
 pub struct UpdateProfileBody {
     pub display_name: Option<String>,
-    pub tagline:      Option<String>,
-    pub description:  Option<String>,
-    pub category:     Option<String>,
-    pub logo_url:     Option<String>,
-    pub cover_url:    Option<String>,
-    pub public:       Option<bool>,
-    pub wallet_id:    Option<String>,
+    pub tagline: Option<String>,
+    pub description: Option<String>,
+    pub category: Option<String>,
+    pub logo_url: Option<String>,
+    pub cover_url: Option<String>,
+    pub public: Option<bool>,
+    pub wallet_id: Option<String>,
 }
 
 pub async fn update(
@@ -147,10 +152,13 @@ pub async fn update(
     Path(id): Path<String>,
     Json(body): Json<UpdateProfileBody>,
 ) -> ApiResult<Json<ProfileResponse>> {
-    let id: Uuid = id.parse()
+    let id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid profile id"))?;
 
-    let wallet_id: Option<Uuid> = body.wallet_id.as_deref()
+    let wallet_id: Option<Uuid> = body
+        .wallet_id
+        .as_deref()
         .map(|s| s.parse::<Uuid>())
         .transpose()
         .map_err(|_| ApiError::bad_request("invalid wallet_id"))?;
@@ -194,7 +202,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<ProfileResponse>> {
-    let id: Uuid = id.parse()
+    let id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid profile id"))?;
     Ok(Json(fetch_profile(&state.pool, id).await?))
 }
@@ -229,7 +238,8 @@ pub async fn get_by_merchant(
     State(state): State<AppState>,
     Path(merchant_id): Path<String>,
 ) -> ApiResult<Json<ProfileResponse>> {
-    let merchant_id: Uuid = merchant_id.parse()
+    let merchant_id: Uuid = merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     let row = sqlx::query!(
@@ -251,8 +261,8 @@ pub async fn get_by_merchant(
 #[derive(Deserialize)]
 pub struct ListProfilesQuery {
     pub category: Option<String>,
-    pub q:        Option<String>, // full-text search on display_name
-    pub limit:    Option<i64>,
+    pub q: Option<String>, // full-text search on display_name
+    pub limit: Option<i64>,
 }
 
 pub async fn list(
@@ -281,17 +291,22 @@ pub async fn list(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let data: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id":           r.id,
-        "merchant_id":  r.merchant_id,
-        "handle":       r.handle,
-        "display_name": r.display_name,
-        "tagline":      r.tagline,
-        "category":     r.category,
-        "logo_url":     r.logo_url,
-        "cover_url":    r.cover_url,
-        "created_at":   r.created_at,
-    })).collect();
+    let data: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id":           r.id,
+                "merchant_id":  r.merchant_id,
+                "handle":       r.handle,
+                "display_name": r.display_name,
+                "tagline":      r.tagline,
+                "category":     r.category,
+                "logo_url":     r.logo_url,
+                "cover_url":    r.cover_url,
+                "created_at":   r.created_at,
+            })
+        })
+        .collect();
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
@@ -303,7 +318,7 @@ pub async fn list(
 #[derive(Deserialize)]
 pub struct AddSocialLinkBody {
     pub platform: String,
-    pub url:      String,
+    pub url: String,
 }
 
 pub async fn add_social_link(
@@ -311,12 +326,15 @@ pub async fn add_social_link(
     Path(id): Path<String>,
     Json(body): Json<AddSocialLinkBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
-    let profile_id: Uuid = id.parse()
+    let profile_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid profile id"))?;
 
     let allowed = ["WEBSITE", "INSTAGRAM", "FACEBOOK", "WHATSAPP", "TIKTOK"];
     if !allowed.contains(&body.platform.as_str()) {
-        return Err(ApiError::bad_request("platform must be one of: WEBSITE, INSTAGRAM, FACEBOOK, WHATSAPP, TIKTOK"));
+        return Err(ApiError::bad_request(
+            "platform must be one of: WEBSITE, INSTAGRAM, FACEBOOK, WHATSAPP, TIKTOK",
+        ));
     }
     if body.url.trim().is_empty() {
         return Err(ApiError::bad_request("url is required"));
@@ -329,17 +347,23 @@ pub async fn add_social_link(
         VALUES ($1, $2, $3, $4)
         ON CONFLICT (profile_id, platform) DO UPDATE SET url = EXCLUDED.url
         "#,
-        link_id, profile_id, body.platform, body.url.trim(),
+        link_id,
+        profile_id,
+        body.platform,
+        body.url.trim(),
     )
     .execute(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::OK, Json(serde_json::json!({
-        "profile_id": profile_id,
-        "platform":   body.platform,
-        "url":        body.url,
-    }))))
+    Ok((
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "profile_id": profile_id,
+            "platform":   body.platform,
+            "url":        body.url,
+        })),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -352,7 +376,9 @@ fn normalise_handle(raw: &str) -> ApiResult<String> {
         return Err(ApiError::bad_request("handle must be 3–50 characters"));
     }
     if !h.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
-        return Err(ApiError::bad_request("handle may only contain letters, digits, and underscores"));
+        return Err(ApiError::bad_request(
+            "handle may only contain letters, digits, and underscores",
+        ));
     }
     Ok(h)
 }
@@ -379,23 +405,26 @@ async fn fetch_profile(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<ProfileRespon
     .await
     .unwrap_or_default()
     .into_iter()
-    .map(|r| SocialLink { platform: r.platform, url: r.url })
+    .map(|r| SocialLink {
+        platform: r.platform,
+        url: r.url,
+    })
     .collect();
 
     Ok(ProfileResponse {
-        id:           row.id.to_string(),
-        merchant_id:  row.merchant_id.to_string(),
-        handle:       row.handle,
+        id: row.id.to_string(),
+        merchant_id: row.merchant_id.to_string(),
+        handle: row.handle,
         display_name: row.display_name,
-        tagline:      row.tagline,
-        description:  row.description,
-        category:     row.category,
-        logo_url:     row.logo_url,
-        cover_url:    row.cover_url,
-        public:       row.public,
-        wallet_id:    row.wallet_id.map(|u| u.to_string()),
+        tagline: row.tagline,
+        description: row.description,
+        category: row.category,
+        logo_url: row.logo_url,
+        cover_url: row.cover_url,
+        public: row.public,
+        wallet_id: row.wallet_id.map(|u| u.to_string()),
         social_links,
-        created_at:   row.created_at,
-        updated_at:   row.updated_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
     })
 }

@@ -9,7 +9,9 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository, TransferEngine, TransferError};
+use banzami_transfers::{
+    PostgresTransferEngine, PostgresTransferRepository, TransferEngine, TransferError,
+};
 use banzami_types::{ConsumerId, Currency};
 
 // ---------------------------------------------------------------------------
@@ -20,11 +22,11 @@ use banzami_types::{ConsumerId, Currency};
 /// with `balance_minor` in the ledger, and returns the `consumer_id`.
 async fn make_consumer_with_balance(pool: &PgPool, balance_minor: i64) -> ConsumerId {
     let consumer_id = ConsumerId::new();
-    let wallet_id   = Uuid::new_v4();
-    let account_id  = Uuid::new_v4(); // available_account_id
+    let wallet_id = Uuid::new_v4();
+    let account_id = Uuid::new_v4(); // available_account_id
     let reserved_id = Uuid::new_v4();
-    let posting_id  = Uuid::new_v4();
-    let entry_id    = Uuid::new_v4();
+    let posting_id = Uuid::new_v4();
+    let entry_id = Uuid::new_v4();
 
     // Consumer record
     sqlx::query(
@@ -32,7 +34,10 @@ async fn make_consumer_with_balance(pool: &PgPool, balance_minor: i64) -> Consum
          VALUES ($1, $2, 'ACTIVE', NOW(), NOW())",
     )
     .bind(consumer_id.as_uuid())
-    .bind(format!("usr{}", &consumer_id.as_uuid().to_string().replace('-', "")[..17]))
+    .bind(format!(
+        "usr{}",
+        &consumer_id.as_uuid().to_string().replace('-', "")[..17]
+    ))
     .execute(pool)
     .await
     .unwrap();
@@ -106,48 +111,56 @@ fn engine(pool: PgPool) -> impl TransferEngine {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn send_transfer_succeeds_and_produces_completed_status(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 100_000).await;
+    let sender = make_consumer_with_balance(&pool, 100_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool);
 
-    let transfer = eng.send(banzami_transfers::transfer::SendTransferRequest {
-        idempotency_key: "t-happy-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    50_000,
-        currency:        Currency::AOA,
-        description:     Some("test payment".into()),
-        recipient_handle: None,
-    })
-    .await
-    .unwrap();
+    let transfer = eng
+        .send(banzami_transfers::transfer::SendTransferRequest {
+            idempotency_key: "t-happy-01".into(),
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 50_000,
+            currency: Currency::AOA,
+            description: Some("test payment".into()),
+            recipient_handle: None,
+        })
+        .await
+        .unwrap();
 
-    assert_eq!(transfer.status, banzami_transfers::TransferStatus::Completed);
+    assert_eq!(
+        transfer.status,
+        banzami_transfers::TransferStatus::Completed
+    );
     assert_eq!(transfer.amount.amount_minor(), 50_000);
-    assert!(transfer.ledger_posting_id.is_some(), "completed transfer must have a ledger posting");
+    assert!(
+        transfer.ledger_posting_id.is_some(),
+        "completed transfer must have a ledger posting"
+    );
 
     Ok(())
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn get_returns_stored_transfer(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 50_000).await;
+    let sender = make_consumer_with_balance(&pool, 50_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool);
 
-    let t1 = eng.send(banzami_transfers::transfer::SendTransferRequest {
-        idempotency_key: "t-get-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    50_000,
-        currency:        Currency::AOA,
-        description:     None,
+    let t1 = eng
+        .send(banzami_transfers::transfer::SendTransferRequest {
+            idempotency_key: "t-get-01".into(),
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 50_000,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
-    })
-    .await
-    .unwrap();
+        })
+        .await
+        .unwrap();
 
     let fetched = eng.get(t1.id).await.unwrap();
     assert_eq!(fetched.id, t1.id);
@@ -162,25 +175,28 @@ async fn get_returns_stored_transfer(pool: PgPool) -> sqlx::Result<()> {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn idempotent_send_returns_original_transfer(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 200_000).await;
+    let sender = make_consumer_with_balance(&pool, 200_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool);
 
     let req = || banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-idem-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    50_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: sender,
+        recipient_id: recipient,
+        amount_minor: 50_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     };
 
-    let first  = eng.send(req()).await.unwrap();
+    let first = eng.send(req()).await.unwrap();
     let second = eng.send(req()).await.unwrap();
 
-    assert_eq!(first.id, second.id, "re-submission must return the original transfer");
+    assert_eq!(
+        first.id, second.id,
+        "re-submission must return the original transfer"
+    );
 
     Ok(())
 }
@@ -191,46 +207,52 @@ async fn idempotent_send_returns_original_transfer(pool: PgPool) -> sqlx::Result
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn zero_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 50_000).await;
+    let sender = make_consumer_with_balance(&pool, 50_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let err = engine(pool)
         .send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-zero".into(),
-            sender_id:       sender,
-            recipient_id:    recipient,
-            amount_minor:    0,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 0,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         })
         .await
         .unwrap_err();
 
-    assert!(matches!(err, TransferError::InvalidAmount), "zero amount must be rejected");
+    assert!(
+        matches!(err, TransferError::InvalidAmount),
+        "zero amount must be rejected"
+    );
 
     Ok(())
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn negative_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 50_000).await;
+    let sender = make_consumer_with_balance(&pool, 50_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let err = engine(pool)
         .send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-neg".into(),
-            sender_id:       sender,
-            recipient_id:    recipient,
-            amount_minor:    -1,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: -1,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         })
         .await
         .unwrap_err();
 
-    assert!(matches!(err, TransferError::InvalidAmount), "negative amount must be rejected");
+    assert!(
+        matches!(err, TransferError::InvalidAmount),
+        "negative amount must be rejected"
+    );
 
     Ok(())
 }
@@ -242,34 +264,37 @@ async fn self_transfer_is_rejected(pool: PgPool) -> sqlx::Result<()> {
     let err = engine(pool)
         .send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-self".into(),
-            sender_id:       consumer,
-            recipient_id:    consumer,
-            amount_minor:    1_000,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: consumer,
+            recipient_id: consumer,
+            amount_minor: 1_000,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         })
         .await
         .unwrap_err();
 
-    assert!(matches!(err, TransferError::SelfTransfer), "self-transfer must be rejected");
+    assert!(
+        matches!(err, TransferError::SelfTransfer),
+        "self-transfer must be rejected"
+    );
 
     Ok(())
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn insufficient_funds_is_rejected(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 1_000).await;
+    let sender = make_consumer_with_balance(&pool, 1_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let err = engine(pool)
         .send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-insuf".into(),
-            sender_id:       sender,
-            recipient_id:    recipient,
-            amount_minor:    10_000,  // more than the 1_000 available
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 10_000, // more than the 1_000 available
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         })
         .await
@@ -287,16 +312,16 @@ async fn insufficient_funds_is_rejected(pool: PgPool) -> sqlx::Result<()> {
 async fn transfer_with_unknown_sender_is_rejected(pool: PgPool) -> sqlx::Result<()> {
     // recipient exists but sender has no wallet
     let recipient = make_consumer_with_balance(&pool, 0).await;
-    let ghost     = ConsumerId::new(); // no wallet, no consumer record
+    let ghost = ConsumerId::new(); // no wallet, no consumer record
 
     let err = engine(pool)
         .send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-ghost".into(),
-            sender_id:       ghost,
-            recipient_id:    recipient,
-            amount_minor:    1_000,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: ghost,
+            recipient_id: recipient,
+            amount_minor: 1_000,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         })
         .await
@@ -316,19 +341,19 @@ async fn transfer_with_unknown_sender_is_rejected(pool: PgPool) -> sqlx::Result<
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 80_000).await;
+    let sender = make_consumer_with_balance(&pool, 80_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool.clone());
 
     eng.send(banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-bal-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    30_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: sender,
+        recipient_id: recipient,
+        amount_minor: 30_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -348,7 +373,10 @@ async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
     .await
     .unwrap();
 
-    assert_eq!(balance, 50_000, "sender balance must be 80k - 30k = 50k after transfer");
+    assert_eq!(
+        balance, 50_000,
+        "sender balance must be 80k - 30k = 50k after transfer"
+    );
 
     Ok(())
 }
@@ -359,7 +387,7 @@ async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 10_000).await;
+    let sender = make_consumer_with_balance(&pool, 10_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     // Use two engine instances sharing the same pool — same as the ledger concurrency test.
@@ -370,30 +398,33 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
     let (r1, r2) = tokio::join!(
         e1.send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-conc-1".into(),
-            sender_id:       sender,
-            recipient_id:    recipient,
-            amount_minor:    6_000,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 6_000,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         }),
         e2.send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-conc-2".into(),
-            sender_id:       sender,
-            recipient_id:    recipient,
-            amount_minor:    6_000,
-            currency:        Currency::AOA,
-            description:     None,
+            sender_id: sender,
+            recipient_id: recipient,
+            amount_minor: 6_000,
+            currency: Currency::AOA,
+            description: None,
             recipient_handle: None,
         }),
     );
 
     let succeeded = [&r1, &r2].iter().filter(|r| r.is_ok()).count();
-    let failed    = [&r1, &r2].iter().filter(|r| r.is_err()).count();
+    let failed = [&r1, &r2].iter().filter(|r| r.is_err()).count();
 
     // Exactly one succeeds; the other hits insufficient-funds.
-    assert_eq!(succeeded, 1, "exactly one of two concurrent transfers must succeed");
-    assert_eq!(failed,    1, "the other must be rejected (insufficient funds)");
+    assert_eq!(
+        succeeded, 1,
+        "exactly one of two concurrent transfers must succeed"
+    );
+    assert_eq!(failed, 1, "the other must be rejected (insufficient funds)");
 
     // Final balance: 10 000 - 6 000 = 4 000
     let balance: i64 = sqlx::query_scalar(
@@ -424,18 +455,18 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
 /// decreases.  Money must never be created or destroyed.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 80_000).await;
+    let sender = make_consumer_with_balance(&pool, 80_000).await;
     let recipient = make_consumer_with_balance(&pool, 20_000).await;
 
     let eng = engine(pool.clone());
     eng.send(banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-zerosum-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    30_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: sender,
+        recipient_id: recipient,
+        amount_minor: 30_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -459,10 +490,10 @@ async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
         }
     };
 
-    let sender_balance    = ledger_balance(sender.as_uuid()).await;
+    let sender_balance = ledger_balance(sender.as_uuid()).await;
     let recipient_balance = ledger_balance(recipient.as_uuid()).await;
 
-    assert_eq!(sender_balance,    50_000, "sender:    80k − 30k = 50k");
+    assert_eq!(sender_balance, 50_000, "sender:    80k − 30k = 50k");
     assert_eq!(recipient_balance, 50_000, "recipient: 20k + 30k = 50k");
 
     // Global zero-sum: total funds in the system are unchanged.
@@ -480,18 +511,18 @@ async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
 /// posting is correctly attributed to the recipient's wallet.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Result<()> {
-    let sender    = make_consumer_with_balance(&pool, 100_000).await;
+    let sender = make_consumer_with_balance(&pool, 100_000).await;
     let recipient = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool.clone());
     eng.send(banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-recv-01".into(),
-        sender_id:       sender,
-        recipient_id:    recipient,
-        amount_minor:    45_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: sender,
+        recipient_id: recipient,
+        amount_minor: 45_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -510,7 +541,10 @@ async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Resul
     .await
     .unwrap();
 
-    assert_eq!(balance, 45_000, "recipient must receive exactly 45 000 minor units");
+    assert_eq!(
+        balance, 45_000,
+        "recipient must receive exactly 45 000 minor units"
+    );
 
     Ok(())
 }
@@ -520,7 +554,7 @@ async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Resul
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
     let alice = make_consumer_with_balance(&pool, 100_000).await;
-    let bob   = make_consumer_with_balance(&pool, 0).await;
+    let bob = make_consumer_with_balance(&pool, 0).await;
     let carol = make_consumer_with_balance(&pool, 0).await;
 
     let eng = engine(pool.clone());
@@ -528,12 +562,12 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
     // Alice → Bob: 60 000
     eng.send(banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-chain-ab".into(),
-        sender_id:       alice,
-        recipient_id:    bob,
-        amount_minor:    60_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: alice,
+        recipient_id: bob,
+        amount_minor: 60_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -541,12 +575,12 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
     // Bob → Carol: 40 000 (Bob received 60k, pays on 40k)
     eng.send(banzami_transfers::transfer::SendTransferRequest {
         idempotency_key: "t-chain-bc".into(),
-        sender_id:       bob,
-        recipient_id:    carol,
-        amount_minor:    40_000,
-        currency:        Currency::AOA,
-        description:     None,
-            recipient_handle: None,
+        sender_id: bob,
+        recipient_id: carol,
+        amount_minor: 40_000,
+        currency: Currency::AOA,
+        description: None,
+        recipient_handle: None,
     })
     .await
     .unwrap();
@@ -560,7 +594,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
          JOIN consumer_wallets cw ON cw.available_account_id = le.account_id
          WHERE cw.consumer_id = ANY($1)",
     )
-    .bind(&[alice.as_uuid(), bob.as_uuid(), carol.as_uuid()])
+    .bind([alice.as_uuid(), bob.as_uuid(), carol.as_uuid()])
     .fetch_one(&pool)
     .await
     .unwrap();

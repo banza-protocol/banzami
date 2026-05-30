@@ -21,7 +21,7 @@ pub enum WalletError {
     #[error("no active wallet for merchant {merchant_id} in {currency}")]
     NoWalletForMerchant {
         merchant_id: MerchantId,
-        currency:    Currency,
+        currency: Currency,
     },
 
     #[error("wallet {0} is not active — it may be suspended or closed")]
@@ -35,7 +35,7 @@ pub enum WalletError {
 
     #[error("currency mismatch: wallet is {wallet_currency}, operation is {operation_currency}")]
     CurrencyMismatch {
-        wallet_currency:    Currency,
+        wallet_currency: Currency,
         operation_currency: Currency,
     },
 

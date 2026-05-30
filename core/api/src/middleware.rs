@@ -1,8 +1,4 @@
-use axum::{
-    extract::Request,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, middleware::Next, response::Response};
 use uuid::Uuid;
 
 /// Propagates or generates an X-Request-ID header for distributed tracing.
@@ -33,4 +29,5 @@ pub async fn request_id(mut req: Request, next: Next) -> Response {
 
 /// Request extension providing the correlation ID to any handler.
 #[derive(Clone)]
+#[allow(dead_code)]
 pub struct RequestId(pub String);

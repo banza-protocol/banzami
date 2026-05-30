@@ -7,8 +7,10 @@ use banzami_types::{Currency, MerchantId, WalletId};
 
 use crate::{
     repository::WalletRepository,
-    wallet::{CreateWalletRequest, ReleaseRequest, ReserveRequest, SettleRequest, Wallet,
-             WalletBalance, WalletStatus},
+    wallet::{
+        CreateWalletRequest, ReleaseRequest, ReserveRequest, SettleRequest, Wallet, WalletBalance,
+        WalletStatus,
+    },
     WalletError,
 };
 
@@ -56,9 +58,7 @@ impl<L: LedgerEngine, R: WalletRepository> PostgresWalletEngine<L, R> {
     }
 }
 
-impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine
-    for PostgresWalletEngine<L, R>
-{
+impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine for PostgresWalletEngine<L, R> {
     async fn create(&self, req: CreateWalletRequest) -> Result<Wallet, WalletError> {
         // Provision the two LIABILITY ledger accounts that back this wallet.
         let available = self
@@ -136,7 +136,9 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine
             .map_err(WalletError::Ledger)?
             .negate();
 
-        let total = available.checked_add(reserved).map_err(WalletError::Money)?;
+        let total = available
+            .checked_add(reserved)
+            .map_err(WalletError::Money)?;
 
         Ok(WalletBalance {
             wallet_id: wallet.id,
@@ -158,12 +160,15 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine
             format!("Reserve {} on wallet {}", req.amount, wallet.id),
             req.idempotency_key,
         )
-        .debit(req.from_account_id, req.amount)        // ASSET ↑ money arriving
+        .debit(req.from_account_id, req.amount) // ASSET ↑ money arriving
         .credit(wallet.reserved_account_id, req.amount) // LIABILITY ↑ Banzami owes merchant
         .build()
         .map_err(|e| WalletError::Posting(e.to_string()))?;
 
-        self.ledger.post(posting).await.map_err(WalletError::Ledger)?;
+        self.ledger
+            .post(posting)
+            .await
+            .map_err(WalletError::Ledger)?;
         Ok(())
     }
 
@@ -175,11 +180,14 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine
             req.idempotency_key,
         )
         .debit(wallet.reserved_account_id, req.amount) // LIABILITY ↓ obligation cancelled
-        .credit(req.to_account_id, req.amount)          // ASSET ↓ funds not received
+        .credit(req.to_account_id, req.amount) // ASSET ↓ funds not received
         .build()
         .map_err(|e| WalletError::Posting(e.to_string()))?;
 
-        self.ledger.post(posting).await.map_err(WalletError::Ledger)?;
+        self.ledger
+            .post(posting)
+            .await
+            .map_err(WalletError::Ledger)?;
         Ok(())
     }
 
@@ -190,12 +198,15 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine
             format!("Settle {} to wallet {} available", req.amount, wallet.id),
             req.idempotency_key,
         )
-        .debit(wallet.reserved_account_id, req.amount)  // LIABILITY ↓ reservation cleared
+        .debit(wallet.reserved_account_id, req.amount) // LIABILITY ↓ reservation cleared
         .credit(wallet.available_account_id, req.amount) // LIABILITY ↑ now withdrawable
         .build()
         .map_err(|e| WalletError::Posting(e.to_string()))?;
 
-        self.ledger.post(posting).await.map_err(WalletError::Ledger)?;
+        self.ledger
+            .post(posting)
+            .await
+            .map_err(WalletError::Ledger)?;
         Ok(())
     }
 }
@@ -220,30 +231,39 @@ mod tests {
 
     struct MockLedger {
         accounts: Mutex<Vec<Account>>,
-        entries:  Mutex<Vec<LedgerEntry>>,
+        entries: Mutex<Vec<LedgerEntry>>,
     }
 
     impl MockLedger {
         fn new() -> Self {
             Self {
                 accounts: Mutex::new(vec![]),
-                entries:  Mutex::new(vec![]),
+                entries: Mutex::new(vec![]),
             }
         }
     }
 
     impl LedgerEngine for MockLedger {
-        async fn create_account(&self, account: Account) -> Result<Account, banzami_ledger::LedgerError> {
+        async fn create_account(
+            &self,
+            account: Account,
+        ) -> Result<Account, banzami_ledger::LedgerError> {
             self.accounts.lock().unwrap().push(account.clone());
             Ok(account)
         }
 
-        async fn post(&self, posting: LedgerPosting) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+        async fn post(
+            &self,
+            posting: LedgerPosting,
+        ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
             self.entries.lock().unwrap().extend(posting.entries.clone());
             Ok(posting)
         }
 
-        async fn balance(&self, account_id: AccountId) -> Result<Money, banzami_ledger::LedgerError> {
+        async fn balance(
+            &self,
+            account_id: AccountId,
+        ) -> Result<Money, banzami_ledger::LedgerError> {
             let accounts = self.accounts.lock().unwrap();
             let account = accounts
                 .iter()
@@ -265,7 +285,11 @@ mod tests {
             account_id: AccountId,
         ) -> Result<Vec<LedgerEntry>, banzami_ledger::LedgerError> {
             let entries = self.entries.lock().unwrap();
-            Ok(entries.iter().filter(|e| e.account_id == account_id).cloned().collect())
+            Ok(entries
+                .iter()
+                .filter(|e| e.account_id == account_id)
+                .cloned()
+                .collect())
         }
 
         async fn reverse(
@@ -295,7 +319,9 @@ mod tests {
 
     impl MockWalletRepo {
         fn new() -> Self {
-            Self { wallets: Mutex::new(vec![]) }
+            Self {
+                wallets: Mutex::new(vec![]),
+            }
         }
     }
 
@@ -326,7 +352,10 @@ mod tests {
                 .iter()
                 .find(|w| w.merchant_id == merchant_id && w.currency == currency)
                 .cloned()
-                .ok_or(WalletError::NoWalletForMerchant { merchant_id, currency })
+                .ok_or(WalletError::NoWalletForMerchant {
+                    merchant_id,
+                    currency,
+                })
         }
     }
 
@@ -347,8 +376,8 @@ mod tests {
     async fn reserve_then_settle_moves_funds_to_available() {
         let engine = make_engine();
         let transit_id = AccountId::new(); // system account; not registered in mock
-        // (mock post() doesn't validate account existence for system accounts)
-        // Register the transit account so balance() can find it.
+                                           // (mock post() doesn't validate account existence for system accounts)
+                                           // Register the transit account so balance() can find it.
         engine
             .ledger
             .create_account(Account::new(AccountType::Asset, "Transit", Currency::AOA))
@@ -384,9 +413,17 @@ mod tests {
             .unwrap();
 
         let b = engine.balance(wallet.id).await.unwrap();
-        assert_eq!(b.available.amount_minor(), 0,       "before settle: nothing available");
-        assert_eq!(b.reserved.amount_minor(),  100_000, "before settle: full amount reserved");
-        assert_eq!(b.total.amount_minor(),     100_000);
+        assert_eq!(
+            b.available.amount_minor(),
+            0,
+            "before settle: nothing available"
+        );
+        assert_eq!(
+            b.reserved.amount_minor(),
+            100_000,
+            "before settle: full amount reserved"
+        );
+        assert_eq!(b.total.amount_minor(), 100_000);
 
         engine
             .settle(SettleRequest {
@@ -398,9 +435,17 @@ mod tests {
             .unwrap();
 
         let b = engine.balance(wallet.id).await.unwrap();
-        assert_eq!(b.available.amount_minor(), 100_000, "after settle: fully available");
-        assert_eq!(b.reserved.amount_minor(),  0,       "after settle: nothing reserved");
-        assert_eq!(b.total.amount_minor(),     100_000);
+        assert_eq!(
+            b.available.amount_minor(),
+            100_000,
+            "after settle: fully available"
+        );
+        assert_eq!(
+            b.reserved.amount_minor(),
+            0,
+            "after settle: nothing reserved"
+        );
+        assert_eq!(b.total.amount_minor(), 100_000);
     }
 
     /// Reserve then release: both accounts return to zero.
@@ -448,8 +493,8 @@ mod tests {
 
         let b = engine.balance(wallet.id).await.unwrap();
         assert!(b.available.is_zero(), "released: available must be zero");
-        assert!(b.reserved.is_zero(),  "released: reserved must be zero");
-        assert!(b.total.is_zero(),     "released: total must be zero");
+        assert!(b.reserved.is_zero(), "released: reserved must be zero");
+        assert!(b.total.is_zero(), "released: total must be zero");
     }
 
     /// Inactive wallet must be rejected on reserve.
@@ -461,8 +506,16 @@ mod tests {
         // Manually insert a suspended wallet into the repo.
         let account_a = Account::new(AccountType::Liability, "Available", Currency::AOA);
         let account_r = Account::new(AccountType::Liability, "Reserved", Currency::AOA);
-        engine.ledger.create_account(account_a.clone()).await.unwrap();
-        engine.ledger.create_account(account_r.clone()).await.unwrap();
+        engine
+            .ledger
+            .create_account(account_a.clone())
+            .await
+            .unwrap();
+        engine
+            .ledger
+            .create_account(account_r.clone())
+            .await
+            .unwrap();
 
         let suspended_wallet = Wallet {
             id: WalletId::new(),
@@ -535,7 +588,7 @@ mod tests {
 
         let b = engine.balance(wallet.id).await.unwrap();
         assert_eq!(b.available.amount_minor(), 120_000);
-        assert_eq!(b.reserved.amount_minor(),   80_000);
-        assert_eq!(b.total.amount_minor(),      200_000);
+        assert_eq!(b.reserved.amount_minor(), 80_000);
+        assert_eq!(b.total.amount_minor(), 200_000);
     }
 }

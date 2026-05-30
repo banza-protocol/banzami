@@ -35,7 +35,7 @@ pub async fn run_settlement_scheduler(pool: PgPool, tick_interval: Duration) {
 }
 
 async fn create_daily_batches(pool: &PgPool) -> Result<u64, sqlx::Error> {
-    let now         = Utc::now();
+    let now = Utc::now();
     let today_start = now.date_naive().and_hms_opt(0, 0, 0).unwrap().and_utc();
     let yesterday_start = today_start - ChronoDuration::days(1);
 
@@ -102,9 +102,9 @@ async fn create_daily_batches(pool: &PgPool) -> Result<u64, sqlx::Error> {
         };
 
         let gross = Money::new(row.gross_minor, currency);
-        let fee   = Money::new(row.fee_minor, currency);
-        let net   = match gross.checked_sub(fee) {
-            Ok(n)  => n,
+        let fee = Money::new(row.fee_minor, currency);
+        let net = match gross.checked_sub(fee) {
+            Ok(n) => n,
             Err(_) => {
                 tracing::warn!(
                     merchant_id = %row.merchant_id,
@@ -116,7 +116,7 @@ async fn create_daily_batches(pool: &PgPool) -> Result<u64, sqlx::Error> {
             }
         };
 
-        let batch_id   = SettlementId::new();
+        let batch_id = SettlementId::new();
         let insert_now = Utc::now();
 
         sqlx::query!(

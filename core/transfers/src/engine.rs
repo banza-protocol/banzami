@@ -25,9 +25,9 @@ pub trait TransferEngine: Send + Sync {
     async fn list(
         &self,
         consumer_id: ConsumerId,
-        limit:       i64,
-        before_ts:   Option<DateTime<Utc>>,
-        before_id:   Option<TransferId>,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransferId>,
     ) -> Result<Vec<Transfer>, TransferError>;
 }
 
@@ -64,18 +64,19 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         }
 
         // Idempotency: return existing transfer for the same key.
-        if let Some(existing) = self.repo.get_by_idempotency_key(&req.idempotency_key).await? {
+        if let Some(existing) = self
+            .repo
+            .get_by_idempotency_key(&req.idempotency_key)
+            .await?
+        {
             return Ok(existing);
         }
 
-        let transfer_id  = TransferId::new();
-        let posting_id   = LedgerPostingId::new();
-        let now          = Utc::now();
-        let idem_key     = format!("transfer-{transfer_id}");
-        let description  = format!(
-            "P2P transfer {} → {}",
-            req.sender_id, req.recipient_id
-        );
+        let transfer_id = TransferId::new();
+        let posting_id = LedgerPostingId::new();
+        let now = Utc::now();
+        let idem_key = format!("transfer-{transfer_id}");
+        let description = format!("P2P transfer {} → {}", req.sender_id, req.recipient_id);
 
         let mut db_tx = self.pool.begin().await.map_err(TransferError::Database)?;
 
@@ -96,7 +97,7 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         .map_err(TransferError::Database)?
         .ok_or_else(|| TransferError::WalletNotFound {
             consumer_id: req.sender_id,
-            currency:    req.currency,
+            currency: req.currency,
         })?;
 
         let (_, sender_available_acct, sender_status) = &sender_wallet;
@@ -138,7 +139,7 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
                 .map_err(TransferError::Database)?
                 .ok_or_else(|| TransferError::WalletNotFound {
                     consumer_id: req.recipient_id,
-                    currency:    req.currency,
+                    currency: req.currency,
                 })?
             }
         };
@@ -258,10 +259,12 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
     async fn list(
         &self,
         consumer_id: ConsumerId,
-        limit:       i64,
-        before_ts:   Option<DateTime<Utc>>,
-        before_id:   Option<TransferId>,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransferId>,
     ) -> Result<Vec<Transfer>, TransferError> {
-        self.repo.list_for_consumer(consumer_id, limit, before_ts, before_id).await
+        self.repo
+            .list_for_consumer(consumer_id, limit, before_ts, before_id)
+            .await
     }
 }

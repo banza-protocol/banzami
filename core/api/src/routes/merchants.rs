@@ -8,7 +8,10 @@ use serde::{Deserialize, Serialize};
 use banzami_merchants::{ApiKeyEnvironment, CreateMerchantRequest, MerchantEngine, MerchantError};
 use banzami_types::{ApiKeyId, MerchantId};
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request / response bodies
@@ -16,7 +19,7 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Deserialize)]
 pub struct CreateMerchantBody {
-    pub name:  String,
+    pub name: String,
     pub email: String,
 }
 
@@ -27,10 +30,10 @@ pub struct VerifyApiKeyBody {
 
 #[derive(Serialize)]
 pub struct VerifyApiKeyResponse {
-    pub merchant_id:     String,
-    pub merchant_name:   String,
+    pub merchant_id: String,
+    pub merchant_name: String,
     pub merchant_status: String,
-    pub environment:     String, // "LIVE" | "SANDBOX"
+    pub environment: String, // "LIVE" | "SANDBOX"
 }
 
 // ---------------------------------------------------------------------------
@@ -46,7 +49,8 @@ pub async fn list_merchants(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchants = state.merchant
+    let merchants = state
+        .merchant
         .list(q.search.as_deref())
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
@@ -64,7 +68,10 @@ pub async fn create_merchant(
 
     let merchant = state
         .merchant
-        .create(CreateMerchantRequest { name: body.name, email: body.email })
+        .create(CreateMerchantRequest {
+            name: body.name,
+            email: body.email,
+        })
         .await
         .map_err(|e| match e {
             MerchantError::DuplicateEmail(email) => {
@@ -73,7 +80,10 @@ pub async fn create_merchant(
             other => ApiError::internal(other.to_string()),
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&merchant).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&merchant).unwrap()),
+    ))
 }
 
 pub async fn get_merchant(
@@ -84,14 +94,10 @@ pub async fn get_merchant(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
 
-    let merchant = state
-        .merchant
-        .get(merchant_id)
-        .await
-        .map_err(|e| match e {
-            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let merchant = state.merchant.get(merchant_id).await.map_err(|e| match e {
+        MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&merchant).unwrap()))
 }
@@ -104,25 +110,26 @@ pub async fn verify_api_key(
         return Err(ApiError::bad_request("raw_key is required"));
     }
 
-    let (key, merchant) = state
-        .merchant
-        .verify_api_key(&body.raw_key)
-        .await
-        .map_err(|e| match e {
-            MerchantError::RevokedApiKey(_) => {
-                ApiError::unprocessable("KEY_REVOKED", "API key has been revoked")
-            }
-            MerchantError::InvalidApiKey => {
-                ApiError::unprocessable("INVALID_API_KEY", "invalid API key")
-            }
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let (key, merchant) =
+        state
+            .merchant
+            .verify_api_key(&body.raw_key)
+            .await
+            .map_err(|e| match e {
+                MerchantError::RevokedApiKey(_) => {
+                    ApiError::unprocessable("KEY_REVOKED", "API key has been revoked")
+                }
+                MerchantError::InvalidApiKey => {
+                    ApiError::unprocessable("INVALID_API_KEY", "invalid API key")
+                }
+                other => ApiError::internal(other.to_string()),
+            })?;
 
     Ok(Json(VerifyApiKeyResponse {
-        merchant_id:     merchant.id.to_string(),
-        merchant_name:   merchant.name,
+        merchant_id: merchant.id.to_string(),
+        merchant_name: merchant.name,
         merchant_status: merchant.status.as_str().to_owned(),
-        environment:     key.environment.as_str().to_owned(),
+        environment: key.environment.as_str().to_owned(),
     }))
 }
 
@@ -168,7 +175,7 @@ pub async fn suspend_merchant(
 
 #[derive(Deserialize)]
 pub struct CreateApiKeyBody {
-    pub name:        String,
+    pub name: String,
     /// "LIVE" or "SANDBOX" — defaults to "LIVE" if omitted.
     pub environment: Option<String>,
 }
@@ -188,7 +195,7 @@ pub async fn create_api_key(
 
     let environment = match body.environment.as_deref() {
         Some("SANDBOX") => ApiKeyEnvironment::Sandbox,
-        _               => ApiKeyEnvironment::Live,
+        _ => ApiKeyEnvironment::Live,
     };
 
     let key_secret = state
@@ -196,12 +203,17 @@ pub async fn create_api_key(
         .create_api_key(merchant_id, body.name, environment)
         .await
         .map_err(|e| match e {
-            MerchantError::NotFound(_)  => ApiError::not_found("merchant not found"),
-            MerchantError::NotActive(_) => ApiError::unprocessable("MERCHANT_INACTIVE", "merchant is not active"),
+            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+            MerchantError::NotActive(_) => {
+                ApiError::unprocessable("MERCHANT_INACTIVE", "merchant is not active")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&key_secret).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&key_secret).unwrap()),
+    ))
 }
 
 pub async fn list_api_keys(
@@ -254,7 +266,8 @@ pub async fn set_verified(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
 
-    let verified = body.get("verified")
+    let verified = body
+        .get("verified")
         .and_then(|v| v.as_bool())
         .ok_or_else(|| ApiError::bad_request("'verified' must be a boolean"))?;
 
@@ -264,7 +277,7 @@ pub async fn set_verified(
         .await
         .map_err(|e| match e {
             MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
-            other                      => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&merchant).unwrap()))

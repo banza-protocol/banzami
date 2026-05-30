@@ -3,8 +3,8 @@ use sqlx::PgPool;
 
 use banzami_types::{AcquiringPaymentId, PaymentLinkId};
 
-use crate::{AcquiringCallback, AcquiringError, AcquiringPayment, AcquiringPaymentStatus};
 use crate::provider::PaymentInstructions;
+use crate::{AcquiringCallback, AcquiringError, AcquiringPayment, AcquiringPaymentStatus};
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -14,10 +14,8 @@ use crate::provider::PaymentInstructions;
 pub trait AcquiringRepository: Send + Sync {
     async fn create_payment(&self, p: &AcquiringPayment) -> Result<(), AcquiringError>;
 
-    async fn get_payment(
-        &self,
-        id: AcquiringPaymentId,
-    ) -> Result<AcquiringPayment, AcquiringError>;
+    async fn get_payment(&self, id: AcquiringPaymentId)
+        -> Result<AcquiringPayment, AcquiringError>;
 
     async fn get_payment_by_external_ref(
         &self,
@@ -26,13 +24,13 @@ pub trait AcquiringRepository: Send + Sync {
 
     async fn confirm_payment(
         &self,
-        id:           AcquiringPaymentId,
+        id: AcquiringPaymentId,
         confirmed_at: DateTime<Utc>,
     ) -> Result<AcquiringPayment, AcquiringError>;
 
     async fn fail_payment(
         &self,
-        id:     AcquiringPaymentId,
+        id: AcquiringPaymentId,
         reason: String,
     ) -> Result<AcquiringPayment, AcquiringError>;
 
@@ -50,27 +48,27 @@ pub trait AcquiringRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct AcquiringPaymentRow {
-    id:              uuid::Uuid,
+    id: uuid::Uuid,
     payment_link_id: uuid::Uuid,
-    provider:        String,
-    external_ref:    String,
-    status:          String,
-    amount_minor:    i64,
-    currency:        String,
-    instructions:    serde_json::Value,
-    confirmed_at:    Option<DateTime<Utc>>,
-    failed_at:       Option<DateTime<Utc>>,
-    failure_reason:  Option<String>,
-    expires_at:      DateTime<Utc>,
-    created_at:      DateTime<Utc>,
+    provider: String,
+    external_ref: String,
+    status: String,
+    amount_minor: i64,
+    currency: String,
+    instructions: serde_json::Value,
+    confirmed_at: Option<DateTime<Utc>>,
+    failed_at: Option<DateTime<Utc>>,
+    failure_reason: Option<String>,
+    expires_at: DateTime<Utc>,
+    created_at: DateTime<Utc>,
 }
 
 fn row_to_payment(row: AcquiringPaymentRow) -> Result<AcquiringPayment, AcquiringError> {
     let status = match row.status.as_str() {
-        "PENDING"   => AcquiringPaymentStatus::Pending,
+        "PENDING" => AcquiringPaymentStatus::Pending,
         "CONFIRMED" => AcquiringPaymentStatus::Confirmed,
-        "FAILED"    => AcquiringPaymentStatus::Failed,
-        other       => return Err(AcquiringError::UnknownStatus(other.to_string())),
+        "FAILED" => AcquiringPaymentStatus::Failed,
+        other => return Err(AcquiringError::UnknownStatus(other.to_string())),
     };
 
     let currency = banzami_types::Currency::from_code(&row.currency)
@@ -80,18 +78,18 @@ fn row_to_payment(row: AcquiringPaymentRow) -> Result<AcquiringPayment, Acquirin
         .map_err(|e| AcquiringError::Internal(e.to_string()))?;
 
     Ok(AcquiringPayment {
-        id:              AcquiringPaymentId::from_uuid(row.id),
+        id: AcquiringPaymentId::from_uuid(row.id),
         payment_link_id: PaymentLinkId::from_uuid(row.payment_link_id),
-        provider:        row.provider,
-        external_ref:    row.external_ref,
+        provider: row.provider,
+        external_ref: row.external_ref,
         status,
-        amount:          banzami_types::Money::new(row.amount_minor, currency),
+        amount: banzami_types::Money::new(row.amount_minor, currency),
         instructions,
-        confirmed_at:    row.confirmed_at,
-        failed_at:       row.failed_at,
-        failure_reason:  row.failure_reason,
-        expires_at:      row.expires_at,
-        created_at:      row.created_at,
+        confirmed_at: row.confirmed_at,
+        failed_at: row.failed_at,
+        failure_reason: row.failure_reason,
+        expires_at: row.expires_at,
+        created_at: row.created_at,
     })
 }
 
@@ -178,7 +176,7 @@ impl AcquiringRepository for PostgresAcquiringRepository {
 
     async fn confirm_payment(
         &self,
-        id:           AcquiringPaymentId,
+        id: AcquiringPaymentId,
         confirmed_at: DateTime<Utc>,
     ) -> Result<AcquiringPayment, AcquiringError> {
         sqlx::query_as!(
@@ -201,7 +199,7 @@ impl AcquiringRepository for PostgresAcquiringRepository {
 
     async fn fail_payment(
         &self,
-        id:     AcquiringPaymentId,
+        id: AcquiringPaymentId,
         reason: String,
     ) -> Result<AcquiringPayment, AcquiringError> {
         let now = Utc::now();

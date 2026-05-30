@@ -1,18 +1,45 @@
-use chrono::{DateTime, Utc};
 use banzami_types::ConsumerId;
+use chrono::{DateTime, Utc};
 
 const RESERVED_HANDLES: &[&str] = &[
-    "admin", "banzami", "banza", "banzai", "banzamii",
-    "support", "help", "api", "system", "root",
-    "superuser", "service", "ops", "security", "compliance", "audit",
-    "finance", "legal", "payments", "transactions", "wallets",
-    "emis", "multicaixa", "angola", "banco", "bna",
-    "angolar", "standard", "atlantico", "bai", "bfa", "bic", "millennium", "bde",
+    "admin",
+    "banzami",
+    "banza",
+    "banzai",
+    "banzamii",
+    "support",
+    "help",
+    "api",
+    "system",
+    "root",
+    "superuser",
+    "service",
+    "ops",
+    "security",
+    "compliance",
+    "audit",
+    "finance",
+    "legal",
+    "payments",
+    "transactions",
+    "wallets",
+    "emis",
+    "multicaixa",
+    "angola",
+    "banco",
+    "bna",
+    "angolar",
+    "standard",
+    "atlantico",
+    "bai",
+    "bfa",
+    "bic",
+    "millennium",
+    "bde",
 ];
 
 /// Lifecycle state of a consumer identity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ConsumerStatus {
     Active,
@@ -23,18 +50,18 @@ pub enum ConsumerStatus {
 impl ConsumerStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            ConsumerStatus::Active    => "ACTIVE",
+            ConsumerStatus::Active => "ACTIVE",
             ConsumerStatus::Suspended => "SUSPENDED",
-            ConsumerStatus::Closed    => "CLOSED",
+            ConsumerStatus::Closed => "CLOSED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "ACTIVE"    => Some(ConsumerStatus::Active),
+            "ACTIVE" => Some(ConsumerStatus::Active),
             "SUSPENDED" => Some(ConsumerStatus::Suspended),
-            "CLOSED"    => Some(ConsumerStatus::Closed),
-            _           => None,
+            "CLOSED" => Some(ConsumerStatus::Closed),
+            _ => None,
         }
     }
 }
@@ -44,8 +71,7 @@ impl ConsumerStatus {
 /// `CONSUMER` renders as a gold "Verificado" pill.
 /// `MERCHANT` renders as a blue "Comerciante" pill.
 /// Absence (NULL in DB) means no badge is shown.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum VerificationBadge {
     Consumer,
@@ -64,7 +90,7 @@ impl VerificationBadge {
         match s {
             "CONSUMER" => Some(VerificationBadge::Consumer),
             "MERCHANT" => Some(VerificationBadge::Merchant),
-            _          => None,
+            _ => None,
         }
     }
 }
@@ -73,21 +99,20 @@ impl VerificationBadge {
 ///
 /// Handles are the public-facing identities — consumers never see raw UUIDs.
 /// A handle uniquely identifies the owner for QR payments and P2P transfers.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ConsumerIdentity {
-    pub id:                  ConsumerId,
-    pub handle:              String,
-    pub display_name:        Option<String>,
-    pub status:              ConsumerStatus,
-    pub verification_badge:  Option<VerificationBadge>,
-    pub suspension_notes:    Option<String>,
-    pub created_at:          DateTime<Utc>,
-    pub updated_at:          DateTime<Utc>,
+    pub id: ConsumerId,
+    pub handle: String,
+    pub display_name: Option<String>,
+    pub status: ConsumerStatus,
+    pub verification_badge: Option<VerificationBadge>,
+    pub suspension_notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 pub struct CreateConsumerRequest {
-    pub handle:       String,
+    pub handle: String,
     pub display_name: Option<String>,
 }
 
@@ -96,13 +121,12 @@ pub struct CreateConsumerRequest {
 /// Resolving a handle confirms the recipient is active and reachable.
 /// Wallet lookups happen at a higher service layer — identity crate only
 /// owns consumer identity, not wallet associations.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct HandleResolution {
-    pub consumer_id:  banzami_types::ConsumerId,
-    pub handle:       String,
+    pub consumer_id: banzami_types::ConsumerId,
+    pub handle: String,
     pub display_name: Option<String>,
-    pub status:       ConsumerStatus,
+    pub status: ConsumerStatus,
 }
 
 /// Strip leading `@`, lowercase, and trim whitespace.
@@ -121,12 +145,20 @@ pub fn normalize_handle(raw: &str) -> String {
 /// - Not a reserved keyword
 pub fn validate_handle(handle: &str) -> Result<(), &'static str> {
     let len = handle.len();
-    if len < 3  { return Err("handle must be at least 3 characters"); }
-    if len > 20 { return Err("handle must be at most 20 characters"); }
+    if len < 3 {
+        return Err("handle must be at least 3 characters");
+    }
+    if len > 20 {
+        return Err("handle must be at most 20 characters");
+    }
 
     let bytes = handle.as_bytes();
-    if !bytes[0].is_ascii_lowercase() { return Err("handle must start with a lowercase letter"); }
-    if bytes[len - 1] == b'_' { return Err("handle cannot end with an underscore"); }
+    if !bytes[0].is_ascii_lowercase() {
+        return Err("handle must start with a lowercase letter");
+    }
+    if bytes[len - 1] == b'_' {
+        return Err("handle cannot end with an underscore");
+    }
 
     for (i, &b) in bytes.iter().enumerate() {
         if !matches!(b, b'a'..=b'z' | b'0'..=b'9' | b'_') {

@@ -19,22 +19,22 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct PaymentRequestResponse {
-    pub id:              String,
-    pub requester_id:    String,
-    pub payer_id:        String,
-    pub amount_minor:    i64,
-    pub currency:        String,
-    pub message:         Option<String>,
-    pub status:          String,
-    pub transfer_id:     Option<String>,
-    pub expires_at:      DateTime<Utc>,
-    pub created_at:      DateTime<Utc>,
-    pub updated_at:      DateTime<Utc>,
-    pub paid_at:         Option<DateTime<Utc>>,
-    pub declined_at:     Option<DateTime<Utc>>,
+    pub id: String,
+    pub requester_id: String,
+    pub payer_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub message: Option<String>,
+    pub status: String,
+    pub transfer_id: Option<String>,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub paid_at: Option<DateTime<Utc>>,
+    pub declined_at: Option<DateTime<Utc>>,
     // Enriched view — present because FK guarantees consumer exists
     pub requester_handle: Option<String>,
-    pub payer_handle:     Option<String>,
+    pub payer_handle: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -43,11 +43,11 @@ pub struct PaymentRequestResponse {
 
 #[derive(Deserialize)]
 pub struct CreateRequestBody {
-    pub requester_id:    String,
-    pub payer_id:        String,
-    pub amount_minor:    i64,
-    pub currency:        Option<String>,
-    pub message:         Option<String>,
+    pub requester_id: String,
+    pub payer_id: String,
+    pub amount_minor: i64,
+    pub currency: Option<String>,
+    pub message: Option<String>,
     pub idempotency_key: Option<String>,
 }
 
@@ -59,9 +59,13 @@ pub async fn create(
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
 
-    let requester_id: Uuid = body.requester_id.parse()
+    let requester_id: Uuid = body
+        .requester_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid requester_id"))?;
-    let payer_id: Uuid = body.payer_id.parse()
+    let payer_id: Uuid = body
+        .payer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid payer_id"))?;
 
     if requester_id == payer_id {
@@ -72,27 +76,28 @@ pub async fn create(
 
     // Ensure both consumers exist and are ACTIVE
     for (label, cid) in [("requester", requester_id), ("payer", payer_id)] {
-        let status: Option<String> = sqlx::query_scalar!(
-            "SELECT status FROM consumers WHERE id = $1",
-            cid,
-        )
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+        let status: Option<String> =
+            sqlx::query_scalar!("SELECT status FROM consumers WHERE id = $1", cid,)
+                .fetch_optional(&state.pool)
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
 
         match status.as_deref() {
             None => return Err(ApiError::not_found(format!("{label} not found"))),
-            Some(s) if s != "ACTIVE" => return Err(ApiError::unprocessable(
-                "CONSUMER_NOT_ACTIVE",
-                format!("{label} account is not active"),
-            )),
+            Some(s) if s != "ACTIVE" => {
+                return Err(ApiError::unprocessable(
+                    "CONSUMER_NOT_ACTIVE",
+                    format!("{label} account is not active"),
+                ))
+            }
             _ => {}
         }
     }
 
     // Check for account freezes
     if risk::is_frozen(&state.pool, "CONSUMER", requester_id).await
-        || risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
+        || risk::is_frozen(&state.pool, "CONSUMER", payer_id).await
+    {
         return Err(ApiError::unprocessable(
             "ACCOUNT_FROZEN",
             "one or both accounts are frozen",
@@ -100,7 +105,8 @@ pub async fn create(
     }
 
     let request_id = Uuid::new_v4();
-    let idempotency_key = body.idempotency_key
+    let idempotency_key = body
+        .idempotency_key
         .unwrap_or_else(|| Uuid::new_v4().to_string());
 
     // Idempotent insert
@@ -131,7 +137,10 @@ pub async fn create(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(fetch_request(&state.pool, actual_id).await?)))
+    Ok((
+        StatusCode::CREATED,
+        Json(fetch_request(&state.pool, actual_id).await?),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -140,7 +149,7 @@ pub async fn create(
 
 #[derive(Deserialize)]
 pub struct PayRequestBody {
-    pub payer_id:        String,
+    pub payer_id: String,
     pub idempotency_key: String,
 }
 
@@ -149,9 +158,12 @@ pub async fn pay(
     Path(id): Path<String>,
     Json(body): Json<PayRequestBody>,
 ) -> ApiResult<Json<PaymentRequestResponse>> {
-    let request_id: Uuid = id.parse()
+    let request_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid request id"))?;
-    let payer_id: Uuid = body.payer_id.parse()
+    let payer_id: Uuid = body
+        .payer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid payer_id"))?;
 
     let req = sqlx::query!(
@@ -160,7 +172,8 @@ pub async fn pay(
         FROM payment_requests
         WHERE id = $1 AND payer_id = $2
         "#,
-        request_id, payer_id,
+        request_id,
+        payer_id,
     )
     .fetch_optional(&state.pool)
     .await
@@ -191,19 +204,26 @@ pub async fn pay(
         .execute(&state.pool)
         .await
         .ok();
-        return Err(ApiError::unprocessable("REQUEST_EXPIRED", "payment request has expired"));
+        return Err(ApiError::unprocessable(
+            "REQUEST_EXPIRED",
+            "payment request has expired",
+        ));
     }
 
     // Check freezes
     if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
-        return Err(ApiError::unprocessable("ACCOUNT_FROZEN", "payer account is frozen"));
+        return Err(ApiError::unprocessable(
+            "ACCOUNT_FROZEN",
+            "payer account is frozen",
+        ));
     }
 
     // Find payer and requester wallets
     let payer_wallet = sqlx::query!(
         "SELECT id, available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
-        payer_id, req.currency,
+        payer_id,
+        req.currency,
     )
     .fetch_optional(&state.pool)
     .await
@@ -213,7 +233,8 @@ pub async fn pay(
     let requester_wallet = sqlx::query!(
         "SELECT id, available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
-        req.requester_id, req.currency,
+        req.requester_id,
+        req.currency,
     )
     .fetch_optional(&state.pool)
     .await
@@ -317,7 +338,9 @@ pub async fn pay(
         SET status = 'PAID', transfer_id = $1, paid_at = $2, updated_at = $2
         WHERE id = $3 AND status = 'PENDING'
         "#,
-        transfer_id, now, request_id,
+        transfer_id,
+        now,
+        request_id,
     )
     .execute(&state.pool)
     .await
@@ -334,7 +357,8 @@ pub async fn pay(
             "amount_minor":  req.amount_minor,
         }),
         None,
-    ).await;
+    )
+    .await;
 
     Ok(Json(fetch_request(&state.pool, request_id).await?))
 }
@@ -353,23 +377,29 @@ pub async fn decline(
     Path(id): Path<String>,
     Json(body): Json<DeclineRequestBody>,
 ) -> ApiResult<Json<PaymentRequestResponse>> {
-    let request_id: Uuid = id.parse()
+    let request_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid request id"))?;
-    let payer_id: Uuid = body.payer_id.parse()
+    let payer_id: Uuid = body
+        .payer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid payer_id"))?;
 
     let rows = sqlx::query!(
         "UPDATE payment_requests SET status = 'DECLINED', declined_at = NOW(), updated_at = NOW()
          WHERE id = $1 AND payer_id = $2 AND status = 'PENDING'
          RETURNING id",
-        request_id, payer_id,
+        request_id,
+        payer_id,
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     if rows.is_none() {
-        return Err(ApiError::not_found("payment request not found or not in PENDING status"));
+        return Err(ApiError::not_found(
+            "payment request not found or not in PENDING status",
+        ));
     }
 
     Ok(Json(fetch_request(&state.pool, request_id).await?))
@@ -389,23 +419,29 @@ pub async fn cancel(
     Path(id): Path<String>,
     Json(body): Json<CancelRequestBody>,
 ) -> ApiResult<Json<PaymentRequestResponse>> {
-    let request_id: Uuid = id.parse()
+    let request_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid request id"))?;
-    let requester_id: Uuid = body.requester_id.parse()
+    let requester_id: Uuid = body
+        .requester_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid requester_id"))?;
 
     let row = sqlx::query!(
         "UPDATE payment_requests SET status = 'CANCELLED', updated_at = NOW()
          WHERE id = $1 AND requester_id = $2 AND status = 'PENDING'
          RETURNING id",
-        request_id, requester_id,
+        request_id,
+        requester_id,
     )
     .fetch_optional(&state.pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     if row.is_none() {
-        return Err(ApiError::not_found("payment request not found or not in PENDING status"));
+        return Err(ApiError::not_found(
+            "payment request not found or not in PENDING status",
+        ));
     }
 
     Ok(Json(fetch_request(&state.pool, request_id).await?))
@@ -419,7 +455,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<PaymentRequestResponse>> {
-    let id: Uuid = id.parse()
+    let id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid request id"))?;
     Ok(Json(fetch_request(&state.pool, id).await?))
 }
@@ -431,9 +468,9 @@ pub async fn get(
 #[derive(Deserialize)]
 pub struct ListRequestsQuery {
     pub requester_id: Option<String>,
-    pub payer_id:     Option<String>,
-    pub status:       Option<String>,
-    pub limit:        Option<i64>,
+    pub payer_id: Option<String>,
+    pub status: Option<String>,
+    pub limit: Option<i64>,
 }
 
 pub async fn list(
@@ -458,7 +495,9 @@ pub async fn list(
         ORDER BY pr.created_at DESC
         LIMIT $4
         "#,
-        q.requester_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
+        q.requester_id
+            .as_deref()
+            .and_then(|s| s.parse::<Uuid>().ok()),
         q.payer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
         q.status,
         limit,
@@ -467,23 +506,28 @@ pub async fn list(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let data: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id":               r.id,
-        "requester_id":     r.requester_id,
-        "payer_id":         r.payer_id,
-        "amount_minor":     r.amount_minor,
-        "currency":         r.currency,
-        "message":          r.message,
-        "status":           r.status,
-        "transfer_id":      r.transfer_id,
-        "expires_at":       r.expires_at,
-        "created_at":       r.created_at,
-        "updated_at":       r.updated_at,
-        "paid_at":          r.paid_at,
-        "declined_at":      r.declined_at,
-        "requester_handle": r.requester_handle,
-        "payer_handle":     r.payer_handle,
-    })).collect();
+    let data: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id":               r.id,
+                "requester_id":     r.requester_id,
+                "payer_id":         r.payer_id,
+                "amount_minor":     r.amount_minor,
+                "currency":         r.currency,
+                "message":          r.message,
+                "status":           r.status,
+                "transfer_id":      r.transfer_id,
+                "expires_at":       r.expires_at,
+                "created_at":       r.created_at,
+                "updated_at":       r.updated_at,
+                "paid_at":          r.paid_at,
+                "declined_at":      r.declined_at,
+                "requester_handle": r.requester_handle,
+                "payer_handle":     r.payer_handle,
+            })
+        })
+        .collect();
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
@@ -511,21 +555,21 @@ async fn fetch_request(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<PaymentReques
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .map(|r| PaymentRequestResponse {
-        id:               r.id.to_string(),
-        requester_id:     r.requester_id.to_string(),
-        payer_id:         r.payer_id.to_string(),
-        amount_minor:     r.amount_minor,
-        currency:         r.currency,
-        message:          r.message,
-        status:           r.status,
-        transfer_id:      r.transfer_id.map(|u| u.to_string()),
-        expires_at:       r.expires_at,
-        created_at:       r.created_at,
-        updated_at:       r.updated_at,
-        paid_at:          r.paid_at,
-        declined_at:      r.declined_at,
+        id: r.id.to_string(),
+        requester_id: r.requester_id.to_string(),
+        payer_id: r.payer_id.to_string(),
+        amount_minor: r.amount_minor,
+        currency: r.currency,
+        message: r.message,
+        status: r.status,
+        transfer_id: r.transfer_id.map(|u| u.to_string()),
+        expires_at: r.expires_at,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        paid_at: r.paid_at,
+        declined_at: r.declined_at,
         requester_handle: Some(r.requester_handle),
-        payer_handle:     Some(r.payer_handle),
+        payer_handle: Some(r.payer_handle),
     })
     .ok_or_else(|| ApiError::not_found("payment request not found"))
 }

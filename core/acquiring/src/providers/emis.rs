@@ -28,31 +28,32 @@ use crate::provider::{
 
 type HmacSha256 = Hmac<Sha256>;
 
+#[allow(dead_code)]
 pub struct EMISProvider {
-    api_url:        String,
-    api_key:        String,
-    entity:         String,
+    api_url: String,
+    api_key: String,
+    entity: String,
     webhook_secret: Vec<u8>,
 }
 
 impl EMISProvider {
     pub fn new(
-        api_url:        impl Into<String>,
-        api_key:        impl Into<String>,
-        entity:         impl Into<String>,
+        api_url: impl Into<String>,
+        api_key: impl Into<String>,
+        entity: impl Into<String>,
         webhook_secret: impl Into<Vec<u8>>,
     ) -> Self {
         Self {
-            api_url:        api_url.into(),
-            api_key:        api_key.into(),
-            entity:         entity.into(),
+            api_url: api_url.into(),
+            api_key: api_key.into(),
+            entity: entity.into(),
             webhook_secret: webhook_secret.into(),
         }
     }
 
     fn sign(&self, body: &[u8]) -> String {
-        let mut mac = HmacSha256::new_from_slice(&self.webhook_secret)
-            .expect("HMAC accepts any key length");
+        let mut mac =
+            HmacSha256::new_from_slice(&self.webhook_secret).expect("HMAC accepts any key length");
         mac.update(body);
         format!("sha256={}", hex::encode(mac.finalize().into_bytes()))
     }
@@ -87,7 +88,7 @@ impl AcquirerProvider for EMISProvider {
 
     async fn validate_callback(
         &self,
-        raw_body:  &[u8],
+        raw_body: &[u8],
         signature: &str,
     ) -> Result<PaymentConfirmation, AcquirerError> {
         // HMAC-SHA256 validation — same as SimulatedProvider.
@@ -130,9 +131,9 @@ impl AcquirerProvider for EMISProvider {
 
 impl EMISProvider {
     pub fn from_env() -> Option<Self> {
-        let api_url        = std::env::var("EMIS_API_URL").ok()?;
-        let api_key        = std::env::var("EMIS_API_KEY").ok()?;
-        let entity         = std::env::var("EMIS_ENTITY").ok()?;
+        let api_url = std::env::var("EMIS_API_URL").ok()?;
+        let api_key = std::env::var("EMIS_API_KEY").ok()?;
+        let entity = std::env::var("EMIS_ENTITY").ok()?;
         let webhook_secret = std::env::var("ACQUIRING_WEBHOOK_SECRET")
             .unwrap_or_else(|_| "change-in-production".into())
             .into_bytes();

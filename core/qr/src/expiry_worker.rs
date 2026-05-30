@@ -57,7 +57,9 @@ mod tests {
             .ok()
             .and_then(|s| s.parse().ok())
             .unwrap_or(60);
-        assert!(Duration::from_secs(secs) >= Duration::from_secs(10),
-            "expiry interval should be at least 10 seconds");
+        assert!(
+            Duration::from_secs(secs) >= Duration::from_secs(10),
+            "expiry interval should be at least 10 seconds"
+        );
     }
 }

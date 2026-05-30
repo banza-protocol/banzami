@@ -14,9 +14,9 @@ use crate::{
 /// Result of a routing-specific handle lookup — includes consumer identity status
 /// alongside the wallet so the routing engine can verify both layers atomically.
 pub struct RoutingLookup {
-    pub wallet:          ConsumerWallet,
+    pub wallet: ConsumerWallet,
     pub consumer_status: ConsumerStatus,
-    pub display_name:    Option<String>,
+    pub display_name: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -27,11 +27,11 @@ pub struct RoutingLookup {
 pub trait OnboardingRepository: Send + Sync {
     async fn create_session(
         &self,
-        phone_number:   String,
-        otp_code_hash:  String,
+        phone_number: String,
+        otp_code_hash: String,
         otp_expires_at: DateTime<Utc>,
-        currency:       Currency,
-        expires_at:     DateTime<Utc>,
+        currency: Currency,
+        expires_at: DateTime<Utc>,
     ) -> Result<OnboardingSession, ConsumerWalletError>;
 
     async fn find_session_by_phone(
@@ -46,20 +46,19 @@ pub trait OnboardingRepository: Send + Sync {
 
     async fn advance_to_pending_pin(
         &self,
-        session_id:                      Uuid,
-        available_account_id:            AccountId,
-        reserved_account_id:             AccountId,
-        new_expires_at:                  DateTime<Utc>,
+        session_id: Uuid,
+        available_account_id: AccountId,
+        reserved_account_id: AccountId,
+        new_expires_at: DateTime<Utc>,
     ) -> Result<OnboardingSession, ConsumerWalletError>;
 
     async fn set_desired_handle(
         &self,
-        session_id:     Uuid,
+        session_id: Uuid,
         desired_handle: String,
     ) -> Result<(), ConsumerWalletError>;
 
-    async fn delete_session(&self, session_id: Uuid)
-        -> Result<(), ConsumerWalletError>;
+    async fn delete_session(&self, session_id: Uuid) -> Result<(), ConsumerWalletError>;
 
     async fn delete_expired_sessions(&self) -> Result<u64, ConsumerWalletError>;
 }
@@ -70,25 +69,22 @@ pub trait OnboardingRepository: Send + Sync {
 
 #[allow(async_fn_in_trait)]
 pub trait ConsumerWalletRepository: Send + Sync {
-    async fn create(&self, wallet: ConsumerWallet)
-        -> Result<ConsumerWallet, ConsumerWalletError>;
+    async fn create(&self, wallet: ConsumerWallet) -> Result<ConsumerWallet, ConsumerWalletError>;
 
-    async fn update(&self, wallet: ConsumerWallet)
-        -> Result<ConsumerWallet, ConsumerWalletError>;
+    async fn update(&self, wallet: ConsumerWallet) -> Result<ConsumerWallet, ConsumerWalletError>;
 
-    async fn get(&self, id: ConsumerWalletId)
-        -> Result<ConsumerWallet, ConsumerWalletError>;
+    async fn get(&self, id: ConsumerWalletId) -> Result<ConsumerWallet, ConsumerWalletError>;
 
     async fn get_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError>;
 
     async fn find_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<Option<ConsumerWallet>, ConsumerWalletError>;
 
     async fn find_by_handle(
@@ -103,7 +99,7 @@ pub trait ConsumerWalletRepository: Send + Sync {
     /// always the same for the same input — no LIMIT 1 ambiguity.
     async fn find_by_handle_for_routing(
         &self,
-        handle:   &str,
+        handle: &str,
         currency: Currency,
     ) -> Result<Option<RoutingLookup>, ConsumerWalletError>;
 
@@ -124,26 +120,17 @@ pub trait ConsumerWalletRepository: Send + Sync {
         id: ConsumerWalletId,
     ) -> Result<i32, ConsumerWalletError>;
 
-    async fn reset_pin_failures(
-        &self,
-        id: ConsumerWalletId,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn reset_pin_failures(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError>;
 
-    async fn lock_wallet(
-        &self,
-        id: ConsumerWalletId,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn lock_wallet(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError>;
 
-    async fn unlock_wallet(
-        &self,
-        id: ConsumerWalletId,
-    ) -> Result<(), ConsumerWalletError>;
+    async fn unlock_wallet(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError>;
 
     async fn update_status(
         &self,
-        id:         ConsumerWalletId,
+        id: ConsumerWalletId,
         new_status: ConsumerWalletStatus,
-        closed_at:  Option<DateTime<Utc>>,
+        closed_at: Option<DateTime<Utc>>,
     ) -> Result<(), ConsumerWalletError>;
 }
 
@@ -153,39 +140,39 @@ pub trait ConsumerWalletRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct OnboardingRow {
-    id:           Uuid,
+    id: Uuid,
     phone_number: String,
-    otp_code_hash:   Option<String>,
-    otp_expires_at:  Option<DateTime<Utc>>,
-    desired_handle:  Option<String>,
-    currency:        String,
-    status:          String,
+    otp_code_hash: Option<String>,
+    otp_expires_at: Option<DateTime<Utc>>,
+    desired_handle: Option<String>,
+    currency: String,
+    status: String,
     provisional_available_account_id: Option<Uuid>,
-    provisional_reserved_account_id:  Option<Uuid>,
-    created_at:  DateTime<Utc>,
-    expires_at:  DateTime<Utc>,
+    provisional_reserved_account_id: Option<Uuid>,
+    created_at: DateTime<Utc>,
+    expires_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
 struct WalletRow {
     // from consumer_wallets
-    id:                   Uuid,
-    consumer_id:          Uuid,
-    currency:             String,
-    status:               String,
+    id: Uuid,
+    consumer_id: Uuid,
+    currency: String,
+    status: String,
     available_account_id: Uuid,
-    reserved_account_id:  Uuid,
-    kyc_status:           String,
-    pin_hash:             Option<String>,
-    failed_pin_attempts:  i32,
-    locked_at:            Option<DateTime<Utc>>,
-    created_at:           DateTime<Utc>,
-    updated_at:           DateTime<Utc>,
-    activated_at:         Option<DateTime<Utc>>,
-    closed_at:            Option<DateTime<Utc>>,
+    reserved_account_id: Uuid,
+    kyc_status: String,
+    pin_hash: Option<String>,
+    failed_pin_attempts: i32,
+    locked_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    activated_at: Option<DateTime<Utc>>,
+    closed_at: Option<DateTime<Utc>>,
     // from consumers (joined)
-    phone_number:         Option<String>,
-    banza_handle:         String,  // consumers.handle
+    phone_number: Option<String>,
+    banza_handle: String, // consumers.handle
 }
 
 /// Extended row for routing resolution — includes consumer status and display_name
@@ -193,25 +180,25 @@ struct WalletRow {
 #[derive(sqlx::FromRow)]
 struct RoutingRow {
     // from consumer_wallets
-    id:                   Uuid,
-    consumer_id:          Uuid,
-    currency:             String,
-    status:               String,
+    id: Uuid,
+    consumer_id: Uuid,
+    currency: String,
+    status: String,
     available_account_id: Uuid,
-    reserved_account_id:  Uuid,
-    kyc_status:           String,
-    pin_hash:             Option<String>,
-    failed_pin_attempts:  i32,
-    locked_at:            Option<DateTime<Utc>>,
-    created_at:           DateTime<Utc>,
-    updated_at:           DateTime<Utc>,
-    activated_at:         Option<DateTime<Utc>>,
-    closed_at:            Option<DateTime<Utc>>,
+    reserved_account_id: Uuid,
+    kyc_status: String,
+    pin_hash: Option<String>,
+    failed_pin_attempts: i32,
+    locked_at: Option<DateTime<Utc>>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
+    activated_at: Option<DateTime<Utc>>,
+    closed_at: Option<DateTime<Utc>>,
     // from consumers (joined)
-    phone_number:         Option<String>,
-    banza_handle:         String,
-    consumer_status:      String,
-    display_name:         Option<String>,
+    phone_number: Option<String>,
+    banza_handle: String,
+    consumer_status: String,
+    display_name: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -239,11 +226,11 @@ const ONBOARDING_SELECT: &str = "
 impl OnboardingRepository for PostgresOnboardingRepository {
     async fn create_session(
         &self,
-        phone_number:   String,
-        otp_code_hash:  String,
+        phone_number: String,
+        otp_code_hash: String,
         otp_expires_at: DateTime<Utc>,
-        currency:       Currency,
-        expires_at:     DateTime<Utc>,
+        currency: Currency,
+        expires_at: DateTime<Utc>,
     ) -> Result<OnboardingSession, ConsumerWalletError> {
         let row: OnboardingRow = sqlx::query_as(
             "INSERT INTO consumer_onboarding
@@ -295,10 +282,10 @@ impl OnboardingRepository for PostgresOnboardingRepository {
 
     async fn advance_to_pending_pin(
         &self,
-        session_id:          Uuid,
+        session_id: Uuid,
         available_account_id: AccountId,
-        reserved_account_id:  AccountId,
-        new_expires_at:      DateTime<Utc>,
+        reserved_account_id: AccountId,
+        new_expires_at: DateTime<Utc>,
     ) -> Result<OnboardingSession, ConsumerWalletError> {
         let row: OnboardingRow = sqlx::query_as(
             "UPDATE consumer_onboarding
@@ -323,18 +310,16 @@ impl OnboardingRepository for PostgresOnboardingRepository {
 
     async fn set_desired_handle(
         &self,
-        session_id:     Uuid,
+        session_id: Uuid,
         desired_handle: String,
     ) -> Result<(), ConsumerWalletError> {
-        let rows = sqlx::query(
-            "UPDATE consumer_onboarding SET desired_handle = $2 WHERE id = $1",
-        )
-        .bind(session_id)
-        .bind(&desired_handle)
-        .execute(&self.pool)
-        .await
-        .map_err(ConsumerWalletError::Database)?
-        .rows_affected();
+        let rows = sqlx::query("UPDATE consumer_onboarding SET desired_handle = $2 WHERE id = $1")
+            .bind(session_id)
+            .bind(&desired_handle)
+            .execute(&self.pool)
+            .await
+            .map_err(ConsumerWalletError::Database)?
+            .rows_affected();
 
         if rows == 0 {
             return Err(ConsumerWalletError::OnboardingNotFound(session_id));
@@ -449,12 +434,11 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
     }
 
     async fn get(&self, id: ConsumerWalletId) -> Result<ConsumerWallet, ConsumerWalletError> {
-        let row: Option<WalletRow> =
-            sqlx::query_as(&format!("{WALLET_SELECT} WHERE w.id = $1"))
-                .bind(id.as_uuid())
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(ConsumerWalletError::Database)?;
+        let row: Option<WalletRow> = sqlx::query_as(&format!("{WALLET_SELECT} WHERE w.id = $1"))
+            .bind(id.as_uuid())
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(ConsumerWalletError::Database)?;
 
         row.map(wallet_from_row)
             .transpose()?
@@ -464,17 +448,20 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
     async fn get_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<ConsumerWallet, ConsumerWalletError> {
-        self.find_for_consumer(consumer_id, currency)
-            .await?
-            .ok_or(ConsumerWalletError::NoWalletForConsumer { consumer_id, currency })
+        self.find_for_consumer(consumer_id, currency).await?.ok_or(
+            ConsumerWalletError::NoWalletForConsumer {
+                consumer_id,
+                currency,
+            },
+        )
     }
 
     async fn find_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     ) -> Result<Option<ConsumerWallet>, ConsumerWalletError> {
         let row: Option<WalletRow> = sqlx::query_as(&format!(
             "{WALLET_SELECT}
@@ -494,20 +481,19 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
         &self,
         handle: &str,
     ) -> Result<Option<ConsumerWallet>, ConsumerWalletError> {
-        let row: Option<WalletRow> = sqlx::query_as(&format!(
-            "{WALLET_SELECT} WHERE c.handle = $1 LIMIT 1"
-        ))
-        .bind(handle)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(ConsumerWalletError::Database)?;
+        let row: Option<WalletRow> =
+            sqlx::query_as(&format!("{WALLET_SELECT} WHERE c.handle = $1 LIMIT 1"))
+                .bind(handle)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(ConsumerWalletError::Database)?;
 
         row.map(wallet_from_row).transpose()
     }
 
     async fn find_by_handle_for_routing(
         &self,
-        handle:   &str,
+        handle: &str,
         currency: Currency,
     ) -> Result<Option<RoutingLookup>, ConsumerWalletError> {
         let row: Option<RoutingRow> = sqlx::query_as(
@@ -579,7 +565,7 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
 
         // 2. Create wallet row.
         let wallet_id = Uuid::new_v4();
-        let now       = Utc::now();
+        let now = Utc::now();
         sqlx::query(
             "INSERT INTO consumer_wallets
              (id, consumer_id, currency, status,
@@ -616,22 +602,22 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
         );
 
         Ok(ConsumerWallet {
-            id:                   ConsumerWalletId::from_uuid(wallet_id),
-            consumer_id:          ConsumerId::from_uuid(consumer_id),
-            phone_number:         completed.phone_number,
-            banza_handle:         Some(completed.banza_handle),
-            status:               ConsumerWalletStatus::Active,
-            currency:             completed.currency,
+            id: ConsumerWalletId::from_uuid(wallet_id),
+            consumer_id: ConsumerId::from_uuid(consumer_id),
+            phone_number: completed.phone_number,
+            banza_handle: Some(completed.banza_handle),
+            status: ConsumerWalletStatus::Active,
+            currency: completed.currency,
             available_account_id: Some(completed.available_account_id),
-            reserved_account_id:  Some(completed.reserved_account_id),
-            kyc_status:           KycStatus::None,
-            pin_hash:             Some(completed.pin_hash),
-            failed_pin_attempts:  0,
-            locked_at:            None,
-            activated_at:         Some(now),
-            closed_at:            None,
-            created_at:           now,
-            updated_at:           now,
+            reserved_account_id: Some(completed.reserved_account_id),
+            kyc_status: KycStatus::None,
+            pin_hash: Some(completed.pin_hash),
+            failed_pin_attempts: 0,
+            locked_at: None,
+            activated_at: Some(now),
+            closed_at: None,
+            created_at: now,
+            updated_at: now,
         })
     }
 
@@ -655,10 +641,7 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
         Ok(count)
     }
 
-    async fn reset_pin_failures(
-        &self,
-        id: ConsumerWalletId,
-    ) -> Result<(), ConsumerWalletError> {
+    async fn reset_pin_failures(&self, id: ConsumerWalletId) -> Result<(), ConsumerWalletError> {
         sqlx::query(
             "UPDATE consumer_wallets
              SET failed_pin_attempts = 0,
@@ -717,9 +700,9 @@ impl ConsumerWalletRepository for PostgresConsumerWalletRepository {
 
     async fn update_status(
         &self,
-        id:         ConsumerWalletId,
+        id: ConsumerWalletId,
         new_status: ConsumerWalletStatus,
-        closed_at:  Option<DateTime<Utc>>,
+        closed_at: Option<DateTime<Utc>>,
     ) -> Result<(), ConsumerWalletError> {
         sqlx::query(
             "UPDATE consumer_wallets
@@ -749,17 +732,21 @@ fn onboarding_from_row(row: OnboardingRow) -> Result<OnboardingSession, Consumer
         .ok_or_else(|| ConsumerWalletError::UnknownStatus(row.status.clone()))?;
 
     Ok(OnboardingSession {
-        id:           row.id,
+        id: row.id,
         phone_number: row.phone_number,
-        otp_code_hash:   row.otp_code_hash,
-        otp_expires_at:  row.otp_expires_at,
-        desired_handle:  row.desired_handle,
+        otp_code_hash: row.otp_code_hash,
+        otp_expires_at: row.otp_expires_at,
+        desired_handle: row.desired_handle,
         currency,
         status,
-        provisional_available_account_id: row.provisional_available_account_id.map(AccountId::from_uuid),
-        provisional_reserved_account_id:  row.provisional_reserved_account_id.map(AccountId::from_uuid),
-        created_at:  row.created_at,
-        expires_at:  row.expires_at,
+        provisional_available_account_id: row
+            .provisional_available_account_id
+            .map(AccountId::from_uuid),
+        provisional_reserved_account_id: row
+            .provisional_reserved_account_id
+            .map(AccountId::from_uuid),
+        created_at: row.created_at,
+        expires_at: row.expires_at,
     })
 }
 
@@ -772,22 +759,22 @@ fn wallet_from_row(row: WalletRow) -> Result<ConsumerWallet, ConsumerWalletError
         .ok_or_else(|| ConsumerWalletError::UnknownKycStatus(row.kyc_status.clone()))?;
 
     Ok(ConsumerWallet {
-        id:                   ConsumerWalletId::from_uuid(row.id),
-        consumer_id:          ConsumerId::from_uuid(row.consumer_id),
-        phone_number:         row.phone_number.unwrap_or_default(),
-        banza_handle:         Some(row.banza_handle),
+        id: ConsumerWalletId::from_uuid(row.id),
+        consumer_id: ConsumerId::from_uuid(row.consumer_id),
+        phone_number: row.phone_number.unwrap_or_default(),
+        banza_handle: Some(row.banza_handle),
         status,
         currency,
         available_account_id: Some(AccountId::from_uuid(row.available_account_id)),
-        reserved_account_id:  Some(AccountId::from_uuid(row.reserved_account_id)),
+        reserved_account_id: Some(AccountId::from_uuid(row.reserved_account_id)),
         kyc_status,
-        pin_hash:             row.pin_hash,
-        failed_pin_attempts:  row.failed_pin_attempts,
-        locked_at:            row.locked_at,
-        activated_at:         row.activated_at,
-        closed_at:            row.closed_at,
-        created_at:           row.created_at,
-        updated_at:           row.updated_at,
+        pin_hash: row.pin_hash,
+        failed_pin_attempts: row.failed_pin_attempts,
+        locked_at: row.locked_at,
+        activated_at: row.activated_at,
+        closed_at: row.closed_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
     })
 }
 
@@ -803,25 +790,29 @@ fn routing_lookup_from_row(row: RoutingRow) -> Result<RoutingLookup, ConsumerWal
         .ok_or_else(|| ConsumerWalletError::UnknownKycStatus(row.kyc_status.clone()))?;
 
     let wallet = ConsumerWallet {
-        id:                   ConsumerWalletId::from_uuid(row.id),
-        consumer_id:          ConsumerId::from_uuid(row.consumer_id),
-        phone_number:         row.phone_number.unwrap_or_default(),
-        banza_handle:         Some(row.banza_handle),
+        id: ConsumerWalletId::from_uuid(row.id),
+        consumer_id: ConsumerId::from_uuid(row.consumer_id),
+        phone_number: row.phone_number.unwrap_or_default(),
+        banza_handle: Some(row.banza_handle),
         status,
         currency,
         available_account_id: Some(AccountId::from_uuid(row.available_account_id)),
-        reserved_account_id:  Some(AccountId::from_uuid(row.reserved_account_id)),
+        reserved_account_id: Some(AccountId::from_uuid(row.reserved_account_id)),
         kyc_status,
-        pin_hash:             row.pin_hash,
-        failed_pin_attempts:  row.failed_pin_attempts,
-        locked_at:            row.locked_at,
-        activated_at:         row.activated_at,
-        closed_at:            row.closed_at,
-        created_at:           row.created_at,
-        updated_at:           row.updated_at,
+        pin_hash: row.pin_hash,
+        failed_pin_attempts: row.failed_pin_attempts,
+        locked_at: row.locked_at,
+        activated_at: row.activated_at,
+        closed_at: row.closed_at,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
     };
 
-    Ok(RoutingLookup { wallet, consumer_status, display_name: row.display_name })
+    Ok(RoutingLookup {
+        wallet,
+        consumer_status,
+        display_name: row.display_name,
+    })
 }
 
 // ---------------------------------------------------------------------------

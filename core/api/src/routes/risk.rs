@@ -2,7 +2,6 @@
 ///
 /// These are thin wrappers over direct SQL so they stay lightweight and
 /// can be called from any route handler without pulling in an engine trait.
-
 use chrono::Timelike;
 use sqlx::PgPool;
 
@@ -26,11 +25,11 @@ pub async fn is_frozen(pool: &PgPool, entity_type: &str, entity_id: uuid::Uuid) 
 /// Records an entry in the immutable audit_log.
 /// Fire-and-forget — logging failures do not propagate to the caller.
 pub async fn audit(
-    pool:       &PgPool,
-    actor:      &str,
-    action:     &str,
-    subject:    &str,
-    metadata:   serde_json::Value,
+    pool: &PgPool,
+    actor: &str,
+    action: &str,
+    subject: &str,
+    metadata: serde_json::Value,
     request_id: Option<&str>,
 ) {
     let _ = sqlx::query(
@@ -48,12 +47,12 @@ pub async fn audit(
 
 /// Logs a suspicious activity event (also fire-and-forget).
 pub async fn flag_suspicious(
-    pool:         &PgPool,
-    entity_type:  &str,
-    entity_id:    uuid::Uuid,
-    event_type:   &str,
-    description:  &str,
-    metadata:     serde_json::Value,
+    pool: &PgPool,
+    entity_type: &str,
+    entity_id: uuid::Uuid,
+    event_type: &str,
+    description: &str,
+    metadata: serde_json::Value,
 ) {
     let _ = sqlx::query(
         "INSERT INTO suspicious_activity_events
@@ -73,10 +72,10 @@ pub async fn flag_suspicious(
 /// `window_start` should be truncated to the start of the relevant window
 /// (beginning of the current hour for HOURLY, beginning of the day for DAILY).
 pub async fn increment_velocity(
-    pool:         &PgPool,
-    entity_type:  &str,
-    entity_id:    uuid::Uuid,
-    time_window:  &str,
+    pool: &PgPool,
+    entity_type: &str,
+    entity_id: uuid::Uuid,
+    time_window: &str,
     window_start: chrono::DateTime<chrono::Utc>,
     amount_minor: i64,
 ) {
@@ -102,15 +101,19 @@ pub async fn increment_velocity(
 /// Returns the current hourly and daily velocity counters for the entity.
 /// Returns (hourly_count, hourly_amount, daily_count, daily_amount).
 pub async fn get_velocity(
-    pool:        &PgPool,
+    pool: &PgPool,
     entity_type: &str,
-    entity_id:   uuid::Uuid,
+    entity_id: uuid::Uuid,
 ) -> (i64, i64, i64, i64) {
-    let now        = chrono::Utc::now();
-    let hour_start = now.date_naive().and_hms_opt(now.time().hour(), 0, 0)
+    let now = chrono::Utc::now();
+    let hour_start = now
+        .date_naive()
+        .and_hms_opt(now.time().hour(), 0, 0)
         .map(|dt| dt.and_utc())
         .unwrap_or(now);
-    let day_start  = now.date_naive().and_hms_opt(0, 0, 0)
+    let day_start = now
+        .date_naive()
+        .and_hms_opt(0, 0, 0)
         .map(|dt| dt.and_utc())
         .unwrap_or(now);
 

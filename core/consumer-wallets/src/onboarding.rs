@@ -1,12 +1,11 @@
-use chrono::{DateTime, Utc};
 use banzami_types::{AccountId, Currency};
+use chrono::{DateTime, Utc};
 
 /// Pre-activation lifecycle state (maps to `consumer_onboarding` table).
 ///
 /// Distinct from [`crate::ConsumerWalletStatus`] — these states live in a
 /// separate table and are deleted on activation. See ADR-017 §1.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum OnboardingStatus {
     /// Phone submitted; OTP sent. No ledger accounts provisioned.
@@ -27,7 +26,7 @@ impl OnboardingStatus {
         match s {
             "PENDING_OTP" => Some(OnboardingStatus::PendingOtp),
             "PENDING_PIN" => Some(OnboardingStatus::PendingPin),
-            _             => None,
+            _ => None,
         }
     }
 }
@@ -39,21 +38,21 @@ impl OnboardingStatus {
 /// `stale_onboarding` background job if `expires_at` passes.
 #[derive(Debug, Clone)]
 pub struct OnboardingSession {
-    pub id:           uuid::Uuid,
+    pub id: uuid::Uuid,
     pub phone_number: String,
     /// SHA-256(otp_plaintext). `None` after verification.
-    pub otp_code_hash:   Option<String>,
-    pub otp_expires_at:  Option<DateTime<Utc>>,
+    pub otp_code_hash: Option<String>,
+    pub otp_expires_at: Option<DateTime<Utc>>,
     /// Tentative @banza handle reserved during PENDING_PIN.
-    pub desired_handle:  Option<String>,
-    pub currency:        Currency,
-    pub status:          OnboardingStatus,
+    pub desired_handle: Option<String>,
+    pub currency: Currency,
+    pub status: OnboardingStatus,
     /// `None` while PENDING_OTP; set at OTP verification.
     pub provisional_available_account_id: Option<AccountId>,
-    pub provisional_reserved_account_id:  Option<AccountId>,
-    pub created_at:  DateTime<Utc>,
+    pub provisional_reserved_account_id: Option<AccountId>,
+    pub created_at: DateTime<Utc>,
     /// Absolute expiry for background cleanup jobs.
-    pub expires_at:  DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
 }
 
 impl OnboardingSession {
@@ -62,7 +61,7 @@ impl OnboardingSession {
     }
 
     pub fn otp_is_expired(&self) -> bool {
-        self.otp_expires_at.map_or(true, |exp| Utc::now() >= exp)
+        self.otp_expires_at.is_none_or(|exp| Utc::now() >= exp)
     }
 }
 
@@ -70,12 +69,12 @@ impl OnboardingSession {
 /// `consumers` and `consumer_wallets` rows atomically.
 #[derive(Debug)]
 pub struct CompletedOnboarding {
-    pub session_id:          uuid::Uuid,
-    pub phone_number:        String,
-    pub banza_handle:        String,
+    pub session_id: uuid::Uuid,
+    pub phone_number: String,
+    pub banza_handle: String,
     /// Argon2id PHC hash of the chosen PIN. Never the plaintext.
-    pub pin_hash:            String,
-    pub currency:            Currency,
+    pub pin_hash: String,
+    pub currency: Currency,
     pub available_account_id: AccountId,
-    pub reserved_account_id:  AccountId,
+    pub reserved_account_id: AccountId,
 }

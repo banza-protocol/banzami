@@ -17,14 +17,14 @@ use crate::{
 // Local row type for the FOR UPDATE fetch — uses runtime query (not query!)
 // to avoid sqlx offline-cache dependency for the FOR UPDATE clause.
 struct LockedLinkRow {
-    id:                   Uuid,
+    id: Uuid,
     receiver_consumer_id: Uuid,
-    amount_minor:         Option<i64>,
-    note:                 Option<String>,
-    currency:             String,
-    locked:               bool,
-    status:               String,
-    expires_at:           Option<DateTime<Utc>>,
+    amount_minor: Option<i64>,
+    note: Option<String>,
+    currency: String,
+    locked: bool,
+    status: String,
+    expires_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -34,7 +34,10 @@ struct LockedLinkRow {
 fn generate_link_code() -> String {
     let bytes = Uuid::new_v4().into_bytes();
     let chars: &[u8] = b"ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-    bytes[..8].iter().map(|b| chars[(*b as usize) % chars.len()] as char).collect()
+    bytes[..8]
+        .iter()
+        .map(|b| chars[(*b as usize) % chars.len()] as char)
+        .collect()
 }
 
 // ---------------------------------------------------------------------------
@@ -43,21 +46,21 @@ fn generate_link_code() -> String {
 
 #[derive(Serialize)]
 pub struct ConsumerPayLinkResponse {
-    pub id:                    String,
-    pub link_code:             String,
-    pub receiver_consumer_id:  String,
-    pub receiver_handle:       String,
+    pub id: String,
+    pub link_code: String,
+    pub receiver_consumer_id: String,
+    pub receiver_handle: String,
     pub receiver_display_name: Option<String>,
-    pub amount_minor:          Option<i64>,
-    pub note:                  Option<String>,
-    pub currency:              String,
-    pub locked:                bool,
-    pub status:                String,
-    pub payer_consumer_id:     Option<String>,
-    pub transfer_id:           Option<String>,
-    pub expires_at:            Option<DateTime<Utc>>,
-    pub created_at:            DateTime<Utc>,
-    pub paid_at:               Option<DateTime<Utc>>,
+    pub amount_minor: Option<i64>,
+    pub note: Option<String>,
+    pub currency: String,
+    pub locked: bool,
+    pub status: String,
+    pub payer_consumer_id: Option<String>,
+    pub transfer_id: Option<String>,
+    pub expires_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub paid_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -67,18 +70,20 @@ pub struct ConsumerPayLinkResponse {
 #[derive(Deserialize)]
 pub struct CreateConsumerPayLinkBody {
     pub receiver_consumer_id: String,
-    pub amount_minor:         Option<i64>,
-    pub note:                 Option<String>,
-    pub currency:             Option<String>,
-    pub locked:               Option<bool>,
-    pub expires_in_hours:     Option<i64>,
+    pub amount_minor: Option<i64>,
+    pub note: Option<String>,
+    pub currency: Option<String>,
+    pub locked: Option<bool>,
+    pub expires_in_hours: Option<i64>,
 }
 
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateConsumerPayLinkBody>,
 ) -> ApiResult<(StatusCode, Json<ConsumerPayLinkResponse>)> {
-    let receiver_id: Uuid = body.receiver_consumer_id.parse()
+    let receiver_id: Uuid = body
+        .receiver_consumer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid receiver_consumer_id"))?;
 
     if let Some(amt) = body.amount_minor {
@@ -87,25 +92,28 @@ pub async fn create(
         }
     }
 
-    let status: Option<String> = sqlx::query_scalar!(
-        "SELECT status FROM consumers WHERE id = $1",
-        receiver_id,
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?;
+    let status: Option<String> =
+        sqlx::query_scalar!("SELECT status FROM consumers WHERE id = $1", receiver_id,)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
 
     match status.as_deref() {
-        None        => return Err(ApiError::not_found("receiver not found")),
-        Some(s) if s != "ACTIVE" => return Err(ApiError::unprocessable(
-            "CONSUMER_NOT_ACTIVE", "receiver account is not active",
-        )),
+        None => return Err(ApiError::not_found("receiver not found")),
+        Some(s) if s != "ACTIVE" => {
+            return Err(ApiError::unprocessable(
+                "CONSUMER_NOT_ACTIVE",
+                "receiver account is not active",
+            ))
+        }
         _ => {}
     }
 
-    let currency       = body.currency.unwrap_or_else(|| "AOA".into());
-    let locked         = body.locked.unwrap_or(true);
-    let expires_at     = body.expires_in_hours.map(|h| Utc::now() + Duration::hours(h));
+    let currency = body.currency.unwrap_or_else(|| "AOA".into());
+    let locked = body.locked.unwrap_or(true);
+    let expires_at = body
+        .expires_in_hours
+        .map(|h| Utc::now() + Duration::hours(h));
 
     // Generate a unique link code (retry on rare collision)
     let mut link_code = generate_link_code();
@@ -118,7 +126,9 @@ pub async fn create(
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?
         .unwrap_or(false);
-        if !exists { break; }
+        if !exists {
+            break;
+        }
         link_code = generate_link_code();
     }
 
@@ -142,7 +152,10 @@ pub async fn create(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(fetch_by_id(&state.pool, id).await?)))
+    Ok((
+        StatusCode::CREATED,
+        Json(fetch_by_id(&state.pool, id).await?),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -166,7 +179,10 @@ pub async fn get_by_code(
                 .execute(&state.pool)
                 .await
                 .ok();
-                return Ok(Json(ConsumerPayLinkResponse { status: "EXPIRED".into(), ..link }));
+                return Ok(Json(ConsumerPayLinkResponse {
+                    status: "EXPIRED".into(),
+                    ..link
+                }));
             }
         }
     }
@@ -181,8 +197,8 @@ pub async fn get_by_code(
 #[derive(Deserialize)]
 pub struct PayConsumerPayLinkBody {
     pub payer_consumer_id: String,
-    pub amount_minor:      Option<i64>,
-    pub idempotency_key:   String,
+    pub amount_minor: Option<i64>,
+    pub idempotency_key: String,
 }
 
 pub async fn pay(
@@ -190,14 +206,19 @@ pub async fn pay(
     Path(code): Path<String>,
     Json(body): Json<PayConsumerPayLinkBody>,
 ) -> ApiResult<Json<ConsumerPayLinkResponse>> {
-    let payer_id: Uuid = body.payer_consumer_id.parse()
+    let payer_id: Uuid = body
+        .payer_consumer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid payer_consumer_id"))?;
 
     // ── Pre-flight checks (no row lock yet) ────────────────────────────────
     // These fast checks reject obviously invalid requests before taking a lock.
 
     if risk::is_frozen(&state.pool, "CONSUMER", payer_id).await {
-        return Err(ApiError::unprocessable("ACCOUNT_FROZEN", "payer account is frozen"));
+        return Err(ApiError::unprocessable(
+            "ACCOUNT_FROZEN",
+            "payer account is frozen",
+        ));
     }
 
     let pre = sqlx::query!(
@@ -242,7 +263,9 @@ pub async fn pay(
     // SELECT ... FOR UPDATE prevents concurrent payment attempts from racing
     // past the status check. The second concurrent request blocks here until
     // the first commits, then sees status = 'PAID' and returns LINK_NOT_ACTIVE.
-    let mut tx = state.pool.begin()
+    let mut tx = state
+        .pool
+        .begin()
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
@@ -258,14 +281,30 @@ pub async fn pay(
     .ok_or_else(|| ApiError::not_found("consumer pay link not found"))?;
 
     let link = LockedLinkRow {
-        id:                   row.try_get("id").map_err(|e| ApiError::internal(e.to_string()))?,
-        receiver_consumer_id: row.try_get("receiver_consumer_id").map_err(|e| ApiError::internal(e.to_string()))?,
-        amount_minor:         row.try_get("amount_minor").map_err(|e| ApiError::internal(e.to_string()))?,
-        note:                 row.try_get("note").map_err(|e| ApiError::internal(e.to_string()))?,
-        currency:             row.try_get("currency").map_err(|e| ApiError::internal(e.to_string()))?,
-        locked:               row.try_get("locked").map_err(|e| ApiError::internal(e.to_string()))?,
-        status:               row.try_get("status").map_err(|e| ApiError::internal(e.to_string()))?,
-        expires_at:           row.try_get("expires_at").map_err(|e| ApiError::internal(e.to_string()))?,
+        id: row
+            .try_get("id")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        receiver_consumer_id: row
+            .try_get("receiver_consumer_id")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        amount_minor: row
+            .try_get("amount_minor")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        note: row
+            .try_get("note")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        currency: row
+            .try_get("currency")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        locked: row
+            .try_get("locked")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        status: row
+            .try_get("status")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        expires_at: row
+            .try_get("expires_at")
+            .map_err(|e| ApiError::internal(e.to_string()))?,
     };
 
     // Re-check under lock — another transaction may have paid between pre-flight and now.
@@ -285,7 +324,9 @@ pub async fn pay(
             .execute(&mut *tx)
             .await
             .ok();
-            tx.commit().await.map_err(|e| ApiError::internal(e.to_string()))?;
+            tx.commit()
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
             return Err(ApiError::unprocessable("LINK_EXPIRED", "link has expired"));
         }
     }
@@ -306,7 +347,8 @@ pub async fn pay(
     let payer_wallet = sqlx::query!(
         "SELECT id, available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
-        payer_id, link.currency,
+        payer_id,
+        link.currency,
     )
     .fetch_optional(&mut *tx)
     .await
@@ -316,7 +358,8 @@ pub async fn pay(
     let receiver_wallet = sqlx::query!(
         "SELECT id, available_account_id FROM consumer_wallets
          WHERE consumer_id = $1 AND currency = $2 AND status = 'ACTIVE'",
-        link.receiver_consumer_id, link.currency,
+        link.receiver_consumer_id,
+        link.currency,
     )
     .fetch_optional(&mut *tx)
     .await
@@ -347,8 +390,8 @@ pub async fn pay(
 
     // ── Double-entry ledger posting ────────────────────────────────────────
     let transfer_id = Uuid::new_v4();
-    let now         = Utc::now();
-    let ledger_key  = format!("consumer-pay-link-{}", link.id);
+    let now = Utc::now();
+    let ledger_key = format!("consumer-pay-link-{}", link.id);
 
     let posting_id = Uuid::new_v4();
     sqlx::query!(
@@ -377,8 +420,12 @@ pub async fn pay(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
          VALUES ($1, $2, $3, 'DEBIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-        Uuid::new_v4(), actual_posting,
-        payer_wallet.available_account_id, amount, link.currency, now,
+        Uuid::new_v4(),
+        actual_posting,
+        payer_wallet.available_account_id,
+        amount,
+        link.currency,
+        now,
     )
     .execute(&mut *tx)
     .await
@@ -388,8 +435,12 @@ pub async fn pay(
         "INSERT INTO ledger_entries
              (id, posting_id, account_id, entry_type, amount_minor, currency, created_at)
          VALUES ($1, $2, $3, 'CREDIT', $4, $5, $6) ON CONFLICT DO NOTHING",
-        Uuid::new_v4(), actual_posting,
-        receiver_wallet.available_account_id, amount, link.currency, now,
+        Uuid::new_v4(),
+        actual_posting,
+        receiver_wallet.available_account_id,
+        amount,
+        link.currency,
+        now,
     )
     .execute(&mut *tx)
     .await
@@ -425,7 +476,10 @@ pub async fn pay(
         SET status = 'PAID', payer_consumer_id = $1, transfer_id = $2, paid_at = $3
         WHERE link_code = $4 AND status = 'ACTIVE'
         "#,
-        payer_id, transfer_id, now, code,
+        payer_id,
+        transfer_id,
+        now,
+        code,
     )
     .execute(&mut *tx)
     .await
@@ -447,7 +501,8 @@ pub async fn pay(
             "amount_minor": amount,
         }),
         None,
-    ).await;
+    )
+    .await;
 
     Ok(Json(fetch_by_code(&state.pool, &code).await?))
 }
@@ -475,21 +530,21 @@ async fn fetch_by_id(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<ConsumerPayLink
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .map(|r| ConsumerPayLinkResponse {
-        id:                    r.id.to_string(),
-        link_code:             r.link_code,
-        receiver_consumer_id:  r.receiver_consumer_id.to_string(),
-        receiver_handle:       r.receiver_handle,
+        id: r.id.to_string(),
+        link_code: r.link_code,
+        receiver_consumer_id: r.receiver_consumer_id.to_string(),
+        receiver_handle: r.receiver_handle,
         receiver_display_name: r.receiver_display_name,
-        amount_minor:          r.amount_minor,
-        note:                  r.note,
-        currency:              r.currency,
-        locked:                r.locked,
-        status:                r.status,
-        payer_consumer_id:     r.payer_consumer_id.map(|u| u.to_string()),
-        transfer_id:           r.transfer_id.map(|u| u.to_string()),
-        expires_at:            r.expires_at,
-        created_at:            r.created_at,
-        paid_at:               r.paid_at,
+        amount_minor: r.amount_minor,
+        note: r.note,
+        currency: r.currency,
+        locked: r.locked,
+        status: r.status,
+        payer_consumer_id: r.payer_consumer_id.map(|u| u.to_string()),
+        transfer_id: r.transfer_id.map(|u| u.to_string()),
+        expires_at: r.expires_at,
+        created_at: r.created_at,
+        paid_at: r.paid_at,
     })
     .ok_or_else(|| ApiError::not_found("consumer pay link not found"))
 }
@@ -513,21 +568,21 @@ async fn fetch_by_code(pool: &sqlx::PgPool, code: &str) -> ApiResult<ConsumerPay
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .map(|r| ConsumerPayLinkResponse {
-        id:                    r.id.to_string(),
-        link_code:             r.link_code,
-        receiver_consumer_id:  r.receiver_consumer_id.to_string(),
-        receiver_handle:       r.receiver_handle,
+        id: r.id.to_string(),
+        link_code: r.link_code,
+        receiver_consumer_id: r.receiver_consumer_id.to_string(),
+        receiver_handle: r.receiver_handle,
         receiver_display_name: r.receiver_display_name,
-        amount_minor:          r.amount_minor,
-        note:                  r.note,
-        currency:              r.currency,
-        locked:                r.locked,
-        status:                r.status,
-        payer_consumer_id:     r.payer_consumer_id.map(|u| u.to_string()),
-        transfer_id:           r.transfer_id.map(|u| u.to_string()),
-        expires_at:            r.expires_at,
-        created_at:            r.created_at,
-        paid_at:               r.paid_at,
+        amount_minor: r.amount_minor,
+        note: r.note,
+        currency: r.currency,
+        locked: r.locked,
+        status: r.status,
+        payer_consumer_id: r.payer_consumer_id.map(|u| u.to_string()),
+        transfer_id: r.transfer_id.map(|u| u.to_string()),
+        expires_at: r.expires_at,
+        created_at: r.created_at,
+        paid_at: r.paid_at,
     })
     .ok_or_else(|| ApiError::not_found("consumer pay link not found"))
 }

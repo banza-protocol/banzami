@@ -25,12 +25,14 @@ pub struct SimulatedProvider {
 
 impl SimulatedProvider {
     pub fn new(webhook_secret: impl Into<Vec<u8>>) -> Self {
-        Self { webhook_secret: webhook_secret.into() }
+        Self {
+            webhook_secret: webhook_secret.into(),
+        }
     }
 
     fn sign(&self, body: &[u8]) -> String {
-        let mut mac = HmacSha256::new_from_slice(&self.webhook_secret)
-            .expect("HMAC accepts any key length");
+        let mut mac =
+            HmacSha256::new_from_slice(&self.webhook_secret).expect("HMAC accepts any key length");
         mac.update(body);
         format!("sha256={}", hex::encode(mac.finalize().into_bytes()))
     }
@@ -47,10 +49,7 @@ impl AcquirerProvider for SimulatedProvider {
     ) -> Result<ExternalPaymentRef, AcquirerError> {
         // Generate a 9-digit Multicaixa reference from the internal_ref UUID.
         // Using the UUID ensures determinism within a session while being unique.
-        let reference = format!(
-            "{:09}",
-            uuid::Uuid::new_v4().as_u128() % 1_000_000_000u128
-        );
+        let reference = format!("{:09}", uuid::Uuid::new_v4().as_u128() % 1_000_000_000u128);
 
         tracing::info!(
             internal_ref = %req.internal_ref,
@@ -63,8 +62,8 @@ impl AcquirerProvider for SimulatedProvider {
         Ok(ExternalPaymentRef {
             external_ref: reference.clone(),
             instructions: PaymentInstructions {
-                method:    "MULTICAIXA_EXPRESS".into(),
-                entity:    SIMULATED_ENTITY.into(),
+                method: "MULTICAIXA_EXPRESS".into(),
+                entity: SIMULATED_ENTITY.into(),
                 reference,
             },
             expires_at: Utc::now() + chrono::Duration::minutes(15),
@@ -73,7 +72,7 @@ impl AcquirerProvider for SimulatedProvider {
 
     async fn validate_callback(
         &self,
-        raw_body:  &[u8],
+        raw_body: &[u8],
         signature: &str,
     ) -> Result<PaymentConfirmation, AcquirerError> {
         let expected = self.sign(raw_body);
@@ -99,10 +98,7 @@ impl AcquirerProvider for SimulatedProvider {
             .as_i64()
             .ok_or_else(|| AcquirerError::MalformedPayload("missing amount_minor".into()))?;
 
-        let currency = payload["currency"]
-            .as_str()
-            .unwrap_or("AOA")
-            .to_string();
+        let currency = payload["currency"].as_str().unwrap_or("AOA").to_string();
 
         let confirmed_at = payload["confirmed_at"]
             .as_str()
@@ -123,9 +119,9 @@ impl AcquirerProvider for SimulatedProvider {
 
     fn generate_test_callback(
         &self,
-        external_ref:  &str,
-        amount_minor:  i64,
-        currency:      &str,
+        external_ref: &str,
+        amount_minor: i64,
+        currency: &str,
     ) -> Option<(Vec<u8>, String)> {
         let payload = serde_json::json!({
             "event_type":      "PAYMENT_CONFIRMED",

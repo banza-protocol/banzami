@@ -9,7 +9,10 @@ use banzami_consumer_wallets::{ConsumerWalletEngine, ConsumerWalletError};
 use banzami_identity::{CreateConsumerRequest, IdentityEngine, IdentityError, VerificationBadge};
 use banzami_types::Currency;
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request / query types
@@ -17,7 +20,7 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Deserialize)]
 pub struct CreateConsumerBody {
-    pub handle:       String,
+    pub handle: String,
     pub display_name: Option<String>,
 }
 
@@ -35,7 +38,7 @@ pub struct SetBadgeBody {
 #[derive(Deserialize)]
 pub struct ListConsumersQuery {
     pub handle: Option<String>,
-    pub limit:  Option<i64>,
+    pub limit: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -46,71 +49,79 @@ pub struct ResolveHandleQuery {
 
 #[derive(Serialize)]
 pub struct RoutingResponse {
-    pub consumer_id:       String,
-    pub wallet_id:         String,
+    pub consumer_id: String,
+    pub wallet_id: String,
     pub normalized_handle: String,
-    pub display_name:      Option<String>,
-    pub currency:          String,
-    pub routing_status:    String,
-    pub wallet_status:     String,
-    pub activated_at:      Option<String>,
+    pub display_name: Option<String>,
+    pub currency: String,
+    pub routing_status: String,
+    pub wallet_status: String,
+    pub activated_at: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct ConsumerListItem {
-    pub id:           String,
-    pub handle:       String,
+    pub id: String,
+    pub handle: String,
     pub display_name: Option<String>,
-    pub status:       String,
-    pub created_at:   String,
+    pub status: String,
+    pub created_at: String,
 }
 
 // ---------------------------------------------------------------------------
 // Handlers
 // ---------------------------------------------------------------------------
 
+#[allow(clippy::type_complexity)]
 pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListConsumersQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let limit = q.limit.unwrap_or(100).min(500);
 
-    let rows: Vec<(uuid::Uuid, String, Option<String>, String, chrono::DateTime<chrono::Utc>)> =
-        if let Some(handle) = &q.handle {
-            sqlx::query_as(
-                "SELECT id, handle, display_name, status, created_at
+    let rows: Vec<(
+        uuid::Uuid,
+        String,
+        Option<String>,
+        String,
+        chrono::DateTime<chrono::Utc>,
+    )> = if let Some(handle) = &q.handle {
+        sqlx::query_as(
+            "SELECT id, handle, display_name, status, created_at
                  FROM consumers
                  WHERE handle ILIKE $1
                  ORDER BY created_at DESC
                  LIMIT $2",
-            )
-            .bind(format!("%{handle}%"))
-            .bind(limit)
-            .fetch_all(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-        } else {
-            sqlx::query_as(
-                "SELECT id, handle, display_name, status, created_at
+        )
+        .bind(format!("%{handle}%"))
+        .bind(limit)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+    } else {
+        sqlx::query_as(
+            "SELECT id, handle, display_name, status, created_at
                  FROM consumers
                  ORDER BY created_at DESC
                  LIMIT $1",
-            )
-            .bind(limit)
-            .fetch_all(&state.pool)
-            .await
-            .map_err(|e| ApiError::internal(e.to_string()))?
-        };
+        )
+        .bind(limit)
+        .fetch_all(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+    };
 
     let items: Vec<ConsumerListItem> = rows
         .into_iter()
-        .map(|(id, handle, display_name, status, created_at)| ConsumerListItem {
-            id:           id.to_string(),
-            handle,
-            display_name,
-            status,
-            created_at:   created_at.to_rfc3339(),
-        })
+        .map(
+            |(id, handle, display_name, status, created_at)| ConsumerListItem {
+                id: id.to_string(),
+                handle,
+                display_name,
+                status,
+                created_at: created_at.to_rfc3339(),
+            },
+        )
         .collect();
 
     Ok(Json(serde_json::json!({ "data": items })))
@@ -123,17 +134,22 @@ pub async fn create(
     let identity = state
         .identity
         .create(CreateConsumerRequest {
-            handle:       body.handle,
+            handle: body.handle,
             display_name: body.display_name,
         })
         .await
         .map_err(|e| match e {
-            IdentityError::HandleTaken(_)   => ApiError::conflict("HANDLE_TAKEN", "handle already taken"),
+            IdentityError::HandleTaken(_) => {
+                ApiError::conflict("HANDLE_TAKEN", "handle already taken")
+            }
             IdentityError::InvalidHandle(r) => ApiError::bad_request(r),
-            other                           => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&identity).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&identity).unwrap()),
+    ))
 }
 
 pub async fn get(
@@ -144,14 +160,10 @@ pub async fn get(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid consumer id"))?;
 
-    let identity = state
-        .identity
-        .get(consumer_id)
-        .await
-        .map_err(|e| match e {
-            IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
-            other                      => ApiError::internal(other.to_string()),
-        })?;
+    let identity = state.identity.get(consumer_id).await.map_err(|e| match e {
+        IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&identity).unwrap()))
 }
@@ -166,7 +178,7 @@ pub async fn get_by_handle(
         .await
         .map_err(|e| match e {
             IdentityError::HandleNotFound(_) => ApiError::not_found("handle not found"),
-            other                            => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&identity).unwrap()))
@@ -213,7 +225,7 @@ pub async fn close(
         .await
         .map_err(|e| match e {
             IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
-            other                      => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&identity).unwrap()))
@@ -233,12 +245,14 @@ pub async fn set_badge(
         .map_err(|_| ApiError::bad_request("invalid consumer id"))?;
 
     let badge = match body.badge.as_deref() {
-        None             => None,
+        None => None,
         Some("CONSUMER") => Some(VerificationBadge::Consumer),
         Some("MERCHANT") => Some(VerificationBadge::Merchant),
-        Some(other) => return Err(ApiError::bad_request(
-            &format!("unknown badge type '{other}'; expected CONSUMER, MERCHANT, or null"),
-        )),
+        Some(other) => {
+            return Err(ApiError::bad_request(format!(
+                "unknown badge type '{other}'; expected CONSUMER, MERCHANT, or null"
+            )))
+        }
     };
 
     let identity = state
@@ -247,7 +261,7 @@ pub async fn set_badge(
         .await
         .map_err(|e| match e {
             IdentityError::NotFound(_) => ApiError::not_found("consumer not found"),
-            other                      => ApiError::internal(other.to_string()),
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(serde_json::to_value(&identity).unwrap()))
@@ -259,36 +273,43 @@ pub async fn set_badge(
 
 pub async fn resolve_handle(
     State(state): State<AppState>,
-    Path(handle):  Path<String>,
-    Query(q):      Query<ResolveHandleQuery>,
+    Path(handle): Path<String>,
+    Query(q): Query<ResolveHandleQuery>,
 ) -> ApiResult<Json<RoutingResponse>> {
     let currency_code = q.currency.as_deref().unwrap_or("AOA");
-    let currency = Currency::from_code(currency_code)
-        .ok_or_else(|| ApiError::bad_request(
-            &format!("unknown currency '{currency_code}'; expected AOA or another supported code"),
-        ))?;
+    let currency = Currency::from_code(currency_code).ok_or_else(|| {
+        ApiError::bad_request(format!(
+            "unknown currency '{currency_code}'; expected AOA or another supported code"
+        ))
+    })?;
 
     let dest = state
         .consumer_wallet
         .resolve_to_wallet(&handle, currency)
         .await
         .map_err(|e| match e {
-            ConsumerWalletError::HandleNotFound(_)      => ApiError::not_found("handle not found"),
-            ConsumerWalletError::InvalidHandle(msg)     => ApiError::bad_request(msg),
-            ConsumerWalletError::SuspendedIdentity(_)   => ApiError::unprocessable("SUSPENDED", "identity is suspended"),
-            ConsumerWalletError::ClosedIdentity(_)      => ApiError::unprocessable("CLOSED", "identity is closed"),
-            ConsumerWalletError::WalletCannotReceive(_) => ApiError::unprocessable("WALLET_CANNOT_RECEIVE", "wallet cannot receive funds"),
-            other                                       => ApiError::internal(other.to_string()),
+            ConsumerWalletError::HandleNotFound(_) => ApiError::not_found("handle not found"),
+            ConsumerWalletError::InvalidHandle(msg) => ApiError::bad_request(msg),
+            ConsumerWalletError::SuspendedIdentity(_) => {
+                ApiError::unprocessable("SUSPENDED", "identity is suspended")
+            }
+            ConsumerWalletError::ClosedIdentity(_) => {
+                ApiError::unprocessable("CLOSED", "identity is closed")
+            }
+            ConsumerWalletError::WalletCannotReceive(_) => {
+                ApiError::unprocessable("WALLET_CANNOT_RECEIVE", "wallet cannot receive funds")
+            }
+            other => ApiError::internal(other.to_string()),
         })?;
 
     Ok(Json(RoutingResponse {
-        consumer_id:       dest.consumer_id.to_string(),
-        wallet_id:         dest.wallet_id.to_string(),
+        consumer_id: dest.consumer_id.to_string(),
+        wallet_id: dest.wallet_id.to_string(),
         normalized_handle: dest.normalized_handle,
-        display_name:      dest.display_name,
-        currency:          dest.currency.code().to_string(),
-        routing_status:    dest.routing_status.as_str().to_string(),
-        wallet_status:     dest.wallet_status.as_str().to_string(),
-        activated_at:      dest.activated_at.map(|t| t.to_rfc3339()),
+        display_name: dest.display_name,
+        currency: dest.currency.code().to_string(),
+        routing_status: dest.routing_status.as_str().to_string(),
+        wallet_status: dest.wallet_status.as_str().to_string(),
+        activated_at: dest.activated_at.map(|t| t.to_rfc3339()),
     }))
 }

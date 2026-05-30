@@ -12,8 +12,7 @@ use crate::Currency;
 /// - Floating-point arithmetic is never used. (CLAUDE.md §10.3)
 ///
 /// i64 supports ±92.2 trillion minor units — well above any realistic transaction ceiling.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 pub struct Money {
     /// Signed amount in minor units. Negative values represent debits / amounts owed.
     amount_minor: i64,
@@ -22,7 +21,10 @@ pub struct Money {
 
 impl Money {
     pub const fn new(amount_minor: i64, currency: Currency) -> Self {
-        Self { amount_minor, currency }
+        Self {
+            amount_minor,
+            currency,
+        }
     }
 
     pub const fn zero(currency: Currency) -> Self {
@@ -31,7 +33,10 @@ impl Money {
 
     /// Construct from major + minor parts (e.g. `from_parts(10, 50, AOA)` = 1050 cêntimos).
     pub fn from_parts(major: i64, minor: u32, currency: Currency) -> Self {
-        debug_assert!(minor < currency.minor_units_per_major(), "minor must be < minor_units_per_major");
+        debug_assert!(
+            minor < currency.minor_units_per_major(),
+            "minor must be < minor_units_per_major"
+        );
         let factor = currency.minor_units_per_major() as i64;
         Self::new(major * factor + minor as i64, currency)
     }
@@ -129,7 +134,10 @@ mod tests {
     fn addition_currency_mismatch_is_error() {
         let a = Money::new(100, Currency::AOA);
         let b = Money::new(100, Currency::USD);
-        assert!(matches!(a.checked_add(b), Err(MoneyError::CurrencyMismatch { .. })));
+        assert!(matches!(
+            a.checked_add(b),
+            Err(MoneyError::CurrencyMismatch { .. })
+        ));
     }
 
     #[test]

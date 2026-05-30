@@ -27,46 +27,46 @@ pub trait ReconciliationRepository: Send + Sync {
 #[derive(sqlx::FromRow)]
 struct RunRow {
     #[allow(dead_code)]
-    id:                      Uuid,
-    total_checked:           i64,
-    matched:                 i64,
-    missing_external:        i64,
-    missing_internal:        i64,
-    amount_mismatches:       i64,
+    id: Uuid,
+    total_checked: i64,
+    matched: i64,
+    missing_external: i64,
+    missing_internal: i64,
+    amount_mismatches: i64,
     total_discrepancy_minor: i64,
-    generated_at:            chrono::DateTime<chrono::Utc>,
+    generated_at: chrono::DateTime<chrono::Utc>,
 }
 
 #[derive(sqlx::FromRow)]
 struct RecordRow {
     #[allow(dead_code)]
-    id:               Uuid,
-    run_id:           Uuid,
-    settlement_id:    Option<Uuid>,
-    transaction_id:   Option<Uuid>,
-    external_ref:     Option<String>,
-    internal_minor:   Option<i64>,
-    external_minor:   Option<i64>,
-    currency:         String,
-    status:           String,
+    id: Uuid,
+    run_id: Uuid,
+    settlement_id: Option<Uuid>,
+    transaction_id: Option<Uuid>,
+    external_ref: Option<String>,
+    internal_minor: Option<i64>,
+    external_minor: Option<i64>,
+    currency: String,
+    status: String,
     discrepancy_minor: i64,
-    reconciled_at:    chrono::DateTime<chrono::Utc>,
+    reconciled_at: chrono::DateTime<chrono::Utc>,
 }
 
 fn row_to_record(r: RecordRow) -> Result<ReconciliationRecord, ReconciliationError> {
     let status = ReconciliationStatus::try_from_str(&r.status)
         .ok_or_else(|| ReconciliationError::UnknownStatus(r.status.clone()))?;
     Ok(ReconciliationRecord {
-        run_id:            ReconciliationRunId::from_uuid(r.run_id),
-        settlement_id:     r.settlement_id.map(SettlementId::from_uuid),
-        transaction_id:    r.transaction_id.map(TransactionId::from_uuid),
-        external_ref:      r.external_ref,
-        internal_minor:    r.internal_minor,
-        external_minor:    r.external_minor,
-        currency:          r.currency,
+        run_id: ReconciliationRunId::from_uuid(r.run_id),
+        settlement_id: r.settlement_id.map(SettlementId::from_uuid),
+        transaction_id: r.transaction_id.map(TransactionId::from_uuid),
+        external_ref: r.external_ref,
+        internal_minor: r.internal_minor,
+        external_minor: r.external_minor,
+        currency: r.currency,
         status,
         discrepancy_minor: r.discrepancy_minor,
-        reconciled_at:     r.reconciled_at,
+        reconciled_at: r.reconciled_at,
     })
 }
 
@@ -161,14 +161,14 @@ impl ReconciliationRepository for PostgresReconciliationRepository {
 
         Ok(ReconciliationReport {
             run_id,
-            total_checked:           run.total_checked as u64,
-            matched:                 run.matched as u64,
-            missing_external:        run.missing_external as u64,
-            missing_internal:        run.missing_internal as u64,
-            amount_mismatches:       run.amount_mismatches as u64,
+            total_checked: run.total_checked as u64,
+            matched: run.matched as u64,
+            missing_external: run.missing_external as u64,
+            missing_internal: run.missing_internal as u64,
+            amount_mismatches: run.amount_mismatches as u64,
             records,
             total_discrepancy_minor: run.total_discrepancy_minor,
-            generated_at:            run.generated_at,
+            generated_at: run.generated_at,
         })
     }
 }

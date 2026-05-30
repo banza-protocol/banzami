@@ -22,15 +22,12 @@ pub enum TransferError {
     InvalidAmount,
 
     #[error("insufficient funds: available {available}, requested {requested}")]
-    InsufficientFunds {
-        available: Money,
-        requested: Money,
-    },
+    InsufficientFunds { available: Money, requested: Money },
 
     #[error("no active wallet for consumer {consumer_id} in {currency}")]
     WalletNotFound {
         consumer_id: ConsumerId,
-        currency:    Currency,
+        currency: Currency,
     },
 
     #[error("wallet for consumer {0} is not active")]

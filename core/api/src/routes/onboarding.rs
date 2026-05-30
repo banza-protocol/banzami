@@ -2,12 +2,15 @@ use axum::{extract::State, http::StatusCode, Json};
 use serde::{Deserialize, Serialize};
 
 use banzami_consumer_wallets::{
-    CompleteOnboardingRequest, ConsumerWalletEngine, ConsumerWalletError,
-    StartOnboardingRequest, VerifyOtpRequest,
+    CompleteOnboardingRequest, ConsumerWalletEngine, ConsumerWalletError, StartOnboardingRequest,
+    VerifyOtpRequest,
 };
 use banzami_types::Currency;
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Request / response types
@@ -15,17 +18,17 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 
 #[derive(Deserialize)]
 pub struct StartOnboardingBody {
-    pub phone_number:          String,
-    pub currency:              String,
+    pub phone_number: String,
+    pub currency: String,
     /// Test-only: if provided, the OTP plaintext is returned in the response.
     pub otp_plaintext_for_test: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct StartOnboardingResponse {
-    pub session_id:  uuid::Uuid,
+    pub session_id: uuid::Uuid,
     pub phone_number: String,
-    pub status:      &'static str,
+    pub status: &'static str,
     /// Present only when `otp_plaintext_for_test` was supplied in the request.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub otp_for_test: Option<String>,
@@ -34,31 +37,31 @@ pub struct StartOnboardingResponse {
 #[derive(Deserialize)]
 pub struct VerifyOtpBody {
     pub session_id: uuid::Uuid,
-    pub otp_code:   String,
+    pub otp_code: String,
 }
 
 #[derive(Serialize)]
 pub struct VerifyOtpResponse {
-    pub session_id:                    uuid::Uuid,
-    pub status:                        &'static str,
+    pub session_id: uuid::Uuid,
+    pub status: &'static str,
     pub provisional_available_account_id: uuid::Uuid,
-    pub provisional_reserved_account_id:  uuid::Uuid,
+    pub provisional_reserved_account_id: uuid::Uuid,
 }
 
 #[derive(Deserialize)]
 pub struct CompleteOnboardingBody {
-    pub session_id:   uuid::Uuid,
+    pub session_id: uuid::Uuid,
     pub banza_handle: String,
-    pub pin:          String,
+    pub pin: String,
 }
 
 #[derive(Serialize)]
 pub struct CompleteOnboardingResponse {
-    pub wallet_id:    uuid::Uuid,
-    pub consumer_id:  uuid::Uuid,
+    pub wallet_id: uuid::Uuid,
+    pub consumer_id: uuid::Uuid,
     pub banza_handle: String,
-    pub currency:     String,
-    pub status:       String,
+    pub currency: String,
+    pub status: String,
 }
 
 // ---------------------------------------------------------------------------
@@ -82,7 +85,7 @@ pub async fn start(
     let session = state
         .consumer_wallet
         .start_onboarding(StartOnboardingRequest {
-            phone_number:           body.phone_number.clone(),
+            phone_number: body.phone_number.clone(),
             currency,
             otp_plaintext_for_test: otp_plaintext_for_test.clone(),
         })
@@ -96,12 +99,15 @@ pub async fn start(
         "use_otp_plaintext_for_test_value".to_owned()
     });
 
-    Ok((StatusCode::CREATED, Json(StartOnboardingResponse {
-        session_id:  session.id,
-        phone_number: session.phone_number,
-        status:      "PENDING_OTP",
-        otp_for_test,
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(StartOnboardingResponse {
+            session_id: session.id,
+            phone_number: session.phone_number,
+            status: "PENDING_OTP",
+            otp_for_test,
+        }),
+    ))
 }
 
 /// POST /internal/v1/consumer/onboarding/verify-otp
@@ -116,23 +122,23 @@ pub async fn verify_otp(
         .consumer_wallet
         .verify_otp(VerifyOtpRequest {
             session_id: body.session_id,
-            otp_code:   body.otp_code,
+            otp_code: body.otp_code,
         })
         .await
         .map_err(map_onboarding_error)?;
 
-    let avail = session
-        .provisional_available_account_id
-        .ok_or_else(|| ApiError::internal("ledger accounts not provisioned after OTP verification"))?;
-    let resrv = session
-        .provisional_reserved_account_id
-        .ok_or_else(|| ApiError::internal("ledger accounts not provisioned after OTP verification"))?;
+    let avail = session.provisional_available_account_id.ok_or_else(|| {
+        ApiError::internal("ledger accounts not provisioned after OTP verification")
+    })?;
+    let resrv = session.provisional_reserved_account_id.ok_or_else(|| {
+        ApiError::internal("ledger accounts not provisioned after OTP verification")
+    })?;
 
     Ok(Json(VerifyOtpResponse {
-        session_id:                       session.id,
-        status:                           "PENDING_PIN",
+        session_id: session.id,
+        status: "PENDING_PIN",
         provisional_available_account_id: avail.as_uuid(),
-        provisional_reserved_account_id:  resrv.as_uuid(),
+        provisional_reserved_account_id: resrv.as_uuid(),
     }))
 }
 
@@ -149,20 +155,23 @@ pub async fn complete(
     let wallet = state
         .consumer_wallet
         .complete_onboarding(CompleteOnboardingRequest {
-            session_id:   body.session_id,
+            session_id: body.session_id,
             banza_handle: body.banza_handle,
-            pin:          body.pin,
+            pin: body.pin,
         })
         .await
         .map_err(map_onboarding_error)?;
 
-    Ok((StatusCode::CREATED, Json(CompleteOnboardingResponse {
-        wallet_id:    wallet.id.as_uuid(),
-        consumer_id:  wallet.consumer_id.as_uuid(),
-        banza_handle: wallet.banza_handle.unwrap_or_default(),
-        currency:     wallet.currency.code().to_owned(),
-        status:       wallet.status.as_str().to_owned(),
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(CompleteOnboardingResponse {
+            wallet_id: wallet.id.as_uuid(),
+            consumer_id: wallet.consumer_id.as_uuid(),
+            banza_handle: wallet.banza_handle.unwrap_or_default(),
+            currency: wallet.currency.code().to_owned(),
+            status: wallet.status.as_str().to_owned(),
+        }),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -189,15 +198,14 @@ fn map_onboarding_error(e: ConsumerWalletError) -> ApiError {
         ConsumerWalletError::InvalidHandle(reason) => {
             ApiError::unprocessable("INVALID_HANDLE", reason)
         }
-        ConsumerWalletError::DuplicateWallet => {
-            ApiError::conflict("DUPLICATE_WALLET", "consumer already has an active wallet in this currency")
-        }
-        ConsumerWalletError::InvalidStatusTransition { from, to } => {
-            ApiError::unprocessable(
-                "INVALID_LIFECYCLE_STATE",
-                format!("invalid transition: {from:?} → {to:?}"),
-            )
-        }
+        ConsumerWalletError::DuplicateWallet => ApiError::conflict(
+            "DUPLICATE_WALLET",
+            "consumer already has an active wallet in this currency",
+        ),
+        ConsumerWalletError::InvalidStatusTransition { from, to } => ApiError::unprocessable(
+            "INVALID_LIFECYCLE_STATE",
+            format!("invalid transition: {from:?} → {to:?}"),
+        ),
         ConsumerWalletError::WalletLocked(id) => {
             ApiError::unprocessable("WALLET_LOCKED", format!("wallet {id} is locked"))
         }

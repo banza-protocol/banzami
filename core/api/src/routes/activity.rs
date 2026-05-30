@@ -1,11 +1,17 @@
-use axum::{extract::{Query, State}, Json};
+use axum::{
+    extract::{Query, State},
+    Json,
+};
 use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::{FromRow, PgPool};
 use uuid::Uuid;
 
-use crate::{error::{ApiError, ApiResult}, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
 
 // ---------------------------------------------------------------------------
 // Query parameters
@@ -14,12 +20,12 @@ use crate::{error::{ApiError, ApiResult}, state::AppState};
 #[derive(Deserialize)]
 pub struct ActivityQuery {
     pub consumer_id: String,
-    pub limit:       Option<i64>,
-    pub cursor:      Option<String>,
+    pub limit: Option<i64>,
+    pub cursor: Option<String>,
     /// Optional filter: P2P_SENT | P2P_RECEIVED | WALLET_FUNDED | WALLET_REVERSED
-    pub r#type:      Option<String>,
+    pub r#type: Option<String>,
     /// Optional filter: OUTGOING | INCOMING | SYSTEM
-    pub direction:   Option<String>,
+    pub direction: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -29,19 +35,19 @@ pub struct ActivityQuery {
 /// One row from the UNION ALL activity query.
 #[derive(Debug, Serialize, FromRow)]
 pub struct ActivityItem {
-    pub activity_id:               String,
-    pub item_type:                 String,
-    pub direction:                 String,
-    pub amount_minor:              i64,
-    pub currency:                  String,
-    pub status:                    String,
-    pub created_at:                DateTime<Utc>,
-    pub completed_at:              Option<DateTime<Utc>>,
-    pub counterparty_handle:       Option<String>,
+    pub activity_id: String,
+    pub item_type: String,
+    pub direction: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub status: String,
+    pub created_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub counterparty_handle: Option<String>,
     pub counterparty_display_name: Option<String>,
-    pub note:                      Option<String>,
-    pub transfer_id:               Option<String>,
-    pub funding_id:                Option<String>,
+    pub note: Option<String>,
+    pub transfer_id: Option<String>,
+    pub funding_id: Option<String>,
 }
 
 // ---------------------------------------------------------------------------
@@ -49,7 +55,7 @@ pub struct ActivityItem {
 // ---------------------------------------------------------------------------
 
 struct Cursor {
-    created_at:  DateTime<Utc>,
+    created_at: DateTime<Utc>,
     activity_id: String,
 }
 
@@ -59,11 +65,18 @@ fn decode_cursor(raw: &str) -> Option<Cursor> {
     let (ts_str, id_str) = s.split_once('|')?;
     let created_at = ts_str.parse::<DateTime<Utc>>().ok()?;
     let _ = id_str.parse::<Uuid>().ok()?; // validate UUID format
-    Some(Cursor { created_at, activity_id: id_str.to_owned() })
+    Some(Cursor {
+        created_at,
+        activity_id: id_str.to_owned(),
+    })
 }
 
 fn encode_cursor(created_at: DateTime<Utc>, activity_id: &str) -> String {
-    let raw = format!("{}|{}", created_at.to_rfc3339_opts(chrono::SecondsFormat::Micros, true), activity_id);
+    let raw = format!(
+        "{}|{}",
+        created_at.to_rfc3339_opts(chrono::SecondsFormat::Micros, true),
+        activity_id
+    );
     URL_SAFE_NO_PAD.encode(raw.as_bytes())
 }
 
@@ -149,17 +162,17 @@ LIMIT $4
 "#;
 
 pub async fn fetch_activity(
-    pool:             &PgPool,
-    consumer_id:      Uuid,
-    limit:            i64,
-    cursor:           Option<&str>,
-    type_filter:      Option<&str>,
+    pool: &PgPool,
+    consumer_id: Uuid,
+    limit: i64,
+    cursor: Option<&str>,
+    type_filter: Option<&str>,
     direction_filter: Option<&str>,
 ) -> Result<(Vec<ActivityItem>, Option<String>, bool), sqlx::Error> {
-    let (cursor_ts, cursor_id): (Option<DateTime<Utc>>, Option<String>) =
-        cursor.and_then(decode_cursor)
-            .map(|c| (Some(c.created_at), Some(c.activity_id)))
-            .unwrap_or((None, None));
+    let (cursor_ts, cursor_id): (Option<DateTime<Utc>>, Option<String>) = cursor
+        .and_then(decode_cursor)
+        .map(|c| (Some(c.created_at), Some(c.activity_id)))
+        .unwrap_or((None, None));
 
     let mut items: Vec<ActivityItem> = sqlx::query_as::<_, ActivityItem>(ACTIVITY_UNION_SQL)
         .bind(consumer_id)
@@ -175,7 +188,9 @@ pub async fn fetch_activity(
     items.truncate(limit as usize);
 
     let next_cursor = if has_more {
-        items.last().map(|item| encode_cursor(item.created_at, &item.activity_id))
+        items
+            .last()
+            .map(|item| encode_cursor(item.created_at, &item.activity_id))
     } else {
         None
     };
@@ -193,9 +208,11 @@ pub async fn fetch_activity(
 /// of P2P transfers (sent + received) and wallet fundings/reversals.
 pub async fn list(
     State(state): State<AppState>,
-    Query(q):     Query<ActivityQuery>,
+    Query(q): Query<ActivityQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let consumer_id: Uuid = q.consumer_id.parse()
+    let consumer_id: Uuid = q
+        .consumer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid consumer_id"))?;
 
     if let Some(raw) = &q.cursor {

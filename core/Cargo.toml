@@ -37,7 +37,7 @@ authors    = ["Banzami Engineering <engineering@banzami.org>"]
 # ---------------------------------------------------------------------------
 [workspace.dependencies]
 # Internal
-banzami-types           = { path = "../../Banzami/core/crates/banzami-types" }
+banzami-types           = { path = "types" }
 banzami-ledger          = { path = "ledger" }
 banzami-wallets         = { path = "wallets" }
 banzami-transactions    = { path = "transactions" }

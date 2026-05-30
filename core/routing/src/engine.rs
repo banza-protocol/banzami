@@ -1,4 +1,4 @@
-use banzami_types::{Currency, Money, MerchantId, TransactionId};
+use banzami_types::{Currency, MerchantId, Money, TransactionId};
 
 use crate::{PaymentRail, RoutingDecision, RoutingError};
 
@@ -8,8 +8,8 @@ use crate::{PaymentRail, RoutingDecision, RoutingError};
 
 pub struct RouteRequest {
     pub transaction_id: TransactionId,
-    pub merchant_id:    MerchantId,
-    pub amount:         Money,
+    pub merchant_id: MerchantId,
+    pub amount: Money,
 }
 
 // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ pub struct RouteRequest {
 #[derive(Debug, Clone)]
 pub struct RoutingRule {
     pub currency: Currency,
-    pub rail:     PaymentRail,
+    pub rail: PaymentRail,
     /// Higher priority rules are selected first. Rules with equal priority
     /// for the same currency are selected by insertion order.
     pub priority: u8,
@@ -61,13 +61,41 @@ impl StaticRoutingEngine {
     ///   EUR → Mastercard (100) → Visa (90)
     pub fn angola_defaults() -> Self {
         Self::new(vec![
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::MulticaixaExpress, priority: 100 },
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::Emis,              priority:  80 },
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::BankTransfer,      priority:  60 },
-            RoutingRule { currency: Currency::USD, rail: PaymentRail::Visa,              priority: 100 },
-            RoutingRule { currency: Currency::USD, rail: PaymentRail::Mastercard,        priority:  90 },
-            RoutingRule { currency: Currency::EUR, rail: PaymentRail::Mastercard,        priority: 100 },
-            RoutingRule { currency: Currency::EUR, rail: PaymentRail::Visa,              priority:  90 },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::MulticaixaExpress,
+                priority: 100,
+            },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::Emis,
+                priority: 80,
+            },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::BankTransfer,
+                priority: 60,
+            },
+            RoutingRule {
+                currency: Currency::USD,
+                rail: PaymentRail::Visa,
+                priority: 100,
+            },
+            RoutingRule {
+                currency: Currency::USD,
+                rail: PaymentRail::Mastercard,
+                priority: 90,
+            },
+            RoutingRule {
+                currency: Currency::EUR,
+                rail: PaymentRail::Mastercard,
+                priority: 100,
+            },
+            RoutingRule {
+                currency: Currency::EUR,
+                rail: PaymentRail::Visa,
+                priority: 90,
+            },
         ])
     }
 }
@@ -87,16 +115,25 @@ impl RoutingEngine for StaticRoutingEngine {
                 );
                 return Ok(RoutingDecision {
                     transaction_id: req.transaction_id,
-                    selected_rail:  rule.rail,
-                    expected_fee:   Money::zero(currency),
+                    selected_rail: rule.rail,
+                    expected_fee: Money::zero(currency),
                     currency,
                     considered,
                 });
             }
-            considered.push((rule.rail, format!("currency mismatch: expected {}, got {}", rule.currency, currency)));
+            considered.push((
+                rule.rail,
+                format!(
+                    "currency mismatch: expected {}, got {}",
+                    rule.currency, currency
+                ),
+            ));
         }
 
-        Err(RoutingError::NoEligibleRail { currency, amount: req.amount })
+        Err(RoutingError::NoEligibleRail {
+            currency,
+            amount: req.amount,
+        })
     }
 }
 
@@ -111,14 +148,20 @@ mod tests {
     use super::*;
     use crate::PaymentRail;
 
-    fn kz(minor: i64) -> Money { Money::new(minor, Currency::AOA) }
-    fn usd(minor: i64) -> Money { Money::new(minor, Currency::USD) }
-    fn eur(minor: i64) -> Money { Money::new(minor, Currency::EUR) }
+    fn kz(minor: i64) -> Money {
+        Money::new(minor, Currency::AOA)
+    }
+    fn usd(minor: i64) -> Money {
+        Money::new(minor, Currency::USD)
+    }
+    fn eur(minor: i64) -> Money {
+        Money::new(minor, Currency::EUR)
+    }
 
     fn req(amount: Money) -> RouteRequest {
         RouteRequest {
             transaction_id: TransactionId::new(),
-            merchant_id:    MerchantId::new(),
+            merchant_id: MerchantId::new(),
             amount,
         }
     }
@@ -134,23 +177,35 @@ mod tests {
     #[tokio::test]
     async fn usd_routes_to_visa() {
         let engine = StaticRoutingEngine::angola_defaults();
-        let decision = engine.route(req(usd(100_00))).await.unwrap();
+        let decision = engine.route(req(usd(10_000))).await.unwrap();
         assert_eq!(decision.selected_rail, PaymentRail::Visa);
     }
 
     #[tokio::test]
     async fn eur_routes_to_mastercard() {
         let engine = StaticRoutingEngine::angola_defaults();
-        let decision = engine.route(req(eur(200_00))).await.unwrap();
+        let decision = engine.route(req(eur(20_000))).await.unwrap();
         assert_eq!(decision.selected_rail, PaymentRail::Mastercard);
     }
 
     #[tokio::test]
     async fn highest_priority_rule_wins() {
         let engine = StaticRoutingEngine::new(vec![
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::BankTransfer,      priority: 50 },
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::MulticaixaExpress, priority: 90 },
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::Emis,              priority: 70 },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::BankTransfer,
+                priority: 50,
+            },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::MulticaixaExpress,
+                priority: 90,
+            },
+            RoutingRule {
+                currency: Currency::AOA,
+                rail: PaymentRail::Emis,
+                priority: 70,
+            },
         ]);
         let decision = engine.route(req(kz(10_000))).await.unwrap();
         assert_eq!(decision.selected_rail, PaymentRail::MulticaixaExpress);
@@ -158,11 +213,13 @@ mod tests {
 
     #[tokio::test]
     async fn unknown_currency_returns_no_eligible_rail() {
-        let engine = StaticRoutingEngine::new(vec![
-            RoutingRule { currency: Currency::AOA, rail: PaymentRail::MulticaixaExpress, priority: 100 },
-        ]);
+        let engine = StaticRoutingEngine::new(vec![RoutingRule {
+            currency: Currency::AOA,
+            rail: PaymentRail::MulticaixaExpress,
+            priority: 100,
+        }]);
         // USD has no rule → error
-        let result = engine.route(req(usd(50_00))).await;
+        let result = engine.route(req(usd(5_000))).await;
         assert!(matches!(result, Err(RoutingError::NoEligibleRail { .. })));
     }
 

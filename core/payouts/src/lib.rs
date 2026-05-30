@@ -13,8 +13,7 @@ use banzami_types::{LedgerPostingId, MerchantId, Money, PayoutId, WalletId};
 // Status — strict state machine enforced by can_transition_to
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PayoutStatus {
     /// Created; ledger not yet posted.
@@ -35,35 +34,35 @@ impl PayoutStatus {
     pub const fn can_transition_to(self, next: Self) -> bool {
         matches!(
             (self, next),
-            (Self::Pending,    Self::Processing)
-            | (Self::Pending,    Self::Failed)
-            | (Self::Processing, Self::Sent)
-            | (Self::Processing, Self::Failed)
-            | (Self::Sent,       Self::Confirmed)
-            | (Self::Sent,       Self::Failed)
-            | (Self::Sent,       Self::Returned)
+            (Self::Pending, Self::Processing)
+                | (Self::Pending, Self::Failed)
+                | (Self::Processing, Self::Sent)
+                | (Self::Processing, Self::Failed)
+                | (Self::Sent, Self::Confirmed)
+                | (Self::Sent, Self::Failed)
+                | (Self::Sent, Self::Returned)
         )
     }
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Pending    => "PENDING",
+            Self::Pending => "PENDING",
             Self::Processing => "PROCESSING",
-            Self::Sent       => "SENT",
-            Self::Confirmed  => "CONFIRMED",
-            Self::Failed     => "FAILED",
-            Self::Returned   => "RETURNED",
+            Self::Sent => "SENT",
+            Self::Confirmed => "CONFIRMED",
+            Self::Failed => "FAILED",
+            Self::Returned => "RETURNED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "PENDING"    => Some(Self::Pending),
+            "PENDING" => Some(Self::Pending),
             "PROCESSING" => Some(Self::Processing),
-            "SENT"       => Some(Self::Sent),
-            "CONFIRMED"  => Some(Self::Confirmed),
-            "FAILED"     => Some(Self::Failed),
-            "RETURNED"   => Some(Self::Returned),
+            "SENT" => Some(Self::Sent),
+            "CONFIRMED" => Some(Self::Confirmed),
+            "FAILED" => Some(Self::Failed),
+            "RETURNED" => Some(Self::Returned),
             _ => None,
         }
     }
@@ -74,11 +73,10 @@ impl PayoutStatus {
 // ---------------------------------------------------------------------------
 
 /// Destination bank account for a payout — stored denormalised on the payout record.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct BankDestination {
-    pub account_number:      String,
-    pub bank_code:           String,
+    pub account_number: String,
+    pub bank_code: String,
     pub account_holder_name: String,
 }
 
@@ -86,24 +84,23 @@ pub struct BankDestination {
 ///
 /// Idempotent: re-submitting the same `idempotency_key` returns the existing
 /// payout record rather than creating a duplicate transfer.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Payout {
-    pub id:                PayoutId,
-    pub merchant_id:       MerchantId,
-    pub wallet_id:         WalletId,
-    pub idempotency_key:   String,
-    pub status:            PayoutStatus,
-    pub amount:            Money,
-    pub destination:       BankDestination,
+    pub id: PayoutId,
+    pub merchant_id: MerchantId,
+    pub wallet_id: WalletId,
+    pub idempotency_key: String,
+    pub status: PayoutStatus,
+    pub amount: Money,
+    pub destination: BankDestination,
     /// Set when the accounting entry is posted at process time.
     pub ledger_posting_id: Option<LedgerPostingId>,
-    pub failure_reason:    Option<String>,
-    pub created_at:        DateTime<Utc>,
-    pub sent_at:           Option<DateTime<Utc>>,
-    pub confirmed_at:      Option<DateTime<Utc>>,
-    pub returned_at:       Option<DateTime<Utc>>,
-    pub failed_at:         Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub sent_at: Option<DateTime<Utc>>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub returned_at: Option<DateTime<Utc>>,
+    pub failed_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -112,10 +109,10 @@ pub struct Payout {
 
 pub struct CreatePayoutRequest {
     pub idempotency_key: String,
-    pub merchant_id:     MerchantId,
-    pub wallet_id:       WalletId,
-    pub amount:          Money,
-    pub destination:     BankDestination,
+    pub merchant_id: MerchantId,
+    pub wallet_id: WalletId,
+    pub amount: Money,
+    pub destination: BankDestination,
 }
 
 // ---------------------------------------------------------------------------
@@ -134,7 +131,10 @@ pub enum PayoutError {
     InsufficientBalance { available: Money, requested: Money },
 
     #[error("invalid status transition: {from:?} → {to:?}")]
-    InvalidStatusTransition { from: PayoutStatus, to: PayoutStatus },
+    InvalidStatusTransition {
+        from: PayoutStatus,
+        to: PayoutStatus,
+    },
 
     #[error("unknown payout status: {0}")]
     UnknownStatus(String),

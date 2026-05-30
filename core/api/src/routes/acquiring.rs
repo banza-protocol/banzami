@@ -22,48 +22,48 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct PaymentInstructionsResponse {
-    pub method:    String,
-    pub entity:    String,
+    pub method: String,
+    pub entity: String,
     pub reference: String,
 }
 
 #[derive(Serialize)]
 pub struct AcquiringPaymentResponse {
-    pub id:              String,
+    pub id: String,
     pub payment_link_id: String,
-    pub provider:        String,
-    pub external_ref:    String,
-    pub status:          String,
-    pub amount_minor:    i64,
-    pub currency:        String,
-    pub instructions:    PaymentInstructionsResponse,
-    pub confirmed_at:    Option<DateTime<Utc>>,
-    pub failed_at:       Option<DateTime<Utc>>,
-    pub failure_reason:  Option<String>,
-    pub expires_at:      DateTime<Utc>,
-    pub created_at:      DateTime<Utc>,
+    pub provider: String,
+    pub external_ref: String,
+    pub status: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub instructions: PaymentInstructionsResponse,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub failed_at: Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 impl From<AcquiringPayment> for AcquiringPaymentResponse {
     fn from(p: AcquiringPayment) -> Self {
         Self {
-            id:              p.id.to_string(),
+            id: p.id.to_string(),
             payment_link_id: p.payment_link_id.to_string(),
-            provider:        p.provider,
-            external_ref:    p.external_ref,
-            status:          p.status.as_str().to_string(),
-            amount_minor:    p.amount.amount_minor(),
-            currency:        p.amount.currency.code().to_string(),
-            instructions:    PaymentInstructionsResponse {
-                method:    p.instructions.method,
-                entity:    p.instructions.entity,
+            provider: p.provider,
+            external_ref: p.external_ref,
+            status: p.status.as_str().to_string(),
+            amount_minor: p.amount.amount_minor(),
+            currency: p.amount.currency.code().to_string(),
+            instructions: PaymentInstructionsResponse {
+                method: p.instructions.method,
+                entity: p.instructions.entity,
                 reference: p.instructions.reference,
             },
-            confirmed_at:  p.confirmed_at,
-            failed_at:     p.failed_at,
+            confirmed_at: p.confirmed_at,
+            failed_at: p.failed_at,
             failure_reason: p.failure_reason,
-            expires_at:    p.expires_at,
-            created_at:    p.created_at,
+            expires_at: p.expires_at,
+            created_at: p.created_at,
         }
     }
 }
@@ -74,16 +74,15 @@ impl From<AcquiringPayment> for AcquiringPaymentResponse {
 
 fn map_err(e: AcquiringError) -> ApiError {
     match e {
-        AcquiringError::NotFound(_) | AcquiringError::ExternalRefNotFound(_) =>
-            ApiError::not_found(e.to_string()),
-        AcquiringError::Provider(p) =>
-            ApiError::unprocessable("PROVIDER_ERROR", p.to_string()),
-        AcquiringError::Database(db) =>
-            ApiError::internal(db.to_string()),
-        AcquiringError::UnknownStatus(s) =>
-            ApiError::internal(format!("unknown acquiring status: {s}")),
-        AcquiringError::Internal(msg) =>
-            ApiError::internal(msg),
+        AcquiringError::NotFound(_) | AcquiringError::ExternalRefNotFound(_) => {
+            ApiError::not_found(e.to_string())
+        }
+        AcquiringError::Provider(p) => ApiError::unprocessable("PROVIDER_ERROR", p.to_string()),
+        AcquiringError::Database(db) => ApiError::internal(db.to_string()),
+        AcquiringError::UnknownStatus(s) => {
+            ApiError::internal(format!("unknown acquiring status: {s}"))
+        }
+        AcquiringError::Internal(msg) => ApiError::internal(msg),
     }
 }
 
@@ -95,15 +94,16 @@ fn map_err(e: AcquiringError) -> ApiError {
 #[derive(Deserialize)]
 pub struct InitiateBody {
     pub payment_link_id: String,
-    pub amount_minor:    i64,
-    pub currency:        String,
+    pub amount_minor: i64,
+    pub currency: String,
 }
 
 pub async fn initiate_payment(
     State(state): State<AppState>,
-    Json(body):   Json<InitiateBody>,
+    Json(body): Json<InitiateBody>,
 ) -> ApiResult<(StatusCode, Json<AcquiringPaymentResponse>)> {
-    let payment_link_id = body.payment_link_id
+    let payment_link_id = body
+        .payment_link_id
         .parse::<PaymentLinkId>()
         .map_err(|_| ApiError::bad_request("invalid payment_link_id"))?;
 
@@ -116,7 +116,8 @@ pub async fn initiate_payment(
 
     let amount = banzami_types::Money::new(body.amount_minor, currency);
 
-    let payment = state.acquiring
+    let payment = state
+        .acquiring
         .initiate_payment(payment_link_id, amount)
         .await
         .map_err(map_err)?;
@@ -132,20 +133,22 @@ pub async fn initiate_payment(
 
 pub async fn emis_callback(
     State(state): State<AppState>,
-    headers:      HeaderMap,
-    body:         Bytes,
+    headers: HeaderMap,
+    body: Bytes,
 ) -> ApiResult<Json<AcquiringPaymentResponse>> {
     let signature = headers
         .get("Banza-Signature")
         .and_then(|v| v.to_str().ok())
         .unwrap_or("");
 
-    let payment = state.acquiring
+    let payment = state
+        .acquiring
         .process_callback(&body, signature)
         .await
         .map_err(|e| match e {
-            AcquiringError::Provider(ref p) if p.to_string().contains("invalid callback") =>
-                ApiError::unprocessable("INVALID_SIGNATURE", p.to_string()),
+            AcquiringError::Provider(ref p) if p.to_string().contains("invalid callback") => {
+                ApiError::unprocessable("INVALID_SIGNATURE", p.to_string())
+            }
             other => map_err(other),
         })?;
 
@@ -178,17 +181,22 @@ pub async fn emis_callback(
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
         if let Some((wallet_id_raw, merchant_id_raw)) = row {
-            let wallet_id: WalletId = wallet_id_raw.to_string().parse()
+            let wallet_id: WalletId = wallet_id_raw
+                .to_string()
+                .parse()
                 .map_err(|_| ApiError::internal("invalid wallet_id from payment link"))?;
 
             // Refuse to credit a frozen merchant's wallet.
             if risk::is_frozen(&state.pool, "MERCHANT", merchant_id_raw).await {
                 risk::flag_suspicious(
-                    &state.pool, "MERCHANT", merchant_id_raw,
+                    &state.pool,
+                    "MERCHANT",
+                    merchant_id_raw,
                     "FROZEN_ACCOUNT_ATTEMPT",
                     "acquiring callback received for a frozen merchant",
                     serde_json::json!({ "payment_id": payment.id.to_string() }),
-                ).await;
+                )
+                .await;
                 tracing::warn!(
                     payment_id   = %payment.id,
                     merchant_id  = %merchant_id_raw,
@@ -207,8 +215,8 @@ pub async fn emis_callback(
 
             if let Some(available_account_id) = available_account_id {
                 let posting_id = LedgerPostingId::new();
-                let now        = Utc::now();
-                let currency   = payment.amount.currency.code();
+                let now = Utc::now();
+                let currency = payment.amount.currency.code();
 
                 let _ = sqlx::query(
                     "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -222,13 +230,12 @@ pub async fn emis_callback(
                 .execute(&state.pool)
                 .await;
 
-                let actual_posting_id: uuid::Uuid = sqlx::query_scalar(
-                    "SELECT id FROM ledger_postings WHERE idempotency_key = $1",
-                )
-                .bind(&idempotency_key)
-                .fetch_one(&state.pool)
-                .await
-                .map_err(|e| ApiError::internal(e.to_string()))?;
+                let actual_posting_id: uuid::Uuid =
+                    sqlx::query_scalar("SELECT id FROM ledger_postings WHERE idempotency_key = $1")
+                        .bind(&idempotency_key)
+                        .fetch_one(&state.pool)
+                        .await
+                        .map_err(|e| ApiError::internal(e.to_string()))?;
 
                 let _ = sqlx::query(
                     "INSERT INTO ledger_entries
@@ -261,13 +268,35 @@ pub async fn emis_callback(
                 .await;
 
                 // Velocity counters (fire-and-forget).
-                let hour_start = now.date_naive()
-                    .and_hms_opt(now.hour(), 0, 0).map(|d| d.and_utc()).unwrap_or(now);
-                let day_start  = now.date_naive()
-                    .and_hms_opt(0, 0, 0).map(|d| d.and_utc()).unwrap_or(now);
+                let hour_start = now
+                    .date_naive()
+                    .and_hms_opt(now.hour(), 0, 0)
+                    .map(|d| d.and_utc())
+                    .unwrap_or(now);
+                let day_start = now
+                    .date_naive()
+                    .and_hms_opt(0, 0, 0)
+                    .map(|d| d.and_utc())
+                    .unwrap_or(now);
                 let amt = payment.amount.amount_minor();
-                risk::increment_velocity(&state.pool, "MERCHANT", merchant_id_raw, "HOURLY", hour_start, amt).await;
-                risk::increment_velocity(&state.pool, "MERCHANT", merchant_id_raw, "DAILY",  day_start,  amt).await;
+                risk::increment_velocity(
+                    &state.pool,
+                    "MERCHANT",
+                    merchant_id_raw,
+                    "HOURLY",
+                    hour_start,
+                    amt,
+                )
+                .await;
+                risk::increment_velocity(
+                    &state.pool,
+                    "MERCHANT",
+                    merchant_id_raw,
+                    "DAILY",
+                    day_start,
+                    amt,
+                )
+                .await;
 
                 // Audit log (fire-and-forget).
                 risk::audit(
@@ -283,7 +312,8 @@ pub async fn emis_callback(
                         "posting_id":   actual_posting_id.to_string(),
                     }),
                     None,
-                ).await;
+                )
+                .await;
 
                 tracing::info!(
                     payment_id   = %payment.id,
@@ -319,12 +349,12 @@ pub async fn emis_callback(
 #[derive(Deserialize)]
 pub struct TestConfirmQuery {
     pub external_ref: String,
-    pub currency:     Option<String>,
+    pub currency: Option<String>,
 }
 
 pub async fn test_confirm(
     State(state): State<AppState>,
-    Query(q):     Query<TestConfirmQuery>,
+    Query(q): Query<TestConfirmQuery>,
 ) -> ApiResult<Json<AcquiringPaymentResponse>> {
     if state.environment.is_live() {
         tracing::error!("acquiring::test_confirm called in LIVE environment — rejected");
@@ -336,20 +366,23 @@ pub async fn test_confirm(
     let currency = q.currency.as_deref().unwrap_or("AOA");
 
     // Fetch the existing payment to get the correct amount for the callback payload.
-    let existing = state.acquiring
+    let existing = state
+        .acquiring
         .get_payment_by_external_ref(&q.external_ref)
         .await
         .map_err(map_err)?;
 
     let amount_minor = existing.amount.amount_minor();
 
-    let (body, signature) = state.acquiring
+    let (body, signature) = state
+        .acquiring
         .generate_test_callback(&q.external_ref, amount_minor, currency)
-        .ok_or_else(|| ApiError::not_found(
-            "test confirm is only available with ACQUIRING_PROVIDER=SIMULATED",
-        ))?;
+        .ok_or_else(|| {
+            ApiError::not_found("test confirm is only available with ACQUIRING_PROVIDER=SIMULATED")
+        })?;
 
-    let payment = state.acquiring
+    let payment = state
+        .acquiring
         .process_callback(&body, &signature)
         .await
         .map_err(map_err)?;

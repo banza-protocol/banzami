@@ -5,7 +5,6 @@
 /// /internal/v1/admin/risk-flags      — list active risk flags
 /// /internal/v1/admin/audit-log       — query the immutable audit log
 /// /internal/v1/admin/acquiring-recon — trigger and query acquiring reconciliation
-
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -28,38 +27,41 @@ use crate::{
 #[derive(Deserialize)]
 pub struct FreezeBody {
     pub entity_type: String, // "MERCHANT" or "CONSUMER"
-    pub entity_id:   String,
-    pub reason:      String,
-    pub frozen_by:   Option<String>,
+    pub entity_id: String,
+    pub reason: String,
+    pub frozen_by: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct FreezeResponse {
-    pub id:          String,
+    pub id: String,
     pub entity_type: String,
-    pub entity_id:   String,
-    pub reason:      String,
-    pub frozen_by:   String,
-    pub created_at:  chrono::DateTime<Utc>,
+    pub entity_id: String,
+    pub reason: String,
+    pub frozen_by: String,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
 /// POST /internal/v1/admin/freeze — freeze a merchant or consumer account.
 pub async fn freeze_account(
     State(state): State<AppState>,
-    Json(body):   Json<FreezeBody>,
+    Json(body): Json<FreezeBody>,
 ) -> ApiResult<(StatusCode, Json<FreezeResponse>)> {
     if !matches!(body.entity_type.as_str(), "MERCHANT" | "CONSUMER") {
-        return Err(ApiError::bad_request("entity_type must be MERCHANT or CONSUMER"));
+        return Err(ApiError::bad_request(
+            "entity_type must be MERCHANT or CONSUMER",
+        ));
     }
     if body.reason.trim().is_empty() {
         return Err(ApiError::bad_request("reason is required"));
     }
-    let entity_id: Uuid = body.entity_id
+    let entity_id: Uuid = body
+        .entity_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid entity_id"))?;
 
     let frozen_by = body.frozen_by.as_deref().unwrap_or("ADMIN").to_string();
-    let now       = Utc::now();
+    let now = Utc::now();
 
     let id: Uuid = sqlx::query_scalar(
         "INSERT INTO account_freezes (entity_type, entity_id, reason, frozen_by, created_at)
@@ -85,7 +87,8 @@ pub async fn freeze_account(
             "reason":    body.reason.trim(),
         }),
         None,
-    ).await;
+    )
+    .await;
 
     tracing::warn!(
         entity_type = %body.entity_type,
@@ -95,19 +98,22 @@ pub async fn freeze_account(
         "account frozen"
     );
 
-    Ok((StatusCode::CREATED, Json(FreezeResponse {
-        id: id.to_string(),
-        entity_type: body.entity_type,
-        entity_id: entity_id.to_string(),
-        reason: body.reason.trim().to_string(),
-        frozen_by,
-        created_at: now,
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(FreezeResponse {
+            id: id.to_string(),
+            entity_type: body.entity_type,
+            entity_id: entity_id.to_string(),
+            reason: body.reason.trim().to_string(),
+            frozen_by,
+            created_at: now,
+        }),
+    ))
 }
 
 #[derive(Deserialize)]
 pub struct UnfreezeBody {
-    pub reason:    String,
+    pub reason: String,
     pub lifted_by: Option<String>,
 }
 
@@ -118,7 +124,9 @@ pub async fn unfreeze_account(
     Json(body): Json<UnfreezeBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
     if !matches!(entity_type.as_str(), "MERCHANT" | "CONSUMER") {
-        return Err(ApiError::bad_request("entity_type must be MERCHANT or CONSUMER"));
+        return Err(ApiError::bad_request(
+            "entity_type must be MERCHANT or CONSUMER",
+        ));
     }
     if body.reason.trim().is_empty() {
         return Err(ApiError::bad_request("reason is required"));
@@ -128,7 +136,7 @@ pub async fn unfreeze_account(
         .map_err(|_| ApiError::bad_request("invalid entity_id"))?;
 
     let lifted_by = body.lifted_by.as_deref().unwrap_or("ADMIN").to_string();
-    let now       = Utc::now();
+    let now = Utc::now();
 
     let rows_updated = sqlx::query(
         "UPDATE account_freezes
@@ -146,7 +154,9 @@ pub async fn unfreeze_account(
     .rows_affected();
 
     if rows_updated == 0 {
-        return Err(ApiError::not_found("no active freeze found for this entity"));
+        return Err(ApiError::not_found(
+            "no active freeze found for this entity",
+        ));
     }
 
     risk::audit(
@@ -159,7 +169,8 @@ pub async fn unfreeze_account(
             "lifted_by": lifted_by,
         }),
         None,
-    ).await;
+    )
+    .await;
 
     tracing::info!(
         entity_type  = %entity_type,
@@ -182,45 +193,79 @@ pub async fn unfreeze_account(
 
 #[derive(Serialize)]
 pub struct RiskFlagRow {
-    pub id:          String,
+    pub id: String,
     pub entity_type: String,
-    pub entity_id:   String,
-    pub flag_type:   String,
-    pub severity:    String,
+    pub entity_id: String,
+    pub flag_type: String,
+    pub severity: String,
     pub description: String,
-    pub resolved:    bool,
-    pub created_at:  chrono::DateTime<Utc>,
+    pub resolved: bool,
+    pub created_at: chrono::DateTime<Utc>,
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 pub struct RiskFlagsQuery {
     pub entity_type: Option<String>,
-    pub entity_id:   Option<String>,
-    pub resolved:    Option<bool>,
+    pub entity_id: Option<String>,
+    pub resolved: Option<bool>,
 }
 
 /// GET /internal/v1/admin/risk-flags — list risk flags (active by default).
+#[allow(clippy::type_complexity)]
 pub async fn list_risk_flags(
     State(state): State<AppState>,
-    Query(q):     Query<RiskFlagsQuery>,
+    Query(q): Query<RiskFlagsQuery>,
 ) -> ApiResult<Json<Vec<RiskFlagRow>>> {
     let resolved = q.resolved.unwrap_or(false);
-    let rows: Vec<(Uuid, String, Uuid, String, String, String, bool, chrono::DateTime<Utc>)> =
-        sqlx::query_as(
-            "SELECT id, entity_type, entity_id, flag_type, severity, description, resolved, created_at
+    let rows: Vec<(
+        Uuid,
+        String,
+        Uuid,
+        String,
+        String,
+        String,
+        bool,
+        chrono::DateTime<Utc>,
+    )> = sqlx::query_as(
+        "SELECT id, entity_type, entity_id, flag_type, severity, description, resolved, created_at
              FROM risk_flags
              WHERE resolved = $1
              ORDER BY created_at DESC
              LIMIT 200",
-        )
-        .bind(resolved)
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .bind(resolved)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok(Json(rows.into_iter().map(|(id, entity_type, entity_id, flag_type, severity, description, resolved, created_at)| {
-        RiskFlagRow { id: id.to_string(), entity_type, entity_id: entity_id.to_string(), flag_type, severity, description, resolved, created_at }
-    }).collect()))
+    Ok(Json(
+        rows.into_iter()
+            .map(
+                |(
+                    id,
+                    entity_type,
+                    entity_id,
+                    flag_type,
+                    severity,
+                    description,
+                    resolved,
+                    created_at,
+                )| {
+                    RiskFlagRow {
+                        id: id.to_string(),
+                        entity_type,
+                        entity_id: entity_id.to_string(),
+                        flag_type,
+                        severity,
+                        description,
+                        resolved,
+                        created_at,
+                    }
+                },
+            )
+            .collect(),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -229,48 +274,62 @@ pub async fn list_risk_flags(
 
 #[derive(Deserialize)]
 pub struct AuditLogQuery {
-    pub subject:    Option<String>,
-    pub actor:      Option<String>,
-    pub action:     Option<String>,
-    pub limit:      Option<i64>,
+    pub subject: Option<String>,
+    pub actor: Option<String>,
+    pub action: Option<String>,
+    pub limit: Option<i64>,
 }
 
 /// GET /internal/v1/admin/audit-log — query the immutable audit log.
+#[allow(clippy::type_complexity)]
 pub async fn query_audit_log(
     State(state): State<AppState>,
-    Query(q):     Query<AuditLogQuery>,
+    Query(q): Query<AuditLogQuery>,
 ) -> ApiResult<Json<Vec<serde_json::Value>>> {
     let limit = q.limit.unwrap_or(100).min(500);
 
-    let rows: Vec<(Uuid, String, String, String, serde_json::Value, Option<String>, chrono::DateTime<Utc>)> =
-        sqlx::query_as(
-            "SELECT id, actor, action, subject, metadata, request_id, created_at
+    let rows: Vec<(
+        Uuid,
+        String,
+        String,
+        String,
+        serde_json::Value,
+        Option<String>,
+        chrono::DateTime<Utc>,
+    )> = sqlx::query_as(
+        "SELECT id, actor, action, subject, metadata, request_id, created_at
              FROM audit_log
              WHERE ($1::TEXT IS NULL OR subject = $1)
                AND ($2::TEXT IS NULL OR actor   = $2)
                AND ($3::TEXT IS NULL OR action  = $3)
              ORDER BY created_at DESC
              LIMIT $4",
-        )
-        .bind(q.subject.as_deref())
-        .bind(q.actor.as_deref())
-        .bind(q.action.as_deref())
-        .bind(limit)
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .bind(q.subject.as_deref())
+    .bind(q.actor.as_deref())
+    .bind(q.action.as_deref())
+    .bind(limit)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok(Json(rows.into_iter().map(|(id, actor, action, subject, metadata, request_id, created_at)| {
-        serde_json::json!({
-            "id":         id.to_string(),
-            "actor":      actor,
-            "action":     action,
-            "subject":    subject,
-            "metadata":   metadata,
-            "request_id": request_id,
-            "created_at": created_at,
-        })
-    }).collect()))
+    Ok(Json(
+        rows.into_iter()
+            .map(
+                |(id, actor, action, subject, metadata, request_id, created_at)| {
+                    serde_json::json!({
+                        "id":         id.to_string(),
+                        "actor":      actor,
+                        "action":     action,
+                        "subject":    subject,
+                        "metadata":   metadata,
+                        "request_id": request_id,
+                        "created_at": created_at,
+                    })
+                },
+            )
+            .collect(),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -291,11 +350,13 @@ pub struct AcquiringReconQuery {
 /// one completed run per day is persisted.
 pub async fn run_acquiring_reconciliation(
     State(state): State<AppState>,
-    Query(q):     Query<AcquiringReconQuery>,
+    Query(q): Query<AcquiringReconQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let recon_date: NaiveDate = match q.date.as_deref() {
-        Some(s) => s.parse().map_err(|_| ApiError::bad_request("date must be YYYY-MM-DD"))?,
-        None    => (Utc::now() - chrono::Duration::days(1)).date_naive(),
+        Some(s) => s
+            .parse()
+            .map_err(|_| ApiError::bad_request("date must be YYYY-MM-DD"))?,
+        None => (Utc::now() - chrono::Duration::days(1)).date_naive(),
     };
 
     // Insert the run row. UNIQUE(reconciliation_date) prevents duplicate completed runs.
@@ -326,11 +387,11 @@ pub async fn run_acquiring_reconciliation(
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
     let total = callbacks.len() as i64;
-    let mut matched            = 0i64;
-    let mut missing_posting    = 0i64;
-    let mut amount_mismatch    = 0i64;
-    let mut duplicate_callbacks = 0i64;
-    let mut discrepancy_total  = 0i64;
+    let mut matched = 0i64;
+    let mut missing_posting = 0i64;
+    let mut amount_mismatch = 0i64;
+    let duplicate_callbacks = 0i64;
+    let mut discrepancy_total = 0i64;
 
     for (cb_id, ext_ref_opt, _payload) in &callbacks {
         let ext_ref = match ext_ref_opt {
@@ -364,7 +425,12 @@ pub async fn run_acquiring_reconciliation(
                     "INSERT INTO acquiring_reconciliation_items
                      (run_id, callback_id, external_ref, status, notes, reconciled_at)
                      VALUES ($1, $2, $3, 'MISSING_POSTING', 'no acquiring_payment found', now())",
-                ).bind(run_id).bind(cb_id).bind(ext_ref).execute(&state.pool).await;
+                )
+                .bind(run_id)
+                .bind(cb_id)
+                .bind(ext_ref)
+                .execute(&state.pool)
+                .await;
                 continue;
             }
         };
@@ -393,9 +459,14 @@ pub async fn run_acquiring_reconciliation(
                       callback_amount_minor, currency, status, discrepancy_minor, reconciled_at)
                      VALUES ($1,$2,$3,$4,$5,$6,'MISSING_POSTING',$5,now())",
                 )
-                .bind(run_id).bind(cb_id).bind(payment_id).bind(ext_ref)
-                .bind(expected_amount).bind(&currency)
-                .execute(&state.pool).await;
+                .bind(run_id)
+                .bind(cb_id)
+                .bind(payment_id)
+                .bind(ext_ref)
+                .bind(expected_amount)
+                .bind(&currency)
+                .execute(&state.pool)
+                .await;
             }
             Some((_posting_id, ledger_amount)) if ledger_amount == expected_amount => {
                 matched += 1;
@@ -405,9 +476,14 @@ pub async fn run_acquiring_reconciliation(
                       callback_amount_minor, ledger_amount_minor, currency, status, reconciled_at)
                      VALUES ($1,$2,$3,$4,$5,$5,$6,'MATCHED',now())",
                 )
-                .bind(run_id).bind(cb_id).bind(payment_id).bind(ext_ref)
-                .bind(expected_amount).bind(&currency)
-                .execute(&state.pool).await;
+                .bind(run_id)
+                .bind(cb_id)
+                .bind(payment_id)
+                .bind(ext_ref)
+                .bind(expected_amount)
+                .bind(&currency)
+                .execute(&state.pool)
+                .await;
             }
             Some((_posting_id, ledger_amount)) => {
                 amount_mismatch += 1;
@@ -420,9 +496,16 @@ pub async fn run_acquiring_reconciliation(
                       status, discrepancy_minor, reconciled_at)
                      VALUES ($1,$2,$3,$4,$5,$6,$7,'AMOUNT_MISMATCH',$8,now())",
                 )
-                .bind(run_id).bind(cb_id).bind(payment_id).bind(ext_ref)
-                .bind(expected_amount).bind(ledger_amount).bind(&currency).bind(discrepancy)
-                .execute(&state.pool).await;
+                .bind(run_id)
+                .bind(cb_id)
+                .bind(payment_id)
+                .bind(ext_ref)
+                .bind(expected_amount)
+                .bind(ledger_amount)
+                .bind(&currency)
+                .bind(discrepancy)
+                .execute(&state.pool)
+                .await;
             }
         }
     }
@@ -462,7 +545,8 @@ pub async fn run_acquiring_reconciliation(
             "discrepancy_total":  discrepancy_total,
         }),
         None,
-    ).await;
+    )
+    .await;
 
     tracing::info!(
         run_id            = %run_id,
@@ -488,38 +572,55 @@ pub async fn run_acquiring_reconciliation(
 }
 
 /// GET /internal/v1/admin/acquiring-recon — list recent reconciliation runs.
+#[allow(clippy::type_complexity)]
 pub async fn list_acquiring_reconciliation_runs(
     State(state): State<AppState>,
 ) -> ApiResult<Json<Vec<serde_json::Value>>> {
-    let rows: Vec<(Uuid, NaiveDate, String, i64, i64, i64, i64, i64, chrono::DateTime<Utc>)> =
-        sqlx::query_as(
-            "SELECT id, reconciliation_date, status,
+    let rows: Vec<(
+        Uuid,
+        NaiveDate,
+        String,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        chrono::DateTime<Utc>,
+    )> = sqlx::query_as(
+        "SELECT id, reconciliation_date, status,
                     total_callbacks, matched, missing_posting, amount_mismatch,
                     total_discrepancy_minor, started_at
              FROM acquiring_reconciliation_runs
              ORDER BY reconciliation_date DESC
              LIMIT 30",
-        )
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok(Json(rows.into_iter().map(|(id, date, status, total, matched, missing, mismatch, discrepancy, started_at)| {
-        serde_json::json!({
-            "id":                     id.to_string(),
-            "reconciliation_date":    date.to_string(),
-            "status":                 status,
-            "total_callbacks":        total,
-            "matched":                matched,
-            "missing_posting":        missing,
-            "amount_mismatch":        mismatch,
-            "total_discrepancy_minor": discrepancy,
-            "started_at":             started_at,
-        })
-    }).collect()))
+    Ok(Json(
+        rows.into_iter()
+            .map(
+                |(id, date, status, total, matched, missing, mismatch, discrepancy, started_at)| {
+                    serde_json::json!({
+                        "id":                     id.to_string(),
+                        "reconciliation_date":    date.to_string(),
+                        "status":                 status,
+                        "total_callbacks":        total,
+                        "matched":                matched,
+                        "missing_posting":        missing,
+                        "amount_mismatch":        mismatch,
+                        "total_discrepancy_minor": discrepancy,
+                        "started_at":             started_at,
+                    })
+                },
+            )
+            .collect(),
+    ))
 }
 
 /// GET /internal/v1/admin/acquiring-recon/:run_id — items for a reconciliation run.
+#[allow(clippy::type_complexity)]
 pub async fn get_acquiring_reconciliation_run(
     State(state): State<AppState>,
     Path(run_id): Path<String>,
@@ -528,34 +629,63 @@ pub async fn get_acquiring_reconciliation_run(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid run_id"))?;
 
-    let run: Option<(Uuid, NaiveDate, String, i64, i64, i64, i64, i64, chrono::DateTime<Utc>, Option<chrono::DateTime<Utc>>)> =
-        sqlx::query_as(
-            "SELECT id, reconciliation_date, status,
+    let run: Option<(
+        Uuid,
+        NaiveDate,
+        String,
+        i64,
+        i64,
+        i64,
+        i64,
+        i64,
+        chrono::DateTime<Utc>,
+        Option<chrono::DateTime<Utc>>,
+    )> = sqlx::query_as(
+        "SELECT id, reconciliation_date, status,
                     total_callbacks, matched, missing_posting, amount_mismatch,
                     total_discrepancy_minor, started_at, completed_at
              FROM acquiring_reconciliation_runs WHERE id = $1",
-        )
-        .bind(run_id_uuid)
-        .fetch_optional(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .bind(run_id_uuid)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let (id, date, status, total, matched, missing, mismatch, discrepancy, started_at, completed_at) =
-        run.ok_or_else(|| ApiError::not_found("reconciliation run not found"))?;
+    let (
+        id,
+        date,
+        status,
+        total,
+        matched,
+        missing,
+        mismatch,
+        discrepancy,
+        started_at,
+        completed_at,
+    ) = run.ok_or_else(|| ApiError::not_found("reconciliation run not found"))?;
 
-    let items: Vec<(Uuid, Uuid, Option<Uuid>, String, Option<i64>, Option<i64>, String, i64, chrono::DateTime<Utc>)> =
-        sqlx::query_as(
-            "SELECT id, callback_id, acquiring_payment_id, status,
+    let items: Vec<(
+        Uuid,
+        Uuid,
+        Option<Uuid>,
+        String,
+        Option<i64>,
+        Option<i64>,
+        String,
+        i64,
+        chrono::DateTime<Utc>,
+    )> = sqlx::query_as(
+        "SELECT id, callback_id, acquiring_payment_id, status,
                     callback_amount_minor, ledger_amount_minor,
                     external_ref, discrepancy_minor, reconciled_at
              FROM acquiring_reconciliation_items
              WHERE run_id = $1
              ORDER BY reconciled_at",
-        )
-        .bind(run_id_uuid)
-        .fetch_all(&state.pool)
-        .await
-        .map_err(|e| ApiError::internal(e.to_string()))?;
+    )
+    .bind(run_id_uuid)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
 
     Ok(Json(serde_json::json!({
         "id":                     id.to_string(),

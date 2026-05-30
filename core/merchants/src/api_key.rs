@@ -6,10 +6,10 @@ use banzami_types::{ApiKeyId, MerchantId};
 /// Whether a key grants access to live or sandbox payment data.
 /// LIVE keys carry the prefix "bz_live_"; SANDBOX keys carry "bz_test_".
 /// These two environments MUST NEVER share financial data.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize, Default)]
 pub enum ApiKeyEnvironment {
     #[serde(rename = "LIVE")]
+    #[default]
     Live,
     #[serde(rename = "SANDBOX")]
     Sandbox,
@@ -18,41 +18,36 @@ pub enum ApiKeyEnvironment {
 impl ApiKeyEnvironment {
     pub fn as_str(&self) -> &'static str {
         match self {
-            ApiKeyEnvironment::Live    => "LIVE",
+            ApiKeyEnvironment::Live => "LIVE",
             ApiKeyEnvironment::Sandbox => "SANDBOX",
         }
     }
 
     fn key_secret_prefix(&self) -> &'static str {
         match self {
-            ApiKeyEnvironment::Live    => "bz_live_",
+            ApiKeyEnvironment::Live => "bz_live_",
             ApiKeyEnvironment::Sandbox => "bz_test_",
         }
     }
 }
 
-impl Default for ApiKeyEnvironment {
-    fn default() -> Self { ApiKeyEnvironment::Live }
-}
-
 /// An API key record. `key_hash` is never returned to API consumers.
 /// The raw secret is available only in [`ApiKeySecret`] at creation time.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ApiKey {
-    pub id:           ApiKeyId,
-    pub merchant_id:  MerchantId,
-    pub name:         String,
+    pub id: ApiKeyId,
+    pub merchant_id: MerchantId,
+    pub name: String,
     /// First 8 hex chars of the key body — safe to display for identification.
-    pub key_prefix:   String,
+    pub key_prefix: String,
     /// "LIVE" or "SANDBOX" — determines which payment data universe this key accesses.
-    pub environment:  ApiKeyEnvironment,
+    pub environment: ApiKeyEnvironment,
     /// SHA-256 of the full raw key, hex-encoded.
     #[serde(skip_serializing)]
-    pub key_hash:     String,
-    pub created_at:   DateTime<Utc>,
+    pub key_hash: String,
+    pub created_at: DateTime<Utc>,
     pub last_used_at: Option<DateTime<Utc>>,
-    pub revoked_at:   Option<DateTime<Utc>>,
+    pub revoked_at: Option<DateTime<Utc>>,
 }
 
 impl ApiKey {
@@ -65,7 +60,7 @@ impl ApiKey {
 /// be recovered after this point.
 #[derive(serde::Serialize)]
 pub struct ApiKeySecret {
-    pub key:    ApiKey,
+    pub key: ApiKey,
     pub secret: String,
 }
 

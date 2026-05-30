@@ -9,16 +9,13 @@ use crate::{Transfer, TransferError, TransferStatus};
 #[allow(async_fn_in_trait)]
 pub trait TransferRepository: Send + Sync {
     async fn get(&self, id: TransferId) -> Result<Transfer, TransferError>;
-    async fn get_by_idempotency_key(
-        &self,
-        key: &str,
-    ) -> Result<Option<Transfer>, TransferError>;
+    async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Transfer>, TransferError>;
     async fn list_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        limit:       i64,
-        before_ts:   Option<DateTime<Utc>>,
-        before_id:   Option<TransferId>,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransferId>,
     ) -> Result<Vec<Transfer>, TransferError>;
 }
 
@@ -28,19 +25,19 @@ pub trait TransferRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 pub(crate) struct TransferRow {
-    pub id:                Uuid,
-    pub idempotency_key:   String,
-    pub sender_id:         Uuid,
-    pub recipient_id:      Uuid,
-    pub amount_minor:      i64,
-    pub currency:          String,
-    pub status:            String,
-    pub description:       Option<String>,
-    pub failure_reason:    Option<String>,
+    pub id: Uuid,
+    pub idempotency_key: String,
+    pub sender_id: Uuid,
+    pub recipient_id: Uuid,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub status: String,
+    pub description: Option<String>,
+    pub failure_reason: Option<String>,
     pub ledger_posting_id: Option<Uuid>,
-    pub recipient_handle:  Option<String>,
-    pub created_at:        DateTime<Utc>,
-    pub updated_at:        DateTime<Utc>,
+    pub recipient_handle: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -75,16 +72,12 @@ impl TransferRepository for PostgresTransferRepository {
         transfer_from_row(row)
     }
 
-    async fn get_by_idempotency_key(
-        &self,
-        key: &str,
-    ) -> Result<Option<Transfer>, TransferError> {
-        let row =
-            sqlx::query_as::<_, TransferRow>(&format!("{SELECT} WHERE idempotency_key = $1"))
-                .bind(key)
-                .fetch_optional(&self.pool)
-                .await
-                .map_err(TransferError::Database)?;
+    async fn get_by_idempotency_key(&self, key: &str) -> Result<Option<Transfer>, TransferError> {
+        let row = sqlx::query_as::<_, TransferRow>(&format!("{SELECT} WHERE idempotency_key = $1"))
+            .bind(key)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(TransferError::Database)?;
 
         row.map(transfer_from_row).transpose()
     }
@@ -92,9 +85,9 @@ impl TransferRepository for PostgresTransferRepository {
     async fn list_for_consumer(
         &self,
         consumer_id: ConsumerId,
-        limit:       i64,
-        before_ts:   Option<DateTime<Utc>>,
-        before_id:   Option<TransferId>,
+        limit: i64,
+        before_ts: Option<DateTime<Utc>>,
+        before_id: Option<TransferId>,
     ) -> Result<Vec<Transfer>, TransferError> {
         let rows = if let (Some(ts), Some(bid)) = (before_ts, before_id) {
             sqlx::query_as::<_, TransferRow>(&format!(
@@ -140,18 +133,18 @@ pub(crate) fn transfer_from_row(row: TransferRow) -> Result<Transfer, TransferEr
         .ok_or_else(|| TransferError::UnknownStatus(row.status.clone()))?;
 
     Ok(Transfer {
-        id:                TransferId::from_uuid(row.id),
-        idempotency_key:   row.idempotency_key,
-        sender_id:         ConsumerId::from_uuid(row.sender_id),
-        recipient_id:      ConsumerId::from_uuid(row.recipient_id),
-        amount:            Money::new(row.amount_minor, currency),
+        id: TransferId::from_uuid(row.id),
+        idempotency_key: row.idempotency_key,
+        sender_id: ConsumerId::from_uuid(row.sender_id),
+        recipient_id: ConsumerId::from_uuid(row.recipient_id),
+        amount: Money::new(row.amount_minor, currency),
         currency,
         status,
-        description:       row.description,
-        failure_reason:    row.failure_reason,
+        description: row.description,
+        failure_reason: row.failure_reason,
         ledger_posting_id: row.ledger_posting_id.map(LedgerPostingId::from_uuid),
-        recipient_handle:  row.recipient_handle,
-        created_at:        row.created_at,
-        updated_at:        row.updated_at,
+        recipient_handle: row.recipient_handle,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
     })
 }

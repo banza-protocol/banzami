@@ -8,9 +8,9 @@ pub use provider::AcquirerProvider;
 pub use providers::{EMISProvider, SimulatedProvider};
 pub use repository::{AcquiringRepository, PostgresAcquiringRepository};
 
-use chrono::{DateTime, Utc};
-use banzami_types::{AcquiringPaymentId, Money, PaymentLinkId};
 use crate::provider::{AcquirerError, PaymentInstructions};
+use banzami_types::{AcquiringPaymentId, Money, PaymentLinkId};
+use chrono::{DateTime, Utc};
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -27,37 +27,37 @@ pub enum AcquiringPaymentStatus {
 impl AcquiringPaymentStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
-            Self::Pending   => "PENDING",
+            Self::Pending => "PENDING",
             Self::Confirmed => "CONFIRMED",
-            Self::Failed    => "FAILED",
+            Self::Failed => "FAILED",
         }
     }
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct AcquiringPayment {
-    pub id:              AcquiringPaymentId,
+    pub id: AcquiringPaymentId,
     pub payment_link_id: PaymentLinkId,
-    pub provider:        String,
-    pub external_ref:    String,
-    pub status:          AcquiringPaymentStatus,
-    pub amount:          Money,
-    pub instructions:    PaymentInstructions,
-    pub confirmed_at:    Option<DateTime<Utc>>,
-    pub failed_at:       Option<DateTime<Utc>>,
-    pub failure_reason:  Option<String>,
-    pub expires_at:      DateTime<Utc>,
-    pub created_at:      DateTime<Utc>,
+    pub provider: String,
+    pub external_ref: String,
+    pub status: AcquiringPaymentStatus,
+    pub amount: Money,
+    pub instructions: PaymentInstructions,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub failed_at: Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    pub expires_at: DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
 }
 
 pub struct AcquiringCallback {
-    pub id:              uuid::Uuid,
-    pub provider:        String,
-    pub raw_payload:     serde_json::Value,
-    pub signature:       String,
-    pub external_ref:    Option<String>,
+    pub id: uuid::Uuid,
+    pub provider: String,
+    pub raw_payload: serde_json::Value,
+    pub signature: String,
+    pub external_ref: Option<String>,
     pub idempotency_key: String,
-    pub received_at:     DateTime<Utc>,
+    pub received_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------

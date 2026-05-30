@@ -16,8 +16,8 @@
 //   DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
 //   cargo test -p banzami-consumer-wallets --test integration
 
-use std::sync::Arc;
 use sqlx::PgPool;
+use std::sync::Arc;
 
 use banzami_consumer_wallets::{
     CommitReservedRequest, CompleteOnboardingRequest, ConsumerWalletEngine, ConsumerWalletError,
@@ -29,9 +29,9 @@ use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepositor
 use banzami_types::{Currency, Money};
 
 fn engine(pool: PgPool) -> impl ConsumerWalletEngine {
-    let ledger       = Arc::new(PostgresLedgerRepository::new(pool.clone()));
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let onboard_repo = PostgresOnboardingRepository::new(pool.clone());
-    let wallet_repo  = PostgresConsumerWalletRepository::new(pool.clone());
+    let wallet_repo = PostgresConsumerWalletRepository::new(pool.clone());
     PostgresConsumerWalletEngine::with_pool(pool, ledger, onboard_repo, wallet_repo)
 }
 
@@ -43,17 +43,24 @@ fn engine(pool: PgPool) -> impl ConsumerWalletEngine {
 async fn start_onboarding_creates_pending_otp_session(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000001".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("111111".into()),
-    }).await.expect("start_onboarding must succeed");
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000001".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("111111".into()),
+        })
+        .await
+        .expect("start_onboarding must succeed");
 
     assert_eq!(session.status, OnboardingStatus::PendingOtp);
-    assert!(session.provisional_available_account_id.is_none(),
-        "ledger accounts must NOT be provisioned at PENDING_OTP");
-    assert!(session.provisional_reserved_account_id.is_none(),
-        "ledger accounts must NOT be provisioned at PENDING_OTP");
+    assert!(
+        session.provisional_available_account_id.is_none(),
+        "ledger accounts must NOT be provisioned at PENDING_OTP"
+    );
+    assert!(
+        session.provisional_reserved_account_id.is_none(),
+        "ledger accounts must NOT be provisioned at PENDING_OTP"
+    );
 
     Ok(())
 }
@@ -62,18 +69,24 @@ async fn start_onboarding_creates_pending_otp_session(pool: PgPool) -> sqlx::Res
 async fn start_onboarding_idempotent_for_same_phone(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let s1 = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000002".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("111111".into()),
-    }).await.expect("first start_onboarding must succeed");
+    let s1 = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000002".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("111111".into()),
+        })
+        .await
+        .expect("first start_onboarding must succeed");
 
     // Second call for same phone returns the existing session (idempotent).
-    let s2 = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000002".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("222222".into()),
-    }).await.expect("second start_onboarding must succeed");
+    let s2 = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000002".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("222222".into()),
+        })
+        .await
+        .expect("second start_onboarding must succeed");
 
     assert_eq!(s1.id, s2.id, "same session must be returned");
 
@@ -88,25 +101,34 @@ async fn start_onboarding_idempotent_for_same_phone(pool: PgPool) -> sqlx::Resul
 async fn verify_otp_provisions_ledger_accounts(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000010".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("543210".into()),
-    }).await.unwrap();
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000010".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("543210".into()),
+        })
+        .await
+        .unwrap();
 
-    let advanced = eng.verify_otp(VerifyOtpRequest {
-        session_id: session.id,
-        otp_code:   "543210".into(),
-    }).await.expect("verify_otp must succeed with correct OTP");
+    let advanced = eng
+        .verify_otp(VerifyOtpRequest {
+            session_id: session.id,
+            otp_code: "543210".into(),
+        })
+        .await
+        .expect("verify_otp must succeed with correct OTP");
 
     assert_eq!(advanced.status, OnboardingStatus::PendingPin);
-    assert!(advanced.provisional_available_account_id.is_some(),
-        "available ledger account must be provisioned after OTP verification");
-    assert!(advanced.provisional_reserved_account_id.is_some(),
-        "reserved ledger account must be provisioned after OTP verification");
+    assert!(
+        advanced.provisional_available_account_id.is_some(),
+        "available ledger account must be provisioned after OTP verification"
+    );
+    assert!(
+        advanced.provisional_reserved_account_id.is_some(),
+        "reserved ledger account must be provisioned after OTP verification"
+    );
     assert_ne!(
-        advanced.provisional_available_account_id,
-        advanced.provisional_reserved_account_id,
+        advanced.provisional_available_account_id, advanced.provisional_reserved_account_id,
         "available and reserved accounts must be distinct"
     );
 
@@ -117,16 +139,22 @@ async fn verify_otp_provisions_ledger_accounts(pool: PgPool) -> sqlx::Result<()>
 async fn wrong_otp_returns_otp_invalid(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000011".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("123456".into()),
-    }).await.unwrap();
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000011".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("123456".into()),
+        })
+        .await
+        .unwrap();
 
-    let err = eng.verify_otp(VerifyOtpRequest {
-        session_id: session.id,
-        otp_code:   "999999".into(),
-    }).await.expect_err("wrong OTP must return an error");
+    let err = eng
+        .verify_otp(VerifyOtpRequest {
+            session_id: session.id,
+            otp_code: "999999".into(),
+        })
+        .await
+        .expect_err("wrong OTP must return an error");
 
     assert!(
         matches!(err, ConsumerWalletError::OtpInvalid),
@@ -140,10 +168,13 @@ async fn wrong_otp_returns_otp_invalid(pool: PgPool) -> sqlx::Result<()> {
 async fn unknown_session_id_returns_onboarding_not_found(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let err = eng.verify_otp(VerifyOtpRequest {
-        session_id: uuid::Uuid::new_v4(),
-        otp_code:   "123456".into(),
-    }).await.expect_err("unknown session must return error");
+    let err = eng
+        .verify_otp(VerifyOtpRequest {
+            session_id: uuid::Uuid::new_v4(),
+            otp_code: "123456".into(),
+        })
+        .await
+        .expect_err("unknown session must return error");
 
     assert!(
         matches!(err, ConsumerWalletError::OnboardingNotFound(_)),
@@ -164,22 +195,26 @@ async fn complete_flow(
     handle: &str,
     pin: &str,
 ) -> Result<banzami_consumer_wallets::ConsumerWallet, ConsumerWalletError> {
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           phone.into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some(otp.into()),
-    }).await?;
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: phone.into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some(otp.into()),
+        })
+        .await?;
 
     eng.verify_otp(VerifyOtpRequest {
         session_id: session.id,
-        otp_code:   otp.into(),
-    }).await?;
+        otp_code: otp.into(),
+    })
+    .await?;
 
     eng.complete_onboarding(CompleteOnboardingRequest {
-        session_id:   session.id,
+        session_id: session.id,
         banza_handle: handle.into(),
-        pin:          pin.into(),
-    }).await
+        pin: pin.into(),
+    })
+    .await
 }
 
 #[sqlx::test(migrations = "../../db/migrations")]
@@ -190,21 +225,36 @@ async fn complete_onboarding_activates_wallet(pool: PgPool) -> sqlx::Result<()> 
         .await
         .expect("complete flow must succeed");
 
-    assert_eq!(wallet.status, banzami_consumer_wallets::ConsumerWalletStatus::Active,
-        "wallet must be ACTIVE after complete onboarding");
+    assert_eq!(
+        wallet.status,
+        banzami_consumer_wallets::ConsumerWalletStatus::Active,
+        "wallet must be ACTIVE after complete onboarding"
+    );
     assert_eq!(wallet.banza_handle.as_deref(), Some("joao_silva"));
-    assert!(wallet.available_account_id.is_some(),
-        "INV-WALLET-007: active wallet must have available_account_id");
-    assert!(wallet.reserved_account_id.is_some(),
-        "INV-WALLET-007: active wallet must have reserved_account_id");
-    assert_ne!(wallet.available_account_id, wallet.reserved_account_id,
-        "available and reserved accounts must be distinct");
-    assert!(wallet.pin_hash.is_some(),
-        "PIN hash must be stored after activation");
-    assert!(wallet.pin_hash.as_deref().map_or(false, |h| !h.contains("1234")),
-        "plaintext PIN must not appear in stored hash");
-    assert!(wallet.activated_at.is_some(),
-        "activated_at must be set");
+    assert!(
+        wallet.available_account_id.is_some(),
+        "INV-WALLET-007: active wallet must have available_account_id"
+    );
+    assert!(
+        wallet.reserved_account_id.is_some(),
+        "INV-WALLET-007: active wallet must have reserved_account_id"
+    );
+    assert_ne!(
+        wallet.available_account_id, wallet.reserved_account_id,
+        "available and reserved accounts must be distinct"
+    );
+    assert!(
+        wallet.pin_hash.is_some(),
+        "PIN hash must be stored after activation"
+    );
+    assert!(
+        wallet
+            .pin_hash
+            .as_deref()
+            .is_some_and(|h| !h.contains("1234")),
+        "plaintext PIN must not appear in stored hash"
+    );
+    assert!(wallet.activated_at.is_some(), "activated_at must be set");
 
     Ok(())
 }
@@ -213,30 +263,40 @@ async fn complete_onboarding_activates_wallet(pool: PgPool) -> sqlx::Result<()> 
 async fn complete_onboarding_session_deleted_after_activation(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool);
 
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000021".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("555555".into()),
-    }).await.unwrap();
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000021".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("555555".into()),
+        })
+        .await
+        .unwrap();
     let session_id = session.id;
 
     eng.verify_otp(VerifyOtpRequest {
         session_id,
         otp_code: "555555".into(),
-    }).await.unwrap();
+    })
+    .await
+    .unwrap();
 
     eng.complete_onboarding(CompleteOnboardingRequest {
         session_id,
         banza_handle: "manel_99".into(),
-        pin:          "5678".into(),
-    }).await.unwrap();
+        pin: "5678".into(),
+    })
+    .await
+    .unwrap();
 
     // Session must be gone — a second complete attempt returns OnboardingNotFound.
-    let err = eng.complete_onboarding(CompleteOnboardingRequest {
-        session_id,
-        banza_handle: "manel_99_dupe".into(),
-        pin:          "9999".into(),
-    }).await.expect_err("replaying complete must fail");
+    let err = eng
+        .complete_onboarding(CompleteOnboardingRequest {
+            session_id,
+            banza_handle: "manel_99_dupe".into(),
+            pin: "9999".into(),
+        })
+        .await
+        .expect_err("replaying complete must fail");
 
     assert!(
         matches!(err, ConsumerWalletError::OnboardingNotFound(_)),
@@ -284,8 +344,10 @@ async fn verify_pin_succeeds_with_correct_pin(pool: PgPool) -> sqlx::Result<()> 
 
     eng.verify_pin(banzami_consumer_wallets::VerifyPinRequest {
         wallet_id: wallet.id,
-        pin:       "4321".into(),
-    }).await.expect("correct PIN must pass verification");
+        pin: "4321".into(),
+    })
+    .await
+    .expect("correct PIN must pass verification");
 
     Ok(())
 }
@@ -298,10 +360,13 @@ async fn verify_pin_fails_with_wrong_pin(pool: PgPool) -> sqlx::Result<()> {
         .await
         .expect("activate wallet");
 
-    let err = eng.verify_pin(banzami_consumer_wallets::VerifyPinRequest {
-        wallet_id: wallet.id,
-        pin:       "9999".into(),
-    }).await.expect_err("wrong PIN must fail");
+    let err = eng
+        .verify_pin(banzami_consumer_wallets::VerifyPinRequest {
+            wallet_id: wallet.id,
+            pin: "9999".into(),
+        })
+        .await
+        .expect_err("wrong PIN must fail");
 
     assert!(
         matches!(err, ConsumerWalletError::PinInvalid),
@@ -320,16 +385,21 @@ async fn five_wrong_pins_lock_the_wallet(pool: PgPool) -> sqlx::Result<()> {
         .expect("activate wallet");
 
     for _ in 0..5 {
-        let _ = eng.verify_pin(banzami_consumer_wallets::VerifyPinRequest {
-            wallet_id: wallet.id,
-            pin:       "0000".into(),
-        }).await;
+        let _ = eng
+            .verify_pin(banzami_consumer_wallets::VerifyPinRequest {
+                wallet_id: wallet.id,
+                pin: "0000".into(),
+            })
+            .await;
     }
 
-    let err = eng.verify_pin(banzami_consumer_wallets::VerifyPinRequest {
-        wallet_id: wallet.id,
-        pin:       "1234".into(),  // correct PIN, but wallet is locked
-    }).await.expect_err("locked wallet must reject PIN verification");
+    let err = eng
+        .verify_pin(banzami_consumer_wallets::VerifyPinRequest {
+            wallet_id: wallet.id,
+            pin: "1234".into(), // correct PIN, but wallet is locked
+        })
+        .await
+        .expect_err("locked wallet must reject PIN verification");
 
     assert!(
         matches!(err, ConsumerWalletError::WalletLocked(_)),
@@ -351,11 +421,26 @@ async fn new_active_wallet_has_zero_balance(pool: PgPool) -> sqlx::Result<()> {
         .await
         .expect("activate wallet");
 
-    let balance = eng.balance(wallet.id).await.expect("balance must be queryable");
+    let balance = eng
+        .balance(wallet.id)
+        .await
+        .expect("balance must be queryable");
 
-    assert_eq!(balance.available.amount_minor(), 0, "INV-WALLET-001: available must be zero");
-    assert_eq!(balance.reserved.amount_minor(),  0, "INV-WALLET-001: reserved must be zero");
-    assert_eq!(balance.total.amount_minor(),     0, "INV-WALLET-001: total must be zero");
+    assert_eq!(
+        balance.available.amount_minor(),
+        0,
+        "INV-WALLET-001: available must be zero"
+    );
+    assert_eq!(
+        balance.reserved.amount_minor(),
+        0,
+        "INV-WALLET-001: reserved must be zero"
+    );
+    assert_eq!(
+        balance.total.amount_minor(),
+        0,
+        "INV-WALLET-001: total must be zero"
+    );
 
     Ok(())
 }
@@ -367,16 +452,15 @@ async fn new_active_wallet_has_zero_balance(pool: PgPool) -> sqlx::Result<()> {
 /// Helper: injects funds into the available account using a raw ledger posting.
 /// Simulates an external deposit — the test-credit route does the same thing.
 async fn credit_available(pool: &PgPool, wallet_id: uuid::Uuid, amount_minor: i64) {
-    let available_account_id: uuid::Uuid = sqlx::query_scalar(
-        "SELECT available_account_id FROM consumer_wallets WHERE id = $1",
-    )
-    .bind(wallet_id)
-    .fetch_one(pool)
-    .await
-    .unwrap();
+    let available_account_id: uuid::Uuid =
+        sqlx::query_scalar("SELECT available_account_id FROM consumer_wallets WHERE id = $1")
+            .bind(wallet_id)
+            .fetch_one(pool)
+            .await
+            .unwrap();
 
     let posting_id = uuid::Uuid::new_v4();
-    let now        = chrono::Utc::now();
+    let now = chrono::Utc::now();
 
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -424,8 +508,8 @@ async fn inv_wallet_002_balance_derived_from_ledger(pool: PgPool) -> sqlx::Resul
         "INV-WALLET-002: available + reserved must equal total"
     );
     assert_eq!(bal.available.amount_minor(), 10_000);
-    assert_eq!(bal.reserved.amount_minor(),  0);
-    assert_eq!(bal.total.amount_minor(),     10_000);
+    assert_eq!(bal.reserved.amount_minor(), 0);
+    assert_eq!(bal.total.amount_minor(), 10_000);
 
     Ok(())
 }
@@ -442,9 +526,9 @@ async fn balance_after_reserve_reflects_ledger(pool: PgPool) -> sqlx::Result<()>
 
     // Reserve 20 000.
     eng.reserve(ReserveRequest {
-        wallet_id:       wallet.id,
-        amount:          Money::new(20_000, Currency::AOA),
-        reason:          "test payment".into(),
+        wallet_id: wallet.id,
+        amount: Money::new(20_000, Currency::AOA),
+        reason: "test payment".into(),
         idempotency_key: "idem-reserve-001".into(),
     })
     .await
@@ -458,9 +542,21 @@ async fn balance_after_reserve_reflects_ledger(pool: PgPool) -> sqlx::Result<()>
         bal.total.amount_minor(),
         "INV-WALLET-002: balance invariant after reserve"
     );
-    assert_eq!(bal.available.amount_minor(), 30_000, "available reduced by reservation");
-    assert_eq!(bal.reserved.amount_minor(),  20_000, "reserved equals reservation");
-    assert_eq!(bal.total.amount_minor(),     50_000, "total unchanged after reserve");
+    assert_eq!(
+        bal.available.amount_minor(),
+        30_000,
+        "available reduced by reservation"
+    );
+    assert_eq!(
+        bal.reserved.amount_minor(),
+        20_000,
+        "reserved equals reservation"
+    );
+    assert_eq!(
+        bal.total.amount_minor(),
+        50_000,
+        "total unchanged after reserve"
+    );
 
     Ok(())
 }
@@ -481,9 +577,9 @@ async fn inv_wallet_003_release_restores_available(pool: PgPool) -> sqlx::Result
 
     let reservation = eng
         .reserve(ReserveRequest {
-            wallet_id:       wallet.id,
-            amount:          Money::new(40_000, Currency::AOA),
-            reason:          "temporary hold".into(),
+            wallet_id: wallet.id,
+            amount: Money::new(40_000, Currency::AOA),
+            reason: "temporary hold".into(),
             idempotency_key: "idem-release-001".into(),
         })
         .await
@@ -492,11 +588,11 @@ async fn inv_wallet_003_release_restores_available(pool: PgPool) -> sqlx::Result
     // Verify reserve moved funds.
     let bal_after_reserve = eng.balance(wallet.id).await.unwrap();
     assert_eq!(bal_after_reserve.available.amount_minor(), 60_000);
-    assert_eq!(bal_after_reserve.reserved.amount_minor(),  40_000);
+    assert_eq!(bal_after_reserve.reserved.amount_minor(), 40_000);
 
     // Release the reservation.
     eng.release(ReleaseRequest {
-        wallet_id:  wallet.id,
+        wallet_id: wallet.id,
         reserve_id: reservation.id,
     })
     .await
@@ -505,15 +601,18 @@ async fn inv_wallet_003_release_restores_available(pool: PgPool) -> sqlx::Result
     // INV-WALLET-003: balance fully restored after release.
     let bal_after_release = eng.balance(wallet.id).await.unwrap();
     assert_eq!(
-        bal_after_release.available.amount_minor(), 100_000,
+        bal_after_release.available.amount_minor(),
+        100_000,
         "INV-WALLET-003: available must be restored after release"
     );
     assert_eq!(
-        bal_after_release.reserved.amount_minor(), 0,
+        bal_after_release.reserved.amount_minor(),
+        0,
         "INV-WALLET-003: reserved must be zero after release"
     );
     assert_eq!(
-        bal_after_release.total.amount_minor(), 100_000,
+        bal_after_release.total.amount_minor(),
+        100_000,
         "INV-WALLET-003: total unchanged throughout reserve/release cycle"
     );
 
@@ -522,7 +621,7 @@ async fn inv_wallet_003_release_restores_available(pool: PgPool) -> sqlx::Result
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn commit_reserved_consumes_funds(pool: PgPool) -> sqlx::Result<()> {
-    let eng    = engine(pool.clone());
+    let eng = engine(pool.clone());
     let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
 
     let wallet = complete_flow(&eng, "+244911000071", "444444", "commit_user", "2222")
@@ -543,17 +642,17 @@ async fn commit_reserved_consumes_funds(pool: PgPool) -> sqlx::Result<()> {
 
     let reservation = eng
         .reserve(ReserveRequest {
-            wallet_id:       wallet.id,
-            amount:          Money::new(30_000, Currency::AOA),
-            reason:          "payment to merchant".into(),
+            wallet_id: wallet.id,
+            amount: Money::new(30_000, Currency::AOA),
+            reason: "payment to merchant".into(),
             idempotency_key: "idem-commit-001".into(),
         })
         .await
         .expect("reserve must succeed");
 
     eng.commit_reserved(CommitReservedRequest {
-        wallet_id:         wallet.id,
-        reserve_id:        reservation.id,
+        wallet_id: wallet.id,
+        reserve_id: reservation.id,
         target_account_id: target_account.id,
     })
     .await
@@ -561,9 +660,21 @@ async fn commit_reserved_consumes_funds(pool: PgPool) -> sqlx::Result<()> {
 
     // Wallet balance should be zero — all funds committed.
     let bal = eng.balance(wallet.id).await.unwrap();
-    assert_eq!(bal.available.amount_minor(), 0, "available must be zero after commit");
-    assert_eq!(bal.reserved.amount_minor(),  0, "reserved must be zero after commit");
-    assert_eq!(bal.total.amount_minor(),     0, "total must be zero after commit");
+    assert_eq!(
+        bal.available.amount_minor(),
+        0,
+        "available must be zero after commit"
+    );
+    assert_eq!(
+        bal.reserved.amount_minor(),
+        0,
+        "reserved must be zero after commit"
+    );
+    assert_eq!(
+        bal.total.amount_minor(),
+        0,
+        "total must be zero after commit"
+    );
 
     // Target account should have received the funds.
     let target_balance = ledger.balance(target_account.id).await.unwrap();
@@ -573,7 +684,8 @@ async fn commit_reserved_consumes_funds(pool: PgPool) -> sqlx::Result<()> {
     // But wait — the target is credited, so the raw net is -30000 (pure credit entry).
     // For our test purposes we just verify the entry exists; the actual sign depends on account type.
     assert_eq!(
-        target_balance.amount_minor().abs(), 30_000,
+        target_balance.amount_minor().abs(),
+        30_000,
         "target account must reflect received funds"
     );
 
@@ -596,9 +708,9 @@ async fn reserve_fails_when_insufficient_funds(pool: PgPool) -> sqlx::Result<()>
 
     let err = eng
         .reserve(ReserveRequest {
-            wallet_id:       wallet.id,
-            amount:          Money::new(10_000, Currency::AOA),  // more than available
-            reason:          "overspend attempt".into(),
+            wallet_id: wallet.id,
+            amount: Money::new(10_000, Currency::AOA), // more than available
+            reason: "overspend attempt".into(),
             idempotency_key: "idem-insufficient-001".into(),
         })
         .await
@@ -611,8 +723,12 @@ async fn reserve_fails_when_insufficient_funds(pool: PgPool) -> sqlx::Result<()>
 
     // Balance must be unchanged after failed reserve.
     let bal = eng.balance(wallet.id).await.unwrap();
-    assert_eq!(bal.available.amount_minor(), 5_000, "available must be unchanged after failed reserve");
-    assert_eq!(bal.reserved.amount_minor(),  0);
+    assert_eq!(
+        bal.available.amount_minor(),
+        5_000,
+        "available must be unchanged after failed reserve"
+    );
+    assert_eq!(bal.reserved.amount_minor(), 0);
 
     Ok(())
 }
@@ -632,21 +748,34 @@ async fn reserve_idempotent_on_same_key(pool: PgPool) -> sqlx::Result<()> {
     credit_available(&pool, wallet.id.as_uuid(), 50_000).await;
 
     let req = || ReserveRequest {
-        wallet_id:       wallet.id,
-        amount:          Money::new(10_000, Currency::AOA),
-        reason:          "idempotency test".into(),
+        wallet_id: wallet.id,
+        amount: Money::new(10_000, Currency::AOA),
+        reason: "idempotency test".into(),
         idempotency_key: "idem-idempotent-001".into(),
     };
 
-    let r1 = eng.reserve(req()).await.expect("first reserve must succeed");
-    let r2 = eng.reserve(req()).await.expect("second reserve with same key must succeed");
+    let r1 = eng
+        .reserve(req())
+        .await
+        .expect("first reserve must succeed");
+    let r2 = eng
+        .reserve(req())
+        .await
+        .expect("second reserve with same key must succeed");
 
-    assert_eq!(r1.id, r2.id, "idempotency: same key must return same reservation");
+    assert_eq!(
+        r1.id, r2.id,
+        "idempotency: same key must return same reservation"
+    );
 
     // Balance should reflect only one reservation (not two).
     let bal = eng.balance(wallet.id).await.unwrap();
-    assert_eq!(bal.available.amount_minor(), 40_000, "only one reservation applied");
-    assert_eq!(bal.reserved.amount_minor(),  10_000);
+    assert_eq!(
+        bal.available.amount_minor(),
+        40_000,
+        "only one reservation applied"
+    );
+    assert_eq!(bal.reserved.amount_minor(), 10_000);
 
     Ok(())
 }
@@ -659,28 +788,40 @@ async fn reserve_idempotent_on_same_key(pool: PgPool) -> sqlx::Result<()> {
 async fn cannot_release_already_released_reservation(pool: PgPool) -> sqlx::Result<()> {
     let eng = engine(pool.clone());
 
-    let wallet = complete_flow(&eng, "+244911000082", "777777", "double_release_user", "5555")
-        .await
-        .expect("activate wallet");
+    let wallet = complete_flow(
+        &eng,
+        "+244911000082",
+        "777777",
+        "double_release_user",
+        "5555",
+    )
+    .await
+    .expect("activate wallet");
 
     credit_available(&pool, wallet.id.as_uuid(), 20_000).await;
 
     let reservation = eng
         .reserve(ReserveRequest {
-            wallet_id:       wallet.id,
-            amount:          Money::new(10_000, Currency::AOA),
-            reason:          "double release test".into(),
+            wallet_id: wallet.id,
+            amount: Money::new(10_000, Currency::AOA),
+            reason: "double release test".into(),
             idempotency_key: "idem-dbl-release-001".into(),
         })
         .await
         .expect("reserve must succeed");
 
-    eng.release(ReleaseRequest { wallet_id: wallet.id, reserve_id: reservation.id })
-        .await
-        .expect("first release must succeed");
+    eng.release(ReleaseRequest {
+        wallet_id: wallet.id,
+        reserve_id: reservation.id,
+    })
+    .await
+    .expect("first release must succeed");
 
     let err = eng
-        .release(ReleaseRequest { wallet_id: wallet.id, reserve_id: reservation.id })
+        .release(ReleaseRequest {
+            wallet_id: wallet.id,
+            reserve_id: reservation.id,
+        })
         .await
         .expect_err("second release must fail");
 

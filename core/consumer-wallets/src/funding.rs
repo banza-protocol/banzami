@@ -43,13 +43,13 @@ pub enum FundingStatus {
 impl FundingStatus {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::PendingPayment              => "PENDING_PAYMENT",
+            Self::PendingPayment => "PENDING_PAYMENT",
             Self::PendingProviderConfirmation => "PENDING_PROVIDER_CONFIRMATION",
-            Self::Reconciling                 => "RECONCILING",
-            Self::Settled                     => "SETTLED",
-            Self::Failed                      => "FAILED",
-            Self::Expired                     => "EXPIRED",
-            Self::Reversed                    => "REVERSED",
+            Self::Reconciling => "RECONCILING",
+            Self::Settled => "SETTLED",
+            Self::Failed => "FAILED",
+            Self::Expired => "EXPIRED",
+            Self::Reversed => "REVERSED",
         }
     }
 
@@ -58,12 +58,12 @@ impl FundingStatus {
         match s {
             "PENDING_PAYMENT" | "PENDING" => Some(Self::PendingPayment),
             "PENDING_PROVIDER_CONFIRMATION" => Some(Self::PendingProviderConfirmation),
-            "RECONCILING"          => Some(Self::Reconciling),
+            "RECONCILING" => Some(Self::Reconciling),
             "SETTLED" | "COMPLETED" => Some(Self::Settled),
-            "FAILED"               => Some(Self::Failed),
-            "EXPIRED"              => Some(Self::Expired),
-            "REVERSED"             => Some(Self::Reversed),
-            _                      => None,
+            "FAILED" => Some(Self::Failed),
+            "EXPIRED" => Some(Self::Expired),
+            "REVERSED" => Some(Self::Reversed),
+            _ => None,
         }
     }
 
@@ -71,20 +71,23 @@ impl FundingStatus {
     pub fn validate_transition(self, next: FundingStatus) -> Result<(), FundingError> {
         let allowed = matches!(
             (self, next),
-            (Self::PendingPayment,              Self::PendingProviderConfirmation)
-            | (Self::PendingPayment,            Self::Expired)
-            | (Self::PendingPayment,            Self::Failed)
-            | (Self::PendingProviderConfirmation, Self::Reconciling)
-            | (Self::PendingProviderConfirmation, Self::Expired)
-            | (Self::Reconciling,               Self::Settled)
-            | (Self::Reconciling,               Self::Failed)
-            | (Self::Reconciling,               Self::PendingProviderConfirmation)
-            | (Self::Settled,                   Self::Reversed)
+            (Self::PendingPayment, Self::PendingProviderConfirmation)
+                | (Self::PendingPayment, Self::Expired)
+                | (Self::PendingPayment, Self::Failed)
+                | (Self::PendingProviderConfirmation, Self::Reconciling)
+                | (Self::PendingProviderConfirmation, Self::Expired)
+                | (Self::Reconciling, Self::Settled)
+                | (Self::Reconciling, Self::Failed)
+                | (Self::Reconciling, Self::PendingProviderConfirmation)
+                | (Self::Settled, Self::Reversed)
         );
         if allowed {
             Ok(())
         } else {
-            Err(FundingError::InvalidTransition { from: self, to: next })
+            Err(FundingError::InvalidTransition {
+                from: self,
+                to: next,
+            })
         }
     }
 }
@@ -102,16 +105,16 @@ pub enum FundingProvider {
 impl FundingProvider {
     pub fn as_str(self) -> &'static str {
         match self {
-            Self::Emis      => "EMIS",
+            Self::Emis => "EMIS",
             Self::Simulated => "SIMULATED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "EMIS"      => Some(Self::Emis),
+            "EMIS" => Some(Self::Emis),
             "SIMULATED" => Some(Self::Simulated),
-            _           => None,
+            _ => None,
         }
     }
 }
@@ -122,22 +125,22 @@ impl FundingProvider {
 
 #[derive(Debug, Clone, Serialize)]
 pub struct FundingSession {
-    pub id:                   Uuid,
-    pub consumer_id:          ConsumerId,
-    pub wallet_id:            ConsumerWalletId,
-    pub provider:             FundingProvider,
-    pub amount:               Money,
-    pub external_ref:         String,
-    pub idempotency_key:      String,
-    pub status:               FundingStatus,
-    pub ledger_posting_id:    Option<LedgerPostingId>,
+    pub id: Uuid,
+    pub consumer_id: ConsumerId,
+    pub wallet_id: ConsumerWalletId,
+    pub provider: FundingProvider,
+    pub amount: Money,
+    pub external_ref: String,
+    pub idempotency_key: String,
+    pub status: FundingStatus,
+    pub ledger_posting_id: Option<LedgerPostingId>,
     pub reconciliation_count: i32,
-    pub expires_at:           DateTime<Utc>,
-    pub confirmed_at:         Option<DateTime<Utc>>,
-    pub reversed_at:          Option<DateTime<Utc>>,
-    pub failed_at:            Option<DateTime<Utc>>,
-    pub failure_reason:       Option<String>,
-    pub created_at:           DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
+    pub confirmed_at: Option<DateTime<Utc>>,
+    pub reversed_at: Option<DateTime<Utc>>,
+    pub failed_at: Option<DateTime<Utc>>,
+    pub failure_reason: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -145,24 +148,24 @@ pub struct FundingSession {
 // ---------------------------------------------------------------------------
 
 pub struct CreateFundingSessionRequest {
-    pub consumer_id:     ConsumerId,
-    pub wallet_id:       ConsumerWalletId,
-    pub provider:        FundingProvider,
-    pub amount:          Money,
-    pub external_ref:    String,
+    pub consumer_id: ConsumerId,
+    pub wallet_id: ConsumerWalletId,
+    pub provider: FundingProvider,
+    pub amount: Money,
+    pub external_ref: String,
     pub idempotency_key: String,
-    pub expires_at:      DateTime<Utc>,
+    pub expires_at: DateTime<Utc>,
 }
 
 pub struct ReceiveCallbackRequest {
-    pub session_id:        Uuid,
+    pub session_id: Uuid,
     pub provider_event_id: String,
-    pub payload:           serde_json::Value,
-    pub hmac_valid:        bool,
+    pub payload: serde_json::Value,
+    pub hmac_valid: bool,
 }
 
 pub struct ReconcileRequest {
-    pub session_id:      Uuid,
+    pub session_id: Uuid,
     pub transit_account: AccountId,
 }
 
@@ -178,14 +181,11 @@ pub enum FundingError {
     #[error("invalid status transition: {from:?} → {to:?}")]
     InvalidTransition {
         from: FundingStatus,
-        to:   FundingStatus,
+        to: FundingStatus,
     },
 
     #[error("duplicate callback: provider '{provider}' event '{event_id}' already recorded")]
-    DuplicateCallback {
-        provider: String,
-        event_id: String,
-    },
+    DuplicateCallback { provider: String, event_id: String },
 
     #[error("HMAC signature is invalid")]
     HmacInvalid,
@@ -222,10 +222,8 @@ pub trait FundingEngine: Send + Sync {
     ///
     /// Called when the provider reports the consumer has initiated the payment
     /// action (e.g. Multicaixa Express authorisation started).
-    async fn mark_payment_received(
-        &self,
-        session_id: Uuid,
-    ) -> Result<FundingSession, FundingError>;
+    async fn mark_payment_received(&self, session_id: Uuid)
+        -> Result<FundingSession, FundingError>;
 
     /// Record a raw provider callback and advance the session to `Reconciling`.
     ///
@@ -242,15 +240,12 @@ pub trait FundingEngine: Send + Sync {
     /// Advances the session to `Settled` and links `ledger_posting_id`.
     ///
     /// Idempotent — if the session is already `Settled`, returns it unchanged.
-    async fn reconcile(
-        &self,
-        req: ReconcileRequest,
-    ) -> Result<FundingSession, FundingError>;
+    async fn reconcile(&self, req: ReconcileRequest) -> Result<FundingSession, FundingError>;
 
     /// Permanently fail a session with an operator-supplied reason.
     async fn fail_session(
         &self,
-        session_id:     Uuid,
+        session_id: Uuid,
         failure_reason: String,
     ) -> Result<FundingSession, FundingError>;
 
@@ -262,7 +257,7 @@ pub trait FundingEngine: Send + Sync {
     async fn reverse_session(
         &self,
         session_id: Uuid,
-        reason:     String,
+        reason: String,
     ) -> Result<FundingSession, FundingError>;
 
     /// Expire sessions whose TTL has passed and are still awaiting payment.
@@ -280,50 +275,49 @@ pub trait FundingEngine: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct FundingSessionRow {
-    id:                      Uuid,
-    consumer_id:             Uuid,
-    wallet_id:               Uuid,
-    provider:                String,
-    amount_minor:            i64,
-    currency:                String,
-    external_ref:            String,
-    idempotency_key:         String,
-    status:                  String,
-    ledger_posting_id:       Option<Uuid>,
+    id: Uuid,
+    consumer_id: Uuid,
+    wallet_id: Uuid,
+    provider: String,
+    amount_minor: i64,
+    currency: String,
+    external_ref: String,
+    idempotency_key: String,
+    status: String,
+    ledger_posting_id: Option<Uuid>,
     reconciliation_attempts: i32,
-    expires_at:              DateTime<Utc>,
-    confirmed_at:            Option<DateTime<Utc>>,
-    reversed_at:             Option<DateTime<Utc>>,
-    failed_at:               Option<DateTime<Utc>>,
-    failure_reason:          Option<String>,
-    created_at:              DateTime<Utc>,
+    expires_at: DateTime<Utc>,
+    confirmed_at: Option<DateTime<Utc>>,
+    reversed_at: Option<DateTime<Utc>>,
+    failed_at: Option<DateTime<Utc>>,
+    failure_reason: Option<String>,
+    created_at: DateTime<Utc>,
 }
 
 fn session_from_row(row: FundingSessionRow) -> Result<FundingSession, FundingError> {
-    let provider = FundingProvider::try_from_str(&row.provider)
-        .unwrap_or(FundingProvider::Simulated);
-    let status = FundingStatus::try_from_str(&row.status)
-        .unwrap_or(FundingStatus::PendingPayment);
+    let provider =
+        FundingProvider::try_from_str(&row.provider).unwrap_or(FundingProvider::Simulated);
+    let status = FundingStatus::try_from_str(&row.status).unwrap_or(FundingStatus::PendingPayment);
     let currency = Currency::from_code(&row.currency)
         .ok_or(FundingError::Database(sqlx::Error::RowNotFound))?;
 
     Ok(FundingSession {
-        id:                   row.id,
-        consumer_id:          ConsumerId::from_uuid(row.consumer_id),
-        wallet_id:            ConsumerWalletId::from_uuid(row.wallet_id),
+        id: row.id,
+        consumer_id: ConsumerId::from_uuid(row.consumer_id),
+        wallet_id: ConsumerWalletId::from_uuid(row.wallet_id),
         provider,
-        amount:               Money::new(row.amount_minor, currency),
-        external_ref:         row.external_ref,
-        idempotency_key:      row.idempotency_key,
+        amount: Money::new(row.amount_minor, currency),
+        external_ref: row.external_ref,
+        idempotency_key: row.idempotency_key,
         status,
-        ledger_posting_id:    row.ledger_posting_id.map(LedgerPostingId::from_uuid),
+        ledger_posting_id: row.ledger_posting_id.map(LedgerPostingId::from_uuid),
         reconciliation_count: row.reconciliation_attempts,
-        expires_at:           row.expires_at,
-        confirmed_at:         row.confirmed_at,
-        reversed_at:          row.reversed_at,
-        failed_at:            row.failed_at,
-        failure_reason:       row.failure_reason,
-        created_at:           row.created_at,
+        expires_at: row.expires_at,
+        confirmed_at: row.confirmed_at,
+        reversed_at: row.reversed_at,
+        failed_at: row.failed_at,
+        failure_reason: row.failure_reason,
+        created_at: row.created_at,
     })
 }
 
@@ -339,7 +333,7 @@ const SESSION_COLS: &str = "
 // ---------------------------------------------------------------------------
 
 pub struct PostgresFundingEngine<L> {
-    pool:   PgPool,
+    pool: PgPool,
     ledger: Arc<L>,
 }
 
@@ -392,7 +386,9 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
         session_id: Uuid,
     ) -> Result<FundingSession, FundingError> {
         let current = self.get_session(session_id).await?;
-        current.status.validate_transition(FundingStatus::PendingProviderConfirmation)?;
+        current
+            .status
+            .validate_transition(FundingStatus::PendingProviderConfirmation)?;
 
         let sql = format!(
             "UPDATE consumer_deposits
@@ -414,7 +410,9 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
         req: ReceiveCallbackRequest,
     ) -> Result<FundingSession, FundingError> {
         let current = self.get_session(req.session_id).await?;
-        current.status.validate_transition(FundingStatus::Reconciling)?;
+        current
+            .status
+            .validate_transition(FundingStatus::Reconciling)?;
 
         // Attempt to record the raw callback.
         // The UNIQUE(provider, provider_event_id) constraint is the idempotency gate.
@@ -441,7 +439,7 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
                 });
             }
             Err(e) => return Err(FundingError::Database(e)),
-            Ok(_)  => {}
+            Ok(_) => {}
         }
 
         // Advance to RECONCILING and increment the attempt counter.
@@ -467,10 +465,7 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
         session_from_row(row)
     }
 
-    async fn reconcile(
-        &self,
-        req: ReconcileRequest,
-    ) -> Result<FundingSession, FundingError> {
+    async fn reconcile(&self, req: ReconcileRequest) -> Result<FundingSession, FundingError> {
         let session = self.get_session(req.session_id).await?;
 
         // Idempotent: already settled → return as-is.
@@ -494,7 +489,7 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
         //   DR transit account     (ASSET — external funds received by Banzami)
         //   CR consumer available  (LIABILITY — we now owe the consumer)
         let idem_key = format!("funding-settle-{}", session.id);
-        let posting  = banzami_ledger::PostingBuilder::new(
+        let posting = banzami_ledger::PostingBuilder::new(
             format!("Wallet funding — session {}", session.id),
             idem_key,
         )
@@ -504,7 +499,7 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
         .map_err(|_| banzami_ledger::LedgerError::InsufficientEntries)?;
 
         let posting = self.ledger.post(posting).await?;
-        let now     = Utc::now();
+        let now = Utc::now();
 
         // Append an immutable reconciliation attempt record.
         sqlx::query(
@@ -546,7 +541,7 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
 
     async fn fail_session(
         &self,
-        session_id:     Uuid,
+        session_id: Uuid,
         failure_reason: String,
     ) -> Result<FundingSession, FundingError> {
         let current = self.get_session(session_id).await?;
@@ -577,10 +572,12 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
     async fn reverse_session(
         &self,
         session_id: Uuid,
-        reason:     String,
+        reason: String,
     ) -> Result<FundingSession, FundingError> {
         let session = self.get_session(session_id).await?;
-        session.status.validate_transition(FundingStatus::Reversed)?;
+        session
+            .status
+            .validate_transition(FundingStatus::Reversed)?;
 
         let original_posting_id = session
             .ledger_posting_id
@@ -588,7 +585,8 @@ impl<L: LedgerEngine + 'static> FundingEngine for PostgresFundingEngine<L> {
 
         // Fetch original posting then create the reversal via the ledger engine.
         let original = self.ledger.get_posting(original_posting_id).await?;
-        let reversal = self.ledger
+        let reversal = self
+            .ledger
             .reverse(
                 &original,
                 format!("Reversal — funding session {session_id}: {reason}"),

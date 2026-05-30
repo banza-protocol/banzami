@@ -43,19 +43,19 @@ pub trait TransactionRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct TransactionRow {
-    id:               Uuid,
-    idempotency_key:  String,
+    id: Uuid,
+    idempotency_key: String,
     transaction_type: String,
-    status:           String,
-    amount_minor:     i64,
-    fee_minor:        i64,
-    currency:         String,
-    merchant_id:      Uuid,
-    wallet_id:        Uuid,
-    description:      Option<String>,
-    failure_reason:   Option<String>,
-    created_at:       DateTime<Utc>,
-    updated_at:       DateTime<Utc>,
+    status: String,
+    amount_minor: i64,
+    fee_minor: i64,
+    currency: String,
+    merchant_id: Uuid,
+    wallet_id: Uuid,
+    description: Option<String>,
+    failure_reason: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -133,13 +133,12 @@ impl TransactionRepository for PostgresTransactionRepository {
         &self,
         key: &str,
     ) -> Result<Option<Transaction>, TransactionError> {
-        let row = sqlx::query_as::<_, TransactionRow>(&format!(
-            "{SELECT} WHERE idempotency_key = $1"
-        ))
-        .bind(key)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(TransactionError::Database)?;
+        let row =
+            sqlx::query_as::<_, TransactionRow>(&format!("{SELECT} WHERE idempotency_key = $1"))
+                .bind(key)
+                .fetch_optional(&self.pool)
+                .await
+                .map_err(TransactionError::Database)?;
 
         row.map(tx_from_row).transpose()
     }
@@ -198,7 +197,9 @@ impl TransactionRepository for PostgresTransactionRepository {
             if let Some(since) = since_ts {
                 qb = qb.bind(since);
             }
-            qb.fetch_all(&self.pool).await.map_err(TransactionError::Database)?
+            qb.fetch_all(&self.pool)
+                .await
+                .map_err(TransactionError::Database)?
         } else {
             let since_clause_no_cursor = if since_ts.is_some() {
                 " AND created_at >= $3"
@@ -218,7 +219,9 @@ impl TransactionRepository for PostgresTransactionRepository {
             if let Some(since) = since_ts {
                 qb = qb.bind(since);
             }
-            qb.fetch_all(&self.pool).await.map_err(TransactionError::Database)?
+            qb.fetch_all(&self.pool)
+                .await
+                .map_err(TransactionError::Database)?
         };
 
         rows.into_iter().map(tx_from_row).collect()

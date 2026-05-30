@@ -3,9 +3,7 @@ use uuid::Uuid;
 
 use banzami_types::{CustomerId, MerchantId};
 
-use crate::{
-    ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
-};
+use crate::{ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance};
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -18,20 +16,14 @@ pub trait ComplianceRepository: Send + Sync {
         merchant_id: MerchantId,
     ) -> Result<Option<MerchantCompliance>, ComplianceError>;
 
-    async fn upsert_merchant(
-        &self,
-        record: &MerchantCompliance,
-    ) -> Result<(), ComplianceError>;
+    async fn upsert_merchant(&self, record: &MerchantCompliance) -> Result<(), ComplianceError>;
 
     async fn get_customer(
         &self,
         customer_id: CustomerId,
     ) -> Result<Option<CustomerCompliance>, ComplianceError>;
 
-    async fn upsert_customer(
-        &self,
-        record: &CustomerCompliance,
-    ) -> Result<(), ComplianceError>;
+    async fn upsert_customer(&self, record: &CustomerCompliance) -> Result<(), ComplianceError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -40,49 +32,49 @@ pub trait ComplianceRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct MerchantComplianceRow {
-    merchant_id:  Uuid,
-    kyb_status:   String,
-    aml_status:   String,
-    reviewed_at:  Option<chrono::DateTime<chrono::Utc>>,
-    notes:        Option<String>,
-    created_at:   chrono::DateTime<chrono::Utc>,
-    updated_at:   chrono::DateTime<chrono::Utc>,
+    merchant_id: Uuid,
+    kyb_status: String,
+    aml_status: String,
+    reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    notes: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 fn row_to_merchant(r: MerchantComplianceRow) -> Result<MerchantCompliance, ComplianceError> {
     Ok(MerchantCompliance {
         merchant_id: MerchantId::from_uuid(r.merchant_id),
-        kyb_status:  ComplianceStatus::try_from_str(&r.kyb_status)
+        kyb_status: ComplianceStatus::try_from_str(&r.kyb_status)
             .ok_or_else(|| ComplianceError::UnknownStatus(r.kyb_status.clone()))?,
-        aml_status:  ComplianceStatus::try_from_str(&r.aml_status)
+        aml_status: ComplianceStatus::try_from_str(&r.aml_status)
             .ok_or_else(|| ComplianceError::UnknownStatus(r.aml_status.clone()))?,
         reviewed_at: r.reviewed_at,
-        notes:       r.notes,
-        created_at:  r.created_at,
-        updated_at:  r.updated_at,
+        notes: r.notes,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
     })
 }
 
 #[derive(sqlx::FromRow)]
 struct CustomerComplianceRow {
-    customer_id:  Uuid,
-    kyc_level:    String,
-    status:       String,
-    reviewed_at:  Option<chrono::DateTime<chrono::Utc>>,
-    created_at:   chrono::DateTime<chrono::Utc>,
-    updated_at:   chrono::DateTime<chrono::Utc>,
+    customer_id: Uuid,
+    kyc_level: String,
+    status: String,
+    reviewed_at: Option<chrono::DateTime<chrono::Utc>>,
+    created_at: chrono::DateTime<chrono::Utc>,
+    updated_at: chrono::DateTime<chrono::Utc>,
 }
 
 fn row_to_customer(r: CustomerComplianceRow) -> Result<CustomerCompliance, ComplianceError> {
     Ok(CustomerCompliance {
         customer_id: CustomerId::from_uuid(r.customer_id),
-        kyc_level:   KycLevel::try_from_str(&r.kyc_level)
+        kyc_level: KycLevel::try_from_str(&r.kyc_level)
             .ok_or_else(|| ComplianceError::UnknownStatus(r.kyc_level.clone()))?,
-        status:      ComplianceStatus::try_from_str(&r.status)
+        status: ComplianceStatus::try_from_str(&r.status)
             .ok_or_else(|| ComplianceError::UnknownStatus(r.status.clone()))?,
         reviewed_at: r.reviewed_at,
-        created_at:  r.created_at,
-        updated_at:  r.updated_at,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
     })
 }
 
@@ -115,10 +107,7 @@ impl ComplianceRepository for PostgresComplianceRepository {
         row.map(row_to_merchant).transpose()
     }
 
-    async fn upsert_merchant(
-        &self,
-        record: &MerchantCompliance,
-    ) -> Result<(), ComplianceError> {
+    async fn upsert_merchant(&self, record: &MerchantCompliance) -> Result<(), ComplianceError> {
         sqlx::query!(
             r#"
             INSERT INTO merchant_compliance (
@@ -158,10 +147,7 @@ impl ComplianceRepository for PostgresComplianceRepository {
         row.map(row_to_customer).transpose()
     }
 
-    async fn upsert_customer(
-        &self,
-        record: &CustomerCompliance,
-    ) -> Result<(), ComplianceError> {
+    async fn upsert_customer(&self, record: &CustomerCompliance) -> Result<(), ComplianceError> {
         sqlx::query!(
             r#"
             INSERT INTO customer_compliance (

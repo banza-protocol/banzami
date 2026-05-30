@@ -4,11 +4,11 @@ pub mod qr_code;
 pub mod repository;
 
 pub use engine::{PostgresQrEngine, QrEngine};
+pub use expiry_worker::run_expiry_worker;
 pub use qr_code::{
     CreateDynamicQrRequest, CreateStaticQrRequest, ParsedQr, QrCode, QrCodeStatus, QrCodeType,
     QrOwnerType,
 };
-pub use expiry_worker::run_expiry_worker;
 pub use repository::{PostgresQrRepository, QrRepository};
 
 use thiserror::Error;

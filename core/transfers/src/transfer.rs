@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
 use banzami_types::{ConsumerId, Currency, Money, TransferId};
+use chrono::{DateTime, Utc};
 
 /// Lifecycle of an instant P2P transfer.
 ///
@@ -21,8 +21,7 @@ use banzami_types::{ConsumerId, Currency, Money, TransferId};
 ///           │  FAILED  │
 ///           └──────────┘
 /// ```
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum TransferStatus {
     Pending,
@@ -34,20 +33,20 @@ pub enum TransferStatus {
 impl TransferStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            TransferStatus::Pending   => "PENDING",
+            TransferStatus::Pending => "PENDING",
             TransferStatus::Completed => "COMPLETED",
-            TransferStatus::Failed    => "FAILED",
-            TransferStatus::Reversed  => "REVERSED",
+            TransferStatus::Failed => "FAILED",
+            TransferStatus::Reversed => "REVERSED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "PENDING"   => Some(TransferStatus::Pending),
+            "PENDING" => Some(TransferStatus::Pending),
             "COMPLETED" => Some(TransferStatus::Completed),
-            "FAILED"    => Some(TransferStatus::Failed),
-            "REVERSED"  => Some(TransferStatus::Reversed),
-            _           => None,
+            "FAILED" => Some(TransferStatus::Failed),
+            "REVERSED" => Some(TransferStatus::Reversed),
+            _ => None,
         }
     }
 }
@@ -61,25 +60,24 @@ impl TransferStatus {
 /// DR sender_consumer_wallet:available_account   (LIABILITY ↓ we owe sender less)
 /// CR recipient_consumer_wallet:available_account (LIABILITY ↑ we owe recipient more)
 /// ```
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct Transfer {
-    pub id:               TransferId,
-    pub idempotency_key:  String,
-    pub sender_id:        ConsumerId,
-    pub recipient_id:     ConsumerId,
-    pub amount:           Money,
-    pub currency:         Currency,
-    pub status:           TransferStatus,
-    pub description:      Option<String>,
-    pub failure_reason:   Option<String>,
+    pub id: TransferId,
+    pub idempotency_key: String,
+    pub sender_id: ConsumerId,
+    pub recipient_id: ConsumerId,
+    pub amount: Money,
+    pub currency: Currency,
+    pub status: TransferStatus,
+    pub description: Option<String>,
+    pub failure_reason: Option<String>,
     /// Ledger posting that backs this transfer — set when status = COMPLETED.
     pub ledger_posting_id: Option<banzami_types::LedgerPostingId>,
     /// Normalized @banza handle used to route the transfer. Snapshotted at send time
     /// for audit trail. None for transfers routed via UUID (internal/merchant flows).
     pub recipient_handle: Option<String>,
-    pub created_at:       DateTime<Utc>,
-    pub updated_at:       DateTime<Utc>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -88,12 +86,12 @@ pub struct Transfer {
 
 /// Initiate and atomically execute an instant P2P transfer.
 pub struct SendTransferRequest {
-    pub idempotency_key:  String,
-    pub sender_id:        ConsumerId,
-    pub recipient_id:     ConsumerId,
-    pub amount_minor:     i64,
-    pub currency:         Currency,
-    pub description:      Option<String>,
+    pub idempotency_key: String,
+    pub sender_id: ConsumerId,
+    pub recipient_id: ConsumerId,
+    pub amount_minor: i64,
+    pub currency: Currency,
+    pub description: Option<String>,
     /// Normalized @banza handle of the recipient (no @). Snapshotted for audit trail.
     /// None for internal/merchant flows that route by UUID.
     pub recipient_handle: Option<String>,

@@ -16,22 +16,20 @@ use banzami_types::{ReconciliationRunId, SettlementId, TransactionId};
 // ---------------------------------------------------------------------------
 
 /// A single line from an external bank or acquirer settlement statement.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ExternalStatementLine {
     /// Acquirer/bank reference — used for audit trails only.
-    pub reference:    String,
+    pub reference: String,
     pub amount_minor: i64,
-    pub currency:     String,
-    pub posted_at:    DateTime<Utc>,
+    pub currency: String,
+    pub posted_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
 // Reconciliation record
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ReconciliationStatus {
     /// Amounts match — no action required.
@@ -47,60 +45,58 @@ pub enum ReconciliationStatus {
 impl ReconciliationStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Matched         => "MATCHED",
+            Self::Matched => "MATCHED",
             Self::MissingExternal => "MISSING_EXTERNAL",
             Self::MissingInternal => "MISSING_INTERNAL",
-            Self::AmountMismatch  => "AMOUNT_MISMATCH",
+            Self::AmountMismatch => "AMOUNT_MISMATCH",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "MATCHED"          => Some(Self::Matched),
+            "MATCHED" => Some(Self::Matched),
             "MISSING_EXTERNAL" => Some(Self::MissingExternal),
             "MISSING_INTERNAL" => Some(Self::MissingInternal),
-            "AMOUNT_MISMATCH"  => Some(Self::AmountMismatch),
+            "AMOUNT_MISMATCH" => Some(Self::AmountMismatch),
             _ => None,
         }
     }
 }
 
 /// A single comparison between an internal record and an external statement line.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReconciliationRecord {
-    pub run_id:           ReconciliationRunId,
-    pub settlement_id:    Option<SettlementId>,
-    pub transaction_id:   Option<TransactionId>,
-    pub external_ref:     Option<String>,
+    pub run_id: ReconciliationRunId,
+    pub settlement_id: Option<SettlementId>,
+    pub transaction_id: Option<TransactionId>,
+    pub external_ref: Option<String>,
     /// Net amount in the internal ledger (minor units).
-    pub internal_minor:   Option<i64>,
+    pub internal_minor: Option<i64>,
     /// Amount from the external statement (minor units).
-    pub external_minor:   Option<i64>,
-    pub currency:         String,
-    pub status:           ReconciliationStatus,
+    pub external_minor: Option<i64>,
+    pub currency: String,
+    pub status: ReconciliationStatus,
     /// Difference: external − internal (signed, minor units). Zero when matched.
     pub discrepancy_minor: i64,
-    pub reconciled_at:    DateTime<Utc>,
+    pub reconciled_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
 // Reconciliation report — summary of a single run
 // ---------------------------------------------------------------------------
 
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct ReconciliationReport {
-    pub run_id:              ReconciliationRunId,
-    pub total_checked:       u64,
-    pub matched:             u64,
-    pub missing_external:    u64,
-    pub missing_internal:    u64,
-    pub amount_mismatches:   u64,
-    pub records:             Vec<ReconciliationRecord>,
+    pub run_id: ReconciliationRunId,
+    pub total_checked: u64,
+    pub matched: u64,
+    pub missing_external: u64,
+    pub missing_internal: u64,
+    pub amount_mismatches: u64,
+    pub records: Vec<ReconciliationRecord>,
     /// Sum of |discrepancy| across all mismatched records (minor units).
     pub total_discrepancy_minor: i64,
-    pub generated_at:        DateTime<Utc>,
+    pub generated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------

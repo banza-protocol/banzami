@@ -13,17 +13,17 @@ pub trait IdentityRepository: Send + Sync {
     async fn get_by_handle(&self, handle: &str) -> Result<ConsumerIdentity, IdentityError>;
     async fn update_status(
         &self,
-        id:     ConsumerId,
+        id: ConsumerId,
         status: ConsumerStatus,
     ) -> Result<ConsumerIdentity, IdentityError>;
     async fn suspend_with_notes(
         &self,
-        id:    ConsumerId,
+        id: ConsumerId,
         notes: Option<String>,
     ) -> Result<ConsumerIdentity, IdentityError>;
     async fn set_badge(
         &self,
-        id:    ConsumerId,
+        id: ConsumerId,
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError>;
 }
@@ -34,14 +34,14 @@ pub trait IdentityRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct IdentityRow {
-    id:                 Uuid,
-    handle:             String,
-    display_name:       Option<String>,
-    status:             String,
+    id: Uuid,
+    handle: String,
+    display_name: Option<String>,
+    status: String,
     verification_badge: Option<String>,
-    suspension_notes:   Option<String>,
-    created_at:         DateTime<Utc>,
-    updated_at:         DateTime<Utc>,
+    suspension_notes: Option<String>,
+    created_at: DateTime<Utc>,
+    updated_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -120,26 +120,24 @@ impl IdentityRepository for PostgresIdentityRepository {
 
     async fn update_status(
         &self,
-        id:     ConsumerId,
+        id: ConsumerId,
         status: ConsumerStatus,
     ) -> Result<ConsumerIdentity, IdentityError> {
         let now = Utc::now();
-        sqlx::query(
-            "UPDATE consumers SET status = $1, updated_at = $2 WHERE id = $3",
-        )
-        .bind(status.as_str())
-        .bind(now)
-        .bind(id.as_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(IdentityError::Database)?;
+        sqlx::query("UPDATE consumers SET status = $1, updated_at = $2 WHERE id = $3")
+            .bind(status.as_str())
+            .bind(now)
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(IdentityError::Database)?;
 
         self.get(id).await
     }
 
     async fn suspend_with_notes(
         &self,
-        id:    ConsumerId,
+        id: ConsumerId,
         notes: Option<String>,
     ) -> Result<ConsumerIdentity, IdentityError> {
         let now = Utc::now();
@@ -158,19 +156,17 @@ impl IdentityRepository for PostgresIdentityRepository {
 
     async fn set_badge(
         &self,
-        id:    ConsumerId,
+        id: ConsumerId,
         badge: Option<VerificationBadge>,
     ) -> Result<ConsumerIdentity, IdentityError> {
         let now = Utc::now();
-        sqlx::query(
-            "UPDATE consumers SET verification_badge = $1, updated_at = $2 WHERE id = $3",
-        )
-        .bind(badge.map(|b| b.as_str()))
-        .bind(now)
-        .bind(id.as_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(IdentityError::Database)?;
+        sqlx::query("UPDATE consumers SET verification_badge = $1, updated_at = $2 WHERE id = $3")
+            .bind(badge.map(|b| b.as_str()))
+            .bind(now)
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(IdentityError::Database)?;
 
         self.get(id).await
     }
@@ -184,18 +180,19 @@ fn identity_from_row(row: IdentityRow) -> Result<ConsumerIdentity, IdentityError
     let status = ConsumerStatus::try_from_str(&row.status)
         .ok_or_else(|| IdentityError::UnknownStatus(row.status))?;
 
-    let verification_badge = row.verification_badge
+    let verification_badge = row
+        .verification_badge
         .as_deref()
         .and_then(VerificationBadge::try_from_str);
 
     Ok(ConsumerIdentity {
-        id:                 ConsumerId::from_uuid(row.id),
-        handle:             row.handle,
-        display_name:       row.display_name,
+        id: ConsumerId::from_uuid(row.id),
+        handle: row.handle,
+        display_name: row.display_name,
         status,
         verification_badge,
-        suspension_notes:   row.suspension_notes,
-        created_at:         row.created_at,
-        updated_at:         row.updated_at,
+        suspension_notes: row.suspension_notes,
+        created_at: row.created_at,
+        updated_at: row.updated_at,
     })
 }

@@ -7,8 +7,7 @@ use thiserror::Error;
 use banzami_types::{Currency, Money, TransactionId};
 
 /// A payment rail or acquirer that can process transactions.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum PaymentRail {
     /// Multicaixa Express — national Angolan scheme
@@ -27,25 +26,24 @@ impl PaymentRail {
     pub const fn as_str(self) -> &'static str {
         match self {
             PaymentRail::MulticaixaExpress => "MULTICAIXA_EXPRESS",
-            PaymentRail::Emis             => "EMIS",
-            PaymentRail::Visa             => "VISA",
-            PaymentRail::Mastercard       => "MASTERCARD",
-            PaymentRail::BankTransfer     => "BANK_TRANSFER",
+            PaymentRail::Emis => "EMIS",
+            PaymentRail::Visa => "VISA",
+            PaymentRail::Mastercard => "MASTERCARD",
+            PaymentRail::BankTransfer => "BANK_TRANSFER",
         }
     }
 }
 
 /// The outcome of a routing decision for a single transaction attempt.
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct RoutingDecision {
     pub transaction_id: TransactionId,
-    pub selected_rail:  PaymentRail,
+    pub selected_rail: PaymentRail,
     /// Expected processing fee for the chosen rail (zero until fee engine is wired).
-    pub expected_fee:   Money,
-    pub currency:       Currency,
+    pub expected_fee: Money,
+    pub currency: Currency,
     /// Rails evaluated but not selected, with the reason for exclusion.
-    pub considered:     Vec<(PaymentRail, String)>,
+    pub considered: Vec<(PaymentRail, String)>,
 }
 
 #[derive(Debug, Error)]

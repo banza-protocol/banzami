@@ -31,9 +31,11 @@ pub async fn get_merchant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id.parse()
+    let merchant_id: MerchantId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-    let record = state.compliance
+    let record = state
+        .compliance
         .get_or_create_merchant(merchant_id)
         .await
         .map_err(compliance_err)?;
@@ -44,9 +46,11 @@ pub async fn approve_merchant(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id.parse()
+    let merchant_id: MerchantId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-    let record = state.compliance
+    let record = state
+        .compliance
         .approve_merchant(merchant_id)
         .await
         .map_err(compliance_err)?;
@@ -63,9 +67,11 @@ pub async fn reject_merchant(
     Path(id): Path<String>,
     Json(body): Json<NotesBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id.parse()
+    let merchant_id: MerchantId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-    let record = state.compliance
+    let record = state
+        .compliance
         .reject_merchant(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;
@@ -77,13 +83,16 @@ pub async fn suspend_merchant(
     Path(id): Path<String>,
     Json(body): Json<NotesBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id.parse()
+    let merchant_id: MerchantId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-    let record = state.compliance
+    let record = state
+        .compliance
         .suspend_merchant(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;
-    state.merchant
+    state
+        .merchant
         .suspend(merchant_id)
         .await
         .map_err(merchant_err)?;
@@ -95,9 +104,11 @@ pub async fn flag_aml(
     Path(id): Path<String>,
     Json(body): Json<NotesBody>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = id.parse()
+    let merchant_id: MerchantId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
-    let record = state.compliance
+    let record = state
+        .compliance
         .flag_merchant_for_aml_review(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;

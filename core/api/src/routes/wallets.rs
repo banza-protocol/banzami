@@ -8,52 +8,63 @@ use serde::{Deserialize, Serialize};
 use banzami_types::{Currency, LedgerEntryId, LedgerPostingId, MerchantId, WalletId};
 use banzami_wallets::{CreateWalletRequest, WalletEngine, WalletError};
 
-use crate::{error::{ApiError, ApiResult}, routes::risk, state::AppState};
+use crate::{
+    error::{ApiError, ApiResult},
+    routes::risk,
+    state::AppState,
+};
 
 #[derive(Deserialize)]
 pub struct CreateWalletBody {
     pub merchant_id: String,
-    pub currency:    String,
+    pub currency: String,
 }
 
 #[derive(Deserialize)]
 pub struct WalletForMerchantQuery {
     pub merchant_id: String,
-    pub currency:    String,
+    pub currency: String,
 }
 
 pub async fn create(
     State(state): State<AppState>,
     Json(body): Json<CreateWalletBody>,
 ) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
-    let merchant_id: MerchantId = body.merchant_id.parse()
+    let merchant_id: MerchantId = body
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     let currency = Currency::from_code(&body.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", body.currency)))?;
 
-    let wallet = state.wallet
-        .create(CreateWalletRequest { merchant_id, currency })
+    let wallet = state
+        .wallet
+        .create(CreateWalletRequest {
+            merchant_id,
+            currency,
+        })
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(serde_json::to_value(&wallet).unwrap())))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::to_value(&wallet).unwrap()),
+    ))
 }
 
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let wallet_id: WalletId = id.parse()
+    let wallet_id: WalletId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
 
-    let wallet = state.wallet
-        .get(wallet_id)
-        .await
-        .map_err(|e| match e {
-            WalletError::NotFound(_) => ApiError::not_found("wallet not found"),
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let wallet = state.wallet.get(wallet_id).await.map_err(|e| match e {
+        WalletError::NotFound(_) => ApiError::not_found("wallet not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&wallet).unwrap()))
 }
@@ -62,16 +73,14 @@ pub async fn balance(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let wallet_id: WalletId = id.parse()
+    let wallet_id: WalletId = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid wallet id"))?;
 
-    let bal = state.wallet
-        .balance(wallet_id)
-        .await
-        .map_err(|e| match e {
-            WalletError::NotFound(_) => ApiError::not_found("wallet not found"),
-            other => ApiError::internal(other.to_string()),
-        })?;
+    let bal = state.wallet.balance(wallet_id).await.map_err(|e| match e {
+        WalletError::NotFound(_) => ApiError::not_found("wallet not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
 
     Ok(Json(serde_json::to_value(&bal).unwrap()))
 }
@@ -83,15 +92,15 @@ pub async fn balance(
 #[derive(Deserialize)]
 pub struct SandboxCreditBody {
     pub amount_minor: i64,
-    pub currency:     Option<String>,
+    pub currency: Option<String>,
 }
 
 #[derive(Serialize)]
 pub struct SandboxCreditResponse {
-    pub wallet_id:    String,
-    pub currency:     String,
+    pub wallet_id: String,
+    pub currency: String,
     pub amount_minor: i64,
-    pub new_balance:  i64,
+    pub new_balance: i64,
 }
 
 /// POST /internal/v1/wallets/:id/sandbox-credit
@@ -138,7 +147,7 @@ pub async fn sandbox_credit(
     .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
 
     let posting_id = LedgerPostingId::new();
-    let now        = chrono::Utc::now();
+    let now = chrono::Utc::now();
 
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -146,7 +155,11 @@ pub async fn sandbox_credit(
     )
     .bind(posting_id.as_uuid())
     .bind("[SANDBOX] Merchant wallet top-up")
-    .bind(format!("sandbox-credit-{}-{}", wallet_id, uuid::Uuid::new_v4()))
+    .bind(format!(
+        "sandbox-credit-{}-{}",
+        wallet_id,
+        uuid::Uuid::new_v4()
+    ))
     .bind(now)
     .execute(&state.pool)
     .await
@@ -190,8 +203,8 @@ pub async fn sandbox_credit(
     );
 
     Ok(Json(SandboxCreditResponse {
-        wallet_id:    wallet_id.to_string(),
-        currency:     currency_code.to_owned(),
+        wallet_id: wallet_id.to_string(),
+        currency: currency_code.to_owned(),
         amount_minor: body.amount_minor,
         new_balance,
     }))
@@ -204,16 +217,16 @@ pub async fn sandbox_credit(
 #[derive(Deserialize)]
 pub struct AdminCreditBody {
     pub amount_minor: i64,
-    pub currency:     Option<String>,
-    pub reason:       String,
+    pub currency: Option<String>,
+    pub reason: String,
 }
 
 #[derive(Serialize)]
 pub struct AdminCreditResponse {
-    pub wallet_id:    String,
-    pub currency:     String,
+    pub wallet_id: String,
+    pub currency: String,
     pub amount_minor: i64,
-    pub new_balance:  i64,
+    pub new_balance: i64,
 }
 
 /// POST /internal/v1/wallets/:id/admin-credit
@@ -258,7 +271,7 @@ pub async fn admin_credit(
     .ok_or_else(|| ApiError::not_found("wallet not found or not active"))?;
 
     let posting_id = LedgerPostingId::new();
-    let now        = chrono::Utc::now();
+    let now = chrono::Utc::now();
     let description = format!("[ADMIN] Manual wallet credit — {}", body.reason.trim());
 
     sqlx::query(
@@ -267,7 +280,11 @@ pub async fn admin_credit(
     )
     .bind(posting_id.as_uuid())
     .bind(&description)
-    .bind(format!("admin-credit-{}-{}", wallet_id, uuid::Uuid::new_v4()))
+    .bind(format!(
+        "admin-credit-{}-{}",
+        wallet_id,
+        uuid::Uuid::new_v4()
+    ))
     .bind(now)
     .execute(&state.pool)
     .await
@@ -316,7 +333,8 @@ pub async fn admin_credit(
             "posting_id":   posting_id.as_uuid().to_string(),
         }),
         None,
-    ).await;
+    )
+    .await;
 
     tracing::info!(
         wallet_id    = %wallet_id,
@@ -327,8 +345,8 @@ pub async fn admin_credit(
     );
 
     Ok(Json(AdminCreditResponse {
-        wallet_id:    wallet_id.to_string(),
-        currency:     currency_code.to_owned(),
+        wallet_id: wallet_id.to_string(),
+        currency: currency_code.to_owned(),
         amount_minor: body.amount_minor,
         new_balance,
     }))
@@ -339,17 +357,22 @@ pub async fn get_for_merchant(
     State(state): State<AppState>,
     Query(q): Query<WalletForMerchantQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let merchant_id: MerchantId = q.merchant_id.parse()
+    let merchant_id: MerchantId = q
+        .merchant_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
 
     let currency = Currency::from_code(&q.currency)
         .ok_or_else(|| ApiError::bad_request(format!("unsupported currency: {}", q.currency)))?;
 
-    let wallet = state.wallet
+    let wallet = state
+        .wallet
         .get_for_merchant(merchant_id, currency)
         .await
         .map_err(|e| match e {
-            WalletError::NoWalletForMerchant { .. } => ApiError::not_found("no wallet for this merchant and currency"),
+            WalletError::NoWalletForMerchant { .. } => {
+                ApiError::not_found("no wallet for this merchant and currency")
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 

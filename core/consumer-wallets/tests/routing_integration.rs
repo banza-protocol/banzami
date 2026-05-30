@@ -16,37 +16,40 @@ use banzami_consumer_wallets::{
     PostgresConsumerWalletEngine, PostgresConsumerWalletRepository, PostgresOnboardingRepository,
     RoutingStatus, StartOnboardingRequest, VerifyOtpRequest,
 };
-use banzami_ledger::{PostgresLedgerRepository};
+use banzami_ledger::PostgresLedgerRepository;
 use banzami_types::Currency;
 
 fn engine(pool: PgPool) -> impl ConsumerWalletEngine {
-    let ledger       = Arc::new(PostgresLedgerRepository::new(pool.clone()));
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let onboard_repo = PostgresOnboardingRepository::new(pool.clone());
-    let wallet_repo  = PostgresConsumerWalletRepository::new(pool.clone());
+    let wallet_repo = PostgresConsumerWalletRepository::new(pool.clone());
     PostgresConsumerWalletEngine::with_pool(pool, ledger, onboard_repo, wallet_repo)
 }
 
-async fn activate_wallet(
-    eng:    &impl ConsumerWalletEngine,
-    phone:  &str,
-    handle: &str,
-) {
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           phone.into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("123456".into()),
-    }).await.unwrap();
+async fn activate_wallet(eng: &impl ConsumerWalletEngine, phone: &str, handle: &str) {
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: phone.into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("123456".into()),
+        })
+        .await
+        .unwrap();
 
     eng.verify_otp(VerifyOtpRequest {
         session_id: session.id,
-        otp_code:   "123456".into(),
-    }).await.unwrap();
+        otp_code: "123456".into(),
+    })
+    .await
+    .unwrap();
 
     eng.complete_onboarding(CompleteOnboardingRequest {
-        session_id:   session.id,
+        session_id: session.id,
         banza_handle: handle.into(),
-        pin:          "0000".into(),
-    }).await.unwrap();
+        pin: "0000".into(),
+    })
+    .await
+    .unwrap();
 }
 
 // ── 1. Valid active handle resolves ─────────────────────────────────────────
@@ -56,7 +59,10 @@ async fn valid_active_handle_resolves(pool: PgPool) {
     let eng = engine(pool);
     activate_wallet(&eng, "+244911000101", "ana_routing").await;
 
-    let dest = eng.resolve_to_wallet("@ana_routing", Currency::AOA).await.unwrap();
+    let dest = eng
+        .resolve_to_wallet("@ana_routing", Currency::AOA)
+        .await
+        .unwrap();
 
     assert_eq!(dest.normalized_handle, "ana_routing");
     assert_eq!(dest.routing_status, RoutingStatus::Routable);
@@ -68,8 +74,14 @@ async fn valid_active_handle_resolves(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn unknown_handle_rejected(pool: PgPool) {
     let eng = engine(pool);
-    let err = eng.resolve_to_wallet("nobody_at_all", Currency::AOA).await.unwrap_err();
-    assert!(matches!(err, ConsumerWalletError::HandleNotFound(_)), "got: {err:?}");
+    let err = eng
+        .resolve_to_wallet("nobody_at_all", Currency::AOA)
+        .await
+        .unwrap_err();
+    assert!(
+        matches!(err, ConsumerWalletError::HandleNotFound(_)),
+        "got: {err:?}"
+    );
 }
 
 // ── 3. Malformed handle rejected before DB hit ───────────────────────────────
@@ -94,9 +106,18 @@ async fn normalized_variants_resolve_identically(pool: PgPool) {
     let eng = engine(pool);
     activate_wallet(&eng, "+244911000102", "carlos").await;
 
-    let d1 = eng.resolve_to_wallet("carlos", Currency::AOA).await.unwrap();
-    let d2 = eng.resolve_to_wallet("@Carlos", Currency::AOA).await.unwrap();
-    let d3 = eng.resolve_to_wallet("  @CARLOS  ", Currency::AOA).await.unwrap();
+    let d1 = eng
+        .resolve_to_wallet("carlos", Currency::AOA)
+        .await
+        .unwrap();
+    let d2 = eng
+        .resolve_to_wallet("@Carlos", Currency::AOA)
+        .await
+        .unwrap();
+    let d3 = eng
+        .resolve_to_wallet("  @CARLOS  ", Currency::AOA)
+        .await
+        .unwrap();
 
     assert_eq!(d1.wallet_id, d2.wallet_id);
     assert_eq!(d1.wallet_id, d3.wallet_id);
@@ -115,8 +136,11 @@ async fn locked_wallet_can_receive(pool: PgPool) {
     // Lock the wallet via DB (5 PIN failures pathway).
     // Use the engine's internal `wallets.lock_wallet` through a raw pool query.
     // Simpler: resolve first to get wallet_id, then inject LOCKED status via SQL.
-    let dest_before = eng.resolve_to_wallet("rui_locked", Currency::AOA).await.unwrap();
-    let wallet_id   = dest_before.wallet_id;
+    let dest_before = eng
+        .resolve_to_wallet("rui_locked", Currency::AOA)
+        .await
+        .unwrap();
+    let wallet_id = dest_before.wallet_id;
 
     // Directly set status to LOCKED using sqlx — simulating 5 PIN failures.
     // (The lock_wallet() method is on the repo; here we simulate via the engine's
@@ -140,8 +164,11 @@ async fn can_receive_is_false_after_wallet_unavailable(pool: PgPool) {
     let eng = engine(pool);
     activate_wallet(&eng, "+244911000104", "lucia_recv").await;
 
-    let dest = eng.resolve_to_wallet("lucia_recv", Currency::AOA).await.unwrap();
-    let ok   = eng.can_receive(dest.wallet_id).await.unwrap();
+    let dest = eng
+        .resolve_to_wallet("lucia_recv", Currency::AOA)
+        .await
+        .unwrap();
+    let ok = eng.can_receive(dest.wallet_id).await.unwrap();
     assert!(ok);
 }
 
@@ -153,10 +180,9 @@ async fn resolve_many_returns_all_results(pool: PgPool) {
     activate_wallet(&eng, "+244911000105", "manuel").await;
     activate_wallet(&eng, "+244911000106", "fatima").await;
 
-    let results = eng.resolve_many(
-        &["@Manuel", "fatima", "nobody_here"],
-        Currency::AOA,
-    ).await;
+    let results = eng
+        .resolve_many(&["@Manuel", "fatima", "nobody_here"], Currency::AOA)
+        .await;
 
     assert_eq!(results.len(), 3);
 
@@ -183,22 +209,30 @@ async fn no_duplicate_active_wallet_per_handle(pool: PgPool) {
     activate_wallet(&eng, "+244911000107", "pedro_unique").await;
 
     // Attempting to re-register the same handle must fail.
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           "+244911000108".into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("111111".into()),
-    }).await.unwrap();
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: "+244911000108".into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("111111".into()),
+        })
+        .await
+        .unwrap();
 
     eng.verify_otp(VerifyOtpRequest {
         session_id: session.id,
-        otp_code:   "111111".into(),
-    }).await.unwrap();
+        otp_code: "111111".into(),
+    })
+    .await
+    .unwrap();
 
-    let err = eng.complete_onboarding(banzami_consumer_wallets::CompleteOnboardingRequest {
-        session_id:   session.id,
-        banza_handle: "pedro_unique".into(),
-        pin:          "9999".into(),
-    }).await.unwrap_err();
+    let err = eng
+        .complete_onboarding(banzami_consumer_wallets::CompleteOnboardingRequest {
+            session_id: session.id,
+            banza_handle: "pedro_unique".into(),
+            pin: "9999".into(),
+        })
+        .await
+        .unwrap_err();
 
     assert!(
         matches!(err, ConsumerWalletError::HandleTaken(_)),
@@ -213,7 +247,10 @@ async fn routing_object_has_canonical_fields(pool: PgPool) {
     let eng = engine(pool);
     activate_wallet(&eng, "+244911000109", "sofia_check").await;
 
-    let dest = eng.resolve_to_wallet("sofia_check", Currency::AOA).await.unwrap();
+    let dest = eng
+        .resolve_to_wallet("sofia_check", Currency::AOA)
+        .await
+        .unwrap();
 
     // All required fields present and coherent.
     assert_eq!(dest.normalized_handle, "sofia_check");
@@ -223,7 +260,10 @@ async fn routing_object_has_canonical_fields(pool: PgPool) {
     // consumer_id and wallet_id are UUIDs — not the same value.
     assert_ne!(dest.consumer_id.to_string(), dest.wallet_id.to_string());
     // activated_at is set because the wallet completed onboarding.
-    assert!(dest.activated_at.is_some(), "activated_at must be set for ACTIVE wallet");
+    assert!(
+        dest.activated_at.is_some(),
+        "activated_at must be set for ACTIVE wallet"
+    );
 }
 
 // ── 10. Concurrent resolution remains deterministic (INV-HDL-002-5) ──────────
@@ -250,5 +290,9 @@ async fn concurrent_resolution_is_deterministic(pool: PgPool) {
         wallet_ids.insert(dest.wallet_id);
     }
 
-    assert_eq!(wallet_ids.len(), 1, "all concurrent resolutions must return the same wallet_id");
+    assert_eq!(
+        wallet_ids.len(),
+        1,
+        "all concurrent resolutions must return the same wallet_id"
+    );
 }

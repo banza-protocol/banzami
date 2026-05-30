@@ -20,32 +20,32 @@ use crate::{
 
 #[derive(sqlx::FromRow)]
 struct EntryRow {
-    id:           Uuid,
-    posting_id:   Uuid,
-    account_id:   Uuid,
-    entry_type:   String,
+    id: Uuid,
+    posting_id: Uuid,
+    account_id: Uuid,
+    entry_type: String,
     amount_minor: i64,
-    currency:     String,
-    created_at:   DateTime<Utc>,
+    currency: String,
+    created_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
 struct BalanceRow {
     net_minor: i64,
-    currency:  String,
+    currency: String,
 }
 
 #[derive(sqlx::FromRow)]
 struct PostingHeaderRow {
-    id:              Uuid,
-    description:     String,
+    id: Uuid,
+    description: String,
     idempotency_key: String,
-    created_at:      DateTime<Utc>,
+    created_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
 struct AccountCurrencyRow {
-    id:       Uuid,
+    id: Uuid,
     currency: String,
 }
 
@@ -128,9 +128,9 @@ impl LedgerEngine for PostgresLedgerRepository {
             if declared != entry.amount.currency {
                 tx.rollback().await.ok();
                 return Err(LedgerError::AccountCurrencyMismatch {
-                    account:  entry.account_id,
+                    account: entry.account_id,
                     expected: declared,
-                    got:      entry.amount.currency,
+                    got: entry.amount.currency,
                 });
             }
         }
@@ -183,11 +183,11 @@ impl LedgerEngine for PostgresLedgerRepository {
                     .collect::<Result<_, _>>()?;
 
                 return Ok(LedgerPosting {
-                    id:              existing_id,
+                    id: existing_id,
                     entries,
-                    description:     header.description,
+                    description: header.description,
                     idempotency_key: header.idempotency_key,
-                    created_at:      header.created_at,
+                    created_at: header.created_at,
                 });
             }
             Err(e) => {
@@ -238,13 +238,13 @@ impl LedgerEngine for PostgresLedgerRepository {
         let mut builder = PostingBuilder::new(description.into(), new_idempotency_key.into());
         for entry in &original.entries {
             builder = match entry.entry_type {
-                EntryType::Debit  => builder.credit(entry.account_id, entry.amount),
+                EntryType::Debit => builder.credit(entry.account_id, entry.amount),
                 EntryType::Credit => builder.debit(entry.account_id, entry.amount),
             };
         }
         let reversal = builder.build().map_err(|e| match e {
             PostingError::InsufficientEntries => LedgerError::InsufficientEntries,
-            PostingError::Ledger(l)           => l,
+            PostingError::Ledger(l) => l,
         })?;
 
         tracing::info!(
@@ -256,10 +256,7 @@ impl LedgerEngine for PostgresLedgerRepository {
         self.post(reversal).await
     }
 
-    async fn get_posting(
-        &self,
-        posting_id: LedgerPostingId,
-    ) -> Result<LedgerPosting, LedgerError> {
+    async fn get_posting(&self, posting_id: LedgerPostingId) -> Result<LedgerPosting, LedgerError> {
         let header = sqlx::query_as::<_, PostingHeaderRow>(
             "SELECT id, description, idempotency_key, created_at
              FROM ledger_postings
@@ -286,11 +283,11 @@ impl LedgerEngine for PostgresLedgerRepository {
             .collect::<Result<_, _>>()?;
 
         Ok(LedgerPosting {
-            id:              LedgerPostingId::from_uuid(header.id),
+            id: LedgerPostingId::from_uuid(header.id),
             entries,
-            description:     header.description,
+            description: header.description,
             idempotency_key: header.idempotency_key,
-            created_at:      header.created_at,
+            created_at: header.created_at,
         })
     }
 
@@ -355,11 +352,11 @@ fn entry_from_row(row: EntryRow) -> Result<LedgerEntry, LedgerError> {
         .ok_or_else(|| LedgerError::UnknownCurrency(row.currency.clone()))?;
 
     Ok(LedgerEntry {
-        id:          LedgerEntryId::from_uuid(row.id),
-        posting_id:  LedgerPostingId::from_uuid(row.posting_id),
-        account_id:  AccountId::from_uuid(row.account_id),
+        id: LedgerEntryId::from_uuid(row.id),
+        posting_id: LedgerPostingId::from_uuid(row.posting_id),
+        account_id: AccountId::from_uuid(row.account_id),
         entry_type,
-        amount:      Money::new(row.amount_minor, currency),
-        created_at:  row.created_at,
+        amount: Money::new(row.amount_minor, currency),
+        created_at: row.created_at,
     })
 }

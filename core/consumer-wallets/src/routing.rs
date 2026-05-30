@@ -22,8 +22,7 @@ use crate::wallet::ConsumerWalletStatus;
 /// | CLOSED       | Wallet permanently closed — no inbound transfers allowed            |
 /// | PENDING_KYC  | Wallet active but KYC incomplete — inbound may be restricted       |
 /// | UNREACHABLE  | Onboarding state — no ledger footprint, cannot receive money        |
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum RoutingStatus {
     Routable,
@@ -37,10 +36,10 @@ pub enum RoutingStatus {
 impl RoutingStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            RoutingStatus::Routable   => "ROUTABLE",
-            RoutingStatus::Locked     => "LOCKED",
-            RoutingStatus::Suspended  => "SUSPENDED",
-            RoutingStatus::Closed     => "CLOSED",
+            RoutingStatus::Routable => "ROUTABLE",
+            RoutingStatus::Locked => "LOCKED",
+            RoutingStatus::Suspended => "SUSPENDED",
+            RoutingStatus::Closed => "CLOSED",
             RoutingStatus::PendingKyc => "PENDING_KYC",
             RoutingStatus::Unreachable => "UNREACHABLE",
         }
@@ -58,12 +57,14 @@ impl RoutingStatus {
 /// refines the routing outcome.
 pub fn routing_status_from_wallet(wallet_status: ConsumerWalletStatus) -> RoutingStatus {
     match wallet_status {
-        ConsumerWalletStatus::Active     => RoutingStatus::Routable,
-        ConsumerWalletStatus::Locked     => RoutingStatus::Locked,
-        ConsumerWalletStatus::Suspended  => RoutingStatus::Suspended,
-        ConsumerWalletStatus::Closed     => RoutingStatus::Closed,
+        ConsumerWalletStatus::Active => RoutingStatus::Routable,
+        ConsumerWalletStatus::Locked => RoutingStatus::Locked,
+        ConsumerWalletStatus::Suspended => RoutingStatus::Suspended,
+        ConsumerWalletStatus::Closed => RoutingStatus::Closed,
         // Onboarding states have no ledger footprint — unreachable for money movement
-        ConsumerWalletStatus::PendingOtp | ConsumerWalletStatus::PendingPin => RoutingStatus::Unreachable,
+        ConsumerWalletStatus::PendingOtp | ConsumerWalletStatus::PendingPin => {
+            RoutingStatus::Unreachable
+        }
     }
 }
 
@@ -82,16 +83,15 @@ pub fn routing_status_from_wallet(wallet_status: ConsumerWalletStatus) -> Routin
 /// When `routing_status == ROUTABLE`, the wallet at `wallet_id` accepts inbound transfers.
 /// When `routing_status == LOCKED`, the wallet can receive but the owner cannot initiate sends.
 /// All other routing states are returned as errors by `resolve_to_wallet`.
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WalletRoutingDestination {
-    pub consumer_id:       ConsumerId,
-    pub wallet_id:         ConsumerWalletId,
+    pub consumer_id: ConsumerId,
+    pub wallet_id: ConsumerWalletId,
     pub normalized_handle: String,
-    pub display_name:      Option<String>,
-    pub currency:          Currency,
-    pub wallet_status:     ConsumerWalletStatus,
-    pub routing_status:    RoutingStatus,
+    pub display_name: Option<String>,
+    pub currency: Currency,
+    pub wallet_status: ConsumerWalletStatus,
+    pub routing_status: RoutingStatus,
     /// When the wallet was activated (transitioned to ACTIVE). None during onboarding.
-    pub activated_at:      Option<DateTime<Utc>>,
+    pub activated_at: Option<DateTime<Utc>>,
 }

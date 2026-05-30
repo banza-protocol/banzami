@@ -23,9 +23,9 @@ impl RiskLimits {
     /// Conservative defaults suitable for an early-stage deployment.
     pub fn conservative() -> Self {
         Self {
-            max_single_amount_minor: 500_000_00, // 500 000 Kz
-            max_hourly_count:        100,
-            max_daily_amount_minor:  5_000_000_00, // 5 000 000 Kz
+            max_single_amount_minor: 50_000_000, // 500 000 Kz
+            max_hourly_count: 100,
+            max_daily_amount_minor: 500_000_000, // 5 000 000 Kz
         }
     }
 }
@@ -51,9 +51,9 @@ pub struct RiskContext {
 
 pub struct RiskRequest {
     pub transaction_id: TransactionId,
-    pub merchant_id:    MerchantId,
-    pub amount:         Money,
-    pub context:        RiskContext,
+    pub merchant_id: MerchantId,
+    pub amount: Money,
+    pub context: RiskContext,
 }
 
 // ---------------------------------------------------------------------------
@@ -88,11 +88,11 @@ impl RiskEngine for StaticRiskEngine {
         let lim = &self.limits;
         let amount_minor = req.amount.amount_minor();
 
-        let amount_exceeds_limit = lim.max_single_amount_minor > 0
-            && amount_minor > lim.max_single_amount_minor;
+        let amount_exceeds_limit =
+            lim.max_single_amount_minor > 0 && amount_minor > lim.max_single_amount_minor;
 
-        let hourly_velocity_breach = lim.max_hourly_count > 0
-            && req.context.hourly_count >= lim.max_hourly_count;
+        let hourly_velocity_breach =
+            lim.max_hourly_count > 0 && req.context.hourly_count >= lim.max_hourly_count;
 
         let daily_amount_breach = lim.max_daily_amount_minor > 0
             && req.context.daily_amount_minor.saturating_add(amount_minor)
@@ -129,12 +129,12 @@ impl RiskEngine for StaticRiskEngine {
 
         Ok(RiskAssessment {
             transaction_id: req.transaction_id,
-            merchant_id:    req.merchant_id,
-            amount:         req.amount,
+            merchant_id: req.merchant_id,
+            amount: req.amount,
             decision,
             signals,
             decline_reason,
-            assessed_at:    Utc::now(),
+            assessed_at: Utc::now(),
         })
     }
 }
@@ -157,20 +157,26 @@ mod tests {
     fn req(amount: Money, context: RiskContext) -> RiskRequest {
         RiskRequest {
             transaction_id: TransactionId::new(),
-            merchant_id:    MerchantId::new(),
+            merchant_id: MerchantId::new(),
             amount,
             context,
         }
     }
 
     fn clean_ctx() -> RiskContext {
-        RiskContext { hourly_count: 0, daily_amount_minor: 0 }
+        RiskContext {
+            hourly_count: 0,
+            daily_amount_minor: 0,
+        }
     }
 
     #[tokio::test]
     async fn within_all_limits_is_allowed() {
         let engine = StaticRiskEngine::conservative();
-        let assessment = engine.evaluate(req(kz(50_000_00), clean_ctx())).await.unwrap();
+        let assessment = engine
+            .evaluate(req(kz(5_000_000), clean_ctx()))
+            .await
+            .unwrap();
         assert_eq!(assessment.decision, RiskDecision::Allow);
         assert!(assessment.decline_reason.is_none());
     }
@@ -179,10 +185,13 @@ mod tests {
     async fn amount_exceeds_single_limit_is_declined() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 100_000,
-            max_hourly_count:        0,
-            max_daily_amount_minor:  0,
+            max_hourly_count: 0,
+            max_daily_amount_minor: 0,
         });
-        let assessment = engine.evaluate(req(kz(100_001), clean_ctx())).await.unwrap();
+        let assessment = engine
+            .evaluate(req(kz(100_001), clean_ctx()))
+            .await
+            .unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
         assert!(assessment.signals.amount_exceeds_limit);
     }
@@ -191,10 +200,13 @@ mod tests {
     async fn hourly_velocity_breach_is_declined() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 0,
-            max_hourly_count:        10,
-            max_daily_amount_minor:  0,
+            max_hourly_count: 10,
+            max_daily_amount_minor: 0,
         });
-        let ctx = RiskContext { hourly_count: 10, daily_amount_minor: 0 };
+        let ctx = RiskContext {
+            hourly_count: 10,
+            daily_amount_minor: 0,
+        };
         let assessment = engine.evaluate(req(kz(1_000), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
         assert!(assessment.signals.hourly_velocity_breach);
@@ -204,10 +216,13 @@ mod tests {
     async fn daily_amount_would_exceed_limit_is_declined() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 0,
-            max_hourly_count:        0,
-            max_daily_amount_minor:  1_000_000,
+            max_hourly_count: 0,
+            max_daily_amount_minor: 1_000_000,
         });
-        let ctx = RiskContext { hourly_count: 0, daily_amount_minor: 999_001 };
+        let ctx = RiskContext {
+            hourly_count: 0,
+            daily_amount_minor: 999_001,
+        };
         // 999_001 + 1_000 = 1_000_001 > 1_000_000
         let assessment = engine.evaluate(req(kz(1_000), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
@@ -218,8 +233,8 @@ mod tests {
     async fn zero_limits_means_no_checks() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 0,
-            max_hourly_count:        0,
-            max_daily_amount_minor:  0,
+            max_hourly_count: 0,
+            max_daily_amount_minor: 0,
         });
         // Enormous amount — should still be allowed because all limits are 0 (disabled)
         let assessment = engine
@@ -233,11 +248,14 @@ mod tests {
     async fn exactly_at_hourly_limit_is_declined() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 0,
-            max_hourly_count:        5,
-            max_daily_amount_minor:  0,
+            max_hourly_count: 5,
+            max_daily_amount_minor: 0,
         });
         // hourly_count == max → breach (>= comparison)
-        let ctx = RiskContext { hourly_count: 5, daily_amount_minor: 0 };
+        let ctx = RiskContext {
+            hourly_count: 5,
+            daily_amount_minor: 0,
+        };
         let assessment = engine.evaluate(req(kz(100), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
     }
@@ -246,10 +264,13 @@ mod tests {
     async fn one_below_hourly_limit_is_allowed() {
         let engine = StaticRiskEngine::new(RiskLimits {
             max_single_amount_minor: 0,
-            max_hourly_count:        5,
-            max_daily_amount_minor:  0,
+            max_hourly_count: 5,
+            max_daily_amount_minor: 0,
         });
-        let ctx = RiskContext { hourly_count: 4, daily_amount_minor: 0 };
+        let ctx = RiskContext {
+            hourly_count: 4,
+            daily_amount_minor: 0,
+        };
         let assessment = engine.evaluate(req(kz(100), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Allow);
     }

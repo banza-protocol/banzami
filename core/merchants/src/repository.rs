@@ -26,11 +26,8 @@ pub trait MerchantRepository: Send + Sync {
         status: MerchantStatus,
     ) -> Result<Merchant, MerchantError>;
 
-    async fn set_verified(
-        &self,
-        id:       MerchantId,
-        verified: bool,
-    ) -> Result<Merchant, MerchantError>;
+    async fn set_verified(&self, id: MerchantId, verified: bool)
+        -> Result<Merchant, MerchantError>;
 
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 }
@@ -38,7 +35,10 @@ pub trait MerchantRepository: Send + Sync {
 #[allow(async_fn_in_trait)]
 pub trait ApiKeyRepository: Send + Sync {
     async fn create(&self, key: ApiKey) -> Result<ApiKey, MerchantError>;
-    async fn list_for_merchant(&self, merchant_id: MerchantId) -> Result<Vec<ApiKey>, MerchantError>;
+    async fn list_for_merchant(
+        &self,
+        merchant_id: MerchantId,
+    ) -> Result<Vec<ApiKey>, MerchantError>;
     async fn get(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError>;
     async fn find_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>, MerchantError>;
     async fn revoke(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError>;
@@ -51,26 +51,26 @@ pub trait ApiKeyRepository: Send + Sync {
 
 #[derive(sqlx::FromRow)]
 struct MerchantRow {
-    id:         Uuid,
-    name:       String,
-    email:      String,
-    status:     String,
-    verified:   bool,
+    id: Uuid,
+    name: String,
+    email: String,
+    status: String,
+    verified: bool,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
 
 #[derive(sqlx::FromRow)]
 struct ApiKeyRow {
-    id:           Uuid,
-    merchant_id:  Uuid,
-    name:         String,
-    key_prefix:   String,
-    key_hash:     String,
-    environment:  String,
-    created_at:   DateTime<Utc>,
+    id: Uuid,
+    merchant_id: Uuid,
+    name: String,
+    key_prefix: String,
+    key_hash: String,
+    environment: String,
+    created_at: DateTime<Utc>,
     last_used_at: Option<DateTime<Utc>>,
-    revoked_at:   Option<DateTime<Utc>>,
+    revoked_at: Option<DateTime<Utc>>,
 }
 
 // ---------------------------------------------------------------------------
@@ -120,9 +120,7 @@ impl MerchantRepository for PostgresMerchantRepository {
         .await;
 
         match result {
-            Err(sqlx::Error::Database(ref e))
-                if e.constraint() == Some("merchants_email_key") =>
-            {
+            Err(sqlx::Error::Database(ref e)) if e.constraint() == Some("merchants_email_key") => {
                 return Err(MerchantError::DuplicateEmail(m.email.clone()));
             }
             Err(e) => return Err(MerchantError::Database(e)),
@@ -179,34 +177,30 @@ impl MerchantRepository for PostgresMerchantRepository {
         status: MerchantStatus,
     ) -> Result<Merchant, MerchantError> {
         let now = chrono::Utc::now();
-        sqlx::query(
-            "UPDATE merchants SET status = $1, updated_at = $2 WHERE id = $3",
-        )
-        .bind(status.as_str())
-        .bind(now)
-        .bind(id.as_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(MerchantError::Database)?;
+        sqlx::query("UPDATE merchants SET status = $1, updated_at = $2 WHERE id = $3")
+            .bind(status.as_str())
+            .bind(now)
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(MerchantError::Database)?;
 
         self.get(id).await
     }
 
     async fn set_verified(
         &self,
-        id:       MerchantId,
+        id: MerchantId,
         verified: bool,
     ) -> Result<Merchant, MerchantError> {
         let now = chrono::Utc::now();
-        sqlx::query(
-            "UPDATE merchants SET verified = $1, updated_at = $2 WHERE id = $3",
-        )
-        .bind(verified)
-        .bind(now)
-        .bind(id.as_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(MerchantError::Database)?;
+        sqlx::query("UPDATE merchants SET verified = $1, updated_at = $2 WHERE id = $3")
+            .bind(verified)
+            .bind(now)
+            .bind(id.as_uuid())
+            .execute(&self.pool)
+            .await
+            .map_err(MerchantError::Database)?;
 
         self.get(id).await
     }
@@ -215,11 +209,12 @@ impl MerchantRepository for PostgresMerchantRepository {
         let mut tx = self.pool.begin().await.map_err(MerchantError::Database)?;
 
         // Verify the merchant exists before cascading deletes.
-        let exists: bool = sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM merchants WHERE id = $1)")
-            .bind(id.as_uuid())
-            .fetch_one(&mut *tx)
-            .await
-            .map_err(MerchantError::Database)?;
+        let exists: bool =
+            sqlx::query_scalar("SELECT EXISTS(SELECT 1 FROM merchants WHERE id = $1)")
+                .bind(id.as_uuid())
+                .fetch_one(&mut *tx)
+                .await
+                .map_err(MerchantError::Database)?;
 
         if !exists {
             return Err(MerchantError::NotFound(id));
@@ -306,28 +301,25 @@ impl ApiKeyRepository for PostgresApiKeyRepository {
     }
 
     async fn find_by_hash(&self, key_hash: &str) -> Result<Option<ApiKey>, MerchantError> {
-        let row = sqlx::query_as::<_, ApiKeyRow>(&format!(
-            "{API_KEY_SELECT} WHERE key_hash = $1"
-        ))
-        .bind(key_hash)
-        .fetch_optional(&self.pool)
-        .await
-        .map_err(MerchantError::Database)?;
+        let row = sqlx::query_as::<_, ApiKeyRow>(&format!("{API_KEY_SELECT} WHERE key_hash = $1"))
+            .bind(key_hash)
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(MerchantError::Database)?;
 
         row.map(api_key_from_row).transpose()
     }
 
     async fn revoke(&self, id: ApiKeyId) -> Result<ApiKey, MerchantError> {
         let now = chrono::Utc::now();
-        let affected = sqlx::query(
-            "UPDATE api_keys SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL",
-        )
-        .bind(now)
-        .bind(id.as_uuid())
-        .execute(&self.pool)
-        .await
-        .map_err(MerchantError::Database)?
-        .rows_affected();
+        let affected =
+            sqlx::query("UPDATE api_keys SET revoked_at = $1 WHERE id = $2 AND revoked_at IS NULL")
+                .bind(now)
+                .bind(id.as_uuid())
+                .execute(&self.pool)
+                .await
+                .map_err(MerchantError::Database)?
+                .rows_affected();
 
         if affected == 0 {
             return Err(MerchantError::ApiKeyNotFound(id));
@@ -356,11 +348,11 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
         .ok_or_else(|| MerchantError::UnknownStatus(row.status.clone()))?;
 
     Ok(Merchant {
-        id:         MerchantId::from_uuid(row.id),
-        name:       row.name,
-        email:      row.email,
+        id: MerchantId::from_uuid(row.id),
+        name: row.name,
+        email: row.email,
         status,
-        verified:   row.verified,
+        verified: row.verified,
         created_at: row.created_at,
         updated_at: row.updated_at,
     })
@@ -369,17 +361,17 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
 fn api_key_from_row(row: ApiKeyRow) -> Result<ApiKey, MerchantError> {
     let environment = match row.environment.as_str() {
         "SANDBOX" => ApiKeyEnvironment::Sandbox,
-        _         => ApiKeyEnvironment::Live,
+        _ => ApiKeyEnvironment::Live,
     };
     Ok(ApiKey {
-        id:           ApiKeyId::from_uuid(row.id),
-        merchant_id:  MerchantId::from_uuid(row.merchant_id),
-        name:         row.name,
-        key_prefix:   row.key_prefix,
+        id: ApiKeyId::from_uuid(row.id),
+        merchant_id: MerchantId::from_uuid(row.merchant_id),
+        name: row.name,
+        key_prefix: row.key_prefix,
         environment,
-        key_hash:     row.key_hash,
-        created_at:   row.created_at,
+        key_hash: row.key_hash,
+        created_at: row.created_at,
         last_used_at: row.last_used_at,
-        revoked_at:   row.revoked_at,
+        revoked_at: row.revoked_at,
     })
 }

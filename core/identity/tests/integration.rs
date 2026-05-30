@@ -1,6 +1,6 @@
 use banzami_identity::{
-    ConsumerStatus, CreateConsumerRequest, IdentityEngine, IdentityError,
-    PostgresIdentityEngine, PostgresIdentityRepository,
+    ConsumerStatus, CreateConsumerRequest, IdentityEngine, IdentityError, PostgresIdentityEngine,
+    PostgresIdentityRepository,
 };
 use sqlx::PgPool;
 
@@ -15,7 +15,7 @@ async fn valid_handle_registers(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
         .create(CreateConsumerRequest {
-            handle:       "ana_silva".into(),
+            handle: "ana_silva".into(),
             display_name: Some("Ana Silva".into()),
         })
         .await
@@ -30,12 +30,18 @@ async fn valid_handle_registers(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn duplicate_handle_rejected(pool: PgPool) {
     let eng = make_engine(pool);
-    eng.create(CreateConsumerRequest { handle: "carlos".into(), display_name: None })
-        .await
-        .unwrap();
+    eng.create(CreateConsumerRequest {
+        handle: "carlos".into(),
+        display_name: None,
+    })
+    .await
+    .unwrap();
 
     let err = eng
-        .create(CreateConsumerRequest { handle: "carlos".into(), display_name: None })
+        .create(CreateConsumerRequest {
+            handle: "carlos".into(),
+            display_name: None,
+        })
         .await
         .unwrap_err();
 
@@ -47,13 +53,19 @@ async fn duplicate_handle_rejected(pool: PgPool) {
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn normalization_collision_rejected(pool: PgPool) {
     let eng = make_engine(pool);
-    eng.create(CreateConsumerRequest { handle: "@Carlos".into(), display_name: None })
-        .await
-        .unwrap();
+    eng.create(CreateConsumerRequest {
+        handle: "@Carlos".into(),
+        display_name: None,
+    })
+    .await
+    .unwrap();
 
     // "@carlos" normalizes to "carlos" — same as the first registration
     let err = eng
-        .create(CreateConsumerRequest { handle: "@CARLOS".into(), display_name: None })
+        .create(CreateConsumerRequest {
+            handle: "@CARLOS".into(),
+            display_name: None,
+        })
         .await
         .unwrap_err();
 
@@ -67,7 +79,10 @@ async fn reserved_handle_rejected(pool: PgPool) {
     let eng = make_engine(pool);
     for reserved in &["admin", "banza", "emis", "multicaixa", "bna"] {
         let err = eng
-            .create(CreateConsumerRequest { handle: reserved.to_string(), display_name: None })
+            .create(CreateConsumerRequest {
+                handle: reserved.to_string(),
+                display_name: None,
+            })
             .await
             .unwrap_err();
         assert!(
@@ -91,13 +106,16 @@ async fn invalid_syntax_rejected(pool: PgPool) {
         "foo__bar",        // consecutive underscores
         "foo_",            // trailing underscore
         "héros",           // non-ASCII characters
-        // Note: "Abc" normalizes to "abc" (valid) — uppercase is normalized, not rejected
-        // Note: "@handle" normalizes to "handle" (valid) — @ prefix is stripped, not rejected
+                           // Note: "Abc" normalizes to "abc" (valid) — uppercase is normalized, not rejected
+                           // Note: "@handle" normalizes to "handle" (valid) — @ prefix is stripped, not rejected
     ];
 
     for handle in bad_handles {
         let err = eng
-            .create(CreateConsumerRequest { handle: handle.to_string(), display_name: None })
+            .create(CreateConsumerRequest {
+                handle: handle.to_string(),
+                display_name: None,
+            })
             .await
             .unwrap_err();
         assert!(
@@ -114,7 +132,7 @@ async fn handle_resolves_for_active_consumer(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
         .create(CreateConsumerRequest {
-            handle:       "@Maria".into(),
+            handle: "@Maria".into(),
             display_name: Some("Maria Neto".into()),
         })
         .await
@@ -133,14 +151,22 @@ async fn handle_resolves_for_active_consumer(pool: PgPool) {
 async fn suspended_consumer_not_resolved(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
-        .create(CreateConsumerRequest { handle: "rui".into(), display_name: None })
+        .create(CreateConsumerRequest {
+            handle: "rui".into(),
+            display_name: None,
+        })
         .await
         .unwrap();
 
-    eng.suspend(identity.id, Some("AML hold".into())).await.unwrap();
+    eng.suspend(identity.id, Some("AML hold".into()))
+        .await
+        .unwrap();
 
     let err = eng.resolve_handle("rui").await.unwrap_err();
-    assert!(matches!(err, IdentityError::SuspendedIdentity(_)), "got: {err:?}");
+    assert!(
+        matches!(err, IdentityError::SuspendedIdentity(_)),
+        "got: {err:?}"
+    );
 }
 
 // ── 8. Closed consumer not returned by resolve_handle ────────────────────────
@@ -149,14 +175,20 @@ async fn suspended_consumer_not_resolved(pool: PgPool) {
 async fn closed_consumer_not_resolved(pool: PgPool) {
     let eng = make_engine(pool);
     let identity = eng
-        .create(CreateConsumerRequest { handle: "pedro".into(), display_name: None })
+        .create(CreateConsumerRequest {
+            handle: "pedro".into(),
+            display_name: None,
+        })
         .await
         .unwrap();
 
     eng.close(identity.id).await.unwrap();
 
     let err = eng.resolve_handle("pedro").await.unwrap_err();
-    assert!(matches!(err, IdentityError::ClosedIdentity(_)), "got: {err:?}");
+    assert!(
+        matches!(err, IdentityError::ClosedIdentity(_)),
+        "got: {err:?}"
+    );
 }
 
 // ── 9. Unknown handle returns HandleNotFound ──────────────────────────────────
@@ -165,7 +197,10 @@ async fn closed_consumer_not_resolved(pool: PgPool) {
 async fn unknown_handle_returns_not_found(pool: PgPool) {
     let eng = make_engine(pool);
     let err = eng.resolve_handle("nobody").await.unwrap_err();
-    assert!(matches!(err, IdentityError::HandleNotFound(_)), "got: {err:?}");
+    assert!(
+        matches!(err, IdentityError::HandleNotFound(_)),
+        "got: {err:?}"
+    );
 }
 
 // ── 10. Concurrent same-handle registration creates exactly one owner ─────────
@@ -181,8 +216,11 @@ async fn concurrent_registration_creates_one_owner(pool: PgPool) {
     for _ in 0..5 {
         let eng = Arc::clone(&eng);
         set.spawn(async move {
-            eng.create(CreateConsumerRequest { handle: "disputed".into(), display_name: None })
-                .await
+            eng.create(CreateConsumerRequest {
+                handle: "disputed".into(),
+                display_name: None,
+            })
+            .await
         });
     }
 
@@ -190,9 +228,9 @@ async fn concurrent_registration_creates_one_owner(pool: PgPool) {
     let mut conflicts = 0usize;
     while let Some(result) = set.join_next().await {
         match result.unwrap() {
-            Ok(_)                              => successes += 1,
+            Ok(_) => successes += 1,
             Err(IdentityError::HandleTaken(_)) => conflicts += 1,
-            Err(e)                             => panic!("unexpected error: {e:?}"),
+            Err(e) => panic!("unexpected error: {e:?}"),
         }
     }
 

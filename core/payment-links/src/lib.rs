@@ -5,9 +5,7 @@ pub mod repository;
 
 pub use engine::{PaymentLinkEngine, PostgresPaymentLinkEngine};
 pub use expiry_worker::run_expiry_worker;
-pub use payment_link::{
-    CreatePaymentLinkRequest, PaymentLink, PaymentLinkStatus,
-};
+pub use payment_link::{CreatePaymentLinkRequest, PaymentLink, PaymentLinkStatus};
 pub use repository::{PaymentLinkRepository, PostgresPaymentLinkRepository};
 
 use banzami_types::PaymentLinkId;

@@ -23,8 +23,8 @@ use banzami_consumer_wallets::{
 };
 use banzami_ledger::PostgresLedgerRepository;
 use banzami_transfers::{
-    PostgresTransferEngine, PostgresTransferRepository, SendTransferRequest,
-    TransferEngine, TransferError,
+    PostgresTransferEngine, PostgresTransferRepository, SendTransferRequest, TransferEngine,
+    TransferError,
 };
 use banzami_types::Currency;
 
@@ -33,9 +33,9 @@ use banzami_types::Currency;
 // ---------------------------------------------------------------------------
 
 fn cw_engine(pool: PgPool) -> impl ConsumerWalletEngine {
-    let ledger       = Arc::new(PostgresLedgerRepository::new(pool.clone()));
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
     let onboard_repo = PostgresOnboardingRepository::new(pool.clone());
-    let wallet_repo  = PostgresConsumerWalletRepository::new(pool.clone());
+    let wallet_repo = PostgresConsumerWalletRepository::new(pool.clone());
     PostgresConsumerWalletEngine::with_pool(pool, ledger, onboard_repo, wallet_repo)
 }
 
@@ -46,27 +46,30 @@ fn transfer_engine(pool: PgPool) -> impl TransferEngine {
 
 /// Activates a consumer wallet via the full onboarding flow.
 /// Returns the normalized handle (without @).
-async fn activate_wallet(
-    eng:    &impl ConsumerWalletEngine,
-    phone:  &str,
-    handle: &str,
-) -> String {
-    let session = eng.start_onboarding(StartOnboardingRequest {
-        phone_number:           phone.into(),
-        currency:               Currency::AOA,
-        otp_plaintext_for_test: Some("123456".into()),
-    }).await.unwrap();
+async fn activate_wallet(eng: &impl ConsumerWalletEngine, phone: &str, handle: &str) -> String {
+    let session = eng
+        .start_onboarding(StartOnboardingRequest {
+            phone_number: phone.into(),
+            currency: Currency::AOA,
+            otp_plaintext_for_test: Some("123456".into()),
+        })
+        .await
+        .unwrap();
 
     eng.verify_otp(VerifyOtpRequest {
         session_id: session.id,
-        otp_code:   "123456".into(),
-    }).await.unwrap();
+        otp_code: "123456".into(),
+    })
+    .await
+    .unwrap();
 
     eng.complete_onboarding(CompleteOnboardingRequest {
-        session_id:   session.id,
+        session_id: session.id,
         banza_handle: handle.into(),
-        pin:          "0000".into(),
-    }).await.unwrap();
+        pin: "0000".into(),
+    })
+    .await
+    .unwrap();
 
     handle.to_string()
 }
@@ -86,7 +89,7 @@ async fn seed_balance(pool: &PgPool, handle: &str, balance_minor: i64) {
     .unwrap();
 
     let posting_id = uuid::Uuid::new_v4();
-    let entry_id   = uuid::Uuid::new_v4();
+    let entry_id = uuid::Uuid::new_v4();
 
     sqlx::query(
         "INSERT INTO ledger_postings (id, description, idempotency_key, created_at)
@@ -146,19 +149,23 @@ async fn available_balance(pool: &PgPool, handle: &str) -> i64 {
 async fn p2p_send(
     cw_eng: &impl ConsumerWalletEngine,
     tf_eng: &impl TransferEngine,
-    sender_handle:    &str,
+    sender_handle: &str,
     recipient_handle: &str,
-    amount_minor:     i64,
-    idempotency_key:  &str,
-    note:             Option<&str>,
+    amount_minor: i64,
+    idempotency_key: &str,
+    note: Option<&str>,
 ) -> Result<banzami_transfers::Transfer, TransferError> {
     let currency = Currency::AOA;
-    let sender   = cw_eng.resolve_to_wallet(sender_handle, currency).await
+    let sender = cw_eng
+        .resolve_to_wallet(sender_handle, currency)
+        .await
         .map_err(|_| TransferError::WalletNotFound {
             consumer_id: banzami_types::ConsumerId::new(),
             currency,
         })?;
-    let recipient = cw_eng.resolve_to_wallet(recipient_handle, currency).await
+    let recipient = cw_eng
+        .resolve_to_wallet(recipient_handle, currency)
+        .await
         .map_err(|e| match e {
             ConsumerWalletError::HandleNotFound(h) => TransferError::RecipientNotFound(h),
             ConsumerWalletError::WalletCannotReceive(_)
@@ -172,15 +179,17 @@ async fn p2p_send(
             },
         })?;
 
-    tf_eng.send(SendTransferRequest {
-        idempotency_key:  idempotency_key.to_string(),
-        sender_id:        sender.consumer_id,
-        recipient_id:     recipient.consumer_id,
-        amount_minor,
-        currency,
-        description:      note.map(str::to_string),
-        recipient_handle: Some(recipient.normalized_handle),
-    }).await
+    tf_eng
+        .send(SendTransferRequest {
+            idempotency_key: idempotency_key.to_string(),
+            sender_id: sender.consumer_id,
+            recipient_id: recipient.consumer_id,
+            amount_minor,
+            currency,
+            description: note.map(str::to_string),
+            recipient_handle: Some(recipient.normalized_handle),
+        })
+        .await
 }
 
 // ---------------------------------------------------------------------------
@@ -196,9 +205,17 @@ async fn happy_path_p2p_transfer(pool: PgPool) {
     activate_wallet(&cw, "+244911001002", "ana_p2p").await;
     seed_balance(&pool, "joao_p2p", 500_000).await; // 5,000 Kz
 
-    let transfer = p2p_send(&cw, &tf, "@joao_p2p", "@ana_p2p", 200_000, "key-001", Some("almoço"))
-        .await
-        .unwrap();
+    let transfer = p2p_send(
+        &cw,
+        &tf,
+        "@joao_p2p",
+        "@ana_p2p",
+        200_000,
+        "key-001",
+        Some("almoço"),
+    )
+    .await
+    .unwrap();
 
     assert_eq!(transfer.amount.amount_minor(), 200_000);
     assert_eq!(transfer.status.as_str(), "COMPLETED");
@@ -218,13 +235,39 @@ async fn idempotency_returns_original(pool: PgPool) {
     activate_wallet(&cw, "+244911001004", "ana_idem").await;
     seed_balance(&pool, "joao_idem", 500_000).await;
 
-    let t1 = p2p_send(&cw, &tf, "@joao_idem", "@ana_idem", 100_000, "key-idem", None).await.unwrap();
-    let t2 = p2p_send(&cw, &tf, "@joao_idem", "@ana_idem", 100_000, "key-idem", None).await.unwrap();
+    let t1 = p2p_send(
+        &cw,
+        &tf,
+        "@joao_idem",
+        "@ana_idem",
+        100_000,
+        "key-idem",
+        None,
+    )
+    .await
+    .unwrap();
+    let t2 = p2p_send(
+        &cw,
+        &tf,
+        "@joao_idem",
+        "@ana_idem",
+        100_000,
+        "key-idem",
+        None,
+    )
+    .await
+    .unwrap();
 
-    assert_eq!(t1.id, t2.id, "idempotent call must return the same transfer");
+    assert_eq!(
+        t1.id, t2.id,
+        "idempotent call must return the same transfer"
+    );
     // Balance must only have been deducted once.
     let balance = available_balance(&pool, "joao_idem").await;
-    assert_eq!(balance, 400_000, "balance must only decrease once for idempotent transfer");
+    assert_eq!(
+        balance, 400_000,
+        "balance must only decrease once for idempotent transfer"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -240,9 +283,17 @@ async fn insufficient_funds_rejected(pool: PgPool) {
     activate_wallet(&cw, "+244911001006", "recip_insuf").await;
     seed_balance(&pool, "sender_insuf", 100_000).await; // 1,000 Kz
 
-    let err = p2p_send(&cw, &tf, "@sender_insuf", "@recip_insuf", 200_000, "key-insuf", None)
-        .await
-        .unwrap_err();
+    let err = p2p_send(
+        &cw,
+        &tf,
+        "@sender_insuf",
+        "@recip_insuf",
+        200_000,
+        "key-insuf",
+        None,
+    )
+    .await
+    .unwrap_err();
 
     assert!(
         matches!(err, TransferError::InsufficientFunds { .. }),
@@ -263,9 +314,17 @@ async fn self_transfer_rejected(pool: PgPool) {
     seed_balance(&pool, "joao_self", 500_000).await;
 
     // The engine's send() catches self-transfer via consumer_id equality.
-    let err = p2p_send(&cw, &tf, "@joao_self", "@joao_self", 100_000, "key-self", None)
-        .await
-        .unwrap_err();
+    let err = p2p_send(
+        &cw,
+        &tf,
+        "@joao_self",
+        "@joao_self",
+        100_000,
+        "key-self",
+        None,
+    )
+    .await
+    .unwrap_err();
 
     assert!(matches!(err, TransferError::SelfTransfer), "got: {err:?}");
 }
@@ -282,9 +341,17 @@ async fn recipient_not_found(pool: PgPool) {
     activate_wallet(&cw, "+244911001008", "joao_norf").await;
     seed_balance(&pool, "joao_norf", 500_000).await;
 
-    let err = p2p_send(&cw, &tf, "@joao_norf", "@ghost_nobody", 100_000, "key-norf", None)
-        .await
-        .unwrap_err();
+    let err = p2p_send(
+        &cw,
+        &tf,
+        "@joao_norf",
+        "@ghost_nobody",
+        100_000,
+        "key-norf",
+        None,
+    )
+    .await
+    .unwrap_err();
 
     assert!(
         matches!(err, TransferError::RecipientNotFound(_)),
@@ -298,14 +365,11 @@ async fn recipient_not_found(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn malformed_recipient_handle_rejected(pool: PgPool) {
-    let cw  = cw_engine(pool.clone());
+    let cw = cw_engine(pool.clone());
     let bad = ["1abc", "__foo", "foo_", "ab", &"a".repeat(21), "héros"];
 
     for h in &bad {
-        let err = cw
-            .resolve_to_wallet(h, Currency::AOA)
-            .await
-            .unwrap_err();
+        let err = cw.resolve_to_wallet(h, Currency::AOA).await.unwrap_err();
         assert!(
             matches!(err, ConsumerWalletError::InvalidHandle(_)),
             "expected InvalidHandle for '{h}', got: {err:?}"
@@ -405,12 +469,23 @@ async fn sender_balance_reduced(pool: PgPool) {
     activate_wallet(&cw, "+244911001014", "ana_baldr").await;
     seed_balance(&pool, "joao_baldr", 500_000).await;
 
-    p2p_send(&cw, &tf, "@joao_baldr", "@ana_baldr", 200_000, "key-baldr", None)
-        .await
-        .unwrap();
+    p2p_send(
+        &cw,
+        &tf,
+        "@joao_baldr",
+        "@ana_baldr",
+        200_000,
+        "key-baldr",
+        None,
+    )
+    .await
+    .unwrap();
 
     let balance = available_balance(&pool, "joao_baldr").await;
-    assert_eq!(balance, 300_000, "sender balance should be 3,000 Kz after sending 2,000 Kz");
+    assert_eq!(
+        balance, 300_000,
+        "sender balance should be 3,000 Kz after sending 2,000 Kz"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -426,12 +501,23 @@ async fn recipient_balance_increased(pool: PgPool) {
     activate_wallet(&cw, "+244911001016", "ana_balcr").await;
     seed_balance(&pool, "joao_balcr", 500_000).await;
 
-    p2p_send(&cw, &tf, "@joao_balcr", "@ana_balcr", 200_000, "key-balcr", None)
-        .await
-        .unwrap();
+    p2p_send(
+        &cw,
+        &tf,
+        "@joao_balcr",
+        "@ana_balcr",
+        200_000,
+        "key-balcr",
+        None,
+    )
+    .await
+    .unwrap();
 
     let balance = available_balance(&pool, "ana_balcr").await;
-    assert_eq!(balance, 200_000, "recipient balance should be 2,000 Kz after receiving");
+    assert_eq!(
+        balance, 200_000,
+        "recipient balance should be 2,000 Kz after receiving"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -444,22 +530,25 @@ async fn recipient_balance_increased(pool: PgPool) {
 
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn concurrent_sends_cannot_overdraw(pool: PgPool) {
-    use std::sync::Arc;
-    use tokio::task::JoinSet;
     use banzami_consumer_wallets::{
-        PostgresConsumerWalletEngine, PostgresConsumerWalletRepository,
-        PostgresOnboardingRepository, ConsumerWalletEngine,
+        ConsumerWalletEngine, PostgresConsumerWalletEngine, PostgresConsumerWalletRepository,
+        PostgresOnboardingRepository,
     };
     use banzami_ledger::PostgresLedgerRepository;
     use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository, TransferEngine};
+    use std::sync::Arc;
+    use tokio::task::JoinSet;
 
     // Build concrete Arc-wrapped engines for this test only.
     let cw_arc: Arc<PostgresConsumerWalletEngine<_, _, _>> = {
-        let ledger       = Arc::new(PostgresLedgerRepository::new(pool.clone()));
+        let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
         let onboard_repo = PostgresOnboardingRepository::new(pool.clone());
-        let wallet_repo  = PostgresConsumerWalletRepository::new(pool.clone());
+        let wallet_repo = PostgresConsumerWalletRepository::new(pool.clone());
         Arc::new(PostgresConsumerWalletEngine::with_pool(
-            pool.clone(), ledger, onboard_repo, wallet_repo,
+            pool.clone(),
+            ledger,
+            onboard_repo,
+            wallet_repo,
         ))
     };
     let tf_arc: Arc<PostgresTransferEngine<PostgresTransferRepository>> = {
@@ -473,9 +562,15 @@ async fn concurrent_sends_cannot_overdraw(pool: PgPool) {
 
     // Resolve sender + recipient once (static data, safe to clone).
     let currency = banzami_types::Currency::AOA;
-    let sender   = cw_arc.resolve_to_wallet("@joao_conc", currency).await.unwrap();
-    let recipient = cw_arc.resolve_to_wallet("@ana_conc", currency).await.unwrap();
-    let sender_id    = sender.consumer_id;
+    let sender = cw_arc
+        .resolve_to_wallet("@joao_conc", currency)
+        .await
+        .unwrap();
+    let recipient = cw_arc
+        .resolve_to_wallet("@ana_conc", currency)
+        .await
+        .unwrap();
+    let sender_id = sender.consumer_id;
     let recipient_id = recipient.consumer_id;
 
     let mut set: JoinSet<Result<banzami_transfers::Transfer, TransferError>> = JoinSet::new();
@@ -484,31 +579,38 @@ async fn concurrent_sends_cannot_overdraw(pool: PgPool) {
         let key = format!("key-conc-{i}");
         set.spawn(async move {
             tf.send(SendTransferRequest {
-                idempotency_key:  key,
+                idempotency_key: key,
                 sender_id,
                 recipient_id,
-                amount_minor:     600_000, // 6,000 Kz
+                amount_minor: 600_000, // 6,000 Kz
                 currency,
-                description:      None,
+                description: None,
                 recipient_handle: Some("ana_conc".into()),
-            }).await
+            })
+            .await
         });
     }
 
     let mut successes = 0usize;
-    let mut failures  = 0usize;
+    let mut failures = 0usize;
     while let Some(r) = set.join_next().await {
         match r.unwrap() {
-            Ok(_)                                         => successes += 1,
-            Err(TransferError::InsufficientFunds { .. }) => failures  += 1,
+            Ok(_) => successes += 1,
+            Err(TransferError::InsufficientFunds { .. }) => failures += 1,
             Err(e) => panic!("unexpected error: {e:?}"),
         }
     }
-    assert_eq!(successes, 1, "exactly one of the two 6k transfers must succeed");
-    assert_eq!(failures,  1, "exactly one must fail with InsufficientFunds");
+    assert_eq!(
+        successes, 1,
+        "exactly one of the two 6k transfers must succeed"
+    );
+    assert_eq!(failures, 1, "exactly one must fail with InsufficientFunds");
 
     let final_balance = available_balance(&pool, "joao_conc").await;
-    assert_eq!(final_balance, 400_000, "exactly 6,000 Kz must have left the wallet");
+    assert_eq!(
+        final_balance, 400_000,
+        "exactly 6,000 Kz must have left the wallet"
+    );
 }
 
 // ---------------------------------------------------------------------------
@@ -525,10 +627,16 @@ async fn zero_sum_ledger_invariant(pool: PgPool) {
     seed_balance(&pool, "joao_zero_sum", 500_000).await;
 
     let transfer = p2p_send(
-        &cw, &tf,
-        "@joao_zero_sum", "@ana_zero_sum",
-        200_000, "key-zero-sum", None,
-    ).await.unwrap();
+        &cw,
+        &tf,
+        "@joao_zero_sum",
+        "@ana_zero_sum",
+        200_000,
+        "key-zero-sum",
+        None,
+    )
+    .await
+    .unwrap();
 
     // The ledger posting backing this transfer must have balanced entries.
     // DR amount + CR amount = 0 when signed correctly.
@@ -565,10 +673,16 @@ async fn recipient_handle_snapshotted(pool: PgPool) {
     seed_balance(&pool, "joao_snap", 500_000).await;
 
     let transfer = p2p_send(
-        &cw, &tf,
-        "@joao_snap", "@ANA_SNAP", // uppercase — must be normalized to "ana_snap"
-        200_000, "key-snap", None,
-    ).await.unwrap();
+        &cw,
+        &tf,
+        "@joao_snap",
+        "@ANA_SNAP", // uppercase — must be normalized to "ana_snap"
+        200_000,
+        "key-snap",
+        None,
+    )
+    .await
+    .unwrap();
 
     assert_eq!(
         transfer.recipient_handle.as_deref(),
@@ -592,14 +706,44 @@ async fn chain_of_transfers(pool: PgPool) {
     seed_balance(&pool, "alice_chain", 500_000).await; // 5,000 Kz to alice
 
     // Alice → Bob 3,000 Kz
-    p2p_send(&cw, &tf, "@alice_chain", "@bob_chain", 300_000, "key-chain-ab", None)
-        .await.unwrap();
+    p2p_send(
+        &cw,
+        &tf,
+        "@alice_chain",
+        "@bob_chain",
+        300_000,
+        "key-chain-ab",
+        None,
+    )
+    .await
+    .unwrap();
 
     // Bob → Clara 2,000 Kz (from the 3,000 Kz just received)
-    p2p_send(&cw, &tf, "@bob_chain", "@clara_chain", 200_000, "key-chain-bc", None)
-        .await.unwrap();
+    p2p_send(
+        &cw,
+        &tf,
+        "@bob_chain",
+        "@clara_chain",
+        200_000,
+        "key-chain-bc",
+        None,
+    )
+    .await
+    .unwrap();
 
-    assert_eq!(available_balance(&pool, "alice_chain").await, 200_000, "alice: 5000−3000=2000 Kz");
-    assert_eq!(available_balance(&pool, "bob_chain").await,   100_000, "bob: 3000−2000=1000 Kz");
-    assert_eq!(available_balance(&pool, "clara_chain").await, 200_000, "clara: received 2000 Kz");
+    assert_eq!(
+        available_balance(&pool, "alice_chain").await,
+        200_000,
+        "alice: 5000−3000=2000 Kz"
+    );
+    assert_eq!(
+        available_balance(&pool, "bob_chain").await,
+        100_000,
+        "bob: 3000−2000=1000 Kz"
+    );
+    assert_eq!(
+        available_balance(&pool, "clara_chain").await,
+        200_000,
+        "clara: received 2000 Kz"
+    );
 }

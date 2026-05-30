@@ -3,8 +3,8 @@ use chrono::Utc;
 use banzami_types::{CustomerId, MerchantId, Money};
 
 use crate::{
-    repository::ComplianceRepository,
-    ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
+    repository::ComplianceRepository, ComplianceError, ComplianceStatus, CustomerCompliance,
+    KycLevel, MerchantCompliance,
 };
 
 // ---------------------------------------------------------------------------
@@ -63,14 +63,14 @@ pub trait ComplianceEngine: Send + Sync {
     async fn upgrade_kyc(
         &self,
         customer_id: CustomerId,
-        new_level:   KycLevel,
+        new_level: KycLevel,
     ) -> Result<CustomerCompliance, ComplianceError>;
 
     async fn check_customer_can_transact(
         &self,
-        customer_id:          CustomerId,
-        amount_minor:         i64,
-        daily_volume_minor:   i64,
+        customer_id: CustomerId,
+        amount_minor: i64,
+        daily_volume_minor: i64,
     ) -> Result<(), ComplianceError>;
 }
 
@@ -98,12 +98,12 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         }
         let record = MerchantCompliance {
             merchant_id,
-            kyb_status:  ComplianceStatus::Pending,
-            aml_status:  ComplianceStatus::Pending,
+            kyb_status: ComplianceStatus::Pending,
+            aml_status: ComplianceStatus::Pending,
             reviewed_at: None,
-            notes:       None,
-            created_at:  Utc::now(),
-            updated_at:  Utc::now(),
+            notes: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         };
         self.repo.upsert_merchant(&record).await?;
         Ok(record)
@@ -144,10 +144,10 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         merchant_id: MerchantId,
     ) -> Result<MerchantCompliance, ComplianceError> {
         let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status  = ComplianceStatus::Approved;
-        record.aml_status  = ComplianceStatus::Approved;
+        record.kyb_status = ComplianceStatus::Approved;
+        record.aml_status = ComplianceStatus::Approved;
         record.reviewed_at = Some(Utc::now());
-        record.updated_at  = Utc::now();
+        record.updated_at = Utc::now();
         self.repo.upsert_merchant(&record).await?;
         Ok(record)
     }
@@ -158,10 +158,10 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
         let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status  = ComplianceStatus::Rejected;
+        record.kyb_status = ComplianceStatus::Rejected;
         record.reviewed_at = Some(Utc::now());
-        record.notes       = Some(notes);
-        record.updated_at  = Utc::now();
+        record.notes = Some(notes);
+        record.updated_at = Utc::now();
         self.repo.upsert_merchant(&record).await?;
         Ok(record)
     }
@@ -172,11 +172,11 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
         let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.kyb_status  = ComplianceStatus::Suspended;
-        record.aml_status  = ComplianceStatus::Suspended;
+        record.kyb_status = ComplianceStatus::Suspended;
+        record.aml_status = ComplianceStatus::Suspended;
         record.reviewed_at = Some(Utc::now());
-        record.notes       = Some(notes);
-        record.updated_at  = Utc::now();
+        record.notes = Some(notes);
+        record.updated_at = Utc::now();
         self.repo.upsert_merchant(&record).await?;
         Ok(record)
     }
@@ -187,10 +187,10 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         notes: String,
     ) -> Result<MerchantCompliance, ComplianceError> {
         let mut record = self.get_or_create_merchant(merchant_id).await?;
-        record.aml_status  = ComplianceStatus::UnderReview;
+        record.aml_status = ComplianceStatus::UnderReview;
         record.reviewed_at = Some(Utc::now());
-        record.notes       = Some(notes);
-        record.updated_at  = Utc::now();
+        record.notes = Some(notes);
+        record.updated_at = Utc::now();
         self.repo.upsert_merchant(&record).await?;
         Ok(record)
     }
@@ -204,11 +204,11 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         }
         let record = CustomerCompliance {
             customer_id,
-            kyc_level:  KycLevel::None,
-            status:     ComplianceStatus::Pending,
+            kyc_level: KycLevel::None,
+            status: ComplianceStatus::Pending,
             reviewed_at: None,
-            created_at:  Utc::now(),
-            updated_at:  Utc::now(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
         };
         self.repo.upsert_customer(&record).await?;
         Ok(record)
@@ -217,21 +217,21 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
     async fn upgrade_kyc(
         &self,
         customer_id: CustomerId,
-        new_level:   KycLevel,
+        new_level: KycLevel,
     ) -> Result<CustomerCompliance, ComplianceError> {
         let mut record = self.get_or_create_customer(customer_id).await?;
-        record.kyc_level   = new_level;
-        record.status      = ComplianceStatus::Approved;
+        record.kyc_level = new_level;
+        record.status = ComplianceStatus::Approved;
         record.reviewed_at = Some(Utc::now());
-        record.updated_at  = Utc::now();
+        record.updated_at = Utc::now();
         self.repo.upsert_customer(&record).await?;
         Ok(record)
     }
 
     async fn check_customer_can_transact(
         &self,
-        customer_id:        CustomerId,
-        amount_minor:       i64,
+        customer_id: CustomerId,
+        amount_minor: i64,
         daily_volume_minor: i64,
     ) -> Result<(), ComplianceError> {
         let record = match self.repo.get_customer(customer_id).await? {
@@ -239,7 +239,7 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
             None => {
                 return Err(ComplianceError::InsufficientKycLevel {
                     required: KycLevel::Basic,
-                    current:  KycLevel::None,
+                    current: KycLevel::None,
                 });
             }
         };
@@ -247,21 +247,21 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         if record.kyc_level == KycLevel::None {
             return Err(ComplianceError::InsufficientKycLevel {
                 required: KycLevel::Basic,
-                current:  KycLevel::None,
+                current: KycLevel::None,
             });
         }
 
         if amount_minor > record.kyc_level.max_single_transaction_minor() {
             return Err(ComplianceError::InsufficientKycLevel {
                 required: KycLevel::Enhanced,
-                current:  record.kyc_level,
+                current: record.kyc_level,
             });
         }
 
         if daily_volume_minor + amount_minor > record.kyc_level.max_daily_volume_minor() {
             return Err(ComplianceError::InsufficientKycLevel {
                 required: KycLevel::Enhanced,
-                current:  record.kyc_level,
+                current: record.kyc_level,
             });
         }
 
@@ -280,7 +280,9 @@ mod tests {
     use banzami_types::{Currency, CustomerId, MerchantId, Money};
 
     use super::*;
-    use crate::{ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance};
+    use crate::{
+        ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
+    };
 
     // -----------------------------------------------------------------------
     // In-memory mock repository
@@ -301,24 +303,54 @@ mod tests {
     }
 
     impl ComplianceRepository for MockComplianceRepo {
-        async fn get_merchant(&self, id: MerchantId) -> Result<Option<MerchantCompliance>, ComplianceError> {
-            Ok(self.merchants.lock().unwrap().iter().find(|m| m.merchant_id == id).cloned())
+        async fn get_merchant(
+            &self,
+            id: MerchantId,
+        ) -> Result<Option<MerchantCompliance>, ComplianceError> {
+            Ok(self
+                .merchants
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|m| m.merchant_id == id)
+                .cloned())
         }
-        async fn upsert_merchant(&self, record: &MerchantCompliance) -> Result<(), ComplianceError> {
+        async fn upsert_merchant(
+            &self,
+            record: &MerchantCompliance,
+        ) -> Result<(), ComplianceError> {
             let mut lock = self.merchants.lock().unwrap();
-            if let Some(existing) = lock.iter_mut().find(|m| m.merchant_id == record.merchant_id) {
+            if let Some(existing) = lock
+                .iter_mut()
+                .find(|m| m.merchant_id == record.merchant_id)
+            {
                 *existing = record.clone();
             } else {
                 lock.push(record.clone());
             }
             Ok(())
         }
-        async fn get_customer(&self, id: CustomerId) -> Result<Option<CustomerCompliance>, ComplianceError> {
-            Ok(self.customers.lock().unwrap().iter().find(|c| c.customer_id == id).cloned())
+        async fn get_customer(
+            &self,
+            id: CustomerId,
+        ) -> Result<Option<CustomerCompliance>, ComplianceError> {
+            Ok(self
+                .customers
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|c| c.customer_id == id)
+                .cloned())
         }
-        async fn upsert_customer(&self, record: &CustomerCompliance) -> Result<(), ComplianceError> {
+        async fn upsert_customer(
+            &self,
+            record: &CustomerCompliance,
+        ) -> Result<(), ComplianceError> {
             let mut lock = self.customers.lock().unwrap();
-            if let Some(existing) = lock.iter_mut().find(|c| c.customer_id == record.customer_id) {
+            if let Some(existing) = lock
+                .iter_mut()
+                .find(|c| c.customer_id == record.customer_id)
+            {
                 *existing = record.clone();
             } else {
                 lock.push(record.clone());
@@ -331,7 +363,9 @@ mod tests {
         PostgresComplianceEngine::new(MockComplianceRepo::new())
     }
 
-    fn kz(minor: i64) -> Money { Money::new(minor, Currency::AOA) }
+    fn kz(minor: i64) -> Money {
+        Money::new(minor, Currency::AOA)
+    }
 
     // -----------------------------------------------------------------------
     // Tests
@@ -350,8 +384,13 @@ mod tests {
         let eng = engine();
         let merchant_id = MerchantId::new();
         eng.get_or_create_merchant(merchant_id).await.unwrap();
-        let result = eng.check_merchant_can_transact(merchant_id, &kz(1_000)).await;
-        assert!(matches!(result, Err(ComplianceError::MerchantBlocked { .. })));
+        let result = eng
+            .check_merchant_can_transact(merchant_id, &kz(1_000))
+            .await;
+        assert!(matches!(
+            result,
+            Err(ComplianceError::MerchantBlocked { .. })
+        ));
     }
 
     #[tokio::test]
@@ -359,7 +398,9 @@ mod tests {
         let eng = engine();
         let merchant_id = MerchantId::new();
         eng.approve_merchant(merchant_id).await.unwrap();
-        eng.check_merchant_can_transact(merchant_id, &kz(100_000)).await.unwrap();
+        eng.check_merchant_can_transact(merchant_id, &kz(100_000))
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -367,9 +408,14 @@ mod tests {
         let eng = engine();
         let merchant_id = MerchantId::new();
         eng.approve_merchant(merchant_id).await.unwrap();
-        eng.suspend_merchant(merchant_id, "AML alert".into()).await.unwrap();
+        eng.suspend_merchant(merchant_id, "AML alert".into())
+            .await
+            .unwrap();
         let result = eng.check_merchant_can_transact(merchant_id, &kz(100)).await;
-        assert!(matches!(result, Err(ComplianceError::MerchantBlocked { .. })));
+        assert!(matches!(
+            result,
+            Err(ComplianceError::MerchantBlocked { .. })
+        ));
     }
 
     #[tokio::test]
@@ -377,9 +423,14 @@ mod tests {
         let eng = engine();
         let merchant_id = MerchantId::new();
         eng.approve_merchant(merchant_id).await.unwrap();
-        eng.flag_merchant_for_aml_review(merchant_id, "suspicious pattern".into()).await.unwrap();
+        eng.flag_merchant_for_aml_review(merchant_id, "suspicious pattern".into())
+            .await
+            .unwrap();
         let result = eng.check_merchant_can_transact(merchant_id, &kz(100)).await;
-        assert!(matches!(result, Err(ComplianceError::MerchantBlocked { .. })));
+        assert!(matches!(
+            result,
+            Err(ComplianceError::MerchantBlocked { .. })
+        ));
     }
 
     #[tokio::test]
@@ -388,7 +439,10 @@ mod tests {
         let customer_id = CustomerId::new();
         eng.get_or_create_customer(customer_id).await.unwrap();
         let result = eng.check_customer_can_transact(customer_id, 1_000, 0).await;
-        assert!(matches!(result, Err(ComplianceError::InsufficientKycLevel { .. })));
+        assert!(matches!(
+            result,
+            Err(ComplianceError::InsufficientKycLevel { .. })
+        ));
     }
 
     #[tokio::test]
@@ -396,7 +450,9 @@ mod tests {
         let eng = engine();
         let customer_id = CustomerId::new();
         eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
-        eng.check_customer_can_transact(customer_id, 10_000_00, 0).await.unwrap();
+        eng.check_customer_can_transact(customer_id, 1_000_000, 0)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -405,16 +461,25 @@ mod tests {
         let customer_id = CustomerId::new();
         eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
         // Basic limit: 50,000 AOA per transaction
-        let result = eng.check_customer_can_transact(customer_id, 50_001_00, 0).await;
-        assert!(matches!(result, Err(ComplianceError::InsufficientKycLevel { .. })));
+        let result = eng
+            .check_customer_can_transact(customer_id, 5_000_100, 0)
+            .await;
+        assert!(matches!(
+            result,
+            Err(ComplianceError::InsufficientKycLevel { .. })
+        ));
     }
 
     #[tokio::test]
     async fn enhanced_kyc_allows_large_transactions() {
         let eng = engine();
         let customer_id = CustomerId::new();
-        eng.upgrade_kyc(customer_id, KycLevel::Enhanced).await.unwrap();
-        eng.check_customer_can_transact(customer_id, 200_000_00, 0).await.unwrap();
+        eng.upgrade_kyc(customer_id, KycLevel::Enhanced)
+            .await
+            .unwrap();
+        eng.check_customer_can_transact(customer_id, 20_000_000, 0)
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -423,7 +488,12 @@ mod tests {
         let customer_id = CustomerId::new();
         eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
         // Basic daily limit: 500,000 AOA. Existing volume: 490,000 AOA + new 20,000 AOA = 510,000 → blocked.
-        let result = eng.check_customer_can_transact(customer_id, 20_000_00, 490_000_00).await;
-        assert!(matches!(result, Err(ComplianceError::InsufficientKycLevel { .. })));
+        let result = eng
+            .check_customer_can_transact(customer_id, 2_000_000, 49_000_000)
+            .await;
+        assert!(matches!(
+            result,
+            Err(ComplianceError::InsufficientKycLevel { .. })
+        ));
     }
 }

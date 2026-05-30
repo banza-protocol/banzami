@@ -10,8 +10,7 @@
 #[macro_export]
 macro_rules! typed_id {
     ($name:ident) => {
-        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-        #[derive(serde::Serialize, serde::Deserialize)]
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
         #[serde(transparent)]
         pub struct $name(uuid::Uuid);
 
@@ -54,9 +53,9 @@ macro_rules! typed_id {
 // Domain ID types — all strongly typed; mixing them is a compile error.
 // ---------------------------------------------------------------------------
 
-typed_id!(AccountId);         // Ledger account
-typed_id!(LedgerEntryId);     // Individual debit/credit line
-typed_id!(LedgerPostingId);   // A balanced set of entries (journal entry)
+typed_id!(AccountId); // Ledger account
+typed_id!(LedgerEntryId); // Individual debit/credit line
+typed_id!(LedgerPostingId); // A balanced set of entries (journal entry)
 typed_id!(WalletId);
 typed_id!(TransactionId);
 typed_id!(SettlementId);
@@ -71,9 +70,9 @@ typed_id!(ReconciliationRunId);
 // Consumer / P2P domains
 // ---------------------------------------------------------------------------
 
-typed_id!(ConsumerId);         // Consumer identity (end-user)
-typed_id!(ConsumerWalletId);   // Consumer wallet (distinct from merchant WalletId)
-typed_id!(TransferId);         // Instant P2P wallet transfer
-typed_id!(QrCodeId);             // Static or dynamic QR code
-typed_id!(PaymentLinkId);        // Shareable payment link
-typed_id!(AcquiringPaymentId);   // External payment via acquirer (EMIS, bank, etc.)
+typed_id!(ConsumerId); // Consumer identity (end-user)
+typed_id!(ConsumerWalletId); // Consumer wallet (distinct from merchant WalletId)
+typed_id!(TransferId); // Instant P2P wallet transfer
+typed_id!(QrCodeId); // Static or dynamic QR code
+typed_id!(PaymentLinkId); // Shareable payment link
+typed_id!(AcquiringPaymentId); // External payment via acquirer (EMIS, bank, etc.)

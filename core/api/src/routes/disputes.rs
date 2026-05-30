@@ -19,30 +19,30 @@ use crate::{
 
 #[derive(Serialize)]
 pub struct DisputeResponse {
-    pub id:                String,
-    pub transaction_id:    String,
-    pub merchant_id:       String,
-    pub consumer_id:       String,
-    pub amount_minor:      i64,
-    pub currency:          String,
-    pub reason:            String,
-    pub status:            String,
+    pub id: String,
+    pub transaction_id: String,
+    pub merchant_id: String,
+    pub consumer_id: String,
+    pub amount_minor: i64,
+    pub currency: String,
+    pub reason: String,
+    pub status: String,
     pub evidence_deadline: Option<DateTime<Utc>>,
-    pub resolution_notes:  Option<String>,
-    pub created_at:        DateTime<Utc>,
-    pub updated_at:        DateTime<Utc>,
-    pub resolved_at:       Option<DateTime<Utc>>,
+    pub resolution_notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub resolved_at: Option<DateTime<Utc>>,
 }
 
 #[derive(Serialize)]
 pub struct EvidenceResponse {
-    pub id:           String,
-    pub dispute_id:   String,
+    pub id: String,
+    pub dispute_id: String,
     pub submitted_by: String,
-    pub party:        String,
-    pub description:  String,
-    pub file_url:     Option<String>,
-    pub created_at:   DateTime<Utc>,
+    pub party: String,
+    pub description: String,
+    pub file_url: Option<String>,
+    pub created_at: DateTime<Utc>,
 }
 
 // ---------------------------------------------------------------------------
@@ -52,8 +52,8 @@ pub struct EvidenceResponse {
 #[derive(Deserialize)]
 pub struct OpenDisputeBody {
     pub transaction_id: String,
-    pub consumer_id:    String,
-    pub reason:         String,
+    pub consumer_id: String,
+    pub reason: String,
 }
 
 pub async fn open(
@@ -64,9 +64,13 @@ pub async fn open(
         return Err(ApiError::bad_request("reason is required"));
     }
 
-    let transaction_id: Uuid = body.transaction_id.parse()
+    let transaction_id: Uuid = body
+        .transaction_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction_id"))?;
-    let consumer_id: Uuid = body.consumer_id.parse()
+    let consumer_id: Uuid = body
+        .consumer_id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid consumer_id"))?;
 
     // Fetch transaction — must be CAPTURED or SETTLED
@@ -111,11 +115,11 @@ pub async fn open(
         ));
     }
 
-    let merchant_id: Uuid  = tx.merchant_id;
-    let amount_minor: i64  = tx.amount_minor;
-    let currency: String   = tx.currency;
+    let merchant_id: Uuid = tx.merchant_id;
+    let amount_minor: i64 = tx.amount_minor;
+    let currency: String = tx.currency;
 
-    let dispute_id       = Uuid::new_v4();
+    let dispute_id = Uuid::new_v4();
     let evidence_deadline = Utc::now() + Duration::days(7);
 
     sqlx::query!(
@@ -150,7 +154,8 @@ pub async fn open(
             "reason": body.reason,
         }),
         None,
-    ).await;
+    )
+    .await;
 
     let dispute = fetch_dispute(&state.pool, dispute_id).await?;
     Ok((StatusCode::CREATED, Json(dispute)))
@@ -164,7 +169,8 @@ pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<DisputeResponse>> {
-    let id: Uuid = id.parse()
+    let id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid dispute id"))?;
     Ok(Json(fetch_dispute(&state.pool, id).await?))
 }
@@ -177,8 +183,8 @@ pub async fn get(
 pub struct ListDisputesQuery {
     pub merchant_id: Option<String>,
     pub consumer_id: Option<String>,
-    pub status:      Option<String>,
-    pub limit:       Option<i64>,
+    pub status: Option<String>,
+    pub limit: Option<i64>,
 }
 
 pub async fn list(
@@ -199,8 +205,12 @@ pub async fn list(
         ORDER BY created_at DESC
         LIMIT $4
         "#,
-        q.merchant_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
-        q.consumer_id.as_deref().and_then(|s| s.parse::<Uuid>().ok()),
+        q.merchant_id
+            .as_deref()
+            .and_then(|s| s.parse::<Uuid>().ok()),
+        q.consumer_id
+            .as_deref()
+            .and_then(|s| s.parse::<Uuid>().ok()),
         q.status,
         limit,
     )
@@ -208,21 +218,26 @@ pub async fn list(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let data: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id":                r.id,
-        "transaction_id":    r.transaction_id,
-        "merchant_id":       r.merchant_id,
-        "consumer_id":       r.consumer_id,
-        "amount_minor":      r.amount_minor,
-        "currency":          r.currency,
-        "reason":            r.reason,
-        "status":            r.status,
-        "evidence_deadline": r.evidence_deadline,
-        "resolution_notes":  r.resolution_notes,
-        "created_at":        r.created_at,
-        "updated_at":        r.updated_at,
-        "resolved_at":       r.resolved_at,
-    })).collect();
+    let data: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id":                r.id,
+                "transaction_id":    r.transaction_id,
+                "merchant_id":       r.merchant_id,
+                "consumer_id":       r.consumer_id,
+                "amount_minor":      r.amount_minor,
+                "currency":          r.currency,
+                "reason":            r.reason,
+                "status":            r.status,
+                "evidence_deadline": r.evidence_deadline,
+                "resolution_notes":  r.resolution_notes,
+                "created_at":        r.created_at,
+                "updated_at":        r.updated_at,
+                "resolved_at":       r.resolved_at,
+            })
+        })
+        .collect();
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
@@ -234,9 +249,9 @@ pub async fn list(
 #[derive(Deserialize)]
 pub struct SubmitEvidenceBody {
     pub submitted_by: String,
-    pub party:        String,   // CONSUMER | MERCHANT
-    pub description:  String,
-    pub file_url:     Option<String>,
+    pub party: String, // CONSUMER | MERCHANT
+    pub description: String,
+    pub file_url: Option<String>,
 }
 
 pub async fn submit_evidence(
@@ -244,9 +259,12 @@ pub async fn submit_evidence(
     Path(id): Path<String>,
     Json(body): Json<SubmitEvidenceBody>,
 ) -> ApiResult<(StatusCode, Json<EvidenceResponse>)> {
-    let dispute_id: Uuid = id.parse()
+    let dispute_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid dispute id"))?;
-    let submitted_by: Uuid = body.submitted_by.parse()
+    let submitted_by: Uuid = body
+        .submitted_by
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid submitted_by"))?;
 
     if !["CONSUMER", "MERCHANT"].contains(&body.party.as_str()) {
@@ -257,14 +275,12 @@ pub async fn submit_evidence(
     }
 
     // Ensure dispute is still accepting evidence
-    let dispute_status: String = sqlx::query_scalar!(
-        "SELECT status FROM disputes WHERE id = $1",
-        dispute_id,
-    )
-    .fetch_optional(&state.pool)
-    .await
-    .map_err(|e| ApiError::internal(e.to_string()))?
-    .ok_or_else(|| ApiError::not_found("dispute not found"))?;
+    let dispute_status: String =
+        sqlx::query_scalar!("SELECT status FROM disputes WHERE id = $1", dispute_id,)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+            .ok_or_else(|| ApiError::not_found("dispute not found"))?;
 
     if ["WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED"].contains(&dispute_status.as_str()) {
         return Err(ApiError::unprocessable(
@@ -309,15 +325,18 @@ pub async fn submit_evidence(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    Ok((StatusCode::CREATED, Json(EvidenceResponse {
-        id:           row.id.to_string(),
-        dispute_id:   row.dispute_id.to_string(),
-        submitted_by: row.submitted_by.to_string(),
-        party:        row.party,
-        description:  row.description,
-        file_url:     row.file_url,
-        created_at:   row.created_at,
-    })))
+    Ok((
+        StatusCode::CREATED,
+        Json(EvidenceResponse {
+            id: row.id.to_string(),
+            dispute_id: row.dispute_id.to_string(),
+            submitted_by: row.submitted_by.to_string(),
+            party: row.party,
+            description: row.description,
+            file_url: row.file_url,
+            created_at: row.created_at,
+        }),
+    ))
 }
 
 // ---------------------------------------------------------------------------
@@ -326,9 +345,9 @@ pub async fn submit_evidence(
 
 #[derive(Deserialize)]
 pub struct ResolveDisputeBody {
-    pub outcome:          String, // WON_BY_CONSUMER | WON_BY_MERCHANT | CLOSED
+    pub outcome: String, // WON_BY_CONSUMER | WON_BY_MERCHANT | CLOSED
     pub resolution_notes: Option<String>,
-    pub resolved_by:      String,
+    pub resolved_by: String,
 }
 
 pub async fn resolve(
@@ -336,9 +355,12 @@ pub async fn resolve(
     Path(id): Path<String>,
     Json(body): Json<ResolveDisputeBody>,
 ) -> ApiResult<Json<DisputeResponse>> {
-    let dispute_id: Uuid = id.parse()
+    let dispute_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid dispute id"))?;
-    let resolved_by: Uuid = body.resolved_by.parse()
+    let resolved_by: Uuid = body
+        .resolved_by
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid resolved_by"))?;
 
     if !["WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED"].contains(&body.outcome.as_str()) {
@@ -361,7 +383,10 @@ pub async fn resolve(
     .ok_or_else(|| ApiError::not_found("dispute not found"))?;
 
     if ["WON_BY_CONSUMER", "WON_BY_MERCHANT", "CLOSED"].contains(&dispute.status.as_str()) {
-        return Err(ApiError::unprocessable("DISPUTE_ALREADY_RESOLVED", "dispute is already resolved"));
+        return Err(ApiError::unprocessable(
+            "DISPUTE_ALREADY_RESOLVED",
+            "dispute is already resolved",
+        ));
     }
 
     let now = Utc::now();
@@ -456,7 +481,8 @@ pub async fn resolve(
         &format!("dispute:{dispute_id}"),
         serde_json::json!({ "outcome": body.outcome, "resolved_by": resolved_by }),
         None,
-    ).await;
+    )
+    .await;
 
     Ok(Json(fetch_dispute(&state.pool, dispute_id).await?))
 }
@@ -469,7 +495,8 @@ pub async fn list_evidence(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let dispute_id: Uuid = id.parse()
+    let dispute_id: Uuid = id
+        .parse()
         .map_err(|_| ApiError::bad_request("invalid dispute id"))?;
 
     let rows = sqlx::query!(
@@ -481,15 +508,20 @@ pub async fn list_evidence(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    let data: Vec<serde_json::Value> = rows.iter().map(|r| serde_json::json!({
-        "id":           r.id,
-        "dispute_id":   r.dispute_id,
-        "submitted_by": r.submitted_by,
-        "party":        r.party,
-        "description":  r.description,
-        "file_url":     r.file_url,
-        "created_at":   r.created_at,
-    })).collect();
+    let data: Vec<serde_json::Value> = rows
+        .iter()
+        .map(|r| {
+            serde_json::json!({
+                "id":           r.id,
+                "dispute_id":   r.dispute_id,
+                "submitted_by": r.submitted_by,
+                "party":        r.party,
+                "description":  r.description,
+                "file_url":     r.file_url,
+                "created_at":   r.created_at,
+            })
+        })
+        .collect();
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
@@ -512,19 +544,19 @@ async fn fetch_dispute(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<DisputeRespon
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?
     .map(|r| DisputeResponse {
-        id:                r.id.to_string(),
-        transaction_id:    r.transaction_id.to_string(),
-        merchant_id:       r.merchant_id.to_string(),
-        consumer_id:       r.consumer_id.to_string(),
-        amount_minor:      r.amount_minor,
-        currency:          r.currency,
-        reason:            r.reason,
-        status:            r.status,
+        id: r.id.to_string(),
+        transaction_id: r.transaction_id.to_string(),
+        merchant_id: r.merchant_id.to_string(),
+        consumer_id: r.consumer_id.to_string(),
+        amount_minor: r.amount_minor,
+        currency: r.currency,
+        reason: r.reason,
+        status: r.status,
         evidence_deadline: r.evidence_deadline,
-        resolution_notes:  r.resolution_notes,
-        created_at:        r.created_at,
-        updated_at:        r.updated_at,
-        resolved_at:       r.resolved_at,
+        resolution_notes: r.resolution_notes,
+        created_at: r.created_at,
+        updated_at: r.updated_at,
+        resolved_at: r.resolved_at,
     })
     .ok_or_else(|| ApiError::not_found("dispute not found"))
 }

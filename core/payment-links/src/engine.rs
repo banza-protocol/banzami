@@ -16,8 +16,8 @@ pub trait PaymentLinkEngine: Send + Sync {
     async fn list_for_merchant(
         &self,
         merchant_id: banzami_types::MerchantId,
-        limit:       i64,
-        cursor:      Option<PaymentLinkId>,
+        limit: i64,
+        cursor: Option<PaymentLinkId>,
     ) -> Result<Vec<PaymentLink>, PaymentLinkError>;
     async fn cancel(&self, id: PaymentLinkId) -> Result<PaymentLink, PaymentLinkError>;
     async fn mark_used(&self, id: PaymentLinkId) -> Result<PaymentLink, PaymentLinkError>;
@@ -50,20 +50,20 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
                 return Err(PaymentLinkError::ExpiryInPast);
             }
         }
-        let now  = Utc::now();
+        let now = Utc::now();
         let link = PaymentLink {
-            id:           PaymentLinkId::new(),
-            slug:         Self::generate_slug(),
-            merchant_id:  req.merchant_id,
-            wallet_id:    req.wallet_id,
+            id: PaymentLinkId::new(),
+            slug: Self::generate_slug(),
+            merchant_id: req.merchant_id,
+            wallet_id: req.wallet_id,
             amount_minor: req.amount_minor,
-            currency:     req.currency,
-            description:  req.description,
-            status:       PaymentLinkStatus::Active,
-            expires_at:   req.expires_at,
-            paid_at:      None,
-            created_at:   now,
-            updated_at:   now,
+            currency: req.currency,
+            description: req.description,
+            status: PaymentLinkStatus::Active,
+            expires_at: req.expires_at,
+            paid_at: None,
+            created_at: now,
+            updated_at: now,
         };
         self.repo.insert(&link).await?;
         tracing::info!(
@@ -76,7 +76,10 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
     }
 
     async fn get(&self, id: PaymentLinkId) -> Result<PaymentLink, PaymentLinkError> {
-        self.repo.find_by_id(id).await?.ok_or(PaymentLinkError::NotFound(id))
+        self.repo
+            .find_by_id(id)
+            .await?
+            .ok_or(PaymentLinkError::NotFound(id))
     }
 
     async fn get_by_slug(&self, slug: &str) -> Result<PaymentLink, PaymentLinkError> {
@@ -89,11 +92,13 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
     async fn list_for_merchant(
         &self,
         merchant_id: banzami_types::MerchantId,
-        limit:       i64,
-        cursor:      Option<PaymentLinkId>,
+        limit: i64,
+        cursor: Option<PaymentLinkId>,
     ) -> Result<Vec<PaymentLink>, PaymentLinkError> {
         let limit = limit.clamp(1, 100);
-        self.repo.list_for_merchant(merchant_id, limit, cursor).await
+        self.repo
+            .list_for_merchant(merchant_id, limit, cursor)
+            .await
     }
 
     async fn cancel(&self, id: PaymentLinkId) -> Result<PaymentLink, PaymentLinkError> {

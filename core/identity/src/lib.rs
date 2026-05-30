@@ -4,8 +4,8 @@ pub mod repository;
 
 pub use engine::{IdentityEngine, PostgresIdentityEngine};
 pub use identity::{
-    is_reserved_handle, normalize_handle, validate_handle,
-    ConsumerIdentity, ConsumerStatus, CreateConsumerRequest, HandleResolution, VerificationBadge,
+    is_reserved_handle, normalize_handle, validate_handle, ConsumerIdentity, ConsumerStatus,
+    CreateConsumerRequest, HandleResolution, VerificationBadge,
 };
 pub use repository::{IdentityRepository, PostgresIdentityRepository};
 
@@ -36,7 +36,7 @@ pub enum IdentityError {
     #[error("invalid status transition: {from:?} → {to:?}")]
     InvalidStatusTransition {
         from: ConsumerStatus,
-        to:   ConsumerStatus,
+        to: ConsumerStatus,
     },
 
     #[error("unknown consumer status: {0}")]

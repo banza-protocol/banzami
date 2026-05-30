@@ -15,8 +15,9 @@ use banzami_types::{CustomerId, MerchantId};
 
 /// Customer identity verification level.
 /// Levels are ordered: higher levels grant more transaction capacity.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum KycLevel {
     None,
@@ -31,19 +32,19 @@ pub enum KycLevel {
 impl KycLevel {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::None     => "NONE",
-            Self::Basic    => "BASIC",
+            Self::None => "NONE",
+            Self::Basic => "BASIC",
             Self::Enhanced => "ENHANCED",
-            Self::Full     => "FULL",
+            Self::Full => "FULL",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "NONE"     => Some(Self::None),
-            "BASIC"    => Some(Self::Basic),
+            "NONE" => Some(Self::None),
+            "BASIC" => Some(Self::Basic),
             "ENHANCED" => Some(Self::Enhanced),
-            "FULL"     => Some(Self::Full),
+            "FULL" => Some(Self::Full),
             _ => None,
         }
     }
@@ -51,26 +52,25 @@ impl KycLevel {
     /// Maximum single-transaction amount this KYC level permits (0 = blocked).
     pub const fn max_single_transaction_minor(self) -> i64 {
         match self {
-            Self::None     => 0,
-            Self::Basic    => 50_000_00,    // 50,000 AOA
-            Self::Enhanced => 500_000_00,   // 500,000 AOA
-            Self::Full     => i64::MAX,
+            Self::None => 0,
+            Self::Basic => 5_000_000,     // 50,000 AOA
+            Self::Enhanced => 50_000_000, // 500,000 AOA
+            Self::Full => i64::MAX,
         }
     }
 
     /// Maximum daily transaction volume this KYC level permits (0 = blocked).
     pub const fn max_daily_volume_minor(self) -> i64 {
         match self {
-            Self::None     => 0,
-            Self::Basic    => 500_000_00,   // 500,000 AOA
-            Self::Enhanced => 5_000_000_00, // 5,000,000 AOA
-            Self::Full     => i64::MAX,
+            Self::None => 0,
+            Self::Basic => 50_000_000,     // 500,000 AOA
+            Self::Enhanced => 500_000_000, // 5,000,000 AOA
+            Self::Full => i64::MAX,
         }
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ComplianceStatus {
     Pending,
@@ -83,21 +83,21 @@ pub enum ComplianceStatus {
 impl ComplianceStatus {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Pending     => "PENDING",
-            Self::Approved    => "APPROVED",
-            Self::Rejected    => "REJECTED",
+            Self::Pending => "PENDING",
+            Self::Approved => "APPROVED",
+            Self::Rejected => "REJECTED",
             Self::UnderReview => "UNDER_REVIEW",
-            Self::Suspended   => "SUSPENDED",
+            Self::Suspended => "SUSPENDED",
         }
     }
 
     pub fn try_from_str(s: &str) -> Option<Self> {
         match s {
-            "PENDING"      => Some(Self::Pending),
-            "APPROVED"     => Some(Self::Approved),
-            "REJECTED"     => Some(Self::Rejected),
+            "PENDING" => Some(Self::Pending),
+            "APPROVED" => Some(Self::Approved),
+            "REJECTED" => Some(Self::Rejected),
             "UNDER_REVIEW" => Some(Self::UnderReview),
-            "SUSPENDED"    => Some(Self::Suspended),
+            "SUSPENDED" => Some(Self::Suspended),
             _ => None,
         }
     }
@@ -112,30 +112,28 @@ impl ComplianceStatus {
 // ---------------------------------------------------------------------------
 
 /// Compliance record for a customer (consumer-side KYC).
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CustomerCompliance {
-    pub customer_id:  CustomerId,
-    pub kyc_level:    KycLevel,
-    pub status:       ComplianceStatus,
-    pub reviewed_at:  Option<DateTime<Utc>>,
-    pub created_at:   DateTime<Utc>,
-    pub updated_at:   DateTime<Utc>,
+    pub customer_id: CustomerId,
+    pub kyc_level: KycLevel,
+    pub status: ComplianceStatus,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 /// Compliance record for a merchant (business-side KYB + AML).
-#[derive(Debug, Clone)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct MerchantCompliance {
-    pub merchant_id:  MerchantId,
+    pub merchant_id: MerchantId,
     /// Business identity verification status.
-    pub kyb_status:   ComplianceStatus,
+    pub kyb_status: ComplianceStatus,
     /// Anti-money-laundering screening status.
-    pub aml_status:   ComplianceStatus,
-    pub reviewed_at:  Option<DateTime<Utc>>,
-    pub notes:        Option<String>,
-    pub created_at:   DateTime<Utc>,
-    pub updated_at:   DateTime<Utc>,
+    pub aml_status: ComplianceStatus,
+    pub reviewed_at: Option<DateTime<Utc>>,
+    pub notes: Option<String>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
 impl MerchantCompliance {
@@ -155,7 +153,10 @@ pub enum ComplianceError {
     NotFound,
 
     #[error("KYC level insufficient: required {required:?}, current {current:?}")]
-    InsufficientKycLevel { required: KycLevel, current: KycLevel },
+    InsufficientKycLevel {
+        required: KycLevel,
+        current: KycLevel,
+    },
 
     #[error("merchant compliance check failed: {reason}")]
     MerchantBlocked { reason: String },
