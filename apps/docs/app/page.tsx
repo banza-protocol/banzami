@@ -261,7 +261,7 @@ export default function HomePage() {
       {/* ─── 14. SOURCE ATTRIBUTION ───────────────────────────────────────── */}
       <div className="border-t border-bz-border bg-bz-surface px-5 py-6 text-center text-xs text-bz-muted md:px-8 lg:px-12">
         Organização Banzami · Banza Reference v{reference.meta.version} · Todo o conteúdo deriva de{' '}
-        <code className="rounded bg-bz-border px-1.5 py-0.5 font-mono">docs/BANZAMI_REFERENCE.md</code>
+        <code className="rounded bg-bz-border px-1.5 py-0.5 font-mono">docs/BANZA_REFERENCE.md</code>
         {' '}· ADR-015 · ADR-025
       </div>
     </div>

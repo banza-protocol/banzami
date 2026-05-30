@@ -108,7 +108,7 @@ Banzami (organização / ecossistema)
 - A organização como entidade ("o Banzami constrói...", "parceiros do Banzami")
 - A missão institucional ("a visão do Banzami")
 - Infraestrutura técnica a nível de plataforma ("infraestrutura do Banzami")
-- Documentação fonte-de-verdade ("BANZAMI_REFERENCE.md")
+- Documentação fonte-de-verdade ("BANZA_REFERENCE.md")
 - Relações com bancos e reguladores ("o Banzami ganha acesso a...")
 - O ecossistema no seu conjunto ("ecossistema Banzami", "o Ecossistema Banzami")
 - Futuros produtos não-Banza da organização
@@ -205,7 +205,7 @@ Rejeitado porque a organização precisa de um nome distinto para contextos inst
 
 ### Mitigação
 
-- `docs/BANZAMI_REFERENCE.md` é actualizado primeiro — todas as outras superfícies derivam dele.
+- `docs/BANZA_REFERENCE.md` é actualizado primeiro — todas as outras superfícies derivam dele.
 - CLAUDE.md inclui regras vinculativas de nomenclatura para todos os engenheiros.
 - Qualquer novo conteúdo deve ser verificado contra as regras deste ADR antes de publicação.
 
@@ -214,7 +214,7 @@ Rejeitado porque a organização precisa de um nome distinto para contextos inst
 ## Fluxo de Actualização de Conteúdo
 
 ```
-BANZAMI_REFERENCE.md  (fonte de verdade)
+BANZA_REFERENCE.md  (fonte de verdade)
           ↓
     website rendering
           ↓
@@ -235,4 +235,4 @@ BANZAMI_REFERENCE.md  (fonte de verdade)
 - [ADR-014](ADR-014-angola-national-mission.md) — Missão Nacional Angola-First
 - [ADR-015](ADR-015-markdown-first-content-architecture.md) — Arquitectura de Conteúdo Markdown-First
 - [CLAUDE.md](../../CLAUDE.md) — Constituição de Engenharia Banzami
-- [docs/BANZAMI_REFERENCE.md](../BANZAMI_REFERENCE.md) — Fonte de Verdade Oficial
+- [docs/BANZA_REFERENCE.md](../BANZA_REFERENCE.md) — Fonte de Verdade Oficial

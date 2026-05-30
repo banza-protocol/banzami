@@ -62,7 +62,7 @@ function makeMatrix(
   categories: ValidationCategory[] = [{ id: 'cat-docs', name: 'Docs', description: '' }],
 ): ValidationMatrix {
   return {
-    meta: { version: '1.0', lastUpdated: '2026-05-20', referenceVersion: '1.0', referenceFile: 'BANZAMI_REFERENCE.md', description: '' },
+    meta: { version: '1.0', lastUpdated: '2026-05-20', referenceVersion: '1.0', referenceFile: 'BANZA_REFERENCE.md', description: '' },
     categories,
     items,
   }

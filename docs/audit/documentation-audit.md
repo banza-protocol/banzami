@@ -17,7 +17,7 @@ This audit captures the gap between the Banza codebase and its documentation as 
 
 | Document | Language | Lines | Status | Coverage |
 |----------|----------|-------|--------|----------|
-| `docs/BANZAMI_REFERENCE.md` | Portuguese | 3046 | Active | Product-focused; missing kernel architecture, conformance, BanzAI |
+| `docs/BANZA_REFERENCE.md` | Portuguese | 3046 | Active | Product-focused; missing kernel architecture, conformance, BanzAI |
 | `README.md` | English | 1966 | Active | Developer-focused; good architecture coverage |
 | `docs/adr/ADR-001..017` | Portuguese | — | Active | 17 ADRs; gaps in certification, conformance, BanzAI governance |
 | `docs/sandbox/README.md` | English | ~500 | Active | Comprehensive; accurate |
@@ -53,9 +53,9 @@ This audit captures the gap between the Banza codebase and its documentation as 
 
 | Location | Issue | Impact |
 |----------|-------|--------|
-| `BANZAMI_REFERENCE.md` §17 | "Banza Kernel" described as 5 crates; actual codebase has 19 | Incorrect for any technical reader |
-| `BANZAMI_REFERENCE.md` §18 | Lists "BanzAI" as a future roadmap item; it now exists and is deployed | Misleading |
-| `BANZAMI_REFERENCE.md` §20 | References `gen-icons-sandbox.sh` and `make-sandbox-icon.py` as current tools; both are deprecated | Incorrect |
+| `BANZA_REFERENCE.md` §17 | "Banza Kernel" described as 5 crates; actual codebase has 19 | Incorrect for any technical reader |
+| `BANZA_REFERENCE.md` §18 | Lists "BanzAI" as a future roadmap item; it now exists and is deployed | Misleading |
+| `BANZA_REFERENCE.md` §20 | References `gen-icons-sandbox.sh` and `make-sandbox-icon.py` as current tools; both are deprecated | Incorrect |
 | `README.md` | Does not mention conformance suite, certification framework, or BanzAI | Architecture drift |
 | `docs/sandbox/README.md` | Lists Python SDK example; no Python SDK exists or is planned | Incorrect SDK example |
 
@@ -79,9 +79,9 @@ This audit captures the gap between the Banza codebase and its documentation as 
 
 | Location | Issue |
 |----------|-------|
-| `BANZAMI_REFERENCE.md` §17 | Kernel described as 5 crates (ledger, wallets, transactions, settlements, api-gateway); actual is 19+ crates split across `core/` |
+| `BANZA_REFERENCE.md` §17 | Kernel described as 5 crates (ledger, wallets, transactions, settlements, api-gateway); actual is 19+ crates split across `core/` |
 | `apps/docs/app/layout.tsx` | Nav includes only 8 items; missing: Conformance, Certification, Operators detail |
-| Footer links in layout | References `/o-que-e-o-banzami` and `/seguranca-e-integridade-financeira` as direct paths; both are dynamic `[section]` routes driven by BANZAMI_REFERENCE.md section slugs |
+| Footer links in layout | References `/o-que-e-o-banzami` and `/seguranca-e-integridade-financeira` as direct paths; both are dynamic `[section]` routes driven by BANZA_REFERENCE.md section slugs |
 | `docs/sandbox/README.md` | Python SDK example uses `banzami.Client` — no Python SDK is planned; TypeScript and Flutter are the official SDKs |
 
 ### 4. Architecture Drift
@@ -115,21 +115,21 @@ This audit captures the gap between the Banza codebase and its documentation as 
 
 | Content | Locations |
 |---------|-----------|
-| Sandbox environment description | `docs/sandbox/README.md`, `BANZAMI_REFERENCE.md §20`, `README.md` |
-| Brand architecture (Banza vs Banzami) | `ADR-016`, `BANZAMI_REFERENCE.md §1`, `README.md §intro` |
-| Double-entry ledger description | `ADR-002`, `BANZAMI_REFERENCE.md §17`, `README.md` |
+| Sandbox environment description | `docs/sandbox/README.md`, `BANZA_REFERENCE.md §20`, `README.md` |
+| Brand architecture (Banza vs Banzami) | `ADR-016`, `BANZA_REFERENCE.md §1`, `README.md §intro` |
+| Double-entry ledger description | `ADR-002`, `BANZA_REFERENCE.md §17`, `README.md` |
 | Authentication strategy | `ADR-003`, `ADR-010`, scattered in README |
-| SDK architecture | `ADR-007`, `ADR-012`, `README.md`, `BANZAMI_REFERENCE.md §12` |
+| SDK architecture | `ADR-007`, `ADR-012`, `README.md`, `BANZA_REFERENCE.md §12` |
 
 ### 7. Broken References
 
 | Location | Reference | Status |
 |----------|-----------|--------|
 | `docs/sandbox/README.md` | Python SDK `banzami.Client` | No Python SDK exists |
-| `BANZAMI_REFERENCE.md` | `gen-icons-sandbox.sh` | Deprecated |
+| `BANZA_REFERENCE.md` | `gen-icons-sandbox.sh` | Deprecated |
 | `docs/architecture/README.md` | "See architecture diagrams" | No diagrams exist |
 | `docs/domains/*/README.md` | "See full specification" | All are stubs with no content |
-| `BANZAMI_REFERENCE.md §18` | BanzAI as future roadmap | BanzAI is deployed |
+| `BANZA_REFERENCE.md §18` | BanzAI as future roadmap | BanzAI is deployed |
 
 ---
 
@@ -137,10 +137,10 @@ This audit captures the gap between the Banza codebase and its documentation as 
 
 ### Critical (blocks institutional coherence)
 
-1. **Create `BANZAMI_ECOSYSTEM_REFERENCE.md`** — architecture-first master reference for the full ecosystem, not the product narrative in BANZAMI_REFERENCE.md
+1. **Create `BANZAMI_ECOSYSTEM_REFERENCE.md`** — architecture-first master reference for the full ecosystem, not the product narrative in BANZA_REFERENCE.md
 2. **Create `docs/banzamia/` documentation suite** — BanzAI is deployed with 8 modules and zero documentation
 3. **Create `docs/glossary.md`** — terminology drift is pervasive; a single authoritative glossary fixes it
-4. **Update `BANZAMI_REFERENCE.md §18`** — remove BanzAI from "future roadmap"; describe it accurately
+4. **Update `BANZA_REFERENCE.md §18`** — remove BanzAI from "future roadmap"; describe it accurately
 
 ### High (blocks developer onboarding)
 

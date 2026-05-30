@@ -1219,13 +1219,13 @@ See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for the full rationale, t
 
 ## 15.1 The Rule
 
-`docs/BANZAMI_REFERENCE.md` is the **single source of truth** for the entire public Banza ecosystem.
+`docs/BANZA_REFERENCE.md` is the **single source of truth** for the entire public Banza ecosystem.
 
 This is a binding architectural constraint.
 
 ---
 
-## 15.2 What BANZAMI_REFERENCE.md Is
+## 15.2 What BANZA_REFERENCE.md Is
 
 It is simultaneously:
 
@@ -1246,7 +1246,7 @@ The public website is only the visual interface for consuming that constitution.
 ## 15.3 The Mandatory Content Flow
 
 ```text
-BANZAMI_REFERENCE.md
+BANZA_REFERENCE.md
 ↓
 structured parsing / rendering
 ↓
@@ -1277,7 +1277,7 @@ NOTHING may appear on:
 * marketing pages,
 * investor or product pages,
 
-WITHOUT FIRST existing inside `docs/BANZAMI_REFERENCE.md`.
+WITHOUT FIRST existing inside `docs/BANZA_REFERENCE.md`.
 
 ---
 
@@ -1295,7 +1295,7 @@ Whenever a new concept is added:
 * mobile UX,
 * ecosystem principle,
 
-it MUST first be documented in `BANZAMI_REFERENCE.md`.
+it MUST first be documented in `BANZA_REFERENCE.md`.
 
 Only after that may it appear publicly on the website.
 
@@ -1356,7 +1356,7 @@ Use Banza when referring to:
 * institutional mission and strategy,
 * bank and regulatory relationships,
 * the technical platform and infrastructure as a whole,
-* documentation source of truth (BANZAMI_REFERENCE.md),
+* documentation source of truth (BANZA_REFERENCE.md),
 * the ecosystem umbrella ("Ecossistema Banza"),
 * future non-Banzami products of the organization.
 
@@ -1426,7 +1426,7 @@ Compound product names follow the head noun gender (e.g. "o Banzami Business" si
 
 ## 16.8 Content update flow
 
-ALWAYS update BANZAMI_REFERENCE.md FIRST.
+ALWAYS update BANZA_REFERENCE.md FIRST.
 Never update website, UI, or SDK names before the reference document is coherent.
 
 See ADR-016 for full context, rationale, and migration rules.
@@ -1619,7 +1619,7 @@ The validation governance architecture is **mature and sufficient**.
 
 The following layers are now considered foundational and stable:
 
-- BANZAMI_REFERENCE.md
+- BANZA_REFERENCE.md
 - Validation Matrix (BANZAMI_IMPLEMENTATION_MATRIX.json)
 - Public /validacao page
 - Local Validation Studio

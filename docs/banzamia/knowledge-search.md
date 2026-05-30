@@ -20,7 +20,7 @@ The knowledge base indexes:
 |--------|---------|
 | RFCs | Protocol specifications and governance decisions |
 | ADRs | Architecture decision records (ADR-001 to current) |
-| `docs/BANZAMI_REFERENCE.md` | Official public reference |
+| `docs/BANZA_REFERENCE.md` | Official public reference |
 | `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` | Architecture reference |
 | `docs/validation/INVARIANT_TAXONOMY.md` | Financial invariant registry |
 | `docs/validation/VALIDATION_DOMAINS.md` | Validation domain taxonomy |

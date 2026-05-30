@@ -187,8 +187,8 @@ deploy_docs_frontend() {
   # apps/docs/ and docs/ into the image (ADR-015).
   ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs/validation"
   rsync -az \
-    "$REPO_ROOT/docs/BANZAMI_REFERENCE.md" \
-    "$REMOTE:/srv/banzami/src/docs/BANZAMI_REFERENCE.md"
+    "$REPO_ROOT/docs/BANZA_REFERENCE.md" \
+    "$REMOTE:/srv/banzami/src/docs/BANZA_REFERENCE.md"
   rsync -az \
     "$REPO_ROOT/docs/validation/" \
     "$REMOTE:/srv/banzami/src/docs/validation/"

@@ -2,14 +2,14 @@
 
 Public documentation website for the Banza platform.
 
-> **Per ADR-015:** all content on this site derives from `docs/BANZAMI_REFERENCE.md`. The markdown file is the single source of truth. This app is the visual rendering layer only.
+> **Per ADR-015:** all content on this site derives from `docs/BANZA_REFERENCE.md`. The markdown file is the single source of truth. This app is the visual rendering layer only.
 
 ---
 
 ## Architecture
 
 ```text
-docs/BANZAMI_REFERENCE.md   ← canonical source of truth
+docs/BANZA_REFERENCE.md   ← canonical source of truth
         ↓
 lib/reference.ts             ← content parsing engine (build-time only)
         ↓
@@ -20,7 +20,7 @@ app/page.tsx                 ← homepage (section grid)
 
 ## Content pipeline
 
-`lib/reference.ts` reads `BANZAMI_REFERENCE.md` at build time and returns:
+`lib/reference.ts` reads `BANZA_REFERENCE.md` at build time and returns:
 
 - **Document metadata**: Version, Date, Author, Status
 - **Sections**: one per H2 heading (`## N. Title`) — with slug, anchor, and content
@@ -49,7 +49,7 @@ npm run type-check
 
 ## The rule
 
-**Nothing may appear on this website without first existing in `docs/BANZAMI_REFERENCE.md`.**
+**Nothing may appear on this website without first existing in `docs/BANZA_REFERENCE.md`.**
 
 Update the markdown. Rebuild. The website reflects the truth.
 

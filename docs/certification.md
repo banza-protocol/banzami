@@ -45,7 +45,7 @@ The following rules apply at **all certification levels** (0–4). Violation of 
 | `gross_minor ≠ net_minor + fee_minor` | Certification FAIL |
 | `balance_minor ≠ available_minor + reserved_minor` | Certification FAIL |
 
-See `BANZAMI_REFERENCE.md §5` for the full monetary representation specification and the `*_minor` field naming convention.
+See `BANZA_REFERENCE.md §5` for the full monetary representation specification and the `*_minor` field naming convention.
 
 ---
 

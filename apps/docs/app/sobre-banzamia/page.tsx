@@ -91,7 +91,7 @@ export default function SobreBanzAIPage() {
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <p className="text-xs text-bz-muted">
             Conteúdo derivado de{' '}
-            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZAMI_REFERENCE.md §11</code>
+            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZA_REFERENCE.md §11</code>
             {' '}· v{reference.meta.version}
           </p>
           <div className="flex gap-3">

@@ -3,8 +3,8 @@
     "version": "1.0",
     "lastUpdated": "2026-05-22",
     "referenceVersion": "1.0",
-    "referenceFile": "docs/BANZAMI_REFERENCE.md",
-    "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZAMI_REFERENCE.md as single source of truth. Per ADR-015."
+    "referenceFile": "docs/BANZA_REFERENCE.md",
+    "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
   },
   "categories": [
     {
@@ -135,8 +135,8 @@
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§15.2 (ADR-015)",
-      "description": "Site de documentação público em Next.js servindo como interface visual para o documento de referência oficial BANZAMI_REFERENCE.md.",
-      "requirement": "O site deve renderizar o documento de referência e estar acessível publicamente. Conteúdo derivado exclusivamente de BANZAMI_REFERENCE.md.",
+      "description": "Site de documentação público em Next.js servindo como interface visual para o documento de referência oficial BANZA_REFERENCE.md.",
+      "requirement": "O site deve renderizar o documento de referência e estar acessível publicamente. Conteúdo derivado exclusivamente de BANZA_REFERENCE.md.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Plataforma / Frontend",
@@ -148,7 +148,7 @@
       ],
       "acceptanceCriteria": [
         "Site acessível e funcional em produção (banzami.org)",
-        "Conteúdo renderizado exclusivamente a partir de BANZAMI_REFERENCE.md",
+        "Conteúdo renderizado exclusivamente a partir de BANZA_REFERENCE.md",
         "Navegação por secções operacional (20 rotas + sidebar)",
         "Design responsivo em mobile e desktop",
         "Página /validacao integrada no mesmo site",
@@ -223,11 +223,11 @@
     },
     {
       "id": "DOC-002",
-      "title": "Renderização de BANZAMI_REFERENCE.md",
+      "title": "Renderização de BANZA_REFERENCE.md",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
-      "description": "Motor de parsing que lê BANZAMI_REFERENCE.md em build time e produz estrutura de secções tipada para renderização no site.",
+      "description": "Motor de parsing que lê BANZA_REFERENCE.md em build time e produz estrutura de secções tipada para renderização no site.",
       "requirement": "Parsing determinístico de todas as 20 secções do documento de referência, com metadados, subsecções e slugs de rota.",
       "status": "VALIDATED",
       "priority": "CRITICAL",
@@ -413,8 +413,8 @@
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
-      "description": "Infraestrutura de governança de validação que mapeia cada funcionalidade descrita em BANZAMI_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação. Inclui página pública /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprovação por frases exactas, histórico imutável e testes automatizados da engine.",
-      "requirement": "Página /validacao com matriz completa de implementação, filtros por status/prioridade/categoria/domínio, pesquisa por palavra-chave, métricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZAMI_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determinístico, portas de aprovação humana com frases exactas, histórico append-only e suite de testes automatizados (≥80 casos).",
+      "description": "Infraestrutura de governança de validação que mapeia cada funcionalidade descrita em BANZA_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação. Inclui página pública /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprovação por frases exactas, histórico imutável e testes automatizados da engine.",
+      "requirement": "Página /validacao com matriz completa de implementação, filtros por status/prioridade/categoria/domínio, pesquisa por palavra-chave, métricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZA_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determinístico, portas de aprovação humana com frases exactas, histórico append-only e suite de testes automatizados (≥80 casos).",
       "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Plataforma / Frontend",
@@ -431,7 +431,7 @@
         "Todas as categorias do ecossistema representadas na matriz",
         "Filtros por status, prioridade, categoria e domínio operacionais",
         "Pesquisa por palavra-chave em tempo real funcional",
-        "Rastreabilidade a BANZAMI_REFERENCE.md via campo referenceSection",
+        "Rastreabilidade a BANZA_REFERENCE.md via campo referenceSection",
         "Métricas globais exibidas e computadas correctamente",
         "Validation Studio acessível localmente em localhost:3099",
         "Governance engine cobre todas as regras §17 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
@@ -566,7 +566,7 @@
     },
     {
       "id": "IDT-001",
-      "title": "Documento de referência oficial (BANZAMI_REFERENCE.md)",
+      "title": "Documento de referência oficial (BANZA_REFERENCE.md)",
       "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§1 — §20",
@@ -599,7 +599,7 @@
         {
           "type": "component",
           "label": "Ficheiro de referência",
-          "ref": "docs/BANZAMI_REFERENCE.md"
+          "ref": "docs/BANZA_REFERENCE.md"
         },
         {
           "type": "test",
@@ -1329,7 +1329,7 @@
         "core/consumer-wallets/src/funding.rs — FundingEngine trait + PostgresFundingEngine",
         "core/consumer-wallets/tests/funding_integration.rs — 8 integration tests",
         "db/migrations/0034_wallet_funding.sql — provider_callbacks UNIQUE, reconciliation_attempts",
-        "docs/BANZAMI_REFERENCE.md §17.8 — full architecture documentation (state machine, 5 scenarios, security model)",
+        "docs/BANZA_REFERENCE.md §17.8 — full architecture documentation (state machine, 5 scenarios, security model)",
         "FundingStatus::validate_transition — all invalid transitions rejected",
         "provider_callbacks_event_unique UNIQUE constraint — idempotency at data layer",
         "funding-settle-{session_id} idempotency key in LedgerEngine.post()",
@@ -1409,7 +1409,7 @@
             "core/consumer-wallets/src/funding.rs",
             "core/consumer-wallets/tests/funding_integration.rs",
             "db/migrations/0034_wallet_funding.sql",
-            "docs/BANZAMI_REFERENCE.md §17.8"
+            "docs/BANZA_REFERENCE.md §17.8"
           ]
         }
       ],
@@ -1449,7 +1449,7 @@
         "db/migrations/0035_handle_format_constraint.sql — DB-level CHECK constraint enforces format at storage layer",
         "core/consumer-wallets/src/engine.rs — validate_handle_format() now delegates to banzami_identity::validate_handle() (single source of truth)",
         "core/identity/tests/integration.rs — 10 integration tests including: valid registration, duplicate rejection, normalization collision, reserved handles, invalid syntax, resolve active, suspended not resolved, closed not resolved, unknown handle, concurrent registration (1 of 5 wins)",
-        "docs/BANZAMI_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale",
+        "docs/BANZA_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale",
         "core/identity/tests/integration.rs — 10/10 integration tests PASS against live PostgreSQL banzami_dev (6.18s runtime, 2026-05-22)",
         "SQL INV-IDENTITY-001 check — 0 duplicate active handles across 7 consumers in banzami_dev",
         "E2E handle validation: full HTTP onboarding flow — handle pubapi_e2e_final registered ACTIVE through Go public-api → Rust core-api → banzami_identity → DB (from WAL-001D E2E)"
@@ -1506,13 +1506,13 @@
           "approvedBy": "local-admin",
           "fingerprint": "pending-build",
           "commit": null,
-          "reason": "HDL-001 implemented: validate_handle fixed (max 20, starts-with-letter, expanded reserved list), resolve_handle() added to IdentityEngine, migration 0035 (DB-level CHECK), handle validation unified in consumer-wallets, 10 integration tests, BANZAMI_REFERENCE.md §6.3 expanded",
+          "reason": "HDL-001 implemented: validate_handle fixed (max 20, starts-with-letter, expanded reserved list), resolve_handle() added to IdentityEngine, migration 0035 (DB-level CHECK), handle validation unified in consumer-wallets, 10 integration tests, BANZA_REFERENCE.md §6.3 expanded",
           "evidence": [
             "core/identity/src/identity.rs",
             "core/identity/src/engine.rs",
             "db/migrations/0035_handle_format_constraint.sql",
             "core/identity/tests/integration.rs",
-            "docs/BANZAMI_REFERENCE.md"
+            "docs/BANZA_REFERENCE.md"
           ]
         },
         {
@@ -1568,7 +1568,7 @@
         "core/api/src/main.rs — route registered: /internal/v1/identity/resolve/:handle",
         "db/migrations/0036_handle_routing_index.sql — routing index consumers_handle_status_idx + stale COMMENT fix",
         "core/consumer-wallets/tests/routing_integration.rs — 10 integration tests covering all 5 invariants including concurrent resolution",
-        "docs/BANZAMI_REFERENCE.md §6.3 — 4-layer routing architecture diagram, routing state table, determinism rationale",
+        "docs/BANZA_REFERENCE.md §6.3 — 4-layer routing architecture diagram, routing state table, determinism rationale",
         "E2E HTTP: GET /internal/v1/identity/resolve/fm65?currency=AOA → {wallet_id: 611eac29, routing_status: ROUTABLE} via live core-api",
         "E2E HTTP: GET /internal/v1/identity/resolve/pubapi_e2e_final → {wallet_id: 740e6295, ROUTABLE} — wallet from WAL-001D E2E",
         "E2E latency: p99=6ms (n=20, min=1.7ms, median=2.2ms) — criterion 2 and 4 met without Redis cache",
@@ -1639,7 +1639,7 @@
             "core/api/src/routes/consumers.rs",
             "db/migrations/0036_handle_routing_index.sql",
             "core/consumer-wallets/tests/routing_integration.rs",
-            "docs/BANZAMI_REFERENCE.md"
+            "docs/BANZA_REFERENCE.md"
           ]
         },
         {

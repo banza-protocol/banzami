@@ -3,7 +3,7 @@
 **Version:** 1.0
 **Date:** 2026-05-29
 **Audit:** BANZAMI-CANONICAL-ALIGNMENT-AUDIT-013
-**Canonical Source:** `docs/BANZAMI_REFERENCE.md`
+**Canonical Source:** `docs/BANZA_REFERENCE.md`
 **Status:** Complete
 
 ---
@@ -56,7 +56,7 @@ These descriptions are all valid but use no canonical framing. "Protocol Operati
 
 ### Critical Findings
 
-**F-004** — `BANZAMI_REFERENCE.md` line 782 — **CRITICAL**  
+**F-004** — `BANZA_REFERENCE.md` line 782 — **CRITICAL**  
 > "O BanzAI disponível publicamente em `banzami.org/banzamia` é composto por **oito módulos especializados**"  
 Type: FALSE (E)  
 BanzAI currently has **16 active modules**. The product architecture table lists only the original 8 (Chat, Operator Builder, Conformance, Manifest Validator, Trace Explainer, SDK Assistant, RFC/ADR Explorer, Knowledge Search). The 8 new modules added in the Protocol OS buildout (System Status, Protocol Graph, Protocol Research, Cert. Copilot, Quality Dashboard, Protocol Simulator, Federation Intelligence, Protocol Memory, Digital Twin) are documented individually later in section 9 but the opening product table is factually wrong.
@@ -103,7 +103,7 @@ Correctly uses "Protocol Operating System" framing. ✓ PASS
 
 ## Section 4 — Feature Coverage
 
-| Capability | BANZAMI_REFERENCE.md | BanzAI standalone README | Banza kernel README | Banzami docs site |
+| Capability | BANZA_REFERENCE.md | BanzAI standalone README | Banza kernel README | Banzami docs site |
 |-----------|---------------------|--------------------------|----------------------|-----------------|
 | RAG | ✓ Documented | ✓ Documented | ✗ Not mentioned | ✓ Documented |
 | Protocol Graph | ✓ Documented (§9) | ✗ Not mentioned | ✗ Not mentioned | ✓ Documented |
@@ -137,7 +137,7 @@ Minor note: The BanzAI standalone README lists Level 2 as requiring "+ traces" b
 
 ### Status: GOOD overall, one structural tension
 
-**F-013** — `BANZAMI_REFERENCE.md` §1  
+**F-013** — `BANZA_REFERENCE.md` §1  
 > "**Banzami** é o produto principal do Banza: a rede angolana de pagamentos instantâneos por QR Code."  
 Type: TRUE BUT INCOMPLETE (B)  
 Calling Banzami "o produto principal" (the main product) is accurate from a commercial perspective but creates narrative confusion for a new visitor who might infer that Banza = Banzami's parent company rather than an open protocol that any operator can implement. The framing should either clarify "first operator" explicitly alongside "main product" or be restructured.
@@ -158,14 +158,14 @@ No instances found where Banzami is presented AS the protocol. The distinction i
 | F-001 — Shopify/WooCommerce as integrations | `Banzami/README.md` | D — Misleading |
 | F-002 — BanzAI missing from ecosystem diagram | `Banzami/README.md` | C — Partially Outdated |
 | F-003 — No Protocol OS framing in standalone README | `BanzamIA/README.md` | B — Incomplete |
-| F-004 — "8 modules" when 16 exist | `BANZAMI_REFERENCE.md:782` | E — **False** |
+| F-004 — "8 modules" when 16 exist | `BANZA_REFERENCE.md:782` | E — **False** |
 | F-005 — Protocol OS listed as "vision" | `roadmap/page.tsx:49` | E — **False** |
 | F-006 — banzamia-product-architecture.svg shows 8 modules | SVG | E — **False** |
 | F-007 — Ecosystem diagram omits BanzAI | `Banzami/README.md` ASCII | C — Partially Outdated |
 | F-008 — Missing Protocol OS framing | `BanzamIA/README.md` | B — Incomplete |
 | F-009 — Missing new modules in standalone README | `BanzamIA/README.md` | C — Partially Outdated |
 | F-010 — Incomplete capability description in metadata | `sobre-banzamia/page.tsx` | B — Incomplete |
-| F-013 — "produto principal" creates narrative tension | `BANZAMI_REFERENCE.md §1` | B — Incomplete |
+| F-013 — "produto principal" creates narrative tension | `BANZA_REFERENCE.md §1` | B — Incomplete |
 
 **False (E) findings: 3** — These are the critical fixes.  
 **Misleading (D) findings: 1** — Needs correction.  
@@ -188,7 +188,7 @@ No instances found where Banzami is presented AS the protocol. The distinction i
 **banzami.org/sobre-banzamia**
 
 1. ✓ The CTA correctly links to `/banzamia`.
-2. ⚠ The content is sourced from `BANZAMI_REFERENCE.md §9` which has the "8 modules" issue — a visitor will read about 8 modules but find 16 in the actual interface.
+2. ⚠ The content is sourced from `BANZA_REFERENCE.md §9` which has the "8 modules" issue — a visitor will read about 8 modules but find 16 in the actual interface.
 3. ⚠ No mention of Protocol Simulator, Federation Intelligence, Protocol Memory, or Digital Twin in the module description table.
 
 **banzami.org/roadmap**
@@ -198,7 +198,7 @@ No instances found where Banzami is presented AS the protocol. The distinction i
 
 **banzami.org/reference**
 
-1. ✓ Content is sourced from BANZAMI_REFERENCE.md — comprehensive.
+1. ✓ Content is sourced from BANZA_REFERENCE.md — comprehensive.
 2. ⚠ The 8-module table in §9 will mislead visitors about BanzAI's current scope.
 
 ---

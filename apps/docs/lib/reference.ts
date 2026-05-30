@@ -1,7 +1,7 @@
 /**
- * Content parsing engine — BANZAMI_REFERENCE.md as single source of truth.
+ * Content parsing engine — BANZA_REFERENCE.md as single source of truth.
  *
- * Reads docs/BANZAMI_REFERENCE.md at build time and returns a structured
+ * Reads docs/BANZA_REFERENCE.md at build time and returns a structured
  * representation of all sections and subsections. The website derives every
  * piece of public content from this output.
  *
@@ -11,7 +11,7 @@ import fs from 'fs'
 import path from 'path'
 import type { Reference, ReferenceSection, ReferenceSubsection, ReferenceMeta } from './types'
 
-const REFERENCE_PATH = path.join(process.cwd(), '../../docs/BANZAMI_REFERENCE.md')
+const REFERENCE_PATH = path.join(process.cwd(), '../../docs/BANZA_REFERENCE.md')
 
 // ----- Public API ------------------------------------------------------------
 
@@ -124,7 +124,7 @@ function validateRaw(raw: string): void {
   const requiredFields: string[] = ['Version', 'Date', 'Author', 'Status']
   for (const field of requiredFields) {
     if (!raw.includes(`**${field}:**`)) {
-      throw new Error(`BANZAMI_REFERENCE.md is missing required metadata field: ${field}`)
+      throw new Error(`BANZA_REFERENCE.md is missing required metadata field: ${field}`)
     }
   }
 
@@ -136,13 +136,13 @@ function validateRaw(raw: string): void {
   }
 
   if (sectionNumbers.length === 0) {
-    throw new Error('BANZAMI_REFERENCE.md contains no H2 sections')
+    throw new Error('BANZA_REFERENCE.md contains no H2 sections')
   }
 
   for (let i = 0; i < sectionNumbers.length; i++) {
     if (sectionNumbers[i] !== i + 1) {
       throw new Error(
-        `BANZAMI_REFERENCE.md section numbering is not sequential at index ${i}: expected ${i + 1}, got ${sectionNumbers[i]}`
+        `BANZA_REFERENCE.md section numbering is not sequential at index ${i}: expected ${i + 1}, got ${sectionNumbers[i]}`
       )
     }
   }

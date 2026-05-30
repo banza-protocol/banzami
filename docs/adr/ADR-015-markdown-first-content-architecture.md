@@ -1,4 +1,4 @@
-# ADR-015: Markdown-First Content Architecture — BANZAMI_REFERENCE.md as Single Source of Truth
+# ADR-015: Markdown-First Content Architecture — BANZA_REFERENCE.md as Single Source of Truth
 
 **Status:** Accepted  
 **Date:** 2026-05-19  
@@ -17,7 +17,7 @@ As the Banza platform matures into national payment infrastructure, its public-f
 
 The alternative — writing content independently for landing pages, docs sites, marketing pages, and investor decks — creates divergence. Different pages will describe Banza differently. Positioning drifts. Engineering credibility erodes. The platform loses its voice.
 
-`docs/BANZAMI_REFERENCE.md` was created as the official flagship reference document, covering all audiences: merchants, developers, consumers, banks, investors, regulators. It has been written as a national payment network manifesto combined with a technical architecture reference.
+`docs/BANZA_REFERENCE.md` was created as the official flagship reference document, covering all audiences: merchants, developers, consumers, banks, investors, regulators. It has been written as a national payment network manifesto combined with a technical architecture reference.
 
 The question is: how does this document relate to the public website?
 
@@ -25,12 +25,12 @@ The question is: how does this document relate to the public website?
 
 ## Decision
 
-**`docs/BANZAMI_REFERENCE.md` is the single source of truth for the entire public Banza ecosystem.**
+**`docs/BANZA_REFERENCE.md` is the single source of truth for the entire public Banza ecosystem.**
 
 The correct content flow is:
 
 ```text
-BANZAMI_REFERENCE.md
+BANZA_REFERENCE.md
         ↓
    structured parsing
         ↓
@@ -43,11 +43,11 @@ The website is **only the visual presentation layer**. It renders the markdown d
 
 ### The Publication Rule
 
-Nothing may appear on any public surface — banzami.org, landing pages, docs pages, manifesto pages, ecosystem pages, architecture pages, SDK explanation pages, marketing pages, or investor pages — without first existing inside `docs/BANZAMI_REFERENCE.md`.
+Nothing may appear on any public surface — banzami.org, landing pages, docs pages, manifesto pages, ecosystem pages, architecture pages, SDK explanation pages, marketing pages, or investor pages — without first existing inside `docs/BANZA_REFERENCE.md`.
 
 ### The Update Rule
 
-When a new concept is added to the platform, it is documented in `BANZAMI_REFERENCE.md` first. The website updates automatically when it re-renders from the source.
+When a new concept is added to the platform, it is documented in `BANZA_REFERENCE.md` first. The website updates automatically when it re-renders from the source.
 
 ---
 
@@ -57,7 +57,7 @@ When a new concept is added to the platform, it is documented in `BANZAMI_REFERE
 
 The `apps/docs` application contains a content parsing engine that:
 
-1. Reads `docs/BANZAMI_REFERENCE.md` at build time via Node.js `fs`
+1. Reads `docs/BANZA_REFERENCE.md` at build time via Node.js `fs`
 2. Parses H2 sections (`## N. Title`) into structured `ReferenceSection` objects
 3. Parses H3 subsections within each section
 4. Extracts document metadata (Version, Date, Author)
@@ -67,7 +67,7 @@ This engine runs at build time only. No client-side file reads. No runtime I/O.
 
 ### Section-Based Routing
 
-Each H2 section in `BANZAMI_REFERENCE.md` maps to a route in `apps/docs`:
+Each H2 section in `BANZA_REFERENCE.md` maps to a route in `apps/docs`:
 
 | Section | Route |
 |---------|-------|
@@ -95,11 +95,11 @@ The markdown is never manually converted to JSX. The source markdown is always p
 
 ### MDX Compatibility
 
-Custom markdown directives can be added as remark/rehype plugins if needed — for animated sections, embedded diagrams, or rich callouts. These plugins operate on the parsed AST before rendering and do not modify `BANZAMI_REFERENCE.md`.
+Custom markdown directives can be added as remark/rehype plugins if needed — for animated sections, embedded diagrams, or rich callouts. These plugins operate on the parsed AST before rendering and do not modify `BANZA_REFERENCE.md`.
 
 ### Build-Time Validation
 
-The build process validates that `BANZAMI_REFERENCE.md` is well-formed:
+The build process validates that `BANZA_REFERENCE.md` is well-formed:
 
 * all 20 sections are present,
 * section numbers are sequential,
@@ -125,7 +125,7 @@ Store content in a headless CMS. The website pulls from the CMS API.
 
 ### Alt 3: CMS mirrors the markdown
 
-Parse `BANZAMI_REFERENCE.md` into a CMS and publish from there.
+Parse `BANZA_REFERENCE.md` into a CMS and publish from there.
 
 **Rejected.** Adds complexity without benefit. The markdown file is already structured, versioned in git, and reviewable via pull request. A CMS adds a sync step that can drift.
 
@@ -150,7 +150,7 @@ Separate the technical reference from the marketing site.
 
 ### Trade-offs
 
-* **Build required for content updates.** A change to `BANZAMI_REFERENCE.md` requires a rebuild of `apps/docs` to be reflected on the website. Mitigation: CI/CD pipeline triggers a rebuild on any change to `docs/BANZAMI_REFERENCE.md`.
+* **Build required for content updates.** A change to `BANZA_REFERENCE.md` requires a rebuild of `apps/docs` to be reflected on the website. Mitigation: CI/CD pipeline triggers a rebuild on any change to `docs/BANZA_REFERENCE.md`.
 * **Non-technical editors must edit markdown.** Content authors need to understand markdown and use git. Mitigation: the document has clear section boundaries; a trained contributor can edit a section without understanding the full system.
 * **Website design is constrained by markdown structure.** Highly custom landing page layouts may be difficult to derive from a flat markdown file. Mitigation: the rendering pipeline allows section-specific custom layouts via section-number routing logic in the renderer.
 
@@ -160,9 +160,9 @@ Separate the technical reference from the marketing site.
 
 Every engineer working on `apps/docs` must:
 
-1. Never write website content that does not exist in `docs/BANZAMI_REFERENCE.md`.
-2. Never update website content without updating `docs/BANZAMI_REFERENCE.md` first.
-3. Never add a new section to the website without adding the corresponding H2 section to `BANZAMI_REFERENCE.md`.
+1. Never write website content that does not exist in `docs/BANZA_REFERENCE.md`.
+2. Never update website content without updating `docs/BANZA_REFERENCE.md` first.
+3. Never add a new section to the website without adding the corresponding H2 section to `BANZA_REFERENCE.md`.
 4. Run the build validation step before merging any content PR.
 
 ---
@@ -170,6 +170,6 @@ Every engineer working on `apps/docs` must:
 ## References
 
 * [CLAUDE.md §15 — Documentation Source of Truth](../../CLAUDE.md)
-* [docs/BANZAMI_REFERENCE.md](../BANZAMI_REFERENCE.md)
+* [docs/BANZA_REFERENCE.md](../BANZA_REFERENCE.md)
 * [ADR-012 — SDK-First Ecosystem](ADR-012-sdk-first-ecosystem.md)
 * [ADR-014 — Angola-First National Mission](ADR-014-angola-national-mission.md)

@@ -617,7 +617,7 @@ Banzami não é um banco. É a camada de produto que permite a qualquer app ango
 **Modelo de acesso:**
 Operadores certificados integram via SDK oficial. Cada pagamento é uma transferência wallet-to-wallet liquidada instantaneamente e registada no ledger de forma atómica e imutável.`,
     citations: [
-      { type: 'file', label: 'BANZAMI_REFERENCE.md', ref: 'docs/BANZAMI_REFERENCE.md' },
+      { type: 'file', label: 'BANZA_REFERENCE.md', ref: 'docs/BANZA_REFERENCE.md' },
       { type: 'adr',  label: 'ADR-016 — Brand architecture', ref: 'docs/adrs/ADR-016.md' },
     ],
   },
@@ -642,7 +642,7 @@ Operadores certificados integram via SDK oficial. Cada pagamento é uma transfer
 Esta inversão é deliberada — ADR-025 corrigiu a arquitectura de marca anterior (ADR-016).`,
     citations: [
       { type: 'adr',  label: 'ADR-016 — Brand architecture', ref: 'docs/adrs/ADR-016.md' },
-      { type: 'file', label: 'BANZAMI_REFERENCE.md §1', ref: 'docs/BANZAMI_REFERENCE.md' },
+      { type: 'file', label: 'BANZA_REFERENCE.md §1', ref: 'docs/BANZA_REFERENCE.md' },
     ],
   },
   {

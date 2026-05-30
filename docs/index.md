@@ -22,7 +22,7 @@
 
 1. Read [docs/sandbox/README.md](sandbox/README.md) — get started in sandbox
 2. Read [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) — SDK examples
-3. Read [docs/BANZAMI_REFERENCE.md §9](BANZAMI_REFERENCE.md) — programadores section
+3. Read [docs/BANZA_REFERENCE.md §9](BANZA_REFERENCE.md) — programadores section
 4. Ask [BanzAI](https://banzami.org/banzamia) — generates integration code
 
 ### Operator building on the Banza protocol
@@ -57,7 +57,7 @@
 |----------|----------|----------|-------------|
 | [README.md](../README.md) | Developers | English | Repository entry point, stack, service topology |
 | [CLAUDE.md](../CLAUDE.md) | Developers | English | Engineering Constitution — rules and conventions |
-| [docs/BANZAMI_REFERENCE.md](BANZAMI_REFERENCE.md) | Everyone | Portuguese | Public reference — product, ecosystem, protocol |
+| [docs/BANZA_REFERENCE.md](BANZA_REFERENCE.md) | Everyone | Portuguese | Public reference — product, ecosystem, protocol |
 | [docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) | Technical | English | Architecture-first ecosystem reference |
 | [docs/glossary.md](glossary.md) | Everyone | English | Authoritative term definitions |
 

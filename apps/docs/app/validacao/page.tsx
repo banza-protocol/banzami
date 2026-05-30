@@ -37,7 +37,7 @@ export default function ValidacaoPage() {
 
           <p className="mb-4 text-base text-bz-muted max-w-2xl">
             Acompanhamento rigoroso da implementação das funcionalidades descritas em{' '}
-            <code className="rounded bg-bz-surface px-1.5 font-mono text-sm">BANZAMI_REFERENCE.md</code>.
+            <code className="rounded bg-bz-surface px-1.5 font-mono text-sm">BANZA_REFERENCE.md</code>.
             {' '}Cada item rastreado ao documento de referência oficial.
           </p>
 
@@ -90,7 +90,7 @@ export default function ValidacaoPage() {
         <div className="mx-auto max-w-3xl text-center">
           <p className="text-xs text-bz-muted">
             Sistema de execução derivado de{' '}
-            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZAMI_REFERENCE.md</code>
+            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZA_REFERENCE.md</code>
             {' '}·{' '}
             <code className="rounded bg-bz-surface px-1.5 font-mono">docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json</code>
             {' '}· ADR-015

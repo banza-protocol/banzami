@@ -18,7 +18,7 @@ interface Props {
 // Only pre-generated slugs are valid — unknown slugs return 404 without rendering
 export const dynamicParams = false
 
-// Statically generate all section routes from BANZAMI_REFERENCE.md.
+// Statically generate all section routes from BANZA_REFERENCE.md.
 // 'banzamia' is excluded — that path is handled by app/banzai/page.tsx (live AI interface).
 const STATIC_ROUTE_OVERRIDES = new Set(['banzamia'])
 
@@ -77,7 +77,7 @@ export default async function SectionPage({ params }: Props) {
         {/* Domain-specific visual component (if applicable) */}
         <SectionVisual number={section.number} />
 
-        {/* Main content from BANZAMI_REFERENCE.md */}
+        {/* Main content from BANZA_REFERENCE.md */}
         <MarkdownSection content={section.content} />
 
         {/* Prev / Next navigation */}
@@ -117,7 +117,7 @@ export default async function SectionPage({ params }: Props) {
         <div className="mt-8 flex flex-col items-center gap-3 text-center">
           <p className="text-xs text-bz-muted">
             Conteúdo derivado de{' '}
-            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZAMI_REFERENCE.md</code>
+            <code className="rounded bg-bz-surface px-1.5 font-mono">docs/BANZA_REFERENCE.md</code>
             {' '}· v{reference.meta.version}
           </p>
           <div className="flex gap-3">

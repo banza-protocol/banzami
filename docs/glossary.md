@@ -11,7 +11,7 @@
 
 ## amount_minor
 
-The generic monetary field name for a payment value expressed in the smallest unit of a currency. An integer. Never a float. Example: `"amount_minor": 1050` represents 10,50 AOA. Part of the `*_minor` convention defined in BANZAMI_REFERENCE.md §5.
+The generic monetary field name for a payment value expressed in the smallest unit of a currency. An integer. Never a float. Example: `"amount_minor": 1050` represents 10,50 AOA. Part of the `*_minor` convention defined in BANZA_REFERENCE.md §5.
 
 ---
 
@@ -41,7 +41,7 @@ An immutable record of an architecture-level decision: why it was made, what alt
 
 ## AOA / Kwanza
 
-Angola Obrigação Angolana — the official and primary currency of Banza. ISO 4217 code: `AOA`. Symbol: Kz. Precision: **1 AOA = 100 minor units** (2 decimal places). Example: 10,50 Kz → `amount_minor = 1050`. All financial amounts in Banza are denominated in AOA and stored as i64 integers. Any change to AOA precision policy requires an approved RFC. Defined in ADR-014, ADR-002. See BANZAMI_REFERENCE.md §5 (Currency Registry).
+Angola Obrigação Angolana — the official and primary currency of Banza. ISO 4217 code: `AOA`. Symbol: Kz. Precision: **1 AOA = 100 minor units** (2 decimal places). Example: 10,50 Kz → `amount_minor = 1050`. All financial amounts in Banza are denominated in AOA and stored as i64 integers. Any change to AOA precision policy requires an approved RFC. Defined in ADR-014, ADR-002. See BANZA_REFERENCE.md §5 (Currency Registry).
 
 ---
 
@@ -122,7 +122,7 @@ The machine-executable specification that defines what "protocol compliant" mean
 
 ## Currency Registry
 
-The formal Banza register of supported currencies with authoritative precision definitions. Current entries: AOA (100 minor units), USD (100 minor units), EUR (100 minor units). Adding a new currency requires an approved RFC specifying ISO 4217 code, minor unit count, rounding policy, and available settlement rails. Defined in BANZAMI_REFERENCE.md §5. The Currency Registry is the single source of truth for monetary precision — SDK implementations must align with it.
+The formal Banza register of supported currencies with authoritative precision definitions. Current entries: AOA (100 minor units), USD (100 minor units), EUR (100 minor units). Adding a new currency requires an approved RFC specifying ISO 4217 code, minor unit count, rounding policy, and available settlement rails. Defined in BANZA_REFERENCE.md §5. The Currency Registry is the single source of truth for monetary precision — SDK implementations must align with it.
 
 ---
 
@@ -228,7 +228,7 @@ The total amount paid by the consumer before any deductions. An integer. Invaria
 
 ## Minor Units
 
-The integer representation of a monetary amount expressed in the smallest supported denomination of a currency. All amounts in Banza are stored, computed, and transmitted as i64 minor units — floating-point arithmetic is forbidden (INV-LEDGER-003, MON-001). For AOA: 1 AOA = 100 minor units. For USD and EUR: 1 unit = 100 minor units. The `*_minor` suffix on field names signals that the value is in minor units. See BANZAMI_REFERENCE.md §5.
+The integer representation of a monetary amount expressed in the smallest supported denomination of a currency. All amounts in Banza are stored, computed, and transmitted as i64 minor units — floating-point arithmetic is forbidden (INV-LEDGER-003, MON-001). For AOA: 1 AOA = 100 minor units. For USD and EUR: 1 unit = 100 minor units. The `*_minor` suffix on field names signals that the value is in minor units. See BANZA_REFERENCE.md §5.
 
 ---
 
@@ -282,7 +282,7 @@ Consumer-to-consumer wallet transfer, addressed by @banza handle. Capability: `p
 
 ## `*_minor` Convention
 
-The naming convention for all monetary fields in the Banza protocol. Any field whose name ends in `_minor` holds an integer value in the smallest supported denomination of a currency. Standard fields: `amount_minor`, `gross_minor`, `fee_minor`, `net_minor`, `available_minor`, `reserved_minor`, `balance_minor`, `settlement_minor`. Using non-`*_minor` field names for monetary values (e.g., `"amount": 10.50`) is a protocol violation. Defined in BANZAMI_REFERENCE.md §5.
+The naming convention for all monetary fields in the Banza protocol. Any field whose name ends in `_minor` holds an integer value in the smallest supported denomination of a currency. Standard fields: `amount_minor`, `gross_minor`, `fee_minor`, `net_minor`, `available_minor`, `reserved_minor`, `balance_minor`, `settlement_minor`. Using non-`*_minor` field names for monetary values (e.g., `"amount": 10.50`) is a protocol violation. Defined in BANZA_REFERENCE.md §5.
 
 ---
 

@@ -6,7 +6,7 @@
 **Author:** Banza Engineering
 
 > This document is the single source of truth for the Banza ecosystem architecture.  
-> It is architecture-first, not marketing. For the public product narrative, see `docs/BANZAMI_REFERENCE.md`.
+> It is architecture-first, not marketing. For the public product narrative, see `docs/BANZA_REFERENCE.md`.
 
 ---
 

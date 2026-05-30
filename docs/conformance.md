@@ -217,7 +217,7 @@ The following rules are tested at **all certification levels** (0–4), independ
 **Applies to:** All levels (0–4)  
 **Severity:** CRITICAL — failure blocks certification at any level
 
-This rule verifies that the operator implements the monetary representation specification from `BANZAMI_REFERENCE.md §5`.
+This rule verifies that the operator implements the monetary representation specification from `BANZA_REFERENCE.md §5`.
 
 | Check | Method | Expected |
 |-------|--------|----------|

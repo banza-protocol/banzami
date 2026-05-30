@@ -171,7 +171,7 @@ Domains are used for:
 
 **Scope:** Documentation site, reference document, validation matrix, ADRs, brand architecture.
 
-**Concern:** Documentation completeness and accuracy: BANZAMI_REFERENCE.md as source of truth, site rendering, matrix governance.
+**Concern:** Documentation completeness and accuracy: BANZA_REFERENCE.md as source of truth, site rendering, matrix governance.
 
 **Standard:** Medium. Manual review and production verification sufficient.
 

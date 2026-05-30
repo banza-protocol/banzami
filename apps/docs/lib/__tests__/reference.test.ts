@@ -113,7 +113,7 @@ describe('getReference — overall structure', () => {
   })
 })
 
-// ─── getReference — metadata (IDT-001: BANZAMI_REFERENCE.md structure) ───────
+// ─── getReference — metadata (IDT-001: BANZA_REFERENCE.md structure) ───────
 
 describe('getReference — document metadata', () => {
   it('meta.version is non-empty', () => {
@@ -274,9 +274,9 @@ describe('getAllSectionSlugs', () => {
   })
 })
 
-// ─── BANZAMI_REFERENCE.md — content integrity (IDT-001) ──────────────────────
+// ─── BANZA_REFERENCE.md — content integrity (IDT-001) ──────────────────────
 
-describe('BANZAMI_REFERENCE.md — content integrity', () => {
+describe('BANZA_REFERENCE.md — content integrity', () => {
   it('contains "O Problema: Angola Tem as Peças" as section 1', () => {
     const s = getSectionByNumber(1)
     expect(s?.title).toBe('O Problema: Angola Tem as Peças')

@@ -24,9 +24,9 @@
 
 ---
 
-### FIX-002 — BANZAMI_REFERENCE.md: "8 modules" when 16 exist
+### FIX-002 — BANZA_REFERENCE.md: "8 modules" when 16 exist
 
-**File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`  
+**File:** `/Users/fm65/Banza/docs/BANZA_REFERENCE.md`  
 **Lines:** 782–798  
 **Issue (E — False):** States BanzAI has 8 modules; actual count is 16.
 
@@ -84,9 +84,9 @@
 
 ---
 
-### FIX-003 — BANZAMI_REFERENCE.md: SVG caption references old 8-module diagram
+### FIX-003 — BANZA_REFERENCE.md: SVG caption references old 8-module diagram
 
-**File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`  
+**File:** `/Users/fm65/Banza/docs/BANZA_REFERENCE.md`  
 **Line:** 784  
 **Issue (E — False):** Caption says "8 módulos especializados" — already addressed in FIX-002 above.
 
@@ -212,9 +212,9 @@ The existing ASCII diagram ends with `→ BANZA`. It should show:
 
 ## Priority 4 — TRUE BUT INCOMPLETE (enrich when time permits)
 
-### FIX-008 — BANZAMI_REFERENCE.md §1: "produto principal" narrative tension
+### FIX-008 — BANZA_REFERENCE.md §1: "produto principal" narrative tension
 
-**File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`  
+**File:** `/Users/fm65/Banza/docs/BANZA_REFERENCE.md`  
 **Issue (B — Incomplete):** "Banzami é o produto principal do Banza" could be read as Banza = Banzami's company.
 
 Add clarifying sentence:

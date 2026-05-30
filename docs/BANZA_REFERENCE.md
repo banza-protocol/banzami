@@ -1177,7 +1177,7 @@ Usado para tarefas de raciocínio profundo. Responsável por: debugging de invar
 
 O BanzAI não depende da memória do modelo. Recupera conhecimento da base de conhecimento viva do Banza — em tempo real, com citações verificáveis.
 
-Fontes incluem: `BANZAMI_REFERENCE.md`, RFCs e ADRs, contratos OpenAPI, invariantes financeiros, schemas de manifesto, vectores de conformidade, documentação de SDK e glossário oficial.
+Fontes incluem: `BANZA_REFERENCE.md`, RFCs e ADRs, contratos OpenAPI, invariantes financeiros, schemas de manifesto, vectores de conformidade, documentação de SDK e glossário oficial.
 
 Fluxo de recuperação:
 
@@ -1287,7 +1287,7 @@ pontuação_final = semântica × autoridade × frescura
 
 | Tipo de Fonte | Autoridade |
 |---------------|-----------|
-| `reference` (BANZAMI_REFERENCE.md) | 1.00 |
+| `reference` (BANZA_REFERENCE.md) | 1.00 |
 | `accepted_rfc` | 0.95 |
 | `accepted_adr` | 0.90 |
 | `openapi` | 0.90 |
@@ -1313,7 +1313,7 @@ O decaimento por frescura tem semi-vida de 180 dias e piso de 0.80 — documento
 |-----------|---------|
 | Nível 1 faz liquidação cross-operador | FAIL se afirmar que sim |
 | Operador sandbox pode entrar na federação | FAIL se não mencionar isolamento |
-| RFC draft anula BANZAMI_REFERENCE.md | FAIL se inverter prioridade |
+| RFC draft anula BANZA_REFERENCE.md | FAIL se inverter prioridade |
 | Níveis de certificação podem ser saltados | FAIL se afirmar que sim |
 | Saldo de carteira pode ser negativo | FAIL se afirmar que sim |
 | Liquidação cria dinheiro novo | FAIL se afirmar que sim |

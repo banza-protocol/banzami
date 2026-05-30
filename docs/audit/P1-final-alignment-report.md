@@ -12,7 +12,7 @@
 
 BANZAMI-CANONICAL-ALIGNMENT-P1 has been executed in full. All 10 parts of the consolidation task are complete across all three repositories (Banza kernel, BanzAI standalone, Banzami operator).
 
-The ecosystem documentation now presents a single, internally consistent canonical narrative. Every developer entry point — GitHub READMEs, the live banzami.org website, BANZAMI_REFERENCE.md, and the BanzAI interface itself — reflects the same Protocol Operating System framing, 16-module structure, and "tools determine truth / AI explains truth" positioning.
+The ecosystem documentation now presents a single, internally consistent canonical narrative. Every developer entry point — GitHub READMEs, the live banzami.org website, BANZA_REFERENCE.md, and the BanzAI interface itself — reflects the same Protocol Operating System framing, 16-module structure, and "tools determine truth / AI explains truth" positioning.
 
 ---
 
@@ -91,9 +91,9 @@ Key changes:
 
 ---
 
-### Part 5 — BANZAMI_REFERENCE.md §9 Updates
+### Part 5 — BANZA_REFERENCE.md §9 Updates
 
-**File:** `/Users/fm65/Banza/docs/BANZAMI_REFERENCE.md`
+**File:** `/Users/fm65/Banza/docs/BANZA_REFERENCE.md`
 
 Three additions to §9 BanzAI:
 
@@ -107,7 +107,7 @@ These additions complete the picture: §9 now shows the orbital Protocol OS diag
 
 ### Part 6 — "Why BanzAI Changes Everything"
 
-Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
+Status: **Content already existed** in BANZA_REFERENCE.md §9 as:
 - "O que acontece sem BanzAI" — before/after table (6 dimensions)
 - "O Fosso de Conhecimento do Protocolo" — SVG comparison
 
@@ -117,7 +117,7 @@ No duplication needed. The canonical before/after table was written correctly in
 
 ### Part 7 — "The BanzAI Truth Model"
 
-Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
+Status: **Content already existed** in BANZA_REFERENCE.md §9 as:
 - "Modelo de Verdade do Protocolo" — SVG reference + canonical statement
 - "Ferramentas determinam a verdade. A IA explica a verdade."
 - banzamia-truth-model.svg referenced at the correct location
@@ -128,7 +128,7 @@ Confirmed present and correctly positioned within "Como o BanzAI Funciona".
 
 ### Part 8 — "How BanzAI Works Internally"
 
-Status: **Content already existed** in BANZAMI_REFERENCE.md §9 as:
+Status: **Content already existed** in BANZA_REFERENCE.md §9 as:
 - "Como o BanzAI Funciona" — full internal architecture section
 - banzamia-internal-architecture.svg referenced
 - 7-step question → response flow documented
@@ -192,7 +192,7 @@ These items from the documentation-priority-roadmap.md are deferred:
 | DOC-007 | Federation documentation (RFC-0008 text + guide) | P2 |
 | DOC-009 | Production deployment guide | P3 |
 | DOC-010 | "Why certification exists" explainer | P3 |
-| DOC-011 | BANZAMI_REFERENCE.md §1 — "primeiro operador certificado" | P3 |
+| DOC-011 | BANZA_REFERENCE.md §1 — "primeiro operador certificado" | P3 |
 | DOC-012 | Quality Dashboard benchmark results | P3 |
 | DOC-013 | Audit `ecosystem-intelligence-layer.svg` terminology | P3 |
 | DOC-014–022 | Backlog items | P4 |
@@ -204,7 +204,7 @@ These items from the documentation-priority-roadmap.md are deferred:
 | Commit | Repo | Description |
 |--------|------|-------------|
 | `31ecb46` | banza | SVG diagrams: replace banzamia-product-architecture (16-module), add banzamia-canonical-architecture |
-| `16f4f50` | banza | BANZAMI_REFERENCE.md: canonical architecture section + 16-module diagram + sobre-banzamia Protocol OS context |
+| `16f4f50` | banza | BANZA_REFERENCE.md: canonical architecture section + 16-module diagram + sobre-banzamia Protocol OS context |
 | `cbe3fa5` | banza | Terminology: replace all AI-native Protocol Agent occurrences with Protocol Operating System |
 | `7c89c34` | banzamia | BanzAI README: full rewrite as Protocol Operating System — 17 sections |
 | `76ba55a` | banzami | Banza README: BanzAI in ecosystem diagram + plugin list fix + section header |
@@ -240,7 +240,7 @@ The gap between 82 and 95+ is entirely in P2 items (webhook schemas, runnable ex
 - banzami.org/sobre-banzamia: Protocol OS context before CTA, correct metadata, correct OpenGraph
 - banzami.org/banzamia: correct metadata title, correct welcome text
 - banzami.org/roadmap: correct metadata and inline text
-- BANZAMI_REFERENCE.md §9: 16-module tables, orbital capabilities SVG, 3-layer product SVG, canonical stack SVG, internal architecture SVG, truth model SVG, full "Como o BanzAI Funciona" section
+- BANZA_REFERENCE.md §9: 16-module tables, orbital capabilities SVG, 3-layer product SVG, canonical stack SVG, internal architecture SVG, truth model SVG, full "Como o BanzAI Funciona" section
 - BanzAI sidebar: "Protocol Operating System" subtitle
 
 Every surface now tells the same story. The Protocol OS framing is canonical and consistent.

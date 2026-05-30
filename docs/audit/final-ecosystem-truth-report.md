@@ -44,7 +44,7 @@
 - `apps/docs/app/operators/[id]/page.tsx`
 - `apps/docs/components/banzamia/modules/ConformanceModule.tsx`
 - `apps/docs/lib/banzamia-client.ts`
-- `docs/BANZAMI_REFERENCE.md`
+- `docs/BANZA_REFERENCE.md`
 - `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md`
 - `docs/banzamia/api.md`
 - `docs/banzamia/architecture.md`
@@ -152,7 +152,7 @@ Deployment modes:
 - Banza conformance docs ✓
 - Banzami certification docs ✓
 - Banzami frontend components ✓
-- BANZAMI_REFERENCE.md ✓
+- BANZA_REFERENCE.md ✓
 
 ---
 

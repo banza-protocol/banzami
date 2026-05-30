@@ -24,7 +24,7 @@
 | # | Fix | File | Status |
 |---|-----|------|--------|
 | 1 | Roadmap: Protocol OS `vision` → `completed` | `apps/docs/app/roadmap/page.tsx:49` | ✓ APPLIED |
-| 2 | BANZAMI_REFERENCE.md: 8 modules → 16 modules (3-layer table) | `docs/BANZAMI_REFERENCE.md:782` | ✓ APPLIED |
+| 2 | BANZA_REFERENCE.md: 8 modules → 16 modules (3-layer table) | `docs/BANZA_REFERENCE.md:782` | ✓ APPLIED |
 | 3 | sobre-banzamia metadata: Incomplete capability description | `apps/docs/app/sobre-banzamia/page.tsx:10–13` | ✓ APPLIED |
 
 ---
@@ -33,7 +33,7 @@
 
 ### DOC-001: Replace `banzamia-product-architecture.svg`
 
-The SVG used in BANZAMI_REFERENCE.md §9 shows 8 modules. With the reference now corrected to 16 modules but still referencing `banzamia-product-architecture.svg`, that SVG must be replaced with a 3-layer 16-module diagram.
+The SVG used in BANZA_REFERENCE.md §9 shows 8 modules. With the reference now corrected to 16 modules but still referencing `banzamia-product-architecture.svg`, that SVG must be replaced with a 3-layer 16-module diagram.
 
 - **New SVG:** `docs/images/architecture/banzamia-product-architecture.svg`  
 - **Layout:** 3 horizontal layers (Protocolo / Operador / Inteligência), each with 4–6 module pills  
@@ -132,7 +132,7 @@ New visitors understand WHAT the certification levels are but not WHY the 5-leve
 
 ---
 
-### DOC-011: BANZAMI_REFERENCE.md §1 — clarify Banzami as first operator
+### DOC-011: BANZA_REFERENCE.md §1 — clarify Banzami as first operator
 
 Add "primeiro operador certificado" alongside "produto principal" to reduce narrative confusion between Banza-the-protocol and Banzami-the-product.
 
@@ -207,7 +207,7 @@ Migration waves (each a separate commit wave):
 
 | Wave | Scope |
 |------|-------|
-| 1 | Documentation (ADRs, READMEs, BANZAMI_REFERENCE.md) |
+| 1 | Documentation (ADRs, READMEs, BANZA_REFERENCE.md) |
 | 2 | Website copy (banzami.org pages, metadata, SVG text) |
 | 3 | AI OS rename (BanzAI → BanzAI, components, routes) |
 | 4+ | Repository, package, domain renames (each requires separate ADR) |

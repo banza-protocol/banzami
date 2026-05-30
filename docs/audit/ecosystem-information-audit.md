@@ -43,7 +43,7 @@ Repositories audited:
 | 22 | `Banza/docs/certification.md` | Forbidden level names | Sandbox Certified, Core Payments, Advanced Payments, Full Protocol | Sandbox Operator, Payment Operator, Settlement Operator, Federation Operator | ✓ Fixed |
 | 23 | `Banza/docs/certification.md` | Badge labels | Old badge labels | New canonical labels | ✓ Fixed |
 | 24 | `Banza/docs/conformance.md` | Forbidden level names | Core Payments, Advanced Payments, Full Protocol | Payment Operator, Settlement Operator, Federation Operator | ✓ Fixed |
-| 25 | `Banza/docs/BANZAMI_REFERENCE.md` | Cert level names (Portuguese) | Old 5 names | New 5 names | ✓ Fixed |
+| 25 | `Banza/docs/BANZA_REFERENCE.md` | Cert level names (Portuguese) | Old 5 names | New 5 names | ✓ Fixed |
 | 26 | `Banza/docs/banzamia/operator-builder.md` | Forbidden section headers | "Advanced Capabilities (Level 2)", "Full Protocol Capabilities (Level 3)", "Level 1 — Core Payments", "Level 2 — Advanced Payments" | New canonical names | ✓ Fixed |
 | 27 | `Banza/docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md` | Cert level names (two tables) | Old names | New names | ✓ Fixed |
 | 28 | `Banza/apps/docs/components/banzamia/modules/ConformanceModule.tsx` | Cert level names array | Old 5 names | New 5 names | ✓ Fixed |

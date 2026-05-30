@@ -27,7 +27,7 @@ export function ArchitectureHealth({ items, metrics }: Props) {
       label: 'Coerência com referência',
       value: '100%',
       status: 'good',
-      detail: 'Todos os itens rastreáveis a BANZAMI_REFERENCE.md',
+      detail: 'Todos os itens rastreáveis a BANZA_REFERENCE.md',
     },
     {
       label: 'Integridade arquitectural',
@@ -71,7 +71,7 @@ export function ArchitectureHealth({ items, metrics }: Props) {
       label: 'Discrepâncias com referência',
       value: 0,
       status: 'good',
-      detail: 'Matriz sincronizada com BANZAMI_REFERENCE.md v1.0',
+      detail: 'Matriz sincronizada com BANZA_REFERENCE.md v1.0',
     },
   ]
 
@@ -113,7 +113,7 @@ export function ArchitectureHealth({ items, metrics }: Props) {
         <p className="text-xs text-bz-muted">
           <span className="font-semibold text-bz-text">ADR-015 — </span>
           Sistema de execução derivado exclusivamente de{' '}
-          <code className="rounded bg-bz-border px-1 font-mono">docs/BANZAMI_REFERENCE.md</code>.
+          <code className="rounded bg-bz-border px-1 font-mono">docs/BANZA_REFERENCE.md</code>.
           {' '}Actualizado em 19/05/2026.
         </p>
       </div>

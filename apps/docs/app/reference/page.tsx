@@ -63,7 +63,7 @@ export default function ReferencePage() {
             {/* Mobile ToC — active section tracking */}
             <ReferenceMobileToc sections={reference.sections} />
 
-            {/* All sections rendered from BANZAMI_REFERENCE.md */}
+            {/* All sections rendered from BANZA_REFERENCE.md */}
             {reference.sections.map((section) => (
               <article
                 key={section.id}
@@ -91,7 +91,7 @@ export default function ReferencePage() {
             <div className="mt-16 rounded-3xl border border-bz-border bg-bz-surface px-8 py-8 text-center">
               <div className="mb-2 text-sm font-semibold text-bz-text">
                 Documento renderizado a partir de{' '}
-                <code className="rounded bg-bz-border px-1.5 font-mono">docs/BANZAMI_REFERENCE.md</code>
+                <code className="rounded bg-bz-border px-1.5 font-mono">docs/BANZA_REFERENCE.md</code>
               </div>
               <p className="text-xs text-bz-muted">
                 ADR-015 — o ficheiro markdown é canónico. Este site é a camada de apresentação visual.

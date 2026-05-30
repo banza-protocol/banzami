@@ -13,7 +13,7 @@ This directory contains all technical documentation for the Banza platform.
 | Document | Description |
 |----------|-------------|
 | [index.md](index.md) | Documentation navigation entry point — start here |
-| [BANZAMI_REFERENCE.md](BANZAMI_REFERENCE.md) | Official public reference — product, protocol, ecosystem |
+| [BANZA_REFERENCE.md](BANZA_REFERENCE.md) | Official public reference — product, protocol, ecosystem |
 | [architecture/BANZAMI_ECOSYSTEM_REFERENCE.md](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) | Architecture-first ecosystem reference (single source of truth) |
 | [glossary.md](glossary.md) | Authoritative term definitions |
 | [conformance.md](conformance.md) | Conformance suite specification |

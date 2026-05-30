@@ -46,7 +46,7 @@ The kernel README mentions BanzAI but only as "AI-native Protocol Agent". It doe
 
 ### banzami.org/sobre-banzamia
 
-This page renders `BANZAMI_REFERENCE.md §9` directly. With the FIX-002 applied (8→16 modules), the main gap is addressed. Remaining missing content:
+This page renders `BANZA_REFERENCE.md §9` directly. With the FIX-002 applied (8→16 modules), the main gap is addressed. Remaining missing content:
 
 | Missing Content | Priority |
 |----------------|----------|
