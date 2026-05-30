@@ -78,7 +78,7 @@ export function SectionNav({ sections }: Props) {
       </div>
 
       {sections.map((section) => {
-        const href = section.number === 9 ? '/sobre-banzamia' : `/${section.slug}`
+        const href = section.number === 11 ? '/sobre-banzamia' : `/${section.slug}`
         // On /reference: highlight based on scroll position
         // On individual section pages: highlight based on pathname
         const active =

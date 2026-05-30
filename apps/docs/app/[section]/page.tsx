@@ -5,7 +5,6 @@ import { getReference, getSection, getAllSectionSlugs } from '@/lib/reference'
 import { MarkdownSection } from '@/components/MarkdownSection'
 import { SectionHero } from '@/components/SectionHero'
 import { PaymentFlowDiagram } from '@/components/PaymentFlowDiagram'
-import { WalletToWalletVisual } from '@/components/WalletToWalletVisual'
 import { EcosystemMap } from '@/components/EcosystemMap'
 import { SDKArchitectureVisual } from '@/components/SDKArchitectureVisual'
 import { SecurityPipelineVisual } from '@/components/SecurityPipelineVisual'
@@ -47,15 +46,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 // Domain-aware visual components inserted based on section number
 function SectionVisual({ number }: { number: number }) {
   switch (number) {
-    case 6:  return <PaymentFlowDiagram />         // How Banzami Works
-    case 9:  return <QRCommerceVisual />            // QR Payment Ecosystem
-    case 10: return <WalletToWalletVisual />        // Wallet-Native Philosophy
-    case 12: return <SDKArchitectureVisual />        // Banzami for Developers
-    case 14: return <EcosystemMap />                // The Banzami Flywheel (ecosystem)
-    case 16: return <SecurityPipelineVisual />      // Security & Financial Integrity
-    case 17: return <SDKArchitectureVisual />       // Technical Architecture
-    case 18: return <EcosystemMap />               // The Banzami Ecosystem
-    case 13: return <MobilePaymentMockup />        // Banzami for Consumers
+    case 5:  return <EcosystemMap />               // Visão Geral do Ecossistema
+    case 6:  return <PaymentFlowDiagram />         // Arquitectura Técnica
+    case 10: return <EcosystemMap />               // Federação
+    case 12: return <SDKArchitectureVisual />      // Banzami para Programadores
+    case 13: return <QRCommerceVisual />           // Banzami para Comerciantes
+    case 14: return <MobilePaymentMockup />        // Para Consumidores
+    case 15: return <SecurityPipelineVisual />     // Segurança e Integridade Financeira
     default: return null
   }
 }
