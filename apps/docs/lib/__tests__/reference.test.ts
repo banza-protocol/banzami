@@ -318,4 +318,12 @@ describe('BANZAMI_REFERENCE.md — content integrity', () => {
       expect(numbers[i]).toBe(i + 1)
     }
   })
+
+  it('BanzAI section has stable slug "banzai" (navigation invariant — SectionCard/SectionNav route by slug)', () => {
+    const banzai = getReference().sections.find((s) => s.slug === 'banzai')
+    expect(banzai).toBeDefined()
+    expect(banzai?.title).toBe('BanzAI')
+    // Slug must never be derived from section number — this test protects slug-based routing
+    expect(banzai?.slug).toBe('banzai')
+  })
 })

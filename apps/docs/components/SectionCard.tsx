@@ -28,7 +28,7 @@ function preview(content: string): string {
 export function SectionCard({ section }: Props) {
   return (
     <Link
-      href={section.number === 11 ? '/sobre-banzamia' : `/${section.slug}`}
+      href={section.slug === 'banzai' ? '/sobre-banzamia' : `/${section.slug}`}
       className="group block rounded-2xl border border-bz-border bg-white p-6 shadow-card transition-all duration-200 hover:border-bz-primary/30 hover:shadow-card-md hover:-translate-y-0.5"
     >
       {/* Section number */}
