@@ -14,31 +14,33 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Banza — Protocolo de Infraestrutura Financeira Programável',
-    template: '%s · Banza',
+    default: 'BANZA — Open Financial Infrastructure Protocol',
+    template: '%s · BANZA',
   },
   description:
-    'Banza é o protocolo aberto de infraestrutura financeira programável. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo. Banzami é o operador de referência — wallets, QR e SDKs em Kwanza.',
+    'BANZA is Angola\'s open financial infrastructure protocol. Public rules, open certification, ' +
+    'verifiable invariants, and federation across certified operators. ' +
+    'BanzAI is the Protocol Operating System.',
   keywords: [
-    'Banza',
-    'Banzami',
-    'protocolo financeiro Angola',
-    'pagamentos Angola',
-    'QR Code Angola',
-    'pagamentos em Kwanza',
-    'carteira digital Angola',
-    'Banzami Business',
-    'Banzami SDK',
-    'infraestrutura financeira Angola',
-    'pagamentos instantâneos Angola',
-    'ecommerce Angola',
+    'BANZA',
+    'open payment protocol',
+    'Angola',
+    'financial infrastructure',
+    'BanzAI',
+    'protocol operating system',
+    'certified operators',
+    'federation',
+    'QR payments',
+    'instant payments',
+    'open source fintech',
   ],
   openGraph: {
-    title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
+    title: 'BANZA — Open Financial Infrastructure Protocol',
     description:
-      'Banza é o protocolo aberto de infraestrutura financeira programável. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo.',
-    siteName: 'Banza',
-    locale: 'pt_AO',
+      'BANZA is Angola\'s open payment protocol — public rules, open certification, ' +
+      'verifiable invariants, and federation.',
+    siteName: 'BANZA',
+    locale: 'en_US',
     type: 'website',
   },
   manifest: '/site.webmanifest',
@@ -53,14 +55,14 @@ export const metadata: Metadata = {
     ],
   },
   robots: { index: true, follow: true },
-  authors: [{ name: 'Organização Banzami' }],
+  authors: [{ name: 'BANZA Protocol' }],
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const reference = getReference()
 
   return (
-    <html lang="pt-AO" suppressHydrationWarning className="overflow-x-hidden">
+    <html lang="en" suppressHydrationWarning className="overflow-x-hidden">
       <body className={`${inter.variable} bg-bz-bg text-bz-text antialiased font-sans overflow-x-hidden`}>
 
         {/* Top navigation */}
@@ -70,22 +72,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="flex items-center gap-2.5">
               <span className="inline-block h-7 w-7 shrink-0 overflow-hidden rounded-[9px]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="/images/banza/banzami-logo.png" alt="Banza" className="h-full w-full object-cover" />
+                <img src="/images/banza/banzami-logo.png" alt="BANZA" className="h-full w-full object-cover" />
               </span>
-              <span className="text-base font-bold tracking-tight text-bz-text">Banza</span>
+              <span className="text-base font-bold tracking-tight text-bz-text">BANZA</span>
             </Link>
 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">
               {[
-                { href: '/reference',                          label: 'Referência',    ai: false },
-                { href: '/banzami-para-programadores',           label: 'Programadores', ai: false },
-                { href: '/banzami-para-comerciantes',            label: 'Comerciantes',  ai: false },
-                { href: '/arquitectura-tecnica',               label: 'Arquitectura',  ai: false },
-                { href: '/seguranca-e-integridade-financeira', label: 'Segurança',     ai: false },
-                { href: '/operators',                          label: 'Operadores',    ai: false },
-                { href: '/validacao',                          label: 'Validação',     ai: false },
-                { href: '/banzai',                           label: 'BanzAI',        ai: true  },
+                { href: '/core-principles',    label: 'Protocol',       ai: false },
+                { href: '/certification',      label: 'Certification',  ai: false },
+                { href: '/federation',         label: 'Federation',     ai: false },
+                { href: '/trust',              label: 'Trust',          ai: false },
+                { href: '/operators',          label: 'Operators',      ai: false },
+                { href: '/developer-resources',label: 'Developers',     ai: false },
+                { href: '/governance',         label: 'Governance',     ai: false },
+                { href: '/banzai',             label: 'BanzAI',         ai: true  },
               ].map(({ href, label, ai }) => (
                 <Link
                   key={href}
@@ -111,10 +113,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 v{reference.meta.version}
               </span>
               <Link
-                href="/reference"
+                href="/introduction"
                 className="rounded-lg bg-bz-primary px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-bz-primary-dark"
               >
-                Manifesto
+                Reference
               </Link>
             </div>
           </div>
@@ -138,23 +140,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-6 w-6 shrink-0 overflow-hidden rounded-[8px]">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src="/images/banza/banzami-logo.png" alt="Banza" className="h-full w-full object-cover" />
+                    <img src="/images/banza/banzami-logo.png" alt="BANZA" className="h-full w-full object-cover" />
                   </span>
-                  <span className="font-bold text-bz-text">Banza</span>
+                  <span className="font-bold text-bz-text">BANZA</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
-                  Banza — Protocolo Aberto de Infraestrutura Financeira para Angola
+                  BANZA — Open Financial Infrastructure Protocol
                 </p>
               </div>
 
               <div className="flex flex-wrap gap-4 text-xs text-bz-muted">
-                <Link href="/o-que-e-o-banza" className="hover:text-bz-primary">O que é o Banza?</Link>
-                <Link href="/banzami-para-programadores" className="hover:text-bz-primary">Programadores</Link>
-                <Link href="/banzami-para-comerciantes" className="hover:text-bz-primary">Comerciantes</Link>
-                <Link href="/arquitectura-tecnica" className="hover:text-bz-primary">Arquitectura</Link>
-                <Link href="/reference" className="hover:text-bz-primary">Referência completa</Link>
-                <Link href="/operators" className="hover:text-bz-primary">Operadores</Link>
-                <Link href="/validacao" className="hover:text-bz-primary">Validação</Link>
+                <Link href="/introduction" className="hover:text-bz-primary">About BANZA</Link>
+                <Link href="/core-principles" className="hover:text-bz-primary">Protocol</Link>
+                <Link href="/certification" className="hover:text-bz-primary">Certification</Link>
+                <Link href="/federation" className="hover:text-bz-primary">Federation</Link>
+                <Link href="/trust" className="hover:text-bz-primary">Trust</Link>
+                <Link href="/operators" className="hover:text-bz-primary">Operators</Link>
+                <Link href="/developer-resources" className="hover:text-bz-primary">Developers</Link>
+                <Link href="/governance" className="hover:text-bz-primary">Governance</Link>
                 <Link href="/banzai" className="hover:text-bz-gold text-bz-gold/70">BanzAI</Link>
               </div>
             </div>

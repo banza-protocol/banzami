@@ -6,7 +6,10 @@ import { NoBodyScroll } from '@/components/NoBodyScroll'
 export const metadata: Metadata = {
   title: 'BanzAI — Protocol Operating System',
   description:
-    'BanzAI é o Sistema Operativo do Protocolo Banza. 16 módulos. Compreender, Explicar, Validar, Simular, Prever, Guiar, Certificar, Federar. Ferramentas determinam a verdade. A IA explica a verdade.',
+    'BanzAI is the BANZA Protocol Operating System. ' +
+    'Understand, Explain, Validate, Simulate, Evaluate, Federate. ' +
+    'BANZA defines. BANZA certifies. BanzAI evaluates. Operators implement. ' +
+    'Tools determine truth. AI explains truth.',
 }
 
 export default function BanzAIPage() {

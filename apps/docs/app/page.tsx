@@ -15,9 +15,11 @@ import { SectionCard } from '@/components/SectionCard'
 import { BackToTop } from '@/components/BackToTop'
 
 export const metadata: Metadata = {
-  title: 'Banza — Protocolo de Infraestrutura Financeira Programável',
+  title: 'BANZA — Open Financial Infrastructure Protocol',
   description:
-    'Banza é o protocolo aberto de infraestrutura financeira programável para Angola. Operadores certificados, regras verificáveis, infraestrutura aberta. BanzAI é o sistema operativo nativo do protocolo. Banzami é o operador de referência — wallets, QR e SDKs em Kwanza.',
+    'BANZA is Angola\'s open financial infrastructure protocol. ' +
+    'Public rules, open certification, verifiable invariants, and federation across certified operators. ' +
+    'BanzAI is the Protocol Operating System.',
 }
 
 // ---- Problem cards -----------------------------------------------------------
@@ -260,8 +262,8 @@ export default function HomePage() {
 
       {/* ─── 14. SOURCE ATTRIBUTION ───────────────────────────────────────── */}
       <div className="border-t border-bz-border bg-bz-surface px-5 py-6 text-center text-xs text-bz-muted md:px-8 lg:px-12">
-        Organização Banzami · Banza Reference v{reference.meta.version} · Todo o conteúdo deriva de{' '}
-        <code className="rounded bg-bz-border px-1.5 py-0.5 font-mono">docs/BANZA_REFERENCE.md</code>
+        BANZA Protocol · Reference v{reference.meta.version} · All content derived from{' '}
+        <code className="rounded bg-bz-border px-1.5 py-0.5 font-mono">BANZA_REFERENCE.md</code>
         {' '}· ADR-015 · ADR-025
       </div>
     </div>
