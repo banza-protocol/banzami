@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  id:        SVG-P-014
+  diagram:   Root Key Hierarchy
+  version:   1.0
+  source:    ADR-029 §Phase 2 (authority boundaries and four-layer hierarchy)
+  updated:   2026-06-01
+  author:    BANZA Protocol
+  style:     protocol
+-->
+<svg viewBox="0 0 820 520" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="title-P014 desc-P014"
+     font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+
+  <title id="title-P014">BANZA Root Key Hierarchy — Four-Layer Authority Architecture</title>
+  <desc id="desc-P014">The four-layer authority hierarchy from ADR-029: BANZA Root (offline trust anchor, signs Key Manifests only), BANZA Issuing Keys (online signing for certs, BRLs, evidence), BanzAI (evaluator, verifies trust, generates evidence, NEVER signs production artifacts), and Operators (participants, hold own keypairs, present certificates).</desc>
+
+  <defs>
+    <linearGradient id="hG-P014" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#990011"/>
+      <stop offset="100%" stop-color="#B11226"/>
+    </linearGradient>
+    <linearGradient id="layer1Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#4C1D95"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="layer2Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="layer3Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1D4ED8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="layer4Grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#15803D"/>
+      <stop offset="100%" stop-color="#16A34A"/>
+    </linearGradient>
+    <filter id="sh-P014" x="-5%" y="-10%" width="115%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+    <marker id="arr-P014" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6265"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="820" height="520" fill="#FCF6F5"/>
+
+  <!-- Header -->
+  <rect x="16" y="12" width="788" height="54" rx="8" fill="url(#hG-P014)" filter="url(#sh-P014)"/>
+  <text x="410" y="38" text-anchor="middle" fill="white" font-size="15" font-weight="700">Root Key Hierarchy</text>
+  <text x="410" y="56" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="10" letter-spacing="0.8">FOUR-LAYER AUTHORITY ARCHITECTURE — ADR-029 §PHASE 2</text>
+
+  <!-- Column headers -->
+  <text x="166" y="84" text-anchor="middle" fill="#6B6265" font-size="10" font-weight="600" letter-spacing="0.5">LAYER</text>
+  <text x="370" y="84" text-anchor="middle" fill="#6B6265" font-size="10" font-weight="600" letter-spacing="0.5">ROLE</text>
+  <text x="640" y="84" text-anchor="middle" fill="#6B6265" font-size="10" font-weight="600" letter-spacing="0.5">WHAT IT DOES / WHAT IT MUST NEVER DO</text>
+
+  <!-- LAYER 1: BANZA Root -->
+  <rect x="16" y="92" width="302" height="82" rx="7" fill="url(#layer1Grad)" filter="url(#sh-P014)"/>
+  <text x="167" y="118" text-anchor="middle" fill="white" font-size="13" font-weight="700">BANZA Root</text>
+  <text x="167" y="136" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Offline trust anchor</text>
+  <text x="167" y="152" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">ed25519 · 24-month max validity</text>
+  <text x="167" y="166" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">Air-gapped · HSM or encrypted USB</text>
+
+  <!-- Layer 1 description -->
+  <rect x="326" y="92" width="478" height="82" rx="7" fill="white" stroke="#D4C9C7" stroke-width="1" filter="url(#sh-P014)"/>
+  <rect x="326" y="92" width="5" height="82" rx="3" fill="#6D28D9"/>
+  <text x="344" y="114" fill="#1A1A1A" font-size="11" font-weight="700">Signs Key Manifests only</text>
+  <text x="344" y="132" fill="#6B6265" font-size="10">The root key's sole product is the signed Key Manifest. The manifest</text>
+  <text x="344" y="147" fill="#6B6265" font-size="10">lists all active issuing keys. An issuing key not in a valid root-signed</text>
+  <text x="344" y="162" fill="#6B6265" font-size="10">manifest is NOT a BANZA key. INV-ROOT-002 · INV-ROOT-004</text>
+  <text x="344" y="168" fill="#DC2626" font-size="9" font-weight="600">NEVER signs certs, BRLs, or evidence directly — INV-ROOT-004</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="410" y1="174" x2="410" y2="186" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P014)"/>
+
+  <!-- LAYER 2: BANZA Issuing Keys -->
+  <rect x="16" y="188" width="302" height="82" rx="7" fill="url(#layer2Grad)" filter="url(#sh-P014)"/>
+  <text x="167" y="214" text-anchor="middle" fill="white" font-size="13" font-weight="700">BANZA Issuing Keys</text>
+  <text x="167" y="232" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Online signing agents</text>
+  <text x="167" y="250" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">Three domains: cert · brl · evidence</text>
+  <text x="167" y="264" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">Max 184-day validity each</text>
+
+  <!-- Layer 2 description -->
+  <rect x="326" y="188" width="478" height="82" rx="7" fill="white" stroke="#D4C9C7" stroke-width="1" filter="url(#sh-P014)"/>
+  <rect x="326" y="188" width="5" height="82" rx="3" fill="#8B5CF6"/>
+  <text x="344" y="210" fill="#1A1A1A" font-size="11" font-weight="700">Signs operational artifacts by domain</text>
+  <text x="344" y="228" fill="#6B6265" font-size="10">Cert-issuing key → operator certificates  ·  BRL-issuing key → Revocation Lists</text>
+  <text x="344" y="243" fill="#6B6265" font-size="10">Evidence-issuing key → conformance evidence packages</text>
+  <text x="344" y="258" fill="#6B6265" font-size="10">Activated by appearance in root-signed Key Manifest. Rotated up to every 184 days.</text>
+  <text x="344" y="264" fill="#7C3AED" font-size="9" font-weight="600">issuer_key_id enables rotation without invalidating outstanding certificates</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="410" y1="270" x2="410" y2="282" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P014)"/>
+
+  <!-- LAYER 3: BanzAI -->
+  <rect x="16" y="284" width="302" height="82" rx="7" fill="url(#layer3Grad)" filter="url(#sh-P014)"/>
+  <text x="167" y="310" text-anchor="middle" fill="white" font-size="13" font-weight="700">BanzAI</text>
+  <text x="167" y="328" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Evaluator</text>
+  <text x="167" y="346" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">Protocol Operating System</text>
+  <text x="167" y="360" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">Verifies trust · runs conformance</text>
+
+  <!-- Layer 3 description -->
+  <rect x="326" y="284" width="478" height="82" rx="7" fill="white" stroke="#D4C9C7" stroke-width="1" filter="url(#sh-P014)"/>
+  <rect x="326" y="284" width="5" height="82" rx="3" fill="#2563EB"/>
+  <text x="344" y="306" fill="#1A1A1A" font-size="11" font-weight="700">Verifies trust; generates test evidence; NEVER production-signs</text>
+  <text x="344" y="324" fill="#6B6265" font-size="10">Implements the 9-step trust protocol (ADR-026) as part of Federation Intelligence.</text>
+  <text x="344" y="339" fill="#6B6265" font-size="10">Generates evidence packages signed with test root key (per-run ephemeral).</text>
+  <text x="344" y="354" fill="#6B6265" font-size="10">Test evidence is sufficient for certification evaluation but NOT for production issuance.</text>
+  <text x="344" y="360" fill="#DC2626" font-size="9" font-weight="600">NEVER holds production private keys · NEVER signs production artifacts · ADR-029 §Phase 9</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="410" y1="366" x2="410" y2="378" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P014)"/>
+
+  <!-- LAYER 4: Operators -->
+  <rect x="16" y="380" width="302" height="82" rx="7" fill="url(#layer4Grad)" filter="url(#sh-P014)"/>
+  <text x="167" y="406" text-anchor="middle" fill="white" font-size="13" font-weight="700">Operators</text>
+  <text x="167" y="424" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">Participants</text>
+  <text x="167" y="442" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">Certified entities</text>
+  <text x="167" y="456" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="9">L0–L4 · own keypairs</text>
+
+  <!-- Layer 4 description -->
+  <rect x="326" y="380" width="478" height="82" rx="7" fill="white" stroke="#D4C9C7" stroke-width="1" filter="url(#sh-P014)"/>
+  <rect x="326" y="380" width="5" height="82" rx="3" fill="#16A34A"/>
+  <text x="344" y="402" fill="#1A1A1A" font-size="11" font-weight="700">Hold own keypairs; present BANZA-signed certificates</text>
+  <text x="344" y="420" fill="#6B6265" font-size="10">Operators generate their own ed25519 keypair. Public key submitted to BANZA during</text>
+  <text x="344" y="435" fill="#6B6265" font-size="10">certification and bound into the certificate by BANZA's signature.</text>
+  <text x="344" y="450" fill="#6B6265" font-size="10">Serve certificate at /.well-known/banza/certificate.json</text>
+  <text x="344" y="456" fill="#15803D" font-size="9" font-weight="600">No operator has authority over another. No operator is in the trust chain above another.</text>
+
+  <!-- Footer -->
+  <text x="410" y="510" text-anchor="middle" fill="#6B6265" font-size="10">SVG-P-014 · v1.0 · ADR-029 §Phase 2 · ADR-026 · 2026-06-01</text>
+
+</svg>

@@ -18,9 +18,8 @@ export const metadata: Metadata = {
     template: '%s · BANZA',
   },
   description:
-    'BANZA is Angola\'s open financial infrastructure protocol. Public rules, open certification, ' +
-    'verifiable invariants, and federation across certified operators. ' +
-    'BanzAI is the Protocol Operating System.',
+    'BANZA is the open protocol for certified payment operators, federation, trust and financial infrastructure in Angola. ' +
+    'Public rules, open certification, verifiable invariants, and federation across certified operators.',
   keywords: [
     'BANZA',
     'open payment protocol',
@@ -30,15 +29,14 @@ export const metadata: Metadata = {
     'protocol operating system',
     'certified operators',
     'federation',
-    'QR payments',
     'instant payments',
-    'open source fintech',
+    'open protocol',
+    'certification framework',
   ],
   openGraph: {
-    title: 'BANZA — Open Financial Infrastructure Protocol',
+    title: 'BANZA — Open Financial Infrastructure Protocol for Angola',
     description:
-      'BANZA is Angola\'s open payment protocol — public rules, open certification, ' +
-      'verifiable invariants, and federation.',
+      'BANZA is the open protocol for certified payment operators, federation, trust and financial infrastructure in Angola.',
     siteName: 'BANZA',
     locale: 'en_US',
     type: 'website',
@@ -46,17 +44,40 @@ export const metadata: Metadata = {
   manifest: '/site.webmanifest',
   icons: {
     icon: [
-      { url: '/favicon.ico?v=3',           sizes: 'any' },
+      { url: '/favicon.ico?v=3',       sizes: 'any' },
       { url: '/favicon-32x32.png?v=3', sizes: '32x32', type: 'image/png' },
       { url: '/favicon-16x16.png?v=3', sizes: '16x16', type: 'image/png' },
     ],
-    apple: [
-      { url: '/apple-touch-icon.png?v=3', sizes: '180x180', type: 'image/png' },
-    ],
+    apple: [{ url: '/apple-touch-icon.png?v=3', sizes: '180x180', type: 'image/png' }],
   },
   robots: { index: true, follow: true },
   authors: [{ name: 'BANZA Protocol' }],
 }
+
+const NAV_LINKS = [
+  { href: '/core-principles',     label: 'Protocol',      ai: false },
+  { href: '/certification',       label: 'Certification', ai: false },
+  { href: '/federation',          label: 'Federation',    ai: false },
+  { href: '/trust',               label: 'Trust',         ai: false },
+  { href: '/operators',           label: 'Operators',     ai: false },
+  { href: '/developer-resources', label: 'Developers',    ai: false },
+  { href: '/governance',          label: 'Governance',    ai: false },
+  { href: '/banzai',              label: 'BanzAI',        ai: true  },
+]
+
+const FOOTER_LINKS = [
+  { href: '/introduction',         label: 'Introduction' },
+  { href: '/core-principles',      label: 'Protocol' },
+  { href: '/certification',        label: 'Certification' },
+  { href: '/federation',           label: 'Federation' },
+  { href: '/trust',                label: 'Trust' },
+  { href: '/operators',            label: 'Operators' },
+  { href: '/developer-resources',  label: 'Developers' },
+  { href: '/governance',           label: 'Governance' },
+  { href: '/roadmap',              label: 'Roadmap' },
+  { href: '/faq',                  label: 'FAQ' },
+  { href: '/reference',            label: 'Full Reference' },
+]
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const reference = getReference()
@@ -68,6 +89,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Top navigation */}
         <header className="fixed inset-x-0 top-0 z-40 border-b border-bz-border bg-white/90 backdrop-blur-md">
           <div className="mx-auto flex h-14 max-w-screen-2xl items-center justify-between px-5 md:px-8">
+
             {/* Logo */}
             <Link href="/" className="flex items-center gap-2.5">
               <span className="inline-block h-7 w-7 shrink-0 overflow-hidden rounded-[9px]">
@@ -79,16 +101,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
             {/* Desktop nav */}
             <nav className="hidden items-center gap-1 md:flex">
-              {[
-                { href: '/core-principles',    label: 'Protocol',       ai: false },
-                { href: '/certification',      label: 'Certification',  ai: false },
-                { href: '/federation',         label: 'Federation',     ai: false },
-                { href: '/trust',              label: 'Trust',          ai: false },
-                { href: '/operators',          label: 'Operators',      ai: false },
-                { href: '/developer-resources',label: 'Developers',     ai: false },
-                { href: '/governance',         label: 'Governance',     ai: false },
-                { href: '/banzai',             label: 'BanzAI',         ai: true  },
-              ].map(({ href, label, ai }) => (
+              {NAV_LINKS.map(({ href, label, ai }) => (
                 <Link
                   key={href}
                   href={href}
@@ -113,7 +126,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 v{reference.meta.version}
               </span>
               <Link
-                href="/introduction"
+                href="/reference"
                 className="rounded-lg bg-bz-primary px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-bz-primary-dark"
               >
                 Reference
@@ -135,7 +148,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Footer */}
         <footer className="border-t border-bz-border bg-white">
           <div className="mx-auto max-w-screen-2xl px-6 py-10">
-            <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
+            <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
+
+              {/* Brand */}
               <div>
                 <div className="flex items-center gap-2">
                   <span className="inline-block h-6 w-6 shrink-0 overflow-hidden rounded-[8px]">
@@ -145,23 +160,35 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   <span className="font-bold text-bz-text">BANZA</span>
                 </div>
                 <p className="mt-1 text-xs text-bz-muted">
-                  BANZA — Open Financial Infrastructure Protocol
+                  Open Financial Infrastructure Protocol
+                </p>
+                <p className="mt-2 font-mono text-[10px] text-bz-muted">
+                  v{reference.meta.version} · {reference.meta.date}
                 </p>
               </div>
 
-              <div className="flex flex-wrap gap-4 text-xs text-bz-muted">
-                <Link href="/introduction" className="hover:text-bz-primary">About BANZA</Link>
-                <Link href="/core-principles" className="hover:text-bz-primary">Protocol</Link>
-                <Link href="/certification" className="hover:text-bz-primary">Certification</Link>
-                <Link href="/federation" className="hover:text-bz-primary">Federation</Link>
-                <Link href="/trust" className="hover:text-bz-primary">Trust</Link>
-                <Link href="/operators" className="hover:text-bz-primary">Operators</Link>
-                <Link href="/developer-resources" className="hover:text-bz-primary">Developers</Link>
-                <Link href="/governance" className="hover:text-bz-primary">Governance</Link>
-                <Link href="/banzai" className="hover:text-bz-gold text-bz-gold/70">BanzAI</Link>
+              {/* Links */}
+              <div className="flex flex-wrap gap-x-6 gap-y-2">
+                {FOOTER_LINKS.map(({ href, label }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    className={`text-xs transition-colors ${
+                      href === '/banzai'
+                        ? 'text-bz-gold/70 hover:text-bz-gold'
+                        : 'text-bz-muted hover:text-bz-primary'
+                    }`}
+                  >
+                    {label}
+                  </Link>
+                ))}
               </div>
             </div>
 
+            <div className="mt-8 border-t border-bz-border pt-6 text-xs text-bz-muted">
+              BANZA is an open protocol. The specification, conformance suite, and certification framework
+              are publicly available to any operator. No bilateral agreement required.
+            </div>
           </div>
         </footer>
 

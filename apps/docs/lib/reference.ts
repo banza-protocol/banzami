@@ -11,7 +11,23 @@ import fs from 'fs'
 import path from 'path'
 import type { Reference, ReferenceSection, ReferenceSubsection, ReferenceMeta } from './types'
 
-const REFERENCE_PATH = path.join(process.cwd(), '../../docs/BANZA_REFERENCE.md')
+// Resolution order (ADR-015 — BANZA_REFERENCE.md is canonical):
+//   1. data/BANZA_REFERENCE.md          — generated artifact, local or synced by deploy.sh
+//   2. ../../../banza/BANZA_REFERENCE.md — sibling repo path (local development)
+//   3. ../../docs/BANZA_REFERENCE.md     — VM legacy path (/srv/banzami/src/docs/) synced by deploy.sh
+function resolveReferencePath(): string {
+  const candidates = [
+    path.join(process.cwd(), 'data/BANZA_REFERENCE.md'),
+    path.join(process.cwd(), '../../../banza/BANZA_REFERENCE.md'),
+    path.join(process.cwd(), '../../docs/BANZA_REFERENCE.md'),
+  ]
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p
+  }
+  throw new Error(`BANZA_REFERENCE.md not found. Searched:\n${candidates.join('\n')}`)
+}
+
+const REFERENCE_PATH = resolveReferencePath()
 
 // ----- Public API ------------------------------------------------------------
 
@@ -51,7 +67,7 @@ function parseMeta(raw: string): ReferenceMeta {
   return {
     version: field('Version'),
     date: field('Date'),
-    author: field('Author'),
+    author: field('Author') || field('Authority'),
     status: field('Status'),
   }
 }
@@ -121,11 +137,15 @@ function parseSubsections(sectionContent: string): ReferenceSubsection[] {
 // ----- Validation ------------------------------------------------------------
 
 function validateRaw(raw: string): void {
-  const requiredFields: string[] = ['Version', 'Date', 'Author', 'Status']
+  const requiredFields: string[] = ['Version', 'Date', 'Status']
   for (const field of requiredFields) {
     if (!raw.includes(`**${field}:**`)) {
       throw new Error(`BANZA_REFERENCE.md is missing required metadata field: ${field}`)
     }
+  }
+  // Accept either Author or Authority (protocol reference uses Authority)
+  if (!raw.includes('**Author:**') && !raw.includes('**Authority:**')) {
+    throw new Error('BANZA_REFERENCE.md is missing required metadata field: Author or Authority')
   }
 
   const sectionNumbers: number[] = []

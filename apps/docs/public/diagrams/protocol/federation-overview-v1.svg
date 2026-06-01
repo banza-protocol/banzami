@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  id:        SVG-P-008
+  diagram:   Federation Overview
+  version:   1.0
+  source:    BANZA_REFERENCE.md §5 Federation, ADR-026 (Federation Trust Model)
+  updated:   2026-06-01
+  author:    BANZA Protocol
+  style:     protocol
+-->
+<svg viewBox="0 0 900 560" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="title-P008 desc-P008"
+     font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+
+  <title id="title-P008">BANZA Federation Overview — Five Moments</title>
+  <desc id="desc-P008">Overview of BANZA federation showing the five moments of a federated payment: Trust (certificate verification), Routing (signed request), Execution (simultaneous acceptance and credit), Obligation (atomic debit and obligation record), and Settlement (bilateral netting). Federation status is COMPLETE.</desc>
+
+  <defs>
+    <linearGradient id="hG-P008" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#990011"/>
+      <stop offset="100%" stop-color="#B11226"/>
+    </linearGradient>
+    <linearGradient id="momentGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FEF9F5"/>
+      <stop offset="100%" stop-color="#F5EDE8"/>
+    </linearGradient>
+    <filter id="sh-P008" x="-5%" y="-10%" width="115%" height="135%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+    <marker id="arr-P008" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6265"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="900" height="560" fill="#FCF6F5"/>
+
+  <!-- Header -->
+  <rect x="20" y="14" width="860" height="56" rx="8" fill="url(#hG-P008)" filter="url(#sh-P008)"/>
+  <text x="450" y="40" text-anchor="middle" fill="white" font-size="16" font-weight="700">BANZA Federation</text>
+  <text x="450" y="59" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="10" letter-spacing="1">PAYMENT ROUTING ACROSS CERTIFIED OPERATORS WITHOUT BILATERAL AGREEMENTS — ADR-026</text>
+
+  <!-- COMPLETE status badge -->
+  <rect x="20" y="82" width="860" height="32" rx="6" fill="#F0FDF4" stroke="#15803D" stroke-width="1.5"/>
+  <text x="42" y="103" fill="#15803D" font-size="12" font-weight="700">★  STATUS: COMPLETE</text>
+  <text x="178" y="103" fill="#166534" font-size="11">  79/79 federation tests · 14/14 interoperability scenarios · ADR-026 accepted · M1 achieved 2026-06-01</text>
+  <text x="752" y="103" fill="#6B6265" font-size="10">Federation is not a future feature.</text>
+
+  <!-- Five moments: horizontal flow -->
+  <!-- Moment boxes: width ~158 each, gap 4, starting x=20 -->
+  <!-- 20 + 5×158 + 4×4 = 20+790+16 = 826... let me adjust -->
+  <!-- 5 boxes of 160px with 9px gap: 5×160 + 4×9 = 800+36 = 836... -->
+  <!-- Let me use x=22, width=158, gap=10: 22 + 5×158 + 4×10 = 22+790+40 = 852. Margin 24 right = OK -->
+
+  <!-- Moment 1: Trust -->
+  <rect x="20" y="126" width="160" height="168" rx="7" fill="url(#momentGrad)" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh-P008)"/>
+  <rect x="20" y="126" width="160" height="32" rx="7" fill="#7C3AED"/>
+  <rect x="20" y="145" width="160" height="13" fill="#7C3AED"/>
+  <text x="100" y="148" text-anchor="middle" fill="white" font-size="11" font-weight="700">1 · Trust</text>
+  <text x="100" y="171" text-anchor="middle" fill="#1A1A1A" font-size="10" font-weight="600">Certificate verification</text>
+  <text x="100" y="186" text-anchor="middle" fill="#6B6265" font-size="10">Operator A fetches</text>
+  <text x="100" y="200" text-anchor="middle" fill="#6B6265" font-size="10">Operator B's certificate</text>
+  <text x="100" y="215" text-anchor="middle" fill="#6B6265" font-size="10">and verifies the ed25519</text>
+  <text x="100" y="230" text-anchor="middle" fill="#6B6265" font-size="10">signature against the</text>
+  <text x="100" y="245" text-anchor="middle" fill="#6B6265" font-size="10">BANZA public key.</text>
+  <text x="100" y="260" text-anchor="middle" fill="#6B6265" font-size="10">BRL check: not revoked.</text>
+  <text x="100" y="280" text-anchor="middle" fill="#7C3AED" font-size="9" font-weight="600">9-step trust protocol</text>
+
+  <!-- Arrow 1→2 -->
+  <line x1="180" y1="210" x2="192" y2="210" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P008)"/>
+
+  <!-- Moment 2: Routing -->
+  <rect x="194" y="126" width="160" height="168" rx="7" fill="url(#momentGrad)" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh-P008)"/>
+  <rect x="194" y="126" width="160" height="32" rx="7" fill="#1D4ED8"/>
+  <rect x="194" y="145" width="160" height="13" fill="#1D4ED8"/>
+  <text x="274" y="148" text-anchor="middle" fill="white" font-size="11" font-weight="700">2 · Routing</text>
+  <text x="274" y="171" text-anchor="middle" fill="#1A1A1A" font-size="10" font-weight="600">Signed routing request</text>
+  <text x="274" y="186" text-anchor="middle" fill="#6B6265" font-size="10">Operator A sends a</text>
+  <text x="274" y="200" text-anchor="middle" fill="#6B6265" font-size="10">routing request signed</text>
+  <text x="274" y="215" text-anchor="middle" fill="#6B6265" font-size="10">with its private key.</text>
+  <text x="274" y="230" text-anchor="middle" fill="#6B6265" font-size="10">Includes the shared</text>
+  <text x="274" y="245" text-anchor="middle" fill="#6B6265" font-size="10">trace_id that links all</text>
+  <text x="274" y="260" text-anchor="middle" fill="#6B6265" font-size="10">artifacts across both</text>
+  <text x="274" y="275" text-anchor="middle" fill="#6B6265" font-size="10">operators.</text>
+  <text x="274" y="285" text-anchor="middle" fill="#1D4ED8" font-size="9" font-weight="600">INV-FED-001 · INV-FED-004</text>
+
+  <!-- Arrow 2→3 -->
+  <line x1="354" y1="210" x2="366" y2="210" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P008)"/>
+
+  <!-- Moment 3: Execution -->
+  <rect x="368" y="126" width="160" height="168" rx="7" fill="url(#momentGrad)" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh-P008)"/>
+  <rect x="368" y="126" width="160" height="32" rx="7" fill="#15803D"/>
+  <rect x="368" y="145" width="160" height="13" fill="#15803D"/>
+  <text x="448" y="148" text-anchor="middle" fill="white" font-size="11" font-weight="700">3 · Execution</text>
+  <text x="448" y="171" text-anchor="middle" fill="#1A1A1A" font-size="10" font-weight="600">Acceptance = credit</text>
+  <text x="448" y="186" text-anchor="middle" fill="#6B6265" font-size="10">Operator B accepts the</text>
+  <text x="448" y="200" text-anchor="middle" fill="#6B6265" font-size="10">request and credits</text>
+  <text x="448" y="215" text-anchor="middle" fill="#6B6265" font-size="10">Merchant B immediately.</text>
+  <text x="448" y="230" text-anchor="middle" fill="#6B6265" font-size="10">Acceptance and credit</text>
+  <text x="448" y="245" text-anchor="middle" fill="#6B6265" font-size="10">are simultaneous —</text>
+  <text x="448" y="260" text-anchor="middle" fill="#6B6265" font-size="10">not two separate steps.</text>
+  <text x="448" y="285" text-anchor="middle" fill="#15803D" font-size="9" font-weight="600">INV-FED-LEDGER-001</text>
+
+  <!-- Arrow 3→4 -->
+  <line x1="528" y1="210" x2="540" y2="210" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P008)"/>
+
+  <!-- Moment 4: Obligation -->
+  <rect x="542" y="126" width="160" height="168" rx="7" fill="url(#momentGrad)" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh-P008)"/>
+  <rect x="542" y="126" width="160" height="32" rx="7" fill="#D97706"/>
+  <rect x="542" y="145" width="160" height="13" fill="#D97706"/>
+  <text x="622" y="148" text-anchor="middle" fill="white" font-size="11" font-weight="700">4 · Obligation</text>
+  <text x="622" y="171" text-anchor="middle" fill="#1A1A1A" font-size="10" font-weight="600">Atomic debit + record</text>
+  <text x="622" y="186" text-anchor="middle" fill="#6B6265" font-size="10">Operator A atomically:</text>
+  <text x="622" y="200" text-anchor="middle" fill="#6B6265" font-size="10">debits Consumer A and</text>
+  <text x="622" y="215" text-anchor="middle" fill="#6B6265" font-size="10">records a signed</text>
+  <text x="622" y="230" text-anchor="middle" fill="#6B6265" font-size="10">obligation. Obligation is</text>
+  <text x="622" y="245" text-anchor="middle" fill="#6B6265" font-size="10">non-repudiable. Operator</text>
+  <text x="622" y="260" text-anchor="middle" fill="#6B6265" font-size="10">A cannot deny owing</text>
+  <text x="622" y="275" text-anchor="middle" fill="#6B6265" font-size="10">Operator B.</text>
+  <text x="622" y="285" text-anchor="middle" fill="#D97706" font-size="9" font-weight="600">INV-FED-002 · INV-FED-005</text>
+
+  <!-- Arrow 4→5 -->
+  <line x1="702" y1="210" x2="714" y2="210" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P008)"/>
+
+  <!-- Moment 5: Settlement -->
+  <rect x="716" y="126" width="164" height="168" rx="7" fill="url(#momentGrad)" stroke="#D4C9C7" stroke-width="1.5" filter="url(#sh-P008)"/>
+  <rect x="716" y="126" width="164" height="32" rx="7" fill="#374151"/>
+  <rect x="716" y="145" width="164" height="13" fill="#374151"/>
+  <text x="798" y="148" text-anchor="middle" fill="white" font-size="11" font-weight="700">5 · Settlement</text>
+  <text x="798" y="171" text-anchor="middle" fill="#1A1A1A" font-size="10" font-weight="600">Bilateral netting</text>
+  <text x="798" y="186" text-anchor="middle" fill="#6B6265" font-size="10">Each 24h cycle: both</text>
+  <text x="798" y="200" text-anchor="middle" fill="#6B6265" font-size="10">operators independently</text>
+  <text x="798" y="215" text-anchor="middle" fill="#6B6265" font-size="10">calculate net positions.</text>
+  <text x="798" y="230" text-anchor="middle" fill="#6B6265" font-size="10">One bank transfer per</text>
+  <text x="798" y="245" text-anchor="middle" fill="#6B6265" font-size="10">cycle. Not one per</text>
+  <text x="798" y="260" text-anchor="middle" fill="#6B6265" font-size="10">payment. Both must</text>
+  <text x="798" y="275" text-anchor="middle" fill="#6B6265" font-size="10">agree on net amount.</text>
+  <text x="798" y="285" text-anchor="middle" fill="#374151" font-size="9" font-weight="600">INV-FED-RECON-001</text>
+
+  <!-- trace_id runs through all -->
+  <rect x="20" y="308" width="860" height="28" rx="5" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+  <text x="450" y="327" text-anchor="middle" fill="#3730A3" font-size="11">The same  trace_id  appears on every artifact across both operators: routing request · response · obligation · ledger entries · events</text>
+
+  <!-- Evidence table -->
+  <rect x="20" y="348" width="860" height="100" rx="7" fill="#EAE0DF" stroke="#D4C9C7" stroke-width="1"/>
+  <text x="36" y="368" fill="#1A1A1A" font-size="11" font-weight="700" letter-spacing="0.5">COMPLETION EVIDENCE</text>
+
+  <text x="36" y="390" fill="#6B6265" font-size="11">Federation specification</text>
+  <text x="240" y="390" fill="#15803D" font-size="11" font-weight="700">COMPLETE — ADR-026 accepted 2026-05-31</text>
+
+  <text x="36" y="408" fill="#6B6265" font-size="11">Federation contracts (5 schemas)</text>
+  <text x="240" y="408" fill="#15803D" font-size="11" font-weight="700">COMPLETE — operator-certificate · federation-routing · federation-obligation · federation-event · federation-manifest</text>
+
+  <text x="36" y="426" fill="#6B6265" font-size="11">Conformance suite</text>
+  <text x="240" y="426" fill="#15803D" font-size="11" font-weight="700">79/79 tests across 9 suites: FED-CERT · FED-DISC · FED-TRUST · FED-ROUTE · FED-EXEC · FED-OBL · FED-EVT · FED-SETTLE · FED-FAIL</text>
+
+  <text x="36" y="444" fill="#6B6265" font-size="11">Two-operator interoperability</text>
+  <text x="240" y="444" fill="#15803D" font-size="11" font-weight="700">14/14 scenarios · M1 Protocol Complete achieved 2026-06-01</text>
+
+  <!-- Footer -->
+  <text x="450" y="474" text-anchor="middle" fill="#6B6265" font-size="10">SVG-P-008 · v1.0 · BANZA_REFERENCE.md §5 · ADR-026 · 2026-06-01</text>
+
+  <!-- Separator line -->
+  <line x1="20" y1="460" x2="880" y2="460" stroke="#D4C9C7" stroke-width="0.5"/>
+
+  <!-- Bottom invariant note -->
+  <text x="450" y="480" text-anchor="middle" fill="#6B6265" font-size="10">All federation invariants: INV-TRUST-001–007 · INV-FED-001–005 · INV-FED-LEDGER-001 · INV-FED-RECON-001 · INV-ROOT-001–006</text>
+
+  <!-- Footer line -->
+  <text x="450" y="496" text-anchor="middle" fill="#6B6265" font-size="10">SVG-P-008 · v1.0 · BANZA_REFERENCE.md §5 · ADR-026 · Federation Status: COMPLETE · 2026-06-01</text>
+
+</svg>

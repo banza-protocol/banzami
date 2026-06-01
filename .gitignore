@@ -92,3 +92,6 @@ temp/
 
 # Claude Code internal state
 .claude/
+
+# banzami docs — generated artifacts (sourced from banza repo)
+apps/docs/data/

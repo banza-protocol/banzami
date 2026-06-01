@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  id:        SVG-P-013
+  diagram:   Trust Hierarchy
+  version:   1.0
+  source:    BANZA_REFERENCE.md §6 Trust, ADR-026 §Phase 4, ADR-029
+  updated:   2026-06-01
+  author:    BANZA Protocol
+  style:     protocol
+-->
+<svg viewBox="0 0 820 560" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="title-P013 desc-P013"
+     font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+
+  <title id="title-P013">BANZA Trust Hierarchy — Key Hierarchy and Certificate Verification</title>
+  <desc id="desc-P013">The BANZA trust hierarchy showing the BANZA Root Key signing Key Manifests, three active issuing keys (cert-issuing, BRL-issuing, evidence-issuing) derived from the Key Manifest, and the artifacts each issuing key signs. The Root Key signs Key Manifests only and never participates in runtime verification.</desc>
+
+  <defs>
+    <linearGradient id="hG-P013" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#990011"/>
+      <stop offset="100%" stop-color="#B11226"/>
+    </linearGradient>
+    <linearGradient id="rootGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4C1D95"/>
+      <stop offset="100%" stop-color="#6D28D9"/>
+    </linearGradient>
+    <linearGradient id="manifestGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="certKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1D4ED8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="brlKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#DC2626"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+    <linearGradient id="evidKeyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#D97706"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
+    </linearGradient>
+    <filter id="sh-P013" x="-5%" y="-10%" width="115%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#00000018"/>
+    </filter>
+    <marker id="arr-P013" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6265"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="820" height="560" fill="#FCF6F5"/>
+
+  <!-- Header -->
+  <rect x="16" y="12" width="788" height="54" rx="8" fill="url(#hG-P013)" filter="url(#sh-P013)"/>
+  <text x="410" y="38" text-anchor="middle" fill="white" font-size="15" font-weight="700">Trust Hierarchy</text>
+  <text x="410" y="56" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="10" letter-spacing="0.8">BANZA KEY HIERARCHY AND CERTIFICATE CHAIN — BANZA_REFERENCE.md §6 · ADR-029</text>
+
+  <!-- Root Key -->
+  <rect x="200" y="80" width="420" height="68" rx="8" fill="url(#rootGrad)" filter="url(#sh-P013)"/>
+  <text x="410" y="104" text-anchor="middle" fill="white" font-size="13" font-weight="700">BANZA Root Key</text>
+  <text x="410" y="120" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="11">ed25519 · 24-month validity · OFFLINE</text>
+  <text x="410" y="140" text-anchor="middle" fill="rgba(255,255,255,0.75)" font-size="10">Air-gapped machine · HSM or encrypted USB · Ceremony Officer + Witness</text>
+
+  <!-- Offline badge -->
+  <rect x="536" y="86" width="74" height="18" rx="4" fill="rgba(0,0,0,0.3)"/>
+  <text x="573" y="99" text-anchor="middle" fill="white" font-size="9" font-weight="700" letter-spacing="0.5">OFFLINE</text>
+
+  <!-- Arrow down to Key Manifest with label -->
+  <line x1="410" y1="148" x2="410" y2="172" stroke="#6B6265" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arr-P013)"/>
+  <rect x="290" y="155" width="240" height="14" rx="3" fill="#FCF6F5"/>
+  <text x="410" y="165" text-anchor="middle" fill="#7C3AED" font-size="10" font-weight="600" font-style="italic">signs Key Manifests only — never signs certs, BRLs, or evidence directly</text>
+
+  <!-- Key Manifest -->
+  <rect x="170" y="174" width="480" height="56" rx="7" fill="url(#manifestGrad)" filter="url(#sh-P013)"/>
+  <text x="410" y="196" text-anchor="middle" fill="white" font-size="12" font-weight="700">Key Manifest</text>
+  <text x="410" y="212" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">banza.network/.well-known/banza/key-manifest.json</text>
+  <text x="410" y="224" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="10">Lists all active issuing keys with domains, public keys, and validity periods</text>
+
+  <!-- Three branches down from Key Manifest -->
+  <!-- Branch 1: Cert-Issuing Key -->
+  <line x1="250" y1="230" x2="160" y2="258" stroke="#1D4ED8" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+  <!-- Branch 2: BRL-Issuing Key -->
+  <line x1="410" y1="230" x2="410" y2="258" stroke="#DC2626" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+  <!-- Branch 3: Evidence-Issuing Key -->
+  <line x1="570" y1="230" x2="660" y2="258" stroke="#D97706" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+
+  <!-- Cert-Issuing Key -->
+  <rect x="16" y="260" width="252" height="60" rx="6" fill="url(#certKeyGrad)" filter="url(#sh-P013)"/>
+  <text x="142" y="280" text-anchor="middle" fill="white" font-size="11" font-weight="700">Cert-Issuing Key</text>
+  <text x="142" y="296" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">banza-cert-YYYYMM</text>
+  <text x="142" y="312" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9">Max 184-day validity</text>
+
+  <!-- BRL-Issuing Key -->
+  <rect x="284" y="260" width="252" height="60" rx="6" fill="url(#brlKeyGrad)" filter="url(#sh-P013)"/>
+  <text x="410" y="280" text-anchor="middle" fill="white" font-size="11" font-weight="700">BRL-Issuing Key</text>
+  <text x="410" y="296" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">banza-brl-YYYYMM</text>
+  <text x="410" y="312" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9">Max 184-day validity</text>
+
+  <!-- Evidence-Issuing Key -->
+  <rect x="552" y="260" width="252" height="60" rx="6" fill="url(#evidKeyGrad)" filter="url(#sh-P013)"/>
+  <text x="678" y="280" text-anchor="middle" fill="white" font-size="11" font-weight="700">Evidence-Issuing Key</text>
+  <text x="678" y="296" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="10">banza-evidence-YYYYMM</text>
+  <text x="678" y="312" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9">Max 184-day validity</text>
+
+  <!-- Artifact arrows down -->
+  <line x1="142" y1="320" x2="142" y2="346" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+  <line x1="410" y1="320" x2="410" y2="346" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+  <line x1="678" y1="320" x2="678" y2="346" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P013)"/>
+
+  <!-- Artifacts -->
+  <rect x="16" y="348" width="252" height="52" rx="6" fill="white" stroke="#1D4ED8" stroke-width="1.5" filter="url(#sh-P013)"/>
+  <text x="142" y="368" text-anchor="middle" fill="#1D4ED8" font-size="11" font-weight="700">Operator Certificates</text>
+  <text x="142" y="384" text-anchor="middle" fill="#6B6265" font-size="10">One per certified operator</text>
+  <text x="142" y="396" text-anchor="middle" fill="#6B6265" font-size="9">90-day max lifetime at L3+</text>
+
+  <rect x="284" y="348" width="252" height="52" rx="6" fill="white" stroke="#DC2626" stroke-width="1.5" filter="url(#sh-P013)"/>
+  <text x="410" y="368" text-anchor="middle" fill="#DC2626" font-size="11" font-weight="700">BANZA Revocation List</text>
+  <text x="410" y="384" text-anchor="middle" fill="#6B6265" font-size="10">Updated every 6 hours</text>
+  <text x="410" y="396" text-anchor="middle" fill="#6B6265" font-size="9">INV-TRUST-003 · INV-TRUST-005</text>
+
+  <rect x="552" y="348" width="252" height="52" rx="6" fill="white" stroke="#D97706" stroke-width="1.5" filter="url(#sh-P013)"/>
+  <text x="678" y="368" text-anchor="middle" fill="#D97706" font-size="11" font-weight="700">Evidence Packages</text>
+  <text x="678" y="384" text-anchor="middle" fill="#6B6265" font-size="10">Conformance run results</text>
+  <text x="678" y="396" text-anchor="middle" fill="#6B6265" font-size="9">Submitted for BANZA review</text>
+
+  <!-- INV-ROOT invariants -->
+  <rect x="16" y="416" width="788" height="72" rx="7" fill="#EAE0DF" stroke="#D4C9C7" stroke-width="1"/>
+  <text x="30" y="434" fill="#1A1A1A" font-size="11" font-weight="700" letter-spacing="0.5">ROOT KEY INVARIANTS — ADR-029</text>
+  <text x="30" y="452" fill="#6B6265" font-size="10">INV-ROOT-001: Production key IDs must not start with  test-  (test keys are rejected in production)</text>
+  <text x="30" y="466" fill="#6B6265" font-size="10">INV-ROOT-002: Key Manifest must be root-signed.  INV-ROOT-003: Expired manifest is invalid.</text>
+  <text x="30" y="480" fill="#6B6265" font-size="10">INV-ROOT-004: Root signs Key Manifests only — never signs certs or BRLs directly.  INV-ROOT-005: BRL must be signed by BRL-issuing key.</text>
+  <text x="30" y="494" fill="#6B6265" font-size="10">INV-ROOT-006: Issuing keys max 184 days validity. Root key max 24 months.</text>
+
+  <!-- Footer -->
+  <text x="410" y="546" text-anchor="middle" fill="#6B6265" font-size="10">SVG-P-013 · v1.0 · BANZA_REFERENCE.md §6 · ADR-026 §Phase 4 · ADR-029 · 2026-06-01</text>
+
+</svg>

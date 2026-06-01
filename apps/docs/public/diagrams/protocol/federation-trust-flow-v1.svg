@@ -1,0 +1,193 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  id:        SVG-P-009
+  diagram:   Federation Trust Flow
+  version:   1.0
+  source:    ADR-026 §Phase 5 (9-step trust establishment protocol)
+  updated:   2026-06-01
+  author:    BANZA Protocol
+  style:     protocol
+-->
+<svg viewBox="0 0 820 720" xmlns="http://www.w3.org/2000/svg"
+     role="img" aria-labelledby="title-P009 desc-P009"
+     font-family="ui-sans-serif, system-ui, -apple-system, sans-serif">
+
+  <title id="title-P009">BANZA Federation Trust Flow — 9-Step Trust Protocol</title>
+  <desc id="desc-P009">The 9-step trust establishment protocol from ADR-026 §Phase 5. Operator A verifies Operator B through: (1) discover, (2) fetch manifest, (3) fetch certificate, (4) verify signature, (5) verify expiry, (6) verify certification level, (7) check BRL, (8) verify capabilities, (9) bind certificate to manifest. Each step has a failure path that terminates trust establishment.</desc>
+
+  <defs>
+    <linearGradient id="hG-P009" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#990011"/>
+      <stop offset="100%" stop-color="#B11226"/>
+    </linearGradient>
+    <linearGradient id="stepGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#EEF2FF"/>
+      <stop offset="100%" stop-color="#E0E7FF"/>
+    </linearGradient>
+    <filter id="sh-P009" x="-5%" y="-10%" width="115%" height="130%">
+      <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#00000014"/>
+    </filter>
+    <marker id="arr-P009" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#6B6265"/>
+    </marker>
+    <marker id="arr-fail" viewBox="0 0 10 10" refX="9" refY="5"
+            markerWidth="5" markerHeight="5" orient="auto">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#DC2626"/>
+    </marker>
+  </defs>
+
+  <!-- Canvas -->
+  <rect width="820" height="720" fill="#FCF6F5"/>
+
+  <!-- Header -->
+  <rect x="16" y="12" width="788" height="54" rx="8" fill="url(#hG-P009)" filter="url(#sh-P009)"/>
+  <text x="410" y="37" text-anchor="middle" fill="white" font-size="15" font-weight="700">Federation Trust Establishment Protocol</text>
+  <text x="410" y="55" text-anchor="middle" fill="rgba(255,255,255,0.85)" font-size="10" letter-spacing="0.8">9 MANDATORY STEPS — ADR-026 §PHASE 5 — ANY FAILURE TERMINATES TRUST ESTABLISHMENT</text>
+
+  <!-- Context label -->
+  <text x="200" y="85" text-anchor="middle" fill="#3730A3" font-size="11" font-weight="700">Operator A</text>
+  <text x="410" y="85" text-anchor="middle" fill="#6B6265" font-size="10">verifying</text>
+  <text x="620" y="85" text-anchor="middle" fill="#15803D" font-size="11" font-weight="700">Operator B</text>
+
+  <!-- Step rows: y start=96, height=54, gap=4 -->
+  <!-- Step box: x=16, width=530 -->
+  <!-- Fail label: x=560 -->
+
+  <!-- STEP 1 -->
+  <rect x="16" y="96" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="96" width="36" height="50" rx="4" fill="#4F46E5"/>
+  <text x="34" y="124" text-anchor="middle" fill="white" font-size="13" font-weight="700">1</text>
+  <text x="66" y="113" fill="#1A1A1A" font-size="11" font-weight="700">Discover Operator B</text>
+  <text x="66" y="130" fill="#6B6265" font-size="10">Resolve operator_id → manifest URL via DNS TXT record or known URL</text>
+  <text x="66" y="142" fill="#6B6265" font-size="10">Input: operator_id (string) · Output: manifest URL</text>
+  <line x1="546" y1="121" x2="558" y2="121" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="117" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="129" fill="#DC2626" font-size="9">not reachable</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="146" x2="280" y2="154" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 2 -->
+  <rect x="16" y="156" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="156" width="36" height="50" rx="4" fill="#4F46E5"/>
+  <text x="34" y="184" text-anchor="middle" fill="white" font-size="13" font-weight="700">2</text>
+  <text x="66" y="173" fill="#1A1A1A" font-size="11" font-weight="700">Fetch and validate manifest</text>
+  <text x="66" y="190" fill="#6B6265" font-size="10">GET /.well-known/banza/operator.json · validate schema · verify operator_id matches</text>
+  <text x="66" y="202" fill="#6B6265" font-size="10">Contracts: conformance/manifests/schema.json</text>
+  <line x1="546" y1="181" x2="558" y2="181" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="177" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="189" fill="#DC2626" font-size="9">invalid manifest</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="206" x2="280" y2="214" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 3 -->
+  <rect x="16" y="216" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="216" width="36" height="50" rx="4" fill="#7C3AED"/>
+  <text x="34" y="244" text-anchor="middle" fill="white" font-size="13" font-weight="700">3</text>
+  <text x="66" y="233" fill="#1A1A1A" font-size="11" font-weight="700">Fetch operator certificate</text>
+  <text x="66" y="250" fill="#6B6265" font-size="10">GET /.well-known/banza/certificate.json · validate schema</text>
+  <text x="66" y="262" fill="#6B6265" font-size="10">Contracts: contracts/federation/operator-certificate.json</text>
+  <line x1="546" y1="241" x2="558" y2="241" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="237" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="249" fill="#DC2626" font-size="9">not a member</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="266" x2="280" y2="274" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 4 -->
+  <rect x="16" y="276" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="276" width="36" height="50" rx="4" fill="#7C3AED"/>
+  <text x="34" y="304" text-anchor="middle" fill="white" font-size="13" font-weight="700">4</text>
+  <text x="66" y="293" fill="#1A1A1A" font-size="11" font-weight="700">Verify certificate signature</text>
+  <text x="66" y="310" fill="#6B6265" font-size="10">ed25519_verify(BANZA_PUBLIC_KEY, canonical_json(certificate), certificate.signature)</text>
+  <text x="66" y="322" fill="#6B6265" font-size="10">INV-TRUST-001 · Algorithm: ed25519 (RFC 8032)</text>
+  <line x1="546" y1="301" x2="558" y2="301" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="297" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="309" fill="#DC2626" font-size="9">not BANZA-signed</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="326" x2="280" y2="334" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 5 -->
+  <rect x="16" y="336" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="336" width="36" height="50" rx="4" fill="#7C3AED"/>
+  <text x="34" y="364" text-anchor="middle" fill="white" font-size="13" font-weight="700">5</text>
+  <text x="66" y="353" fill="#1A1A1A" font-size="11" font-weight="700">Verify certificate expiry</text>
+  <text x="66" y="370" fill="#6B6265" font-size="10">expires_at &gt; now() AND issued_at ≤ now() — no grace period</text>
+  <text x="66" y="382" fill="#6B6265" font-size="10">INV-TRUST-002 · Max lifetime 90 days for L3+ certificates</text>
+  <line x1="546" y1="361" x2="558" y2="361" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="357" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="369" fill="#DC2626" font-size="9">expired/future cert</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="386" x2="280" y2="394" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 6 -->
+  <rect x="16" y="396" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="396" width="36" height="50" rx="4" fill="#990011"/>
+  <text x="34" y="424" text-anchor="middle" fill="white" font-size="13" font-weight="700">6</text>
+  <text x="66" y="413" fill="#1A1A1A" font-size="11" font-weight="700">Verify certification level</text>
+  <text x="66" y="430" fill="#6B6265" font-size="10">certificate.certification_level ≥ REQUIRED_LEVEL (3 for federation routing)</text>
+  <text x="66" y="442" fill="#6B6265" font-size="10">INV-TRUST-004 · ADR-028 Rule P-005 · L3 is the federation eligibility threshold</text>
+  <line x1="546" y1="421" x2="558" y2="421" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="417" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="429" fill="#DC2626" font-size="9">not L3 certified</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="446" x2="280" y2="454" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 7 -->
+  <rect x="16" y="456" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="456" width="36" height="50" rx="4" fill="#DC2626"/>
+  <text x="34" y="484" text-anchor="middle" fill="white" font-size="13" font-weight="700">7</text>
+  <text x="66" y="473" fill="#1A1A1A" font-size="11" font-weight="700">Check BANZA Revocation List (BRL)</text>
+  <text x="66" y="490" fill="#6B6265" font-size="10">Load BRL (cached, max 6h old, BRL signature verified) · operator_id NOT in BRL.revoked</text>
+  <text x="66" y="502" fill="#6B6265" font-size="10">INV-TRUST-003 · INV-TRUST-005 · INV-TRUST-006 · BRL at: banza.network/federation/revocation-list.json</text>
+  <line x1="546" y1="481" x2="558" y2="481" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="477" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="489" fill="#DC2626" font-size="9">suspended/revoked</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="506" x2="280" y2="514" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 8 -->
+  <rect x="16" y="516" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="516" width="36" height="50" rx="4" fill="#15803D"/>
+  <text x="34" y="544" text-anchor="middle" fill="white" font-size="13" font-weight="700">8</text>
+  <text x="66" y="533" fill="#1A1A1A" font-size="11" font-weight="700">Verify federation capabilities</text>
+  <text x="66" y="550" fill="#6B6265" font-size="10">manifest.capabilities.supports_federation == true</text>
+  <text x="66" y="562" fill="#6B6265" font-size="10">manifest.capabilities.cross_operator_routing == true · INV-FED-003</text>
+  <line x1="546" y1="541" x2="558" y2="541" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="537" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="549" fill="#DC2626" font-size="9">capabilities missing</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="566" x2="280" y2="574" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- STEP 9 -->
+  <rect x="16" y="576" width="530" height="50" rx="5" fill="url(#stepGrad)" stroke="#C7D2FE" stroke-width="1" filter="url(#sh-P009)"/>
+  <rect x="16" y="576" width="36" height="50" rx="4" fill="#15803D"/>
+  <text x="34" y="604" text-anchor="middle" fill="white" font-size="13" font-weight="700">9</text>
+  <text x="66" y="593" fill="#1A1A1A" font-size="11" font-weight="700">Bind certificate to manifest</text>
+  <text x="66" y="610" fill="#6B6265" font-size="10">certificate.operator_id == manifest.operator_id</text>
+  <text x="66" y="622" fill="#6B6265" font-size="10">Ensures certificate and manifest describe the same operator. Prevents certificate substitution.</text>
+  <line x1="546" y1="601" x2="558" y2="601" stroke="#DC2626" stroke-width="1" marker-end="url(#arr-fail)"/>
+  <text x="562" y="597" fill="#DC2626" font-size="9" font-weight="600">FAIL: reject</text>
+  <text x="562" y="609" fill="#DC2626" font-size="9">ID mismatch</text>
+
+  <!-- Arrow down -->
+  <line x1="280" y1="626" x2="280" y2="634" stroke="#6B6265" stroke-width="1.5" marker-end="url(#arr-P009)"/>
+
+  <!-- TRUST ESTABLISHED -->
+  <rect x="100" y="636" width="360" height="38" rx="7" fill="#15803D" filter="url(#sh-P009)"/>
+  <text x="280" y="660" text-anchor="middle" fill="white" font-size="13" font-weight="700">TRUST ESTABLISHED</text>
+
+  <!-- Cacheable note -->
+  <text x="280" y="690" text-anchor="middle" fill="#6B6265" font-size="10">Trust result cacheable for min(certificate.expires_at, BRL.expires_at) − now()</text>
+
+  <!-- Footer -->
+  <text x="410" y="712" text-anchor="middle" fill="#6B6265" font-size="10">SVG-P-009 · v1.0 · ADR-026 §Phase 5 · All 9 steps mandatory · 2026-06-01</text>
+
+</svg>
