@@ -153,15 +153,16 @@ for (const sdk of EXPECTED_SDKS) {
   exists(`sdk/${sdk}`, `sdk/${sdk}/`);
 }
 
-// ─── 8. README mentions all required top-level domains ────────────────────────
+// ─── 8. README documents the top-level layout ────────────────────────────────
 
-section('8. README.md documents required layout sections');
+section('8. README.md documents the repository layout');
 
 const readme = readFileSync(join(ROOT, 'README.md'), 'utf-8');
 const REQUIRED_README_MENTIONS = [
-  ['core/jobs',    'core/jobs in README'],
-  ['platforms/',   'platforms/ semantic concept in README'],
-  ['integrations/','integrations/ semantic concept in README'],
+  ['core/',     'core/ in README'],
+  ['services/', 'services/ in README'],
+  ['apps/',     'apps/ in README'],
+  ['sdk/',      'sdk/ in README'],
 ];
 
 for (const [token, label] of REQUIRED_README_MENTIONS) {
