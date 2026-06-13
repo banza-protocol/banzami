@@ -27,7 +27,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend banzai-api staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -222,47 +222,6 @@ _wait_healthy() {
   warn "$container health check timed out (may still be starting)"
 }
 
-deploy_banzai_api() {
-  step "banzai-api" "BanzAI Protocol Operating System API (Hono/Node)"
-  local BANZAI_REPO="${BANZAI_REPO:-${BANZAMIA_REPO:-$HOME/Banzami}}"
-
-  if [ ! -d "$BANZAI_REPO" ]; then
-    die "BanzAI repo not found at $BANZAI_REPO. Set BANZAI_REPO env var."
-  fi
-
-  info "Syncing BanzAI source to server..."
-  ssh "$REMOTE" "mkdir -p /srv/banzai/src"
-  rsync -az --delete \
-    --exclude='.git' \
-    --exclude='node_modules/' \
-    --exclude='apps/banzai/dist/' \
-    "$BANZAI_REPO/" \
-    "$REMOTE:/srv/banzai/src/"
-  ok "Sync complete"
-
-  info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzai/src && docker build $NO_CACHE \
-    -f docker/banzai/Dockerfile \
-    -t banzami/banzai-api:latest \
-    apps/banzai/ 2>&1" \
-    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
-  ok "Image built"
-
-  info "Recreating container..."
-  ssh "$REMOTE" "
-    mkdir -p /srv/banzai
-    docker rm -f banzai-api-1 2>/dev/null || true
-    docker run -d \
-      --name banzai-api-1 \
-      --restart unless-stopped \
-      -p 4200:4200 \
-      -e BANZAI_MODE=live-api-no-model \
-      -e BANZAI_ALLOWED_ORIGINS=https://banzami.com \
-      banzami/banzai-api:latest
-  "
-  ok "Container started"
-}
-
 deploy_staging() {
   step "staging" "Staging sandbox (core-api-staging + public-api-staging)"
   # Ensure env vars added to services since initial server setup are present.
@@ -298,7 +257,6 @@ for svc in "${SERVICES[@]}"; do
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
-    banzai-api)         deploy_banzai_api ;;
     staging)            deploy_staging ;;
   esac
 done

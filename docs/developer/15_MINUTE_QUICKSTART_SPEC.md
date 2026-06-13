@@ -38,7 +38,7 @@ The person who writes the actual tutorial content follows this spec. The person 
 - Financial invariants or double-entry accounting
 - What an operator is
 - What certification levels are
-- The difference between BANZA, BanzAI, and Banzami
+- The difference between BANZA (the protocol) and Banzami (the operator)
 
 **One prerequisite, stated explicitly:** Node.js 18 or higher. (`node --version` must return `v18.x.x` or higher.)
 

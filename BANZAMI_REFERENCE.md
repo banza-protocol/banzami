@@ -11,7 +11,6 @@
 
 ```
 BANZA    = open financial infrastructure protocol
-BanzAI   = Protocol Operating System
 Banzami  = reference operator implementation            ← THIS DOCUMENT
 ```
 
@@ -23,7 +22,6 @@ Banzami is one implementation of BANZA. The protocol is not owned by Banzami. Th
 
 Anything outside this scope is defined in:
 - [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — The BANZA open protocol (rules, invariants, certification, governance)
-- [BANZAI_REFERENCE.md](../banzai/BANZAI_REFERENCE.md) — The BanzAI Protocol OS
 
 ---
 
@@ -53,7 +51,6 @@ O Banzami é isso para o BANZA.
 
 ```
 BANZA (protocolo aberto)
-├── BanzAI (Protocol OS)
 └── Banzami (operador de referência)
     ├── Banzami Wallet
     ├── Banzami Business
@@ -590,5 +587,4 @@ Para Angola.
 
 Ver também:
 - [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — O protocolo BANZA
-- [BANZAI_REFERENCE.md](../banzai/BANZAI_REFERENCE.md) — O BanzAI Protocol OS
 - `docs/BANZA_REFERENCE.md` — Fonte de conteúdo do website banzami.com

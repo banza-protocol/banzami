@@ -183,7 +183,7 @@ The Reference Operator emits OpenTelemetry traces for every financial operation:
 
 ## Traceability
 
-Every financial event carries a `trace_id` (`tr_<slug>` format). The complete event chain for any payment can be reconstructed using BanzAI's Trace Explainer by entering the trace_id.
+Every financial event carries a `trace_id` (`tr_<slug>` format). The complete event chain for any payment can be reconstructed from the `trace_id` through the operator's tracing and ledger records.
 
 The traceability system is implemented by propagating the trace_id:
 1. Assigned at the point of QR creation or transfer initiation

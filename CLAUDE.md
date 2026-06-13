@@ -18,7 +18,6 @@
 
 ```
 BANZA    = open financial infrastructure protocol        ~/banza   github.com/banza-protocol/banza
-BanzAI   = Protocol Operating System                    ~/banzai  github.com/banza-protocol/banzai
 Banzami  = Independent startup / reference operator     ← THIS REPO  github.com/banzami/banzami
 ```
 
@@ -672,9 +671,7 @@ The `apps/docs` website uses:
 
 * `lib/reference.ts` — the content parsing engine reading `docs/BANZA_REFERENCE.md` at build time,
 * section-based routing derived from H2 headings,
-* slug-based navigation (slugs are stable; section numbers are positional and can shift),
-* canonical routes: `/banzai` (BanzAI interface), `/sobre-o-banzai` (About BanzAI),
-* 301 redirects for deprecated routes (`/banzamia` → `/banzai`, `/sobre-banzamia` → `/sobre-o-banzai`).
+* slug-based navigation (slugs are stable; section numbers are positional and can shift).
 
 ## 14.7 Deploy Sync
 
@@ -692,7 +689,6 @@ Any new file under `docs/` that is read at build time MUST be added to BOTH:
 
 ```
 BANZA    = protocol (open infrastructure, rules, certification, kernel)
-BanzAI   = Protocol OS (intelligence, conformance, operator tooling)
 Banzami  = reference operator (product, UX, wallets, merchant services)
 ```
 
@@ -726,7 +722,6 @@ Use BANZA/Banza when referring to:
 
 ```
 BANZA (open protocol)
-├── BanzAI (Protocol OS)
 └── Banzami (reference operator)
     ├── Banzami Wallet
     ├── Banzami Business
@@ -765,7 +760,7 @@ The institutional separation is complete. These are the current canonical names:
 * `banzami.com` — **active** primary domain
 * `contact@banzami.com`, `security@banzami.com` — **active** contact emails
 * `github.com/banzami/banzami` — **active** GitHub repo (post-transfer)
-* `github.com/banza-protocol` — BANZA protocol org (banza + banzai only)
+* `github.com/banza-protocol` — BANZA protocol organization (not Banzami)
 * Rust crate names (`banzami-types`, `banzami-ledger`, etc.) — out of scope (deferred)
 
 ## 15.8 Canonical positioning phrases
@@ -906,6 +901,6 @@ node tools/check-repository-layout.mjs
 ```
 
 Server: `root@217.160.9.248`  
-Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `checkout-frontend`, `banzai-api`, `staging`
+Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `checkout-frontend`, `staging`
 
 Deploy note: changes are not done until pushed to `origin/main` AND deployed via `./deploy.sh`.

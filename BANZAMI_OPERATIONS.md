@@ -1,7 +1,7 @@
 # Banzami — Operational Guide
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_REFERENCE.md) · [BanzAI](../banzai/BANZAI_REFERENCE.md)
+> For other layers: [BANZA](../banza/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
@@ -24,7 +24,6 @@ The Banzami reference operator runs the following services in production:
 | `admin-frontend` | Next.js | 3001 | Operator admin portal |
 | `pay-frontend` | Next.js | 3003 | Consumer pay page |
 | `checkout-frontend` | Next.js | 3004 | Hosted checkout page |
-| `banzai-api` | Node.js | 4200 | BanzAI Protocol OS API |
 
 ---
 

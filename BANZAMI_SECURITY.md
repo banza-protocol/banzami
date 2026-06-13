@@ -53,7 +53,6 @@ This security policy covers:
 ## Out of Scope
 
 - The BANZA protocol specification itself (report protocol vulnerabilities to `github.com/banza-protocol/banza`)
-- BanzAI Protocol OS (report BanzAI vulnerabilities to `github.com/banza-protocol/banzai`)
 - Third-party services and infrastructure providers
 - Social engineering attacks on personnel
 

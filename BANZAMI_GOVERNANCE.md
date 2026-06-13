@@ -86,7 +86,6 @@ Banzami is one implementation of the BANZA protocol:
 
 ```
 BANZA (open protocol)
-├── BanzAI (Protocol OS)
 └── Banzami (reference operator)  ← this repository
 ```
 

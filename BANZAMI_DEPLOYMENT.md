@@ -1,7 +1,7 @@
 # Banzami — Deployment Guide
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_REFERENCE.md) · [BanzAI](../banzai/BANZAI_REFERENCE.md)
+> For other layers: [BANZA](../banza/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
@@ -37,7 +37,6 @@ All deployments go through `./deploy.sh` at the repository root.
 | `pay-frontend` | Next.js consumer pay page |
 | `checkout-frontend` | Next.js hosted checkout |
 | `docs-frontend` | Next.js public docs site (banzami.com) |
-| `banzai-api` | Node.js BanzAI Protocol OS API |
 | `staging` | Full staging environment |
 
 ---
@@ -87,7 +86,6 @@ For routine application deployments (bug fixes, feature additions), staging is r
 | `pay-frontend` | `apps/pay/Dockerfile` |
 | `checkout-frontend` | `apps/checkout/Dockerfile` |
 | `docs-frontend` | `apps/docs/Dockerfile` |
-| `banzai-api` | Deployed from `~/banzai` — see deploy.sh |
 
 ---
 
@@ -147,9 +145,6 @@ REDIS_URL           Redis connection string
 | `BANZA_API_KEY_SECRET` | core-api | HMAC key for API key verification |
 | `BANZA_WEBHOOK_SECRET` | api-gateway | HMAC key for webhook signature |
 | `OTLP_ENDPOINT` | all | OpenTelemetry collector endpoint |
-| `BANZAI_MODE` | banzai-api | BanzAI operating mode |
-| `BANZAI_QDRANT_URL` | banzai-api | Qdrant vector store URL |
-| `BANZAI_PORT` | banzai-api | API port (default 4200) |
 
 Environment variables are defined in `.env` (local, gitignored) and set on the production server via the deployment configuration. Never commit `.env` files.
 

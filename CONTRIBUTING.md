@@ -18,7 +18,6 @@ Banzami is the reference operator. It demonstrates how to implement the BANZA pr
 **What does NOT live here:**
 - Protocol specifications (those live in `~/banza`)
 - Protocol rule changes — any change to a financial invariant or protocol contract must go through the ADR process in `github.com/banza-protocol/banza`
-- BanzAI internals (those live in `~/banzai`)
 
 ---
 
@@ -37,8 +36,7 @@ Banzami is the reference operator. It demonstrates how to implement the BANZA pr
 ## What is out of scope here
 
 - Protocol rule changes — open an ADR in `github.com/banza-protocol/banza` first
-- BanzAI Protocol OS changes — contribute to `github.com/banza-protocol/banzai`
-- SDK certification vectors — live in `~/banza/contracts/sdk-certification/`
+- SDK certification vectors — live in the BANZA protocol repo (`github.com/banza-protocol/banza`)
 
 ---
 

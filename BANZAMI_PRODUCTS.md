@@ -1,7 +1,7 @@
 # Banzami — Product Catalogue
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_REFERENCE.md) · [BanzAI](../banzai/BANZAI_REFERENCE.md)
+> For other layers: [BANZA](../banza/BANZA_REFERENCE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
@@ -16,7 +16,6 @@ O Banzami é a implementação de referência do protocolo BANZA — o primeiro 
 
 ```
 BANZA (protocolo aberto)
-├── BanzAI (Protocol OS)
 └── Banzami (operador de referência)
     ├── Banzami Wallet
     ├── Banzami Business

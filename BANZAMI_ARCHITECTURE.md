@@ -1,7 +1,7 @@
 # Banzami — Arquitectura Técnica de Referência
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_ARCHITECTURE.md) · [BanzAI](../banzai/BANZAI_ARCHITECTURE.md)
+> For other layers: [BANZA](../banza/BANZA_ARCHITECTURE.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  

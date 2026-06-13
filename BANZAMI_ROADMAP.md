@@ -1,7 +1,7 @@
 # Banzami — Product Roadmap
 
 > This document describes: **Banzami** — the reference operator implementation.
-> For other layers: [BANZA](../banza/BANZA_ROADMAP.md) · [BanzAI](../banzai/BANZAI_ROADMAP.md)
+> For other layers: [BANZA](../banza/BANZA_ROADMAP.md)
 
 **Version:** 1.0  
 **Date:** 2026-05-30  
@@ -10,7 +10,7 @@
 
 ---
 
-This is the roadmap for the **Banzami reference operator** — wallets, merchant products, SDKs, and operator features. It does not contain BANZA protocol roadmap items (see [BANZA_ROADMAP.md](../banza/BANZA_ROADMAP.md)) or BanzAI capability roadmap items (see [BANZAI_ROADMAP.md](../banzai/BANZAI_ROADMAP.md)).
+This is the roadmap for the **Banzami reference operator** — wallets, merchant products, SDKs, and operator features. It does not contain BANZA protocol roadmap items (see [BANZA_ROADMAP.md](../banza/BANZA_ROADMAP.md)).
 
 ---
 
@@ -50,7 +50,6 @@ This is the roadmap for the **Banzami reference operator** — wallets, merchant
 Este documento descreve apenas o roadmap do **operador Banzami** — produtos, SDKs, e funcionalidades de operador.
 
 - Conformance Suite, certificação, federação → [BANZA_ROADMAP.md](../banza/BANZA_ROADMAP.md)
-- Capacidades do BanzAI → [BANZAI_ROADMAP.md](../banzai/BANZAI_ROADMAP.md)
 
 ---
 

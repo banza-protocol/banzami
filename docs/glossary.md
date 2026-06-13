@@ -65,12 +65,6 @@ The official SDK for integrating Banzami payments into external applications. Av
 
 ---
 
-## BanzAI
-
-The Protocol Operating System of the Banza ecosystem. Deployed at `banzami.com/banzai`. 16 specialized modules across 3 layers for understanding, validating, simulating, and certifying Banza operators. Read-only — cannot initiate financial operations. Operates on the principle: "Tools determine truth. AI explains truth."
-
----
-
 ## Banza
 
 The organisation and protocol. Banza builds the financial infrastructure (Banza Kernel), defines the protocol (RFCs, ADRs), maintains the conformance suite and certification framework, and publishes official SDKs. Defined in ADR-016.
@@ -162,7 +156,7 @@ The environment is embedded in API keys (`bz_live_…` vs `bz_test_…`), JWT cl
 
 ## Federation
 
-The capability for multiple certified operators to route payments between each other. Currently not implemented — planned for H1 2027 (RFC pending). Requires Certification Level 4. See `docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md §10`.
+The capability for multiple certified operators to route payments between each other. A BANZA protocol concept — owned and specified by the BANZA protocol, not by this operator.
 
 ---
 
@@ -174,7 +168,7 @@ The portion of a gross payment amount retained by the operator. Formula: `gross 
 
 ## Financial Invariant
 
-A non-negotiable assertion about financial correctness that must never be violated. Invariants are enforced at compile time (Rust types), schema level (database constraints), runtime (application logic), CI (automated tests), and observability (BanzAI). Identified by `INV-<DOMAIN>-<NNN>`. See `docs/validation/INVARIANT_TAXONOMY.md`.
+A non-negotiable assertion about financial correctness that must never be violated. Invariants are enforced at compile time (Rust types), schema level (database constraints), runtime (application logic), and CI (automated tests). Identified by `INV-<DOMAIN>-<NNN>`. See `docs/validation/INVARIANT_TAXONOMY.md`.
 
 ---
 
@@ -252,7 +246,7 @@ Any party that implements the Banza protocol to process payments. Operators decl
 
 ## Operator Manifest
 
-A machine-readable JSON declaration of an operator's identity, target certification level, capabilities, asserted invariants, and endpoints. The starting point of the certification process. Validated by the BanzAI Manifest Validator.
+A machine-readable JSON declaration of an operator's identity, target certification level, capabilities, asserted invariants, and endpoints. The starting point of the certification process. Validated by the BANZA protocol's conformance tooling.
 
 ---
 
@@ -372,7 +366,7 @@ An HTTP callback sent to an operator or integrator when a financial event occurs
 
 ## XOF
 
-West African CFA franc. Used in BanzAI demo traces for protocol illustration. Not a supported live currency — Banza's live currency is AOA (Kwanza).
+West African CFA franc. Not a supported currency — Banzami's only live currency is AOA (Kwanza).
 
 ---
 

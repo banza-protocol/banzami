@@ -3,7 +3,6 @@
 > **Banzami is an independent commercial startup — not part of the BANZA protocol organization.**
 
 > **BANZA** = open financial infrastructure protocol · [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)  
-> **BanzAI** = BANZA's protocol knowledge assistant (external/adjacent — not a Banzami product) · [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai)  
 > **Banzami** = independent startup and reference operator · [github.com/banzami/banzami](https://github.com/banzami/banzami) ← this repository
 
 > Angola's instant payment startup — QR-native, wallet-native, built on the BANZA protocol.  
@@ -625,8 +624,6 @@ Banzami maintains a unified design system shared across all web and mobile surfa
 ### Border Radius
 
 `sm (4px) → md (8px) → lg (12px) → xl (16px) → 2xl (24px) → full (9999px)`
-
-See [`docs/brand/audit-2026-05-15.md`](docs/brand/audit-2026-05-15.md) for the full platform branding audit and the correction record.
 
 ---
 

@@ -13,14 +13,12 @@ This directory contains all technical documentation for the Banza platform.
 | Document | Description |
 |----------|-------------|
 | [index.md](index.md) | Documentation navigation entry point — start here |
-| [BANZA_REFERENCE.md](BANZA_REFERENCE.md) | Official public reference — product, protocol, ecosystem |
-| [architecture/BANZAMI_ECOSYSTEM_REFERENCE.md](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) | Architecture-first ecosystem reference (single source of truth) |
-| [glossary.md](glossary.md) | Authoritative term definitions |
+| [../BANZAMI_REFERENCE.md](../BANZAMI_REFERENCE.md) | Operator reference |
+| [../BANZAMI_ARCHITECTURE.md](../BANZAMI_ARCHITECTURE.md) | Operator architecture |
+| [glossary.md](glossary.md) | Term definitions |
 | [conformance.md](conformance.md) | Pointer — conformance is owned by the BANZA protocol |
 | [certification.md](certification.md) | Pointer — certification is owned by the BANZA protocol |
-| [reference-operator.md](reference-operator.md) | Reference Operator (Banzami) specification |
-| BanzAI | External — protocol knowledge assistant at [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai) |
-| [audit/documentation-audit.md](audit/documentation-audit.md) | Documentation gap analysis |
+| [reference-operator.md](reference-operator.md) | How Banzami fills the BANZA reference-operator role |
 
 ---
 
