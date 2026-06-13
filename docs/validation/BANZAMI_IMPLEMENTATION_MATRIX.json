@@ -902,7 +902,7 @@
         "Filtros por tipo e direcção funcionais",
         "Cursor inválido rejeitado",
         "Sem IDs internos expostos (sem ledger_posting_id, account IDs)",
-        "OpenAPI 3.1 spec em contracts/openapi/activity.yaml"
+        "OpenAPI 3.1 spec no contrato BANZA contracts/openapi/activity.yaml"
       ],
       "testCoverage": true,
       "evidence": [
@@ -1026,6 +1026,15 @@
           "approvedBy": "local-admin",
           "fingerprint": "348b619d06d0776a",
           "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
+          "evidence": []
+        },
+        {
+          "timestamp": "2026-06-13T19:57:05.001Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Limpeza de mencoes residuais a contracts/openapi em campos nao-evidencia (contrato canonico vive no repo BANZA).",
           "evidence": []
         }
       ],
@@ -1983,7 +1992,7 @@
         "Rate limiter: 20 tentativas/min por consumidor — 429 se excedido",
         "Receipt canónico: transfer_id, status, sender, recipient, amount_minor, currency, note, created_at, completed_at, trace_id",
         "Sem IDs internos expostos: ledger_posting_id, sender_id, recipient_id proibidos",
-        "OpenAPI 3.1 spec em contracts/openapi/transfers.yaml"
+        "OpenAPI 3.1 spec no contrato BANZA contracts/openapi/transfers.yaml"
       ],
       "testCoverage": true,
       "evidence": [
@@ -2017,8 +2026,7 @@
       "revalidateWhenChanged": [
         "services/public-api/internal/handler/transfers.go",
         "services/public-api/internal/handler/ratelimit.go",
-        "services/public-api/internal/service/core_client.go",
-        "contracts/openapi/transfers.yaml"
+        "services/public-api/internal/service/core_client.go"
       ],
       "blockingIssues": [],
       "invariants": [
@@ -2107,6 +2115,15 @@
           "approvedBy": "local-admin",
           "fingerprint": "348b619d06d0776a",
           "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
+          "evidence": []
+        },
+        {
+          "timestamp": "2026-06-13T19:57:05.001Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Limpeza de mencoes residuais a contracts/openapi em campos nao-evidencia (contrato canonico vive no repo BANZA).",
           "evidence": []
         }
       ],
