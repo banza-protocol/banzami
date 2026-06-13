@@ -24,7 +24,6 @@ The Banzami reference operator runs the following services in production:
 | `admin-frontend` | Next.js | 3001 | Operator admin portal |
 | `pay-frontend` | Next.js | 3003 | Consumer pay page |
 | `checkout-frontend` | Next.js | 3004 | Hosted checkout page |
-| `docs-frontend` | Next.js | 3005 | Public documentation site (banzami.com) |
 | `banzai-api` | Node.js | 4200 | BanzAI Protocol OS API |
 
 ---

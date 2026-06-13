@@ -384,7 +384,7 @@ The repository is organized into **eight semantic zones**:
 | `core/` | Rust financial core — all financial logic, invariants, and state. `core/jobs/` is the canonical home for background jobs. |
 | `services/` | Go orchestration services — APIs, auth, middleware, webhooks |
 | `apps/` | Product-facing applications — what merchants, consumers, and admins use |
-| `platforms/` | Operational/governance platforms — docs site, validation studio _(target: apps/docs and apps/validation-studio migrate here)_ |
+| `platforms/` | Operational platforms — validation studio _(target: apps/validation-studio migrates here)_ |
 | `sdk/` | Banzami operator integration SDKs (TypeScript, Flutter, Python, Go, PHP, checkout-web) |
 | `plugins/` | Operator commerce plugins / adapters (generic Node, PHP, Laravel) |
 | `db/` | PostgreSQL migrations |
@@ -462,11 +462,14 @@ banzami/
 │   │   ├── ios/                   iOS project with consumer + merchant xcschemes
 │   │   └── android/               Android project with consumer + merchant productFlavors
 │   ├── merchant/                  Standalone Flutter merchant app (reference project)
-│   ├── docs/          [→ platforms/docs]       Developer documentation site (banzami.com)
 │   └── validation-studio/ [→ platforms/validation-studio]  LOCAL-ONLY governance workstation (:3099)
 │
-│   ── platforms/ (semantic concept — physical home: apps/docs and apps/validation-studio)
-│      Operational and governance platforms, not product-facing applications.
+│   Note: the public website (apps/docs — banzami.com) was removed in
+│   BANZAMI-REPOSITORY-MINIMALIZATION-001 (operator does not need a public site
+│   to process payments). The operator's documentation lives in docs/ (markdown).
+│
+│   ── platforms/ (semantic concept — physical home: apps/validation-studio)
+│      Operational platforms, not product-facing applications.
 │      Not moved physically to avoid breaking Dockerfiles and deploy.sh.
 │
 ├── sdk/               [→ integrations/sdk/]    Official Banzami SDKs (transitional top-level)
@@ -543,7 +546,6 @@ These physical locations do not match the target semantic architecture. No move 
 
 | Current location | Target location | Blocker |
 |-----------------|----------------|---------|
-| `apps/docs/` | `platforms/docs/` | Dockerfile, deploy.sh hardcode `apps/docs/` |
 | `apps/validation-studio/` | `platforms/validation-studio/` | Makefile, dev.sh reference `apps/validation-studio/` |
 | `sdk/` | `integrations/sdk/` | pubspec.yaml, package.json, import paths in all SDKs |
 | `plugins/` | `integrations/plugins/` and `integrations/adapters/` | Documentation links, README cross-references |

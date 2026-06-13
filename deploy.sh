@@ -17,7 +17,6 @@
 #   dashboard-frontend Next.js merchant dashboard
 #   pay-frontend       Next.js pay page (pay.banzami.com)
 #   checkout-frontend  Next.js checkout page
-#   docs-frontend      Next.js public website (banzami.com)
 #   staging            Staging sandbox (core-api-staging + public-api-staging)
 
 set -euo pipefail
@@ -28,7 +27,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend docs-frontend banzai-api staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend banzai-api staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -170,50 +169,6 @@ deploy_checkout_frontend() {
   _deploy_frontend "checkout" "checkout-frontend" "banzami/checkout-frontend:latest" "banzami-checkout-frontend-1"
 }
 
-deploy_docs_frontend() {
-  step "docs-frontend" "Next.js public website (banzami.com)"
-
-  info "Syncing app source to server..."
-  rsync -az --delete \
-    --exclude='.git' \
-    --exclude='node_modules/' \
-    --exclude='.next/' \
-    "$REPO_ROOT/apps/docs/" \
-    "$REMOTE:/srv/banzami/src/apps/docs/"
-  ok "App sync complete"
-
-  info "Syncing docs/ content (build-time source — ADR-015)..."
-  # The docs site builds its protocol-reference content from apps/docs/data/
-  # (bundled with the app). The former top-level docs/BANZA_REFERENCE.md mirror
-  # was removed in the operator purification (BANZAMI-PURIFICATION-EXECUTION-001);
-  # canonical source of the reference is the BANZA protocol repo.
-  ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs/validation"
-  rsync -az \
-    "$REPO_ROOT/docs/validation/" \
-    "$REMOTE:/srv/banzami/src/docs/validation/"
-  ok "Validation matrix synced"
-
-  info "Building Docker image on server (context = repo root)..."
-  # Pass BanzAI API URL if set — enables Live API mode on banzami.com/banzai
-  # Accepts NEXT_PUBLIC_BANZAI_API_URL (canonical) or NEXT_PUBLIC_BANZAMIA_API_URL (deprecated)
-  local BANZAI_URL="${NEXT_PUBLIC_BANZAI_API_URL:-${NEXT_PUBLIC_BANZAMIA_API_URL:-}}"
-  local BANZAMIA_ARG=""
-  if [ -n "${BANZAI_URL}" ]; then
-    BANZAMIA_ARG="--build-arg NEXT_PUBLIC_BANZAI_API_URL=${BANZAI_URL} --build-arg NEXT_PUBLIC_BANZAMIA_API_URL=${BANZAI_URL}"
-    info "BanzAI Live API mode: ${BANZAI_URL}"
-  fi
-  ssh "$REMOTE" "docker build $NO_CACHE $BANZAMIA_ARG \
-    -f /srv/banzami/src/apps/docs/Dockerfile \
-    -t banzami/docs-frontend:latest \
-    /srv/banzami/src/ 2>&1" \
-    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
-  ok "Image built"
-
-  info "Recreating container..."
-  ssh "$REMOTE" "docker rm -f banzami-docs-frontend-1 2>/dev/null || true; cd $REMOTE_COMPOSE_DIR && docker compose up -d docs-frontend 2>&1"
-  ok "Container started"
-}
-
 # Shared frontend deploy (Next.js apps all follow the same pattern)
 _deploy_frontend() {
   local app_name="$1"       # e.g. "admin"
@@ -343,7 +298,6 @@ for svc in "${SERVICES[@]}"; do
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
-    docs-frontend)      deploy_docs_frontend ;;
     banzai-api)         deploy_banzai_api ;;
     staging)            deploy_staging ;;
   esac

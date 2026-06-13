@@ -446,7 +446,6 @@ Kubernetes is intentionally deferred until operational maturity requires it.
     /apps
         /dashboard       ← Merchant dashboard (Next.js)
         /admin           ← Admin portal (Next.js)
-        /docs            ← banzami.com website (Next.js — driven by BANZA_REFERENCE.md)
         /pay             ← Pay page (Next.js)
         /checkout        ← Checkout page (Next.js)
 
@@ -621,6 +620,8 @@ Future: Laravel package, WordPress/WooCommerce plugin, Android native, iOS nativ
 ---
 
 # 14. Documentation Source of Truth
+
+> ⚠️ **OBSOLETE (BANZAMI-REPOSITORY-MINIMALIZATION-001).** The public Banzami website (`apps/docs` — banzami.com) was removed: the operator does not need a public marketing/docs site to process payments. This entire section described how that website was driven by `BANZA_REFERENCE.md`; it no longer applies. Operator documentation now lives as markdown under `docs/`. Retained for historical context only.
 
 ## 14.1 The Rule
 
@@ -905,6 +906,6 @@ node tools/check-repository-layout.mjs
 ```
 
 Server: `root@217.160.9.248`  
-Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `checkout-frontend`, `docs-frontend`, `banzai-api`, `staging`
+Services: `core-api`, `admin-api`, `api-gateway`, `public-api`, `admin-frontend`, `dashboard-frontend`, `pay-frontend`, `checkout-frontend`, `banzai-api`, `staging`
 
 Deploy note: changes are not done until pushed to `origin/main` AND deployed via `./deploy.sh`.

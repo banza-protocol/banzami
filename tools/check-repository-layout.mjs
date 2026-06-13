@@ -92,7 +92,7 @@ exists('core/jobs', 'core/jobs/  — background jobs owned by financial core');
 
 section('5. apps/ — product applications');
 
-const EXPECTED_APPS = new Set(['dashboard', 'admin', 'pay', 'checkout', 'mobile', 'merchant', 'docs', 'validation-studio']);
+const EXPECTED_APPS = new Set(['dashboard', 'admin', 'pay', 'checkout', 'mobile', 'merchant', 'validation-studio']);
 const actualApps = readdirSync(join(ROOT, 'apps'), { withFileTypes: true })
   .filter(d => d.isDirectory())
   .map(d => d.name);
@@ -102,12 +102,12 @@ if (unknownApps.length === 0) {
   pass('No unknown directories in apps/');
 } else {
   for (const a of unknownApps) {
-    fail(`Unknown directory in apps/: "${a}" — product apps only; move platforms to apps/docs or apps/validation-studio, or update EXPECTED_APPS in this check`);
+    fail(`Unknown directory in apps/: "${a}" — product apps only; move platforms to apps/validation-studio, or update EXPECTED_APPS in this check`);
   }
 }
 
 // Warn about known non-product apps (governance note)
-const PLATFORM_APPS = actualApps.filter(a => ['docs', 'validation-studio'].includes(a));
+const PLATFORM_APPS = actualApps.filter(a => ['validation-studio'].includes(a));
 if (PLATFORM_APPS.length > 0) {
   warn(`apps/ contains platform directories: ${PLATFORM_APPS.join(', ')}  — target: platforms/ (migration pending, physically safe for now)`);
 }
