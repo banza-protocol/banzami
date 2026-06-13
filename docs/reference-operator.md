@@ -1,19 +1,21 @@
-# Banza Reference Operator
+# Banzami as the BANZA Reference Operator
 
-**Version:** 1.0  
-**Date:** 2026-05-28  
-**Status:** Active
+**Version:** 1.0
+**Date:** 2026-05-28
+**Status:** Operator scope
 
 ---
 
+> **The "reference operator" role is a BANZA protocol concept**, defined and owned by the protocol ([github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)), not by this operator. This page describes how **Banzami** fills that role. Banzami does not define what a reference operator is, nor the certification baseline — it implements them.
+
 ## Overview
 
-The Banza Reference Operator is the canonical implementation of the complete Banza protocol. It serves two purposes:
+Banzami is the **reference operator** of the BANZA protocol — the first and most complete operator implementation. As reference operator, Banzami:
 
-1. **Living specification** — it proves every protocol behaviour is implementable and correct
-2. **Interoperability baseline** — all other operators are certified by matching Reference Operator behaviour
+1. **demonstrates** that every protocol behaviour is implementable and correct (a living implementation, not a specification — the specification is owned by BANZA),
+2. **serves as an interoperability example** that other operators can compare against, using the BANZA-owned certification and conformance suites.
 
-The Reference Operator is implemented as the **Banzami** product. It holds Certification Level 3 and is working toward Level 4 with EMIS acquiring integration.
+Banzami targets the certification level reported by the BANZA certification process and is working toward EMIS acquiring integration.
 
 ---
 

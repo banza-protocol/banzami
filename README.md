@@ -3,15 +3,31 @@
 > **Banzami is an independent commercial startup — not part of the BANZA protocol organization.**
 
 > **BANZA** = open financial infrastructure protocol · [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)  
-> **BanzAI** = Protocol Operating System · [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai)  
+> **BanzAI** = BANZA's protocol knowledge assistant (external/adjacent — not a Banzami product) · [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai)  
 > **Banzami** = independent startup and reference operator · [github.com/banzami/banzami](https://github.com/banzami/banzami) ← this repository
 
 > Angola's instant payment startup — QR-native, wallet-native, built on the BANZA protocol.  
 > Website: [banzami.com](https://banzami.com) · Contact: contact@banzami.com
 
-**Banzami is a startup and the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one company — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
+**Banzami is an independent commercial payment operator built on the BANZA protocol.** Banzami is one company — it does not own, govern, or certify the protocol. This repository contains only the operator: consumer and merchant applications, backend services, the financial core implementation, infrastructure, and operational tooling.
 
-Banzami operates independently from the BANZA protocol organization. Protocol **governance** lives at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza). The protocol **SDKs** (`sdk/`), **contracts** (`contracts/`), and **certification vectors** (`sdk-certification/`) are protocol-owned assets currently hosted transitionally in this repository — their canonical home is BANZA, pending the relocation tracked in [docs/governance/BANZAMI-PURIFICATION-PLAN.md](docs/governance/BANZAMI-PURIFICATION-PLAN.md) (requires an ADR in `~/banza`).
+**Banzami provides:**
+
+* consumer wallets · merchant wallets
+* QR payments · payment links
+* operator APIs · SDKs for integrating with the Banzami API
+* mobile apps · hosted checkout · merchant dashboard · admin operations
+* acquiring integration · settlement · reconciliation · operational compliance
+
+**Banzami does NOT provide** (these belong to the **BANZA protocol** at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)):
+
+* BANZA protocol governance
+* BANZA certification or conformance authority
+* BANZA canonical contracts (OpenAPI, webhook, QR, event schemas)
+* BANZA protocol SDK standards
+* BANZA federation governance
+
+> Protocol-owned assets (`contracts/`, `sdk-certification/`, the `BANZA_REFERENCE.md` mirror) were removed from this repository in the operator purification ([BANZAMI-PURIFICATION-EXECUTION-001](docs/governance/BANZAMI-PURIFICATION-EXECUTION-REPORT.md)); their canonical home is the BANZA protocol repo. The libraries under `sdk/` are kept as **Banzami operator integration SDKs** for the Banzami API.
 
 ---
 
@@ -95,7 +111,7 @@ A cantina owner prints a QR. A customer scans it. Payment is instant. No confirm
 
 **2. First Angola-native SDK payment infrastructure**
 
-Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates the BANZA SDK via Banzami in hours and accepts instant Kwanza payments natively.
+Any Angolan application — taxi apps, delivery platforms, ecommerce, schools, donation platforms, creator apps — integrates a Banzami SDK in hours and accepts instant Kwanza payments natively.
 
 ---
 
@@ -369,8 +385,8 @@ The repository is organized into **eight semantic zones**:
 | `services/` | Go orchestration services — APIs, auth, middleware, webhooks |
 | `apps/` | Product-facing applications — what merchants, consumers, and admins use |
 | `platforms/` | Operational/governance platforms — docs site, validation studio _(target: apps/docs and apps/validation-studio migrate here)_ |
-| `integrations/` | SDKs, plugins, adapters _(target: sdk/ and plugins/ merge here)_ |
-| `contracts/` | Protocol-owned contracts (OpenAPI, webhook schemas, QR specs, event contracts) — **canonical source is `~/banza`; hosted transitionally here** ([purification plan](docs/governance/BANZAMI-PURIFICATION-PLAN.md)) |
+| `sdk/` | Banzami operator integration SDKs (TypeScript, Flutter, Python, Go, PHP, checkout-web) |
+| `plugins/` | Operator commerce plugins / adapters (generic Node, PHP, Laravel) |
 | `db/` | PostgreSQL migrations |
 | `infra/` | Infrastructure as code, monitoring, deployment |
 | `docs/` | Technical documentation |
@@ -477,26 +493,14 @@ banzami/
 │   ├── php/                       PHP SDK (banza/sdk-php)
 │   └── go/                        Go SDK (banza-go)
 │
-├── plugins/           [→ integrations/plugins/ and integrations/adapters/]
-│   ├── woocommerce/               [→ integrations/plugins/woocommerce]   WooCommerce payment gateway plugin
-│   ├── shopify/                   [→ integrations/plugins/shopify]        Shopify plugin (future)
-│   ├── generic-php/               [→ integrations/adapters/generic-php]  PHP adapter (no dependencies)
-│   ├── generic-laravel/           [→ integrations/adapters/generic-laravel]  Laravel service provider
-│   └── generic-node/              [→ integrations/adapters/generic-node] Node.js adapter
+├── plugins/                       Operator commerce plugins / runtime adapters
+│   ├── generic-php/               PHP adapter (no dependencies)
+│   ├── generic-laravel/           Laravel service provider
+│   └── generic-node/              Node.js adapter
 │
-│   ── integrations/ (semantic concept — physical home: sdk/ and plugins/)
-│      SDKs (sdk/), commerce plugins (plugins/woocommerce, plugins/shopify),
-│      and runtime adapters (plugins/generic-*). Not physically merged yet.
-│
-├── contracts/                     Protocol truth — canonical contract definitions
-│   ├── openapi/                   OpenAPI 3.x specifications for the public REST API
-│   ├── webhooks/                  JSON Schema for all webhook event payloads
-│   ├── qr/                        QR payload format specification and encoding rules
-│   ├── events/                    Internal and external domain event schemas
-│   └── sdk-certification/         Canonical target for SDK certification vectors
-│                                   (currently at sdk-certification/ — migration pending)
-│
-├── sdk-certification/  [→ contracts/sdk-certification/]  SDK compliance test vectors (transitional top-level)
+│   Note: protocol-owned contracts/ and sdk-certification/ were removed from
+│   this operator repo (BANZAMI-PURIFICATION-EXECUTION-001). Canonical home:
+│   the BANZA protocol repo (github.com/banza-protocol/banza).
 │
 ├── db/
 │   └── migrations/                Global PostgreSQL migrations (0001–0023)
@@ -543,7 +547,6 @@ These physical locations do not match the target semantic architecture. No move 
 | `apps/validation-studio/` | `platforms/validation-studio/` | Makefile, dev.sh reference `apps/validation-studio/` |
 | `sdk/` | `integrations/sdk/` | pubspec.yaml, package.json, import paths in all SDKs |
 | `plugins/` | `integrations/plugins/` and `integrations/adapters/` | Documentation links, README cross-references |
-| `sdk-certification/` | `contracts/sdk-certification/` | Test runner import paths |
 
 ### Layout Governance
 
@@ -663,8 +666,7 @@ Every SDK, plugin, and checkout interface is production infrastructure, held to 
 | Mobile SDK | Flutter SDK | [`sdk/flutter/`](sdk/flutter/) | **CRITICAL** | Runtime for consumers + merchants; full widget library |
 | Web/Backend SDK | TypeScript SDK | [`sdk/typescript/`](sdk/typescript/) | **CRITICAL** | ESM + CJS; SSR-safe; Node.js, Next.js, browser |
 | Python SDK | Python SDK | [`sdk/python/`](sdk/python/) | **HIGH** | async-first (httpx + pydantic v2 + tenacity); Django, FastAPI, Flask |
-| Commerce plugin | WooCommerce | [`plugins/woocommerce/`](plugins/woocommerce/) | **CRITICAL** | WordPress/WooCommerce gateway plugin |
-| Server adapters | generic-node, generic-php | [`plugins/`](plugins/) | HIGH | Thin adapters for Node.js and PHP without framework dependencies |
+| Server adapters | generic-node, generic-php, generic-laravel | [`plugins/`](plugins/) | HIGH | Thin adapters for Node.js, PHP, and Laravel without framework dependencies |
 | Hosted checkout | Checkout app | [`apps/checkout/`](apps/checkout/) | **CRITICAL** | QR-first payment UX for links shared over WhatsApp / social |
 | API layer | REST API + OpenAPI | [`docs/api/`](docs/api/) | **CRITICAL** | OpenAPI spec, versioned endpoints, full schema documentation |
 
@@ -697,7 +699,7 @@ QR is the primary payment modality for Angola's market — it works offline, req
 
 ### SDK-First Ecosystem Policy
 
-**Banzami is an SDK-first operator.** All external integrations MUST use official BANZA SDKs. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) and CLAUDE.md §14 for the full policy.
+**Banzami is an SDK-first operator.** External integrations should use an official **Banzami SDK** to talk to the Banzami API. Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, or handcrafted API clients are not the recommended path and must not appear in official examples. See [ADR-012](docs/adr/ADR-012-sdk-first-ecosystem.md) for the operator SDK policy.
 
 The SDKs are not optional helper libraries. They are security boundaries, DX infrastructure, and payment orchestration layers. Without SDK standardization, integrations become inconsistent, security mistakes multiply, and ecosystem maintenance becomes impossible at scale.
 

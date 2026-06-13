@@ -21,31 +21,17 @@
 ### Developer integrating Banzami payments
 
 1. Read [docs/sandbox/README.md](sandbox/README.md) — get started in sandbox
-2. Read [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) — SDK examples
-3. Read [docs/BANZA_REFERENCE.md §9](BANZA_REFERENCE.md) — programadores section
-4. Ask [BanzAI](https://banzami.com/banzai) — generates integration code
+2. Read [BANZAMI_PRODUCTS.md](../BANZAMI_PRODUCTS.md) — SDKs and integration examples
+3. Read [docs/developer/15_MINUTE_QUICKSTART_SPEC.md](developer/15_MINUTE_QUICKSTART_SPEC.md) — fastest path to a first payment
 
-### Operator building on the Banza protocol
+### Operator architecture and decisions
 
 1. Read [docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md §7](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) — Operator Model
-2. Read [docs/certification.md](certification.md) — certification levels and process
-3. Read [docs/conformance.md](conformance.md) — conformance suite reference
-4. Read [docs/banzamia/operator-builder.md](banzamia/operator-builder.md) — manifest creation
-5. Use [BanzAI Operator Builder](https://banzami.com/banzai) — guided manifest creation
+2. Read [docs/adr/](adr/) — all operator ADRs (architecture, payments, mobile, deployment)
+3. Read [docs/validation/INVARIANT_TAXONOMY.md](validation/INVARIANT_TAXONOMY.md) — financial invariants
+4. Read [docs/validation/VALIDATION_DOMAINS.md](validation/VALIDATION_DOMAINS.md) — validation domains
 
-### Understanding the protocol governance
-
-1. Read [docs/adr/](adr/) — all ADRs (architecture decisions)
-2. Read [docs/validation/INVARIANT_TAXONOMY.md](validation/INVARIANT_TAXONOMY.md) — financial invariants
-3. Read [docs/validation/VALIDATION_DOMAINS.md](validation/VALIDATION_DOMAINS.md) — validation domains
-4. Read [docs/architecture/BANZAMI_ECOSYSTEM_REFERENCE.md §4](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) — Governance
-
-### Understanding BanzAI
-
-1. Read [docs/banzamia/overview.md](banzamia/overview.md) — what BanzAI is
-2. Read [docs/banzamia/architecture.md](banzamia/architecture.md) — technical architecture
-3. Read [docs/banzamia/roadmap.md](banzamia/roadmap.md) — what's coming
-4. Visit [banzami.com/banzai](https://banzami.com/banzai) — live interface
+> Protocol-level topics — certification, conformance, federation, governance — are owned by the **BANZA protocol** ([github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)), not by this operator repo. BanzAI (the protocol knowledge assistant) lives at [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai).
 
 ---
 
@@ -88,26 +74,20 @@
 | [docs/conformance.md](conformance.md) | Conformance suite structure and rules |
 | [docs/reference-operator.md](reference-operator.md) | Reference Operator (Banzami) specification |
 
-### BanzAI
+### BanzAI (external — protocol knowledge assistant)
 
-| Document | Description |
-|----------|-------------|
-| [docs/banzamia/overview.md](banzamia/overview.md) | What BanzAI is (and isn't) |
-| [docs/banzamia/architecture.md](banzamia/architecture.md) | Technical architecture |
-| [docs/banzamia/api.md](banzamia/api.md) | API contract |
-| [docs/banzamia/operator-builder.md](banzamia/operator-builder.md) | Manifest creation guide |
-| [docs/banzamia/manifest-validator.md](banzamia/manifest-validator.md) | Validation rules reference |
-| [docs/banzamia/trace-explainer.md](banzamia/trace-explainer.md) | Trace reconstruction guide |
-| [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) | SDK code generation guide |
-| [docs/banzamia/knowledge-search.md](banzamia/knowledge-search.md) | Semantic search guide |
-| [docs/banzamia/roadmap.md](banzamia/roadmap.md) | BanzAI roadmap |
+BanzAI is **not a Banzami product**. It is the BANZA protocol's knowledge assistant and lives in its own repository. Its documentation was removed from this operator repo in the purification.
+
+| Resource | Location |
+|----------|----------|
+| BanzAI repository & docs | [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai) |
 
 ### Developer Integration
 
 | Document | Description |
 |----------|-------------|
 | [docs/sandbox/README.md](sandbox/README.md) | Sandbox environment — full reference |
-| [docs/banzamia/sdk-assistant.md](banzamia/sdk-assistant.md) | SDK examples (TypeScript, Flutter, PHP) |
+| [BANZAMI_PRODUCTS.md](../BANZAMI_PRODUCTS.md) | SDK examples (TypeScript, Flutter, PHP) |
 | [docs/standards/webhook-signature-spec.md](standards/webhook-signature-spec.md) | Webhook signature verification |
 | [docs/integrations/doa/](integrations/doa/) | DOA integration (TypeScript SDK) |
 

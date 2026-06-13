@@ -183,16 +183,15 @@ deploy_docs_frontend() {
   ok "App sync complete"
 
   info "Syncing docs/ content (build-time source — ADR-015)..."
-  # The Dockerfile builds with repo root as context so it can COPY both
-  # apps/docs/ and docs/ into the image (ADR-015).
+  # The docs site builds its protocol-reference content from apps/docs/data/
+  # (bundled with the app). The former top-level docs/BANZA_REFERENCE.md mirror
+  # was removed in the operator purification (BANZAMI-PURIFICATION-EXECUTION-001);
+  # canonical source of the reference is the BANZA protocol repo.
   ssh "$REMOTE" "mkdir -p /srv/banzami/src/docs/validation"
-  rsync -az \
-    "$REPO_ROOT/docs/BANZA_REFERENCE.md" \
-    "$REMOTE:/srv/banzami/src/docs/BANZA_REFERENCE.md"
   rsync -az \
     "$REPO_ROOT/docs/validation/" \
     "$REMOTE:/srv/banzami/src/docs/validation/"
-  ok "Reference doc and validation matrix synced"
+  ok "Validation matrix synced"
 
   info "Building Docker image on server (context = repo root)..."
   # Pass BanzAI API URL if set — enables Live API mode on banzami.com/banzai

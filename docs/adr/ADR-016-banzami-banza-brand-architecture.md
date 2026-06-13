@@ -1,8 +1,10 @@
 # ADR-016 — Arquitectura de Marca Banzami/Banza
 
-**Status:** Accepted  
-**Date:** 2026-05-19  
-**Author:** Organização Banzami  
+> ⚠️ **SUPERSEDED by ADR-025 (Ecosystem Naming Inversion).** This ADR's naming rules — including "use 'Banza SDK', forbid 'SDK Banzami'" — are historical and no longer authoritative. Under the current model the libraries under `sdk/` are **Banzami operator integration SDKs**; protocol-level SDK standards belong to BANZA. Retained as a historical record only.
+
+**Status:** Superseded (by ADR-025)
+**Date:** 2026-05-19
+**Author:** Organização Banzami
 **Deciders:** Fidel Monteiro (Founder)
 
 ---

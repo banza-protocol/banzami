@@ -53,7 +53,6 @@ const REQUIRED_TOP_LEVEL = [
   ['apps',          'apps/  — Product-facing applications'],
   ['sdk',           'sdk/  — Official Banzami SDKs'],
   ['plugins',       'plugins/  — Commerce plugins and runtime adapters'],
-  ['contracts',     'contracts/  — Protocol contracts (OpenAPI, webhooks, QR, events)'],
   ['db',            'db/  — PostgreSQL migrations'],
   ['infra',         'infra/  — Infrastructure as code'],
   ['docs',          'docs/  — Technical documentation'],
@@ -64,21 +63,9 @@ for (const [dir, label] of REQUIRED_TOP_LEVEL) {
   exists(dir, label);
 }
 
-// ─── 2. contracts/ subdirectories ────────────────────────────────────────────
-
-section('2. contracts/ subdirectories (protocol truth)');
-
-const REQUIRED_CONTRACTS = [
-  'contracts/openapi',
-  'contracts/webhooks',
-  'contracts/qr',
-  'contracts/events',
-  'contracts/sdk-certification',
-];
-
-for (const dir of REQUIRED_CONTRACTS) {
-  exists(dir);
-}
+// ─── 2. (removed) contracts/ subdirectories ──────────────────────────────────
+// Protocol contracts are owned by the BANZA protocol repo, not the operator.
+// Removed in BANZAMI-PURIFICATION-EXECUTION-001. Canonical home: ~/banza/contracts/.
 
 // ─── 3. infra/terraform/ provider directories ─────────────────────────────────
 
@@ -130,15 +117,20 @@ if (PLATFORM_APPS.length > 0) {
 section('6. No unexpected top-level directories');
 
 const ACCEPTED_TOP_LEVEL = new Set([
-  'core', 'services', 'apps', 'sdk', 'plugins', 'contracts',
+  'core', 'services', 'apps', 'sdk', 'plugins',
   'db', 'infra', 'docs', 'tools', 'assets',
-  'sdk-certification',   // accepted: migration candidate → contracts/sdk-certification
   '.git', '.github', '.gitignore', '.env', '.env.example',
   '.claude',             // Claude Code project config (memory, commands)
   '.DS_Store',           // macOS filesystem artifact
   '.tmux.conf',          // tmux developer config
   'CLAUDE.md', 'README.md', 'Makefile', 'deploy.sh', 'dev.sh',
   'Cargo.lock',          // root Cargo.lock if present
+  'node_modules',        // gitignored dependency tree (present locally)
+  // Operator top-level documents
+  'BANZAMI_ARCHITECTURE.md', 'BANZAMI_DEPLOYMENT.md', 'BANZAMI_GOVERNANCE.md',
+  'BANZAMI_OPERATIONS.md', 'BANZAMI_PRODUCTS.md', 'BANZAMI_REFERENCE.md',
+  'BANZAMI_ROADMAP.md', 'BANZAMI_SECURITY.md',
+  'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'LICENSE',
 ]);
 
 const topLevel = readdirSync(ROOT, { withFileTypes: true }).map(d => d.name);
@@ -167,7 +159,6 @@ section('8. README.md documents required layout sections');
 
 const readme = readFileSync(join(ROOT, 'README.md'), 'utf-8');
 const REQUIRED_README_MENTIONS = [
-  ['contracts/',   'contracts/ in README'],
   ['core/jobs',    'core/jobs in README'],
   ['platforms/',   'platforms/ semantic concept in README'],
   ['integrations/','integrations/ semantic concept in README'],
@@ -187,12 +178,6 @@ if (claude.includes('Repository Layout Freeze')) {
 } else {
   fail('CLAUDE.md is missing §20 Repository Layout Freeze — add the governance rules');
 }
-
-// ─── 10. No new protocol specs in docs/ only ─────────────────────────────────
-
-section('10. contracts/ has README (governance active)');
-
-exists('contracts/README.md', 'contracts/README.md — governance note present');
 
 // ─── Summary ──────────────────────────────────────────────────────────────────
 

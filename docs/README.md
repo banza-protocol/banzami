@@ -16,12 +16,11 @@ This directory contains all technical documentation for the Banza platform.
 | [BANZA_REFERENCE.md](BANZA_REFERENCE.md) | Official public reference — product, protocol, ecosystem |
 | [architecture/BANZAMI_ECOSYSTEM_REFERENCE.md](architecture/BANZAMI_ECOSYSTEM_REFERENCE.md) | Architecture-first ecosystem reference (single source of truth) |
 | [glossary.md](glossary.md) | Authoritative term definitions |
-| [conformance.md](conformance.md) | Conformance suite specification |
-| [certification.md](certification.md) | Certification levels 0–4 and process |
+| [conformance.md](conformance.md) | Pointer — conformance is owned by the BANZA protocol |
+| [certification.md](certification.md) | Pointer — certification is owned by the BANZA protocol |
 | [reference-operator.md](reference-operator.md) | Reference Operator (Banzami) specification |
-| [banzamia/overview.md](banzamia/overview.md) | BanzAI — what it is and what it isn't |
+| BanzAI | External — protocol knowledge assistant at [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai) |
 | [audit/documentation-audit.md](audit/documentation-audit.md) | Documentation gap analysis |
-| [images/architecture/banzami-ecosystem.svg](images/architecture/banzami-ecosystem.svg) | Ecosystem diagram |
 
 ---
 

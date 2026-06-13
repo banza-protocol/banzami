@@ -2,10 +2,11 @@
 # deploy.sh runs:
 #   docker build -f /srv/banzami/src/apps/docs/Dockerfile /srv/banzami/src/
 #
-# This gives the build access to both apps/docs/ and docs/BANZA_REFERENCE.md
-# which is read at build time by lib/reference.ts (ADR-015 — source of truth).
-# All 20 section pages are statically generated at build time; the runtime
-# container does NOT need the markdown file.
+# The docs site builds its protocol-reference content from apps/docs/data/
+# (bundled via `COPY apps/docs/ ./`), read at build time by lib/reference.ts.
+# The former top-level docs/BANZA_REFERENCE.md mirror was removed in the operator
+# purification; canonical source of the reference is the BANZA protocol repo.
+# All section pages are statically generated at build time.
 
 # ─── Stage 1: Build ───────────────────────────────────────────────────────────
 FROM node:22-alpine AS builder
@@ -17,9 +18,8 @@ RUN npm install --legacy-peer-deps
 
 COPY apps/docs/ ./
 
-# Place content docs where lib/ expects them (ADR-015):
+# Place validation matrix where lib/ expects it:
 # process.cwd() = /app → ../../docs resolves to /docs/
-COPY docs/BANZA_REFERENCE.md /docs/BANZA_REFERENCE.md
 COPY docs/validation/ /docs/validation/
 
 ENV NEXT_TELEMETRY_DISABLED=1

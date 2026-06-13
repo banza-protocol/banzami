@@ -31,9 +31,9 @@ Additionally, as the ecosystem grows beyond Angola into broader African markets,
 
 ## Decision
 
-**Banza is officially an SDK-first ecosystem.**
+**Banzami is officially an SDK-first operator.**
 
-All external applications integrating Banza MUST use an official Banza SDK.
+All external applications integrating with the Banzami API SHOULD use an official Banzami SDK (the operator integration SDKs under `sdk/`).
 
 Direct HTTP integrations using `fetch()`, `axios()`, `requests()`, `curl` wrappers, or handcrafted API clients are NOT the recommended integration path and MUST NOT be used in official examples.
 

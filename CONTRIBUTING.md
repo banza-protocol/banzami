@@ -54,7 +54,7 @@ Banzami implements the protocol — it does not define the protocol. If a change
 
 ### No direct HTTP integrations in examples
 
-All external application integrations in documentation and examples must use official BANZA SDKs. Never showcase `fetch()` or raw HTTP calls as the recommended integration path.
+All external application integrations in documentation and examples must use an official Banzami SDK (the operator integration SDKs under `sdk/`). Never showcase `fetch()` or raw HTTP calls as the recommended integration path.
 
 ---
 

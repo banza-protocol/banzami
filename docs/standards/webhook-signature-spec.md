@@ -1,10 +1,10 @@
-# Banza Webhook Signature Specification
+# Banzami Webhook Signature — Integrator Reference
 
-**Version:** 1.0  
-**Status:** Canonical  
-**Source of truth:** `services/api-gateway/internal/webhook/signer.go`
+**Version:** 1.0
+**Status:** Operator integration reference
+**Banzami implementation:** `services/api-gateway/internal/webhook/signer.go`
 
-This document is the single authoritative specification for Banza webhook signature verification. All SDKs, integrations, and examples MUST implement this specification exactly. Deviations are security defects.
+> **The webhook signature scheme is a BANZA protocol standard**, not a Banzami-owned specification. Its canonical definition lives in the BANZA protocol repo (`contracts/webhooks/signature.json`, [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)). This page documents how **Banzami** implements that standard, for developers integrating with the Banzami API. Banzami implements the standard; it does not define it.
 
 ---
 
