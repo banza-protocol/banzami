@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 380" role="img" aria-label="Architecture" font-family="system-ui,-apple-system,sans-serif">
+  <title>Architecture</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+  <rect width="900" height="380" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-006 · ARCHITECTURE</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Strict language boundaries</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">Rust owns correctness · Postgres is truth</text>
+
+  <g>
+    <rect x="250" y="92" width="400" height="56" rx="11" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="450" y="116" text-anchor="middle" font-size="13" font-weight="800" fill="#374151">Apps</text>
+    <text x="450" y="135" text-anchor="middle" font-size="9.5" fill="#6B7280">mobile · merchant · dashboard · admin · pay · checkout</text>
+    <text x="664" y="124" font-size="9.5" fill="#9CA3AF">Flutter · Next.js</text>
+
+    <line x1="450" y1="150" x2="450" y2="174" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <rect x="250" y="178" width="400" height="56" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <text x="450" y="202" text-anchor="middle" font-size="13" font-weight="800" fill="#9A1B22">Go Services</text>
+    <text x="450" y="221" text-anchor="middle" font-size="9.5" fill="#B5323A">api-gateway · public-api · admin-api</text>
+    <text x="664" y="210" font-size="9.5" fill="#9CA3AF">auth · webhooks</text>
+
+    <line x1="450" y1="236" x2="450" y2="260" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <rect x="250" y="264" width="400" height="56" rx="11" fill="url(#hg)"/>
+    <text x="450" y="288" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Rust Financial Core</text>
+    <text x="450" y="307" text-anchor="middle" font-size="9.5" fill="#FBD2D0">ledger · wallets · transfers · QR · settlement · payouts</text>
+    <text x="664" y="296" font-size="9.5" fill="#9A1B22">only writer</text>
+
+    <line x1="450" y1="322" x2="450" y2="340" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+    <rect x="250" y="330" width="400" height="40" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="450" y="355" text-anchor="middle" font-size="12" font-weight="800" fill="#374151">PostgreSQL — single source of financial truth</text>
+  </g>
+</svg>

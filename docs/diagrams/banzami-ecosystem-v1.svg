@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Ecosystem" font-family="system-ui,-apple-system,sans-serif">
+  <title>Ecosystem</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <linearGradient id="banza" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A0A14"/><stop offset="100%" stop-color="#A01020"/></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+  <rect width="900" height="300" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-007 · ECOSYSTEM</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">One operator, built on an open protocol</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">BANZA defines · Banzami operates</text>
+
+  <rect x="320" y="92" width="260" height="58" rx="12" fill="url(#banza)"/>
+  <text x="450" y="118" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">BANZA</text>
+  <text x="450" y="137" text-anchor="middle" font-size="9.5" fill="#F3C9CD">open financial protocol</text>
+
+  <g stroke="#9CA3AF" stroke-width="1.5">
+    <path d="M390,150 L250,196" fill="none" marker-end="url(#ar)"/>
+    <path d="M510,150 L650,196" fill="none" marker-end="url(#ar)"/>
+  </g>
+
+  <rect x="96" y="200" width="308" height="64" rx="12" fill="url(#hg)"/>
+  <text x="250" y="227" text-anchor="middle" font-size="14" font-weight="800" fill="#FFFFFF">Banzami</text>
+  <text x="250" y="246" text-anchor="middle" font-size="9.5" fill="#FBD2D0">operator — this repository</text>
+
+  <rect x="496" y="200" width="308" height="64" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="650" y="227" text-anchor="middle" font-size="14" font-weight="800" fill="#374151">BanzAI</text>
+  <text x="650" y="246" text-anchor="middle" font-size="9.5" fill="#6B7280">protocol intelligence · not a Banzami product</text>
+</svg>

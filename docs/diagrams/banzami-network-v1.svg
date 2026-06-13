@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" role="img" aria-label="The Banzami Network" font-family="system-ui,-apple-system,sans-serif">
+  <title>The Banzami Network</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <linearGradient id="band" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#C2142B"/><stop offset="100%" stop-color="#E8434B"/></linearGradient>
+    <marker id="ar" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+  <rect width="900" height="420" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-002 · THE NETWORK</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">The Banzami Network</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">One wallet-native network · three audiences</text>
+
+  <g font-weight="700">
+    <rect x="60" y="96" width="220" height="58" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <text x="170" y="123" text-anchor="middle" font-size="13" fill="#9A1B22">Consumers</text>
+    <text x="170" y="141" text-anchor="middle" font-size="9.5" font-weight="400" fill="#B5323A">personal Kwanza wallets</text>
+    <rect x="340" y="96" width="220" height="58" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <text x="450" y="123" text-anchor="middle" font-size="13" fill="#9A1B22">Merchants</text>
+    <text x="450" y="141" text-anchor="middle" font-size="9.5" font-weight="400" fill="#B5323A">accept without terminals</text>
+    <rect x="620" y="96" width="220" height="58" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <text x="730" y="123" text-anchor="middle" font-size="13" fill="#9A1B22">Developers</text>
+    <text x="730" y="141" text-anchor="middle" font-size="9.5" font-weight="400" fill="#B5323A">payment-native apps</text>
+  </g>
+  <g stroke="#9CA3AF" stroke-width="1.5">
+    <line x1="170" y1="156" x2="170" y2="194" marker-end="url(#ar)"/>
+    <line x1="450" y1="156" x2="450" y2="194" marker-end="url(#ar)"/>
+    <line x1="730" y1="156" x2="730" y2="194" marker-end="url(#ar)"/>
+  </g>
+
+  <rect x="60" y="198" width="780" height="84" rx="14" fill="url(#band)"/>
+  <text x="450" y="234" text-anchor="middle" font-size="20" font-weight="800" fill="#FFFFFF" letter-spacing="2">BANZAMI NETWORK</text>
+  <text x="450" y="260" text-anchor="middle" font-size="11" fill="#FBD2D0">wallet-native  ·  instant  ·  Kwanza  ·  double-entry ledger</text>
+
+  <g stroke="#9CA3AF" stroke-width="1.5">
+    <line x1="170" y1="286" x2="170" y2="324" marker-end="url(#ar)"/>
+    <line x1="450" y1="286" x2="450" y2="324" marker-end="url(#ar)"/>
+    <line x1="730" y1="286" x2="730" y2="324" marker-end="url(#ar)"/>
+  </g>
+  <g font-weight="700">
+    <rect x="60" y="328" width="220" height="60" rx="11" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="170" y="356" text-anchor="middle" font-size="13" fill="#9A1B22">QR</text>
+    <text x="170" y="374" text-anchor="middle" font-size="9.5" font-weight="400" fill="#6B7280">scan to pay / receive</text>
+    <rect x="340" y="328" width="220" height="60" rx="11" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="450" y="356" text-anchor="middle" font-size="13" fill="#9A1B22">Payment Links</text>
+    <text x="450" y="374" text-anchor="middle" font-size="9.5" font-weight="400" fill="#6B7280">share over any channel</text>
+    <rect x="620" y="328" width="220" height="60" rx="11" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <text x="730" y="356" text-anchor="middle" font-size="13" fill="#9A1B22">APIs · SDKs</text>
+    <text x="730" y="374" text-anchor="middle" font-size="9.5" font-weight="400" fill="#6B7280">accept Kwanza in-app</text>
+  </g>
+</svg>

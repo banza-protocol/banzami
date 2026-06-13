@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" role="img" aria-label="Core Products" font-family="system-ui,-apple-system,sans-serif">
+  <title>Core Products</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+  </defs>
+  <rect width="900" height="360" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-003 · CORE PRODUCTS</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Core Products</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">Built on one wallet-native network</text>
+
+  <g>
+    <rect x="36" y="92" width="406" height="118" rx="12" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <rect x="36" y="92" width="6" height="118" rx="3" fill="#D7242E"/>
+    <text x="60" y="120" font-size="14" font-weight="800" fill="#9A1B22">Consumer App</text>
+    <text x="60" y="144" font-size="10.5" fill="#B5323A">Kwanza wallet · @handle identity</text>
+    <text x="60" y="164" font-size="10.5" fill="#B5323A">Instant transfers to any handle</text>
+    <text x="60" y="184" font-size="10.5" fill="#B5323A">Pay by QR · pay by link</text>
+
+    <rect x="458" y="92" width="406" height="118" rx="12" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"/>
+    <rect x="458" y="92" width="6" height="118" rx="3" fill="#D7242E"/>
+    <text x="482" y="120" font-size="14" font-weight="800" fill="#9A1B22">Merchant App</text>
+    <text x="482" y="144" font-size="10.5" fill="#B5323A">Receive payments instantly</text>
+    <text x="482" y="164" font-size="10.5" fill="#B5323A">Static &amp; dynamic QR codes</text>
+    <text x="482" y="184" font-size="10.5" fill="#B5323A">Payment links · transaction history</text>
+
+    <rect x="36" y="226" width="406" height="118" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <rect x="36" y="226" width="6" height="118" rx="3" fill="#9A1B22"/>
+    <text x="60" y="254" font-size="14" font-weight="800" fill="#9A1B22">Business Dashboard</text>
+    <text x="60" y="278" font-size="10.5" fill="#6B7280">Merchant &amp; account management</text>
+    <text x="60" y="298" font-size="10.5" fill="#6B7280">Payments · settlements · payouts</text>
+    <text x="60" y="318" font-size="10.5" fill="#6B7280">Reporting &amp; analytics</text>
+
+    <rect x="458" y="226" width="406" height="118" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+    <rect x="458" y="226" width="6" height="118" rx="3" fill="#9A1B22"/>
+    <text x="482" y="254" font-size="14" font-weight="800" fill="#9A1B22">SDK Platform</text>
+    <text x="482" y="278" font-size="10.5" fill="#6B7280">TypeScript · Flutter · Python · PHP · Go</text>
+    <text x="482" y="298" font-size="10.5" fill="#6B7280">Typed · idempotent · sandbox + live</text>
+    <text x="482" y="318" font-size="10.5" fill="#6B7280">Signed webhooks · QR helpers</text>
+  </g>
+</svg>
