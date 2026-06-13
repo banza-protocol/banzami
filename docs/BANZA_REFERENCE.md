@@ -1,9 +1,11 @@
 # Banza — Documento de Referência Oficial
 
+> ⚠️ **MIRROR — não editar aqui.** A fonte canónica deste documento é o protocolo BANZA (`~/banza/BANZA_REFERENCE.md`, [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza)). Esta cópia existe apenas como espelho read-only para alimentar o site do operador em build time. Alterações ao protocolo fazem-se via ADR em `~/banza`, nunca neste repositório.
+
 **Version:** 1.0  
 **Date:** 2026-05-28  
-**Status:** Official  
-**Author:** Banzami
+**Status:** Official (mirror)  
+**Authority:** BANZA protocol (`~/banza`) — canonical source
 
 ---
 

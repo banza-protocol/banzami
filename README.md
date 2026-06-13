@@ -11,7 +11,7 @@
 
 **Banzami is a startup and the reference operator implementation of the BANZA open financial infrastructure protocol.** Banzami is one company — the protocol is not owned by Banzami. This repository contains the operator applications, backend services, financial core implementation, infrastructure, and operational tooling.
 
-Banzami operates independently from the BANZA protocol organization. Protocol governance, SDKs, and contracts live at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
+Banzami operates independently from the BANZA protocol organization. Protocol **governance** lives at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza). The protocol **SDKs** (`sdk/`), **contracts** (`contracts/`), and **certification vectors** (`sdk-certification/`) are protocol-owned assets currently hosted transitionally in this repository — their canonical home is BANZA, pending the relocation tracked in [docs/governance/BANZAMI-PURIFICATION-PLAN.md](docs/governance/BANZAMI-PURIFICATION-PLAN.md) (requires an ADR in `~/banza`).
 
 ---
 
@@ -370,7 +370,7 @@ The repository is organized into **eight semantic zones**:
 | `apps/` | Product-facing applications — what merchants, consumers, and admins use |
 | `platforms/` | Operational/governance platforms — docs site, validation studio _(target: apps/docs and apps/validation-studio migrate here)_ |
 | `integrations/` | SDKs, plugins, adapters _(target: sdk/ and plugins/ merge here)_ |
-| `contracts/` | Protocol truth — OpenAPI, webhook schemas, QR specs, event contracts |
+| `contracts/` | Protocol-owned contracts (OpenAPI, webhook schemas, QR specs, event contracts) — **canonical source is `~/banza`; hosted transitionally here** ([purification plan](docs/governance/BANZAMI-PURIFICATION-PLAN.md)) |
 | `db/` | PostgreSQL migrations |
 | `infra/` | Infrastructure as code, monitoring, deployment |
 | `docs/` | Technical documentation |
