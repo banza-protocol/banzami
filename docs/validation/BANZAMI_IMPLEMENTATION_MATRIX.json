@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-13",
+    "lastUpdated": "2026-06-14",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -19,7 +19,7 @@
     },
     {
       "id": "cat-wallet",
-      "name": "Banza Wallet",
+      "name": "Banzami Wallet",
       "description": "Carteiras digitais em Kwanza — criação, saldos, histórico e carregamento."
     },
     {
@@ -49,12 +49,12 @@
     },
     {
       "id": "cat-biz-mobile",
-      "name": "Banza Business (Móvel)",
+      "name": "Banzami Business (Móvel)",
       "description": "Interface móvel para operação diária do comerciante — QR, notificações, saldo."
     },
     {
       "id": "cat-biz-web",
-      "name": "Banza Business (Web)",
+      "name": "Banzami Business (Web)",
       "description": "Dashboard web para administração — analytics, chaves API, equipa, disputas."
     },
     {
@@ -386,9 +386,9 @@
         "sdk/python/pyproject.toml:name=banza-python",
         "sdk/go/banzami/webhook.go:SignatureHeader=Banza-Signature",
         "sdk/typescript/src/webhooks.ts:SIGNATURE_HEADER=Banza-Signature",
-        "apps/dashboard/app/layout.tsx:title=Banza Business",
-        "apps/pay/app/layout.tsx:title=Banza Pay",
-        "apps/checkout/app/layout.tsx:title=Banza Checkout"
+        "apps/dashboard/app/layout.tsx:title=Banzami Business",
+        "apps/pay/app/layout.tsx:title=Banzami Pay",
+        "apps/checkout/app/layout.tsx:title=Banzami Checkout"
       ],
       "dependencies": [
         "IDT-001"
@@ -445,9 +445,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "IDT-003",
@@ -535,7 +544,7 @@
     },
     {
       "id": "WAL-001",
-      "title": "Criação e onboarding de Banza Wallet",
+      "title": "Criação e onboarding de Banzami Wallet",
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
       "referenceSection": "§6.2, §13.2",
@@ -754,9 +763,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WAL-002",
@@ -1046,7 +1064,7 @@
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-FIN",
       "referenceSection": "§6.2, §10.3",
-      "description": "Mecanismo de carregamento da Banza Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
+      "description": "Mecanismo de carregamento da Banzami Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
       "requirement": "Consumidor pode adicionar fundos à carteira a partir do sistema bancário angolano. Saldo actualiza após confirmação.",
       "status": "IMPLEMENTED",
       "priority": "HIGH",
@@ -1162,9 +1180,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "HDL-001",
@@ -2257,7 +2284,7 @@
       "validationDomain": "DOM-CONSUMER",
       "referenceSection": "§6.5, §7",
       "description": "API e interface para criar links de pagamento configuráveis — montante, descrição, expiração, referência de encomenda.",
-      "requirement": "Link de pagamento criável via SDK, API e Banza Business. URL partilhável gerada imediatamente.",
+      "requirement": "Link de pagamento criável via SDK, API e Banzami Business. URL partilhável gerada imediatamente.",
       "status": "PLANNED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payment Links",
@@ -2299,8 +2326,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PL-002",
@@ -2509,7 +2546,7 @@
     },
     {
       "id": "BM-001",
-      "title": "Interface móvel Banza Business — operação diária",
+      "title": "Interface móvel Banzami Business — operação diária",
       "categoryId": "cat-biz-mobile",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.1",
@@ -2557,8 +2594,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BM-002",
@@ -2662,7 +2709,7 @@
     },
     {
       "id": "BW-001",
-      "title": "Dashboard web Banza Business",
+      "title": "Dashboard web Banzami Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
@@ -2707,12 +2754,22 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BW-002",
-      "title": "Análises e relatórios no Banza Business",
+      "title": "Análises e relatórios no Banzami Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2",
@@ -2754,12 +2811,22 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BW-003",
-      "title": "Gestão de chaves API no Banza Business",
+      "title": "Gestão de chaves API no Banzami Business",
       "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MERCHANT",
       "referenceSection": "§11.2.2, §12",
@@ -2802,8 +2869,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BW-004",
@@ -4350,7 +4427,7 @@
       "categoryId": "cat-refunds",
       "validationDomain": "DOM-FIN",
       "referenceSection": "§7, §16.2",
-      "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banza Business ou via API. Nova entrada de ledger oposta criada.",
+      "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banzami Business ou via API. Nova entrada de ledger oposta criada.",
       "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
       "status": "PLANNED",
       "priority": "HIGH",
@@ -4410,8 +4487,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "REF-002",
@@ -5176,7 +5263,7 @@
       "categoryId": "cat-roadmap",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§10.3, §19 — Longo prazo",
-      "description": "Mecanismo para financiar Banza Wallet usando cartão de débito angolano. Cartão como via de financiamento — não modelo de pagamento.",
+      "description": "Mecanismo para financiar Banzami Wallet usando cartão de débito angolano. Cartão como via de financiamento — não modelo de pagamento.",
       "requirement": "Carregamento por cartão disponível como opcional. Cartão NUNCA usado para pagamentos directos — apenas para top-up de carteira.",
       "status": "FUTURE",
       "priority": "LOW",
@@ -5189,7 +5276,7 @@
       "acceptanceCriteria": [
         "Carregamento por cartão de débito angolano funcional",
         "Cartão nunca exposto no fluxo de pagamento",
-        "Saldo Banza Wallet actualizado após confirmação",
+        "Saldo Banzami Wallet actualizado após confirmação",
         "Trilho de auditoria completo do carregamento"
       ],
       "testCoverage": false,
@@ -5216,8 +5303,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T22:54:03.981Z",
+          "from": "FUTURE",
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "RD-005",
