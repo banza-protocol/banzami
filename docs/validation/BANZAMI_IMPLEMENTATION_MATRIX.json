@@ -571,7 +571,7 @@
         "core/api/src/state.rs — ConsumerWalletEng type alias fixed (3-generic)",
         "services/public-api/internal/handler/onboarding.go — Go handler: rate limiting, E.164 validation, handle/PIN policy",
         "services/public-api/internal/service/core_client.go — onboarding client methods: StartOnboarding, VerifyOtp, CompleteOnboarding",
-        "contracts/openapi/wallet-onboarding.yaml — OpenAPI 3.1 spec: start, verify-otp, complete endpoints",
+        "BANZA protocol (github.com/banza-protocol/banza): contracts/openapi/wallet-onboarding.yaml — OpenAPI 3.1 spec: start, verify-otp, complete endpoints",
         "core/consumer-wallets/tests/integration.rs — 12 integration tests covering full PENDING_OTP→PENDING_PIN→ACTIVE flow + INV-WALLET-007/008 + PIN lockout",
         "core/consumer-wallets/tests/integration.rs — 12/12 integration tests PASS against live PostgreSQL banzami_dev",
         "SQL INV-WALLET-001 check — 0 negative balance violations across all consumer_wallets",
@@ -745,9 +745,18 @@
             "SQL INV-WALLET-005 — 7 wallets, 1 AOA currency each, no mutations",
             "SQL INV-WALLET-006 — all 7 wallets ACTIVE, CHECK constraint enforces valid transitions"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:52:49.907Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "WAL-002",
@@ -903,7 +912,7 @@
         "services/public-api/internal/handler/activity_test.go — 12 unit tests: all PASS",
         "services/public-api/internal/service/core_client.go — GetActivity(): delegates to GET /internal/v1/consumer/activity",
         "db/migrations/0038_activity_feed_indexes.sql — activity-optimised partial indexes for UNION branches",
-        "contracts/openapi/activity.yaml — OpenAPI 3.1 spec: GET /v1/me/activity com schemas ActivityItem e ActivityPage",
+        "BANZA protocol (github.com/banza-protocol/banza): contracts/openapi/activity.yaml — OpenAPI 3.1 spec: GET /v1/me/activity com schemas ActivityItem e ActivityPage",
         "E2E Tests A-H — sender/recipient feed, direction, amount/counterparty, ordering, duplicate check via core-api:8081 (2026-05-22)",
         "Pagination walk — 5 pages x 5 items, 0 duplicates, 0 skips, boundary strict-inequality confirmed (banzami_dev, 2026-05-22)",
         "SQL — 33 completed P2P transfers, 0 duplicate activity_ids, deterministic ORDER BY confirmed (banzami_dev, 2026-05-22)",
@@ -1009,9 +1018,18 @@
             "Concurrency: 10 parallel transfers, feed consistent",
             "Latency: p99=13.8ms internal, p99=2.2ms paginated"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:52:49.907Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "WAL-004",
@@ -1974,7 +1992,7 @@
         "services/public-api/internal/handler/transfers_test.go — 12 unit tests: success, auth, validation, error mapping, idempotency, rate limit, no internal IDs",
         "services/public-api/internal/service/core_client.go — SendP2pTransfer(): delegates to POST /internal/v1/consumer/transfers",
         "services/public-api/internal/service/credentials.go — GetHandle(): resolves consumer_id → @banza handle from public_api_credentials",
-        "contracts/openapi/transfers.yaml — OpenAPI 3.1 spec: POST /v1/transfers, GET /v1/transfers, GET /v1/transfers/{id}",
+        "BANZA protocol (github.com/banza-protocol/banza): contracts/openapi/transfers.yaml — OpenAPI 3.1 spec: POST /v1/transfers, GET /v1/transfers, GET /v1/transfers/{id}",
         "E2E-A: POST /v1/transfers live — 201 + canonical receipt, 10 fields present, no internal IDs",
         "E2E-B: GET /v1/transfers list — transfer appears immediately in feed (WAL-003 cross-validation)",
         "E2E-C: GET /v1/transfers/{id} — transfer retrievable by public transfer_id",
@@ -2081,9 +2099,18 @@
             "E2E-A through E2E-K (11 live tests)",
             "SQL audit: 66 completed, 0 duplicates, net_sum=0"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:52:49.907Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Repoint da evidencia de contrato OpenAPI para o repo canonico BANZA (contracts/ removido do operador na purificacao).",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "APP-001",
