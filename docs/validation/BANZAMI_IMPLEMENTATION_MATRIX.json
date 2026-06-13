@@ -1,9 +1,9 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-05-22",
+    "lastUpdated": "2026-06-13",
     "referenceVersion": "1.0",
-    "referenceFile": "docs/BANZA_REFERENCE.md",
+    "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
   },
   "categories": [
@@ -130,286 +130,8 @@
   ],
   "items": [
     {
-      "id": "DOC-001",
-      "title": "Site de documentação Banzami",
-      "categoryId": "cat-docs",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15.2 (ADR-015)",
-      "description": "Site de documentação público em Next.js servindo como interface visual para o documento de referência oficial BANZA_REFERENCE.md.",
-      "requirement": "O site deve renderizar o documento de referência e estar acessível publicamente. Conteúdo derivado exclusivamente de BANZA_REFERENCE.md.",
-      "status": "VALIDATED",
-      "priority": "CRITICAL",
-      "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js · TypeScript · Tailwind",
-      "validationMethods": [
-        "manual_ux",
-        "production_review",
-        "unit_tests"
-      ],
-      "acceptanceCriteria": [
-        "Site acessível e funcional em produção (banzami.com)",
-        "Conteúdo renderizado exclusivamente a partir de BANZA_REFERENCE.md",
-        "Navegação por secções operacional (20 rotas + sidebar)",
-        "Design responsivo em mobile e desktop",
-        "Página /validacao integrada no mesmo site",
-        "Parser reference.ts testado automaticamente (toSlug, getReference, getSection)"
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "route",
-          "label": "Rota principal",
-          "ref": "apps/docs/app/page.tsx"
-        },
-        {
-          "type": "component",
-          "label": "Layout raiz",
-          "ref": "apps/docs/app/layout.tsx"
-        },
-        {
-          "type": "config",
-          "label": "Configuração Tailwind",
-          "ref": "apps/docs/tailwind.config.ts"
-        },
-        {
-          "type": "test",
-          "label": "reference.test.ts (51 testes)",
-          "ref": "apps/docs/lib/__tests__/reference.test.ts"
-        },
-        {
-          "type": "config",
-          "label": "Motor de parsing (reference.ts)",
-          "ref": "apps/docs/lib/reference.ts"
-        }
-      ],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "apps/docs/**",
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": "2026-05-20",
-      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-      "history": [
-        {
-          "timestamp": "2026-05-20T10:31:38.478Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "e6025bc3bd0b2bd6",
-          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts (51 testes) cobre toSlug, getReference, getSection, getAllSectionSlugs. Confidence 65 → 80 (VERY_HIGH).",
-          "evidence": [
-            "apps/docs/lib/__tests__/reference.test.ts"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-05-20"
-    },
-    {
-      "id": "DOC-002",
-      "title": "Renderização de BANZA_REFERENCE.md",
-      "categoryId": "cat-docs",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Motor de parsing que lê BANZA_REFERENCE.md em build time e produz estrutura de secções tipada para renderização no site.",
-      "requirement": "Parsing determinístico de todas as 20 secções do documento de referência, com metadados, subsecções e slugs de rota.",
-      "status": "VALIDATED",
-      "priority": "CRITICAL",
-      "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "TypeScript · Node.js fs",
-      "validationMethods": [
-        "manual_ux",
-        "production_review",
-        "unit_tests"
-      ],
-      "acceptanceCriteria": [
-        "Todas as 20 secções parseadas correctamente",
-        "Metadados (versão, data, estado) extraídos e não vazios",
-        "Slugs únicos e URL-safe gerados para cada secção",
-        "Subsecções (H3) identificadas correctamente (≥100 total)",
-        "toSlug() produz slugs determinísticos sem diacríticos",
-        "Cada âncora segue o formato \"{n}-{slug}\""
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "component",
-          "label": "Motor de parsing",
-          "ref": "apps/docs/lib/reference.ts"
-        },
-        {
-          "type": "component",
-          "label": "Tipos de referência",
-          "ref": "apps/docs/lib/types.ts"
-        },
-        {
-          "type": "route",
-          "label": "Página de referência",
-          "ref": "apps/docs/app/reference/page.tsx"
-        },
-        {
-          "type": "test",
-          "label": "reference.test.ts (51 testes)",
-          "ref": "apps/docs/lib/__tests__/reference.test.ts"
-        },
-        {
-          "type": "adr",
-          "label": "ADR-015 markdown-first",
-          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
-        }
-      ],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "apps/docs/**",
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": "2026-05-20",
-      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-      "history": [
-        {
-          "timestamp": "2026-05-20T10:31:38.478Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "f2ca1c795f6fa2bb",
-          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts testa parsing das 20 secções, metadados, slugs, subsecções e toSlug. Confidence 65 → 80 (VERY_HIGH).",
-          "evidence": [
-            "apps/docs/lib/__tests__/reference.test.ts"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-05-20"
-    },
-    {
-      "id": "DOC-003",
-      "title": "Navegação por secções individuais",
-      "categoryId": "cat-docs",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Rotas individuais por secção do documento de referência, com hero, conteúdo markdown, componentes visuais e navegação prev/next.",
-      "requirement": "Cada secção acessível em /{slug}, com conteúdo completo e navegação contextual.",
-      "status": "VALIDATED",
-      "priority": "HIGH",
-      "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js App Router · TypeScript",
-      "validationMethods": [
-        "manual_ux",
-        "production_review",
-        "unit_tests"
-      ],
-      "acceptanceCriteria": [
-        "20 rotas de secção funcionais em produção (/[slug])",
-        "Conteúdo completo por secção renderizado",
-        "Navegação prev/next entre secções operacional",
-        "Componentes visuais por secção disponíveis",
-        "getSection(slug) e getSectionByNumber(n) resolvem todas as 20 secções",
-        "getAllSectionSlugs() retorna 20 slugs únicos e URL-safe"
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "route",
-          "label": "Rota de secção",
-          "ref": "apps/docs/app/[section]/page.tsx"
-        },
-        {
-          "type": "component",
-          "label": "SectionHero",
-          "ref": "apps/docs/components/SectionHero.tsx"
-        },
-        {
-          "type": "component",
-          "label": "SectionNav sidebar",
-          "ref": "apps/docs/components/SectionNav.tsx"
-        },
-        {
-          "type": "test",
-          "label": "reference.test.ts (51 testes)",
-          "ref": "apps/docs/lib/__tests__/reference.test.ts"
-        },
-        {
-          "type": "route",
-          "label": "Site em produção (/[slug])",
-          "ref": "apps/docs/app/[slug]/page.tsx"
-        }
-      ],
-      "dependencies": [
-        "DOC-002"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "apps/docs/**",
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": "2026-05-20",
-      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-      "history": [
-        {
-          "timestamp": "2026-05-20T10:31:38.478Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "62b7efe45b50706b",
-          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests + production_review: reference.test.ts testa getSection, getSectionByNumber e getAllSectionSlugs. Confidence 55 → 80 (VERY_HIGH).",
-          "evidence": [
-            "apps/docs/lib/__tests__/reference.test.ts"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-05-20"
-    },
-    {
       "id": "DOC-004",
-      "title": "Plataforma de validação e execução (/validacao)",
+      "title": "Plataforma de validacao (validation-studio)",
       "categoryId": "cat-docs",
       "validationDomain": "DOM-DOCS",
       "referenceSection": "§15 (ADR-015)",
@@ -431,7 +153,7 @@
         "Todas as categorias do ecossistema representadas na matriz",
         "Filtros por status, prioridade, categoria e domínio operacionais",
         "Pesquisa por palavra-chave em tempo real funcional",
-        "Rastreabilidade a BANZA_REFERENCE.md via campo referenceSection",
+        "Rastreabilidade ao BANZAMI_REFERENCE.md via campo referenceSection",
         "Métricas globais exibidas e computadas correctamente",
         "Validation Studio acessível localmente em localhost:3099",
         "Governance engine cobre todas as regras §17 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
@@ -439,44 +161,14 @@
         "Fingerprint computado deterministicamente e verificado antes de apply",
         "Histórico de transições imutável (append-only)",
         "Testes automatizados da engine de governança (≥80 casos)",
-        "Página /validacao é read-only — zero rotas de escrita no apps/docs"
+        "Validation Studio é local-only — zero rotas de escrita públicas"
       ],
       "testCoverage": true,
       "evidence": [
         {
-          "type": "route",
-          "label": "Página /validacao",
-          "ref": "apps/docs/app/validacao/page.tsx"
-        },
-        {
-          "type": "component",
-          "label": "ValidationDashboard",
-          "ref": "apps/docs/components/validation/ValidationDashboard.tsx"
-        },
-        {
-          "type": "component",
-          "label": "ValidationCard",
-          "ref": "apps/docs/components/validation/ValidationCard.tsx"
-        },
-        {
-          "type": "component",
-          "label": "ValidationFilters",
-          "ref": "apps/docs/components/validation/ValidationFilters.tsx"
-        },
-        {
-          "type": "component",
-          "label": "ValidationMetrics",
-          "ref": "apps/docs/components/validation/ValidationMetrics.tsx"
-        },
-        {
           "type": "config",
           "label": "Matriz JSON",
           "ref": "docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json"
-        },
-        {
-          "type": "config",
-          "label": "vitest.config.ts (docs)",
-          "ref": "apps/docs/vitest.config.ts"
         },
         {
           "type": "config",
@@ -492,11 +184,6 @@
           "type": "test",
           "label": "fingerprint.test.ts (32 testes)",
           "ref": "apps/validation-studio/lib/__tests__/fingerprint.test.ts"
-        },
-        {
-          "type": "test",
-          "label": "validation.test.ts — docs (28 testes)",
-          "ref": "apps/docs/lib/__tests__/validation.test.ts"
         },
         {
           "type": "adr",
@@ -525,7 +212,6 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/docs/**",
         "docs/**"
       ],
       "blockingIssues": [],
@@ -560,9 +246,21 @@
             "apps/docs/app/validacao/page.tsx",
             "apps/docs/components/validation/ValidationDashboard.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:44:55.643Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
+          "evidence": [
+            "apps/validation-studio/lib/governance.ts",
+            "apps/validation-studio/app/page.tsx"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "IDT-001",
@@ -599,22 +297,12 @@
         {
           "type": "component",
           "label": "Ficheiro de referência",
-          "ref": "docs/BANZA_REFERENCE.md"
-        },
-        {
-          "type": "test",
-          "label": "reference.test.ts (51 testes)",
-          "ref": "apps/docs/lib/__tests__/reference.test.ts"
+          "ref": "BANZAMI_REFERENCE.md"
         },
         {
           "type": "adr",
           "label": "CLAUDE.md §15 (source of truth)",
           "ref": "CLAUDE.md"
-        },
-        {
-          "type": "config",
-          "label": "Motor de parsing (reference.ts)",
-          "ref": "apps/docs/lib/reference.ts"
         }
       ],
       "dependencies": [],
@@ -653,9 +341,20 @@
           "evidence": [
             "apps/docs/lib/__tests__/reference.test.ts"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:44:55.643Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
+          "evidence": [
+            "BANZAMI_REFERENCE.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "IDT-002",
@@ -682,7 +381,6 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "apps/docs/lib/__tests__/brand-naming.test.ts:23/23 passing",
         "sdk/typescript/package.json:name=@banza/sdk",
         "sdk/flutter/pubspec.yaml:name=banza_flutter",
         "sdk/python/pyproject.toml:name=banza-python",
@@ -738,9 +436,18 @@
             "apps/pay/app/layout.tsx:title=Banza Pay",
             "apps/checkout/app/layout.tsx:title=Banza Checkout"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "IDT-003",
@@ -766,10 +473,8 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "apps/docs/lib/__tests__/brand-naming.test.ts:208-221 pan-African/Stripe-for-Africa tests passing",
-        "docs/product/positioning.md:Banza SDK, Banza QR corrected",
-        "docs/product/strategy.md:Banza QR, Banza SDK corrected",
-        "docs/architecture/integration-ecosystem.md:QR flow with correct naming"
+        "docs/architecture/integration-ecosystem.md:QR flow with correct naming",
+        "CLAUDE.md §1.5 — posicionamento oficial do operador (Angola QR-native)"
       ],
       "dependencies": [
         "IDT-001",
@@ -813,9 +518,20 @@
             "docs/product/strategy.md:Banza QR, Banza SDK corrected",
             "docs/architecture/integration-ecosystem.md:QR flow with correct naming"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": [
+            "CLAUDE.md §1.5"
+          ]
         }
       ],
-      "lastUpdated": "2026-05-19"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "WAL-001",
@@ -1329,7 +1045,6 @@
         "core/consumer-wallets/src/funding.rs — FundingEngine trait + PostgresFundingEngine",
         "core/consumer-wallets/tests/funding_integration.rs — 8 integration tests",
         "db/migrations/0034_wallet_funding.sql — provider_callbacks UNIQUE, reconciliation_attempts",
-        "docs/BANZA_REFERENCE.md §17.8 — full architecture documentation (state machine, 5 scenarios, security model)",
         "FundingStatus::validate_transition — all invalid transitions rejected",
         "provider_callbacks_event_unique UNIQUE constraint — idempotency at data layer",
         "funding-settle-{session_id} idempotency key in LedgerEngine.post()",
@@ -1411,9 +1126,18 @@
             "db/migrations/0034_wallet_funding.sql",
             "docs/BANZA_REFERENCE.md §17.8"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "HDL-001",
@@ -1449,7 +1173,6 @@
         "db/migrations/0035_handle_format_constraint.sql — DB-level CHECK constraint enforces format at storage layer",
         "core/consumer-wallets/src/engine.rs — validate_handle_format() now delegates to banzami_identity::validate_handle() (single source of truth)",
         "core/identity/tests/integration.rs — 10 integration tests including: valid registration, duplicate rejection, normalization collision, reserved handles, invalid syntax, resolve active, suspended not resolved, closed not resolved, unknown handle, concurrent registration (1 of 5 wins)",
-        "docs/BANZA_REFERENCE.md §6.3 — handle architecture section expanded with format table, reserved namespace, uniqueness model, financial identity semantics, resolution model, routing rationale",
         "core/identity/tests/integration.rs — 10/10 integration tests PASS against live PostgreSQL banzami_dev (6.18s runtime, 2026-05-22)",
         "SQL INV-IDENTITY-001 check — 0 duplicate active handles across 7 consumers in banzami_dev",
         "E2E handle validation: full HTTP onboarding flow — handle pubapi_e2e_final registered ACTIVE through Go public-api → Rust core-api → banzami_identity → DB (from WAL-001D E2E)"
@@ -1528,9 +1251,18 @@
             "SQL INV-IDENTITY-001 — 0 duplicate active handles in banzami_dev",
             "E2E: handle pubapi_e2e_final via public-api → core-api → banzami_identity"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "HDL-002",
@@ -1568,7 +1300,6 @@
         "core/api/src/main.rs — route registered: /internal/v1/identity/resolve/:handle",
         "db/migrations/0036_handle_routing_index.sql — routing index consumers_handle_status_idx + stale COMMENT fix",
         "core/consumer-wallets/tests/routing_integration.rs — 10 integration tests covering all 5 invariants including concurrent resolution",
-        "docs/BANZA_REFERENCE.md §6.3 — 4-layer routing architecture diagram, routing state table, determinism rationale",
         "E2E HTTP: GET /internal/v1/identity/resolve/fm65?currency=AOA → {wallet_id: 611eac29, routing_status: ROUTABLE} via live core-api",
         "E2E HTTP: GET /internal/v1/identity/resolve/pubapi_e2e_final → {wallet_id: 740e6295, ROUTABLE} — wallet from WAL-001D E2E",
         "E2E latency: p99=6ms (n=20, min=1.7ms, median=2.2ms) — criterion 2 and 4 met without Redis cache",
@@ -1656,9 +1387,18 @@
             "E2E: structured 404 and 400 confirmed via live core-api",
             "SQL INV-HDL-002-1 — 0 duplicate active wallets per handle"
           ]
+        },
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22",
+      "lastUpdated": "2026-06-13",
       "notes": "Redis cache remains a future throughput optimization for high-load scenarios. Criterion 4 was corrected from implementation mechanism (Redis cache) to product outcome (p99<100ms, deterministic, ACTIVE-only). p99=6ms without cache is 16x under the 100ms threshold. Redis is tracked as a roadmap item, not a validation blocker."
     },
     {
@@ -4826,13 +4566,23 @@
       "evidence": [
         {
           "type": "route",
-          "label": "apps/docs/ — site de documentação",
-          "ref": "apps/docs"
+          "label": "Dashboard do comerciante (Next.js)",
+          "ref": "apps/dashboard/app/(dashboard)/page.tsx"
         },
         {
-          "type": "config",
-          "label": "tsconfig.json — TypeScript estrito",
-          "ref": "apps/docs/tsconfig.json"
+          "type": "route",
+          "label": "Portal admin (Next.js)",
+          "ref": "apps/admin/app/page.tsx"
+        },
+        {
+          "type": "route",
+          "label": "Pagina de pagamento (Next.js)",
+          "ref": "apps/pay/app/page.tsx"
+        },
+        {
+          "type": "route",
+          "label": "Checkout hosted (Next.js)",
+          "ref": "apps/checkout/app/page.tsx"
         }
       ],
       "notes": "Site de documentação em produção e validado. Dashboard de comerciante planeado.",
@@ -4858,8 +4608,23 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-13T19:44:55.643Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
+          "evidence": [
+            "apps/dashboard",
+            "apps/admin",
+            "apps/pay",
+            "apps/checkout"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-13"
     },
     {
       "id": "ARC-004",
@@ -5498,11 +5263,6 @@
         },
         {
           "type": "file",
-          "label": "contracts/README.md — protocol contracts governance",
-          "ref": "contracts/README.md"
-        },
-        {
-          "type": "file",
           "label": "core/jobs/README.md — background job home",
           "ref": "core/jobs/README.md"
         },
@@ -5522,7 +5282,7 @@
           "ref": "README.md"
         }
       ],
-      "notes": "Diretórios físicos de alto risco (sdk/, plugins/, apps/docs, sdk-certification/) não foram movidos — Dockerfiles e deploy.sh dependem das paths actuais. Layout físico vs semântico documentado em README e CLAUDE.md §20.5.",
+      "notes": "Layout congelado ao nível operador. Activos de protocolo (contracts/, sdk-certification/) e o website (apps/docs) foram removidos do repo do operador — ver docs/governance/. tools/check-repository-layout.mjs reflecte o layout actual.",
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -5547,8 +5307,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-20"
+      "history": [
+        {
+          "timestamp": "2026-06-13T19:47:55.092Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-13"
     }
   ]
 }
