@@ -62,7 +62,7 @@ function makeMatrix(
   categories: ValidationCategory[] = [{ id: 'cat-docs', name: 'Docs', description: '' }],
 ): ValidationMatrix {
   return {
-    meta: { version: '1.0', lastUpdated: '2026-05-20', referenceVersion: '1.0', referenceFile: 'BANZA_REFERENCE.md', description: '' },
+    meta: { version: '1.0', lastUpdated: '2026-05-20', referenceVersion: '1.0', referenceFile: 'BANZAMI_REFERENCE.md', description: '' },
     categories,
     items,
   }
@@ -80,7 +80,7 @@ describe('computeConfidence', () => {
 
   it('adds +20 when evidence is non-empty', () => {
     const item = makeItem({
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/docs/app/page.tsx' }],
+      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
     })
     const result = computeConfidence(item)
     expect(result.score).toBeGreaterThanOrEqual(20 + 20)
@@ -145,7 +145,7 @@ describe('computeConfidence', () => {
   it('produces exactly 65 for the DOC-004 current method set (non-financial, evidence, manual_ux, production_review)', () => {
     const item = makeItem({
       categoryId: 'cat-docs',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/docs/app/page.tsx' }],
+      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['manual_ux', 'production_review'],
     })
     expect(computeConfidence(item).score).toBe(65)
@@ -154,7 +154,7 @@ describe('computeConfidence', () => {
   it('produces exactly 80 for DOC-004 after adding unit_tests', () => {
     const item = makeItem({
       categoryId: 'cat-docs',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/docs/app/page.tsx' }],
+      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['unit_tests', 'manual_ux', 'production_review'],
     })
     const result = computeConfidence(item)
@@ -227,7 +227,7 @@ describe('checkItem — confidence gate', () => {
   it('emits VALIDATED_LOW_CONFIDENCE when VALIDATED and score is 65', () => {
     const item = makeItem({
       status: 'VALIDATED',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/docs/app/page.tsx' }],
+      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['manual_ux', 'production_review'],
       // non-financial: score = 20+15+10+20 = 65
     })
@@ -238,7 +238,7 @@ describe('checkItem — confidence gate', () => {
   it('does NOT emit VALIDATED_LOW_CONFIDENCE when VALIDATED and score is exactly 80', () => {
     const item = makeItem({
       status: 'VALIDATED',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/docs/app/page.tsx' }],
+      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['unit_tests', 'manual_ux', 'production_review'],
       // non-financial: score = 20+15+15+10+20 = 80
     })

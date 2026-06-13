@@ -4,6 +4,28 @@
 
 ---
 
+## Current Banzami context (2026-06-13)
+
+Banzami is a **pure commercial payment operator** built on the BANZA protocol. After the purification and minimalization passes, the repository contains only operator material. When validating items, reference these real paths:
+
+| Area | Where it lives | Notes |
+|------|----------------|-------|
+| Financial core (Rust) | `core/` — ledger, wallets, consumer-wallets, transfers, qr, payment-links, transactions, settlement, payouts, reconciliation, risk, compliance, routing, acquiring, identity, api | Single writer of financial tables |
+| API services (Go) | `services/` — api-gateway, public-api, admin-api | Operator API surface |
+| Product apps | `apps/` — dashboard, admin, pay, checkout, mobile, merchant | Merchant/consumer surfaces |
+| SDKs | `sdk/` — typescript, flutter, python, go, php, checkout-web | **Banzami operator integration SDKs** (not protocol SDKs) |
+| Operator docs | `docs/` (markdown) | adr, api, architecture, domains, runbooks, security, compliance, sandbox, standards, validation |
+
+**Removed (do NOT reference as evidence — they no longer exist in this repo):**
+
+- `apps/docs/` — the public website (banzami.com) → removed; matrix items citing `apps/docs/**` are **stale** and should be retired through this Studio's governance flow.
+- `contracts/`, `sdk-certification/` — protocol contracts & certification → owned by the BANZA protocol repo, not the operator.
+- `docs/BANZA_REFERENCE.md` mirror, `docs/banzamia/`, `docs/images/architecture/` — protocol/BanzAI material → removed.
+
+> The validation matrix (`docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json`) still contains VALIDATED items whose evidence points to removed `apps/docs/**` files and whose `meta.referenceFile` names the removed `BANZA_REFERENCE.md`. These are **stale by structure, not by status** — retire/repoint them via the §16 governance flow below (per-item proposal + approval phrases), never by hand-editing the JSON.
+
+---
+
 ## Architectural model
 
 Git is the governance layer.
@@ -40,9 +62,9 @@ Validation Studio (local UI)
   git commit
         ↓
   git push        ← manual step, outside the Studio
-        ↓
-  deployment      ← ./deploy.sh docs-frontend
 ```
+
+> **Current context (BANZAMI-REPOSITORY-MINIMALIZATION-001):** the public website (`apps/docs` — banzami.com) was removed. The validation matrix is no longer website content — it is the operator's **internal governance record** of implementation validation, living in Git. The flow therefore ends at `git push`; there is no website to deploy. The Studio remains the local governance UI for that record.
 
 ---
 
@@ -178,7 +200,8 @@ The lock is enforced at both proposal time and apply time (double verification).
 3. **Pré-visualizar e guardar** → review field-level diff → **Guardar em disco**
 4. **Git Commit** → review affected items → write description → **Criar commit →**
 5. Manually: `git push origin main`
-6. Deploy: `./deploy.sh docs-frontend`
+
+The matrix is an internal governance record committed to Git — there is no website deploy step.
 
 ---
 

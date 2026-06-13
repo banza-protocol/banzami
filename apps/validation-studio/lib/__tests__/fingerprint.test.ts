@@ -21,7 +21,7 @@ function makeItem(overrides: Partial<ValidationItem> = {}): ValidationItem {
     validationMethods: ['production_review'],
     acceptanceCriteria: ['Matrix JSON parseable', 'Studio runs locally'],
     testCoverage: false,
-    evidence: [{ type: 'route', label: '/validacao page', ref: 'apps/docs/app/validacao/page.tsx' }],
+    evidence: [{ type: 'route', label: '/validacao page', ref: 'apps/validation-studio/app/studio/validation/page.tsx' }],
     dependencies: [],
     requires: [],
     affects: [],
@@ -38,7 +38,7 @@ function makeItem(overrides: Partial<ValidationItem> = {}): ValidationItem {
 function makeInput(overrides: Partial<FingerprintInput> = {}): FingerprintInput {
   return {
     item: makeItem(),
-    gitDiff: 'diff --git a/apps/docs/app/validacao/page.tsx',
+    gitDiff: 'diff --git a/apps/validation-studio/app/studio/validation/page.tsx',
     proposedPatch: { status: 'VALIDATED' },
     ...overrides,
   }
@@ -110,7 +110,7 @@ describe('computeFingerprint — sensitivity to evidence', () => {
     const withEvidence = makeInput({
       item: makeItem({
         evidence: [
-          { type: 'route', label: '/validacao', ref: 'apps/docs/app/validacao/page.tsx' },
+          { type: 'route', label: '/validacao', ref: 'apps/validation-studio/app/studio/validation/page.tsx' },
           { type: 'test', label: 'governance.test.ts', ref: 'apps/validation-studio/lib/__tests__/governance.test.ts' },
         ],
       }),
@@ -130,7 +130,7 @@ describe('computeFingerprint — sensitivity to evidence', () => {
     const b = makeInput({
       proposedPatch: {
         status: 'VALIDATED',
-        evidence: [{ type: 'route', label: '/validacao', ref: 'apps/docs/app/validacao/page.tsx' }],
+        evidence: [{ type: 'route', label: '/validacao', ref: 'apps/validation-studio/app/studio/validation/page.tsx' }],
       },
     })
     expect(computeFingerprint(a)).not.toBe(computeFingerprint(b))
@@ -148,7 +148,7 @@ describe('computeFingerprint — sensitivity to gitDiff', () => {
 
   it('changes when gitDiff is empty vs non-empty', () => {
     const a = makeInput({ gitDiff: '' })
-    const b = makeInput({ gitDiff: 'diff --git a/apps/docs/app/validacao/page.tsx' })
+    const b = makeInput({ gitDiff: 'diff --git a/apps/validation-studio/app/studio/validation/page.tsx' })
     expect(computeFingerprint(a)).not.toBe(computeFingerprint(b))
   })
 })
@@ -201,7 +201,7 @@ describe('verifyFingerprint', () => {
     const proposalFp = computeFingerprint(proposalInput)
     const driftedInput = makeInput({
       item: makeItem({
-        evidence: [{ type: 'route', label: 'extra', ref: 'apps/docs/app/page.tsx' }],
+        evidence: [{ type: 'route', label: 'extra', ref: 'apps/validation-studio/app/page.tsx' }],
       }),
     })
     expect(verifyFingerprint(proposalFp, driftedInput)).toBe(false)
