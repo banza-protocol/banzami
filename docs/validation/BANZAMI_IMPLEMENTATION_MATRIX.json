@@ -3383,7 +3383,7 @@
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
       "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
-      "status": "IN_PROGRESS",
+      "status": "IMPLEMENTED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -3403,6 +3403,26 @@
           "type": "component",
           "label": "page.tsx",
           "ref": "apps/dashboard/app/(dashboard)/settings/page.tsx"
+        },
+        {
+          "type": "config",
+          "label": "merchant_team migration",
+          "ref": "db/migrations/0041_merchant_team.sql"
+        },
+        {
+          "type": "component",
+          "label": "team service",
+          "ref": "services/api-gateway/internal/service/team.go"
+        },
+        {
+          "type": "route",
+          "label": "team handler",
+          "ref": "services/api-gateway/internal/handler/team.go"
+        },
+        {
+          "type": "frontend",
+          "label": "team page",
+          "ref": "apps/dashboard/app/(dashboard)/team/page.tsx"
         }
       ],
       "dependencies": [
@@ -3416,9 +3436,11 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 65,
+        "level": "HIGH",
         "basis": [
+          "team subsystem built (DB+gateway+UI) 2026-06-14",
+          "role enforcement on operations pending",
           "code-level evidence audit 2026-06-14"
         ]
       },
@@ -3435,6 +3457,18 @@
           "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
           "evidence": [
             "apps/dashboard/app/(dashboard)/settings/page.tsx"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:28:32Z",
+          "from": "IN_PROGRESS",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "93668066e0438185",
+          "reason": "Team management built (invite by email, VIEWER/OPERATOR roles, immediate removal, per-member access log). Not VALIDATED: role enforcement on operations is modelled but not yet wired.",
+          "evidence": [
+            "db/migrations/0041_merchant_team.sql",
+            "apps/dashboard/app/(dashboard)/team/page.tsx"
           ]
         }
       ],
