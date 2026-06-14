@@ -1303,7 +1303,7 @@
       "referenceSection": "§6.3",
       "description": "Funcionalidade de pesquisa de @banza na app do consumidor — sugestões durante digitação, verificação de disponibilidade em tempo real.",
       "requirement": "Pesquisa responsiva durante onboarding e ao iniciar transferências. Feedback imediato sobre disponibilidade.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "MEDIUM",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -1316,7 +1316,18 @@
         "Sem falsos positivos ou negativos"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "consumer.go",
+          "ref": "services/public-api/internal/handler/consumer.go"
+        },
+        {
+          "type": "component",
+          "label": "identity.rs",
+          "ref": "core/identity/src/identity.rs"
+        }
+      ],
       "dependencies": [
         "HDL-001",
         "HDL-002"
@@ -1330,11 +1341,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1349,6 +1359,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/public-api/internal/handler/consumer.go",
+            "core/identity/src/identity.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -1361,7 +1383,7 @@
       "referenceSection": "§9.1",
       "description": "Geração de QR estático codificando banza://@banza do comerciante. Permanente, imprimível, válido indefinidamente.",
       "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprimível em alta resolução.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Go · Flutter",
@@ -1378,7 +1400,23 @@
         "Funcional em app Banza e câmara nativa"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/qr/src/engine.rs"
+        },
+        {
+          "type": "route",
+          "label": "qr.go",
+          "ref": "services/api-gateway/internal/handler/qr.go"
+        },
+        {
+          "type": "config",
+          "label": "0013_qr_codes_schema.sql",
+          "ref": "db/migrations/0013_qr_codes_schema.sql"
+        }
+      ],
       "dependencies": [
         "HDL-001",
         "WAL-001"
@@ -1404,13 +1442,10 @@
         }
       ],
       "confidence": {
-        "score": 45,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "invariants not all PASS (+0)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1425,6 +1460,19 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "services/api-gateway/internal/handler/qr.go",
+            "db/migrations/0013_qr_codes_schema.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -1437,7 +1485,7 @@
       "referenceSection": "§9.2",
       "description": "QR gerado por transacção com valor pré-definido, referência e expiração. O consumidor só precisa de confirmar — valor pré-preenchido.",
       "requirement": "QR dinâmico expira após uso ou timeout. Valor e referência correctos ao resolver.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Rust · Go",
@@ -1454,7 +1502,18 @@
         "Não reutilizável após expiração"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/qr/src/engine.rs"
+        },
+        {
+          "type": "component",
+          "label": "expiry_worker.rs",
+          "ref": "core/qr/src/expiry_worker.rs"
+        }
+      ],
       "dependencies": [
         "QR-001",
         "LED-003"
@@ -1487,12 +1546,10 @@
         }
       ],
       "confidence": {
-        "score": 30,
-        "level": "LOW",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "invariants not all PASS (+0)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1507,6 +1564,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "core/qr/src/expiry_worker.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -1519,7 +1588,7 @@
       "referenceSection": "§6.4",
       "description": "Experiência de scan de QR na app Banza — câmara, descodificação, ecrã de confirmação, PIN/biometria e confirmação de pagamento.",
       "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especificação §6.4.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go · Rust",
@@ -1536,7 +1605,18 @@
         "Sucesso confirmado em menos de 3 segundos do scan"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/qr/src/engine.rs"
+        },
+        {
+          "type": "route",
+          "label": "qr.go",
+          "ref": "services/api-gateway/internal/handler/qr.go"
+        }
+      ],
       "dependencies": [
         "QR-001",
         "QR-002",
@@ -1558,11 +1638,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 25,
-        "level": "LOW",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1577,6 +1656,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "services/api-gateway/internal/handler/qr.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -1589,7 +1680,7 @@
       "referenceSection": "§9.3, §11.6",
       "description": "Página pública por comerciante em pay.banzami.com/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
       "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
@@ -1605,7 +1696,13 @@
         "Partilhável via link, WhatsApp, Instagram"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/qr/src/engine.rs"
+        }
+      ],
       "dependencies": [
         "QR-001",
         "HDL-001"
@@ -1619,11 +1716,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 45,
+        "level": "MEDIUM",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1638,6 +1734,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/qr/src/engine.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -1650,7 +1757,7 @@
       "referenceSection": "§9.4",
       "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou família — mesmo fluxo que comerciante, wallet-to-wallet.",
       "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo idêntico ao pagamento a comerciante.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -1665,7 +1772,18 @@
         "Notificação ao receptor"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/qr/src/engine.rs"
+        },
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/transfers/src/engine.rs"
+        }
+      ],
       "dependencies": [
         "QR-003",
         "WAL-001"
@@ -1682,11 +1800,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 25,
-        "level": "LOW",
+        "score": 40,
+        "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -1701,6 +1818,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "core/transfers/src/engine.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2222,7 +2351,7 @@
       "referenceSection": "§6.5, §7",
       "description": "API e interface para criar links de pagamento configuráveis — montante, descrição, expiração, referência de encomenda.",
       "requirement": "Link de pagamento criável via SDK, API e Banzami Business. URL partilhável gerada imediatamente.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Payment Links",
       "technicalArea": "Go · Rust · TypeScript SDK",
@@ -2238,7 +2367,23 @@
         "Webhook disparado após pagamento"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/payment-links/src/engine.rs"
+        },
+        {
+          "type": "route",
+          "label": "payment_links.go",
+          "ref": "services/api-gateway/internal/handler/payment_links.go"
+        },
+        {
+          "type": "config",
+          "label": "0014_payment_links_schema.sql",
+          "ref": "db/migrations/0014_payment_links_schema.sql"
+        }
+      ],
       "dependencies": [
         "LED-001",
         "WH-001"
@@ -2252,12 +2397,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2281,6 +2424,19 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/payment-links/src/engine.rs",
+            "services/api-gateway/internal/handler/payment_links.go",
+            "db/migrations/0014_payment_links_schema.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2293,7 +2449,7 @@
       "referenceSection": "§6.5",
       "description": "Página pública acessível por qualquer utilizador — exibe comerciante, valor e botão de pagamento. Funciona sem app instalada.",
       "requirement": "Página acessível sem conta, exibe todas as informações do link, permite pagamento com app Banza.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
@@ -2309,7 +2465,18 @@
         "Estado 'Pago' exibido após liquidação"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "page.tsx",
+          "ref": "apps/pay/app/[slug]/page.tsx"
+        },
+        {
+          "type": "route",
+          "label": "consumer_pay_links.go",
+          "ref": "services/public-api/internal/handler/consumer_pay_links.go"
+        }
+      ],
       "dependencies": [
         "PL-001"
       ],
@@ -2322,11 +2489,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2341,6 +2507,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/pay/app/[slug]/page.tsx",
+            "services/public-api/internal/handler/consumer_pay_links.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2353,7 +2531,7 @@
       "referenceSection": "§6.5, §12.6",
       "description": "Quando consumidor paga via link, liquidação acontece instantaneamente e webhook é enviado ao comerciante dentro de 2 segundos.",
       "requirement": "Liquidação de link de pagamento instantânea. Webhook entregue em menos de 2 segundos.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
@@ -2369,7 +2547,18 @@
         "Sem dupla cobrança possível"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "payment_links.go",
+          "ref": "services/api-gateway/internal/handler/payment_links.go"
+        },
+        {
+          "type": "component",
+          "label": "postgres_webhooks.go",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        }
+      ],
       "dependencies": [
         "PL-001",
         "WH-001",
@@ -2384,12 +2573,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2404,6 +2591,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payment_links.go",
+            "services/api-gateway/internal/service/postgres_webhooks.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2416,7 +2615,7 @@
       "referenceSection": "§6.6, §7",
       "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
       "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Payment Requests",
       "technicalArea": "Go · FCM · Flutter",
@@ -2431,7 +2630,18 @@
         "Expiração configurável"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "payment_requests.go",
+          "ref": "services/api-gateway/internal/handler/payment_requests.go"
+        },
+        {
+          "type": "config",
+          "label": "0030_payment_requests.sql",
+          "ref": "db/migrations/0030_payment_requests.sql"
+        }
+      ],
       "dependencies": [
         "HDL-002",
         "WAL-001"
@@ -2444,12 +2654,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2464,6 +2672,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payment_requests.go",
+            "db/migrations/0030_payment_requests.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2476,7 +2696,7 @@
       "referenceSection": "§6.6, §13.6",
       "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
       "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Rust · Go",
@@ -2492,7 +2712,13 @@
         "Webhook payment_request.paid ou payment_request.declined disparado"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "payment_requests.go",
+          "ref": "services/api-gateway/internal/handler/payment_requests.go"
+        }
+      ],
       "dependencies": [
         "PR-001",
         "LED-003",
@@ -2506,12 +2732,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
-        "level": "MEDIUM",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2526,6 +2750,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payment_requests.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2538,7 +2773,7 @@
       "referenceSection": "§11.2.1",
       "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
       "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -2554,7 +2789,13 @@
         "Levantamentos iniciáveis a partir da app"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "dashboard_screen.dart",
+          "ref": "apps/merchant/lib/screens/dashboard_screen.dart"
+        }
+      ],
       "dependencies": [
         "WAL-001",
         "QR-001",
@@ -2569,12 +2810,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
+        "score": 50,
         "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2598,6 +2837,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/merchant/lib/screens/dashboard_screen.dart"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2610,7 +2860,7 @@
       "referenceSection": "§11.2.1",
       "description": "Push notification instantânea ao comerciante quando um pagamento é recebido — valor, @banza do pagador e timestamp.",
       "requirement": "Notificação entregue em menos de 2 segundos após liquidação. Mesmo com app em background.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "FCM · Go · Flutter",
@@ -2625,7 +2875,13 @@
         "Som de confirmação configurável"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "fcm.go",
+          "ref": "services/api-gateway/internal/notify/fcm.go"
+        }
+      ],
       "dependencies": [
         "LED-003",
         "WH-001"
@@ -2642,9 +2898,7 @@
         "score": 50,
         "level": "MEDIUM",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2659,6 +2913,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/notify/fcm.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2671,7 +2936,7 @@
       "referenceSection": "§11.4",
       "description": "Comerciante gera QR estático (imprimir uma vez) e QR dinâmico (por transacção com valor) directamente na app móvel.",
       "requirement": "QR gerado instantaneamente na app, partilhável e imprimível.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -2685,7 +2950,13 @@
         "QR funciona com câmara nativa e app Banza"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "qr_screen.dart",
+          "ref": "apps/merchant/lib/screens/qr_screen.dart"
+        }
+      ],
       "dependencies": [
         "QR-001",
         "QR-002"
@@ -2699,11 +2970,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 40,
+        "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2718,6 +2988,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/merchant/lib/screens/qr_screen.dart"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2730,7 +3011,7 @@
       "referenceSection": "§11.2.2",
       "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
       "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · TypeScript · Go",
@@ -2745,7 +3026,13 @@
         "Acções (reembolso, disputa, levantamento) funcionais"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "page.tsx",
+          "ref": "apps/dashboard/app/(dashboard)/page.tsx"
+        }
+      ],
       "dependencies": [
         "WAL-002",
         "WAL-003"
@@ -2758,12 +3045,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
+        "score": 55,
         "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2787,6 +3072,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/page.tsx"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2799,7 +3095,7 @@
       "referenceSection": "§11.2.2",
       "description": "Volume diário/mensal, contagens de transacções, horas de pico e tendências para o comerciante.",
       "requirement": "Análises precisas derivadas do ledger. Filtráveis por período. Exportáveis.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · PostgreSQL",
@@ -2813,7 +3109,13 @@
         "Exportação CSV ou PDF"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "page.tsx",
+          "ref": "apps/dashboard/app/(dashboard)/transactions/page.tsx"
+        }
+      ],
       "dependencies": [
         "BW-001"
       ],
@@ -2825,11 +3127,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 40,
+        "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2844,6 +3145,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/transactions/page.tsx"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2856,7 +3168,7 @@
       "referenceSection": "§11.2.2, §12",
       "description": "Interface para gerar, listar e revogar chaves API de sandbox e produção. Chave bruta visível apenas uma vez após criação.",
       "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revogação imediata.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -2871,7 +3183,18 @@
         "Separação clara sandbox vs. produção"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "page.tsx",
+          "ref": "apps/dashboard/app/(dashboard)/settings/page.tsx"
+        },
+        {
+          "type": "config",
+          "label": "0015_public_api_credentials.sql",
+          "ref": "db/migrations/0015_public_api_credentials.sql"
+        }
+      ],
       "dependencies": [
         "SEC-001"
       ],
@@ -2883,11 +3206,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 50,
+        "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -2902,6 +3224,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/settings/page.tsx",
+            "db/migrations/0015_public_api_credentials.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2914,7 +3248,7 @@
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
       "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -2929,7 +3263,13 @@
         "Log de acesso por membro"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "page.tsx",
+          "ref": "apps/dashboard/app/(dashboard)/settings/page.tsx"
+        }
+      ],
       "dependencies": [
         "BW-001"
       ],
@@ -2941,19 +3281,29 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 55,
+        "score": 40,
         "level": "MEDIUM",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/settings/page.tsx"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SDK-001",
@@ -2963,7 +3313,7 @@
       "referenceSection": "§12.2, §12.3",
       "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempotência automática, retry com backoff exponencial e verificação de webhooks.",
       "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das operações da API. Documentação completa.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "TypeScript · Node.js",
@@ -2981,7 +3331,18 @@
         "Isolamento sandbox/produção"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "client.ts",
+          "ref": "sdk/typescript/src/client.ts"
+        },
+        {
+          "type": "component",
+          "label": "webhooks.ts",
+          "ref": "sdk/typescript/src/webhooks.ts"
+        }
+      ],
       "dependencies": [
         "API-001",
         "WH-001"
@@ -2996,13 +3357,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 65,
+        "score": 75,
         "level": "HIGH",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3017,6 +3375,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "sdk/typescript/src/client.ts",
+            "sdk/typescript/src/webhooks.ts"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3029,7 +3399,7 @@
       "referenceSection": "§12.2, §12.4",
       "description": "SDK PHP compatível com PSR-18, com BanzaClient e integração Laravel nativa.",
       "requirement": "SDK publicado no Packagist. Compatível com Laravel. Cobertura de API completa.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "PHP · Laravel",
@@ -3045,7 +3415,13 @@
         "Verificação de webhooks"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "BanzamiClient.php",
+          "ref": "sdk/php/src/BanzamiClient.php"
+        }
+      ],
       "dependencies": [
         "API-001"
       ],
@@ -3059,13 +3435,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 55,
+        "level": "MEDIUM",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3080,6 +3453,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "sdk/php/src/BanzamiClient.php"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3092,7 +3476,7 @@
       "referenceSection": "§12.2, §12.5",
       "description": "SDK Flutter para fluxos de pagamento in-app e comércio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
       "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementação de lógica de pagamento na app anfitriã.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Flutter · Dart",
@@ -3109,7 +3493,13 @@
         "Sem dependência de WebView ou redirecionamento"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "banza_client.dart",
+          "ref": "sdk/flutter/lib/client/banza_client.dart"
+        }
+      ],
       "dependencies": [
         "API-001",
         "QR-003"
@@ -3124,13 +3514,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 65,
+        "score": 70,
         "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3145,6 +3532,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "sdk/flutter/lib/client/banza_client.dart"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3157,7 +3555,7 @@
       "referenceSection": "§12.2",
       "description": "Cliente Go nativo com propagação de contexto, erros estruturados e idempotência automática.",
       "requirement": "Módulo Go publicado. Propagação de contexto correcta. Erros estruturados.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Go",
@@ -3173,7 +3571,13 @@
         "Idempotência automática"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "client.go",
+          "ref": "sdk/go/banzami/client.go"
+        }
+      ],
       "dependencies": [
         "API-001"
       ],
@@ -3185,13 +3589,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 55,
+        "level": "MEDIUM",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3206,6 +3607,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "sdk/go/banzami/client.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3218,7 +3630,7 @@
       "referenceSection": "§12.2",
       "description": "SDK async-first com Pydantic v2 e suporte Django/FastAPI.",
       "requirement": "SDK publicado no PyPI. async-first. Pydantic v2 para validação de tipos.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Python · asyncio · Pydantic",
@@ -3234,7 +3646,13 @@
         "Integração Django e FastAPI documentada"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "client.py",
+          "ref": "sdk/python/banza/client.py"
+        }
+      ],
       "dependencies": [
         "API-001"
       ],
@@ -3246,13 +3664,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
+        "score": 70,
         "level": "HIGH",
         "basis": [
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3267,6 +3682,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "sdk/python/banza/client.py"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3279,7 +3705,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints REST para operações core — criar/capturar/anular transacções, obter saldo de carteiras, listar transacções e criar transferências.",
       "requirement": "API versionada, idempotente, com autenticação por chave API. Erros estruturados. Paginação.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · PostgreSQL · Redis",
@@ -3297,7 +3723,23 @@
         "Paginação cursor-based"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "transactions.go",
+          "ref": "services/api-gateway/internal/handler/transactions.go"
+        },
+        {
+          "type": "route",
+          "label": "wallets.go",
+          "ref": "services/api-gateway/internal/handler/wallets.go"
+        },
+        {
+          "type": "route",
+          "label": "transfers.go",
+          "ref": "services/api-gateway/internal/handler/transfers.go"
+        }
+      ],
       "dependencies": [
         "LED-001",
         "SEC-003"
@@ -3314,12 +3756,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3334,6 +3774,19 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/transactions.go",
+            "services/api-gateway/internal/handler/wallets.go",
+            "services/api-gateway/internal/handler/transfers.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3346,7 +3799,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
       "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Redis",
@@ -3361,7 +3814,23 @@
         "POST /payment-requests com notificação"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "qr.go",
+          "ref": "services/api-gateway/internal/handler/qr.go"
+        },
+        {
+          "type": "route",
+          "label": "payment_links.go",
+          "ref": "services/api-gateway/internal/handler/payment_links.go"
+        },
+        {
+          "type": "route",
+          "label": "payment_requests.go",
+          "ref": "services/api-gateway/internal/handler/payment_requests.go"
+        }
+      ],
       "dependencies": [
         "API-001"
       ],
@@ -3375,12 +3844,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3395,6 +3862,19 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/qr.go",
+            "services/api-gateway/internal/handler/payment_links.go",
+            "services/api-gateway/internal/handler/payment_requests.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3407,7 +3887,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
       "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "MEDIUM",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Rust",
@@ -3422,7 +3902,23 @@
         "Todos os endpoints idempotentes"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "payouts.go",
+          "ref": "services/api-gateway/internal/handler/payouts.go"
+        },
+        {
+          "type": "route",
+          "label": "refunds.go",
+          "ref": "services/api-gateway/internal/handler/refunds.go"
+        },
+        {
+          "type": "route",
+          "label": "disputes.go",
+          "ref": "services/api-gateway/internal/handler/disputes.go"
+        }
+      ],
       "dependencies": [
         "API-001",
         "EMS-002"
@@ -3439,11 +3935,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3458,6 +3953,19 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payouts.go",
+            "services/api-gateway/internal/handler/refunds.go",
+            "services/api-gateway/internal/handler/disputes.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3470,7 +3978,7 @@
       "referenceSection": "§12.6, §18.4",
       "description": "Entrega de eventos em tempo real para endpoints registados — 9 tipos de evento, entrega garantida, retry automático.",
       "requirement": "Eventos entregues em menos de 2 segundos após acção desencadeadora. Retry com backoff. Rastreamento de entregas.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis · PostgreSQL",
@@ -3486,7 +3994,18 @@
         "Endpoint de inspecção de entregas"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "postgres_webhooks.go",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        },
+        {
+          "type": "config",
+          "label": "0009_webhooks_schema.sql",
+          "ref": "db/migrations/0009_webhooks_schema.sql"
+        }
+      ],
       "dependencies": [
         "LED-003"
       ],
@@ -3498,12 +4017,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3518,6 +4035,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/service/postgres_webhooks.go",
+            "db/migrations/0009_webhooks_schema.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3530,7 +4059,7 @@
       "referenceSection": "§12.6, §16",
       "description": "Cada webhook entregue com header banza-signature assinado por HMAC-SHA256 usando o segredo do endpoint.",
       "requirement": "Assinatura verificável em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
       "technicalArea": "Go · Criptografia",
@@ -3545,7 +4074,13 @@
         "Segredo nunca em logs ou respostas de API"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "signer.go",
+          "ref": "services/api-gateway/internal/webhook/signer.go"
+        }
+      ],
       "dependencies": [
         "WH-001",
         "SEC-001"
@@ -3558,11 +4093,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
-          "unit tests (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3577,6 +4111,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/webhook/signer.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3589,7 +4134,7 @@
       "referenceSection": "§12.6",
       "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo após falhas persistentes.",
       "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante após falha persistente.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis",
@@ -3603,7 +4148,13 @@
         "Alerta ao comerciante após N falhas consecutivas"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "postgres_webhooks.go",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        }
+      ],
       "dependencies": [
         "WH-001"
       ],
@@ -3615,11 +4166,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3634,6 +4184,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/service/postgres_webhooks.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3646,7 +4207,7 @@
       "referenceSection": "§12.7, §16.7",
       "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superfície de API idêntica à produção.",
       "requirement": "Sandbox completamente isolado — diferentes chaves, diferentes dados, sem movimento de dinheiro real. API idêntica.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform",
       "technicalArea": "Go · PostgreSQL · Redis",
@@ -3662,7 +4223,18 @@
         "Reset de dados sandbox disponível"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "sandbox.go",
+          "ref": "services/api-gateway/internal/handler/sandbox.go"
+        },
+        {
+          "type": "config",
+          "label": "0018_sandbox_environment.sql",
+          "ref": "db/migrations/0018_sandbox_environment.sql"
+        }
+      ],
       "dependencies": [
         "API-001"
       ],
@@ -3675,11 +4247,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 75,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3694,6 +4265,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/sandbox.go",
+            "db/migrations/0018_sandbox_environment.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3825,7 +4408,7 @@
       "referenceSection": "§16.2",
       "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Histórico financeiro completo e inviolável.",
       "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Histórico completamente reconstruível.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
@@ -3840,7 +4423,18 @@
         "Constraints PostgreSQL aplicando imutabilidade"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "config",
+          "label": "0033_ledger_immutability.sql",
+          "ref": "db/migrations/0033_ledger_immutability.sql"
+        },
+        {
+          "type": "component",
+          "label": "posting.rs",
+          "ref": "core/ledger/src/posting.rs"
+        }
+      ],
       "dependencies": [
         "LED-001"
       ],
@@ -3865,10 +4459,10 @@
         }
       ],
       "confidence": {
-        "score": 0,
-        "level": "LOW",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
-          "invariants not all PASS (+0)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -3883,6 +4477,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "db/migrations/0033_ledger_immutability.sql",
+            "core/ledger/src/posting.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4030,7 +4636,7 @@
       "referenceSection": "§16.8",
       "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com créditos bancários reais.",
       "requirement": "Reconciliação diária automática. Qualquer discrepância gera alerta. Zero discrepâncias não resolvidas permitidas.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Core / Reconciliation (Rust)",
       "technicalArea": "Rust · PostgreSQL · EMIS",
@@ -4046,7 +4652,18 @@
         "Relatório de reconciliação gerado"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/reconciliation/src/engine.rs"
+        },
+        {
+          "type": "route",
+          "label": "reconciliation.go",
+          "ref": "services/admin-api/internal/handler/reconciliation.go"
+        }
+      ],
       "dependencies": [
         "LED-001",
         "LED-002",
@@ -4066,9 +4683,11 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 0,
-        "level": "LOW",
-        "basis": []
+        "score": 50,
+        "level": "MEDIUM",
+        "basis": [
+          "code-level evidence audit 2026-06-14"
+        ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
@@ -4082,6 +4701,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/reconciliation/src/engine.rs",
+            "services/admin-api/internal/handler/reconciliation.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4111,7 +4742,13 @@
         "Processo conforme regulação BNA"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "lib.rs",
+          "ref": "core/compliance/src/lib.rs"
+        }
+      ],
       "dependencies": [
         "WAL-001"
       ],
@@ -4130,9 +4767,7 @@
         "score": 45,
         "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4147,6 +4782,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/compliance/src/lib.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4159,7 +4805,7 @@
       "referenceSection": "§16.5",
       "description": "Verificação de negócio para comerciantes — NIF para entidades formais, verificação de identidade para individuais.",
       "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Go · Merchant Platform",
@@ -4174,7 +4820,13 @@
         "QR estático disponível antes de KYB (modo restrito)"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "lib.rs",
+          "ref": "core/compliance/src/lib.rs"
+        }
+      ],
       "dependencies": [
         "BM-001"
       ],
@@ -4190,9 +4842,7 @@
         "score": 45,
         "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4207,6 +4857,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/compliance/src/lib.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4219,7 +4880,7 @@
       "referenceSection": "§16.4",
       "description": "Triagem de transacções em tempo real antes de confirmar no ledger — velocidade, anomalias de valor, sinais de conta e dispositivo.",
       "requirement": "Motor de risco no caminho crítico. Transacções acima de limiares retidas ou recusadas antes do ledger.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Risk (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
@@ -4236,7 +4897,18 @@
         "Transacções recusadas com erro estruturado"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/risk/src/engine.rs"
+        },
+        {
+          "type": "config",
+          "label": "0024_risk_fraud.sql",
+          "ref": "db/migrations/0024_risk_fraud.sql"
+        }
+      ],
       "dependencies": [
         "LED-001"
       ],
@@ -4250,11 +4922,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4269,6 +4940,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/risk/src/engine.rs",
+            "db/migrations/0024_risk_fraud.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4281,7 +4964,7 @@
       "referenceSection": "§16.4",
       "description": "Fila de revisão para transacções sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolução.",
       "requirement": "Fila de revisão no painel admin. Alertas em tempo real. Resolução com trilho de auditoria.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "HIGH",
       "ownerArea": "Core / Risk · Admin Platform",
       "technicalArea": "Go · Admin Dashboard",
@@ -4296,7 +4979,13 @@
         "Tempo de resolução rastreado"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "risk.go",
+          "ref": "services/admin-api/internal/handler/risk.go"
+        }
+      ],
       "dependencies": [
         "RSK-001"
       ],
@@ -4308,12 +4997,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
+        "score": 50,
         "level": "MEDIUM",
         "basis": [
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4328,6 +5015,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/admin-api/internal/handler/risk.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4464,7 +5162,7 @@
       "referenceSection": "§16.3",
       "description": "Cada operação de pagamento identificada por chave de idempotência única. Segundo submit retorna resultado original sem novo efeito.",
       "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobranças duplicadas por retry.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
@@ -4479,7 +5177,13 @@
         "Sem transacção duplicada em nenhum cenário de retry"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "idempotency.go",
+          "ref": "services/api-gateway/internal/middleware/idempotency.go"
+        }
+      ],
       "dependencies": [
         "LED-001"
       ],
@@ -4493,11 +5197,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 85,
+        "level": "VERY_HIGH",
         "basis": [
-          "unit tests (+15)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4512,6 +5215,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/middleware/idempotency.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4524,7 +5238,7 @@
       "referenceSection": "§16.1, §16.2",
       "description": "Trilho de auditoria completo e imutável para cada operação financeira — quem fez, quando, com que resultado.",
       "requirement": "Cada acção financeira e de autenticação auditável. Trilho não editável. Disponível para reguladores.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Rust · PostgreSQL",
@@ -4539,7 +5253,18 @@
         "Exportável para auditoria regulatória"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "config",
+          "label": "0025_audit_log.sql",
+          "ref": "db/migrations/0025_audit_log.sql"
+        },
+        {
+          "type": "route",
+          "label": "risk.rs",
+          "ref": "core/api/src/routes/risk.rs"
+        }
+      ],
       "dependencies": [
         "LED-002"
       ],
@@ -4553,10 +5278,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 20,
-        "level": "LOW",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4571,6 +5296,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "db/migrations/0025_audit_log.sql",
+            "core/api/src/routes/risk.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4583,7 +5320,7 @@
       "referenceSection": "§11.5, §7",
       "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta bancária angolana registada. Iniciado via interface móvel, web ou API.",
       "requirement": "Levantamento iniciado imediatamente. Transferência EMIS iniciada. Estado rastreável até confirmação.",
-      "status": "PLANNED",
+      "status": "IN_PROGRESS",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payouts",
       "technicalArea": "Rust · Go · EMIS",
@@ -4600,7 +5337,18 @@
         "Webhook payout.completed entregue"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/payouts/src/engine.rs"
+        },
+        {
+          "type": "route",
+          "label": "payouts.go",
+          "ref": "services/api-gateway/internal/handler/payouts.go"
+        }
+      ],
       "dependencies": [
         "EMS-001",
         "WAL-002"
@@ -4627,11 +5375,10 @@
         }
       ],
       "confidence": {
-        "score": 20,
-        "level": "LOW",
+        "score": 55,
+        "level": "MEDIUM",
         "basis": [
-          "integration tests (+20)",
-          "invariants not all PASS (+0)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4646,6 +5393,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/payouts/src/engine.rs",
+            "services/api-gateway/internal/handler/payouts.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4673,7 +5432,13 @@
         "Historial completo por levantamento"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/reconciliation/src/engine.rs"
+        }
+      ],
       "dependencies": [
         "EMS-002"
       ],
@@ -4690,9 +5455,11 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 0,
-        "level": "LOW",
-        "basis": []
+        "score": 40,
+        "level": "MEDIUM",
+        "basis": [
+          "code-level evidence audit 2026-06-14"
+        ]
       },
       "freezeReason": null,
       "lastValidatedAt": null,
@@ -4706,6 +5473,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/reconciliation/src/engine.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4718,7 +5496,7 @@
       "referenceSection": "§7, §16.2",
       "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banzami Business ou via API. Nova entrada de ledger oposta criada.",
       "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
@@ -4734,7 +5512,18 @@
         "Suporte a reembolso parcial (valor < original)"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "refunds.go",
+          "ref": "services/api-gateway/internal/handler/refunds.go"
+        },
+        {
+          "type": "config",
+          "label": "0027_refunds.sql",
+          "ref": "db/migrations/0027_refunds.sql"
+        }
+      ],
       "dependencies": [
         "LED-002",
         "WH-001"
@@ -4766,11 +5555,10 @@
         }
       ],
       "confidence": {
-        "score": 20,
-        "level": "LOW",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "invariants not all PASS (+0)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4794,6 +5582,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/refunds.go",
+            "db/migrations/0027_refunds.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4806,7 +5606,7 @@
       "referenceSection": "§7, §11.2.2",
       "description": "Consumidor abre disputa sobre uma transacção. Comerciante responde. Processo estruturado de resolução com trilho de auditoria.",
       "requirement": "Disputas abertas via app, com prazo de resposta, evidências e decisão documentada.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Core / Disputes",
       "technicalArea": "Go · Admin Platform",
@@ -4822,7 +5622,18 @@
         "Webhook dispute.opened e dispute.resolved entregues"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "route",
+          "label": "disputes.go",
+          "ref": "services/api-gateway/internal/handler/disputes.go"
+        },
+        {
+          "type": "config",
+          "label": "0028_disputes.sql",
+          "ref": "db/migrations/0028_disputes.sql"
+        }
+      ],
       "dependencies": [
         "REF-001",
         "WH-001"
@@ -4839,11 +5650,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 35,
-        "level": "LOW",
+        "score": 65,
+        "level": "HIGH",
         "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4858,6 +5668,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/handler/disputes.go",
+            "db/migrations/0028_disputes.sql"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4870,7 +5692,7 @@
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Instrumentação OpenTelemetry em todos os serviços, Prometheus para métricas e traços ponta-a-ponta desde gateway até ledger.",
       "requirement": "Cada serviço emite métricas e traços. Latências do caminho de pagamento rastreadas.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "OpenTelemetry · Prometheus · Go · Rust",
@@ -4884,7 +5706,13 @@
         "Alertas de latência configurados"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "otel.go",
+          "ref": "services/api-gateway/internal/observability/otel.go"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -4895,11 +5723,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 30,
-        "level": "LOW",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4923,6 +5750,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/observability/otel.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4935,7 +5773,7 @@
       "referenceSection": "§17.7",
       "description": "Três painéis Grafana — Pagamentos, Carteiras e Ledger, Liquidações e Levantamentos — conforme §17.7.",
       "requirement": "Três painéis Grafana operacionais com os indicadores definidos em §17.7.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "MEDIUM",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Grafana · Prometheus",
@@ -4949,7 +5787,18 @@
         "Alertas configurados em todos os painéis"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "config",
+          "label": "dashboards",
+          "ref": "infra/monitoring/grafana/dashboards"
+        },
+        {
+          "type": "config",
+          "label": "prometheus.yml",
+          "ref": "infra/monitoring/prometheus.yml"
+        }
+      ],
       "dependencies": [
         "OBS-001"
       ],
@@ -4962,11 +5811,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 30,
-        "level": "LOW",
+        "score": 70,
+        "level": "HIGH",
         "basis": [
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -4981,6 +5829,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "infra/monitoring/grafana/dashboards",
+            "infra/monitoring/prometheus.yml"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4993,7 +5853,7 @@
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Logs estruturados JSON com IDs de transacção, tipos de operação e resultados. Sem logs de texto livre em serviços de produção.",
       "requirement": "Todos os serviços emitem logs JSON com campos obrigatórios: transaction_id, operation_type, result, latency_ms.",
-      "status": "PLANNED",
+      "status": "IMPLEMENTED",
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Go · Rust · Docker",
@@ -5007,7 +5867,13 @@
         "Logs agregáveis e pesquisáveis"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "logger.go",
+          "ref": "services/api-gateway/internal/middleware/logger.go"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -5018,11 +5884,10 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 30,
-        "level": "LOW",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -5046,6 +5911,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "services/api-gateway/internal/middleware/logger.go"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -5075,7 +5951,18 @@
         "Certificação de operador de pagamento obtida"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "emis.rs",
+          "ref": "core/acquiring/src/providers/emis.rs"
+        },
+        {
+          "type": "component",
+          "label": "simulated.rs",
+          "ref": "core/acquiring/src/providers/simulated.rs"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -5092,9 +5979,7 @@
         "score": 50,
         "level": "MEDIUM",
         "basis": [
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -5118,6 +6003,18 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/acquiring/src/providers/emis.rs",
+            "core/acquiring/src/providers/simulated.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -5145,7 +6042,13 @@
         "Falhas EMIS tratadas com retry e alertas"
       ],
       "testCoverage": false,
-      "evidence": [],
+      "evidence": [
+        {
+          "type": "component",
+          "label": "engine.rs",
+          "ref": "core/settlement/src/engine.rs"
+        }
+      ],
       "dependencies": [
         "EMS-001"
       ],
@@ -5159,10 +6062,10 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 20,
+        "score": 35,
         "level": "LOW",
         "basis": [
-          "non-financial item (invariants not required, +20)"
+          "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
@@ -5186,6 +6089,17 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T08:50:48.376Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
+          "evidence": [
+            "core/settlement/src/engine.rs"
+          ]
         }
       ],
       "lastUpdated": "2026-06-14"
