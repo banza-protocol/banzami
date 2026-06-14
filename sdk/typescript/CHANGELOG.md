@@ -22,8 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Payment links: `createPaymentLink`, `listPaymentLinks`, `getPaymentLink`, `cancelPaymentLink`, `getPublicPaymentLink`, `getPaymentLinkStatus`
 - Webhook endpoint management: `listWebhookEndpoints`, `registerWebhookEndpoint`, `deleteWebhookEndpoint`, `listWebhookEvents`
 - `BanzamiApiError` with typed getters: `isNotFound`, `isUnauthorized`, `isForbidden`, `isConflict`, `isInsufficientFunds`, `isHandleNotFound`, `isHandleTaken`, `isWalletNotFound`, `isWalletNotActive`
-- Money utilities exported from `@banza/sdk/money`: `formatMinor`, `addMinor`, `subtractMinor`
-- Theme design tokens exported from `@banza/sdk/theme`: `colors`, `tailwindTokens`, `cssVariables`
+- Money utilities exported from `@banzami/sdk/money`: `formatMinor`, `addMinor`, `subtractMinor`
+- Theme design tokens exported from `@banzami/sdk/theme`: `colors`, `tailwindTokens`, `cssVariables`
 - Full TypeScript type exports for all domain models: `Consumer`, `Wallet`, `Transfer`, `Transaction`, `Payout`, `PaymentLink`, `QrCode`, `Merchant`, `WebhookEndpoint`, `WebhookEvent`, and supporting types
 - Automatic idempotency key generation for all POST requests
 - Retry logic for HTTP 429, 502, 503, and 504 responses

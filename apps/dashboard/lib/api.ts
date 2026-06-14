@@ -2,7 +2,7 @@
  * Banzami API client for the merchant dashboard.
  *
  * This module provides the `BanzamiApi` compatibility adapter, which wraps
- * the official `@banza/sdk` `BanzamiClient`. Dashboard components use
+ * the official `@banzami/sdk` `BanzamiClient`. Dashboard components use
  * `new BanzamiApi(gatewayUrl, apiKey)` and this adapter routes calls through
  * the SDK — gaining JWT caching, exponential-backoff retries, typed errors,
  * and automatic idempotency.
@@ -13,10 +13,10 @@
  * are marked as pending SDK support and will migrate when those SDK methods land.
  */
 
-import { BanzamiClient } from '@banza/sdk';
+import { BanzamiClient } from '@banzami/sdk';
 
 // Re-export the error type from the SDK so callers don't need a separate import.
-export { BanzamiApiError } from '@banza/sdk';
+export { BanzamiApiError } from '@banzami/sdk';
 
 // Re-export types from the SDK for use in dashboard components.
 export type {
@@ -32,7 +32,7 @@ export type {
   PaymentLink,
   QrResponse,
   Page,
-} from '@banza/sdk';
+} from '@banzami/sdk';
 
 // Types that the dashboard adds on top of SDK types.
 export interface TransactionPage { data: Transaction[];        next_cursor?: string; }
@@ -131,7 +131,7 @@ export interface EndpointHealth {
 }
 
 // Bring in the re-exported types so the inline definitions above can reference them.
-import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banza/sdk';
+import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } from '@banzami/sdk';
 
 // ---------------------------------------------------------------------------
 // Compatibility adapter
@@ -141,7 +141,7 @@ import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } fr
  * Dashboard API client.
  *
  * Drop-in replacement for the old hand-rolled `BanzamiApi` class.
- * Internally backed by `BanzamiClient` from `@banza/sdk`.
+ * Internally backed by `BanzamiClient` from `@banzami/sdk`.
  *
  * @example
  * ```typescript
@@ -430,7 +430,7 @@ export class BanzamiApi {
   private async _legacyReq<T>(path: string, init?: RequestInit): Promise<T> {
     // Direct fetch — only for endpoints not yet covered by the SDK.
     // Uses Bearer API key; replace with SDK method when available.
-    const { BanzamiApiError } = await import('@banza/sdk');
+    const { BanzamiApiError } = await import('@banzami/sdk');
     const res = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {

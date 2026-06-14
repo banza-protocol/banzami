@@ -160,7 +160,7 @@ export function verifySignature(
  * ```typescript
  * // Express / Node.js
  * import express from 'express';
- * import { constructEvent, SIGNATURE_HEADER } from '@banza/sdk/webhooks';
+ * import { constructEvent, SIGNATURE_HEADER } from '@banzami/sdk/webhooks';
  *
  * app.post('/webhooks/banzami', express.raw({ type: '*\/*' }), (req, res) => {
  *   const event = constructEvent(

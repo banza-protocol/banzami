@@ -1,4 +1,4 @@
-# @banza/sdk
+# @banzami/sdk
 
 Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
@@ -15,7 +15,7 @@ Requires Node.js ≥ 18 (native `fetch`) or a browser environment.
 ## Installation
 
 ```bash
-npm install @banza/sdk
+npm install @banzami/sdk
 ```
 
 ---
@@ -23,7 +23,7 @@ npm install @banza/sdk
 ## Quick start
 
 ```typescript
-import { BanzamiClient } from '@banza/sdk';
+import { BanzamiClient } from '@banzami/sdk';
 
 const client = new BanzamiClient({
   baseUrl: 'https://api.banzami.com',
@@ -59,7 +59,7 @@ if (consumer.status !== 'ACTIVE') {
 ## P2P transfers
 
 ```typescript
-import { BanzamiClient, BanzamiApiError, formatMinor } from '@banza/sdk';
+import { BanzamiClient, BanzamiApiError, formatMinor } from '@banzami/sdk';
 
 const transfer = await client.sendTransfer({
   senderId:    'cns_sender_id',
@@ -333,7 +333,7 @@ await client.revokeApiKey('mch_...', keys[0].id);
 ## Money utilities
 
 ```typescript
-import { formatMinor, addMinor, subtractMinor } from '@banza/sdk/money';
+import { formatMinor, addMinor, subtractMinor } from '@banzami/sdk/money';
 
 formatMinor(50_000, 'AOA');  // "50.000 Kz"
 formatMinor(1099,   'USD');  // "USD 10.99"
@@ -347,7 +347,7 @@ subtractMinor(10_000, 3000); // 7000
 ## Theme tokens (web/Tailwind)
 
 ```typescript
-import { colors, tailwindTokens, cssVariables } from '@banza/sdk/theme';
+import { colors, tailwindTokens, cssVariables } from '@banzami/sdk/theme';
 
 // In tailwind.config.ts:
 export default {

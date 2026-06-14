@@ -1,7 +1,7 @@
 // Run: deploy as app/api/checkout/route.ts in a Next.js App Router project
 
 import { NextRequest, NextResponse } from 'next/server';
-import { BanzamiClient }             from '@banza/sdk';
+import { BanzamiClient }             from '@banzami/sdk';
 
 const banzami = new BanzamiClient({
   baseUrl: process.env.BANZAMI_GATEWAY_URL!,
