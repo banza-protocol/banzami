@@ -50,7 +50,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
     if (!mounted) return;
     setState(() => _checking = false);
 
-    Navigator.of(context).push(BanzaPageRoute(
+    Navigator.of(context).push(BanzamiPageRoute(
       page: SetupPinScreen(handle: handle, displayName: name),
     ));
   }
@@ -58,8 +58,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
-      appBar: const BanzaAppBar(title: 'Criar conta'),
+      backgroundColor: BanzamiColors.offWhite,
+      appBar: const BanzamiAppBar(title: 'Criar conta'),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -81,12 +81,12 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 ),
                 const SizedBox(height: 20),
 
-                const Text('Escolha o seu @banza', style: BanzaTextStyles.displayMd),
+                const Text('Escolha o seu @banza', style: BanzamiTextStyles.displayMd),
                 const SizedBox(height: 8),
                 Text(
                   'É o nome único que as pessoas usam para lhe enviar pagamentos.',
-                  style: BanzaTextStyles.bodyMd.copyWith(
-                    color:  BanzaColors.gray400,
+                  style: BanzamiTextStyles.bodyMd.copyWith(
+                    color:  BanzamiColors.gray400,
                     height: 1.5,
                   ),
                 ),
@@ -96,8 +96,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 TextFormField(
                   controller:      _handleCtrl,
                   decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
-                  style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
-                  cursorColor:     BanzaColors.wine,
+                  style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+                  cursorColor:     BanzamiColors.wine,
                   keyboardType:    TextInputType.visiblePassword,
                   textInputAction: TextInputAction.next,
                   autocorrect:     false,
@@ -120,8 +120,8 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                 TextFormField(
                   controller:         _nameCtrl,
                   decoration:         _fieldDecoration(hint: 'Nome (opcional)'),
-                  style:              BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
-                  cursorColor:        BanzaColors.wine,
+                  style:              BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+                  cursorColor:        BanzamiColors.wine,
                   textCapitalization: TextCapitalization.words,
                   textInputAction:    TextInputAction.done,
                   onFieldSubmitted:   (_) => _continue(),
@@ -129,7 +129,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
 
                 const SizedBox(height: 28),
 
-                BanzaPrimaryButton(
+                BanzamiPrimaryButton(
                   label:     'Continuar',
                   isLoading: _checking,
                   onPressed: _checking ? null : _continue,
@@ -149,29 +149,29 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         hintText:       hint,
         prefixText:     prefix,
         filled:         true,
-        fillColor:      BanzaColors.gray100,
+        fillColor:      BanzamiColors.gray100,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
-        hintStyle:  BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray400),
-        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+        hintStyle:  BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray400),
+        errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
       );
 }

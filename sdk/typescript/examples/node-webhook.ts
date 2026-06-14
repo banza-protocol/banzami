@@ -11,10 +11,10 @@
  */
 
 import { createServer, IncomingMessage, ServerResponse } from 'node:http';
-import { BanzaClient, BanzamiWebhookSignatureError, SIGNATURE_HEADER } from '../src/index.js';
+import { BanzamiClient, BanzamiWebhookSignatureError, SIGNATURE_HEADER } from '../src/index.js';
 import type { WebhookEvent } from '../src/index.js';
 
-const banzami = new BanzaClient({
+const banzami = new BanzamiClient({
   apiKey:        process.env.BANZA_API_KEY!,
   webhookSecret: process.env.BANZA_WEBHOOK_SECRET!,
 });

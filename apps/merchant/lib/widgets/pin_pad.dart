@@ -12,7 +12,7 @@ class PinDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = error ? BanzaColors.error : BanzaColors.wine;
+    final color = error ? BanzamiColors.error : BanzamiColors.wine;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(kPinLength, (i) {
@@ -25,7 +25,7 @@ class PinDots extends StatelessWidget {
             shape: BoxShape.circle,
             color: isFilled ? color : Colors.transparent,
             border: Border.all(
-              color: isFilled ? color : BanzaColors.gray400,
+              color: isFilled ? color : BanzamiColors.gray400,
               width: 1.5,
             ),
           ),
@@ -158,7 +158,7 @@ class _PinPadInnerState extends State<_PinPadInner> {
             width: 96, height: 72,
             child: IconButton(
               onPressed: _delete,
-              icon: const Icon(Icons.backspace_outlined, size: 22, color: BanzaColors.gray700),
+              icon: const Icon(Icons.backspace_outlined, size: 22, color: BanzamiColors.gray700),
             ),
           ),
         ],
@@ -182,11 +182,11 @@ class _DigitKey extends StatelessWidget {
         onPressed: disabled ? null : onTap,
         style: TextButton.styleFrom(
           shape:          const CircleBorder(),
-          foregroundColor: BanzaColors.gray900,
+          foregroundColor: BanzamiColors.gray900,
         ),
         child: Text(
           label,
-          style: BanzaTextStyles.displayMd.copyWith(
+          style: BanzamiTextStyles.displayMd.copyWith(
             fontSize: 28, fontWeight: FontWeight.w500,
           ),
         ),

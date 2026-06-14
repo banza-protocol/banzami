@@ -2,56 +2,56 @@ import 'package:flutter/material.dart';
 
 import '../theme/banza_theme.dart';
 
-enum BanzaButtonVariant { primary, secondary, ghost, destructive }
+enum BanzamiButtonVariant { primary, secondary, ghost, destructive }
 
 /// The canonical Banzami branded button.
 ///
 /// Always 48dp tall on mobile. Never smaller than a 44dp touch target.
 /// Text is always sentence case, never all-caps.
-class BanzaButton extends StatelessWidget {
+class BanzamiButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
-  final BanzaButtonVariant variant;
+  final BanzamiButtonVariant variant;
   final bool isLoading;
   final bool fullWidth;
   final Widget? icon;
 
-  const BanzaButton({
+  const BanzamiButton({
     super.key,
     required this.label,
     this.onPressed,
-    this.variant    = BanzaButtonVariant.primary,
+    this.variant    = BanzamiButtonVariant.primary,
     this.isLoading  = false,
     this.fullWidth  = true,
     this.icon,
   });
 
-  const BanzaButton.secondary({
+  const BanzamiButton.secondary({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
     this.icon,
-  }) : variant = BanzaButtonVariant.secondary;
+  }) : variant = BanzamiButtonVariant.secondary;
 
-  const BanzaButton.ghost({
+  const BanzamiButton.ghost({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = false,
     this.icon,
-  }) : variant = BanzaButtonVariant.ghost;
+  }) : variant = BanzamiButtonVariant.ghost;
 
-  const BanzaButton.destructive({
+  const BanzamiButton.destructive({
     super.key,
     required this.label,
     this.onPressed,
     this.isLoading = false,
     this.fullWidth = true,
     this.icon,
-  }) : variant = BanzaButtonVariant.destructive;
+  }) : variant = BanzamiButtonVariant.destructive;
 
   @override
   Widget build(BuildContext context) {
@@ -69,50 +69,50 @@ class BanzaButton extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   icon!,
-                  const SizedBox(width: BanzaSpacing.sm),
+                  const SizedBox(width: BanzamiSpacing.sm),
                   Text(label, style: _textStyle),
                 ],
               )
             : Text(label, style: _textStyle);
 
     final button = switch (variant) {
-      BanzaButtonVariant.primary => ElevatedButton(
+      BanzamiButtonVariant.primary => ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: BanzaColors.wine,
-            foregroundColor: BanzaColors.white,
+            backgroundColor: BanzamiColors.wine,
+            foregroundColor: BanzamiColors.white,
             minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
             shape:           const RoundedRectangleBorder(
-              borderRadius: BanzaRadius.mdAll,
+              borderRadius: BanzamiRadius.mdAll,
             ),
             elevation: 0,
           ),
           child: child,
         ),
-      BanzaButtonVariant.secondary => OutlinedButton(
+      BanzamiButtonVariant.secondary => OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            foregroundColor: BanzaColors.wine,
+            foregroundColor: BanzamiColors.wine,
             minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
             shape:           const RoundedRectangleBorder(
-              borderRadius: BanzaRadius.mdAll,
+              borderRadius: BanzamiRadius.mdAll,
             ),
-            side: const BorderSide(color: BanzaColors.wine, width: 1.5),
+            side: const BorderSide(color: BanzamiColors.wine, width: 1.5),
           ),
           child: child,
         ),
-      BanzaButtonVariant.ghost => TextButton(
+      BanzamiButtonVariant.ghost => TextButton(
           onPressed: isLoading ? null : onPressed,
           child: child,
         ),
-      BanzaButtonVariant.destructive => ElevatedButton(
+      BanzamiButtonVariant.destructive => ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: BanzaColors.error,
-            foregroundColor: BanzaColors.white,
+            backgroundColor: BanzamiColors.error,
+            foregroundColor: BanzamiColors.white,
             minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
             shape:           const RoundedRectangleBorder(
-              borderRadius: BanzaRadius.mdAll,
+              borderRadius: BanzamiRadius.mdAll,
             ),
             elevation: 0,
           ),
@@ -124,13 +124,13 @@ class BanzaButton extends StatelessWidget {
   }
 
   Color get _contentColor => switch (variant) {
-    BanzaButtonVariant.primary     => BanzaColors.white,
-    BanzaButtonVariant.secondary   => BanzaColors.wine,
-    BanzaButtonVariant.ghost       => BanzaColors.wine,
-    BanzaButtonVariant.destructive => BanzaColors.white,
+    BanzamiButtonVariant.primary     => BanzamiColors.white,
+    BanzamiButtonVariant.secondary   => BanzamiColors.wine,
+    BanzamiButtonVariant.ghost       => BanzamiColors.wine,
+    BanzamiButtonVariant.destructive => BanzamiColors.white,
   };
 
-  TextStyle get _textStyle => BanzaTextStyles.label.copyWith(
+  TextStyle get _textStyle => BanzamiTextStyles.label.copyWith(
     fontSize:   15,
     fontWeight: FontWeight.w600,
     color:      _contentColor,

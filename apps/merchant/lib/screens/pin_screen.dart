@@ -59,7 +59,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
     final session = context.read<MerchantSessionService>().session;
 
     return Scaffold(
-      backgroundColor: BanzaColors.white,
+      backgroundColor: BanzamiColors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -68,14 +68,14 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
               const Spacer(flex: 2),
               Text(
                 session?.merchantName ?? 'Banza',
-                style: BanzaTextStyles.headingMd,
+                style: BanzamiTextStyles.headingMd,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
               Text(
                 _error ? 'PIN incorrecto. Tente novamente.' : 'Introduza o PIN',
-                style: BanzaTextStyles.bodyMd.copyWith(
-                  color: _error ? BanzaColors.error : BanzaColors.gray400,
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: _error ? BanzamiColors.error : BanzamiColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -89,9 +89,9 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
               if (session?.biometricsEnabled == true)
                 TextButton.icon(
                   onPressed: _tryBiometrics,
-                  icon:  const Icon(Icons.fingerprint_rounded, color: BanzaColors.wine),
+                  icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
                   label: Text('Usar biometria',
-                      style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.wine)),
+                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
                 ),
               const SizedBox(height: 24),
             ],

@@ -35,7 +35,7 @@ class PushNotificationService {
   // ── Callbacks set by the app layer ──────────────────────────────────────────
 
   /// Called when a notification arrives while the app is in the foreground.
-  /// Set by MainScreen to show a BanzaToast using its BuildContext.
+  /// Set by MainScreen to show a BanzamiToast using its BuildContext.
   static void Function(RemoteMessage)? onForegroundMessage;
 
   /// Called when the user taps a notification (background or terminated state).
@@ -66,7 +66,7 @@ class PushNotificationService {
       },
     );
 
-    // Foreground: show in-app BanzaToast via callback, or fall back to local OS notification.
+    // Foreground: show in-app BanzamiToast via callback, or fall back to local OS notification.
     FirebaseMessaging.onMessage.listen((msg) {
       debugPrint('[FCM] onMessage fired '
           'type=${msg.data["type"]} '
@@ -102,7 +102,7 @@ class PushNotificationService {
     // iOS foreground presentation — let Firebase show the OS banner too,
     // so the app works correctly even if onForegroundMessage is not set yet.
     await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-      alert: false, // we handle it ourselves via onForegroundMessage / BanzaToast
+      alert: false, // we handle it ourselves via onForegroundMessage / BanzamiToast
       badge: true,
       sound: true,
     );

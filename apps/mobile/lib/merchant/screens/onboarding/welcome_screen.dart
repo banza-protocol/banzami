@@ -10,7 +10,7 @@ class MerchantWelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.wine,
+      backgroundColor: BanzamiColors.wine,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -27,8 +27,8 @@ class MerchantWelcomeScreen extends StatelessWidget {
 
               Text(
                 'Banza\nBusiness',
-                style: BanzaTextStyles.displayLg.copyWith(
-                  color:      BanzaColors.white,
+                style: BanzamiTextStyles.displayLg.copyWith(
+                  color:      BanzamiColors.white,
                   fontWeight: FontWeight.w800,
                   height:     1.15,
                 ),
@@ -36,8 +36,8 @@ class MerchantWelcomeScreen extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 'Receba pagamentos instantâneos\nno seu negócio.',
-                style: BanzaTextStyles.headingSm.copyWith(
-                  color:      BanzaColors.white.withValues(alpha: 0.85),
+                style: BanzamiTextStyles.headingSm.copyWith(
+                  color:      BanzamiColors.white.withValues(alpha: 0.85),
                   fontWeight: FontWeight.w400,
                   height:     1.5,
                 ),
@@ -52,10 +52,10 @@ class MerchantWelcomeScreen extends StatelessWidget {
               ].map((item) => Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Row(children: [
-                  Icon(item.$1, color: BanzaColors.white.withValues(alpha: 0.8), size: 20),
+                  Icon(item.$1, color: BanzamiColors.white.withValues(alpha: 0.8), size: 20),
                   const SizedBox(width: 12),
-                  Text(item.$2, style: BanzaTextStyles.bodyMd.copyWith(
-                    color: BanzaColors.white.withValues(alpha: 0.8),
+                  Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
+                    color: BanzamiColors.white.withValues(alpha: 0.8),
                   )),
                 ]),
               )),
@@ -69,11 +69,11 @@ class MerchantWelcomeScreen extends StatelessWidget {
                     MaterialPageRoute(builder: (_) => const MerchantSetupScreen()),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: BanzaColors.white,
-                    foregroundColor: BanzaColors.wine,
+                    backgroundColor: BanzamiColors.white,
+                    foregroundColor: BanzamiColors.wine,
                     padding:   const EdgeInsets.symmetric(vertical: 16),
                     shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle: BanzaTextStyles.headingSm,
+                    textStyle: BanzamiTextStyles.headingSm,
                   ),
                   child: const Text('Conectar conta'),
                 ),

@@ -1,4 +1,4 @@
-/// Typed error returned by BanzaClient when the gateway responds with 4xx/5xx.
+/// Typed error returned by BanzamiClient when the gateway responds with 4xx/5xx.
 class BanzamiApiException implements Exception {
   final int statusCode;
   final String code;

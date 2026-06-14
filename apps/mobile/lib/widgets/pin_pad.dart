@@ -29,15 +29,15 @@ class PinDots extends StatelessWidget {
           decoration: BoxDecoration(
             shape:    BoxShape.circle,
             // gradient for normal filled; flat color for error; transparent for empty
-            gradient: isFilled && !isError ? BanzaGradients.wine : null,
+            gradient: isFilled && !isError ? BanzamiGradients.wine : null,
             color:    isFilled
-                ? (isError ? BanzaColors.error : null)
+                ? (isError ? BanzamiColors.error : null)
                 : Colors.transparent,
             border: Border.all(
               color: isError
-                  ? BanzaColors.error
+                  ? BanzamiColors.error
                   : isFilled
-                      ? BanzaColors.wineDark
+                      ? BanzamiColors.wineDark
                       : const Color(0xFFD8D0CF), // Soft Neutral
               width: 2,
             ),
@@ -204,7 +204,7 @@ class _PinPadInnerState extends State<_PinPadInner> {
                 icon: const Icon(
                   Icons.backspace_outlined,
                   size:  22,
-                  color: BanzaColors.gray600,
+                  color: BanzamiColors.gray600,
                 ),
               ),
             ),
@@ -238,7 +238,7 @@ class _DigitKey extends StatelessWidget {
       child: Container(
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: BanzaColors.white,
+          color: BanzamiColors.white,
           border: Border.fromBorderSide(
             BorderSide(color: Color(0xFFEDE8E7), width: 1.5),
           ),
@@ -265,7 +265,7 @@ class _DigitKey extends StatelessWidget {
                   fontFamily:  'Inter',
                   fontSize:    26,
                   fontWeight:  FontWeight.w400,
-                  color:       BanzaColors.black,
+                  color:       BanzamiColors.black,
                   height:      1,
                 ),
               ),

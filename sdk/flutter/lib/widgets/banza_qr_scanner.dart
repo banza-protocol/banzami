@@ -6,27 +6,27 @@ import '../theme/banza_theme.dart';
 /// Full-screen QR scanner widget.
 ///
 /// Calls [onDetected] once per scan with the raw string value.
-/// The host screen is responsible for calling [BanzaClient.decodeQrPayload]
+/// The host screen is responsible for calling [BanzamiClient.decodeQrPayload]
 /// to parse the scanned payload into a [ParsedQr].
 ///
 /// Requires camera permission in the host app:
 /// - iOS: NSCameraUsageDescription in Info.plist
 /// - Android: android.permission.CAMERA in AndroidManifest.xml
-class BanzaQrScanner extends StatefulWidget {
+class BanzamiQrScanner extends StatefulWidget {
   final void Function(String payload) onDetected;
   final VoidCallback? onCancel;
 
-  const BanzaQrScanner({
+  const BanzamiQrScanner({
     super.key,
     required this.onDetected,
     this.onCancel,
   });
 
   @override
-  State<BanzaQrScanner> createState() => _BanzaQrScannerState();
+  State<BanzamiQrScanner> createState() => _BanzamiQrScannerState();
 }
 
-class _BanzaQrScannerState extends State<BanzaQrScanner> {
+class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
   final MobileScannerController _controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.normal,
     facing:         CameraFacing.back,
@@ -41,7 +41,7 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
   }
 
   // Accept all known Banza QR payload formats. Size-limit prevents crash from
-  // pathologically large QR data. BanzaQrParser does the detailed validation.
+  // pathologically large QR data. BanzamiQrParser does the detailed validation.
   static bool _isValidPayload(String value) {
     if (value.length > 512) return false;
     return value.startsWith('https://pay.banzami.org/') ||
@@ -115,8 +115,8 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
             width:       260,
             height:      260,
             decoration:  BoxDecoration(
-              border:       Border.all(color: BanzaColors.wine, width: 2.5),
-              borderRadius: BanzaRadius.lgAll,
+              border:       Border.all(color: BanzamiColors.wine, width: 2.5),
+              borderRadius: BanzamiRadius.lgAll,
             ),
           ),
         ),
@@ -129,16 +129,16 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
           child: Center(
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzaSpacing.xl,
-                vertical:   BanzaSpacing.sm,
+                horizontal: BanzamiSpacing.xl,
+                vertical:   BanzamiSpacing.sm,
               ),
               decoration: BoxDecoration(
-                color:        BanzaColors.gray900.withValues(alpha: 0.6),
-                borderRadius: BanzaRadius.fullAll,
+                color:        BanzamiColors.gray900.withValues(alpha: 0.6),
+                borderRadius: BanzamiRadius.fullAll,
               ),
               child: Text(
                 'Aponte para o código QR',
-                style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.white),
+                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white),
               ),
             ),
           ),
@@ -148,16 +148,16 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
         if (widget.onCancel != null)
           Positioned(
             top:  56,
-            left: BanzaSpacing.lg,
+            left: BanzamiSpacing.lg,
             child: GestureDetector(
               onTap: widget.onCancel,
               child: Container(
-                padding:    const EdgeInsets.all(BanzaSpacing.sm),
+                padding:    const EdgeInsets.all(BanzamiSpacing.sm),
                 decoration: BoxDecoration(
-                  color:        BanzaColors.gray900.withValues(alpha: 0.5),
-                  borderRadius: BanzaRadius.mdAll,
+                  color:        BanzamiColors.gray900.withValues(alpha: 0.5),
+                  borderRadius: BanzamiRadius.mdAll,
                 ),
-                child: const Icon(Icons.close, color: BanzaColors.white, size: 24),
+                child: const Icon(Icons.close, color: BanzamiColors.white, size: 24),
               ),
             ),
           ),
@@ -165,16 +165,16 @@ class _BanzaQrScannerState extends State<BanzaQrScanner> {
         // Torch toggle
         Positioned(
           top:   56,
-          right: BanzaSpacing.lg,
+          right: BanzamiSpacing.lg,
           child: GestureDetector(
             onTap: _controller.toggleTorch,
             child: Container(
-              padding:    const EdgeInsets.all(BanzaSpacing.sm),
+              padding:    const EdgeInsets.all(BanzamiSpacing.sm),
               decoration: BoxDecoration(
-                color:        BanzaColors.gray900.withValues(alpha: 0.5),
-                borderRadius: BanzaRadius.mdAll,
+                color:        BanzamiColors.gray900.withValues(alpha: 0.5),
+                borderRadius: BanzamiRadius.mdAll,
               ),
-              child: const Icon(Icons.flashlight_on, color: BanzaColors.white, size: 24),
+              child: const Icon(Icons.flashlight_on, color: BanzamiColors.white, size: 24),
             ),
           ),
         ),

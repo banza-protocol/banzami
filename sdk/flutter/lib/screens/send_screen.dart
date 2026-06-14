@@ -55,7 +55,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   final _handleFocus = FocusNode();
 
   int     _amountMinor       = 0;
-  int     _amountInputVersion = 0; // incremented to force BanzaAmountInput rebuild
+  int     _amountInputVersion = 0; // incremented to force BanzamiAmountInput rebuild
   String? _handleError;
   String? _amountError;
 
@@ -159,7 +159,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final idempotencyKey = const Uuid().v4();
     final note = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
 
-    await Navigator.of(context).push(BanzaPageRoute(
+    await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiConfirmScreen(
         client:               widget.client,
         recipientHandle:      handle,
@@ -180,7 +180,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   Future<void> _scanQr() async {
     HapticFeedback.lightImpact();
 
-    final granted = await BanzaCameraPermission.ensure(context);
+    final granted = await BanzamiCameraPermission.ensure(context);
     if (!granted || !mounted) return;
 
     debugPrint('[QR-CAMERA] initializing scanner');
@@ -189,7 +189,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       fullscreenDialog: true,
       builder: (scanCtx) => Scaffold(
         backgroundColor: Colors.black,
-        body: BanzaQrScanner(
+        body: BanzamiQrScanner(
           onDetected: (v) { raw = v; Navigator.of(scanCtx).pop(); },
           onCancel:   () => Navigator.of(scanCtx).pop(),
         ),
@@ -201,16 +201,16 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
   }
 
   void _handleQrResult(String raw) {
-    final parsed = BanzaQrParser.parse(raw);
+    final parsed = BanzamiQrParser.parse(raw);
     switch (parsed) {
-      case BanzaQrInvalid(:final reason):
-        BanzaToast.showWarning(context, reason);
+      case BanzamiQrInvalid(:final reason):
+        BanzamiToast.showWarning(context, reason);
 
-      case BanzaQrPaymentRequest(:final code, :final isSandbox):
+      case BanzamiQrPaymentRequest(:final code, :final isSandbox):
         if (_sandboxMismatch(isSandbox)) return;
         _openPaymentRequestFromQr(code);
 
-      case BanzaQrHandlePayment(:final handle, :final amountMinor,
+      case BanzamiQrHandlePayment(:final handle, :final amountMinor,
                                  :final note, :final isSandbox):
         if (_sandboxMismatch(isSandbox)) return;
         _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
@@ -222,7 +222,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
     final msg = qrIsSandbox
         ? 'Este QR pertence ao ambiente sandbox.'
         : 'Este QR pertence ao ambiente live.';
-    BanzaToast.showWarning(context, msg);
+    BanzamiToast.showWarning(context, msg);
     return true;
   }
 
@@ -262,10 +262,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
           'EXPIRED' => 'Este pedido expirou.',
           _         => 'Este pedido não está disponível.',
         };
-        BanzaToast.showWarning(context, msg);
+        BanzamiToast.showWarning(context, msg);
         return;
       }
-      await Navigator.of(context).push(BanzaPageRoute(
+      await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiPaymentRequestScreen(
           client:               widget.client,
           recipientHandle:      link.receiverHandle,
@@ -286,10 +286,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       final msg = e.isNotFound
           ? 'Pedido de pagamento não encontrado.'
           : 'Não foi possível verificar o QR. Tente novamente.';
-      BanzaToast.showError(context, msg);
+      BanzamiToast.showError(context, msg);
     } catch (_) {
       if (!mounted) return;
-      BanzaToast.showError(context, 'Não foi possível verificar o QR. Tente novamente.');
+      BanzamiToast.showError(context, 'Não foi possível verificar o QR. Tente novamente.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -297,7 +297,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BanzaScaffold(
+    return BanzamiScaffold(
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,8 +305,8 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
             // Back button
             IconButton(
               icon:    const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
-              color:   BanzaColors.gray900,
-              padding: const EdgeInsets.fromLTRB(BanzaSpacing.md, BanzaSpacing.md, BanzaSpacing.md, 0),
+              color:   BanzamiColors.gray900,
+              padding: const EdgeInsets.fromLTRB(BanzamiSpacing.md, BanzamiSpacing.md, BanzamiSpacing.md, 0),
               onPressed: () => Navigator.of(context).pop(),
             ),
 
@@ -314,22 +314,22 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzaSpacing.xl, BanzaSpacing.md,
-                  BanzaSpacing.xl, BanzaSpacing.xxl,
+                  BanzamiSpacing.xl, BanzamiSpacing.md,
+                  BanzamiSpacing.xl, BanzamiSpacing.xxl,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Large premium title
-                    const Text('Enviar', style: BanzaTextStyles.displayMd),
-                    const SizedBox(height: BanzaSpacing.xxl),
+                    const Text('Enviar', style: BanzamiTextStyles.displayMd),
+                    const SizedBox(height: BanzamiSpacing.xxl),
 
                     // ── Para quem? ─────────────────────────────────────────
                     Text(
                       'Para quem?',
-                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
                     ),
-                    const SizedBox(height: BanzaSpacing.sm),
+                    const SizedBox(height: BanzamiSpacing.sm),
                     TextField(
                       controller:      _handleCtrl,
                       focusNode:       _handleFocus,
@@ -342,7 +342,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                 padding: EdgeInsets.all(12),
                                 child: SizedBox(
                                   width: 16, height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzaColors.wine),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
                                 ),
                               )
                             : _handleConfirmed
@@ -353,13 +353,13 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                       padding: EdgeInsets.all(10),
                                       child: Icon(
                                         Icons.qr_code_scanner_rounded,
-                                        color: BanzaColors.wine,
+                                        color: BanzamiColors.wine,
                                         size:  22,
                                       ),
                                     ),
                                   ),
                       ),
-                      style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray900),
+                      style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray900),
                       autocorrect:     false,
                       textInputAction: TextInputAction.next,
                       onChanged:       _onHandleChanged,
@@ -372,13 +372,13 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                       ),
 
                     // ── Quanto? ────────────────────────────────────────────
-                    const SizedBox(height: BanzaSpacing.xl),
+                    const SizedBox(height: BanzamiSpacing.xl),
                     Text(
                       'Quanto?',
-                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
                     ),
-                    const SizedBox(height: BanzaSpacing.sm),
-                    BanzaAmountInput(
+                    const SizedBox(height: BanzamiSpacing.sm),
+                    BanzamiAmountInput(
                       key:                ValueKey(_amountInputVersion),
                       initialAmountMinor: _amountMinor > 0 ? _amountMinor : widget.initialAmount,
                       onChanged:  (v) => setState(() { _amountMinor = v; _amountError = null; }),
@@ -386,21 +386,21 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                     ),
 
                     // ── Descrição ──────────────────────────────────────────
-                    const SizedBox(height: BanzaSpacing.xl),
+                    const SizedBox(height: BanzamiSpacing.xl),
                     Text(
                       'Descrição (opcional)',
-                      style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                      style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
                     ),
-                    const SizedBox(height: BanzaSpacing.sm),
-                    BanzaTextField(
+                    const SizedBox(height: BanzamiSpacing.sm),
+                    BanzamiTextField(
                       controller:        _descCtrl,
                       hint:              'Ex: jantar de ontem',
                       textInputAction:   TextInputAction.done,
                       onEditingComplete: _send,
                     ),
 
-                    const SizedBox(height: BanzaSpacing.xxl),
-                    BanzaPrimaryButton(
+                    const SizedBox(height: BanzamiSpacing.xxl),
+                    BanzamiPrimaryButton(
                       label:     'Continuar',
                       isLoading: _validatingHandle,
                       onPressed: _send,
@@ -425,11 +425,11 @@ class _SuggestionList extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(top: BanzaSpacing.xs),
+      margin: const EdgeInsets.only(top: BanzamiSpacing.xs),
       decoration: BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BorderRadius.circular(BanzaRadius.md),
-        border:       Border.all(color: BanzaColors.gray200),
+        color:        BanzamiColors.white,
+        borderRadius: BorderRadius.circular(BanzamiRadius.md),
+        border:       Border.all(color: BanzamiColors.gray200),
         boxShadow: [
           BoxShadow(
             color:      Colors.black.withValues(alpha: 0.06),
@@ -442,35 +442,35 @@ class _SuggestionList extends StatelessWidget {
         children: suggestions.map((s) {
           return InkWell(
             onTap:        () => onTap(s),
-            borderRadius: BorderRadius.circular(BanzaRadius.md),
+            borderRadius: BorderRadius.circular(BanzamiRadius.md),
             child: Padding(
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzaSpacing.lg,
-                vertical:   BanzaSpacing.md,
+                horizontal: BanzamiSpacing.lg,
+                vertical:   BanzamiSpacing.md,
               ),
               child: Row(
                 children: [
                   CircleAvatar(
                     radius:          18,
-                    backgroundColor: BanzaColors.gray100,
+                    backgroundColor: BanzamiColors.gray100,
                     child: Text(
                       s.handle[0].toUpperCase(),
-                      style: BanzaTextStyles.bodySm.copyWith(
-                        color:      BanzaColors.wine,
+                      style: BanzamiTextStyles.bodySm.copyWith(
+                        color:      BanzamiColors.wine,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
-                  const SizedBox(width: BanzaSpacing.md),
+                  const SizedBox(width: BanzamiSpacing.md),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text('@${s.handle}',
-                            style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
+                            style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
                         if (s.displayName != null)
                           Text(s.displayName!,
-                              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
+                              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
                       ],
                     ),
                   ),

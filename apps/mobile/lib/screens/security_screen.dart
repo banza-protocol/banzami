@@ -23,28 +23,28 @@ class _SecurityScreenState extends State<SecurityScreen> {
     _canUseBio ??= svc.canUseBiometrics();
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor:        BanzaColors.offWhite,
-        foregroundColor:        BanzaColors.gray900,
+        backgroundColor:        BanzamiColors.offWhite,
+        foregroundColor:        BanzamiColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon:      const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('PIN & Segurança', style: BanzaTextStyles.headingMd),
+        title: const Text('PIN & Segurança', style: BanzamiTextStyles.headingMd),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.xl,
-          vertical:   BanzaSpacing.lg,
+          horizontal: BanzamiSpacing.xl,
+          vertical:   BanzamiSpacing.lg,
         ),
         children: [
 
           // ── PIN section ──────────────────────────────────────────────────
           const _SectionLabel(label: 'PIN'),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           _SettingsCard(children: [
             _RowChevron(
               icon:    Icons.lock_outline_rounded,
@@ -53,11 +53,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
             ),
           ]),
 
-          const SizedBox(height: BanzaSpacing.xl),
+          const SizedBox(height: BanzamiSpacing.xl),
 
           // ── Session section ──────────────────────────────────────────────
           const _SectionLabel(label: 'Sessão'),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           FutureBuilder<bool>(
             future: _canUseBio,
             builder: (_, snap) {
@@ -73,7 +73,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                     onChanged: (v) => _toggleBio(svc, v),
                   ),
                 if (hasBio)
-                  const Divider(height: 1, indent: 56, color: BanzaColors.gray100),
+                  const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
                 const _RowStatus(
                   icon:   Icons.timer_outlined,
                   label:  'Bloqueio automático',
@@ -84,11 +84,11 @@ class _SecurityScreenState extends State<SecurityScreen> {
             },
           ),
 
-          const SizedBox(height: BanzaSpacing.xl),
+          const SizedBox(height: BanzamiSpacing.xl),
 
           // ── Notifications section ─────────────────────────────────────────
           const _SectionLabel(label: 'Alertas'),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           _SettingsCard(children: [
             _RowToggle(
               icon:    Icons.shield_outlined,
@@ -99,7 +99,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
             ),
           ]),
 
-          const SizedBox(height: BanzaSpacing.xxl),
+          const SizedBox(height: BanzamiSpacing.xxl),
         ],
       ),
     );
@@ -120,7 +120,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
   }
 
   void _showComingSoon(String feature) {
-    BanzaToast.showInfo(context, '$feature em breve');
+    BanzamiToast.showInfo(context, '$feature em breve');
   }
 }
 
@@ -135,11 +135,11 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: BanzaSpacing.xs),
+      padding: const EdgeInsets.only(left: BanzamiSpacing.xs),
       child: Text(
         label.toUpperCase(),
-        style: BanzaTextStyles.label.copyWith(
-          color:         BanzaColors.gray400,
+        style: BanzamiTextStyles.label.copyWith(
+          color:         BanzamiColors.gray400,
           letterSpacing: 0.6,
           fontSize:      11,
         ),
@@ -156,9 +156,9 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BanzaRadius.xlAll,
-        boxShadow:    BanzaShadows.card,
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
       clipBehavior: Clip.hardEdge,
       child: Column(
@@ -186,25 +186,25 @@ class _RowChevron extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.lg,
-          vertical:   BanzaSpacing.md + 2,
+          horizontal: BanzamiSpacing.lg,
+          vertical:   BanzamiSpacing.md + 2,
         ),
         child: Row(children: [
           _IconChip(icon: icon),
-          const SizedBox(width: BanzaSpacing.md),
+          const SizedBox(width: BanzamiSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize:       MainAxisSize.min,
               children: [
                 Text(label,
-                    style: BanzaTextStyles.bodyMd.copyWith(
+                    style: BanzamiTextStyles.bodyMd.copyWith(
                       fontWeight: FontWeight.w500,
                     )),
               ],
             ),
           ),
-          const Icon(Icons.chevron_right_rounded, size: 20, color: BanzaColors.gray400),
+          const Icon(Icons.chevron_right_rounded, size: 20, color: BanzamiColors.gray400),
         ]),
       ),
     );
@@ -232,34 +232,34 @@ class _RowToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(children: [
         _IconChip(icon: icon),
-        const SizedBox(width: BanzaSpacing.md),
+        const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize:       MainAxisSize.min,
             children: [
-              Text(label, style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
+              Text(label, style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
               if (sub != null)
-                Text(sub!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
+                Text(sub!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
             ],
           ),
         ),
         if (busy)
           const SizedBox(
             width: 22, height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2, color: BanzaColors.wine),
+            child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
           )
         else
           Switch(
             value:     value,
             onChanged: onChanged,
-            activeTrackColor:  BanzaColors.wine,
-            inactiveThumbColor: BanzaColors.white,
+            activeTrackColor:  BanzamiColors.wine,
+            inactiveThumbColor: BanzamiColors.white,
           ),
       ]),
     );
@@ -276,10 +276,10 @@ class _IconChip extends StatelessWidget {
       width:  36,
       height: 36,
       decoration: BoxDecoration(
-        color:        BanzaColors.wine.withValues(alpha: 0.10),
-        borderRadius: BanzaRadius.mdAll,
+        color:        BanzamiColors.wine.withValues(alpha: 0.10),
+        borderRadius: BanzamiRadius.mdAll,
       ),
-      child: Icon(icon, color: BanzaColors.wine, size: 18),
+      child: Icon(icon, color: BanzamiColors.wine, size: 18),
     );
   }
 }
@@ -302,34 +302,34 @@ class _RowStatus extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md + 2,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md + 2,
       ),
       child: Row(children: [
         _IconChip(icon: icon),
-        const SizedBox(width: BanzaSpacing.md),
+        const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize:       MainAxisSize.min,
             children: [
               Text(label,
-                  style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
+                  style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
               Text(sub,
-                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
+                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
             ],
           ),
         ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color:        BanzaColors.wine.withValues(alpha: 0.10),
+            color:        BanzamiColors.wine.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             status,
-            style: BanzaTextStyles.label.copyWith(
-              color:    BanzaColors.wine,
+            style: BanzamiTextStyles.label.copyWith(
+              color:    BanzamiColors.wine,
               fontSize: 11,
             ),
           ),

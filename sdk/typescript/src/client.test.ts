@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BanzaClient } from './client.js';
-import { BanzaApiError } from './errors.js';
+import { BanzamiClient } from './client.js';
+import { BanzamiApiError } from './errors.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -20,10 +20,10 @@ function lastFetchCall(): { url: string; init: RequestInit } {
   return { url, init };
 }
 
-let client: BanzaClient;
+let client: BanzamiClient;
 
 beforeEach(() => {
-  client = new BanzaClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey' });
+  client = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey' });
 });
 
 // ---------------------------------------------------------------------------
@@ -38,14 +38,14 @@ describe('authorization', () => {
     expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer bz_live_testkey');
   });
 
-  it('throws BanzaApiError on 4xx', async () => {
+  it('throws BanzamiApiError on 4xx', async () => {
     mockFetch(404, { code: 'NOT_FOUND', message: 'not found' });
-    await expect(client.getTransaction('missing')).rejects.toBeInstanceOf(BanzaApiError);
+    await expect(client.getTransaction('missing')).rejects.toBeInstanceOf(BanzamiApiError);
   });
 
-  it('BanzaApiError carries status and code', async () => {
+  it('BanzamiApiError carries status and code', async () => {
     mockFetch(422, { code: 'INVALID_AMOUNT', message: 'amount must be positive' });
-    const err = await client.getTransaction('x').catch((e) => e) as BanzaApiError;
+    const err = await client.getTransaction('x').catch((e) => e) as BanzamiApiError;
     expect(err.status).toBe(422);
     expect(err.code).toBe('INVALID_AMOUNT');
   });
@@ -207,7 +207,7 @@ describe('retry', () => {
       return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }));
 
-    const retryClient = new BanzaClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
     const result = await retryClient.createTransaction({ idempotencyKey: 'ik-retry', amountMinor: 5000 });
     expect(result.id).toBe('tx-1');
     expect(callCount).toBe(3);
@@ -220,8 +220,8 @@ describe('retry', () => {
       return Promise.resolve(new Response(JSON.stringify({ code: 'INVALID_AMOUNT', message: 'bad amount' }), { status: 422, headers: { 'Content-Type': 'application/json' } }));
     }));
 
-    const retryClient = new BanzaClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
-    await expect(retryClient.createTransaction({ idempotencyKey: 'ik-no-retry', amountMinor: -1 })).rejects.toBeInstanceOf(BanzaApiError);
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    await expect(retryClient.createTransaction({ idempotencyKey: 'ik-no-retry', amountMinor: -1 })).rejects.toBeInstanceOf(BanzamiApiError);
     expect(callCount).toBe(1);
   });
 
@@ -239,7 +239,7 @@ describe('retry', () => {
       return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
     }));
 
-    const retryClient = new BanzaClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
+    const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
     await retryClient.createTransaction({ idempotencyKey: 'ik-idempotent', amountMinor: 1000 });
     expect(capturedKeys.length).toBe(3);
     expect(capturedKeys.every(k => k === capturedKeys[0])).toBe(true);

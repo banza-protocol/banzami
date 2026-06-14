@@ -32,24 +32,24 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor:        BanzaColors.white,
-        foregroundColor:        BanzaColors.gray900,
+        backgroundColor:        BanzamiColors.white,
+        foregroundColor:        BanzamiColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
-        title: const Text('Histórico', style: BanzaTextStyles.headingMd),
+        title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
         bottom: TabBar(
           controller:          _tabs,
-          labelColor:          BanzaColors.wine,
-          unselectedLabelColor: BanzaColors.gray400,
-          indicatorColor:      BanzaColors.wine,
+          labelColor:          BanzamiColors.wine,
+          unselectedLabelColor: BanzamiColors.gray400,
+          indicatorColor:      BanzamiColors.wine,
           indicatorWeight:     2,
-          labelStyle:          BanzaTextStyles.label.copyWith(
+          labelStyle:          BanzamiTextStyles.label.copyWith(
             fontSize:   14,
             fontWeight: FontWeight.w600,
           ),
-          unselectedLabelStyle: BanzaTextStyles.label.copyWith(
+          unselectedLabelStyle: BanzamiTextStyles.label.copyWith(
             fontSize:   14,
             fontWeight: FontWeight.w500,
           ),
@@ -91,17 +91,17 @@ Widget _emptyState({required IconData icon, required String label}) {
       Container(
         width: 64, height: 64,
         decoration: const BoxDecoration(
-          color: BanzaColors.gray200,
+          color: BanzamiColors.gray200,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, size: 28, color: BanzaColors.gray400),
+        child: Icon(icon, size: 28, color: BanzamiColors.gray400),
       ),
-      const SizedBox(height: BanzaSpacing.md),
-      Text(label, style: BanzaTextStyles.headingSm),
-      const SizedBox(height: BanzaSpacing.xs),
+      const SizedBox(height: BanzamiSpacing.md),
+      Text(label, style: BanzamiTextStyles.headingSm),
+      const SizedBox(height: BanzamiSpacing.xs),
       Text(
         'As suas actividades aparecerão aqui',
-        style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+        style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
       ),
     ]),
   );
@@ -143,7 +143,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
     setState(() { _loading = true; _error = null; });
     if (refresh) { _txs.clear(); _cursor = null; _hasMore = true; }
 
-    final client = context.read<BanzaClient>();
+    final client = context.read<BanzamiClient>();
     try {
       final page = await client.listMerchantTransactions(limit: 30, cursor: _cursor);
       setState(() {
@@ -173,7 +173,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
   Widget build(BuildContext context) {
     super.build(context);
     return RefreshIndicator(
-      color:     BanzaColors.wine,
+      color:     BanzamiColors.wine,
       onRefresh: () => _load(refresh: true),
       child:     _buildBody(),
     );
@@ -181,14 +181,14 @@ class _TransactionsTabState extends State<_TransactionsTab>
 
   Widget _buildBody() {
     if (_loading && _txs.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
     }
     if (_error != null && _txs.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
-        const SizedBox(height: BanzaSpacing.md),
-        Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
-        const SizedBox(height: BanzaSpacing.lg),
+        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+        const SizedBox(height: BanzamiSpacing.md),
+        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]));
     }
@@ -203,15 +203,15 @@ class _TransactionsTabState extends State<_TransactionsTab>
 
     return ListView.builder(
       padding:   const EdgeInsets.fromLTRB(
-        BanzaSpacing.lg, BanzaSpacing.md, BanzaSpacing.lg, BanzaSpacing.page,
+        BanzamiSpacing.lg, BanzamiSpacing.md, BanzamiSpacing.lg, BanzamiSpacing.page,
       ),
       itemCount: grouped.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == grouped.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(BanzaSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
+            padding: EdgeInsets.all(BanzamiSpacing.xl),
+            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
           );
         }
 
@@ -220,12 +220,12 @@ class _TransactionsTabState extends State<_TransactionsTab>
         if (item is String) {
           return Padding(
             padding: const EdgeInsets.fromLTRB(
-              BanzaSpacing.xs, BanzaSpacing.lg, BanzaSpacing.xs, BanzaSpacing.sm,
+              BanzamiSpacing.xs, BanzamiSpacing.lg, BanzamiSpacing.xs, BanzamiSpacing.sm,
             ),
             child: Text(
               item,
-              style: BanzaTextStyles.label.copyWith(
-                color:         BanzaColors.gray400,
+              style: BanzamiTextStyles.label.copyWith(
+                color:         BanzamiColors.gray400,
                 letterSpacing: 0.4,
               ),
             ),
@@ -240,19 +240,19 @@ class _TransactionsTabState extends State<_TransactionsTab>
 
         return Container(
           decoration: BoxDecoration(
-            color: BanzaColors.white,
+            color: BanzamiColors.white,
             borderRadius: BorderRadius.vertical(
-              top:    Radius.circular(isFirst ? BanzaRadius.xl : 0),
-              bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0),
+              top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+              bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
             ),
-            boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
+            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _TransactionTile(tx: tx),
               if (!isLast)
-                const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
+                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
             ],
           ),
         );
@@ -271,30 +271,30 @@ class _TransactionTile extends StatelessWidget {
     final (icon, iconColor, label, amountColor, sign) = switch (statusUp) {
       'COMPLETED' || 'PAID' => (
         Icons.arrow_downward_rounded,
-        BanzaColors.success,
+        BanzamiColors.success,
         tx.description ?? 'Pagamento recebido',
-        BanzaColors.success,
+        BanzamiColors.success,
         '+',
       ),
       'CANCELLED' => (
         Icons.arrow_upward_rounded,
-        BanzaColors.error,
+        BanzamiColors.error,
         tx.description ?? 'Cancelamento',
-        BanzaColors.error,
+        BanzamiColors.error,
         '−',
       ),
       'FAILED' => (
         Icons.close_rounded,
-        BanzaColors.error,
+        BanzamiColors.error,
         tx.description ?? 'Falhado',
-        BanzaColors.error,
+        BanzamiColors.error,
         '−',
       ),
       _ => (
         Icons.access_time_rounded,
-        BanzaColors.wine,
+        BanzamiColors.wine,
         tx.description ?? 'Pendente',
-        BanzaColors.gray900,
+        BanzamiColors.gray900,
         '',
       ),
     };
@@ -304,8 +304,8 @@ class _TransactionTile extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(children: [
         Container(
@@ -313,28 +313,28 @@ class _TransactionTile extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color:        iconColor.withValues(alpha: 0.10),
-            borderRadius: BanzaRadius.mdAll,
+            borderRadius: BanzamiRadius.mdAll,
           ),
           child: Icon(icon, color: iconColor, size: 20),
         ),
-        const SizedBox(width: BanzaSpacing.md),
+        const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
               label,
-              style:    BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
             Text(
               timeStr,
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),
         ),
         Text(
           '$sign${formatMinor(tx.amountMinor, tx.currency)}',
-          style: BanzaTextStyles.mono.copyWith(
+          style: BanzamiTextStyles.mono.copyWith(
             color:      amountColor,
             fontWeight: FontWeight.w600,
             fontSize:   15,
@@ -382,7 +382,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
     if (refresh) { _links.clear(); _cursor = null; _hasMore = true; }
 
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzaClient>();
+    final client  = context.read<BanzamiClient>();
     try {
       final page = await client.listPaymentLinks(
         merchantId: session.merchantId,
@@ -405,7 +405,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
   Widget build(BuildContext context) {
     super.build(context);
     return RefreshIndicator(
-      color:     BanzaColors.wine,
+      color:     BanzamiColors.wine,
       onRefresh: () => _load(refresh: true),
       child:     _buildBody(),
     );
@@ -413,14 +413,14 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
 
   Widget _buildBody() {
     if (_loading && _links.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzaColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
     }
     if (_error != null && _links.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
-        const SizedBox(height: BanzaSpacing.md),
-        Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
-        const SizedBox(height: BanzaSpacing.lg),
+        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+        const SizedBox(height: BanzamiSpacing.md),
+        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]));
     }
@@ -433,15 +433,15 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
 
     return ListView.builder(
       padding:   const EdgeInsets.fromLTRB(
-        BanzaSpacing.lg, BanzaSpacing.md, BanzaSpacing.lg, BanzaSpacing.page,
+        BanzamiSpacing.lg, BanzamiSpacing.md, BanzamiSpacing.lg, BanzamiSpacing.page,
       ),
       itemCount: _links.length + (_hasMore ? 1 : 0),
       itemBuilder: (context, i) {
         if (i == _links.length) {
           if (!_loading) _load();
           return const Padding(
-            padding: EdgeInsets.all(BanzaSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
+            padding: EdgeInsets.all(BanzamiSpacing.xl),
+            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
           );
         }
 
@@ -450,19 +450,19 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
 
         return Container(
           decoration: BoxDecoration(
-            color: BanzaColors.white,
+            color: BanzamiColors.white,
             borderRadius: BorderRadius.vertical(
-              top:    Radius.circular(isFirst ? BanzaRadius.xl : 0),
-              bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0),
+              top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+              bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
             ),
-            boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
+            boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _PaymentLinkTile(link: _links[i]),
               if (!isLast)
-                const Divider(height: 1, indent: 68, color: BanzaColors.gray200),
+                const Divider(height: 1, indent: 68, color: BanzamiColors.gray200),
             ],
           ),
         );
@@ -478,16 +478,16 @@ class _PaymentLinkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (link.status) {
-      PaymentLinkStatus.active    => (BanzaColors.success, 'Activo',    Icons.hourglass_top_rounded),
-      PaymentLinkStatus.used      => (BanzaColors.wine,    'Pago',      Icons.check_circle_rounded),
-      PaymentLinkStatus.expired   => (BanzaColors.gray400, 'Expirado',  Icons.timer_off_rounded),
-      PaymentLinkStatus.cancelled => (BanzaColors.error,   'Cancelado', Icons.cancel_rounded),
+      PaymentLinkStatus.active    => (BanzamiColors.success, 'Activo',    Icons.hourglass_top_rounded),
+      PaymentLinkStatus.used      => (BanzamiColors.wine,    'Pago',      Icons.check_circle_rounded),
+      PaymentLinkStatus.expired   => (BanzamiColors.gray400, 'Expirado',  Icons.timer_off_rounded),
+      PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado', Icons.cancel_rounded),
     };
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(children: [
         Container(
@@ -495,16 +495,16 @@ class _PaymentLinkTile extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color:        color.withValues(alpha: 0.10),
-            borderRadius: BanzaRadius.mdAll,
+            borderRadius: BanzamiRadius.mdAll,
           ),
           child: Icon(icon, color: color, size: 20),
         ),
-        const SizedBox(width: BanzaSpacing.md),
+        const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
               link.description ?? 'Cobrança',
-              style:    BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -512,19 +512,19 @@ class _PaymentLinkTile extends StatelessWidget {
               link.amountMinor != null
                   ? formatMinor(link.amountMinor!, link.currency)
                   : 'Valor livre',
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.sm, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
           decoration: BoxDecoration(
             color:        color.withValues(alpha: 0.10),
-            borderRadius: BanzaRadius.fullAll,
+            borderRadius: BanzamiRadius.fullAll,
           ),
           child: Text(
             label,
-            style: BanzaTextStyles.label.copyWith(color: color, fontSize: 11),
+            style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11),
           ),
         ),
       ]),

@@ -9,13 +9,13 @@ import '../utils/qr_logo_utils.dart';
 ///
 /// [cornerFraction] defaults to [kQrLogoCornerFraction] (0.22 — Apple app-icon
 /// rounding), matching the corner style baked into QR centre logos.
-class BanzaLogoWidget extends StatelessWidget {
+class BanzamiLogoWidget extends StatelessWidget {
   final String assetPath;
   final double size;
   final double cornerFraction;
   final bool   hasShadow;
 
-  const BanzaLogoWidget({
+  const BanzamiLogoWidget({
     super.key,
     required this.assetPath,
     this.size            = 48,

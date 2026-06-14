@@ -22,8 +22,8 @@ import '../screens/history_screen.dart';
 /// Duplicate guard: the same transfer_id or link_code within 2 seconds is
 /// silently discarded to prevent double-push from getInitialMessage() +
 /// onMessageOpenedApp firing together on cold start.
-class BanzaNotificationRouter {
-  BanzaNotificationRouter._();
+class BanzamiNotificationRouter {
+  BanzamiNotificationRouter._();
 
   // ── Duplicate guard ──────────────────────────────────────────────────────
 
@@ -70,7 +70,7 @@ class BanzaNotificationRouter {
       if (environment.toUpperCase() != expected) {
         debugPrint('[FCM-ROUTE] environment mismatch — blocking');
         if (toastContext.mounted) {
-          BanzaToast.showWarning(
+          BanzamiToast.showWarning(
               toastContext, 'Esta notificação pertence a outro ambiente.');
         }
         return;
@@ -173,7 +173,7 @@ class BanzaNotificationRouter {
       if (!link.isActive) {
         debugPrint('[FCM-ROUTE] fallback history reason=link_not_active');
         if (toastContext.mounted) {
-          BanzaToast.showWarning(toastContext, 'Este pedido já foi pago ou expirou.');
+          BanzamiToast.showWarning(toastContext, 'Este pedido já foi pago ou expirou.');
         }
         _pushHistory(navigator);
         return;
@@ -197,7 +197,7 @@ class BanzaNotificationRouter {
     } catch (e) {
       debugPrint('[FCM-ROUTE] fallback history reason=fetch_failed error=$e');
       if (toastContext.mounted) {
-        BanzaToast.showWarning(toastContext, 'Não foi possível abrir o pedido.');
+        BanzamiToast.showWarning(toastContext, 'Não foi possível abrir o pedido.');
       }
       _pushHistory(navigator);
     }

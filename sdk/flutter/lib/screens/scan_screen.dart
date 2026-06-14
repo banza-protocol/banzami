@@ -15,7 +15,7 @@ enum _ScanStep { scanning, resolving, error }
 
 /// Scan-to-pay router.
 ///
-/// Parses the scanned QR with [BanzaQrParser] and routes to the appropriate
+/// Parses the scanned QR with [BanzamiQrParser] and routes to the appropriate
 /// payment screen:
 ///  • Payment-request code → [BanzamiPaymentRequestScreen] (locked)
 ///  • Handle + fixed amount → [BanzamiPaymentRequestScreen] (locked, sendByHandle)
@@ -41,7 +41,7 @@ class BanzamiScanScreen extends StatefulWidget {
 class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   _ScanStep _step           = _ScanStep.scanning;
   String?   _error;
-  int       _scanGeneration = 0; // incremented on rescan → rebuilds BanzaQrScanner
+  int       _scanGeneration = 0; // incremented on rescan → rebuilds BanzamiQrScanner
 
   // null = checking, true = granted, false = denied (will pop)
   bool?     _cameraReady;
@@ -57,7 +57,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   }
 
   // Lightweight status check — callers should have already called
-  // BanzaCameraPermission.ensure(), so this is typically instant.
+  // BanzamiCameraPermission.ensure(), so this is typically instant.
   Future<void> _guardPermission() async {
     final status = await Permission.camera.status;
     if (!mounted) return;
@@ -91,20 +91,20 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     if (!mounted) return;
     setState(() { _step = _ScanStep.resolving; _error = null; });
 
-    final parsed = BanzaQrParser.parse(raw);
+    final parsed = BanzamiQrParser.parse(raw);
     debugPrint('[QR-SCAN] parsedType=${parsed.runtimeType}');
 
     switch (parsed) {
-      case BanzaQrInvalid(:final reason):
+      case BanzamiQrInvalid(:final reason):
         debugPrint('[QR-SCAN] error=$reason');
         if (mounted) setState(() { _error = reason; _step = _ScanStep.error; });
 
-      case BanzaQrPaymentRequest(:final code, :final isSandbox):
+      case BanzamiQrPaymentRequest(:final code, :final isSandbox):
         debugPrint('[QR-SCAN] sandbox=$isSandbox route=PaymentRequestScreen code=$code');
         if (_sandboxMismatch(isSandbox)) return;
         await _openPaymentRequest(code);
 
-      case BanzaQrHandlePayment(:final handle, :final amountMinor, :final note,
+      case BanzamiQrHandlePayment(:final handle, :final amountMinor, :final note,
                                  :final currency, :final isSandbox):
         debugPrint('[QR-SCAN] sandbox=$isSandbox '
             'route=${amountMinor != null ? "LockedPayment" : "SendScreen"} '
@@ -156,7 +156,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       }
 
       debugPrint('[QR-SCAN] route=BanzamiPaymentRequestScreen linkCode=${link.linkCode}');
-      await Navigator.of(context).push(BanzaPageRoute(
+      await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiPaymentRequestScreen(
           client:               widget.client,
           recipientHandle:      link.receiverHandle,
@@ -197,7 +197,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   }) async {
     if (!mounted) return;
     debugPrint('[QR-SCAN] route=BanzamiPaymentRequestScreen locked handle=$handle amount=$amountMinor');
-    await Navigator.of(context).push(BanzaPageRoute(
+    await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiPaymentRequestScreen(
         client:          widget.client,
         recipientHandle: handle,
@@ -216,7 +216,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
   Future<void> _openSendScreen({required String handle}) async {
     if (!mounted) return;
     debugPrint('[QR-SCAN] route=BanzamiSendScreen handle=$handle');
-    await Navigator.of(context).push(BanzaPageRoute(
+    await Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiSendScreen(
         client:        widget.client,
         ownHandle:     widget.ownHandle,
@@ -243,9 +243,9 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     if (_cameraReady != true) return _buildCameraLoading();
 
     return Scaffold(
-      backgroundColor: _step == _ScanStep.scanning ? Colors.black : BanzaColors.offWhite,
+      backgroundColor: _step == _ScanStep.scanning ? Colors.black : BanzamiColors.offWhite,
       body: switch (_step) {
-        _ScanStep.scanning  => BanzaQrScanner(
+        _ScanStep.scanning  => BanzamiQrScanner(
             key:        ValueKey(_scanGeneration),
             onDetected: _onScanned,
             onCancel:   () => Navigator.of(context).pop(),
@@ -283,9 +283,9 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: BanzaColors.wine),
-            SizedBox(height: BanzaSpacing.lg),
-            Text('A carregar pagamento…', style: BanzaTextStyles.bodyMd),
+            CircularProgressIndicator(color: BanzamiColors.wine),
+            SizedBox(height: BanzamiSpacing.lg),
+            Text('A carregar pagamento…', style: BanzamiTextStyles.bodyMd),
           ],
         ),
       ),
@@ -296,36 +296,36 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
     return SafeArea(
       child: Center(
         child: Padding(
-          padding: const EdgeInsets.all(BanzaSpacing.xl),
+          padding: const EdgeInsets.all(BanzamiSpacing.xl),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 72, height: 72,
                 decoration: const BoxDecoration(
-                  color:        BanzaColors.errorBg,
-                  borderRadius: BanzaRadius.fullAll,
+                  color:        BanzamiColors.errorBg,
+                  borderRadius: BanzamiRadius.fullAll,
                 ),
                 child: const Icon(
                   Icons.qr_code_scanner_rounded,
-                  color: BanzaColors.error,
+                  color: BanzamiColors.error,
                   size: 36,
                 ),
               ),
-              const SizedBox(height: BanzaSpacing.xl),
+              const SizedBox(height: BanzamiSpacing.xl),
               Text(
                 _error ?? 'Código QR inválido',
-                style:     BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+                style:     BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: BanzaSpacing.sm),
+              const SizedBox(height: BanzamiSpacing.sm),
               Text(
                 'Verifique o código e tente novamente.',
-                style:     BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+                style:     BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: BanzaSpacing.xxl),
-              BanzaButton(
+              const SizedBox(height: BanzamiSpacing.xxl),
+              BanzamiButton(
                 label:     'Tentar novamente',
                 onPressed: _rescan,
               ),

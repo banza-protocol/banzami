@@ -8,11 +8,11 @@ import '../utils/date_formatter.dart';
 ///
 /// Direction (OUTGOING / INCOMING) is computed server-side and read from
 /// [ActivityItem.direction] — no consumer-ID comparison needed here.
-class BanzaTransferItem extends StatelessWidget {
+class BanzamiTransferItem extends StatelessWidget {
   final ActivityItem item;
   final VoidCallback? onTap;
 
-  const BanzaTransferItem({
+  const BanzamiTransferItem({
     super.key,
     required this.item,
     this.onTap,
@@ -22,9 +22,9 @@ class BanzaTransferItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isOut = item.isOutgoing;
 
-    final amountColor = isOut ? BanzaColors.gray900 : BanzaColors.success;
+    final amountColor = isOut ? BanzamiColors.gray900 : BanzamiColors.success;
     final amountSign  = isOut ? '− ' : '+ ';
-    final iconColor   = isOut ? BanzaColors.wine : BanzaColors.success;
+    final iconColor   = isOut ? BanzamiColors.wine : BanzamiColors.success;
 
     final (icon, label) = switch (item.itemType) {
       'P2P_SENT'       => (Icons.arrow_upward_rounded,   'Enviado'),
@@ -40,11 +40,11 @@ class BanzaTransferItem extends StatelessWidget {
 
     return InkWell(
       onTap:        onTap,
-      borderRadius: BanzaRadius.mdAll,
+      borderRadius: BanzamiRadius.mdAll,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.lg,
-          vertical:   BanzaSpacing.md,
+          horizontal: BanzamiSpacing.lg,
+          vertical:   BanzamiSpacing.md,
         ),
         child: Row(
           children: [
@@ -53,21 +53,21 @@ class BanzaTransferItem extends StatelessWidget {
               height:      40,
               decoration:  BoxDecoration(
                 color:        iconColor.withValues(alpha: 0.10),
-                borderRadius: BanzaRadius.mdAll,
+                borderRadius: BanzamiRadius.mdAll,
               ),
               child: Icon(icon, color: iconColor, size: 20),
             ),
-            const SizedBox(width: BanzaSpacing.md),
+            const SizedBox(width: BanzamiSpacing.md),
 
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: BanzaTextStyles.headingSm),
+                  Text(label, style: BanzamiTextStyles.headingSm),
                   if (subtitle != null && subtitle.isNotEmpty)
                     Text(
                       subtitle,
-                      style:    BanzaTextStyles.bodySm,
+                      style:    BanzamiTextStyles.bodySm,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -80,7 +80,7 @@ class BanzaTransferItem extends StatelessWidget {
               children: [
                 Text(
                   '$amountSign${item.amountFormatted}',
-                  style: BanzaTextStyles.mono.copyWith(
+                  style: BanzamiTextStyles.mono.copyWith(
                     color:      amountColor,
                     fontWeight: FontWeight.w600,
                     fontSize:   15,
@@ -89,7 +89,7 @@ class BanzaTransferItem extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   _formatDate(item.createdAt),
-                  style: BanzaTextStyles.bodySm,
+                  style: BanzamiTextStyles.bodySm,
                 ),
               ],
             ),
@@ -99,5 +99,5 @@ class BanzaTransferItem extends StatelessWidget {
     );
   }
 
-  String _formatDate(DateTime dt) => BanzaDateFormatter.formatShortTime(dt);
+  String _formatDate(DateTime dt) => BanzamiDateFormatter.formatShortTime(dt);
 }

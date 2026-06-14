@@ -99,7 +99,7 @@ void main() {
 
       expect(find.text('João Silva'), findsOneWidget);
       expect(find.text('@joao'),     findsOneWidget);
-      expect(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'), findsOneWidget);
+      expect(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'), findsOneWidget);
       expect(find.text('Cancelar'),                                     findsOneWidget);
     });
 
@@ -137,9 +137,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(_wrap(_confirmScreen()));
-      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
-      // BanzaVerifiedMark has a repeating AnimationController — pumpAndSettle()
-      // never settles. BanzaPrimaryButton has a 2 × 150 ms scale animation before
+      await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
+      // BanzamiVerifiedMark has a repeating AnimationController — pumpAndSettle()
+      // never settles. BanzamiPrimaryButton has a 2 × 150 ms scale animation before
       // calling onPressed; pump at 50 ms intervals so each animation tick fires
       // and the HTTP-chain microtasks can drain. Text is in the tree once the
       // receipt route exists (regardless of the route transition opacity).
@@ -167,7 +167,7 @@ void main() {
       // real anti-double-submit mechanism — not the animation delay.
       // callCount++ happens synchronously within _confirm() before the first
       // await (BaseClient.post → send() → onCall()), so no pump is needed.
-      tester.widget<BanzaPrimaryButton>(find.byType(BanzaPrimaryButton))
+      tester.widget<BanzamiPrimaryButton>(find.byType(BanzamiPrimaryButton))
           .onPressed!();
       expect(callCount, 1);
 
@@ -186,7 +186,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(
           _wrap(_confirmScreen(client: _apiErrorClient('INSUFFICIENT_FUNDS'))));
-      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
+      await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(
         find.text('Saldo insuficiente para esta transferência.'),
@@ -198,7 +198,7 @@ void main() {
         (tester) async {
       await tester.pumpWidget(_wrap(
           _confirmScreen(client: _apiErrorClient('RECIPIENT_NOT_FOUND'))));
-      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
+      await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(find.textContaining('@joao não encontrado'), findsOneWidget);
     });
@@ -207,7 +207,7 @@ void main() {
         (tester) async {
       await tester
           .pumpWidget(_wrap(_confirmScreen(client: _networkErrorClient())));
-      await tester.tap(find.widgetWithText(BanzaPrimaryButton, 'Confirmar envio'));
+      await tester.tap(find.widgetWithText(BanzamiPrimaryButton, 'Confirmar envio'));
       await tester.pumpAndSettle();
       expect(find.textContaining('ligação'), findsOneWidget);
     });
@@ -238,10 +238,10 @@ void main() {
       expect(find.text('Concluído'),           findsOneWidget);
     });
 
-    testWidgets('BanzaVerifiedMark is rendered — no generic green circle',
+    testWidgets('BanzamiVerifiedMark is rendered — no generic green circle',
         (tester) async {
       await pumpReceipt(tester);
-      expect(find.byType(BanzaVerifiedMark), findsOneWidget);
+      expect(find.byType(BanzamiVerifiedMark), findsOneWidget);
     });
 
     testWidgets('recipient handle appears in subtitle and Para row',

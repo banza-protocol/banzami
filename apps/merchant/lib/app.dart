@@ -20,11 +20,11 @@ class BanzamiMerchantApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => MerchantSessionService()..initialize(),
         ),
-        ProxyProvider<MerchantSessionService, BanzaClient>(
+        ProxyProvider<MerchantSessionService, BanzamiClient>(
           update: (_, session, prev) {
             final apiKey = session.session?.apiKey ?? '';
             if (prev != null && apiKey == prev.apiKey) return prev;
-            return BanzaClient(
+            return BanzamiClient(
               baseUrl: AppConfig.gatewayUrl,
               apiKey:  apiKey,
             );
@@ -54,8 +54,8 @@ class BanzamiMerchantApp extends StatelessWidget {
   ThemeData _buildTheme() {
     final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor:  BanzaColors.wine,
-        primary:    BanzaColors.wine,
+        seedColor:  BanzamiColors.wine,
+        primary:    BanzamiColors.wine,
         brightness: Brightness.light,
       ),
       useMaterial3: true,
@@ -68,36 +68,36 @@ class BanzamiMerchantApp extends StatelessWidget {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled:      true,
-        fillColor:   BanzaColors.gray100,
+        fillColor:   BanzamiColors.gray100,
         border:      OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide:   BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzaColors.wine, width: 1.5),
+          borderSide:   const BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzaColors.error, width: 1.5),
+          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzaColors.error, width: 1.5),
+          borderSide:   const BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       ),
       navigationBarTheme: NavigationBarThemeData(
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
-          return BanzaTextStyles.label.copyWith(
-            color: selected ? BanzaColors.wine : BanzaColors.gray400,
+          return BanzamiTextStyles.label.copyWith(
+            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? BanzaColors.wine : BanzaColors.gray400,
+            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
             size:  24,
           );
         }),

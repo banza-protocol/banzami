@@ -18,41 +18,41 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor:        BanzaColors.offWhite,
-        foregroundColor:        BanzaColors.gray900,
+        backgroundColor:        BanzamiColors.offWhite,
+        foregroundColor:        BanzamiColors.gray900,
         elevation:              0,
         scrolledUnderElevation: 0,
         leading: IconButton(
           icon:      const Icon(Icons.arrow_back_ios_new_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text('Notificações', style: BanzaTextStyles.headingMd),
+        title: const Text('Notificações', style: BanzamiTextStyles.headingMd),
       ),
       body: ListView(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.xl,
-          vertical:   BanzaSpacing.lg,
+          horizontal: BanzamiSpacing.xl,
+          vertical:   BanzamiSpacing.lg,
         ),
         children: [
 
           // ── Transacções ──────────────────────────────────────────────────
           const _SectionLabel('Transacções'),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           _Card(children: [
             _ToggleRow(
               label:     'Transações recebidas',
               value:     _received,
               onChanged: (v) => setState(() => _received = v),
             ),
-            const Divider(height: 1, indent: 16, color: BanzaColors.gray100),
+            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
             _ToggleRow(
               label:     'Transações enviadas',
               value:     _sent,
               onChanged: (v) => setState(() => _sent = v),
             ),
-            const Divider(height: 1, indent: 16, color: BanzaColors.gray100),
+            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
             _ToggleRow(
               label:     'Multicaixa Express',
               value:     _multicaixa,
@@ -60,18 +60,18 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ]),
 
-          const SizedBox(height: BanzaSpacing.xl),
+          const SizedBox(height: BanzamiSpacing.xl),
 
           // ── Outras ───────────────────────────────────────────────────────
           const _SectionLabel('Outras'),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           _Card(children: [
             _ToggleRow(
               label:     'Promoções e novidades',
               value:     _promos,
               onChanged: (v) => setState(() => _promos = v),
             ),
-            const Divider(height: 1, indent: 16, color: BanzaColors.gray100),
+            const Divider(height: 1, indent: 16, color: BanzamiColors.gray100),
             _ToggleRow(
               label:     'Alertas de segurança',
               value:     _security,
@@ -79,19 +79,19 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
             ),
           ]),
 
-          const SizedBox(height: BanzaSpacing.xl),
+          const SizedBox(height: BanzamiSpacing.xl),
 
           // Footer note
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xs),
+            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xs),
             child: Text(
               'Receba notificações importantes sobre a sua conta e transações.',
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               textAlign: TextAlign.center,
             ),
           ),
 
-          const SizedBox(height: BanzaSpacing.xxl),
+          const SizedBox(height: BanzamiSpacing.xxl),
         ],
       ),
     );
@@ -109,11 +109,11 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: BanzaSpacing.xs),
+      padding: const EdgeInsets.only(left: BanzamiSpacing.xs),
       child: Text(
         label.toUpperCase(),
-        style: BanzaTextStyles.label.copyWith(
-          color:         BanzaColors.gray400,
+        style: BanzamiTextStyles.label.copyWith(
+          color:         BanzamiColors.gray400,
           letterSpacing: 0.6,
           fontSize:      11,
         ),
@@ -130,9 +130,9 @@ class _Card extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BanzaRadius.xlAll,
-        boxShadow:    BanzaShadows.card,
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
       clipBehavior: Clip.hardEdge,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
@@ -155,22 +155,22 @@ class _ToggleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
-              style: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
             ),
           ),
           Switch(
             value:           value,
             onChanged:       onChanged,
-            activeTrackColor: BanzaColors.wine,
-            inactiveThumbColor: BanzaColors.white,
+            activeTrackColor: BanzamiColors.wine,
+            inactiveThumbColor: BanzamiColors.white,
           ),
         ],
       ),

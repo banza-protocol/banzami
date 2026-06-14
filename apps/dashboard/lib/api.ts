@@ -2,7 +2,7 @@
  * Banzami API client for the merchant dashboard.
  *
  * This module provides the `BanzamiApi` compatibility adapter, which wraps
- * the official `@banza/sdk` `BanzaClient`. Dashboard components use
+ * the official `@banza/sdk` `BanzamiClient`. Dashboard components use
  * `new BanzamiApi(gatewayUrl, apiKey)` and this adapter routes calls through
  * the SDK — gaining JWT caching, exponential-backoff retries, typed errors,
  * and automatic idempotency.
@@ -13,10 +13,10 @@
  * are marked as pending SDK support and will migrate when those SDK methods land.
  */
 
-import { BanzaClient } from '@banza/sdk';
+import { BanzamiClient } from '@banza/sdk';
 
 // Re-export the error type from the SDK so callers don't need a separate import.
-export { BanzaApiError } from '@banza/sdk';
+export { BanzamiApiError } from '@banza/sdk';
 
 // Re-export types from the SDK for use in dashboard components.
 export type {
@@ -141,7 +141,7 @@ import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } fr
  * Dashboard API client.
  *
  * Drop-in replacement for the old hand-rolled `BanzamiApi` class.
- * Internally backed by `BanzaClient` from `@banza/sdk`.
+ * Internally backed by `BanzamiClient` from `@banza/sdk`.
  *
  * @example
  * ```typescript
@@ -151,14 +151,14 @@ import type { Transaction, Payout, WebhookEvent, PaymentLink, WalletBalance } fr
  * ```
  */
 export class BanzamiApi {
-  private readonly client: BanzaClient;
+  private readonly client: BanzamiClient;
   private readonly base:   string;
   private readonly apiKey: string;
 
   constructor(gatewayUrl: string, apiKey: string) {
     this.base   = gatewayUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
-    this.client = new BanzaClient({
+    this.client = new BanzamiClient({
       apiKey,
       environment: apiKey.startsWith('bz_test_') ? 'sandbox' : 'live',
       baseUrl:     gatewayUrl,
@@ -430,7 +430,7 @@ export class BanzamiApi {
   private async _legacyReq<T>(path: string, init?: RequestInit): Promise<T> {
     // Direct fetch — only for endpoints not yet covered by the SDK.
     // Uses Bearer API key; replace with SDK method when available.
-    const { BanzaApiError } = await import('@banza/sdk');
+    const { BanzamiApiError } = await import('@banza/sdk');
     const res = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {
@@ -448,7 +448,7 @@ export class BanzamiApi {
         code    = body.code    ?? code;
         message = body.message ?? message;
       } catch { /* ignore parse errors */ }
-      throw new BanzaApiError(res.status, code, message);
+      throw new BanzamiApiError(res.status, code, message);
     }
 
     if (res.status === 204) return undefined as T;

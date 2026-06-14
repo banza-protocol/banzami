@@ -54,38 +54,38 @@ class _AmountNoteSheetState extends State<_AmountNoteSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, BanzaSpacing.xl, BanzaSpacing.xl,
-        MediaQuery.viewInsetsOf(context).bottom + BanzaSpacing.xl,
+        BanzamiSpacing.xl, BanzamiSpacing.xl, BanzamiSpacing.xl,
+        MediaQuery.viewInsetsOf(context).bottom + BanzamiSpacing.xl,
       ),
       child: Column(
         mainAxisSize:       MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
-          const SizedBox(height: BanzaSpacing.md),
-          BanzaAmountInput(onChanged: (v) => _amount = v),
-          const SizedBox(height: BanzaSpacing.md),
-          BanzaTextField(
+          const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
+          const SizedBox(height: BanzamiSpacing.md),
+          BanzamiAmountInput(onChanged: (v) => _amount = v),
+          const SizedBox(height: BanzamiSpacing.md),
+          BanzamiTextField(
             label:           'Descrição (opcional)',
             hint:            'Ex: jantar de ontem',
             textInputAction: TextInputAction.done,
             onChanged:       (v) => _note = v,
           ),
           if (_error != null) ...[
-            const SizedBox(height: BanzaSpacing.sm),
-            Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
           ],
-          const SizedBox(height: BanzaSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.lg),
           Row(children: [
             Expanded(
-              child: BanzaSecondaryButton(
+              child: BanzamiSecondaryButton(
                 label:     'Cancelar',
                 onPressed: _loading ? null : () => Navigator.pop(context),
               ),
             ),
-            const SizedBox(width: BanzaSpacing.sm),
+            const SizedBox(width: BanzamiSpacing.sm),
             Expanded(
-              child: BanzaPrimaryButton(
+              child: BanzamiPrimaryButton(
                 label:     'Aplicar',
                 isLoading: _loading,
                 onPressed: _loading ? null : _apply,
@@ -164,7 +164,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     final link = await showModalBottomSheet<ConsumerPayLink>(
       context:            context,
       isScrollControlled: true,
-      backgroundColor:    BanzaColors.white,
+      backgroundColor:    BanzamiColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
@@ -185,7 +185,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
       );
     } catch (e) {
       if (mounted) {
-        BanzaToast.showError(context, 'Erro ao partilhar: $e');
+        BanzamiToast.showError(context, 'Erro ao partilhar: $e');
       }
     }
   }
@@ -201,11 +201,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
         errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle: const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color:    BanzaColors.wine,
+          color:    BanzamiColors.wine,
         ),
         dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
-          color:           BanzaColors.gray900,
+          color:           BanzamiColors.gray900,
         ),
         embeddedImage:      _logoUiImage,
         embeddedImageStyle: _logoUiImage != null
@@ -230,7 +230,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
       );
     } catch (e) {
       if (mounted) {
-        BanzaToast.showError(context, 'Erro ao partilhar: $e');
+        BanzamiToast.showError(context, 'Erro ao partilhar: $e');
       }
     } finally {
       if (mounted) setState(() => _sharing = false);
@@ -239,8 +239,8 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BanzaScaffold(
-      appBar: const BanzaAppBar(title: 'Receber'),
+    return BanzamiScaffold(
+      appBar: const BanzamiAppBar(title: 'Receber'),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -251,19 +251,19 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                 constraints: BoxConstraints(minHeight: constraints.maxHeight),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.xl,
-                    vertical:   BanzaSpacing.lg,
+                    horizontal: BanzamiSpacing.xl,
+                    vertical:   BanzamiSpacing.lg,
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       // QR card — clean white card with subtle shadow
-                      BanzaCard(
-                        padding: const EdgeInsets.all(BanzaSpacing.xl),
-                        shadow: BanzaShadows.cardElevated,
+                      BanzamiCard(
+                        padding: const EdgeInsets.all(BanzamiSpacing.xl),
+                        shadow: BanzamiShadows.cardElevated,
                         child: Column(
                           children: [
-                            BanzaQrDisplay(
+                            BanzamiQrDisplay(
                               payload:       _qrPayload,
                               amountLabel:   _activeLink?.amountMinor != null
                                   ? formatMinor(_activeLink!.amountMinor!, _activeLink!.currency)
@@ -275,7 +275,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                                   : null,
                             ),
 
-                            const SizedBox(height: BanzaSpacing.md),
+                            const SizedBox(height: BanzamiSpacing.md),
 
                             // Handle copy row
                             GestureDetector(
@@ -284,27 +284,27 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                                 await Clipboard.setData(
                                     ClipboardData(text: '@${widget.handle}'));
                                 if (context.mounted) {
-                                  BanzaToast.showSuccess(context, '@handle copiado');
+                                  BanzamiToast.showSuccess(context, '@handle copiado');
                                 }
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: BanzaSpacing.lg,
-                                  vertical:   BanzaSpacing.sm,
+                                  horizontal: BanzamiSpacing.lg,
+                                  vertical:   BanzamiSpacing.sm,
                                 ),
                                 decoration: BoxDecoration(
-                                  color:        BanzaColors.gray100,
-                                  borderRadius: BanzaRadius.fullAll,
+                                  color:        BanzamiColors.gray100,
+                                  borderRadius: BanzamiRadius.fullAll,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    const Icon(Icons.copy_rounded, size: 14, color: BanzaColors.gray400),
-                                    const SizedBox(width: BanzaSpacing.xs),
+                                    const Icon(Icons.copy_rounded, size: 14, color: BanzamiColors.gray400),
+                                    const SizedBox(width: BanzamiSpacing.xs),
                                     Text(
                                       '@${widget.handle}',
-                                      style: BanzaTextStyles.bodyMd.copyWith(
-                                        color: BanzaColors.gray600,
+                                      style: BanzamiTextStyles.bodyMd.copyWith(
+                                        color: BanzamiColors.gray600,
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -316,41 +316,41 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
                         ),
                       ),
 
-                      const SizedBox(height: BanzaSpacing.xl),
+                      const SizedBox(height: BanzamiSpacing.xl),
 
                       // Primary action
-                      BanzaPrimaryButton(
+                      BanzamiPrimaryButton(
                         key:       _shareLinkButtonKey,
                         label:     'Partilhar link',
                         icon:      Icons.link_rounded,
                         onPressed: _shareLink,
                       ),
 
-                      const SizedBox(height: BanzaSpacing.sm),
+                      const SizedBox(height: BanzamiSpacing.sm),
 
                       // Secondary actions row
                       Row(children: [
                         Expanded(
-                          child: BanzaSecondaryButton(
+                          child: BanzamiSecondaryButton(
                             label:     _sharing ? 'A partilhar…' : 'Partilhar QR',
                             onPressed: _sharing ? null : _shareQr,
                           ),
                         ),
-                        const SizedBox(width: BanzaSpacing.sm),
+                        const SizedBox(width: BanzamiSpacing.sm),
                         if (widget.client != null) Expanded(
                           child: _activeLink != null
-                              ? BanzaSecondaryButton(
+                              ? BanzamiSecondaryButton(
                                   label:     'Remover montante',
                                   onPressed: _clearAmount,
                                 )
-                              : BanzaSecondaryButton(
+                              : BanzamiSecondaryButton(
                                   label:     'Definir montante',
                                   onPressed: _showAmountSheet,
                                 ),
                         ),
                       ]),
 
-                      const SizedBox(height: BanzaSpacing.lg),
+                      const SizedBox(height: BanzamiSpacing.lg),
                     ],
                   ),
                 ),

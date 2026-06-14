@@ -9,14 +9,14 @@ import '../theme/banza_theme.dart';
 /// The user types "500" and sees "500 Kz"; the widget exposes 50000 minor units.
 ///
 /// Designed to sit prominently at the top of payment initiation screens.
-class BanzaAmountInput extends StatefulWidget {
+class BanzamiAmountInput extends StatefulWidget {
   final String currency;
   final int? initialAmountMinor;
   final void Function(int amountMinor) onChanged;
   final String? errorText;
   final bool enabled;
 
-  const BanzaAmountInput({
+  const BanzamiAmountInput({
     super.key,
     this.currency          = 'AOA',
     this.initialAmountMinor,
@@ -26,10 +26,10 @@ class BanzaAmountInput extends StatefulWidget {
   });
 
   @override
-  State<BanzaAmountInput> createState() => _BanzaAmountInputState();
+  State<BanzamiAmountInput> createState() => _BanzamiAmountInputState();
 }
 
-class _BanzaAmountInputState extends State<BanzaAmountInput> {
+class _BanzamiAmountInputState extends State<BanzamiAmountInput> {
   late final TextEditingController _controller;
 
   @override
@@ -61,15 +61,15 @@ class _BanzaAmountInputState extends State<BanzaAmountInput> {
       children: [
         Container(
           decoration: BoxDecoration(
-            color:        BanzaColors.gray100,
-            borderRadius: BanzaRadius.lgAll,
+            color:        BanzamiColors.gray100,
+            borderRadius: BanzamiRadius.lgAll,
             border: widget.errorText != null
-                ? Border.all(color: BanzaColors.error, width: 1.5)
+                ? Border.all(color: BanzamiColors.error, width: 1.5)
                 : null,
           ),
           padding: const EdgeInsets.symmetric(
-            horizontal: BanzaSpacing.xl,
-            vertical:   BanzaSpacing.lg,
+            horizontal: BanzamiSpacing.xl,
+            vertical:   BanzamiSpacing.lg,
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -83,14 +83,14 @@ class _BanzaAmountInputState extends State<BanzaAmountInput> {
                     FilteringTextInputFormatter.digitsOnly,
                     _ThousandsSeparatorFormatter(),
                   ],
-                  style: BanzaTextStyles.monoLg.copyWith(
-                    color: BanzaColors.gray900,
+                  style: BanzamiTextStyles.monoLg.copyWith(
+                    color: BanzamiColors.gray900,
                   ),
                   decoration: InputDecoration(
                     border:           InputBorder.none,
                     hintText:         '0',
-                    hintStyle:        BanzaTextStyles.monoLg.copyWith(
-                      color: BanzaColors.gray400,
+                    hintStyle:        BanzamiTextStyles.monoLg.copyWith(
+                      color: BanzamiColors.gray400,
                     ),
                     contentPadding:   EdgeInsets.zero,
                     isDense:          true,
@@ -104,23 +104,23 @@ class _BanzaAmountInputState extends State<BanzaAmountInput> {
                   },
                 ),
               ),
-              const SizedBox(width: BanzaSpacing.sm),
+              const SizedBox(width: BanzamiSpacing.sm),
               Text(
                 _symbol,
-                style: BanzaTextStyles.headingMd.copyWith(
-                  color: BanzaColors.gray400,
+                style: BanzamiTextStyles.headingMd.copyWith(
+                  color: BanzamiColors.gray400,
                 ),
               ),
             ],
           ),
         ),
         if (widget.errorText != null) ...[
-          const SizedBox(height: BanzaSpacing.xs),
+          const SizedBox(height: BanzamiSpacing.xs),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.sm),
+            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm),
             child: Text(
               widget.errorText!,
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
             ),
           ),
         ],

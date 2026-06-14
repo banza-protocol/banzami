@@ -241,7 +241,7 @@ export function generateTestEvent(
 }
 
 // ---------------------------------------------------------------------------
-// WebhooksClient — attached to BanzaClient as `.webhooks`
+// WebhooksClient — attached to BanzamiClient as `.webhooks`
 // ---------------------------------------------------------------------------
 
 /**
@@ -274,7 +274,7 @@ export class WebhooksClient {
     const s = secret ?? this.webhookSecret;
     if (!s) {
       throw new Error(
-        'A webhook secret is required. Pass webhookSecret to new BanzaClient({ webhookSecret }) ' +
+        'A webhook secret is required. Pass webhookSecret to new BanzamiClient({ webhookSecret }) ' +
         'or provide it directly to constructEvent().',
       );
     }

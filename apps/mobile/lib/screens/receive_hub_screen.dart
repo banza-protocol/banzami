@@ -48,38 +48,38 @@ class _AmountNoteSheetState extends State<_AmountNoteSheet> {
   Widget build(BuildContext context) {
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, BanzaSpacing.xl, BanzaSpacing.xl,
-        MediaQuery.viewInsetsOf(context).bottom + BanzaSpacing.xl,
+        BanzamiSpacing.xl, BanzamiSpacing.xl, BanzamiSpacing.xl,
+        MediaQuery.viewInsetsOf(context).bottom + BanzamiSpacing.xl,
       ),
       child: Column(
         mainAxisSize:       MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Montante a cobrar', style: BanzaTextStyles.headingSm),
-          const SizedBox(height: BanzaSpacing.md),
-          BanzaAmountInput(onChanged: (v) => _amount = v),
-          const SizedBox(height: BanzaSpacing.md),
-          BanzaTextField(
+          const Text('Montante a cobrar', style: BanzamiTextStyles.headingSm),
+          const SizedBox(height: BanzamiSpacing.md),
+          BanzamiAmountInput(onChanged: (v) => _amount = v),
+          const SizedBox(height: BanzamiSpacing.md),
+          BanzamiTextField(
             label:           'Descrição (opcional)',
             hint:            'Ex: jantar de ontem',
             textInputAction: TextInputAction.done,
             onChanged:       (v) => _note = v,
           ),
           if (_error != null) ...[
-            const SizedBox(height: BanzaSpacing.sm),
-            Text(_error!, style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error)),
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
           ],
-          const SizedBox(height: BanzaSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.lg),
           Row(children: [
             Expanded(
-              child: BanzaSecondaryButton(
+              child: BanzamiSecondaryButton(
                 label:     'Cancelar',
                 onPressed: _loading ? null : () => Navigator.pop(context),
               ),
             ),
-            const SizedBox(width: BanzaSpacing.sm),
+            const SizedBox(width: BanzamiSpacing.sm),
             Expanded(
-              child: BanzaPrimaryButton(
+              child: BanzamiPrimaryButton(
                 label:     'Aplicar',
                 isLoading: _loading,
                 onPressed: _loading ? null : _apply,
@@ -159,7 +159,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     HapticFeedback.selectionClick();
     await Clipboard.setData(ClipboardData(text: '@$handle'));
     if (mounted) {
-      BanzaToast.showSuccess(context, 'Endereço copiado');
+      BanzamiToast.showSuccess(context, 'Endereço copiado');
     }
   }
 
@@ -168,7 +168,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     final link = await showModalBottomSheet<ConsumerPayLink>(
       context:            context,
       isScrollControlled: true,
-      backgroundColor:    BanzaColors.white,
+      backgroundColor:    BanzamiColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -189,7 +189,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       );
     } catch (e) {
       if (mounted) {
-        BanzaToast.showError(context, 'Erro ao partilhar: $e');
+        BanzamiToast.showError(context, 'Erro ao partilhar: $e');
       }
     }
   }
@@ -206,7 +206,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       currency:    _activeLink?.currency,
       note:        _activeLink?.note,
       isSandbox:         AppConfig.isSandbox,
-      logoWidget:        BanzaLogoWidget(assetPath: BrandingAssets.icon, size: 20),
+      logoWidget:        BanzamiLogoWidget(assetPath: BrandingAssets.icon, size: 20),
       embeddedLogoImage: AssetImage(BrandingAssets.icon),
     );
   }
@@ -217,10 +217,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     final handle  = session.handle;
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: RefreshIndicator(
-          color:     BanzaColors.wine,
+          color:     BanzamiColors.wine,
           onRefresh: _loadReceived,
           child: CustomScrollView(
             slivers: [
@@ -232,7 +232,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                   subtitle: 'QR Code e ligação de pagamento',
                   trailing: IconButton(
                     icon:    const Icon(Icons.refresh_rounded, size: 20),
-                    color:   BanzaColors.gray400,
+                    color:   BanzamiColors.gray400,
                     tooltip: 'Actualizar',
                     onPressed: _loadReceived,
                   ),
@@ -243,22 +243,22 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(
-                    BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.sm,
+                    BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.sm,
                   ),
-                child: BanzaCard(
-                  shadow: BanzaShadows.cardElevated,
+                child: BanzamiCard(
+                  shadow: BanzamiShadows.cardElevated,
                   padding: EdgeInsets.zero,
                   child: Column(
                     children: [
                       // QR area
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzaSpacing.xl, BanzaSpacing.lg,
-                          BanzaSpacing.xl, BanzaSpacing.sm,
+                          BanzamiSpacing.xl, BanzamiSpacing.lg,
+                          BanzamiSpacing.xl, BanzamiSpacing.sm,
                         ),
                         child: Column(
                           children: [
-                            BanzaQrDisplay(
+                            BanzamiQrDisplay(
                               payload:       _qrPayload(handle),
                               amountLabel:   (_activeLink?.amountMinor != null)
                                   ? formatMinor(_activeLink!.amountMinor!, _activeLink!.currency)
@@ -268,13 +268,13 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                             ),
                             if (_activeLink?.note != null &&
                                 _activeLink!.note!.trim().isNotEmpty) ...[
-                              const SizedBox(height: BanzaSpacing.xs),
+                              const SizedBox(height: BanzamiSpacing.xs),
                               Text(
                                 '"${_activeLink!.note!.trim()}"',
-                                style: BanzaTextStyles.bodyMd.copyWith(
+                                style: BanzamiTextStyles.bodyMd.copyWith(
                                   fontWeight: FontWeight.w500,
                                   fontStyle:  FontStyle.italic,
-                                  color:      BanzaColors.gray700,
+                                  color:      BanzamiColors.gray700,
                                   height:     1.2,
                                 ),
                                 textAlign: TextAlign.center,
@@ -283,93 +283,93 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                               ),
                             ],
                             if (AppConfig.isSandbox) ...[
-                              const SizedBox(height: BanzaSpacing.xs),
+                              const SizedBox(height: BanzamiSpacing.xs),
                               const SandboxBadge(),
                             ],
-                            const SizedBox(height: BanzaSpacing.sm),
+                            const SizedBox(height: BanzamiSpacing.sm),
 
                             // Handle pill
                             GestureDetector(
                               onTap: () => _copyHandle(handle),
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
-                                  horizontal: BanzaSpacing.lg,
-                                  vertical:   BanzaSpacing.sm,
+                                  horizontal: BanzamiSpacing.lg,
+                                  vertical:   BanzamiSpacing.sm,
                                 ),
                                 decoration: const BoxDecoration(
-                                  color:        BanzaColors.gray100,
-                                  borderRadius: BanzaRadius.fullAll,
+                                  color:        BanzamiColors.gray100,
+                                  borderRadius: BanzamiRadius.fullAll,
                                 ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
                                       '@$handle',
-                                      style: BanzaTextStyles.mono.copyWith(
+                                      style: BanzamiTextStyles.mono.copyWith(
                                         fontSize:   15,
                                         fontWeight: FontWeight.w600,
-                                        color:      BanzaColors.gray900,
+                                        color:      BanzamiColors.gray900,
                                       ),
                                     ),
-                                    const SizedBox(width: BanzaSpacing.sm),
+                                    const SizedBox(width: BanzamiSpacing.sm),
                                     const Icon(
                                       Icons.copy_rounded,
                                       size:  14,
-                                      color: BanzaColors.gray400,
+                                      color: BanzamiColors.gray400,
                                     ),
                                   ],
                                 ),
                               ),
                             ),
-                            const SizedBox(height: BanzaSpacing.xs),
+                            const SizedBox(height: BanzamiSpacing.xs),
                             Text(
                               AppConfig.isSandbox
                                   ? 'QR de teste · Sem valor financeiro real'
                                   : 'Mostre este QR para receber pagamentos',
-                              style: BanzaTextStyles.bodySm.copyWith(
+                              style: BanzamiTextStyles.bodySm.copyWith(
                                 color: AppConfig.isSandbox
                                     ? const Color(0xFFB45309)
-                                    : BanzaColors.gray400,
+                                    : BanzamiColors.gray400,
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      const Divider(height: 1, color: BanzaColors.gray100),
+                      const Divider(height: 1, color: BanzamiColors.gray100),
 
                       // Action buttons
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzaSpacing.lg, BanzaSpacing.sm,
-                          BanzaSpacing.lg, BanzaSpacing.lg,
+                          BanzamiSpacing.lg, BanzamiSpacing.sm,
+                          BanzamiSpacing.lg, BanzamiSpacing.lg,
                         ),
                         child: Column(
                           children: [
-                            BanzaPrimaryButton(
+                            BanzamiPrimaryButton(
                               key:       _shareLinkKey,
                               label:     'Partilhar link',
                               icon:      Icons.link_rounded,
                               onPressed: () => _shareLink(handle),
                             ),
-                            const SizedBox(height: BanzaSpacing.sm),
+                            const SizedBox(height: BanzamiSpacing.sm),
                             Row(children: [
                               Expanded(
-                                child: BanzaSecondaryButton(
+                                child: BanzamiSecondaryButton(
                                   label:     _activeLink != null
                                       ? 'Partilhar pedido'
                                       : 'Partilhar QR',
                                   onPressed: () => _openShareModal(session),
                                 ),
                               ),
-                              const SizedBox(width: BanzaSpacing.sm),
+                              const SizedBox(width: BanzamiSpacing.sm),
                               Expanded(
                                 child: _activeLink != null
-                                    ? BanzaSecondaryButton(
+                                    ? BanzamiSecondaryButton(
                                         label:     'Remover montante',
                                         onPressed: _clearAmount,
                                       )
-                                    : BanzaSecondaryButton(
+                                    : BanzamiSecondaryButton(
                                         label:     'Definir montante',
                                         onPressed: _showAmountSheet,
                                       ),
@@ -388,14 +388,14 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
-                  BanzaSpacing.xl, BanzaSpacing.lg,
-                  BanzaSpacing.xl, BanzaSpacing.sm,
+                  BanzamiSpacing.xl, BanzamiSpacing.lg,
+                  BanzamiSpacing.xl, BanzamiSpacing.sm,
                 ),
                 child: Row(
                   children: [
                     Text(
                       'Pagamentos recebidos',
-                      style: BanzaTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+                      style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
                     ),
                     const Spacer(),
                     if (widget.onViewAll != null)
@@ -403,8 +403,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                         onTap: widget.onViewAll,
                         child: Text(
                           'Ver todos',
-                          style: BanzaTextStyles.label.copyWith(
-                            color:   BanzaColors.wine,
+                          style: BanzamiTextStyles.label.copyWith(
+                            color:   BanzamiColors.wine,
                             fontSize: 13,
                           ),
                         ),
@@ -418,22 +418,22 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
             if (_loadingTransfers)
               const SliverToBoxAdapter(
                 child: Padding(
-                  padding: EdgeInsets.all(BanzaSpacing.xl),
-                  child: Center(child: CircularProgressIndicator(color: BanzaColors.wine)),
+                  padding: EdgeInsets.all(BanzamiSpacing.xl),
+                  child: Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
                 ),
               )
             else if (_transferError != null && _received.isEmpty)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.all(BanzaSpacing.xl),
+                  padding: const EdgeInsets.all(BanzamiSpacing.xl),
                   child: Center(
                     child: Column(mainAxisSize: MainAxisSize.min, children: [
-                      const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 36),
-                      const SizedBox(height: BanzaSpacing.sm),
+                      const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 36),
+                      const SizedBox(height: BanzamiSpacing.sm),
                       Text(_transferError!,
-                          style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+                          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
                           textAlign: TextAlign.center),
-                      const SizedBox(height: BanzaSpacing.md),
+                      const SizedBox(height: BanzamiSpacing.md),
                       TextButton(onPressed: _loadReceived, child: const Text('Tentar novamente')),
                     ]),
                   ),
@@ -443,31 +443,31 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: BanzaSpacing.xl,
+                    horizontal: BanzamiSpacing.xl,
                   ),
-                  child: BanzaCard(
-                    padding: const EdgeInsets.all(BanzaSpacing.xl),
+                  child: BanzamiCard(
+                    padding: const EdgeInsets.all(BanzamiSpacing.xl),
                     child: Center(
                       child: Column(mainAxisSize: MainAxisSize.min, children: [
                         Container(
                           width:  52,
                           height: 52,
                           decoration: const BoxDecoration(
-                            color: BanzaColors.gray100,
+                            color: BanzamiColors.gray100,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.qr_code_rounded,
                             size:  24,
-                            color: BanzaColors.gray400,
+                            color: BanzamiColors.gray400,
                           ),
                         ),
-                        const SizedBox(height: BanzaSpacing.md),
-                        const Text('Nenhum pagamento recebido', style: BanzaTextStyles.headingSm),
-                        const SizedBox(height: BanzaSpacing.xs),
+                        const SizedBox(height: BanzamiSpacing.md),
+                        const Text('Nenhum pagamento recebido', style: BanzamiTextStyles.headingSm),
+                        const SizedBox(height: BanzamiSpacing.xs),
                         Text(
                           'Partilhe o seu QR ou link para receber',
-                          style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                          style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                           textAlign: TextAlign.center,
                         ),
                       ]),
@@ -477,17 +477,17 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+                padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
                 sliver: SliverToBoxAdapter(
-                  child: BanzaCard(
+                  child: BanzamiCard(
                     padding: EdgeInsets.zero,
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         for (int i = 0; i < _received.length; i++) ...[
-                          BanzaTransferItem(item: _received[i]),
+                          BanzamiTransferItem(item: _received[i]),
                           if (i < _received.length - 1)
-                            const Divider(height: 1, indent: 68, color: BanzaColors.gray100),
+                            const Divider(height: 1, indent: 68, color: BanzamiColors.gray100),
                         ],
                       ],
                     ),
@@ -495,7 +495,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                 ),
               ),
 
-            const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
+            const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.page)),
           ],
           ),
         ),

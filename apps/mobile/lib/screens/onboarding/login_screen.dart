@@ -113,8 +113,8 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
-      appBar: const BanzaAppBar(title: 'Entrar'),
+      backgroundColor: BanzamiColors.offWhite,
+      appBar: const BanzamiAppBar(title: 'Entrar'),
       body: SafeArea(
         child: _step == _LoginStep.handle ? _buildHandleStep() : _buildPinStep(),
       ),
@@ -142,12 +142,12 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: 20),
 
-            const Text('O seu @banza', style: BanzaTextStyles.displayMd),
+            const Text('O seu @banza', style: BanzamiTextStyles.displayMd),
             const SizedBox(height: 8),
             Text(
               'É o nome único que usa para receber pagamentos.',
-              style: BanzaTextStyles.bodyMd.copyWith(
-                color:  BanzaColors.gray400,
+              style: BanzamiTextStyles.bodyMd.copyWith(
+                color:  BanzamiColors.gray400,
                 height: 1.5,
               ),
             ),
@@ -155,15 +155,15 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 32),
 
             if (_error != null) ...[
-              BanzaErrorBanner(message: _error!),
+              BanzamiErrorBanner(message: _error!),
               const SizedBox(height: 16),
             ],
 
             TextFormField(
               controller:      _handleCtrl,
               decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
-              style:           BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.black),
-              cursorColor:     BanzaColors.wine,
+              style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
+              cursorColor:     BanzamiColors.wine,
               keyboardType:    TextInputType.visiblePassword,
               textInputAction: TextInputAction.done,
               autocorrect:     false,
@@ -176,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             const SizedBox(height: 28),
 
-            BanzaPrimaryButton(
+            BanzamiPrimaryButton(
               label:     'Continuar',
               isLoading: _loading,
               onPressed: _loading ? null : _continueToPin,
@@ -199,18 +199,18 @@ class _LoginScreenState extends State<LoginScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const SizedBox(height: 24),
-              const Text('Introduza o PIN', style: BanzaTextStyles.headingLg),
+              const Text('Introduza o PIN', style: BanzamiTextStyles.headingLg),
               const SizedBox(height: 8),
               Text(
                 _error ?? '@${_handleCtrl.text.trim().toLowerCase()}',
-                style: BanzaTextStyles.bodyMd.copyWith(
-                  color: _error != null ? BanzaColors.error : BanzaColors.gray400,
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: _error != null ? BanzamiColors.error : BanzamiColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
               if (_loading)
-                const CircularProgressIndicator(color: BanzaColors.wine)
+                const CircularProgressIndicator(color: BanzamiColors.wine)
               else
                 PinPad(
                   onChanged:  (v) => setState(() { _pin = v; _error = null; }),
@@ -229,29 +229,29 @@ class _LoginScreenState extends State<LoginScreen> {
         hintText:       hint,
         prefixText:     prefix,
         filled:         true,
-        fillColor:      BanzaColors.gray100,
+        fillColor:      BanzamiColors.gray100,
         contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         border: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
-        hintStyle:  BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray400),
-        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+        hintStyle:  BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray400),
+        errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
       );
 }

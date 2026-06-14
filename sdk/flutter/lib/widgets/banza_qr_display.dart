@@ -12,7 +12,7 @@ import '../utils/qr_logo_utils.dart';
 /// Loads [embeddedImage] once via [ImageStream] and renders it with
 /// [QrPainter] + [CustomPaint] to avoid the repeated-load bug in
 /// QrImageView's internal FutureBuilder.
-class BanzaQrDisplay extends StatefulWidget {
+class BanzamiQrDisplay extends StatefulWidget {
   /// The payload string to encode in the QR.
   final String payload;
 
@@ -29,7 +29,7 @@ class BanzaQrDisplay extends StatefulWidget {
   /// When set, error correction is forced to H so the QR remains scannable.
   final ImageProvider? embeddedImage;
 
-  const BanzaQrDisplay({
+  const BanzamiQrDisplay({
     super.key,
     required this.payload,
     this.amountLabel,
@@ -38,7 +38,7 @@ class BanzaQrDisplay extends StatefulWidget {
     this.embeddedImage,
   });
 
-  factory BanzaQrDisplay.dynamic({
+  factory BanzamiQrDisplay.dynamic({
     Key? key,
     required String payload,
     required int amountMinor,
@@ -47,7 +47,7 @@ class BanzaQrDisplay extends StatefulWidget {
     double size = 240,
     ImageProvider? embeddedImage,
   }) {
-    return BanzaQrDisplay(
+    return BanzamiQrDisplay(
       key:           key,
       payload:       payload,
       amountLabel:   formatMinor(amountMinor, currency),
@@ -58,10 +58,10 @@ class BanzaQrDisplay extends StatefulWidget {
   }
 
   @override
-  State<BanzaQrDisplay> createState() => _BanzaQrDisplayState();
+  State<BanzamiQrDisplay> createState() => _BanzamiQrDisplayState();
 }
 
-class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
+class _BanzamiQrDisplayState extends State<BanzamiQrDisplay> {
   ui.Image?           _loadedImage;
   ImageStream?        _stream;
   ImageStreamListener? _listener;
@@ -73,7 +73,7 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
   }
 
   @override
-  void didUpdateWidget(BanzaQrDisplay old) {
+  void didUpdateWidget(BanzamiQrDisplay old) {
     super.didUpdateWidget(old);
     if (widget.embeddedImage != old.embeddedImage) {
       _detachStream();
@@ -113,12 +113,12 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding:    const EdgeInsets.all(BanzaSpacing.xl),
+          padding:    const EdgeInsets.all(BanzamiSpacing.xl),
           decoration: BoxDecoration(
-            color:        BanzaColors.white,
-            borderRadius: BanzaRadius.lgAll,
-            border:       Border.all(color: BanzaColors.gray100),
-            boxShadow:    BanzaShadows.card,
+            color:        BanzamiColors.white,
+            borderRadius: BanzamiRadius.lgAll,
+            border:       Border.all(color: BanzamiColors.gray100),
+            boxShadow:    BanzamiShadows.card,
           ),
           child: CustomPaint(
             size: Size(widget.size, widget.size),
@@ -130,11 +130,11 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
                   : QrErrorCorrectLevel.M,
               eyeStyle:        const QrEyeStyle(
                 eyeShape: QrEyeShape.square,
-                color:    BanzaColors.wine,
+                color:    BanzamiColors.wine,
               ),
               dataModuleStyle: const QrDataModuleStyle(
                 dataModuleShape: QrDataModuleShape.square,
-                color:           BanzaColors.gray900,
+                color:           BanzamiColors.gray900,
               ),
               embeddedImage:      _loadedImage,
               embeddedImageStyle: _loadedImage != null
@@ -144,17 +144,17 @@ class _BanzaQrDisplayState extends State<BanzaQrDisplay> {
           ),
         ),
         if (widget.amountLabel != null) ...[
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           Text(
             widget.amountLabel!,
-            style: BanzaTextStyles.monoLg.copyWith(color: BanzaColors.gray900),
+            style: BanzamiTextStyles.monoLg.copyWith(color: BanzamiColors.gray900),
           ),
         ],
         if (widget.subtitle != null) ...[
-          const SizedBox(height: BanzaSpacing.xs),
+          const SizedBox(height: BanzamiSpacing.xs),
           Text(
             widget.subtitle!,
-            style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
           ),
         ],
       ],

@@ -25,7 +25,7 @@ const _kAmberBd  = PdfColor.fromInt(0xFFF6C453);
 
 // ── Public API ────────────────────────────────────────────────────────────────
 
-class BanzaPdfReceiptGenerator {
+class BanzamiPdfReceiptGenerator {
   static Future<File> generate({
     required Transfer transfer,
     required String   ownHandle,
@@ -44,7 +44,7 @@ class BanzaPdfReceiptGenerator {
 
     final ref8    = transfer.transferId.replaceAll('-', '').substring(0, 8).toUpperCase();
     final amount  = formatMinor(transfer.amountMinor, transfer.currency);
-    final dateStr = BanzaDateFormatter.formatReceiptDate(
+    final dateStr = BanzamiDateFormatter.formatReceiptDate(
         transfer.completedAt ?? transfer.createdAt);
 
     pw.MemoryImage? logoImage;

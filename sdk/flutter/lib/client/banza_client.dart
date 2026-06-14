@@ -18,26 +18,26 @@ import 'banza_environment.dart';
 ///
 /// Usage — production:
 /// ```dart
-/// final client = BanzaClient(
+/// final client = BanzamiClient(
 ///   apiKey:      'bz_live_...',
-///   environment: BanzaEnvironment.production,
+///   environment: BanzamiEnvironment.production,
 /// );
 /// ```
 ///
 /// Usage — sandbox / integration testing:
 /// ```dart
-/// final client = BanzaClient(
+/// final client = BanzamiClient(
 ///   apiKey:      'bz_test_...',
-///   environment: BanzaEnvironment.sandbox,
+///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
 typedef OnRequestHook  = void Function(String method, String path, int attempt);
 typedef OnResponseHook = void Function(String method, String path, int status, int durationMs);
 typedef OnErrorHook    = void Function(String method, String path, Object error, int attempts);
 
-class BanzaClient {
+class BanzamiClient {
   final String apiKey;
-  final BanzaEnvironment environment;
+  final BanzamiEnvironment environment;
   final String baseUrl;
   final http.Client _http;
   final Uuid _uuid;
@@ -57,9 +57,9 @@ class BanzaClient {
   bool get isSandbox    => environment.isSandbox;
   bool get isProduction => environment.isLive;
 
-  BanzaClient({
+  BanzamiClient({
     required this.apiKey,
-    this.environment = BanzaEnvironment.production,
+    this.environment = BanzamiEnvironment.production,
     String? baseUrl,
     http.Client? httpClient,
     this.maxRetries = 3,
@@ -261,6 +261,26 @@ class BanzaClient {
   Future<PaymentLink> cancelPaymentLink(String id) async {
     final json = await _delete('/v1/payment-links/$id');
     return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // QR codes
+  // ---------------------------------------------------------------------------
+
+  /// Create (or regenerate) a permanent static QR for receiving payments and
+  /// return its scannable payload string. The payer chooses the amount, so the
+  /// same code can be printed once and reused indefinitely — it never expires.
+  Future<String> createStaticQr({
+    required String ownerId,
+    String ownerType = 'MERCHANT',
+    String currency = 'AOA',
+  }) async {
+    final json = await _postWithRetry('/v1/qr/static', {
+      'owner_id':   ownerId,
+      'owner_type': ownerType,
+      'currency':   currency,
+    });
+    return json['payload'] as String;
   }
 
   // ---------------------------------------------------------------------------

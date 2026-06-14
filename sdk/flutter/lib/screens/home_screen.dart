@@ -25,7 +25,7 @@ class BanzamiHomeScreen extends StatefulWidget {
   /// When provided the host app handles routing (e.g. switching a bottom-nav
   /// tab) instead of pushing the standalone BanzamiReceiveScreen.
   final VoidCallback?        onReceive;
-  final BanzaEnvironment     environment;
+  final BanzamiEnvironment     environment;
 
   const BanzamiHomeScreen({
     super.key,
@@ -36,7 +36,7 @@ class BanzamiHomeScreen extends StatefulWidget {
     this.logoAssetPath,
     this.onNotifications,
     this.onReceive,
-    this.environment = BanzaEnvironment.production,
+    this.environment = BanzamiEnvironment.production,
   });
 
   @override
@@ -61,13 +61,13 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     super.initState();
     _entryCtrl = AnimationController(
       vsync:    this,
-      duration: BanzaMotion.slow,
+      duration: BanzamiMotion.slow,
     );
-    _entryFade  = CurvedAnimation(parent: _entryCtrl, curve: BanzaMotion.decelerate);
+    _entryFade  = CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate);
     _entrySlide = Tween<Offset>(
       begin: const Offset(0, 0.04),
       end:   Offset.zero,
-    ).animate(CurvedAnimation(parent: _entryCtrl, curve: BanzaMotion.decelerate));
+    ).animate(CurvedAnimation(parent: _entryCtrl, curve: BanzamiMotion.decelerate));
 
     _load();
     _entryCtrl.forward();
@@ -102,10 +102,10 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   }
 
   Future<void> _onScan() async {
-    final granted = await BanzaCameraPermission.ensure(context);
+    final granted = await BanzamiCameraPermission.ensure(context);
     if (!granted || !mounted) return;
     debugPrint('[QR-CAMERA] initializing scanner');
-    Navigator.of(context).push(BanzaPageRoute(
+    Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiScanScreen(
         client:    widget.client,
         ownHandle: widget.handle,
@@ -115,7 +115,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
     ));
   }
 
-  void _onSend() => Navigator.of(context).push(BanzaPageRoute(
+  void _onSend() => Navigator.of(context).push(BanzamiPageRoute(
     page: BanzamiSendScreen(
       client:        widget.client,
       ownHandle:     widget.handle,
@@ -130,7 +130,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
       widget.onReceive!();
       return;
     }
-    Navigator.of(context).push(BanzaPageRoute(
+    Navigator.of(context).push(BanzamiPageRoute(
       page: BanzamiReceiveScreen(
         handle:        widget.handle,
         logoAssetPath: widget.logoAssetPath,
@@ -142,9 +142,9 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   Widget build(BuildContext context) {
     final topPad = MediaQuery.of(context).padding.top;
 
-    return BanzaScaffold(
+    return BanzamiScaffold(
       body: RefreshIndicator(
-        color:        BanzaColors.wine,
+        color:        BanzamiColors.wine,
         displacement: 60,
         onRefresh:    _load,
         child: FadeTransition(
@@ -173,8 +173,8 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                      BanzaSpacing.xl, BanzaSpacing.sm,
-                      BanzaSpacing.xl, BanzaSpacing.xl,
+                      BanzamiSpacing.xl, BanzamiSpacing.sm,
+                      BanzamiSpacing.xl, BanzamiSpacing.xl,
                     ),
                     child: _BalanceCard(
                       balance:         _balance,
@@ -192,24 +192,24 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: BanzaSpacing.xl,
+                      horizontal: BanzamiSpacing.xl,
                     ),
                     child: Row(
                       children: [
-                        BanzaActionTile(
+                        BanzamiActionTile(
                           icon:   Icons.qr_code_rounded,
                           label:  'QR Code',
                           onTap:  _onScan,
                           accent: true,
                         ),
-                        const SizedBox(width: BanzaSpacing.md),
-                        BanzaActionTile(
+                        const SizedBox(width: BanzamiSpacing.md),
+                        BanzamiActionTile(
                           icon:  Icons.arrow_upward_rounded,
                           label: 'Enviar',
                           onTap: _onSend,
                         ),
-                        const SizedBox(width: BanzaSpacing.md),
-                        BanzaActionTile(
+                        const SizedBox(width: BanzamiSpacing.md),
+                        BanzamiActionTile(
                           icon:  Icons.arrow_downward_rounded,
                           label: 'Receber',
                           onTap: _onReceive,
@@ -219,7 +219,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.xxl)),
+                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.xxl)),
 
                 // ── Sandbox panel ─────────────────────────────────────────
                 if (widget.environment.isSandbox)
@@ -232,22 +232,22 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 
                 // ── Section header ────────────────────────────────────────
                 SliverToBoxAdapter(
-                  child: BanzaSectionTitle(
+                  child: BanzamiSectionTitle(
                     title:  'Actividade recente',
                     action: 'Ver tudo',
                   ),
                 ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.md)),
+                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.md)),
 
                 // ── Activity list ─────────────────────────────────────────
                 if (_loadingActivity)
                   const SliverToBoxAdapter(
                     child: Padding(
-                      padding: EdgeInsets.all(BanzaSpacing.xxl),
+                      padding: EdgeInsets.all(BanzamiSpacing.xxl),
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: BanzaColors.wine,
+                          color: BanzamiColors.wine,
                           strokeWidth: 2,
                         ),
                       ),
@@ -259,9 +259,9 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                   SliverToBoxAdapter(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: BanzaSpacing.xl,
+                        horizontal: BanzamiSpacing.xl,
                       ),
-                      child: BanzaCard(
+                      child: BanzamiCard(
                         padding: EdgeInsets.zero,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -271,8 +271,8 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                               if (i < _activity.length - 1)
                                 const Divider(
                                   height: 1,
-                                  indent: BanzaSpacing.xl + 44 + BanzaSpacing.md,
-                                  color:  BanzaColors.gray100,
+                                  indent: BanzamiSpacing.xl + 44 + BanzamiSpacing.md,
+                                  color:  BanzamiColors.gray100,
                                 ),
                             ],
                           ],
@@ -281,7 +281,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                     ),
                   ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: BanzaSpacing.page)),
+                const SliverToBoxAdapter(child: SizedBox(height: BanzamiSpacing.page)),
               ],
             ),
           ),
@@ -316,10 +316,10 @@ class _TopBar extends StatelessWidget {
 
     return Padding(
       padding: EdgeInsets.fromLTRB(
-        BanzaSpacing.xl,
-        topPad + BanzaSpacing.md,
-        BanzaSpacing.xl,
-        BanzaSpacing.sm,
+        BanzamiSpacing.xl,
+        topPad + BanzamiSpacing.md,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.sm,
       ),
       child: Row(
         children: [
@@ -328,21 +328,21 @@ class _TopBar extends StatelessWidget {
             width:  40,
             height: 40,
             decoration: const BoxDecoration(
-              gradient: BanzaGradients.wine,
+              gradient: BanzamiGradients.wine,
               shape:    BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 initials,
-                style: BanzaTextStyles.bodySm.copyWith(
-                  color:      BanzaColors.white,
+                style: BanzamiTextStyles.bodySm.copyWith(
+                  color:      BanzamiColors.white,
                   fontWeight: FontWeight.w700,
                   fontSize:   14,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: BanzaSpacing.md),
+          const SizedBox(width: BanzamiSpacing.md),
           // Greeting
           Expanded(
             child: Column(
@@ -351,8 +351,8 @@ class _TopBar extends StatelessWidget {
               children: [
                 Text(
                   'Olá, ${displayName?.split(' ').first ?? '@$handle'}',
-                  style: BanzaTextStyles.headingSm.copyWith(
-                    color:      BanzaColors.gray900,
+                  style: BanzamiTextStyles.headingSm.copyWith(
+                    color:      BanzamiColors.gray900,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -366,13 +366,13 @@ class _TopBar extends StatelessWidget {
               width:  40,
               height: 40,
               decoration: BoxDecoration(
-                color:        BanzaColors.white,
+                color:        BanzamiColors.white,
                 shape:        BoxShape.circle,
-                boxShadow:    BanzaShadows.card,
+                boxShadow:    BanzamiShadows.card,
               ),
               child: const Icon(
                 Icons.notifications_none_rounded,
-                color: BanzaColors.gray600,
+                color: BanzamiColors.gray600,
                 size:  20,
               ),
             ),
@@ -406,8 +406,8 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: BanzaGradients.wine,
-        borderRadius: BanzaRadius.xxlAll,
+        gradient: BanzamiGradients.wine,
+        borderRadius: BanzamiRadius.xxlAll,
         boxShadow: [
           BoxShadow(
             color:        const Color(0xFFB5101F).withValues(alpha: 0.42),
@@ -486,7 +486,7 @@ class _BalanceCard extends StatelessWidget {
                         height:     1.2,
                       ),
                     ),
-                    const SizedBox(width: BanzaSpacing.sm),
+                    const SizedBox(width: BanzamiSpacing.sm),
                     GestureDetector(
                       onTap: onToggle,
                       child: Icon(
@@ -507,14 +507,14 @@ class _BalanceCard extends StatelessWidget {
                     width:  160,
                     decoration: BoxDecoration(
                       color:        Colors.white.withValues(alpha: 0.15),
-                      borderRadius: BanzaRadius.smAll,
+                      borderRadius: BanzamiRadius.smAll,
                     ),
                   )
                 else
                   AnimatedSwitcher(
-                    duration:       BanzaMotion.normal,
-                    switchInCurve:  BanzaMotion.decelerate,
-                    switchOutCurve: BanzaMotion.accelerate,
+                    duration:       BanzamiMotion.normal,
+                    switchInCurve:  BanzamiMotion.decelerate,
+                    switchOutCurve: BanzamiMotion.accelerate,
                     child: Text(
                       key: ValueKey(balanceVisible),
                       balanceVisible
@@ -569,7 +569,7 @@ class _ActivityRow extends StatelessWidget {
     final subtitle = _subtitle(item);
     final initial = (item.counterpartyDisplayName ?? item.counterpartyHandle ?? item.itemType)[0];
 
-    return BanzaActivityRow(
+    return BanzamiActivityRow(
       title:    item.counterpartyDisplayName ??
                 (item.counterpartyHandle != null ? '@${item.counterpartyHandle}' : _typeLabel(item.itemType)),
       subtitle: subtitle,
@@ -594,7 +594,7 @@ class _ActivityRow extends StatelessWidget {
 
   String _formatTime(DateTime? dt) {
     if (dt == null) return '';
-    return BanzaDateFormatter.formatActivityTime(dt);
+    return BanzamiDateFormatter.formatActivityTime(dt);
   }
 }
 
@@ -616,24 +616,24 @@ class _ActivityIcon extends StatelessWidget {
         width:  44,
         height: 44,
         decoration: BoxDecoration(
-          color: BanzaColors.successBg,
+          color: BanzamiColors.successBg,
           shape: BoxShape.circle,
         ),
-        child: const Icon(Icons.add_rounded, color: BanzaColors.success, size: 22),
+        child: const Icon(Icons.add_rounded, color: BanzamiColors.success, size: 22),
       );
     }
     return Container(
       width:  44,
       height: 44,
       decoration: const BoxDecoration(
-        gradient: BanzaGradients.wine,
+        gradient: BanzamiGradients.wine,
         shape:    BoxShape.circle,
       ),
       child: Center(
         child: Text(
           initial.toUpperCase(),
-          style: BanzaTextStyles.headingSm.copyWith(
-            color:      BanzaColors.white,
+          style: BanzamiTextStyles.headingSm.copyWith(
+            color:      BanzamiColors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -651,11 +651,11 @@ class _EmptyActivity extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.xl,
-        vertical:   BanzaSpacing.xxl,
+        horizontal: BanzamiSpacing.xl,
+        vertical:   BanzamiSpacing.xxl,
       ),
-      child: BanzaCard(
-        padding: const EdgeInsets.all(BanzaSpacing.xxl),
+      child: BanzamiCard(
+        padding: const EdgeInsets.all(BanzamiSpacing.xxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -663,25 +663,25 @@ class _EmptyActivity extends StatelessWidget {
               width:  56,
               height: 56,
               decoration: const BoxDecoration(
-                color: BanzaColors.gray100,
+                color: BanzamiColors.gray100,
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.receipt_long_outlined,
                 size:  24,
-                color: BanzaColors.gray400,
+                color: BanzamiColors.gray400,
               ),
             ),
-            const SizedBox(height: BanzaSpacing.md),
+            const SizedBox(height: BanzamiSpacing.md),
             Text(
               'Nenhuma transacção ainda',
-              style: BanzaTextStyles.headingSm.copyWith(color: BanzaColors.gray900),
+              style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.gray900),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: BanzaSpacing.xs),
+            const SizedBox(height: BanzamiSpacing.xs),
             Text(
               'As suas actividades aparecerão aqui',
-              style: BanzaTextStyles.bodySm,
+              style: BanzamiTextStyles.bodySm,
               textAlign: TextAlign.center,
             ),
           ],
@@ -727,14 +727,14 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.md,
+        BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.md,
       ),
       child: AnimatedBuilder(
         animation: _glow,
         builder: (_, __) => Container(
           width:   double.infinity,
           padding: const EdgeInsets.symmetric(
-            horizontal: BanzaSpacing.lg,
+            horizontal: BanzamiSpacing.lg,
             vertical:   12,
           ),
           decoration: BoxDecoration(
@@ -743,7 +743,7 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
               begin:  Alignment.topLeft,
               end:    Alignment.bottomRight,
             ),
-            borderRadius: BanzaRadius.lgAll,
+            borderRadius: BanzamiRadius.lgAll,
             border: Border.all(
               color: Color.lerp(
                 const Color(0xFFF6C453).withValues(alpha: 0.5),
@@ -765,7 +765,7 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
               _SandboxDot(glow: _glow),
               const SizedBox(width: 10),
               const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
-              const SizedBox(width: BanzaSpacing.sm),
+              const SizedBox(width: BanzamiSpacing.sm),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -875,13 +875,13 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       final result = await widget.client.sandboxFund(amountMinor: _amountKz * 100);
       if (!mounted) return;
       widget.onFunded();
-      BanzaToast.showSuccess(
+      BanzamiToast.showSuccess(
         context,
         '${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox',
       );
     } catch (_) {
       if (!mounted) return;
-      BanzaToast.showError(context, 'Erro ao adicionar fundos');
+      BanzamiToast.showError(context, 'Erro ao adicionar fundos');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -891,7 +891,7 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl, 0, BanzaSpacing.xl, BanzaSpacing.xl,
+        BanzamiSpacing.xl, 0, BanzamiSpacing.xl, BanzamiSpacing.xl,
       ),
       child: Container(
         decoration: BoxDecoration(
@@ -1078,7 +1078,7 @@ class _SandboxCircleBtn extends StatelessWidget {
       child: Container(
         width: 34, height: 34,
         decoration: BoxDecoration(
-          color: enabled ? BanzaColors.white : const Color(0xFFFDE68A),
+          color: enabled ? BanzamiColors.white : const Color(0xFFFDE68A),
           shape: BoxShape.circle,
           boxShadow: enabled
               ? [BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 6, offset: const Offset(0, 1))]

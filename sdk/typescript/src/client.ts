@@ -1,4 +1,4 @@
-import { BanzaApiError } from './errors.js';
+import { BanzamiApiError } from './errors.js';
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
@@ -42,7 +42,7 @@ export interface BanzamiHooks {
   onError?:    (method: string, path: string, error: Error, attempts: number) => void;
 }
 
-export interface BanzaClientOptions {
+export interface BanzamiClientOptions {
   /** API key for this client. Prefix determines environment:
    *  - `bz_live_…` → live (production money)
    *  - `bz_test_…` → sandbox (virtual funds) */
@@ -65,7 +65,7 @@ export interface BanzaClientOptions {
   webhookSecret?: string;
 }
 
-export class BanzaClient {
+export class BanzamiClient {
   private readonly base:        string;
   private readonly apiKey:      string;
   readonly environment:         BanzamiEnvironment;
@@ -90,7 +90,7 @@ export class BanzaClient {
     retryDelay = 500,
     hooks = {},
     webhookSecret,
-  }: BanzaClientOptions) {
+  }: BanzamiClientOptions) {
     this.apiKey      = apiKey;
     this.environment = environment;
     this.base        = (baseUrl ?? DEFAULT_BASE_URLS[environment]).replace(/\/$/, '');
@@ -132,7 +132,7 @@ export class BanzaClient {
         code    = body.code    ?? code;
         message = body.message ?? message;
       } catch { /* non-JSON error body */ }
-      throw new BanzaApiError(response.status, code, message);
+      throw new BanzamiApiError(response.status, code, message);
     }
 
     this.hooks.onResponse?.(method, path, response.status, Date.now() - t0);
@@ -150,7 +150,7 @@ export class BanzaClient {
     const method         = (init?.method ?? 'GET').toUpperCase();
     const isPost         = method === 'POST';
     const idempotencyKey = isPost ? crypto.randomUUID() : undefined;
-    let lastErr: BanzaApiError | undefined;
+    let lastErr: BanzamiApiError | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) {
@@ -159,7 +159,7 @@ export class BanzaClient {
       try {
         return await this.executeOnce<T>(path, init, idempotencyKey, attempt);
       } catch (err) {
-        if (err instanceof BanzaApiError && this.shouldRetry(err.status, attempt)) {
+        if (err instanceof BanzamiApiError && this.shouldRetry(err.status, attempt)) {
           lastErr = err;
           continue;
         }

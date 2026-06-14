@@ -57,7 +57,7 @@ class ConsumerRegistration {
 /// ```
 class ConsumerPublicClient {
   final String baseUrl;
-  final BanzaEnvironment environment;
+  final BanzamiEnvironment environment;
   String? _token;
   final http.Client _http;
   final Uuid _uuid;
@@ -77,7 +77,7 @@ class ConsumerPublicClient {
 
   ConsumerPublicClient({
     required this.baseUrl,
-    this.environment = BanzaEnvironment.production,
+    this.environment = BanzamiEnvironment.production,
     http.Client? httpClient,
     this.onRequest,
     this.onResponse,
@@ -337,7 +337,7 @@ class ConsumerPublicClient {
 
   /// Credits the authenticated consumer's sandbox wallet with virtual funds.
   ///
-  /// Only works when [environment] is [BanzaEnvironment.sandbox].
+  /// Only works when [environment] is [BanzamiEnvironment.sandbox].
   /// Throws [BanzamiApiException] with code `SANDBOX_ONLY` if called in production.
   Future<SandboxFundResult> sandboxFund({
     required int amountMinor,

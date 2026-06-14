@@ -4,17 +4,17 @@ import 'package:flutter/services.dart';
 import '../theme/banza_theme.dart';
 
 // =============================================================================
-// BanzaScaffold — consistent page scaffold with light gradient background
+// BanzamiScaffold — consistent page scaffold with light gradient background
 // =============================================================================
 
-class BanzaScaffold extends StatelessWidget {
+class BanzamiScaffold extends StatelessWidget {
   final Widget body;
   final PreferredSizeWidget? appBar;
   final Widget? bottomNavigationBar;
   final Color? backgroundColor;
   final bool resizeToAvoidBottomInset;
 
-  const BanzaScaffold({
+  const BanzamiScaffold({
     super.key,
     required this.body,
     this.appBar,
@@ -27,7 +27,7 @@ class BanzaScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar:                    appBar,
-      backgroundColor:           backgroundColor ?? BanzaColors.offWhite,
+      backgroundColor:           backgroundColor ?? BanzamiColors.offWhite,
       resizeToAvoidBottomInset:  resizeToAvoidBottomInset,
       bottomNavigationBar:       bottomNavigationBar,
       body: body,
@@ -36,10 +36,10 @@ class BanzaScaffold extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaAppBar — clean, minimal app bar
+// BanzamiAppBar — clean, minimal app bar
 // =============================================================================
 
-class BanzaAppBar extends StatelessWidget implements PreferredSizeWidget {
+class BanzamiAppBar extends StatelessWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? titleWidget;
   final List<Widget>? actions;
@@ -48,14 +48,14 @@ class BanzaAppBar extends StatelessWidget implements PreferredSizeWidget {
   final Color foregroundColor;
   final VoidCallback? onBack;
 
-  const BanzaAppBar({
+  const BanzamiAppBar({
     super.key,
     this.title,
     this.titleWidget,
     this.actions,
     this.showBack = true,
-    this.backgroundColor = BanzaColors.offWhite,
-    this.foregroundColor = BanzaColors.gray900,
+    this.backgroundColor = BanzamiColors.offWhite,
+    this.foregroundColor = BanzamiColors.gray900,
     this.onBack,
   });
 
@@ -79,7 +79,7 @@ class BanzaAppBar extends StatelessWidget implements PreferredSizeWidget {
           : null,
       title: titleWidget ??
           (title != null
-              ? Text(title!, style: BanzaTextStyles.headingSm.copyWith(color: foregroundColor))
+              ? Text(title!, style: BanzamiTextStyles.headingSm.copyWith(color: foregroundColor))
               : null),
       actions: actions,
       surfaceTintColor: Colors.transparent,
@@ -88,10 +88,10 @@ class BanzaAppBar extends StatelessWidget implements PreferredSizeWidget {
 }
 
 // =============================================================================
-// BanzaCard — floating white card with premium shadow
+// BanzamiCard — floating white card with premium shadow
 // =============================================================================
 
-class BanzaCard extends StatelessWidget {
+class BanzamiCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final BorderRadius? borderRadius;
@@ -100,12 +100,12 @@ class BanzaCard extends StatelessWidget {
   final VoidCallback? onTap;
   final Border? border;
 
-  const BanzaCard({
+  const BanzamiCard({
     super.key,
     required this.child,
     this.padding,
     this.borderRadius,
-    this.color = BanzaColors.white,
+    this.color = BanzamiColors.white,
     this.shadow,
     this.onTap,
     this.border,
@@ -113,8 +113,8 @@ class BanzaCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final br = borderRadius ?? BanzaRadius.xlAll;
-    final sh = shadow ?? BanzaShadows.card;
+    final br = borderRadius ?? BanzamiRadius.xlAll;
+    final sh = shadow ?? BanzamiShadows.card;
 
     Widget container = Container(
       decoration: BoxDecoration(
@@ -144,15 +144,15 @@ class BanzaCard extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaGlassCard — semi-transparent card for dark backgrounds
+// BanzamiGlassCard — semi-transparent card for dark backgrounds
 // =============================================================================
 
-class BanzaGlassCard extends StatelessWidget {
+class BanzamiGlassCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
   final double opacity;
 
-  const BanzaGlassCard({
+  const BanzamiGlassCard({
     super.key,
     required this.child,
     this.padding,
@@ -163,24 +163,24 @@ class BanzaGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color:        BanzaColors.white.withValues(alpha: opacity),
-        borderRadius: BanzaRadius.xlAll,
+        color:        BanzamiColors.white.withValues(alpha: opacity),
+        borderRadius: BanzamiRadius.xlAll,
         border: Border.all(
-          color: BanzaColors.white.withValues(alpha: opacity * 1.5),
+          color: BanzamiColors.white.withValues(alpha: opacity * 1.5),
           width: 1,
         ),
       ),
-      padding: padding ?? const EdgeInsets.all(BanzaSpacing.lg),
+      padding: padding ?? const EdgeInsets.all(BanzamiSpacing.lg),
       child:   child,
     );
   }
 }
 
 // =============================================================================
-// BanzaPrimaryButton — full-width cherry/wine CTA with haptics
+// BanzamiPrimaryButton — full-width cherry/wine CTA with haptics
 // =============================================================================
 
-class BanzaPrimaryButton extends StatefulWidget {
+class BanzamiPrimaryButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool isLoading;
@@ -191,7 +191,7 @@ class BanzaPrimaryButton extends StatefulWidget {
   final double height;
   final LinearGradient? gradient;
 
-  const BanzaPrimaryButton({
+  const BanzamiPrimaryButton({
     super.key,
     required this.label,
     this.onPressed,
@@ -205,10 +205,10 @@ class BanzaPrimaryButton extends StatefulWidget {
   });
 
   @override
-  State<BanzaPrimaryButton> createState() => _BanzaPrimaryButtonState();
+  State<BanzamiPrimaryButton> createState() => _BanzamiPrimaryButtonState();
 }
 
-class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
+class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
   late final Animation<double>   _scale;
@@ -218,13 +218,13 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
     super.initState();
     _controller = AnimationController(
       vsync:    this,
-      duration: BanzaMotion.fast,
+      duration: BanzamiMotion.fast,
       lowerBound: 0.0,
       upperBound: 1.0,
       value: 1.0,
     );
     _scale = Tween<double>(begin: 1.0, end: 0.96).animate(
-      CurvedAnimation(parent: _controller, curve: BanzaMotion.standard),
+      CurvedAnimation(parent: _controller, curve: BanzamiMotion.standard),
     );
   }
 
@@ -246,17 +246,17 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
   Widget build(BuildContext context) {
     final isDisabled  = widget.onPressed == null || widget.isLoading;
     final hasCustomBg = widget.backgroundColor != null;
-    final fg          = widget.foregroundColor ?? BanzaColors.white;
+    final fg          = widget.foregroundColor ?? BanzamiColors.white;
 
     final LinearGradient? gradient = (!hasCustomBg && !isDisabled)
-        ? (widget.gradient ?? BanzaGradients.wine)
+        ? (widget.gradient ?? BanzamiGradients.wine)
         : null;
 
     final Color? flatColor = hasCustomBg
         ? (isDisabled
               ? widget.backgroundColor!.withValues(alpha: 0.5)
               : widget.backgroundColor)
-        : (isDisabled ? BanzaColors.wine.withValues(alpha: 0.40) : null);
+        : (isDisabled ? BanzamiColors.wine.withValues(alpha: 0.40) : null);
 
     return ScaleTransition(
       scale: _scale,
@@ -276,7 +276,7 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
                 ? null
                 : [
                     BoxShadow(
-                      color:        BanzaColors.wine.withValues(alpha: 0.32),
+                      color:        BanzamiColors.wine.withValues(alpha: 0.32),
                       blurRadius:   16,
                       offset:       const Offset(0, 4),
                       spreadRadius: -2,
@@ -299,11 +299,11 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
                   children: [
                     if (widget.icon != null) ...[
                       Icon(widget.icon, color: fg, size: 18),
-                      const SizedBox(width: BanzaSpacing.sm),
+                      const SizedBox(width: BanzamiSpacing.sm),
                     ],
                     Text(
                       widget.label,
-                      style: BanzaTextStyles.headingSm.copyWith(
+                      style: BanzamiTextStyles.headingSm.copyWith(
                         color:      fg,
                         fontWeight: FontWeight.w600,
                         fontSize:   16,
@@ -318,10 +318,10 @@ class _BanzaPrimaryButtonState extends State<BanzaPrimaryButton>
 }
 
 // =============================================================================
-// BanzaSecondaryButton — outlined button
+// BanzamiSecondaryButton — outlined button
 // =============================================================================
 
-class BanzaSecondaryButton extends StatelessWidget {
+class BanzamiSecondaryButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final bool fullWidth;
@@ -329,7 +329,7 @@ class BanzaSecondaryButton extends StatelessWidget {
   final Color? foregroundColor;
   final double height;
 
-  const BanzaSecondaryButton({
+  const BanzamiSecondaryButton({
     super.key,
     required this.label,
     this.onPressed,
@@ -341,8 +341,8 @@ class BanzaSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = foregroundColor ?? BanzaColors.wine;
-    final bc = borderColor ?? BanzaColors.wine;
+    final fg = foregroundColor ?? BanzamiColors.wine;
+    final bc = borderColor ?? BanzamiColors.wine;
 
     return SizedBox(
       height: height,
@@ -352,8 +352,8 @@ class BanzaSecondaryButton extends StatelessWidget {
         style: OutlinedButton.styleFrom(
           foregroundColor: fg,
           side: BorderSide(color: bc, width: 1.5),
-          shape: const RoundedRectangleBorder(borderRadius: BanzaRadius.lgAll),
-          textStyle: BanzaTextStyles.headingSm.copyWith(
+          shape: const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
+          textStyle: BanzamiTextStyles.headingSm.copyWith(
             fontWeight: FontWeight.w600,
             fontSize:   16,
           ),
@@ -365,15 +365,15 @@ class BanzaSecondaryButton extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaGhostButton — text-only button
+// BanzamiGhostButton — text-only button
 // =============================================================================
 
-class BanzaGhostButton extends StatelessWidget {
+class BanzamiGhostButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;
   final Color? color;
 
-  const BanzaGhostButton({
+  const BanzamiGhostButton({
     super.key,
     required this.label,
     this.onPressed,
@@ -385,8 +385,8 @@ class BanzaGhostButton extends StatelessWidget {
     return TextButton(
       onPressed: onPressed,
       style: TextButton.styleFrom(
-        foregroundColor: color ?? BanzaColors.gray600,
-        textStyle: BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+        foregroundColor: color ?? BanzamiColors.gray600,
+        textStyle: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
       ),
       child: Text(label),
     );
@@ -394,16 +394,16 @@ class BanzaGhostButton extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaSectionTitle — section header with optional trailing action
+// BanzamiSectionTitle — section header with optional trailing action
 // =============================================================================
 
-class BanzaSectionTitle extends StatelessWidget {
+class BanzamiSectionTitle extends StatelessWidget {
   final String title;
   final String? action;
   final VoidCallback? onAction;
   final EdgeInsetsGeometry? padding;
 
-  const BanzaSectionTitle({
+  const BanzamiSectionTitle({
     super.key,
     required this.title,
     this.action,
@@ -415,14 +415,14 @@ class BanzaSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding ??
-          const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+          const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
       child: Row(
         children: [
           Expanded(
             child: Text(
               title,
-              style: BanzaTextStyles.headingSm.copyWith(
-                color:      BanzaColors.gray900,
+              style: BanzamiTextStyles.headingSm.copyWith(
+                color:      BanzamiColors.gray900,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -432,8 +432,8 @@ class BanzaSectionTitle extends StatelessWidget {
               onTap: onAction,
               child: Text(
                 action!,
-                style: BanzaTextStyles.label.copyWith(
-                  color:    BanzaColors.wine,
+                style: BanzamiTextStyles.label.copyWith(
+                  color:    BanzamiColors.wine,
                   fontSize: 13,
                 ),
               ),
@@ -445,10 +445,10 @@ class BanzaSectionTitle extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaActionTile — rounded icon+label action button (home screen quick actions)
+// BanzamiActionTile — rounded icon+label action button (home screen quick actions)
 // =============================================================================
 
-class BanzaActionTile extends StatefulWidget {
+class BanzamiActionTile extends StatefulWidget {
   final IconData     icon;
   final String       label;
   final VoidCallback onTap;
@@ -457,7 +457,7 @@ class BanzaActionTile extends StatefulWidget {
   /// Wine-tinted icon on white tile — secondary prominence, used for QR.
   final bool accent;
 
-  const BanzaActionTile({
+  const BanzamiActionTile({
     super.key,
     required this.icon,
     required this.label,
@@ -467,10 +467,10 @@ class BanzaActionTile extends StatefulWidget {
   });
 
   @override
-  State<BanzaActionTile> createState() => _BanzaActionTileState();
+  State<BanzamiActionTile> createState() => _BanzamiActionTileState();
 }
 
-class _BanzaActionTileState extends State<BanzaActionTile>
+class _BanzamiActionTileState extends State<BanzamiActionTile>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double>   _scale;
@@ -480,11 +480,11 @@ class _BanzaActionTileState extends State<BanzaActionTile>
     super.initState();
     _ctrl = AnimationController(
       vsync:    this,
-      duration: BanzaMotion.fast,
+      duration: BanzamiMotion.fast,
       value:    1.0,
     );
     _scale = Tween(begin: 1.0, end: 0.92).animate(
-      CurvedAnimation(parent: _ctrl, curve: BanzaMotion.standard),
+      CurvedAnimation(parent: _ctrl, curve: BanzamiMotion.standard),
     );
   }
 
@@ -495,7 +495,7 @@ class _BanzaActionTileState extends State<BanzaActionTile>
   Widget build(BuildContext context) {
     final isPrimary = widget.primary;
     final isAccent  = widget.accent && !isPrimary;
-    final fg        = isPrimary ? BanzaColors.white : BanzaColors.gray900;
+    final fg        = isPrimary ? BanzamiColors.white : BanzamiColors.gray900;
 
     return Expanded(
       child: ScaleTransition(
@@ -505,14 +505,14 @@ class _BanzaActionTileState extends State<BanzaActionTile>
           onTapUp:     (_) { _ctrl.forward(); widget.onTap(); },
           onTapCancel: ()  => _ctrl.forward(),
           child: Container(
-            padding: const EdgeInsets.symmetric(vertical: BanzaSpacing.lg),
+            padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.lg),
             decoration: BoxDecoration(
-              color:        isPrimary ? null : BanzaColors.white,
-              gradient:     isPrimary ? BanzaGradients.wine : null,
-              borderRadius: BanzaRadius.xlAll,
+              color:        isPrimary ? null : BanzamiColors.white,
+              gradient:     isPrimary ? BanzamiGradients.wine : null,
+              borderRadius: BanzamiRadius.xlAll,
               boxShadow: isPrimary ? [
                 BoxShadow(
-                  color:        BanzaColors.wine.withValues(alpha: 0.38),
+                  color:        BanzamiColors.wine.withValues(alpha: 0.38),
                   blurRadius:   18,
                   offset:       const Offset(0, 6),
                   spreadRadius: -2,
@@ -543,28 +543,28 @@ class _BanzaActionTileState extends State<BanzaActionTile>
                   height: 40,
                   decoration: BoxDecoration(
                     color: isPrimary
-                        ? BanzaColors.white.withValues(alpha: 0.20)
+                        ? BanzamiColors.white.withValues(alpha: 0.20)
                         : isAccent
-                            ? BanzaColors.wine.withValues(alpha: 0.09)
-                            : BanzaColors.gray100,
+                            ? BanzamiColors.wine.withValues(alpha: 0.09)
+                            : BanzamiColors.gray100,
                     shape: BoxShape.circle,
                     border: isPrimary
                         ? Border.all(
-                            color: BanzaColors.white.withValues(alpha: 0.30),
+                            color: BanzamiColors.white.withValues(alpha: 0.30),
                             width: 1,
                           )
                         : null,
                   ),
                   child: Icon(
                     widget.icon,
-                    color: isAccent ? BanzaColors.wine : fg,
+                    color: isAccent ? BanzamiColors.wine : fg,
                     size:  20,
                   ),
                 ),
-                const SizedBox(height: BanzaSpacing.sm),
+                const SizedBox(height: BanzamiSpacing.sm),
                 Text(
                   widget.label,
-                  style: BanzaTextStyles.label.copyWith(
+                  style: BanzamiTextStyles.label.copyWith(
                     color:      fg,
                     fontWeight: FontWeight.w600,
                     fontSize:   12,
@@ -580,10 +580,10 @@ class _BanzaActionTileState extends State<BanzaActionTile>
 }
 
 // =============================================================================
-// BanzaActivityRow — premium activity list item
+// BanzamiActivityRow — premium activity list item
 // =============================================================================
 
-class BanzaActivityRow extends StatelessWidget {
+class BanzamiActivityRow extends StatelessWidget {
   final String title;
   final String subtitle;
   final String amount;
@@ -592,7 +592,7 @@ class BanzaActivityRow extends StatelessWidget {
   final Widget? leading;
   final VoidCallback? onTap;
 
-  const BanzaActivityRow({
+  const BanzamiActivityRow({
     super.key,
     required this.title,
     required this.subtitle,
@@ -609,14 +609,14 @@ class BanzaActivityRow extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.xl,
-          vertical:   BanzaSpacing.md + 2,
+          horizontal: BanzamiSpacing.xl,
+          vertical:   BanzamiSpacing.md + 2,
         ),
         child: Row(
           children: [
             // Avatar
             leading ?? _DefaultAvatar(letter: title[0]),
-            const SizedBox(width: BanzaSpacing.md),
+            const SizedBox(width: BanzamiSpacing.md),
             // Title + subtitle
             Expanded(
               child: Column(
@@ -625,8 +625,8 @@ class BanzaActivityRow extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: BanzaTextStyles.bodyMd.copyWith(
-                      color:      BanzaColors.gray900,
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color:      BanzamiColors.gray900,
                       fontWeight: FontWeight.w600,
                     ),
                     maxLines:  1,
@@ -635,14 +635,14 @@ class BanzaActivityRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: BanzaTextStyles.bodySm.copyWith(
-                      color: BanzaColors.gray400,
+                    style: BanzamiTextStyles.bodySm.copyWith(
+                      color: BanzamiColors.gray400,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(width: BanzaSpacing.md),
+            const SizedBox(width: BanzamiSpacing.md),
             // Amount + time
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -650,8 +650,8 @@ class BanzaActivityRow extends StatelessWidget {
               children: [
                 Text(
                   amount,
-                  style: BanzaTextStyles.bodyMd.copyWith(
-                    color:      isCredit ? BanzaColors.success : BanzaColors.gray900,
+                  style: BanzamiTextStyles.bodyMd.copyWith(
+                    color:      isCredit ? BanzamiColors.success : BanzamiColors.gray900,
                     fontWeight: FontWeight.w700,
                     fontFeatures: const [FontFeature.tabularFigures()],
                   ),
@@ -659,8 +659,8 @@ class BanzaActivityRow extends StatelessWidget {
                 const SizedBox(height: 2),
                 Text(
                   time,
-                  style: BanzaTextStyles.bodySm.copyWith(
-                    color: BanzaColors.gray400,
+                  style: BanzamiTextStyles.bodySm.copyWith(
+                    color: BanzamiColors.gray400,
                   ),
                 ),
               ],
@@ -682,14 +682,14 @@ class _DefaultAvatar extends StatelessWidget {
       width:  44,
       height: 44,
       decoration: const BoxDecoration(
-        gradient: BanzaGradients.wine,
+        gradient: BanzamiGradients.wine,
         shape:    BoxShape.circle,
       ),
       child: Center(
         child: Text(
           letter.toUpperCase(),
-          style: BanzaTextStyles.headingSm.copyWith(
-            color:      BanzaColors.white,
+          style: BanzamiTextStyles.headingSm.copyWith(
+            color:      BanzamiColors.white,
             fontWeight: FontWeight.w700,
           ),
         ),
@@ -699,10 +699,10 @@ class _DefaultAvatar extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaTextField — styled text input
+// BanzamiTextField — styled text input
 // =============================================================================
 
-class BanzaTextField extends StatelessWidget {
+class BanzamiTextField extends StatelessWidget {
   final TextEditingController? controller;
   final FocusNode?             focusNode;
   final String?                label;
@@ -718,7 +718,7 @@ class BanzaTextField extends StatelessWidget {
   final bool                   readOnly;
   final VoidCallback?          onTap;
 
-  const BanzaTextField({
+  const BanzamiTextField({
     super.key,
     this.controller,
     this.focusNode,
@@ -748,77 +748,77 @@ class BanzaTextField extends StatelessWidget {
       enabled:           enabled,
       readOnly:          readOnly,
       onTap:             onTap,
-      style: BanzaTextStyles.bodyLg.copyWith(color: BanzaColors.gray900),
+      style: BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.gray900),
       decoration: InputDecoration(
         labelText:  label,
         hintText:   hint,
         errorText:  errorText,
         filled:     true,
-        fillColor:  BanzaColors.gray100,
+        fillColor:  BanzamiColors.gray100,
         suffixIcon: suffix,
         prefixIcon: prefix,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.lg,
-          vertical:   BanzaSpacing.md + 2,
+          horizontal: BanzamiSpacing.lg,
+          vertical:   BanzamiSpacing.md + 2,
         ),
         border: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         enabledBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
+          borderRadius: BanzamiRadius.fieldAll,
           borderSide:   BorderSide.none,
         ),
         focusedBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.wine, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
         focusedErrorBorder: const OutlineInputBorder(
-          borderRadius: BanzaRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzaColors.error, width: 1.5),
+          borderRadius: BanzamiRadius.fieldAll,
+          borderSide:   BorderSide(color: BanzamiColors.error, width: 1.5),
         ),
-        hintStyle:  BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
-        labelStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
-        errorStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
-        floatingLabelStyle: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.wine),
+        hintStyle:  BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
+        labelStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+        errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
+        floatingLabelStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.wine),
       ),
     );
   }
 }
 
 // =============================================================================
-// BanzaErrorBanner — inline error message
+// BanzamiErrorBanner — inline error message
 // =============================================================================
 
-class BanzaErrorBanner extends StatelessWidget {
+class BanzamiErrorBanner extends StatelessWidget {
   final String message;
-  const BanzaErrorBanner({super.key, required this.message});
+  const BanzamiErrorBanner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.sm + 2,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.sm + 2,
       ),
       decoration: BoxDecoration(
-        color:        BanzaColors.errorBg,
-        borderRadius: BanzaRadius.lgAll,
-        border:       Border.all(color: BanzaColors.error.withValues(alpha: 0.3)),
+        color:        BanzamiColors.errorBg,
+        borderRadius: BanzamiRadius.lgAll,
+        border:       Border.all(color: BanzamiColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, size: 16, color: BanzaColors.error),
-          const SizedBox(width: BanzaSpacing.sm),
+          const Icon(Icons.error_outline_rounded, size: 16, color: BanzamiColors.error),
+          const SizedBox(width: BanzamiSpacing.sm),
           Expanded(
             child: Text(
               message,
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.error),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
             ),
           ),
         ],
@@ -828,24 +828,24 @@ class BanzaErrorBanner extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaWarningBanner — irreversibility warning
+// BanzamiWarningBanner — irreversibility warning
 // =============================================================================
 
-class BanzaWarningBanner extends StatelessWidget {
+class BanzamiWarningBanner extends StatelessWidget {
   final String message;
-  const BanzaWarningBanner({super.key, required this.message});
+  const BanzamiWarningBanner({super.key, required this.message});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       decoration: BoxDecoration(
         color:        const Color(0xFFFFF8F0),
-        borderRadius: BanzaRadius.lgAll,
+        borderRadius: BanzamiRadius.lgAll,
         border:       Border.all(color: const Color(0xFFFFE4C0), width: 1),
       ),
       child: Row(
@@ -856,11 +856,11 @@ class BanzaWarningBanner extends StatelessWidget {
             size:  16,
             color: Color(0xFFB45309),
           ),
-          const SizedBox(width: BanzaSpacing.sm),
+          const SizedBox(width: BanzamiSpacing.sm),
           Expanded(
             child: Text(
               message,
-              style: BanzaTextStyles.bodySm.copyWith(
+              style: BanzamiTextStyles.bodySm.copyWith(
                 color:  const Color(0xFF92400E),
                 height: 1.5,
               ),
@@ -873,24 +873,24 @@ class BanzaWarningBanner extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzaPageRoute — smooth page transition
+// BanzamiPageRoute — smooth page transition
 // =============================================================================
 
-class BanzaPageRoute<T> extends PageRouteBuilder<T> {
+class BanzamiPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
-  BanzaPageRoute({required this.page})
+  BanzamiPageRoute({required this.page})
       : super(
           pageBuilder: (_, __, ___) => page,
-          transitionDuration:        BanzaMotion.enter,
-          reverseTransitionDuration: BanzaMotion.exit,
+          transitionDuration:        BanzamiMotion.enter,
+          reverseTransitionDuration: BanzamiMotion.exit,
           transitionsBuilder: (context, animation, secondary, child) {
             final slide = Tween<Offset>(
               begin: const Offset(1.0, 0),
               end:   Offset.zero,
             ).animate(CurvedAnimation(
               parent: animation,
-              curve:  BanzaMotion.decelerate,
+              curve:  BanzamiMotion.decelerate,
             ));
             final fade = Tween<double>(begin: 0.0, end: 1.0).animate(
               CurvedAnimation(
@@ -907,20 +907,20 @@ class BanzaPageRoute<T> extends PageRouteBuilder<T> {
 }
 
 // =============================================================================
-// BanzaScreenPadding — consistent horizontal + vertical padding
+// BanzamiScreenPadding — consistent horizontal + vertical padding
 // =============================================================================
 
-class BanzaScreenPadding extends StatelessWidget {
+class BanzamiScreenPadding extends StatelessWidget {
   final Widget child;
   final double horizontal;
   final double vertical;
   final double? top;
   final double? bottom;
 
-  const BanzaScreenPadding({
+  const BanzamiScreenPadding({
     super.key,
     required this.child,
-    this.horizontal = BanzaSpacing.xl,
+    this.horizontal = BanzamiSpacing.xl,
     this.vertical   = 0,
     this.top,
     this.bottom,

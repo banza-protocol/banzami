@@ -15,7 +15,7 @@ import '../utils/screen_security.dart';
 
 
 // ---------------------------------------------------------------------------
-// Cherry design tokens — local aliases matching the official BanzaColors family
+// Cherry design tokens — local aliases matching the official BanzamiColors family
 // ---------------------------------------------------------------------------
 
 const _kCherry     = Color(0xFFE8434B);
@@ -23,21 +23,21 @@ const _kMidWine    = Color(0xFFD7242E);
 const _kDeepShadow = Color(0xFF9A1B22);
 
 // ---------------------------------------------------------------------------
-// BanzaVerifiedMark — premium layered authenticity seal with rotating ring
+// BanzamiVerifiedMark — premium layered authenticity seal with rotating ring
 // ---------------------------------------------------------------------------
 
 /// Four-layer premium badge: outer luminous ring → slowly rotating dashed
 /// security ring with integrated BANZA label → inner glass ring → core cherry
 /// seal + checkmark.
-class BanzaVerifiedMark extends StatefulWidget {
+class BanzamiVerifiedMark extends StatefulWidget {
   final double size;
-  const BanzaVerifiedMark({super.key, this.size = 96});
+  const BanzamiVerifiedMark({super.key, this.size = 96});
 
   @override
-  State<BanzaVerifiedMark> createState() => _BanzaVerifiedMarkState();
+  State<BanzamiVerifiedMark> createState() => _BanzamiVerifiedMarkState();
 }
 
-class _BanzaVerifiedMarkState extends State<BanzaVerifiedMark>
+class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
     with SingleTickerProviderStateMixin {
   late final AnimationController _rotCtrl;
 
@@ -318,7 +318,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: BanzaMotion.slow);
+    _ctrl = AnimationController(vsync: this, duration: BanzamiMotion.slow);
     _markScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _ctrl,
@@ -339,13 +339,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
     WidgetsBinding.instance.addObserver(this);
 
-    BanzaScreenSecurity.setSecure(true);
-    _captureSub = BanzaScreenSecurity.captureState.listen(
+    BanzamiScreenSecurity.setSecure(true);
+    _captureSub = BanzamiScreenSecurity.captureState.listen(
       (v) { if (mounted) setState(() => _isCaptured = v); },
       onError: (_) {},
       cancelOnError: false,
     );
-    _screenshotSub = BanzaScreenSecurity.screenshotTaken.listen(
+    _screenshotSub = BanzamiScreenSecurity.screenshotTaken.listen(
       (_) { if (mounted) setState(() => _screenshotTaken = true); },
       onError: (_) {},
       cancelOnError: false,
@@ -366,7 +366,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     _liveTimer?.cancel();
     _captureSub?.cancel();
     _screenshotSub?.cancel();
-    BanzaScreenSecurity.setSecure(false);
+    BanzamiScreenSecurity.setSecure(false);
     _ctrl.dispose();
     super.dispose();
   }
@@ -406,7 +406,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
     try {
-      final file = await BanzaPdfReceiptGenerator.generate(
+      final file = await BanzamiPdfReceiptGenerator.generate(
         transfer:      widget.transfer,
         ownHandle:     _from,
         isSandbox:     widget.isSandbox,
@@ -437,7 +437,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         );
       } catch (_) {
         if (!mounted) return;
-        BanzaToast.showError(context, 'Não foi possível partilhar.');
+        BanzamiToast.showError(context, 'Não foi possível partilhar.');
       }
     }
   }
@@ -467,12 +467,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                 const SizedBox(height: 16),
                 Text(
                   'Comprovativo protegido',
-                  style: BanzaTextStyles.headingSm.copyWith(color: Colors.white),
+                  style: BanzamiTextStyles.headingSm.copyWith(color: Colors.white),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Não é possível capturar este ecrã',
-                  style: BanzaTextStyles.bodyMd.copyWith(
+                  style: BanzamiTextStyles.bodyMd.copyWith(
                     color: Colors.white.withValues(alpha: 0.60),
                   ),
                 ),
@@ -505,7 +505,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                   const SizedBox(height: 16),
                   Text(
                     'Captura detectada',
-                    style: BanzaTextStyles.headingSm.copyWith(
+                    style: BanzamiTextStyles.headingSm.copyWith(
                       color: Colors.white,
                     ),
                   ),
@@ -514,7 +514,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                     padding: const EdgeInsets.symmetric(horizontal: 40),
                     child: Text(
                       'Partilhe apenas o comprovativo PDF verificável.',
-                      style: BanzaTextStyles.bodyMd.copyWith(
+                      style: BanzamiTextStyles.bodyMd.copyWith(
                         color: Colors.white.withValues(alpha: 0.60),
                       ),
                       textAlign: TextAlign.center,
@@ -525,7 +525,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                     onPressed: () => setState(() => _screenshotTaken = false),
                     child: Text(
                       'Dispensar',
-                      style: BanzaTextStyles.bodyMd.copyWith(
+                      style: BanzamiTextStyles.bodyMd.copyWith(
                         color: Colors.white.withValues(alpha: 0.45),
                       ),
                     ),
@@ -572,7 +572,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                     // ── Top bar ────────────────────────────────────────────
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: BanzaSpacing.lg,
+                        horizontal: BanzamiSpacing.lg,
                         vertical:   4,
                       ),
                       child: Row(children: [
@@ -587,7 +587,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         const Spacer(),
                         Text(
                           'Comprovativo',
-                          style: BanzaTextStyles.headingSm.copyWith(
+                          style: BanzamiTextStyles.headingSm.copyWith(
                             color: Colors.white.withValues(alpha: 0.75),
                           ),
                         ),
@@ -600,7 +600,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: BanzaSpacing.xl,
+                          horizontal: BanzamiSpacing.xl,
                         ),
                         child: Column(children: [
                           const SizedBox(height: 6),
@@ -608,32 +608,32 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           // Verified mark with rotating dashed ring
                           ScaleTransition(
                             scale: _markScale,
-                            child: const BanzaVerifiedMark(size: 96),
+                            child: const BanzamiVerifiedMark(size: 96),
                           ),
 
                           const SizedBox(height: 4),
 
                           Text(
                             'Enviado com sucesso',
-                            style: BanzaTextStyles.headingSm.copyWith(
+                            style: BanzamiTextStyles.headingSm.copyWith(
                               color: Colors.white.withValues(alpha: 0.80),
                             ),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.xs),
+                          const SizedBox(height: BanzamiSpacing.xs),
 
                           Text(
                             _amount,
-                            style: BanzaTextStyles.monoLg.copyWith(
+                            style: BanzamiTextStyles.monoLg.copyWith(
                               color: Colors.white,
                             ),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.xs),
+                          const SizedBox(height: BanzamiSpacing.xs),
 
                           Text(
                             'para @${t.recipient}',
-                            style: BanzaTextStyles.bodyMd.copyWith(
+                            style: BanzamiTextStyles.bodyMd.copyWith(
                               color: Colors.white.withValues(alpha: 0.60),
                             ),
                           ),
@@ -654,7 +654,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               ),
                               child: Text(
                                 'SANDBOX  •  Dinheiro de teste',
-                                style: BanzaTextStyles.bodySm.copyWith(
+                                style: BanzamiTextStyles.bodySm.copyWith(
                                   color:         const Color(0xFF92400E),
                                   fontSize:      11.5,
                                   fontWeight:    FontWeight.w700,
@@ -664,14 +664,14 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ),
                           ],
 
-                          const SizedBox(height: BanzaSpacing.sm),
+                          const SizedBox(height: BanzamiSpacing.sm),
 
                           // ── Glass detail card ──────────────────────────
                           Container(
                             width:   double.infinity,
                             padding: const EdgeInsets.symmetric(
-                              horizontal: BanzaSpacing.lg,
-                              vertical:   BanzaSpacing.sm,
+                              horizontal: BanzamiSpacing.lg,
+                              vertical:   BanzamiSpacing.sm,
                             ),
                             decoration: BoxDecoration(
                               color:        Colors.white.withValues(alpha: 0.12),
@@ -695,7 +695,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ]),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.md),
+                          const SizedBox(height: BanzamiSpacing.md),
 
                           // ── Concluído ──────────────────────────────────
                           SizedBox(
@@ -705,7 +705,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               onPressed: _done,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: BanzaColors.wine,
+                                foregroundColor: BanzamiColors.wine,
                                 elevation:       0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(22),
@@ -720,7 +720,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                     decoration: BoxDecoration(
                                       shape:  BoxShape.circle,
                                       border: Border.all(
-                                        color: BanzaColors.wine,
+                                        color: BanzamiColors.wine,
                                         width: 1.5,
                                       ),
                                     ),
@@ -729,11 +729,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                       size: 14,
                                     ),
                                   ),
-                                  const SizedBox(width: BanzaSpacing.sm),
+                                  const SizedBox(width: BanzamiSpacing.sm),
                                   Text(
                                     'Concluído',
-                                    style: BanzaTextStyles.bodyMd.copyWith(
-                                      color:      BanzaColors.wine,
+                                    style: BanzamiTextStyles.bodyMd.copyWith(
+                                      color:      BanzamiColors.wine,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -742,7 +742,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.sm),
+                          const SizedBox(height: BanzamiSpacing.sm),
 
                           // ── Partilhar comprovativo ─────────────────────
                           SizedBox(
@@ -764,7 +764,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               ),
                               child: Text(
                                 'Partilhar comprovativo',
-                                style: BanzaTextStyles.bodyMd.copyWith(
+                                style: BanzamiTextStyles.bodyMd.copyWith(
                                   color:      Colors.white,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -772,7 +772,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             ),
                           ),
 
-                          const SizedBox(height: BanzaSpacing.sm),
+                          const SizedBox(height: BanzamiSpacing.sm),
 
                           // ── Footer — live timestamp + security notice ──
                           Row(
@@ -787,7 +787,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               Flexible(
                                 child: Text(
                                   'Comprovativo Banza  •  Ref $_ref  •  $timeStr',
-                                  style: BanzaTextStyles.bodySm.copyWith(
+                                  style: BanzamiTextStyles.bodySm.copyWith(
                                     color:    Colors.white.withValues(alpha: 0.55),
                                     fontSize: 11.5,
                                   ),
@@ -801,7 +801,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             widget.isSandbox
                                 ? 'Comprovativo sandbox  •  sem valor financeiro real'
                                 : 'Comprovativo válido apenas no ecrã vivo da app',
-                            style: BanzaTextStyles.bodySm.copyWith(
+                            style: BanzamiTextStyles.bodySm.copyWith(
                               color: widget.isSandbox
                                   ? const Color(0xFFD97706).withValues(alpha: 0.65)
                                   : Colors.white.withValues(alpha: 0.38),
@@ -810,7 +810,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             textAlign: TextAlign.center,
                           ),
 
-                          const SizedBox(height: BanzaSpacing.xs),
+                          const SizedBox(height: BanzamiSpacing.xs),
                         ]),
                       ),
                     ),
@@ -855,15 +855,15 @@ class _DetailRow extends StatelessWidget {
           children: [
             Text(
               label,
-              style: BanzaTextStyles.bodySm.copyWith(
+              style: BanzamiTextStyles.bodySm.copyWith(
                 color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
-            const SizedBox(width: BanzaSpacing.md),
+            const SizedBox(width: BanzamiSpacing.md),
             Flexible(
               child: Text(
                 value,
-                style: BanzaTextStyles.bodyMd.copyWith(
+                style: BanzamiTextStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
                   color:      Colors.white,
                 ),

@@ -147,7 +147,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       );
     } catch (e) {
       if (mounted) {
-        BanzaToast.showError(context, 'Erro ao partilhar: $e');
+        BanzamiToast.showError(context, 'Erro ao partilhar: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,7 +158,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     HapticFeedback.selectionClick();
     await Clipboard.setData(ClipboardData(text: widget.shareUrl));
     if (mounted) {
-      BanzaToast.showSuccess(context, 'Link copiado');
+      BanzamiToast.showSuccess(context, 'Link copiado');
     }
   }
 
@@ -216,7 +216,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       );
     } catch (e) {
       if (mounted) {
-        BanzaToast.showError(context, 'Erro ao guardar: $e');
+        BanzamiToast.showError(context, 'Erro ao guardar: $e');
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -229,7 +229,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
+        color:        BanzamiColors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
@@ -242,15 +242,15 @@ class _P2PShareModalState extends State<_P2PShareModal> {
             Container(
               width: 36, height: 4,
               decoration: const BoxDecoration(
-                color:        BanzaColors.gray200,
-                borderRadius: BanzaRadius.fullAll,
+                color:        BanzamiColors.gray200,
+                borderRadius: BanzamiRadius.fullAll,
               ),
             ),
             const SizedBox(height: 12),
 
             // ── Share card preview (also captured for PNG export) ───────────
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+              padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
               child: RepaintBoundary(
                 key: _cardKey,
                 child: P2PShareCardBuilder(
@@ -301,7 +301,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
                 minimumSize:     const Size(double.infinity, 44),
-                foregroundColor: BanzaColors.gray600,
+                foregroundColor: BanzamiColors.gray600,
               ),
               child: const Text(
                 'Fechar',
@@ -412,8 +412,8 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
     return Container(
       decoration: const BoxDecoration(
         color:        Color(0xFFFCF6F5),
-        borderRadius: BanzaRadius.xxlAll,
-        boxShadow:    BanzaShadows.cardElevated,
+        borderRadius: BanzamiRadius.xxlAll,
+        boxShadow:    BanzamiShadows.cardElevated,
       ),
       padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
       child: Column(
@@ -422,10 +422,10 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
 
           // ── Wine gradient inner card ────────────────────────────────────
           ClipRRect(
-            borderRadius: BanzaRadius.lgAll,
+            borderRadius: BanzamiRadius.lgAll,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+              decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
               child: DecoratedBox(
                 position: DecorationPosition.foreground,
                 decoration: BoxDecoration(
@@ -451,12 +451,12 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                         if (isSandbox) ...[
                           Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: BanzaSpacing.md,
+                              horizontal: BanzamiSpacing.md,
                               vertical:   3,
                             ),
                             decoration: const BoxDecoration(
-                              color:        BanzaColors.gold,
-                              borderRadius: BanzaRadius.fullAll,
+                              color:        BanzamiColors.gold,
+                              borderRadius: BanzamiRadius.fullAll,
                             ),
                             child: const Text(
                               'SANDBOX',
@@ -492,7 +492,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                             child: Text(
                               _initials(displayName ?? handle),
                               style: const TextStyle(
-                                color:      BanzaColors.wine,
+                                color:      BanzamiColors.wine,
                                 fontSize:   17,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Inter',
@@ -535,7 +535,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                           padding:    const EdgeInsets.all(10),
                           decoration: const BoxDecoration(
                             color:        Colors.white,
-                            borderRadius: BanzaRadius.lgAll,
+                            borderRadius: BanzamiRadius.lgAll,
                           ),
                           child: CustomPaint(
                             size: const Size(120, 120),
@@ -545,11 +545,11 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                               errorCorrectionLevel: QrErrorCorrectLevel.H,
                               eyeStyle: const QrEyeStyle(
                                 eyeShape: QrEyeShape.square,
-                                color:    BanzaColors.wine,
+                                color:    BanzamiColors.wine,
                               ),
                               dataModuleStyle: const QrDataModuleStyle(
                                 dataModuleShape: QrDataModuleShape.square,
-                                color:           BanzaColors.gray900,
+                                color:           BanzamiColors.gray900,
                               ),
                               embeddedImage:      _loadedImage,
                               embeddedImageStyle: _loadedImage != null
@@ -625,7 +625,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
               ],
               Text(
                 'Pague instantaneamente com Banza',
-                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
             ],
           ),
@@ -649,12 +649,12 @@ class _ActionTile extends StatelessWidget {
     required this.icon,
     required this.label,
     this.onTap,
-    this.color = BanzaColors.gray900,
+    this.color = BanzamiColors.gray900,
   });
 
   @override
   Widget build(BuildContext context) {
-    final effectiveColor = onTap == null ? BanzaColors.gray400 : color;
+    final effectiveColor = onTap == null ? BanzamiColors.gray400 : color;
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -665,7 +665,7 @@ class _ActionTile extends StatelessWidget {
             const SizedBox(width: 16),
             Text(
               label,
-              style: BanzaTextStyles.bodyMd.copyWith(
+              style: BanzamiTextStyles.bodyMd.copyWith(
                 color:      effectiveColor,
                 fontWeight: FontWeight.w500,
               ),

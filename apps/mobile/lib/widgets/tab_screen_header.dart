@@ -26,10 +26,10 @@ class TabScreenHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        BanzaSpacing.xl,
-        BanzaSpacing.xl,
-        BanzaSpacing.xl,
-        BanzaSpacing.lg,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.lg,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -41,7 +41,7 @@ class TabScreenHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: BanzaTextStyles.displayMd.copyWith(
+                  style: BanzamiTextStyles.displayMd.copyWith(
                     fontWeight:    FontWeight.w700,
                     letterSpacing: -0.5,
                   ),
@@ -50,8 +50,8 @@ class TabScreenHeader extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: BanzaTextStyles.bodySm.copyWith(
-                      color: BanzaColors.gray400,
+                    style: BanzamiTextStyles.bodySm.copyWith(
+                      color: BanzamiColors.gray400,
                     ),
                   ),
                 ],
@@ -59,7 +59,7 @@ class TabScreenHeader extends StatelessWidget {
             ),
           ),
           if (trailing != null) ...[
-            const SizedBox(width: BanzaSpacing.sm),
+            const SizedBox(width: BanzamiSpacing.sm),
             trailing!,
           ],
         ],

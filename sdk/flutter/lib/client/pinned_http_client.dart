@@ -7,12 +7,12 @@ import 'package:http/io_client.dart';
 /// The server uses a Let's Encrypt certificate trusted by the system root
 /// store, so no custom [SecurityContext] is needed.
 ///
-/// Usage — pass the result as [httpClient] to [BanzaClient] /
+/// Usage — pass the result as [httpClient] to [BanzamiClient] /
 /// [ConsumerPublicClient]:
 ///
 /// ```dart
 /// final client = await PinnedHttpClient.create();
-/// final api = BanzaClient(baseUrl: '...', apiKey: '...', httpClient: client);
+/// final api = BanzamiClient(baseUrl: '...', apiKey: '...', httpClient: client);
 /// ```
 ///
 /// Call [PinnedHttpClient.create] once at app startup and reuse the client.

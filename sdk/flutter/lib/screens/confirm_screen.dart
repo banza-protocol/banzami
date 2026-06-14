@@ -14,7 +14,7 @@ import 'receipt_screen.dart';
 const _kCardRadius = 28.0;
 const _kCardBR     = BorderRadius.all(Radius.circular(_kCardRadius));
 const _kBadgeBg    = Color(0x14990011); // wine 8 %
-const _kDotColor   = BanzaColors.wine;
+const _kDotColor   = BanzamiColors.wine;
 
 // ── Transfer-progress overlay colours ─────────────────────────────────────────
 
@@ -121,7 +121,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
       _pulseCtrl.reset();
       setState(() => _sending = false);
 
-      await Navigator.of(context).push(BanzaPageRoute(
+      await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiReceiptScreen(
           transfer:      transfer,
           ownHandle:     widget.ownHandle,
@@ -158,10 +158,10 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   // ── Card builders ──────────────────────────────────────────────────────────
 
   Widget _recipientCard(String initial, String? displayName, String handle) {
-    return BanzaCard(
+    return BanzamiCard(
       borderRadius: _kCardBR,
-      shadow:       BanzaShadows.cardElevated,
-      padding:      const EdgeInsets.all(BanzaSpacing.xl),
+      shadow:       BanzamiShadows.cardElevated,
+      padding:      const EdgeInsets.all(BanzamiSpacing.xl),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -169,34 +169,34 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
             width:  56,
             height: 56,
             decoration: const BoxDecoration(
-              gradient: BanzaGradients.wine,
+              gradient: BanzamiGradients.wine,
               shape:    BoxShape.circle,
             ),
             child: Center(
               child: Text(
                 initial,
-                style: BanzaTextStyles.headingLg.copyWith(
-                  color:      BanzaColors.white,
+                style: BanzamiTextStyles.headingLg.copyWith(
+                  color:      BanzamiColors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
           ),
-          const SizedBox(width: BanzaSpacing.lg),
+          const SizedBox(width: BanzamiSpacing.lg),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'Destinatário',
-                  style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                 ),
                 const SizedBox(height: 3),
                 if (displayName != null) ...[
                   Text(
                     displayName,
-                    style: BanzaTextStyles.headingSm.copyWith(
-                      color:      BanzaColors.gray900,
+                    style: BanzamiTextStyles.headingSm.copyWith(
+                      color:      BanzamiColors.gray900,
                       fontWeight: FontWeight.w700,
                     ),
                     maxLines: 1,
@@ -205,13 +205,13 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                   const SizedBox(height: 2),
                   Text(
                     '@$handle',
-                    style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                   ),
                 ] else
                   Text(
                     '@$handle',
-                    style: BanzaTextStyles.headingSm.copyWith(
-                      color:      BanzaColors.gray900,
+                    style: BanzamiTextStyles.headingSm.copyWith(
+                      color:      BanzamiColors.gray900,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
@@ -219,7 +219,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 DecoratedBox(
                   decoration: BoxDecoration(
                     color:        _kBadgeBg,
-                    borderRadius: BorderRadius.circular(BanzaRadius.full),
+                    borderRadius: BorderRadius.circular(BanzamiRadius.full),
                   ),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -237,8 +237,8 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                         const SizedBox(width: 5),
                         Text(
                           'Endereço Banza',
-                          style: BanzaTextStyles.label.copyWith(
-                            color:      BanzaColors.wine,
+                          style: BanzamiTextStyles.label.copyWith(
+                            color:      BanzamiColors.wine,
                             fontSize:   11,
                             fontWeight: FontWeight.w600,
                           ),
@@ -257,36 +257,36 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
   Widget _amountCard(String amount, String? note) {
     final hasNote = note != null && note.isNotEmpty;
-    return BanzaCard(
+    return BanzamiCard(
       borderRadius: _kCardBR,
-      shadow:       BanzaShadows.cardElevated,
+      shadow:       BanzamiShadows.cardElevated,
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.xl,
-        vertical:   BanzaSpacing.xxl,
+        horizontal: BanzamiSpacing.xl,
+        vertical:   BanzamiSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Text(
             'Vai enviar',
-            style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
           Text(
             amount,
-            style: BanzaTextStyles.monoLg.copyWith(
+            style: BanzamiTextStyles.monoLg.copyWith(
               fontSize:   40,
               fontWeight: FontWeight.w700,
-              color:      BanzaColors.gray900,
+              color:      BanzamiColors.gray900,
             ),
           ),
-          const SizedBox(height: BanzaSpacing.lg),
-          const Divider(height: 1, color: BanzaColors.gray200),
-          const SizedBox(height: BanzaSpacing.lg),
+          const SizedBox(height: BanzamiSpacing.lg),
+          const Divider(height: 1, color: BanzamiColors.gray200),
+          const SizedBox(height: BanzamiSpacing.lg),
           Text(
             hasNote ? note : 'Sem nota',
-            style: BanzaTextStyles.bodyMd.copyWith(
-              color:     hasNote ? BanzaColors.gray600 : BanzaColors.gray400,
+            style: BanzamiTextStyles.bodyMd.copyWith(
+              color:     hasNote ? BanzamiColors.gray600 : BanzamiColors.gray400,
               fontStyle: hasNote ? FontStyle.normal   : FontStyle.italic,
             ),
             textAlign: TextAlign.center,
@@ -338,11 +338,11 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
         // Content — full-screen column with safe area.
         SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: BanzaSpacing.xl),
+                const SizedBox(height: BanzamiSpacing.xl),
 
                 // ── Orb ─────────────────────────────────────────────────────
                 const Spacer(),
@@ -355,7 +355,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 // ── Status text ──────────────────────────────────────────────
                 Text(
                   'A enviar dinheiro...',
-                  style: BanzaTextStyles.bodyLg.copyWith(
+                  style: BanzamiTextStyles.bodyLg.copyWith(
                     color:      Colors.white.withValues(alpha: 0.72),
                     fontWeight: FontWeight.w500,
                     height:     1.5,
@@ -366,7 +366,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 // ── Amount ───────────────────────────────────────────────────
                 Text(
                   amount,
-                  style: BanzaTextStyles.monoLg.copyWith(
+                  style: BanzamiTextStyles.monoLg.copyWith(
                     color:      Colors.white,
                     fontSize:   38,
                     fontWeight: FontWeight.w700,
@@ -377,7 +377,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 // ── Recipient ────────────────────────────────────────────────
                 Text(
                   'para @$handle',
-                  style: BanzaTextStyles.bodyMd.copyWith(
+                  style: BanzamiTextStyles.bodyMd.copyWith(
                     color:      Colors.white.withValues(alpha: 0.58),
                     fontWeight: FontWeight.w400,
                     fontSize:   15,
@@ -387,7 +387,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
                 // ── Cancel button (disabled — request already dispatched) ────
                 _buildCancelButton(),
-                const SizedBox(height: BanzaSpacing.xl),
+                const SizedBox(height: BanzamiSpacing.xl),
               ],
             ),
           ),
@@ -441,7 +441,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
           color: Colors.white.withValues(alpha: 0.20),
           width: 1.0,
         ),
-        borderRadius: BorderRadius.circular(BanzaRadius.field),
+        borderRadius: BorderRadius.circular(BanzamiRadius.field),
       ),
       child: TextButton(
         // Always disabled: by the time this overlay is visible, the
@@ -450,12 +450,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
         style: TextButton.styleFrom(
           disabledForegroundColor: Colors.white.withValues(alpha: 0.42),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(BanzaRadius.field),
+            borderRadius: BorderRadius.circular(BanzamiRadius.field),
           ),
         ),
         child: Text(
           'Cancelar',
-          style: BanzaTextStyles.bodyMd.copyWith(
+          style: BanzamiTextStyles.bodyMd.copyWith(
             fontSize:   15,
             fontWeight: FontWeight.w500,
           ),
@@ -473,11 +473,11 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     final initial     = (displayName ?? handle)[0].toUpperCase();
     final amount      = formatMinor(widget.amountMinor, widget.currency);
 
-    return BanzaScaffold(
+    return BanzamiScaffold(
       // Hide the AppBar while sending — the overlay fills full-screen.
       appBar: _sending
           ? null
-          : const BanzaAppBar(title: 'Confirmar envio', showBack: true),
+          : const BanzamiAppBar(title: 'Confirmar envio', showBack: true),
       body: Stack(
         children: [
           // ── Review UI ──────────────────────────────────────────────────────
@@ -485,19 +485,19 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
             SafeArea(
               child: AnimatedOpacity(
                 opacity:  _entered ? 1.0 : 0.0,
-                duration: BanzaMotion.slow,
+                duration: BanzamiMotion.slow,
                 curve:    Curves.easeOut,
                 child: AnimatedSlide(
                   offset:   _entered ? Offset.zero : const Offset(0, 0.025),
-                  duration: BanzaMotion.slow,
-                  curve:    BanzaMotion.decelerate,
+                  duration: BanzamiMotion.slow,
+                  curve:    BanzamiMotion.decelerate,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.fromLTRB(
-                            BanzaSpacing.xl, 32, BanzaSpacing.xl, BanzaSpacing.xl,
+                            BanzamiSpacing.xl, 32, BanzamiSpacing.xl, BanzamiSpacing.xl,
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -506,12 +506,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                               const SizedBox(height: 16),
                               _amountCard(amount, widget.note),
                               const SizedBox(height: 16),
-                              const BanzaWarningBanner(
+                              const BanzamiWarningBanner(
                                 message: 'Confirme os detalhes antes de enviar. Esta acção é irreversível.',
                               ),
                               if (_error != null) ...[
-                                const SizedBox(height: BanzaSpacing.md),
-                                BanzaErrorBanner(message: _error!),
+                                const SizedBox(height: BanzamiSpacing.md),
+                                BanzamiErrorBanner(message: _error!),
                               ],
                             ],
                           ),
@@ -519,19 +519,19 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                       ),
                       Padding(
                         padding: const EdgeInsets.fromLTRB(
-                          BanzaSpacing.xl, 8, BanzaSpacing.xl, BanzaSpacing.xl,
+                          BanzamiSpacing.xl, 8, BanzamiSpacing.xl, BanzamiSpacing.xl,
                         ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            BanzaPrimaryButton(
+                            BanzamiPrimaryButton(
                               label:     'Confirmar envio',
                               isLoading: false,
                               height:    58,
                               onPressed: _confirm,
                             ),
-                            const SizedBox(height: BanzaSpacing.md),
-                            BanzaGhostButton(
+                            const SizedBox(height: BanzamiSpacing.md),
+                            BanzamiGhostButton(
                               label:     'Cancelar',
                               onPressed: () => Navigator.of(context).pop(),
                             ),

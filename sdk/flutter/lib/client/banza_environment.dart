@@ -1,4 +1,4 @@
-/// BanzaEnvironment selects the data universe used for all API calls.
+/// BanzamiEnvironment selects the data universe used for all API calls.
 ///
 /// LIVE (production) and SANDBOX are fully isolated:
 /// - Separate API key prefixes: `bz_live_` vs `bz_test_`
@@ -7,12 +7,12 @@
 ///
 /// Usage:
 /// ```dart
-/// final client = BanzaClient(
+/// final client = BanzamiClient(
 ///   apiKey:      'bz_test_...',
-///   environment: BanzaEnvironment.sandbox,
+///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
-enum BanzaEnvironment {
+enum BanzamiEnvironment {
   /// Production environment. Real money, real transactions, real payouts.
   /// Use `bz_live_` API keys.
   production,
@@ -24,33 +24,33 @@ enum BanzaEnvironment {
   /// Default base URL for this environment when no explicit baseUrl is given.
   String get defaultBaseUrl {
     switch (this) {
-      case BanzaEnvironment.production:
+      case BanzamiEnvironment.production:
         return 'https://api.banzami.org';
-      case BanzaEnvironment.sandbox:
+      case BanzamiEnvironment.sandbox:
         return 'https://sandbox-api.banzami.org';
     }
   }
 
-  bool get isLive    => this == BanzaEnvironment.production;
-  bool get isSandbox => this == BanzaEnvironment.sandbox;
+  bool get isLive    => this == BanzamiEnvironment.production;
+  bool get isSandbox => this == BanzamiEnvironment.sandbox;
 
   /// Wire-format value sent to / received from the API.
   String get apiValue {
     switch (this) {
-      case BanzaEnvironment.production:
+      case BanzamiEnvironment.production:
         return 'LIVE';
-      case BanzaEnvironment.sandbox:
+      case BanzamiEnvironment.sandbox:
         return 'SANDBOX';
     }
   }
 
   /// Parses the wire-format value returned by the API.
-  static BanzaEnvironment fromApiValue(String value) {
+  static BanzamiEnvironment fromApiValue(String value) {
     switch (value.toUpperCase()) {
       case 'SANDBOX':
-        return BanzaEnvironment.sandbox;
+        return BanzamiEnvironment.sandbox;
       default:
-        return BanzaEnvironment.production;
+        return BanzamiEnvironment.production;
     }
   }
 }

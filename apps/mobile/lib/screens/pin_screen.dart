@@ -106,7 +106,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     if (_isLockedOut) {
       final secs = _lockoutUntil!.difference(DateTime.now()).inSeconds + 1;
       setState(() { _error = true; _pin = ''; _padResetKey += 1; });
-      BanzaToast.showWarning(context, 'Demasiadas tentativas. Tente novamente em $secs segundos.');
+      BanzamiToast.showWarning(context, 'Demasiadas tentativas. Tente novamente em $secs segundos.');
       return;
     }
 
@@ -157,14 +157,14 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
   }
 
   Future<void> _confirmLogout() async {
-    final confirmed = await showBanzaDialog(
+    final confirmed = await showBanzamiDialog(
       context:      context,
       icon:         Icons.manage_accounts_rounded,
       title:        'Usar outra conta?',
       description:  'Vai sair desta conta neste dispositivo.\nPode entrar novamente quando quiser.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Continuar',
-      variant:      BanzaDialogVariant.warning,
+      variant:      BanzamiDialogVariant.warning,
     );
     if (confirmed == true && mounted) {
       await context.read<SessionService>().logout();
@@ -182,7 +182,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
     final session = context.read<SessionService>().session;
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) => SingleChildScrollView(
@@ -214,7 +214,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                   if (session?.displayName != null)
                     Text(
                       'Olá, ${session!.displayName}',
-                      style: BanzaTextStyles.headingMd,
+                      style: BanzamiTextStyles.headingMd,
                       textAlign: TextAlign.center,
                     ),
                   const SizedBox(height: 8),
@@ -224,8 +224,8 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                         : _error
                             ? 'PIN incorrecto. Tente novamente.'
                             : 'Introduza o PIN',
-                    style: BanzaTextStyles.bodyMd.copyWith(
-                      color: _error ? BanzaColors.error : BanzaColors.gray400,
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color: _error ? BanzamiColors.error : BanzamiColors.gray400,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -245,10 +245,10 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                   if (session?.biometricsEnabled == true)
                     TextButton.icon(
                       onPressed: _tryBiometrics,
-                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzaColors.wine),
+                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
                       label: Text(
                         'Usar biometria',
-                        style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.wine),
+                        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine),
                       ),
                     ),
 
@@ -258,7 +258,7 @@ class _PinScreenState extends State<PinScreen> with WidgetsBindingObserver {
                     onPressed: _confirmLogout,
                     child: Text(
                       'Usar outra conta',
-                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
                     ),
                   ),
 

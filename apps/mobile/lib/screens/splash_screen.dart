@@ -119,7 +119,7 @@ class _SplashScreenState extends State<SplashScreen>
               onPressed: () {},
               child: const Text(
                 'Bloqueado',
-                style: TextStyle(color: BanzaColors.error),
+                style: TextStyle(color: BanzamiColors.error),
               ),
             ),
           ],

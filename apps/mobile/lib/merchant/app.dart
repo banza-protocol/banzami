@@ -22,11 +22,11 @@ class BanzamiMerchantApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => MerchantSessionService()..initialize(),
         ),
-        ProxyProvider<MerchantSessionService, BanzaClient>(
+        ProxyProvider<MerchantSessionService, BanzamiClient>(
           update: (_, session, prev) {
             final apiKey = session.session?.apiKey ?? '';
             if (prev != null && apiKey == prev.apiKey) return prev;
-            return BanzaClient(
+            return BanzamiClient(
               baseUrl:    AppConfig.gatewayUrl,
               apiKey:     apiKey,
               httpClient: pinnedClient,
@@ -55,7 +55,7 @@ class BanzamiMerchantApp extends StatelessWidget {
   }
 
   ThemeData _buildTheme() {
-    final base = BanzaTheme.light;
+    final base = BanzamiTheme.light;
     return base.copyWith(
       textTheme: base.textTheme.apply(fontFamily: 'Inter'),
     );

@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 
 // ── Variant ───────────────────────────────────────────────────────────────────
 
-enum BanzaDialogVariant {
+enum BanzamiDialogVariant {
   /// Default wine-red confirm button.
   standard,
 
@@ -21,14 +21,14 @@ enum BanzaDialogVariant {
 
 /// Shows a premium Banzami confirmation dialog and returns [true] (confirmed),
 /// [false] (cancelled), or [null] (barrier dismissed).
-Future<bool?> showBanzaDialog({
+Future<bool?> showBanzamiDialog({
   required BuildContext      context,
   required IconData          icon,
   required String            title,
   required String            description,
   String                     cancelLabel  = 'Cancelar',
   required String            confirmLabel,
-  BanzaDialogVariant         variant      = BanzaDialogVariant.standard,
+  BanzamiDialogVariant         variant      = BanzamiDialogVariant.standard,
   bool                       barrierDismissible = true,
 }) {
   HapticFeedback.mediumImpact();
@@ -38,7 +38,7 @@ Future<bool?> showBanzaDialog({
     barrierLabel:        'Fechar',
     barrierColor:        Colors.transparent,
     transitionDuration:  const Duration(milliseconds: 260),
-    pageBuilder: (ctx, _, __) => _BanzaDialogContent(
+    pageBuilder: (ctx, _, __) => _BanzamiDialogContent(
       icon:        icon,
       title:       title,
       description: description,
@@ -82,15 +82,15 @@ Future<bool?> showBanzaDialog({
 
 // ── Dialog content ────────────────────────────────────────────────────────────
 
-class _BanzaDialogContent extends StatelessWidget {
+class _BanzamiDialogContent extends StatelessWidget {
   final IconData         icon;
   final String           title;
   final String           description;
   final String           cancelLabel;
   final String           confirmLabel;
-  final BanzaDialogVariant variant;
+  final BanzamiDialogVariant variant;
 
-  const _BanzaDialogContent({
+  const _BanzamiDialogContent({
     required this.icon,
     required this.title,
     required this.description,
@@ -100,15 +100,15 @@ class _BanzaDialogContent extends StatelessWidget {
   });
 
   List<Color> get _iconGradient => switch (variant) {
-    BanzaDialogVariant.warning  => const [Color(0xFFFFB347), Color(0xFFD97706)],
-    BanzaDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF7F1D1D)],
-    BanzaDialogVariant.standard => const [Color(0xFFB5101F), Color(0xFF9A1B22)],
+    BanzamiDialogVariant.warning  => const [Color(0xFFFFB347), Color(0xFFD97706)],
+    BanzamiDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF7F1D1D)],
+    BanzamiDialogVariant.standard => const [Color(0xFFB5101F), Color(0xFF9A1B22)],
   };
 
   List<Color> get _confirmGradient => switch (variant) {
-    BanzaDialogVariant.warning  => const [Color(0xFFF59E0B), Color(0xFFD97706)],
-    BanzaDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF991B1B)],
-    BanzaDialogVariant.standard => [BanzaColors.wine, BanzaColors.wineDark],
+    BanzamiDialogVariant.warning  => const [Color(0xFFF59E0B), Color(0xFFD97706)],
+    BanzamiDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF991B1B)],
+    BanzamiDialogVariant.standard => [BanzamiColors.wine, BanzamiColors.wineDark],
   };
 
   @override
@@ -152,7 +152,7 @@ class _BanzaDialogContent extends StatelessWidget {
                   style: const TextStyle(
                     fontSize:   22,
                     fontWeight: FontWeight.w700,
-                    color:      BanzaColors.gray900,
+                    color:      BanzamiColors.gray900,
                     height:     1.2,
                   ),
                 ),
@@ -163,7 +163,7 @@ class _BanzaDialogContent extends StatelessWidget {
                   style: const TextStyle(
                     fontSize:   14,
                     fontWeight: FontWeight.w400,
-                    color:      BanzaColors.gray600,
+                    color:      BanzamiColors.gray600,
                     height:     1.6,
                   ),
                 ),
@@ -246,9 +246,9 @@ class _CancelButton extends StatelessWidget {
     return Container(
       height: 52,
       decoration: BoxDecoration(
-        color:        BanzaColors.gray100,
+        color:        BanzamiColors.gray100,
         borderRadius: const BorderRadius.all(Radius.circular(18)),
-        border:       Border.all(color: BanzaColors.gray200),
+        border:       Border.all(color: BanzamiColors.gray200),
       ),
       child: Center(
         child: Text(
@@ -256,7 +256,7 @@ class _CancelButton extends StatelessWidget {
           style: const TextStyle(
             fontSize:   15,
             fontWeight: FontWeight.w600,
-            color:      BanzaColors.gray900,
+            color:      BanzamiColors.gray900,
           ),
         ),
       ),

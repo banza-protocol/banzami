@@ -155,10 +155,10 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BanzaScaffold(
-      backgroundColor: BanzaColors.white,
-      appBar: BanzaAppBar(
-        backgroundColor: BanzaColors.white,
+    return BanzamiScaffold(
+      backgroundColor: BanzamiColors.white,
+      appBar: BanzamiAppBar(
+        backgroundColor: BanzamiColors.white,
         showBack: !_saving,
         onBack:   _step == _Step.confirm ? _backToEnter : null,
       ),
@@ -173,14 +173,14 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                 children: [
                   const SizedBox(height: 24),
 
-                  Text(_title, style: BanzaTextStyles.headingLg),
+                  Text(_title, style: BanzamiTextStyles.headingLg),
                   const SizedBox(height: 8),
                   Text(
                     _subtitle,
-                    style: BanzaTextStyles.bodyMd.copyWith(
+                    style: BanzamiTextStyles.bodyMd.copyWith(
                       color: (_error || _apiError != null)
-                          ? BanzaColors.error
-                          : BanzaColors.gray400,
+                          ? BanzamiColors.error
+                          : BanzamiColors.gray400,
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -188,7 +188,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                   const SizedBox(height: 40),
 
                   if (_saving)
-                    const CircularProgressIndicator(color: BanzaColors.wine)
+                    const CircularProgressIndicator(color: BanzamiColors.wine)
                   else
                     PinPad(
                       key:        ValueKey(_step),
@@ -216,24 +216,24 @@ class _BiometricsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.all(BanzaSpacing.xl),
+      padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzaColors.wine),
-          const SizedBox(height: BanzaSpacing.lg),
-          const Text('Activar biometria?', style: BanzaTextStyles.headingMd),
-          const SizedBox(height: BanzaSpacing.sm),
+          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzamiColors.wine),
+          const SizedBox(height: BanzamiSpacing.lg),
+          const Text('Activar biometria?', style: BanzamiTextStyles.headingMd),
+          const SizedBox(height: BanzamiSpacing.sm),
           Text(
             'Use Face ID ou impressão digital para entrar mais rapidamente.',
-            style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400),
+            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: BanzaSpacing.xl),
-          BanzaPrimaryButton(label: 'Activar', onPressed: onEnable),
-          const SizedBox(height: BanzaSpacing.sm),
-          BanzaGhostButton(label: 'Agora não', onPressed: onSkip),
-          const SizedBox(height: BanzaSpacing.md),
+          const SizedBox(height: BanzamiSpacing.xl),
+          BanzamiPrimaryButton(label: 'Activar', onPressed: onEnable),
+          const SizedBox(height: BanzamiSpacing.sm),
+          BanzamiGhostButton(label: 'Agora não', onPressed: onSkip),
+          const SizedBox(height: BanzamiSpacing.md),
         ],
       ),
     );

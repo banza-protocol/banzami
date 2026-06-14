@@ -1,8 +1,8 @@
 // Run: bundle with your build tool (Vite, webpack, etc.) and include in a browser page
 
-import { BanzaClient, formatMinor } from '@banza/sdk';
+import { BanzamiClient, formatMinor } from '@banza/sdk';
 
-const client = new BanzaClient({
+const client = new BanzamiClient({
   baseUrl: 'https://api.banzami.com',
   apiKey:  '<your-publishable-api-key>',
 });

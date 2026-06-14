@@ -7,8 +7,8 @@ import '../theme/banza_theme.dart';
 ///
 /// Call [ensure] before navigating to any scanner screen.
 /// Returns true only when camera is ready to use.
-class BanzaCameraPermission {
-  BanzaCameraPermission._();
+class BanzamiCameraPermission {
+  BanzamiCameraPermission._();
 
   /// Ensures camera permission is granted before proceeding.
   ///
@@ -71,7 +71,7 @@ class BanzaCameraPermission {
       barrierColor: Colors.black54,
       builder:     (ctx) => Dialog(
         shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        backgroundColor: BanzaColors.white,
+        backgroundColor: BanzamiColors.white,
         insetPadding:    const EdgeInsets.symmetric(horizontal: 32),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
@@ -81,12 +81,12 @@ class BanzaCameraPermission {
               Container(
                 width: 64, height: 64,
                 decoration: const BoxDecoration(
-                  color: BanzaColors.gray100,
+                  color: BanzamiColors.gray100,
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.camera_alt_outlined,
-                  color: BanzaColors.gray400,
+                  color: BanzamiColors.gray400,
                   size: 32,
                 ),
               ),
@@ -96,7 +96,7 @@ class BanzaCameraPermission {
                 style:     TextStyle(
                   fontSize:   17,
                   fontWeight: FontWeight.w600,
-                  color:      BanzaColors.gray900,
+                  color:      BanzamiColors.gray900,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -105,7 +105,7 @@ class BanzaCameraPermission {
                 'Para ler códigos QR de pagamento, autorize o acesso à câmara nas Definições.',
                 style:     TextStyle(
                   fontSize: 14,
-                  color:    BanzaColors.gray400,
+                  color:    BanzamiColors.gray400,
                   height:   1.4,
                 ),
                 textAlign: TextAlign.center,
@@ -116,14 +116,14 @@ class BanzaCameraPermission {
                   Expanded(
                     child: OutlinedButton(
                       style: OutlinedButton.styleFrom(
-                        side:    const BorderSide(color: BanzaColors.gray200),
+                        side:    const BorderSide(color: BanzamiColors.gray200),
                         shape:   RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
                       onPressed: () => Navigator.of(ctx).pop(),
                       child: const Text(
                         'Cancelar',
-                        style: TextStyle(color: BanzaColors.gray400, fontSize: 15),
+                        style: TextStyle(color: BanzamiColors.gray400, fontSize: 15),
                       ),
                     ),
                   ),
@@ -131,7 +131,7 @@ class BanzaCameraPermission {
                   Expanded(
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: BanzaColors.wine,
+                        backgroundColor: BanzamiColors.wine,
                         shape:          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding:        const EdgeInsets.symmetric(vertical: 13),
                       ),
@@ -158,7 +158,7 @@ class BanzaCameraPermission {
     ScaffoldMessenger.maybeOf(context)?.showSnackBar(
       SnackBar(
         content:         Text(message),
-        backgroundColor: BanzaColors.gray900,
+        backgroundColor: BanzamiColors.gray900,
         behavior:        SnackBarBehavior.floating,
       ),
     );

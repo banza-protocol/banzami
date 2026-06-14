@@ -42,7 +42,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint('[FCM] permission granted=$granted');
     if (!granted) return;
 
-    // Register foreground handler — shows a tappable BanzaToast banner.
+    // Register foreground handler — shows a tappable BanzamiToast banner.
     // Tapping the banner fires the same onTap callback used for background taps,
     // routing to the correct screen (receipt, payment request, or history).
     if (mounted) {
@@ -52,7 +52,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         final body  = msg.notification?.body ?? '';
         final text  = body.isNotEmpty ? body : title;
         if (text.isNotEmpty && ctx.mounted) {
-          BanzaToast.showInfoTappable(ctx, text, onTap: () {
+          BanzamiToast.showInfoTappable(ctx, text, onTap: () {
             PushNotificationService.onTap?.call(msg);
           });
         }
@@ -110,8 +110,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         displayName:   session.displayName,
         logoAssetPath: BrandingAssets.icon,
         environment:   AppConfig.isSandbox
-            ? BanzaEnvironment.sandbox
-            : BanzaEnvironment.production,
+            ? BanzamiEnvironment.sandbox
+            : BanzamiEnvironment.production,
         onReceive:     () => setState(() => _tab = 2),
       ),
       const HistoryScreen(),
@@ -122,7 +122,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     ];
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       body: Column(
         children: [
 Expanded(child: IndexedStack(index: _tab, children: tabs)),
@@ -163,18 +163,18 @@ class _FloatingTabBar extends StatelessWidget {
     return Container(
       color: Colors.transparent,
       padding: EdgeInsets.fromLTRB(
-        BanzaSpacing.lg,
-        BanzaSpacing.xs,
-        BanzaSpacing.lg,
-        bottom > 0 ? bottom + BanzaSpacing.sm : BanzaSpacing.lg,
+        BanzamiSpacing.lg,
+        BanzamiSpacing.xs,
+        BanzamiSpacing.lg,
+        bottom > 0 ? bottom + BanzamiSpacing.sm : BanzamiSpacing.lg,
       ),
       child: Container(
         decoration: BoxDecoration(
-          color:        BanzaColors.white,
-          borderRadius: BanzaRadius.xxlAll,
+          color:        BanzamiColors.white,
+          borderRadius: BanzamiRadius.xxlAll,
           boxShadow: [
             BoxShadow(
-              color:      BanzaColors.wineDark.withValues(alpha: 0.08),
+              color:      BanzamiColors.wineDark.withValues(alpha: 0.08),
               blurRadius: 24,
               spreadRadius: 0,
               offset:     const Offset(0, 4),
@@ -187,8 +187,8 @@ class _FloatingTabBar extends StatelessWidget {
           ],
         ),
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.xs,
-          vertical:   BanzaSpacing.xs,
+          horizontal: BanzamiSpacing.xs,
+          vertical:   BanzamiSpacing.xs,
         ),
         child: Row(
           children: List.generate(
@@ -239,9 +239,9 @@ class _TabItem extends StatelessWidget {
           padding:  const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color:        isSelected
-                ? BanzaColors.wine.withValues(alpha: 0.08)
+                ? BanzamiColors.wine.withValues(alpha: 0.08)
                 : Colors.transparent,
-            borderRadius: BanzaRadius.xlAll,
+            borderRadius: BanzamiRadius.xlAll,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -249,14 +249,14 @@ class _TabItem extends StatelessWidget {
               Icon(
                 isSelected ? filledIcon : outlinedIcon,
                 size:  22,
-                color: isSelected ? BanzaColors.wine : BanzaColors.gray400,
+                color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
               ),
               const SizedBox(height: 3),
               Text(
                 label,
-                style: BanzaTextStyles.label.copyWith(
+                style: BanzamiTextStyles.label.copyWith(
                   fontSize: 10,
-                  color: isSelected ? BanzaColors.wine : BanzaColors.gray400,
+                  color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
                 ),
               ),
             ],

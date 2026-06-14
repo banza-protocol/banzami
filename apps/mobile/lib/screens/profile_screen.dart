@@ -28,16 +28,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final session = svc.session!;
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.xl),
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
           children: [
-            const SizedBox(height: BanzaSpacing.xl),
+            const SizedBox(height: BanzamiSpacing.xl),
 
             Text(
               'Perfil',
-              style: BanzaTextStyles.displayMd.copyWith(
+              style: BanzamiTextStyles.displayMd.copyWith(
                 fontWeight:    FontWeight.w700,
                 letterSpacing: -0.5,
               ),
@@ -45,20 +45,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 2),
             Text(
               'O seu perfil e definições',
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
 
-            const SizedBox(height: BanzaSpacing.lg),
+            const SizedBox(height: BanzamiSpacing.lg),
 
             // ── Identity card ──────────────────────────────────────────────
             _ProfileHeader(session: session),
 
             if (AppConfig.isSandbox) ...[
-              const SizedBox(height: BanzaSpacing.sm),
+              const SizedBox(height: BanzamiSpacing.sm),
               const SandboxBanner(),
             ],
 
-            const SizedBox(height: BanzaSpacing.sm),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             // ── Payment address ────────────────────────────────────────────
             _PaymentAddressCard(
@@ -67,11 +67,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               onCopy: _copyHandle,
             ),
 
-            const SizedBox(height: BanzaSpacing.xl),
+            const SizedBox(height: BanzamiSpacing.xl),
 
             // ── Settings section label ─────────────────────────────────────
             const _SectionLabel('Definições'),
-            const SizedBox(height: BanzaSpacing.sm),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             _SettingsCard(children: [
               _RowChevron(
@@ -82,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (_) => const SecurityScreen()),
                 ),
               ),
-              const Divider(height: 1, indent: 56, color: BanzaColors.gray100),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
                 icon:  Icons.notifications_none_rounded,
                 label: 'Notificações',
@@ -91,7 +91,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   MaterialPageRoute(builder: (_) => const NotificationsScreen()),
                 ),
               ),
-              const Divider(height: 1, indent: 56, color: BanzaColors.gray100),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
                 icon:  Icons.help_outline_rounded,
                 label: 'Ajuda & Suporte',
@@ -102,39 +102,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ]),
 
-            const SizedBox(height: BanzaSpacing.xl),
+            const SizedBox(height: BanzamiSpacing.xl),
 
             // ── Account section ────────────────────────────────────────────
             const _SectionLabel('Conta'),
-            const SizedBox(height: BanzaSpacing.sm),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             _SettingsCard(children: [
               _RowChevron(
                 icon:  Icons.logout_rounded,
                 label: 'Terminar sessão',
                 onTap: () => _confirmLogout(svc),
-                color: BanzaColors.wine,
+                color: BanzamiColors.wine,
               ),
-              const Divider(height: 1, indent: 56, color: BanzaColors.gray100),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
                 icon:  Icons.delete_outline_rounded,
                 label: 'Remover conta',
                 sub:   'Apaga todos os dados guardados',
                 onTap: () => _confirmClearAccount(svc),
-                color: BanzaColors.error,
+                color: BanzamiColors.error,
               ),
             ]),
 
-            const SizedBox(height: BanzaSpacing.xxl),
+            const SizedBox(height: BanzamiSpacing.xxl),
 
             Center(
               child: Text(
                 'Banza v1.0',
-                style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
             ),
 
-            const SizedBox(height: BanzaSpacing.xl),
+            const SizedBox(height: BanzamiSpacing.xl),
           ],
         ),
       ),
@@ -150,14 +150,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmLogout(SessionService svc) async {
-    final confirm = await showBanzaDialog(
+    final confirm = await showBanzamiDialog(
       context:      context,
       icon:         Icons.logout_rounded,
       title:        'Terminar sessão?',
       description:  'Vai sair da sua conta neste dispositivo.\nPode entrar novamente quando quiser.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Sair',
-      variant:      BanzaDialogVariant.standard,
+      variant:      BanzamiDialogVariant.standard,
     );
     if (confirm == true) {
       await svc.logout();
@@ -171,14 +171,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _confirmClearAccount(SessionService svc) async {
-    final confirm = await showBanzaDialog(
+    final confirm = await showBanzamiDialog(
       context:      context,
       icon:         Icons.delete_forever_rounded,
       title:        'Remover conta?',
       description:  'Todos os dados guardados neste dispositivo serão apagados.\nTerá de iniciar sessão novamente.',
       cancelLabel:  'Cancelar',
       confirmLabel: 'Remover',
-      variant:      BanzaDialogVariant.danger,
+      variant:      BanzamiDialogVariant.danger,
     );
     if (confirm == true) {
       await svc.clearAccount();
@@ -208,17 +208,17 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient:     BanzaGradients.wine,
-        borderRadius: BanzaRadius.xlAll,
+        gradient:     BanzamiGradients.wine,
+        borderRadius: BanzamiRadius.xlAll,
         boxShadow: [
           BoxShadow(
-            color:      BanzaColors.wineDark.withValues(alpha: 0.28),
+            color:      BanzamiColors.wineDark.withValues(alpha: 0.28),
             blurRadius: 24,
             offset:     const Offset(0, 8),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(BanzaSpacing.lg),
+      padding: const EdgeInsets.all(BanzamiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -232,7 +232,7 @@ class _ProfileHeader extends StatelessWidget {
                 decoration: const BoxDecoration(
                   shape:    BoxShape.circle,
                   gradient: LinearGradient(
-                    colors: [BanzaColors.gold, BanzaColors.goldLight],
+                    colors: [BanzamiColors.gold, BanzamiColors.goldLight],
                     begin:  Alignment.topLeft,
                     end:    Alignment.bottomRight,
                   ),
@@ -242,13 +242,13 @@ class _ProfileHeader extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: BanzaColors.wineDark,
+                      color: BanzamiColors.wineDark,
                     ),
                     child: Center(
                       child: Text(
                         initial,
-                        style: BanzaTextStyles.headingMd.copyWith(
-                          color:      BanzaColors.gold,
+                        style: BanzamiTextStyles.headingMd.copyWith(
+                          color:      BanzamiColors.gold,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
@@ -257,7 +257,7 @@ class _ProfileHeader extends StatelessWidget {
                 ),
               ),
 
-              const SizedBox(width: BanzaSpacing.md),
+              const SizedBox(width: BanzamiSpacing.md),
 
               Expanded(
                 child: Column(
@@ -265,8 +265,8 @@ class _ProfileHeader extends StatelessWidget {
                   children: [
                     Text(
                       name,
-                      style: BanzaTextStyles.headingSm.copyWith(
-                        color:      BanzaColors.white,
+                      style: BanzamiTextStyles.headingSm.copyWith(
+                        color:      BanzamiColors.white,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
@@ -274,8 +274,8 @@ class _ProfileHeader extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '@${session.handle}',
-                        style: BanzaTextStyles.bodySm.copyWith(
-                          color: BanzaColors.white.withValues(alpha: 0.55),
+                        style: BanzamiTextStyles.bodySm.copyWith(
+                          color: BanzamiColors.white.withValues(alpha: 0.55),
                         ),
                       ),
                     ],
@@ -289,20 +289,20 @@ class _ProfileHeader extends StatelessWidget {
           ),
 
           if (session.verificationBadge != null) ...[
-            const SizedBox(height: BanzaSpacing.md),
+            const SizedBox(height: BanzamiSpacing.md),
             Row(children: [
               Icon(
                 Icons.shield_outlined,
                 size:  13,
-                color: BanzaColors.white.withValues(alpha: 0.35),
+                color: BanzamiColors.white.withValues(alpha: 0.35),
               ),
               const SizedBox(width: 6),
               Text(
                 session.verificationBadge == VerificationBadgeType.merchant
                     ? 'Conta de comerciante verificada'
                     : 'Identidade financeira verificada',
-                style: BanzaTextStyles.bodySm.copyWith(
-                  color: BanzaColors.white.withValues(alpha: 0.35),
+                style: BanzamiTextStyles.bodySm.copyWith(
+                  color: BanzamiColors.white.withValues(alpha: 0.35),
                 ),
               ),
             ]),
@@ -320,16 +320,16 @@ class _VerificationBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMerchant = type == VerificationBadgeType.merchant;
-    final fg     = isMerchant ? const Color(0xFF1D4ED8) : BanzaColors.gold;
+    final fg     = isMerchant ? const Color(0xFF1D4ED8) : BanzamiColors.gold;
     final bg     = fg.withValues(alpha: 0.10);
     final border = fg.withValues(alpha: 0.25);
     final label  = isMerchant ? 'Comerciante' : 'Verificado';
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.md, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.md, vertical: 5),
       decoration: BoxDecoration(
         color:        bg,
-        borderRadius: BanzaRadius.fullAll,
+        borderRadius: BanzamiRadius.fullAll,
         border:       Border.all(color: border),
       ),
       child: Row(
@@ -337,7 +337,7 @@ class _VerificationBadge extends StatelessWidget {
         children: [
           Icon(Icons.verified_rounded, size: 12, color: fg),
           const SizedBox(width: 4),
-          Text(label, style: BanzaTextStyles.label.copyWith(color: fg, fontSize: 11)),
+          Text(label, style: BanzamiTextStyles.label.copyWith(color: fg, fontSize: 11)),
         ],
       ),
     );
@@ -363,11 +363,11 @@ class _PaymentAddressCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BanzaRadius.xlAll,
-        boxShadow:    BanzaShadows.card,
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
-      padding: const EdgeInsets.all(BanzaSpacing.lg),
+      padding: const EdgeInsets.all(BanzamiSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -376,60 +376,60 @@ class _PaymentAddressCard extends StatelessWidget {
               width:  36,
               height: 36,
               decoration: BoxDecoration(
-                color:        BanzaColors.wine.withValues(alpha: 0.08),
-                borderRadius: BanzaRadius.mdAll,
+                color:        BanzamiColors.wine.withValues(alpha: 0.08),
+                borderRadius: BanzamiRadius.mdAll,
               ),
-              child: const Icon(Icons.alternate_email_rounded, color: BanzaColors.wine, size: 18),
+              child: const Icon(Icons.alternate_email_rounded, color: BanzamiColors.wine, size: 18),
             ),
-            const SizedBox(width: BanzaSpacing.md),
-            const Text('Endereço de pagamento', style: BanzaTextStyles.headingSm),
+            const SizedBox(width: BanzamiSpacing.md),
+            const Text('Endereço de pagamento', style: BanzamiTextStyles.headingSm),
           ]),
 
-          const SizedBox(height: BanzaSpacing.md),
+          const SizedBox(height: BanzamiSpacing.md),
 
           GestureDetector(
             onTap: onCopy,
             child: Container(
               width:   double.infinity,
               padding: const EdgeInsets.symmetric(
-                horizontal: BanzaSpacing.md,
-                vertical:   BanzaSpacing.sm + 2,
+                horizontal: BanzamiSpacing.md,
+                vertical:   BanzamiSpacing.sm + 2,
               ),
               decoration: const BoxDecoration(
-                color:        BanzaColors.gray100,
-                borderRadius: BanzaRadius.lgAll,
+                color:        BanzamiColors.gray100,
+                borderRadius: BanzamiRadius.lgAll,
               ),
               child: Row(children: [
                 Expanded(
                   child: Text(
                     '@$handle',
-                    style: BanzaTextStyles.mono.copyWith(
+                    style: BanzamiTextStyles.mono.copyWith(
                       fontSize:   17,
                       fontWeight: FontWeight.w600,
-                      color:      BanzaColors.gray900,
+                      color:      BanzamiColors.gray900,
                     ),
                   ),
                 ),
-                const SizedBox(width: BanzaSpacing.md),
+                const SizedBox(width: BanzamiSpacing.md),
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   transitionBuilder: (child, anim) =>
                       ScaleTransition(scale: anim, child: child),
                   child: copied
                       ? const Icon(Icons.check_rounded,
-                          key: ValueKey('check'), size: 20, color: BanzaColors.success)
+                          key: ValueKey('check'), size: 20, color: BanzamiColors.success)
                       : const Icon(Icons.copy_rounded,
-                          key: ValueKey('copy'), size: 20, color: BanzaColors.gray400),
+                          key: ValueKey('copy'), size: 20, color: BanzamiColors.gray400),
                 ),
               ]),
             ),
           ),
 
-          const SizedBox(height: BanzaSpacing.sm),
+          const SizedBox(height: BanzamiSpacing.sm),
 
           Text(
             'Partilhe este endereço para receber pagamentos',
-            style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
         ],
       ),
@@ -448,11 +448,11 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(left: BanzaSpacing.xs),
+      padding: const EdgeInsets.only(left: BanzamiSpacing.xs),
       child: Text(
         label.toUpperCase(),
-        style: BanzaTextStyles.label.copyWith(
-          color:         BanzaColors.gray400,
+        style: BanzamiTextStyles.label.copyWith(
+          color:         BanzamiColors.gray400,
           letterSpacing: 0.6,
           fontSize:      11,
         ),
@@ -469,9 +469,9 @@ class _SettingsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BanzaRadius.xlAll,
-        boxShadow:    BanzaShadows.card,
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
       clipBehavior: Clip.hardEdge,
       child: Column(mainAxisSize: MainAxisSize.min, children: children),
@@ -491,7 +491,7 @@ class _RowChevron extends StatelessWidget {
     required this.label,
     this.sub,
     required this.onTap,
-    this.color = BanzaColors.gray900,
+    this.color = BanzamiColors.gray900,
   });
 
   @override
@@ -500,8 +500,8 @@ class _RowChevron extends StatelessWidget {
       onTap: onTap,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-          horizontal: BanzaSpacing.lg,
-          vertical:   BanzaSpacing.md + 2,
+          horizontal: BanzamiSpacing.lg,
+          vertical:   BanzamiSpacing.md + 2,
         ),
         child: Row(children: [
           Container(
@@ -509,23 +509,23 @@ class _RowChevron extends StatelessWidget {
             height: 36,
             decoration: BoxDecoration(
               color:        color.withValues(alpha: 0.08),
-              borderRadius: BanzaRadius.mdAll,
+              borderRadius: BanzamiRadius.mdAll,
             ),
             child: Icon(icon, color: color, size: 18),
           ),
-          const SizedBox(width: BanzaSpacing.md),
+          const SizedBox(width: BanzamiSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize:       MainAxisSize.min,
               children: [
                 Text(label,
-                    style: BanzaTextStyles.bodyMd.copyWith(
+                    style: BanzamiTextStyles.bodyMd.copyWith(
                       color: color, fontWeight: FontWeight.w500,
                     )),
                 if (sub != null)
                   Text(sub!,
-                      style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400)),
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
               ],
             ),
           ),

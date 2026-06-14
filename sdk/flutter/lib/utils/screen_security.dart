@@ -5,7 +5,7 @@ import 'package:flutter/services.dart';
 /// Android: MethodChannel `setSecure` maps to FLAG_SECURE.
 /// iOS: MethodChannel `setSecure` is a no-op; isCaptured state is delivered
 ///      via EventChannel `banza/capture_state`.
-class BanzaScreenSecurity {
+class BanzamiScreenSecurity {
   static const _methodCh = MethodChannel('banza/screen_security');
   static const _eventCh  = EventChannel('banza/capture_state');
 

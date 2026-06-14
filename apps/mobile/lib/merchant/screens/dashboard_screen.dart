@@ -26,7 +26,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _load();
   }
 
-  Future<(int, int)> _loadStats(BanzaClient client) async {
+  Future<(int, int)> _loadStats(BanzamiClient client) async {
     final now        = DateTime.now().toLocal();
     final monthStart = DateTime(now.year, now.month, 1).toUtc();
     int today = 0, month = 0;
@@ -57,7 +57,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() { _loading = true; _error = null; });
 
     final session = context.read<MerchantSessionService>().session!;
-    final client  = context.read<BanzaClient>();
+    final client  = context.read<BanzamiClient>();
     String? err;
 
     final balanceFuture = client.getMerchantBalance(session.walletId)
@@ -85,12 +85,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final session = context.read<MerchantSessionService>().session!;
 
     return Scaffold(
-      backgroundColor: BanzaColors.offWhite,
+      backgroundColor: BanzamiColors.offWhite,
       body: RefreshIndicator(
-        color:     BanzaColors.wine,
+        color:     BanzamiColors.wine,
         onRefresh: _load,
         child: _loading && _balance == null
-            ? const Center(child: CircularProgressIndicator(color: BanzaColors.wine))
+            ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
             : _error != null && _balance == null
                 ? _buildError()
                 : _buildContent(session),
@@ -101,10 +101,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   Widget _buildError() {
     return Center(
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        const Icon(Icons.error_outline_rounded, color: BanzaColors.error, size: 40),
-        const SizedBox(height: BanzaSpacing.md),
-        Text(_error!, style: BanzaTextStyles.bodyMd.copyWith(color: BanzaColors.gray400)),
-        const SizedBox(height: BanzaSpacing.lg),
+        const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 40),
+        const SizedBox(height: BanzamiSpacing.md),
+        Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
+        const SizedBox(height: BanzamiSpacing.lg),
         TextButton(onPressed: _load, child: const Text('Tentar novamente')),
       ]),
     );
@@ -125,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
         // Stats + CTA + recent
         SliverPadding(
-          padding: const EdgeInsets.all(BanzaSpacing.lg),
+          padding: const EdgeInsets.all(BanzamiSpacing.lg),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               // Stat cards row
@@ -135,7 +135,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   label: 'Hoje',
                   value: formatMinor(_todayMinor, currency),
                 )),
-                const SizedBox(width: BanzaSpacing.md),
+                const SizedBox(width: BanzamiSpacing.md),
                 Expanded(child: _StatCard(
                   icon:  Icons.calendar_month_rounded,
                   label: 'Este mês',
@@ -143,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 )),
               ]),
 
-              const SizedBox(height: BanzaSpacing.lg),
+              const SizedBox(height: BanzamiSpacing.lg),
 
               // CTA
               _NewChargeButton(onTap: () => Navigator.of(context)
@@ -152,14 +152,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Recent charges
               if (_recent.isNotEmpty) ...[
-                const SizedBox(height: BanzaSpacing.xl),
+                const SizedBox(height: BanzamiSpacing.xl),
                 const Padding(
                   padding: EdgeInsets.only(
-                    left: BanzaSpacing.xs, bottom: BanzaSpacing.sm,
+                    left: BanzamiSpacing.xs, bottom: BanzamiSpacing.sm,
                   ),
                   child: Text(
                     'Cobranças recentes',
-                    style: BanzaTextStyles.headingSm,
+                    style: BanzamiTextStyles.headingSm,
                   ),
                 ),
                 ..._recent.asMap().entries.map((e) {
@@ -169,26 +169,26 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final isLast  = i == _recent.length - 1;
                   return Container(
                     decoration: BoxDecoration(
-                      color: BanzaColors.white,
+                      color: BanzamiColors.white,
                       borderRadius: BorderRadius.vertical(
-                        top:    Radius.circular(isFirst ? BanzaRadius.xl : 0),
-                        bottom: Radius.circular(isLast  ? BanzaRadius.xl : 0),
+                        top:    Radius.circular(isFirst ? BanzamiRadius.xl : 0),
+                        bottom: Radius.circular(isLast  ? BanzamiRadius.xl : 0),
                       ),
-                      boxShadow: isFirst ? BanzaShadows.card : BanzaShadows.none,
+                      boxShadow: isFirst ? BanzamiShadows.card : BanzamiShadows.none,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _LinkTile(link: link),
                         if (!isLast)
-                          const Divider(height: 1, indent: 64, color: BanzaColors.gray200),
+                          const Divider(height: 1, indent: 64, color: BanzamiColors.gray200),
                       ],
                     ),
                   );
                 }),
               ],
 
-              const SizedBox(height: BanzaSpacing.page),
+              const SizedBox(height: BanzamiSpacing.page),
             ]),
           ),
         ),
@@ -217,12 +217,12 @@ class _DashboardHeader extends StatelessWidget {
     final firstName = session.merchantName.split(' ').first;
 
     return Container(
-      decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+      decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
       padding: EdgeInsets.fromLTRB(
-        BanzaSpacing.xl,
-        MediaQuery.of(context).padding.top + BanzaSpacing.lg,
-        BanzaSpacing.xl,
-        BanzaSpacing.xxl,
+        BanzamiSpacing.xl,
+        MediaQuery.of(context).padding.top + BanzamiSpacing.lg,
+        BanzamiSpacing.xl,
+        BanzamiSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -236,16 +236,16 @@ class _DashboardHeader extends StatelessWidget {
                   children: [
                     Text(
                       'Olá, $firstName',
-                      style: BanzaTextStyles.headingMd.copyWith(
-                        color:      BanzaColors.white,
+                      style: BanzamiTextStyles.headingMd.copyWith(
+                        color:      BanzamiColors.white,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Painel de negócio',
-                      style: BanzaTextStyles.bodySm.copyWith(
-                        color: BanzaColors.white.withValues(alpha: 0.65),
+                      style: BanzamiTextStyles.bodySm.copyWith(
+                        color: BanzamiColors.white.withValues(alpha: 0.65),
                       ),
                     ),
                   ],
@@ -257,16 +257,16 @@ class _DashboardHeader extends StatelessWidget {
                   width:  38,
                   height: 38,
                   decoration: BoxDecoration(
-                    color:  BanzaColors.white.withValues(alpha: 0.15),
+                    color:  BanzamiColors.white.withValues(alpha: 0.15),
                     shape:  BoxShape.circle,
                     border: Border.all(
-                      color: BanzaColors.white.withValues(alpha: 0.20),
+                      color: BanzamiColors.white.withValues(alpha: 0.20),
                       width: 1,
                     ),
                   ),
                   child: const Icon(
                     Icons.refresh_rounded,
-                    color: BanzaColors.white,
+                    color: BanzamiColors.white,
                     size:  20,
                   ),
                 ),
@@ -274,32 +274,32 @@ class _DashboardHeader extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: BanzaSpacing.xl),
+          const SizedBox(height: BanzamiSpacing.xl),
 
           // Balance
           Text(
             'Saldo disponível',
-            style: BanzaTextStyles.bodySm.copyWith(
-              color: BanzaColors.white.withValues(alpha: 0.65),
+            style: BanzamiTextStyles.bodySm.copyWith(
+              color: BanzamiColors.white.withValues(alpha: 0.65),
             ),
           ),
-          const SizedBox(height: BanzaSpacing.xs),
+          const SizedBox(height: BanzamiSpacing.xs),
           Text(
             balance != null
                 ? formatMinor(balance!.availableMinor, balance!.currency)
                 : '— Kz',
-            style: BanzaTextStyles.displayLg.copyWith(
-              color:      BanzaColors.white,
+            style: BanzamiTextStyles.displayLg.copyWith(
+              color:      BanzamiColors.white,
               fontWeight: FontWeight.w700,
             ),
           ),
 
           if (balance != null && balance!.reservedMinor > 0) ...[
-            const SizedBox(height: BanzaSpacing.xs),
+            const SizedBox(height: BanzamiSpacing.xs),
             Text(
               'Reservado: ${formatMinor(balance!.reservedMinor, balance!.currency)}',
-              style: BanzaTextStyles.bodySm.copyWith(
-                color: BanzaColors.white.withValues(alpha: 0.50),
+              style: BanzamiTextStyles.bodySm.copyWith(
+                color: BanzamiColors.white.withValues(alpha: 0.50),
               ),
             ),
           ],
@@ -327,11 +327,11 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(BanzaSpacing.md),
+      padding: const EdgeInsets.all(BanzamiSpacing.md),
       decoration: const BoxDecoration(
-        color:        BanzaColors.white,
-        borderRadius: BanzaRadius.xlAll,
-        boxShadow:    BanzaShadows.card,
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
@@ -339,21 +339,21 @@ class _StatCard extends StatelessWidget {
             width:  28,
             height: 28,
             decoration: BoxDecoration(
-              color:        BanzaColors.wine.withValues(alpha: 0.08),
-              borderRadius: BanzaRadius.smAll,
+              color:        BanzamiColors.wine.withValues(alpha: 0.08),
+              borderRadius: BanzamiRadius.smAll,
             ),
-            child: Icon(icon, color: BanzaColors.wine, size: 15),
+            child: Icon(icon, color: BanzamiColors.wine, size: 15),
           ),
-          const SizedBox(width: BanzaSpacing.sm),
+          const SizedBox(width: BanzamiSpacing.sm),
           Text(
             label,
-            style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
         ]),
-        const SizedBox(height: BanzaSpacing.sm),
+        const SizedBox(height: BanzamiSpacing.sm),
         Text(
           value,
-          style: BanzaTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
+          style: BanzamiTextStyles.headingSm.copyWith(fontWeight: FontWeight.w700),
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -379,11 +379,11 @@ class _NewChargeButton extends StatelessWidget {
         icon:  const Icon(Icons.add_circle_outline_rounded),
         label: const Text('Nova cobrança'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzaColors.wine,
-          foregroundColor: BanzaColors.white,
+          backgroundColor: BanzamiColors.wine,
+          foregroundColor: BanzamiColors.white,
           padding:   const EdgeInsets.symmetric(vertical: 16),
-          shape:     const RoundedRectangleBorder(borderRadius: BanzaRadius.lgAll),
-          textStyle: BanzaTextStyles.headingSm,
+          shape:     const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
+          textStyle: BanzamiTextStyles.headingSm,
           elevation: 0,
         ),
       ),
@@ -402,16 +402,16 @@ class _LinkTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, label) = switch (link.status) {
-      PaymentLinkStatus.active    => (BanzaColors.success, 'Activo'),
-      PaymentLinkStatus.used      => (BanzaColors.wine,    'Pago'),
-      PaymentLinkStatus.expired   => (BanzaColors.gray400, 'Expirado'),
-      PaymentLinkStatus.cancelled => (BanzaColors.error,   'Cancelado'),
+      PaymentLinkStatus.active    => (BanzamiColors.success, 'Activo'),
+      PaymentLinkStatus.used      => (BanzamiColors.wine,    'Pago'),
+      PaymentLinkStatus.expired   => (BanzamiColors.gray400, 'Expirado'),
+      PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado'),
     };
 
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: BanzaSpacing.lg,
-        vertical:   BanzaSpacing.md,
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.md,
       ),
       child: Row(children: [
         Container(
@@ -419,16 +419,16 @@ class _LinkTile extends StatelessWidget {
           height: 40,
           decoration: BoxDecoration(
             color:        color.withValues(alpha: 0.10),
-            borderRadius: BanzaRadius.mdAll,
+            borderRadius: BanzamiRadius.mdAll,
           ),
           child: Icon(Icons.receipt_outlined, color: color, size: 20),
         ),
-        const SizedBox(width: BanzaSpacing.md),
+        const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Text(
               link.description ?? 'Cobrança',
-              style:    BanzaTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
+              style:    BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -436,17 +436,17 @@ class _LinkTile extends StatelessWidget {
               link.amountMinor != null
                   ? formatMinor(link.amountMinor!, link.currency)
                   : 'Valor livre',
-              style: BanzaTextStyles.bodySm.copyWith(color: BanzaColors.gray400),
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ]),
         ),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: BanzaSpacing.sm, vertical: 4),
+          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
           decoration: BoxDecoration(
             color:        color.withValues(alpha: 0.10),
-            borderRadius: BanzaRadius.fullAll,
+            borderRadius: BanzamiRadius.fullAll,
           ),
-          child: Text(label, style: BanzaTextStyles.label.copyWith(color: color, fontSize: 11)),
+          child: Text(label, style: BanzamiTextStyles.label.copyWith(color: color, fontSize: 11)),
         ),
       ]),
     );

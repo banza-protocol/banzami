@@ -50,23 +50,23 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
       bottomNavigationBar: NavigationBar(
         selectedIndex:   _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
-        backgroundColor: BanzaColors.white,
-        indicatorColor:  BanzaColors.wine.withValues(alpha: 0.12),
+        backgroundColor: BanzamiColors.white,
+        indicatorColor:  BanzamiColors.wine.withValues(alpha: 0.12),
         labelBehavior:   NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon:         Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded, color: BanzaColors.wine),
+            selectedIcon: Icon(Icons.dashboard_rounded, color: BanzamiColors.wine),
             label:        'Início',
           ),
           NavigationDestination(
             icon:         Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history_rounded, color: BanzaColors.wine),
+            selectedIcon: Icon(Icons.history_rounded, color: BanzamiColors.wine),
             label:        'Histórico',
           ),
           NavigationDestination(
             icon:         Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded, color: BanzaColors.wine),
+            selectedIcon: Icon(Icons.person_rounded, color: BanzamiColors.wine),
             label:        'Perfil',
           ),
         ],

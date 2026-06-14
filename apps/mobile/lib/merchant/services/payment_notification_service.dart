@@ -11,7 +11,7 @@ import '../../services/push_notification_service.dart';
 /// Start with [startPolling] when the merchant session is active.
 /// Stop with [stopPolling] on logout or app background.
 class PaymentNotificationService {
-  final BanzaClient _client;
+  final BanzamiClient _client;
 
   PaymentNotificationService(this._client);
 

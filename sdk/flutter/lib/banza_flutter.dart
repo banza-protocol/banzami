@@ -7,15 +7,15 @@
 /// import 'package:banza_flutter/banza_flutter.dart';
 ///
 /// // Production
-/// final client = BanzaClient(
+/// final client = BanzamiClient(
 ///   apiKey:      'bz_live_...',
-///   environment: BanzaEnvironment.production,
+///   environment: BanzamiEnvironment.production,
 /// );
 ///
 /// // Sandbox (integration testing)
-/// final client = BanzaClient(
+/// final client = BanzamiClient(
 ///   apiKey:      'bz_test_...',
-///   environment: BanzaEnvironment.sandbox,
+///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
 library banza_flutter;

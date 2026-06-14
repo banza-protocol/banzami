@@ -68,10 +68,10 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.white,
+      backgroundColor: BanzamiColors.white,
       appBar: AppBar(
-        backgroundColor: BanzaColors.white,
-        foregroundColor: BanzaColors.gray900,
+        backgroundColor: BanzamiColors.white,
+        foregroundColor: BanzamiColors.gray900,
         elevation:       0,
         automaticallyImplyLeading: !widget.isSetup,
       ),
@@ -83,7 +83,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
               const Spacer(flex: 2),
               Text(
                 _confirming ? 'Confirmar PIN' : 'Criar PIN',
-                style: BanzaTextStyles.headingMd,
+                style: BanzamiTextStyles.headingMd,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
@@ -93,8 +93,8 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
                     : _confirming
                         ? 'Introduza o PIN novamente para confirmar.'
                         : 'Escolha um PIN de 6 dígitos para proteger o acesso.',
-                style: BanzaTextStyles.bodyMd.copyWith(
-                  color: _error ? BanzaColors.error : BanzaColors.gray400,
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: _error ? BanzamiColors.error : BanzamiColors.gray400,
                 ),
                 textAlign: TextAlign.center,
               ),

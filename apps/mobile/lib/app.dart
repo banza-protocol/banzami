@@ -133,7 +133,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
     final client = ctx.read<ConsumerPublicClient>();
     final handle = svc.session?.handle ?? '';
 
-    BanzaNotificationRouter.route(
+    BanzamiNotificationRouter.route(
       data:         msg.data.map((k, v) => MapEntry(k, v.toString())),
       toastContext: ctx,
       navigator:    nav,
@@ -185,7 +185,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // ── Custom scheme: banza://pay/... ─────────────────────────────────────
     if (uri.scheme != 'banza' || uri.host != 'pay') return;
-    _handleBanzaScheme(uri);
+    _handleBanzamiScheme(uri);
   }
 
   // Called by the guard after successful unlock when a deep link was pending.
@@ -198,7 +198,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
       _handleUniversalLink(uri);
     } else if (uri.scheme == 'banza' && uri.host == 'pay') {
-      _handleBanzaScheme(uri);
+      _handleBanzamiScheme(uri);
     }
   }
 
@@ -219,7 +219,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }
   }
 
-  void _handleBanzaScheme(Uri uri) {
+  void _handleBanzamiScheme(Uri uri) {
     final segs = uri.pathSegments;
 
     // banza://pay/link/{slug}
@@ -345,8 +345,8 @@ class _BanzamiAppState extends State<BanzamiApp> {
         Provider(create: (_) => ConsumerPublicClient(
           baseUrl:     AppConfig.publicApiUrl,
           environment: AppConfig.isSandbox
-              ? BanzaEnvironment.sandbox
-              : BanzaEnvironment.production,
+              ? BanzamiEnvironment.sandbox
+              : BanzamiEnvironment.production,
           httpClient: widget.pinnedClient,
         )),
       ],
@@ -402,7 +402,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   }
 
   ThemeData _buildTheme() {
-    final base = BanzaTheme.light;
+    final base = BanzamiTheme.light;
     return base.copyWith(textTheme: base.textTheme.apply(fontFamily: 'Inter'));
   }
 }

@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 /// Rule: server timestamps are always UTC.  Every method in this class calls
 /// `.toLocal()` before formatting so the user sees their device timezone.
 /// Never add manual hour offsets — let the OS handle DST and region.
-class BanzaDateFormatter {
-  BanzaDateFormatter._();
+class BanzamiDateFormatter {
+  BanzamiDateFormatter._();
 
   /// "25 de maio de 2026, 20:30" — receipts, PDF, detail views.
   static String formatReceiptDate(DateTime dt) {

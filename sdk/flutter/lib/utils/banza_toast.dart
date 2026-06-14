@@ -10,15 +10,15 @@ enum _ToastType { success, error, warning, info }
 ///
 /// Usage:
 /// ```dart
-/// BanzaToast.showSuccess(context, 'Link copiado');
-/// BanzaToast.showError(context, 'QR inválido');
-/// BanzaToast.showWarning(context, 'Este QR pertence ao ambiente sandbox.');
-/// BanzaToast.showInfo(context, 'Funcionalidade em breve');
+/// BanzamiToast.showSuccess(context, 'Link copiado');
+/// BanzamiToast.showError(context, 'QR inválido');
+/// BanzamiToast.showWarning(context, 'Este QR pertence ao ambiente sandbox.');
+/// BanzamiToast.showInfo(context, 'Funcionalidade em breve');
 /// ```
 ///
 /// Not tied to Scaffold hierarchy — works above modals and bottom sheets.
-class BanzaToast {
-  BanzaToast._();
+class BanzamiToast {
+  BanzamiToast._();
 
   static int          _currentId = 0;
   static OverlayEntry? _entry;
@@ -49,7 +49,7 @@ class BanzaToast {
     final overlay = Overlay.of(context, rootOverlay: true);
     final id      = ++_currentId;
     final entry   = OverlayEntry(
-      builder: (_) => _BanzaToastWidget(
+      builder: (_) => _BanzamiToastWidget(
         message:  message,
         type:     type,
         onDone:   () => _dismissIfCurrent(id),
@@ -72,8 +72,8 @@ class BanzaToast {
 
 // ---------------------------------------------------------------------------
 
-class _BanzaToastWidget extends StatefulWidget {
-  const _BanzaToastWidget({
+class _BanzamiToastWidget extends StatefulWidget {
+  const _BanzamiToastWidget({
     required this.message,
     required this.type,
     required this.onDone,
@@ -86,10 +86,10 @@ class _BanzaToastWidget extends StatefulWidget {
   final VoidCallback? onTap;
 
   @override
-  State<_BanzaToastWidget> createState() => _BanzaToastWidgetState();
+  State<_BanzamiToastWidget> createState() => _BanzamiToastWidgetState();
 }
 
-class _BanzaToastWidgetState extends State<_BanzaToastWidget>
+class _BanzamiToastWidgetState extends State<_BanzamiToastWidget>
     with SingleTickerProviderStateMixin {
   late final AnimationController _ctrl;
   late final Animation<double>   _opacity;
@@ -175,7 +175,7 @@ class _BanzaToastWidgetState extends State<_BanzaToastWidget>
                     Expanded(
                       child: Text(
                         widget.message,
-                        style: BanzaTextStyles.bodySm.copyWith(
+                        style: BanzamiTextStyles.bodySm.copyWith(
                           color:      cfg.textColor,
                           fontWeight: FontWeight.w500,
                           height:     1.35,
@@ -212,30 +212,30 @@ _ToastConfig _config(_ToastType type) {
   switch (type) {
     case _ToastType.success:
       return const _ToastConfig(
-        background: BanzaColors.successBg,
-        accent:     BanzaColors.success,
+        background: BanzamiColors.successBg,
+        accent:     BanzamiColors.success,
         textColor:  Color(0xFF14532D),
         icon:       Icons.check_circle_rounded,
       );
     case _ToastType.error:
       return const _ToastConfig(
-        background: BanzaColors.errorBg,
-        accent:     BanzaColors.error,
+        background: BanzamiColors.errorBg,
+        accent:     BanzamiColors.error,
         textColor:  Color(0xFF7F1D1D),
         icon:       Icons.error_outline_rounded,
       );
     case _ToastType.warning:
       return const _ToastConfig(
-        background: BanzaColors.warningBg,
-        accent:     BanzaColors.warning,
+        background: BanzamiColors.warningBg,
+        accent:     BanzamiColors.warning,
         textColor:  Color(0xFF78350F),
         icon:       Icons.warning_amber_rounded,
       );
     case _ToastType.info:
       return const _ToastConfig(
-        background: BanzaColors.gray100,
-        accent:     BanzaColors.wine,
-        textColor:  BanzaColors.gray900,
+        background: BanzamiColors.gray100,
+        accent:     BanzamiColors.wine,
+        textColor:  BanzamiColors.gray900,
         icon:       Icons.info_outline_rounded,
       );
   }

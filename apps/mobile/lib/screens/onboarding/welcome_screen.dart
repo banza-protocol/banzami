@@ -23,11 +23,11 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     super.initState();
     _ctrl = AnimationController(
       vsync:    this,
-      duration: BanzaMotion.slow,
+      duration: BanzamiMotion.slow,
     );
     _fade = CurvedAnimation(parent: _ctrl, curve: const Interval(0, 0.7, curve: Curves.easeOut));
     _slide = Tween(begin: const Offset(0, 0.06), end: Offset.zero).animate(
-      CurvedAnimation(parent: _ctrl, curve: BanzaMotion.decelerate),
+      CurvedAnimation(parent: _ctrl, curve: BanzamiMotion.decelerate),
     );
     _ctrl.forward();
   }
@@ -41,9 +41,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzaColors.wine,
+      backgroundColor: BanzamiColors.wine,
       body: Container(
-        decoration: const BoxDecoration(gradient: BanzaGradients.wine),
+        decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
         child: SafeArea(
           child: FadeTransition(
             opacity: _fade,
@@ -67,16 +67,16 @@ class _WelcomeScreenState extends State<WelcomeScreen>
 
                     Text(
                       'Banza',
-                      style: BanzaTextStyles.displayLg.copyWith(
-                        color:      BanzaColors.white,
+                      style: BanzamiTextStyles.displayLg.copyWith(
+                        color:      BanzamiColors.white,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       'Envie e receba dinheiro\ninstantaneamente em Angola.',
-                      style: BanzaTextStyles.headingSm.copyWith(
-                        color:      BanzaColors.white.withValues(alpha: 0.85),
+                      style: BanzamiTextStyles.headingSm.copyWith(
+                        color:      BanzamiColors.white.withValues(alpha: 0.85),
                         fontWeight: FontWeight.w400,
                         height:     1.5,
                       ),
@@ -95,36 +95,36 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                           width:  32,
                           height: 32,
                           decoration: BoxDecoration(
-                            color:  BanzaColors.white.withValues(alpha: 0.10),
+                            color:  BanzamiColors.white.withValues(alpha: 0.10),
                             shape:  BoxShape.circle,
                           ),
-                          child: Icon(item.$1, color: BanzaColors.white.withValues(alpha: 0.9), size: 16),
+                          child: Icon(item.$1, color: BanzamiColors.white.withValues(alpha: 0.9), size: 16),
                         ),
                         const SizedBox(width: 12),
-                        Text(item.$2, style: BanzaTextStyles.bodyMd.copyWith(
-                          color: BanzaColors.white.withValues(alpha: 0.85),
+                        Text(item.$2, style: BanzamiTextStyles.bodyMd.copyWith(
+                          color: BanzamiColors.white.withValues(alpha: 0.85),
                         )),
                       ]),
                     )),
 
                     const Spacer(flex: 1),
 
-                    BanzaPrimaryButton(
+                    BanzamiPrimaryButton(
                       label:           'Criar conta',
-                      backgroundColor: BanzaColors.white,
-                      foregroundColor: BanzaColors.wine,
+                      backgroundColor: BanzamiColors.white,
+                      foregroundColor: BanzamiColors.wine,
                       onPressed: () => Navigator.of(context).push(
-                        BanzaPageRoute(page: const CreateAccountScreen()),
+                        BanzamiPageRoute(page: const CreateAccountScreen()),
                       ),
                     ),
                     const SizedBox(height: 12),
 
-                    BanzaSecondaryButton(
+                    BanzamiSecondaryButton(
                       label:           'Já tenho conta',
-                      borderColor:     BanzaColors.white.withValues(alpha: 0.5),
-                      foregroundColor: BanzaColors.white,
+                      borderColor:     BanzamiColors.white.withValues(alpha: 0.5),
+                      foregroundColor: BanzamiColors.white,
                       onPressed: () => Navigator.of(context).push(
-                        BanzaPageRoute(page: const LoginScreen()),
+                        BanzamiPageRoute(page: const LoginScreen()),
                       ),
                     ),
                     const SizedBox(height: 32),
