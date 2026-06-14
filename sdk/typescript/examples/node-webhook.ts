@@ -2,7 +2,7 @@
  * Banzami Webhook Handler — Node.js example
  *
  * Uses `banzami.webhooks.constructEvent()` which handles:
- *   - Banza-Signature header parsing (t=<unix>,v1=<hex>)
+ *   - Banzami-Signature header parsing (t=<unix>,v1=<hex>)
  *   - HMAC-SHA256 verification with timestamp in the signed payload
  *   - 300-second replay-attack protection window
  *   - Constant-time comparison
@@ -30,7 +30,7 @@ createServer((req: IncomingMessage, res: ServerResponse) => {
   req.on('end', () => {
     const rawBody        = Buffer.concat(chunks);
     // Header name lookup is case-insensitive in Node.js; the canonical name is
-    // SIGNATURE_HEADER = 'Banza-Signature'.
+    // SIGNATURE_HEADER = 'Banzami-Signature'.
     const signatureHeader = (req.headers[SIGNATURE_HEADER.toLowerCase()] as string) ?? '';
 
     let event: WebhookEvent;

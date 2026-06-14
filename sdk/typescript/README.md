@@ -1,8 +1,8 @@
 # @banza/sdk
 
-Official JavaScript/TypeScript SDK for the Banza payment platform — Angola's QR-native instant payment network.
+Official JavaScript/TypeScript SDK for the Banzami payment platform — Angola's QR-native instant payment network.
 
-Banza is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
+Banzami is a wallet-native payment network. Every payment is a wallet-to-wallet transfer. The primary integration surfaces are **QR codes**, **payment links**, and **@banza transfers** — not card forms or IBAN strings.
 
 All monetary values use **integer minor units** in AOA (Kwanza). No floating-point arithmetic.
 
@@ -23,9 +23,9 @@ npm install @banza/sdk
 ## Quick start
 
 ```typescript
-import { BanzaClient } from '@banza/sdk';
+import { BanzamiClient } from '@banza/sdk';
 
-const client = new BanzaClient({
+const client = new BanzamiClient({
   baseUrl: 'https://api.banzami.com',
   apiKey:  'bz_live_...',
 });
@@ -59,7 +59,7 @@ if (consumer.status !== 'ACTIVE') {
 ## P2P transfers
 
 ```typescript
-import { BanzaClient, BanzaApiError, formatMinor } from '@banza/sdk';
+import { BanzamiClient, BanzamiApiError, formatMinor } from '@banza/sdk';
 
 const transfer = await client.sendTransfer({
   senderId:    'cns_sender_id',
@@ -78,7 +78,7 @@ console.log(`Sent ${formatMinor(transfer.amount.amount_minor, transfer.amount.cu
 try {
   await client.sendTransfer({ ... });
 } catch (err) {
-  if (err instanceof BanzaApiError) {
+  if (err instanceof BanzamiApiError) {
     if (err.isInsufficientFunds)  console.error('Saldo insuficiente');
     if (err.isWalletNotFound)     console.error('Carteira não encontrada');
     if (err.isWalletNotActive)    console.error('Carteira suspensa');
@@ -370,7 +370,7 @@ export default {
 | `WALLET_NOT_ACTIVE`   | Wallet is suspended or closed            |
 | `LINK_NOT_ACTIVE`     | Payment link is already used, cancelled, or expired |
 
-All errors are instances of `BanzaApiError` with `.status` (HTTP) and `.code` (domain) properties.
+All errors are instances of `BanzamiApiError` with `.status` (HTTP) and `.code` (domain) properties.
 
 ---
 

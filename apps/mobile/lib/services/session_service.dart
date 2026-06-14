@@ -244,7 +244,7 @@ class SessionService extends ChangeNotifier {
   Future<bool> authenticateWithBiometrics() async {
     try {
       return await _bio.authenticate(
-        localizedReason: 'Autentique para entrar no Banza',
+        localizedReason: 'Autentique para entrar no Banzami',
         options: const AuthenticationOptions(biometricOnly: true, stickyAuth: true),
       );
     } catch (_) { return false; }

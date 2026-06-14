@@ -26,7 +26,7 @@ class MerchantWelcomeScreen extends StatelessWidget {
               const SizedBox(height: 24),
 
               Text(
-                'Banza\nBusiness',
+                'Banzami\nBusiness',
                 style: BanzamiTextStyles.displayLg.copyWith(
                   color:      BanzamiColors.white,
                   fontWeight: FontWeight.w800,

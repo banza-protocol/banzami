@@ -40,7 +40,7 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     super.dispose();
   }
 
-  // Accept all known Banza QR payload formats. Size-limit prevents crash from
+  // Accept all known Banzami QR payload formats. Size-limit prevents crash from
   // pathologically large QR data. BanzamiQrParser does the detailed validation.
   static bool _isValidPayload(String value) {
     if (value.length > 512) return false;

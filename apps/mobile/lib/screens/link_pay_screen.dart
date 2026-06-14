@@ -144,7 +144,7 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
               borderRadius: BanzamiRadius.xlAll),
           child: Column(children: [
             Text(
-              link.description ?? 'Pagamento Banza',
+              link.description ?? 'Pagamento Banzami',
               style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.white.withValues(alpha: 0.7)),
               textAlign: TextAlign.center,
             ),
@@ -261,7 +261,7 @@ class _SuccessView extends StatelessWidget {
         if (isSandbox) ...[
           const SizedBox(height: BanzamiSpacing.lg),
           Text(
-            'Comprovativo Sandbox Banza · Sem valor financeiro real',
+            'Comprovativo Sandbox Banzami · Sem valor financeiro real',
             style: BanzamiTextStyles.bodySm.copyWith(
               color: BanzamiColors.gray400, fontSize: 11,
             ),

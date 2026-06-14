@@ -2,7 +2,7 @@
  * Banzami webhook signature verification.
  *
  * Implements the canonical webhook signature format:
- *   Banza-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
+ *   Banzami-Signature: t=<unix_seconds>,v1=<hex_hmac_sha256>
  *
  * The HMAC is computed over: `"${timestamp}.${raw_body}"`
  *
@@ -21,7 +21,7 @@ import type { WebhookEvent, WebhookEventType } from './types.js';
 // ---------------------------------------------------------------------------
 
 /** The canonical name of the Banzami webhook signature header. */
-export const SIGNATURE_HEADER = 'Banza-Signature';
+export const SIGNATURE_HEADER = 'Banzami-Signature';
 
 /** Maximum age of a signed request before it is rejected (seconds). */
 export const TOLERANCE_SECONDS = 300;
@@ -59,7 +59,7 @@ function parseSignatureHeader(header: string): ParsedHeader {
       const n = Number(val);
       if (!Number.isInteger(n) || n <= 0) {
         throw new BanzamiWebhookSignatureError(
-          `Banza-Signature: invalid timestamp value "${val}"`,
+          `Banzami-Signature: invalid timestamp value "${val}"`,
         );
       }
       timestamp = n;
@@ -70,7 +70,7 @@ function parseSignatureHeader(header: string): ParsedHeader {
 
   if (timestamp === undefined || !v1) {
     throw new BanzamiWebhookSignatureError(
-      'Banza-Signature header is malformed: expected "t=<unix>,v1=<hex>"',
+      'Banzami-Signature header is malformed: expected "t=<unix>,v1=<hex>"',
     );
   }
   return { timestamp, v1 };
@@ -81,7 +81,7 @@ function parseSignatureHeader(header: string): ParsedHeader {
 // ---------------------------------------------------------------------------
 
 /**
- * Verify a `Banza-Signature` header against the raw request body.
+ * Verify a `Banzami-Signature` header against the raw request body.
  *
  * @throws {BanzamiWebhookSignatureError} If the signature is invalid, the
  *   timestamp is outside the replay-protection window, or the header is
@@ -100,7 +100,7 @@ export function verifySignature(
 ): void {
   if (!header) {
     throw new BanzamiWebhookSignatureError(
-      'Banza-Signature header is missing.',
+      'Banzami-Signature header is missing.',
     );
   }
 
@@ -143,14 +143,14 @@ export function verifySignature(
 // ---------------------------------------------------------------------------
 
 /**
- * Verify the `Banza-Signature` header and parse the webhook event body.
+ * Verify the `Banzami-Signature` header and parse the webhook event body.
  *
  * Always pass the **raw** request body — never a parsed JSON object.
  * Parsing the body before verification changes the byte sequence and
  * invalidates the HMAC.
  *
  * @param rawBody  Raw HTTP request body (Buffer or string).
- * @param header   Value of the `Banza-Signature` request header.
+ * @param header   Value of the `Banzami-Signature` request header.
  * @param secret   Webhook secret from the Banzami dashboard.
  * @returns        Parsed and verified {@link WebhookEvent}.
  *
@@ -189,7 +189,7 @@ export function constructEvent(
 // ---------------------------------------------------------------------------
 
 /**
- * Generate a valid `Banza-Signature` header value for local testing.
+ * Generate a valid `Banzami-Signature` header value for local testing.
  *
  * Use this in test suites and development environments to simulate incoming
  * Banzami webhook deliveries without a real Banzami account.
@@ -197,13 +197,13 @@ export function constructEvent(
  * @param rawBody   The webhook body to sign.
  * @param secret    Any test webhook secret string.
  * @param timestamp Unix seconds for the `t=` field. Defaults to `Date.now()`.
- * @returns         A `Banza-Signature` header value, e.g. `"t=1716000000,v1=abc123..."`.
+ * @returns         A `Banzami-Signature` header value, e.g. `"t=1716000000,v1=abc123..."`.
  *
  * @example
  * ```typescript
  * const body = JSON.stringify({ type: 'payment_link.paid', ... });
  * const sig  = generateTestSignature(Buffer.from(body), 'whsec_test_secret');
- * // use sig as the Banza-Signature header in your test HTTP request
+ * // use sig as the Banzami-Signature header in your test HTTP request
  * ```
  */
 export function generateTestSignature(
@@ -260,10 +260,10 @@ export class WebhooksClient {
   }
 
   /**
-   * Verify the `Banza-Signature` header and parse the webhook event.
+   * Verify the `Banzami-Signature` header and parse the webhook event.
    *
    * @param rawBody  Raw HTTP request body (Buffer or string).
-   * @param header   Value of the `Banza-Signature` header.
+   * @param header   Value of the `Banzami-Signature` header.
    * @param secret   Override the webhook secret configured on the client.
    */
   constructEvent(
@@ -282,7 +282,7 @@ export class WebhooksClient {
   }
 
   /**
-   * Generate a valid `Banza-Signature` header value for local testing.
+   * Generate a valid `Banzami-Signature` header value for local testing.
    */
   generateTestSignature(
     rawBody:    string | Buffer,

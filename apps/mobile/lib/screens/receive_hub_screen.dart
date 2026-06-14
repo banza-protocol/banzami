@@ -184,7 +184,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(
         _shareUrl(handle),
-        subject:             'Pagar @$handle via Banza',
+        subject:             'Pagar @$handle via Banzami',
         sharePositionOrigin: origin,
       );
     } catch (e) {

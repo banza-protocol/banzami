@@ -58,7 +58,7 @@ class _Logo extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Banza',
+          'Banzami',
           style: BanzamiTextStyles.headingLg.copyWith(
             color:        BanzamiColors.white,
             fontSize:     32,

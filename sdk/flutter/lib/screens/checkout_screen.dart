@@ -128,7 +128,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           },
         ),
         title: Text(
-          'Banza Pay',
+          'Banzami Pay',
           style: TextStyle(color: BanzamiColors.gray900, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,

@@ -66,7 +66,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     const SizedBox(height: 24),
 
                     Text(
-                      'Banza',
+                      'Banzami',
                       style: BanzamiTextStyles.displayLg.copyWith(
                         color:      BanzamiColors.white,
                         fontWeight: FontWeight.w800,

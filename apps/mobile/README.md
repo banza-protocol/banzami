@@ -1,6 +1,6 @@
-# Banza Mobile
+# Banzami Mobile
 
-Flutter application for the Banza payment platform, supporting two flavours: **Comerciante** (merchant) and **Consumidor** (consumer).
+Flutter application for the Banzami payment platform, supporting two flavours: **Comerciante** (merchant) and **Consumidor** (consumer).
 
 ## Flavours
 
@@ -167,20 +167,20 @@ The design language is **Banzami Red + Warm White** — a high-contrast palette 
 
 | Token | Hex | Usage |
 |---|---|---|
-| `BanzaColors.wine` | `#B5101F` | Primary — buttons, icons, active states |
-| `BanzaColors.wineDark` | `#9A1B22` | Gradient deep end, pressed states |
-| `BanzaColors.wineLight` | `#E8434B` | Gradient light end, hover |
-| `BanzaColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
-| `BanzaColors.white` | `#FFFFFF` | Card / surface background |
-| `BanzaColors.gray100` | `#F5EEED` | Form fills, chips |
-| `BanzaColors.gray200` | `#EBE3E2` | Borders, dividers |
-| `BanzaColors.gray400` | `#9C8483` | Secondary / placeholder text |
-| `BanzaColors.gray600` | `#534040` | Tertiary text |
-| `BanzaColors.gray900` | `#1C0D0D` | Primary text (warm black) |
-| `BanzaColors.success` | `#166534` | Completed transactions |
-| `BanzaColors.error` | `#DC2626` | Errors, destructive actions |
-| `BanzaColors.warning` | `#92400E` | Pending / caution states |
-| `BanzaColors.info` | `#1E3A8A` | Informational states |
+| `BanzamiColors.wine` | `#B5101F` | Primary — buttons, icons, active states |
+| `BanzamiColors.wineDark` | `#9A1B22` | Gradient deep end, pressed states |
+| `BanzamiColors.wineLight` | `#E8434B` | Gradient light end, hover |
+| `BanzamiColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
+| `BanzamiColors.white` | `#FFFFFF` | Card / surface background |
+| `BanzamiColors.gray100` | `#F5EEED` | Form fills, chips |
+| `BanzamiColors.gray200` | `#EBE3E2` | Borders, dividers |
+| `BanzamiColors.gray400` | `#9C8483` | Secondary / placeholder text |
+| `BanzamiColors.gray600` | `#534040` | Tertiary text |
+| `BanzamiColors.gray900` | `#1C0D0D` | Primary text (warm black) |
+| `BanzamiColors.success` | `#166534` | Completed transactions |
+| `BanzamiColors.error` | `#DC2626` | Errors, destructive actions |
+| `BanzamiColors.warning` | `#92400E` | Pending / caution states |
+| `BanzamiColors.info` | `#1E3A8A` | Informational states |
 
 All grays are warm-tinted (slight red undertone) to pair harmoniously with the cherry primary.
 
@@ -188,8 +188,8 @@ All grays are warm-tinted (slight red undertone) to pair harmoniously with the c
 
 | Token | Direction | Usage |
 |---|---|---|
-| `BanzaGradients.wine` | `#B5101F → #9A1B22` | Balance card headers, key surfaces |
-| `BanzaGradients.wineLight` | `#B5101F → #E8434B` | Secondary gradient surfaces |
+| `BanzamiGradients.wine` | `#B5101F → #9A1B22` | Balance card headers, key surfaces |
+| `BanzamiGradients.wineLight` | `#B5101F → #E8434B` | Secondary gradient surfaces |
 
 ### Typography
 
@@ -209,11 +209,11 @@ Font family: **Inter** (applied via `google_fonts`). Monospace: **JetBrains Mono
 
 ### ThemeData
 
-`BanzaTheme.light` is the single source of truth for `ThemeData`. Both merchant and consumer `app.dart` files use:
+`BanzamiTheme.light` is the single source of truth for `ThemeData`. Both merchant and consumer `app.dart` files use:
 
 ```dart
 ThemeData _buildTheme() {
-  final base = BanzaTheme.light;
+  final base = BanzamiTheme.light;
   return base.copyWith(textTheme: GoogleFonts.interTextTheme(base.textTheme));
 }
 ```
@@ -238,6 +238,6 @@ Background: `#FCF6F5` · Text: `#1C0D0D` · Primary: `#B5101F`
 
 The `banzami_sdk` package lives at `../../sdk/flutter` and is referenced via a local path dependency. It exposes:
 
-- `BanzaClient` — HTTP client with automatic JWT exchange (raw API key → 24 h JWT, renewed 5 min before expiry)
+- `BanzamiClient` — HTTP client with automatic JWT exchange (raw API key → 24 h JWT, renewed 5 min before expiry)
 - All domain models: `MerchantBalance`, `MerchantTransaction`, `PaymentLink`, `QrResponse`, etc.
-- Theme: `BanzaColors`, `BanzaGradients`, `BanzaTextStyles`, `BanzaSpacing`, `BanzaRadius`, `BanzaShadows`, `BanzaTheme`
+- Theme: `BanzamiColors`, `BanzamiGradients`, `BanzamiTextStyles`, `BanzamiSpacing`, `BanzamiRadius`, `BanzamiShadows`, `BanzamiTheme`

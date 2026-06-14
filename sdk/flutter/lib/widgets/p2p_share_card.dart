@@ -142,7 +142,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:              'Pagar @${widget.handle} com Banza',
+        subject:              'Pagar @${widget.handle} com Banzami',
         sharePositionOrigin:  origin,
       );
     } catch (e) {
@@ -168,7 +168,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
 
     final sb = StringBuffer();
     if (widget.isSandbox) sb.writeln('🧪 SANDBOX — dinheiro de teste\n');
-    sb.writeln('💸 Envie-me um pagamento no Banza\n');
+    sb.writeln('💸 Envie-me um pagamento no Banzami\n');
 
     final name = widget.displayName ?? '@${widget.handle}';
     sb.write(name);
@@ -191,7 +191,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
     } else {
       await Share.share(
         sb.toString().trim(),
-        subject:             'Pagar @${widget.handle} com Banza',
+        subject:             'Pagar @${widget.handle} com Banzami',
         sharePositionOrigin: origin,
       );
     }
@@ -211,7 +211,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
-        subject:             'QR Banza — @${widget.handle}',
+        subject:             'QR Banzami — @${widget.handle}',
         sharePositionOrigin: origin,
       );
     } catch (e) {
@@ -595,9 +595,9 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
 
                         const SizedBox(height: 8),
 
-                        // "Receber com Banza" label
+                        // "Receber com Banzami" label
                         Text(
-                          'Receber com Banza',
+                          'Receber com Banzami',
                           style: TextStyle(
                             color:         Colors.white.withValues(alpha: 0.50),
                             fontSize:      11,
@@ -624,7 +624,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                 const SizedBox(width: 6),
               ],
               Text(
-                'Pague instantaneamente com Banza',
+                'Pague instantaneamente com Banzami',
                 style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
             ],

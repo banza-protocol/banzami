@@ -33,7 +33,7 @@
 		<key>NSCameraUsageDescription</key>
 		<string>A câmara é usada para ler códigos QR de pagamento.</string>
 		<key>NSFaceIDUsageDescription</key>
-		<string>Use o Face ID para entrar no Banza de forma segura.</string>
+		<string>Use o Face ID para entrar no Banzami de forma segura.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>A biblioteca de fotos é usada para guardar e partilhar códigos QR de pagamento.</string>
 		<key>UIApplicationSceneManifest</key>

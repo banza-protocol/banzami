@@ -175,7 +175,7 @@ export default function CheckoutClient({
 
           {/* Action buttons */}
           <div className="px-6 py-5 space-y-3">
-            {/* Primary — deep link into the Banza app */}
+            {/* Primary — deep link into the Banzami app */}
             <a
               href={deepLink}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-banzami-gradient py-3.5 text-sm font-semibold text-white shadow-card transition hover:opacity-90 active:opacity-80"
@@ -183,7 +183,7 @@ export default function CheckoutClient({
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
               </svg>
-              Abrir app Banza
+              Abrir app Banzami
             </a>
 
             {/* Secondary — copy page URL */}

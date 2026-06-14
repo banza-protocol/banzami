@@ -74,7 +74,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             Center(
               child: Text(
-                'Banza Business v1.0',
+                'Banzami Business v1.0',
                 style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
               ),
             ),

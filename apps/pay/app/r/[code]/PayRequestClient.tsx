@@ -26,7 +26,7 @@ function SandboxBadge({ extra }: { extra?: string }) {
 function LiveBadge({ extra }: { extra?: string }) {
   return (
     <span className="inline-flex items-center rounded-full border border-banzami bg-white px-3 py-1 text-xs font-semibold text-banzami">
-      Banza LIVE{extra ? ` • ${extra}` : ''}
+      Banzami LIVE{extra ? ` • ${extra}` : ''}
     </span>
   );
 }
@@ -68,7 +68,7 @@ function NotFoundUI({ sandbox }: { sandbox: boolean }) {
           href="banza://open"
           className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
-          Abrir Banza
+          Abrir Banzami
         </a>
       </div>
     </main>
@@ -352,11 +352,11 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                     <circle cx="17.5" cy="17.5" r="2.5" />
                   </svg>
                   <span className="relative">
-                    {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banza'}
+                    {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banzami'}
                   </span>
                 </a>
                 <p className="text-center text-xs text-gray-400 leading-relaxed">
-                  Precisa de ter a app Banza instalada.
+                  Precisa de ter a app Banzami instalada.
                 </p>
               </>
             )}
@@ -365,7 +365,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
             {openPhase === 'opening' && (
               <div className="flex h-14 items-center justify-center gap-2.5">
                 <div className="h-5 w-5 animate-spin rounded-full border-2 border-banzami border-t-transparent" />
-                <span className="text-sm text-gray-400">A abrir o Banza…</span>
+                <span className="text-sm text-gray-400">A abrir o Banzami…</span>
               </div>
             )}
 
@@ -396,7 +396,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                     <circle cx="17.5" cy="17.5" r="2.5" />
                   </svg>
                   <span className="relative">
-                    {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banza'}
+                    {amtDisplay ? `Pagar ${amtDisplay}` : 'Pagar com Banzami'}
                   </span>
                 </a>
               ) : (
@@ -407,14 +407,14 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                       stroke="currentColor" strokeWidth={2.5}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                     </svg>
-                    O Banza foi aberto. Completa o pagamento na app.
+                    O Banzami foi aberto. Completa o pagamento na app.
                   </div>
                   <button
                     type="button"
                     onClick={() => { window.location.href = deepLink; openApp(); }}
                     className="text-sm font-medium text-banzami underline"
                   >
-                    Abrir Banza novamente
+                    Abrir Banzami novamente
                   </button>
                 </div>
               )
@@ -424,7 +424,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
             {openPhase === 'not_installed' && (
               <div className="flex flex-col items-center gap-3">
                 <p className="text-center text-sm text-gray-500">
-                  O Banza não está instalado.
+                  O Banzami não está instalado.
                 </p>
                 <button
                   type="button"
@@ -441,7 +441,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Pagamentos via{' '}
-          <span className="font-semibold text-banzami">Banza</span>
+          <span className="font-semibold text-banzami">Banzami</span>
         </p>
       </div>
     </main>

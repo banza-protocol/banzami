@@ -2,5 +2,5 @@
 
 FLUTTER_TARGET=lib/main_merchant.dart
 PRODUCT_BUNDLE_IDENTIFIER=com.banza.merchant
-APP_DISPLAY_NAME=Banza Business
+APP_DISPLAY_NAME=Banzami Business
 APP_FLAVOR=merchant

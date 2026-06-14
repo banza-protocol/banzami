@@ -65,12 +65,12 @@ android {
         create("consumer") {
             dimension = "app"
             applicationId = "com.banza.consumer"
-            resValue("string", "app_name", "Banza")
+            resValue("string", "app_name", "Banzami")
         }
         create("merchant") {
             dimension = "app"
             applicationId = "com.banza.merchant"
-            resValue("string", "app_name", "Banza Business")
+            resValue("string", "app_name", "Banzami Business")
         }
     }
 

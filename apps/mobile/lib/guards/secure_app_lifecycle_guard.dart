@@ -262,7 +262,7 @@ class SecureAppLifecycleGuardState extends State<SecureAppLifecycleGuard>
       // *** CRITICAL ***
       // Remove the privacy overlay after one frame so the PIN screen becomes
       // visible. Without this, the overlay stays on top of the navigator and
-      // the user never sees the PIN — stuck on "Banza protegido".
+      // the user never sees the PIN — stuck on "Banzami protegido".
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) setState(() => _privacyVisible = false);
       });
@@ -329,7 +329,7 @@ class _PrivacyOverlay extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Banza protegido',
+                'Banzami protegido',
                 style: TextStyle(
                   color:      Colors.white,
                   fontSize:   17,

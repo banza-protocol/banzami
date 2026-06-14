@@ -246,7 +246,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                 Text('Método de pagamento',
                     style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
                 const SizedBox(height: 2),
-                Text('Saldo Banza',
+                Text('Saldo Banzami',
                     style: BanzamiTextStyles.bodyMd.copyWith(
                       color:      BanzamiColors.gray900,
                       fontWeight: FontWeight.w600,

@@ -73,7 +73,7 @@ class HelpScreen extends StatelessWidget {
           // Version
           Center(
             child: Text(
-              'Banza v1.0 (2025)',
+              'Banzami v1.0 (2025)',
               style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
             ),
           ),

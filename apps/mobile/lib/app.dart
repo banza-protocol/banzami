@@ -385,7 +385,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
             );
           };
           return MaterialApp(
-            title:                      'Banza',
+            title:                      'Banzami',
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,

@@ -9,7 +9,7 @@ const double kQrLogoCornerFraction = 0.22;
 ///
 /// [QrPainter.embeddedImage] renders the raw [ui.Image] without clipping.
 /// Pre-processing with this function produces premium, anti-aliased corners
-/// that are consistent across every QR surface in the Banza ecosystem.
+/// that are consistent across every QR surface in the Banzami ecosystem.
 ///
 /// [cornerFraction] is the corner radius expressed as a fraction of the
 /// image width. Default [kQrLogoCornerFraction] ≈ Apple's app-icon rounding.

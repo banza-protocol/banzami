@@ -8,8 +8,8 @@ interface Props {
 
 export function generateMetadata({ params }: Props): Metadata {
   return {
-    title: `Pagar @${params.handle} — Banza`,
-    description: `Envie dinheiro instantaneamente para @${params.handle} pelo Banza.`,
+    title: `Pagar @${params.handle} — Banzami`,
+    description: `Envie dinheiro instantaneamente para @${params.handle} pelo Banzami.`,
   };
 }
 
@@ -62,18 +62,18 @@ export default function UserPayPage({ params, searchParams }: Props) {
                 <rect x="3"  y="14" width="7" height="7" rx="1" />
                 <circle cx="17.5" cy="17.5" r="2.5" />
               </svg>
-              Pagar com Banza
+              Pagar com Banzami
             </a>
 
             <p className="text-center text-xs text-gray-400 leading-relaxed">
-              Precisa de ter a app Banza instalada.
+              Precisa de ter a app Banzami instalada.
             </p>
           </div>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Pagamentos via{' '}
-          <span className="font-semibold text-banzami">Banza</span>
+          <span className="font-semibold text-banzami">Banzami</span>
         </p>
       </div>
     </main>

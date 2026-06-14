@@ -91,7 +91,7 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                 children: [
                   const SizedBox(height: 24),
                   Text(
-                    session?.merchantName ?? 'Banza',
+                    session?.merchantName ?? 'Banzami',
                     style: BanzamiTextStyles.headingMd,
                     textAlign: TextAlign.center,
                   ),

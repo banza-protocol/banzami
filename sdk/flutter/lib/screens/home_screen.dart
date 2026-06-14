@@ -535,7 +535,7 @@ class _BalanceCard extends StatelessWidget {
                 Text(
                   error != null && !loading
                       ? error!
-                      : 'Saldo na sua carteira Banza',
+                      : 'Saldo na sua carteira Banzami',
                   style: TextStyle(
                     color:      error != null && !loading
                         ? Colors.white.withValues(alpha: 0.85)

@@ -109,8 +109,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
     setState(() => _sharing = true);
     try {
       final subject = link.amountMinor != null
-          ? 'Pagamento Banza — ${formatMinor(link.amountMinor!, link.currency)}'
-          : 'Pagamento Banza';
+          ? 'Pagamento Banzami — ${formatMinor(link.amountMinor!, link.currency)}'
+          : 'Pagamento Banzami';
       final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(_payUrl, subject: subject, sharePositionOrigin: origin);

@@ -180,7 +180,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
       await Share.share(
         _shareUrl,
-        subject:             'Pagar @${widget.handle} via Banza',
+        subject:             'Pagar @${widget.handle} via Banzami',
         sharePositionOrigin: origin,
       );
     } catch (e) {

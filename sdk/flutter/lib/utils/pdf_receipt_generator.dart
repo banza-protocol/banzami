@@ -56,9 +56,9 @@ class BanzamiPdfReceiptGenerator {
     }
 
     final doc = pw.Document(
-      author:  'Banza',
-      title:   'Comprovativo Banza · Ref $ref8',
-      creator: 'Banza — banzami.org',
+      author:  'Banzami',
+      title:   'Comprovativo Banzami · Ref $ref8',
+      creator: 'Banzami — banzami.org',
       theme:   pw.ThemeData.withFont(base: fontReg, bold: fontBold),
     );
 
@@ -168,7 +168,7 @@ class BanzamiPdfReceiptGenerator {
         pw.SizedBox(height: 10),
         pw.Center(
           child: pw.Text(
-            'Banza',
+            'Banzami',
             style: bold.copyWith(color: _kGray900, fontSize: 18),
           ),
         ),
@@ -198,7 +198,7 @@ class BanzamiPdfReceiptGenerator {
     // Bézier circle approximation constant (4-point cubic).
     const kappa = 0.5523;
 
-    final text  = isSandbox ? 'SANDBOX  •  Ambiente de teste' : 'Banza  •  Comprovativo verificado';
+    final text  = isSandbox ? 'SANDBOX  •  Ambiente de teste' : 'Banzami  •  Comprovativo verificado';
     final fg    = isSandbox ? _kAmberDk : _kGray600;
     final bg    = isSandbox ? _kAmberBg : _kGray100;
     final bd    = isSandbox ? _kAmberBd : _kGray200;
@@ -354,7 +354,7 @@ class BanzamiPdfReceiptGenerator {
           _divider(),
           _detailRow('Ref',    ref8,            reg: reg, bold: bold),
           _divider(),
-          _detailRow('Método', 'Saldo Banza',   reg: reg, bold: bold),
+          _detailRow('Método', 'Saldo Banzami',   reg: reg, bold: bold),
         ],
       ),
     );
@@ -444,7 +444,7 @@ class BanzamiPdfReceiptGenerator {
         pw.SizedBox(height: 14),
         pw.Center(
           child: pw.Text(
-            'Comprovativo Banza',
+            'Comprovativo Banzami',
             style: bold.copyWith(color: _kGray900, fontSize: 9),
           ),
         ),

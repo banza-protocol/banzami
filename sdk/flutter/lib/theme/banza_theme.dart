@@ -50,7 +50,7 @@ abstract class BanzamiColors {
 // ---------------------------------------------------------------------------
 
 abstract class BanzamiGradients {
-  /// Primary Banza gradient — balance card, key headers, confirm screen avatar.
+  /// Primary Banzami gradient — balance card, key headers, confirm screen avatar.
   /// 4-stop Banzami red gradient at ~145°. Start darkened from #E8434B → #B5101F for
   /// a calmer, more premium look — reduces left-side saturation jump.
   static const LinearGradient primary = LinearGradient(

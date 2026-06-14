@@ -1,6 +1,6 @@
-# Banza Python SDK
+# Banzami Python SDK
 
-Official async Python SDK for the [Banza](https://banzami.com) payments platform — Angola's modern payment infrastructure.
+Official async Python SDK for the [Banzami](https://banzami.com) payments platform — Angola's modern payment infrastructure.
 
 ## Requirements
 
@@ -59,7 +59,7 @@ print(transfer.status)  # COMPLETED
 ## Webhook verification
 
 ```python
-from banza import Banzami, BanzaWebhookSignatureError
+from banza import Banzami, BanzamiWebhookSignatureError
 
 client = Banzami(api_key="...", webhook_secret="whsec_...")
 
@@ -67,10 +67,10 @@ client = Banzami(api_key="...", webhook_secret="whsec_...")
 try:
     event = client.webhooks.construct_event(
         payload=raw_body,
-        signature=request.headers["Banza-Signature"],
+        signature=request.headers["Banzami-Signature"],
     )
     print(event.type, event.payload)
-except BanzaWebhookSignatureError:
+except BanzamiWebhookSignatureError:
     return 400  # reject
 ```
 
@@ -89,14 +89,14 @@ client = Banzami(
 ## Observability hooks
 
 ```python
-from banza import Banzami, BanzaHooks
+from banza import Banzami, BanzamiHooks
 import logging
 
 log = logging.getLogger("payments")
 
 client = Banzami(
     api_key="...",
-    hooks=BanzaHooks(
+    hooks=BanzamiHooks(
         on_request=lambda method, path, attempt:
             log.debug("→ %s %s (attempt %d)", method, path, attempt),
         on_response=lambda method, path, status, ms:
@@ -237,4 +237,4 @@ See the `examples/` directory for working integrations with:
 
 ## License
 
-MIT — © 2026 Banza
+MIT — © 2026 Banzami

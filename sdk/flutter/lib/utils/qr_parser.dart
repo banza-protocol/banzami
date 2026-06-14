@@ -1,4 +1,4 @@
-/// Parses a raw QR code string into a typed Banza payment result.
+/// Parses a raw QR code string into a typed Banzami payment result.
 ///
 /// Supported formats:
 ///  • https://pay.banzami.org/r/{code}[?sandbox=1]
@@ -42,7 +42,7 @@ class BanzamiQrHandlePayment extends BanzamiQrResult {
   });
 }
 
-/// Not a recognised Banza QR payload.
+/// Not a recognised Banzami QR payload.
 class BanzamiQrInvalid extends BanzamiQrResult {
   final String reason;
   const BanzamiQrInvalid(this.reason);

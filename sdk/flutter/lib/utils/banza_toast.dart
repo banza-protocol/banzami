@@ -6,7 +6,7 @@ import '../theme/banza_theme.dart';
 
 enum _ToastType { success, error, warning, info }
 
-/// Overlay-based premium notification toasts for the Banza UI.
+/// Overlay-based premium notification toasts for the Banzami UI.
 ///
 /// Usage:
 /// ```dart

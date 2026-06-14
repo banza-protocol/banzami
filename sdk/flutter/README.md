@@ -1,6 +1,6 @@
-# Banza Flutter SDK
+# Banzami Flutter SDK
 
-Flutter SDK for integrating Banza payments into mobile applications. Provides an API client, pre-built screens, reusable widgets, and a design system — everything needed to add instant P2P transfers and QR payments to a Flutter app.
+Flutter SDK for integrating Banzami payments into mobile applications. Provides an API client, pre-built screens, reusable widgets, and a design system — everything needed to add instant P2P transfers and QR payments to a Flutter app.
 
 ---
 
@@ -33,7 +33,7 @@ import 'package:banza_flutter/banza_flutter.dart';
 ## Quick start — merchant app
 
 ```dart
-final client = BanzaClient(
+final client = BanzamiClient(
   apiKey:  'bz_live_...',
   baseUrl: 'https://api.banzami.com',
 );
@@ -133,14 +133,14 @@ Import the SDK and push any screen directly into your navigator. Each screen is 
 
 ### `CheckoutScreen`
 
-Full-screen payment page for a Banza payment link. Displays a QR code and a deep-link button to open the Banza consumer app. Polls every 3 seconds and calls `onSuccess` when payment is confirmed.
+Full-screen payment page for a Banzami payment link. Displays a QR code and a deep-link button to open the Banzami consumer app. Polls every 3 seconds and calls `onSuccess` when payment is confirmed.
 
 ```dart
 Navigator.push(
   context,
   MaterialPageRoute(
     builder: (_) => CheckoutScreen(
-      client:    merchantClient,  // BanzaClient
+      client:    merchantClient,  // BanzamiClient
       slug:      'abc123def456',
       onSuccess: (link) => Navigator.pop(context),
       onCancel:  () => Navigator.pop(context),
@@ -151,7 +151,7 @@ Navigator.push(
 
 | Parameter   | Type                            | Required | Description                                       |
 |-------------|---------------------------------|----------|---------------------------------------------------|
-| `client`    | `BanzaClient`                 | yes      | Authenticated merchant client                     |
+| `client`    | `BanzamiClient`                 | yes      | Authenticated merchant client                     |
 | `slug`      | `String`                        | yes      | Payment link slug                                 |
 | `onSuccess` | `void Function(PaymentLink)`    | no       | Called after payment is confirmed                 |
 | `onCancel`  | `VoidCallback`                  | no       | Called when the user dismisses the screen         |
@@ -268,7 +268,7 @@ The screen handles camera permission errors and shows a retry path if the QR can
 
 ### `BanzamiButton`
 
-The canonical Banza branded button. Always 48 dp tall. Four variants available.
+The canonical Banzami branded button. Always 48 dp tall. Four variants available.
 
 ```dart
 // Primary (default)
@@ -332,7 +332,7 @@ BanzamiAmountInput(
 
 ### `BanzamiQrDisplay`
 
-Renders a scannable QR code in the Banza visual style (wine-coloured finder patterns). Optionally shows an amount label and a subtitle beneath the code.
+Renders a scannable QR code in the Banzami visual style (wine-coloured finder patterns). Optionally shows an amount label and a subtitle beneath the code.
 
 ```dart
 // Static QR
@@ -406,40 +406,40 @@ BanzamiTransferItem(
 
 ## Design system
 
-The SDK ships a complete design token set. Use it directly in host apps to stay consistent with Banza branding.
+The SDK ships a complete design token set. Use it directly in host apps to stay consistent with Banzami branding.
 
 ```dart
 import 'package:banza_flutter/banza_flutter.dart';
 
 // Colors
-BanzaColors.wine       // #B5101F — primary brand
-BanzaColors.gold       // #C89B3C — accent
-BanzaColors.gray900    // #1A1A1A — primary text
-BanzaColors.success    // #166534
-BanzaColors.error      // #DC2626
+BanzamiColors.wine       // #B5101F — primary brand
+BanzamiColors.gold       // #C89B3C — accent
+BanzamiColors.gray900    // #1A1A1A — primary text
+BanzamiColors.success    // #166534
+BanzamiColors.error      // #DC2626
 
 // Gradients
-BanzaGradients.wine    // cherry gradient for balance cards
+BanzamiGradients.wine    // cherry gradient for balance cards
 
 // Typography
-BanzaTextStyles.displayXl   // 48px bold
-BanzaTextStyles.headingMd   // 18px semibold
-BanzaTextStyles.bodyMd      // 14px regular
-BanzaTextStyles.mono        // tabular figures for amounts
+BanzamiTextStyles.displayXl   // 48px bold
+BanzamiTextStyles.headingMd   // 18px semibold
+BanzamiTextStyles.bodyMd      // 14px regular
+BanzamiTextStyles.mono        // tabular figures for amounts
 
 // Spacing
-BanzaSpacing.sm    // 8
-BanzaSpacing.lg    // 16
-BanzaSpacing.xl    // 24
+BanzamiSpacing.sm    // 8
+BanzamiSpacing.lg    // 16
+BanzamiSpacing.xl    // 24
 
 // Border radius
-BanzaRadius.mdAll   // BorderRadius.all(8)
-BanzaRadius.lgAll   // BorderRadius.all(12)
-BanzaRadius.fullAll // BorderRadius.all(999) — pill shape
+BanzamiRadius.mdAll   // BorderRadius.all(8)
+BanzamiRadius.lgAll   // BorderRadius.all(12)
+BanzamiRadius.fullAll // BorderRadius.all(999) — pill shape
 
 // Shadows
-BanzaShadows.card         // subtle card shadow
-BanzaShadows.cardElevated // stronger elevation
+BanzamiShadows.card         // subtle card shadow
+BanzamiShadows.cardElevated // stronger elevation
 
 // Full ThemeData — apply to MaterialApp
 MaterialApp(
@@ -522,7 +522,7 @@ flutter test
 
 | Model                    | Source                             | Description                              |
 |--------------------------|------------------------------------|------------------------------------------|
-| `Consumer`               | `models/consumer.dart`             | Banza consumer account                 |
+| `Consumer`               | `models/consumer.dart`             | Banzami consumer account                 |
 | `ConsumerSuggestion`     | `models/consumer_suggestion.dart`  | Lightweight @banza autocomplete result   |
 | `Merchant`               | `models/merchant.dart`             | Merchant account                         |
 | `MerchantBalance`        | `models/merchant.dart`             | Wallet balance for a merchant            |

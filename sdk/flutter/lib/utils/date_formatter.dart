@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show DateUtils;
 import 'package:intl/intl.dart';
 
-/// Centralised date/time formatter for all Banza UI.
+/// Centralised date/time formatter for all Banzami UI.
 ///
 /// Rule: server timestamps are always UTC.  Every method in this class calls
 /// `.toLocal()` before formatting so the user sees their device timezone.

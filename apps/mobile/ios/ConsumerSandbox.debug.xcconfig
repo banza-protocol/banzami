@@ -3,5 +3,5 @@
 PRODUCT_BUNDLE_IDENTIFIER = com.banza.consumer.sandbox
 FLUTTER_TARGET = lib/main_consumer.dart
 APP_FLAVOR = consumer_sandbox
-APP_DISPLAY_NAME = Banza Sandbox
+APP_DISPLAY_NAME = Banzami Sandbox
 CODE_SIGN_ENTITLEMENTS = Runner/Runner-Debug.entitlements

@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../utils/qr_logo_utils.dart';
 
-/// Canonical Banza logo renderer — square icon with standard rounded corners.
+/// Canonical Banzami logo renderer — square icon with standard rounded corners.
 ///
-/// Use this wherever the Banza icon appears in Flutter UI:
+/// Use this wherever the Banzami icon appears in Flutter UI:
 /// QR share cards, receipt screens, profile headers.
 ///
 /// [cornerFraction] defaults to [kQrLogoCornerFraction] (0.22 — Apple app-icon

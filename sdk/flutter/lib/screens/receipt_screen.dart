@@ -414,7 +414,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       );
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
-        subject:             'Comprovativo Banza · Ref $_ref',
+        subject:             'Comprovativo Banzami · Ref $_ref',
         sharePositionOrigin: origin,
       );
     } catch (_) {
@@ -426,13 +426,13 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
           : box2.localToGlobal(Offset.zero) & box2.size;
       try {
         await Share.share(
-          'Comprovativo Banza\n'
+          'Comprovativo Banzami\n'
           'Ref: $_ref\n'
           'Montante: $_amount\n'
           'De: @$_from\n'
           'Para: @${widget.transfer.recipient}\n'
           'Data: $_dateShort\n'
-          'Método: Saldo Banza',
+          'Método: Saldo Banzami',
           sharePositionOrigin: origin2,
         );
       } catch (_) {
@@ -689,7 +689,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               _DetailRow(label: 'Ref',    value: _ref),
                               const _DetailRow(
                                 label:  'Método',
-                                value:  'Saldo Banza',
+                                value:  'Saldo Banzami',
                                 isLast: true,
                               ),
                             ]),
@@ -786,7 +786,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               const SizedBox(width: 5),
                               Flexible(
                                 child: Text(
-                                  'Comprovativo Banza  •  Ref $_ref  •  $timeStr',
+                                  'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
                                   style: BanzamiTextStyles.bodySm.copyWith(
                                     color:    Colors.white.withValues(alpha: 0.55),
                                     fontSize: 11.5,
