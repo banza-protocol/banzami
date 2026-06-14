@@ -5,6 +5,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
 import 'receive_qr_screen.dart';
+import 'payout_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -125,6 +126,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ),
         ]),
+        const SizedBox(height: BanzamiSpacing.md),
+        SizedBox(
+          width: double.infinity,
+          child: TextButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const PayoutScreen()),
+            ).then((_) => _load()),
+            icon:  const Icon(Icons.account_balance_rounded, size: 18),
+            label: const Text('Levantar para conta bancária'),
+            style: TextButton.styleFrom(foregroundColor: BanzamiColors.primary),
+          ),
+        ),
         const SizedBox(height: BanzamiSpacing.xl),
         if (_recent.isNotEmpty) ...[
           const Text('Recentes', style: BanzamiTextStyles.headingSm),
