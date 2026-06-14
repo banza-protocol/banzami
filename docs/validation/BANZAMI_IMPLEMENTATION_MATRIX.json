@@ -2813,7 +2813,7 @@
       "referenceSection": "§11.2.1",
       "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
       "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -2831,9 +2831,24 @@
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "dashboard_screen.dart",
-          "ref": "apps/merchant/lib/screens/dashboard_screen.dart"
+          "type": "frontend",
+          "label": "dashboard",
+          "ref": "apps/mobile/lib/merchant/screens/dashboard_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "qr (static+dynamic)",
+          "ref": "apps/mobile/lib/merchant/screens/qr_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "payouts",
+          "ref": "apps/mobile/lib/merchant/screens/payout_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "payment requests",
+          "ref": "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
         }
       ],
       "dependencies": [
@@ -2844,21 +2859,21 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/mobile/**",
-        "apps/merchant/**"
+        "apps/mobile/**"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "full merchant daily-ops in apps/mobile incl. payment requests 2026-06-14",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T21:36:38Z",
+      "validatedAgainstCommit": "0d47135",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -2887,6 +2902,18 @@
           "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
           "evidence": [
             "apps/merchant/lib/screens/dashboard_screen.dart"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:36:38Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "b6bc95d7baea7b5c",
+          "reason": "Merchant daily-ops complete in apps/mobile: realtime FCM, static+dynamic QR, balance+recent, in-app payment requests (newly ported to Flutter SDK), and payouts. Evidence repointed from removed apps/merchant.",
+          "evidence": [
+            "apps/mobile/lib/merchant/screens/dashboard_screen.dart",
+            "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
           ]
         }
       ],
