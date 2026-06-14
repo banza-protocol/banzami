@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 
 enum BanzamiButtonVariant { primary, secondary, ghost, destructive }
 

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../config.dart';
 import '../services/session_service.dart';
-import '../widgets/banza_premium_dialog.dart';
+import '../widgets/banzami_premium_dialog.dart';
 import '../widgets/sandbox_banner.dart';
 import 'help_screen.dart';
 import 'notifications_screen.dart';

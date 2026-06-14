@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 import 'setup_screen.dart';
 

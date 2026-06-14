@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 
 /// Full-screen QR scanner widget.
 ///

@@ -7,8 +7,8 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../models/transfer.dart';
-import '../theme/banza_theme.dart';
-import '../utils/banza_toast.dart';
+import '../theme/banzami_theme.dart';
+import '../utils/banzami_toast.dart';
 import '../utils/money_format.dart';
 import '../utils/pdf_receipt_generator.dart';
 import '../utils/screen_security.dart';

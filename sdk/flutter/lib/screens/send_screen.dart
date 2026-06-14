@@ -8,13 +8,13 @@ import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../models/consumer_suggestion.dart';
 import '../models/transfer.dart';
-import '../theme/banza_theme.dart';
-import '../utils/banza_toast.dart';
+import '../theme/banzami_theme.dart';
+import '../utils/banzami_toast.dart';
 import '../utils/camera_permission.dart';
 import '../utils/qr_parser.dart';
-import '../widgets/banza_amount_input.dart';
-import '../widgets/banza_components.dart';
-import '../widgets/banza_qr_scanner.dart';
+import '../widgets/banzami_amount_input.dart';
+import '../widgets/banzami_components.dart';
+import '../widgets/banzami_qr_scanner.dart';
 import 'confirm_screen.dart';
 import 'payment_request_screen.dart';
 

@@ -9,7 +9,7 @@ import '../models/payment_link.dart';
 import '../models/qr_code.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
-import 'banza_environment.dart';
+import 'banzami_environment.dart';
 
 /// HTTP client for the Banzami Go api-gateway.
 ///

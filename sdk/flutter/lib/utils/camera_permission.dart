@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 
 /// Async camera permission gate for QR scanner flows.
 ///

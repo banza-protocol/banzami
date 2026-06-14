@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 /// Premium amber card — shown on screens that have their own scroll area
 /// (Profile, Receive, etc.) when the app is running in sandbox mode.

@@ -3,7 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../utils/qr_logo_utils.dart';
 

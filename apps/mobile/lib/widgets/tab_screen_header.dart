@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 /// Canonical header for the four main tab screens (Histórico, Receber, Perfil).
 /// Enforces a single title scale, top rhythm, and horizontal alignment across tabs.

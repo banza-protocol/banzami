@@ -11,7 +11,7 @@ import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
-import 'banza_environment.dart';
+import 'banzami_environment.dart';
 
 /// Result of a sandbox wallet top-up via [ConsumerPublicClient.sandboxFund].
 class SandboxFundResult {

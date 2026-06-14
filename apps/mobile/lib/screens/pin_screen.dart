@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/session_service.dart';
-import '../widgets/banza_premium_dialog.dart';
+import '../widgets/banzami_premium_dialog.dart';
 import '../widgets/pin_pad.dart';
 import 'main_screen.dart';
 import 'onboarding/welcome_screen.dart';

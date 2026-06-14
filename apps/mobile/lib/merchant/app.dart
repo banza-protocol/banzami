@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' show Client;
 import 'package:provider/provider.dart';
-import 'package:banza_flutter/banza_flutter.dart' hide Consumer;
+import 'package:banzami_flutter/banzami_flutter.dart' hide Consumer;
 
 import 'config.dart';
 import 'services/merchant_session_service.dart';

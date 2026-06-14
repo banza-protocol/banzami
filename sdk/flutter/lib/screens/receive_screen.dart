@@ -8,13 +8,13 @@ import 'package:share_plus/share_plus.dart';
 
 import '../client/consumer_public_client.dart';
 import '../models/consumer_pay_link.dart';
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
-import '../utils/banza_toast.dart';
+import '../utils/banzami_toast.dart';
 import '../utils/qr_logo_utils.dart';
-import '../widgets/banza_amount_input.dart';
-import '../widgets/banza_components.dart';
-import '../widgets/banza_qr_display.dart';
+import '../widgets/banzami_amount_input.dart';
+import '../widgets/banzami_components.dart';
+import '../widgets/banzami_qr_display.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom sheet — collects amount + optional note, calls API, pops the link

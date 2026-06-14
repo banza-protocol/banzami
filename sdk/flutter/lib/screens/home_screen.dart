@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import '../client/banza_environment.dart';
+import '../client/banzami_environment.dart';
 import '../client/consumer_public_client.dart';
 import '../models/activity_item.dart';
 import '../models/wallet_balance.dart';
-import '../theme/banza_theme.dart';
-import '../utils/banza_toast.dart';
+import '../theme/banzami_theme.dart';
+import '../utils/banzami_toast.dart';
 import '../utils/camera_permission.dart';
 import '../utils/date_formatter.dart';
 import '../utils/money_format.dart';
-import '../widgets/banza_components.dart';
+import '../widgets/banzami_components.dart';
 import 'receive_screen.dart';
 import 'scan_screen.dart';
 import 'send_screen.dart';

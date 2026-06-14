@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/activity_item.dart';
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 import '../utils/date_formatter.dart';
 
 /// A single row in the consumer activity feed.

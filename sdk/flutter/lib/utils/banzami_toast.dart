@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 
 enum _ToastType { success, error, warning, info }
 

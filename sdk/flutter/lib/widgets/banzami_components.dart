@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 
 // =============================================================================
 // BanzamiScaffold — consistent page scaffold with light gradient background

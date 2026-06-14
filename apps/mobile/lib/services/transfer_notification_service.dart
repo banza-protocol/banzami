@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../config.dart';
@@ -75,7 +75,7 @@ class TransferNotificationService {
       body,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'banza_transfers',
+          'banzami_transfers',
           'Transferências',
           channelDescription: 'Alertas de transferências recebidas',
           importance: Importance.high,

@@ -25,7 +25,7 @@ dependencies:
 Then import the single barrel file:
 
 ```dart
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 ```
 
 ---
@@ -409,7 +409,7 @@ BanzamiTransferItem(
 The SDK ships a complete design token set. Use it directly in host apps to stay consistent with Banzami branding.
 
 ```dart
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 // Colors
 BanzamiColors.wine       // #B5101F — primary brand
@@ -455,7 +455,7 @@ MaterialApp(
 All amounts are stored and transmitted as integer minor units. Use `formatMinor` to display them.
 
 ```dart
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 
 formatMinor(50000,    'AOA'); // "500 Kz"
 formatMinor(1000000,  'AOA'); // "10.000 Kz"  (pt_PT thousands separator)

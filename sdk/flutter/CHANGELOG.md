@@ -28,4 +28,4 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BanzamiTheme.light` — full `ThemeData` for use with `MaterialApp`
 - `formatMinor` utility: AOA integer kwanzas formatted with `pt_PT` locale; other currencies with two decimal places
 - Domain models: `Consumer`, `Merchant`, `MerchantBalance`, `MerchantTransaction`, `MerchantTransactionPage`, `WalletBalance`, `Transfer`, `TransferPage`, `PaymentLink`, `PaymentLinkPage`, `QrCode`, `QrResponse`, `ParsedQr`
-- Single barrel import via `package:banza_flutter/banza_flutter.dart`
+- Single barrel import via `package:banzami_flutter/banzami_flutter.dart`

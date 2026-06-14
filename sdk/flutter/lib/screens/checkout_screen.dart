@@ -6,9 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../client/banza_client.dart';
+import '../client/banzami_client.dart';
 import '../models/payment_link.dart';
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../utils/qr_logo_utils.dart';
 

@@ -8,9 +8,9 @@ import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../theme/banza_theme.dart';
+import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
-import '../utils/banza_toast.dart';
+import '../utils/banzami_toast.dart';
 import '../utils/qr_logo_utils.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +138,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
       final file = await _writeTempFile(
-          bytes, 'banza_share_${widget.handle}.png');
+          bytes, 'banzami_share_${widget.handle}.png');
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],
@@ -207,7 +207,7 @@ class _P2PShareModalState extends State<_P2PShareModal> {
       final bytes = await _captureCardPng();
       if (bytes == null) throw Exception('Captura falhou');
       final file = await _writeTempFile(
-          bytes, 'banza_qr_${widget.handle}.png');
+          bytes, 'banzami_qr_${widget.handle}.png');
       if (file == null) throw Exception('Ficheiro temporário falhou');
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'image/png')],

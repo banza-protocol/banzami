@@ -4,7 +4,7 @@
 /// API client, and models.
 ///
 /// ```dart
-/// import 'package:banza_flutter/banza_flutter.dart';
+/// import 'package:banzami_flutter/banzami_flutter.dart';
 ///
 /// // Production
 /// final client = BanzamiClient(
@@ -18,11 +18,11 @@
 ///   environment: BanzamiEnvironment.sandbox,
 /// );
 /// ```
-library banza_flutter;
+library banzami_flutter;
 
 // Client
-export 'client/banza_client.dart';
-export 'client/banza_environment.dart';
+export 'client/banzami_client.dart';
+export 'client/banzami_environment.dart';
 export 'client/consumer_public_client.dart';
 export 'client/pinned_http_client.dart';
 export 'client/api_exception.dart';
@@ -38,10 +38,10 @@ export 'models/payment_link.dart';
 export 'models/qr_code.dart';
 
 // Theme
-export 'theme/banza_theme.dart';
+export 'theme/banzami_theme.dart';
 
 // Utils
-export 'utils/banza_toast.dart';
+export 'utils/banzami_toast.dart';
 export 'utils/camera_permission.dart';
 export 'utils/date_formatter.dart';
 export 'utils/money_format.dart';
@@ -51,13 +51,13 @@ export 'utils/qr_parser.dart';
 export 'utils/screen_security.dart';
 
 // Widgets
-export 'widgets/banza_button.dart';
-export 'widgets/banza_amount_input.dart';
-export 'widgets/banza_logo.dart';
-export 'widgets/banza_qr_display.dart';
-export 'widgets/banza_qr_scanner.dart';
-export 'widgets/banza_transfer_item.dart';
-export 'widgets/banza_components.dart';
+export 'widgets/banzami_button.dart';
+export 'widgets/banzami_amount_input.dart';
+export 'widgets/banzami_logo.dart';
+export 'widgets/banzami_qr_display.dart';
+export 'widgets/banzami_qr_scanner.dart';
+export 'widgets/banzami_transfer_item.dart';
+export 'widgets/banzami_components.dart';
 export 'widgets/p2p_share_card.dart';
 
 // Screens

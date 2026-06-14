@@ -33,9 +33,9 @@ class BanzamiPdfReceiptGenerator {
     bool              isSandbox = false,
   }) async {
     final regData  = await rootBundle.load(
-        'packages/banza_flutter/assets/fonts/Inter-Regular.ttf');
+        'packages/banzami_flutter/assets/fonts/Inter-Regular.ttf');
     final boldData = await rootBundle.load(
-        'packages/banza_flutter/assets/fonts/Inter-Bold.ttf');
+        'packages/banzami_flutter/assets/fonts/Inter-Bold.ttf');
     final fontReg  = pw.Font.ttf(regData);
     final fontBold = pw.Font.ttf(boldData);
 

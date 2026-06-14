@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:banza_flutter/banza_flutter.dart';
+import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../../services/push_notification_service.dart';
@@ -81,7 +81,7 @@ class PaymentNotificationService {
       description,
       const NotificationDetails(
         android: AndroidNotificationDetails(
-          'banza_payments',
+          'banzami_payments',
           'Pagamentos',
           channelDescription: 'Alertas de novos pagamentos recebidos',
           importance: Importance.high,

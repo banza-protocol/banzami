@@ -1,5 +1,5 @@
 flutter_launcher_icons:
-  image_path: "assets/images/banza_icon_sandbox.png"
+  image_path: "assets/images/banzami_icon_sandbox.png"
   android: true
   ios: true
   remove_alpha_ios: true
