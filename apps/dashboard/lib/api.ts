@@ -58,6 +58,24 @@ export interface Refund {
 
 export interface RefundPage { data: Refund[] }
 
+export type TeamRole   = 'VIEWER' | 'OPERATOR';
+export type TeamStatus = 'INVITED' | 'ACTIVE' | 'REMOVED';
+export interface TeamMember {
+  id:         string;
+  email:      string;
+  role:       TeamRole;
+  status:     TeamStatus;
+  invited_at: string;
+  joined_at?: string;
+}
+export interface AccessLogEntry {
+  id:          string;
+  member_id?:  string;
+  actor_email: string;
+  action:      string;
+  created_at:  string;
+}
+
 export interface AnalyticsDailyPoint { day: string;  count: number; volume_minor: number; }
 export interface AnalyticsHourPoint  { hour: number; count: number; volume_minor: number; }
 export interface MerchantAnalytics {
@@ -193,6 +211,29 @@ export class BanzamiApi {
     return this._legacyReq<MerchantAnalytics>(
       `/wallets/${encodeURIComponent(walletId)}/analytics${qs ? `?${qs}` : ''}`,
     );
+  }
+
+  // -------------------------------------------------------------------------
+  // Team & permissions
+  // -------------------------------------------------------------------------
+
+  listTeamMembers(): Promise<{ data: TeamMember[] }> {
+    return this._legacyReq<{ data: TeamMember[] }>('/team/members');
+  }
+
+  inviteTeamMember(email: string, role: 'VIEWER' | 'OPERATOR'): Promise<TeamMember> {
+    return this._legacyReq<TeamMember>('/team/members', {
+      method: 'POST',
+      body:   JSON.stringify({ email, role }),
+    });
+  }
+
+  removeTeamMember(id: string): Promise<void> {
+    return this._legacyReq<void>(`/team/members/${encodeURIComponent(id)}`, { method: 'DELETE' });
+  }
+
+  listAccessLog(limit = 50): Promise<{ data: AccessLogEntry[] }> {
+    return this._legacyReq<{ data: AccessLogEntry[] }>(`/team/access-log?limit=${limit}`);
   }
 
   // -------------------------------------------------------------------------

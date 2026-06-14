@@ -15,6 +15,7 @@ import {
   LogOut,
   RotateCcw,
   ShieldAlert,
+  Users,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 
@@ -29,6 +30,7 @@ const NAV = [
   { href: '/refunds',        label: 'Reembolsos',     icon: RotateCcw       },
   { href: '/disputes',       label: 'Disputas',       icon: ShieldAlert     },
   { href: '/webhooks',       label: 'Webhooks',       icon: Webhook         },
+  { href: '/team',           label: 'Equipa',         icon: Users           },
   { href: '/settings',       label: 'Definições',     icon: Settings        },
 ];
 

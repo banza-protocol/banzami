@@ -60,6 +60,7 @@ func main() {
 	// Webhook service: use PostgreSQL-backed implementation when DATABASE_URL is
 	// set; fall back to the in-memory stub for local dev without a full stack.
 	var webhookSvc service.WebhookService
+	var teamSvc service.TeamService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -69,10 +70,12 @@ func main() {
 		pgWebhook := service.NewPostgresWebhookService(dbPool)
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
 		webhookSvc = pgWebhook
-		slog.Info("webhook service: postgres backend")
+		teamSvc = service.NewPostgresTeamService(dbPool)
+		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
-		slog.Warn("webhook service: in-memory stub (DATABASE_URL not set)")
+		teamSvc = service.NewStubTeamService()
+		slog.Warn("webhook + team services: in-memory stub (DATABASE_URL not set)")
 	}
 
 	deps := server.Dependencies{
@@ -94,6 +97,7 @@ func main() {
 		MerchantProfileSvc:  service.NewCoreApiMerchantProfileService(coreClient),
 		ConsumerPayLinkSvc:  service.NewCoreApiConsumerPayLinkService(coreClient),
 		FCMSvc:              fcmSvc,
+		TeamSvc:             teamSvc,
 	}
 
 	srv := server.New(cfg, deps)

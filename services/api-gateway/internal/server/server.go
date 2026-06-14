@@ -38,6 +38,7 @@ type Dependencies struct {
 	MerchantProfileSvc    service.MerchantProfileService
 	ConsumerPayLinkSvc    service.ConsumerPayLinkService
 	FCMSvc                *notify.FCMService
+	TeamSvc               service.TeamService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -72,6 +73,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	txHandler             := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler            := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler            := handler.NewMerchantHandler(deps.MerchantSvc)
+	teamHandler           := handler.NewTeamHandler(deps.TeamSvc)
 	wltHandler            := handler.NewWalletHandler(deps.WalletSvc)
 	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc)
 	consumerHandler       := handler.NewConsumerHandler(deps.ConsumerSvc)
@@ -121,6 +123,13 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/{id}/api-keys", mchHandler.CreateApiKey)
 				r.Get("/{id}/api-keys", mchHandler.ListApiKeys)
 				r.Delete("/{id}/api-keys/{keyID}", mchHandler.RevokeApiKey)
+			})
+
+			r.Route("/team", func(r chi.Router) {
+				r.Get("/members", teamHandler.List)
+				r.Post("/members", teamHandler.Invite)
+				r.Delete("/members/{id}", teamHandler.Remove)
+				r.Get("/access-log", teamHandler.AccessLog)
 			})
 
 			r.Route("/wallets", func(r chi.Router) {
