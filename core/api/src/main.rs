@@ -210,6 +210,10 @@ async fn main() {
             get(routes::wallets::balance),
         )
         .route(
+            "/internal/v1/wallets/:id/analytics",
+            get(routes::analytics::merchant_analytics),
+        )
+        .route(
             "/internal/v1/wallets/:id/sandbox-credit",
             post(routes::wallets::sandbox_credit),
         )

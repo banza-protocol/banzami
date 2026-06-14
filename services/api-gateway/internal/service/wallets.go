@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"sync"
 	"time"
@@ -53,6 +54,9 @@ type WalletService interface {
 	// SandboxFund credits a sandbox wallet's available balance directly via the
 	// ledger engine. Only callable in SANDBOX environments — enforced by callers.
 	SandboxFund(ctx context.Context, walletID string, amountMinor int64, currency string) (*WalletBalance, error)
+	// Analytics returns merchant payment-volume analytics (raw JSON passthrough
+	// from the core), aggregated from the ledger. from/to are optional RFC3339.
+	Analytics(ctx context.Context, walletID, from, to string) (json.RawMessage, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -166,4 +170,15 @@ func (s *StubWalletService) SandboxFund(_ context.Context, walletID string, amou
 		TotalMinor:     total,
 		ComputedAt:     time.Now().UTC(),
 	}, nil
+}
+
+func (s *StubWalletService) Analytics(_ context.Context, walletID, _, _ string) (json.RawMessage, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if _, ok := s.wallets[walletID]; !ok {
+		return nil, ErrWalletNotFound
+	}
+	// Stub returns an empty-but-valid analytics envelope.
+	return json.RawMessage(`{"wallet_id":"` + walletID +
+		`","currency":"AOA","total_volume_minor":0,"total_count":0,"active_days":0,"daily":[],"by_hour":[]}`), nil
 }

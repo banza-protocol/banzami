@@ -128,6 +128,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/", wltHandler.GetForMerchant)
 				r.Get("/{id}", wltHandler.Get)
 				r.Get("/{id}/balance", wltHandler.Balance)
+				r.Get("/{id}/analytics", wltHandler.Analytics)
 			})
 
 			r.Route("/payouts", func(r chi.Router) {

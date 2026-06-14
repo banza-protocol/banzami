@@ -1,6 +1,7 @@
 pub mod acquiring;
 pub mod activity;
 pub mod admin;
+pub mod analytics;
 pub mod compliance;
 pub mod consumer_deposits;
 pub mod consumer_pay_links;

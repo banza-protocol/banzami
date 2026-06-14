@@ -58,6 +58,20 @@ export interface Refund {
 
 export interface RefundPage { data: Refund[] }
 
+export interface AnalyticsDailyPoint { day: string;  count: number; volume_minor: number; }
+export interface AnalyticsHourPoint  { hour: number; count: number; volume_minor: number; }
+export interface MerchantAnalytics {
+  wallet_id:          string;
+  currency:           string;
+  from?:              string;
+  to?:                string;
+  total_volume_minor: number;
+  total_count:        number;
+  active_days:        number;
+  daily:              AnalyticsDailyPoint[];
+  by_hour:            AnalyticsHourPoint[];
+}
+
 export interface Dispute {
   id:                string;
   transaction_id:    string;
@@ -165,6 +179,20 @@ export class BanzamiApi {
 
   getWalletBalance(id: string): Promise<WalletBalance> {
     return this.client.getWalletBalance(id);
+  }
+
+  // -------------------------------------------------------------------------
+  // Analytics — merchant payment volume, aggregated from the ledger
+  // -------------------------------------------------------------------------
+
+  getAnalytics(walletId: string, from?: string, to?: string): Promise<MerchantAnalytics> {
+    const params = new URLSearchParams();
+    if (from) params.set('from', from);
+    if (to)   params.set('to', to);
+    const qs = params.toString();
+    return this._legacyReq<MerchantAnalytics>(
+      `/wallets/${encodeURIComponent(walletId)}/analytics${qs ? `?${qs}` : ''}`,
+    );
   }
 
   // -------------------------------------------------------------------------

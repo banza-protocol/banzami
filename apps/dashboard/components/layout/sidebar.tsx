@@ -5,6 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ArrowLeftRight,
+  BarChart3,
   Wallet,
   Banknote,
   Link2,
@@ -20,6 +21,7 @@ import { destroySession } from '@/lib/session';
 const NAV = [
   { href: '/',               label: 'Visão geral',    icon: LayoutDashboard },
   { href: '/transactions',   label: 'Transacções',    icon: ArrowLeftRight  },
+  { href: '/analytics',      label: 'Análises',       icon: BarChart3       },
   { href: '/wallets',        label: 'Carteiras',      icon: Wallet          },
   { href: '/payouts',        label: 'Pagamentos',     icon: Banknote        },
   { href: '/payment-links',  label: 'Cobranças',      icon: Link2           },

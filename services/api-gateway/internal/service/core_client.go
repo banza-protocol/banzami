@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
@@ -262,6 +263,26 @@ func (s *CoreApiWalletService) Balance(ctx context.Context, id string) (*WalletB
 		TotalMinor:     resp.Total.AmountMinor,
 		ComputedAt:     resp.ComputedAt,
 	}, nil
+}
+
+func (s *CoreApiWalletService) Analytics(ctx context.Context, walletID, from, to string) (json.RawMessage, error) {
+	path := "/internal/v1/wallets/" + walletID + "/analytics"
+	sep := "?"
+	if from != "" {
+		path += sep + "from=" + url.QueryEscape(from)
+		sep = "&"
+	}
+	if to != "" {
+		path += sep + "to=" + url.QueryEscape(to)
+	}
+	var resp json.RawMessage
+	if err := s.client.get(ctx, path, &resp); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, ErrWalletNotFound
+		}
+		return nil, err
+	}
+	return resp, nil
 }
 
 func (s *CoreApiWalletService) GetForMerchant(ctx context.Context, merchantID, currency string) (*WalletRecord, error) {

@@ -116,3 +116,26 @@ func (h *WalletHandler) Balance(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, balance)
 }
+
+// Analytics returns merchant payment-volume analytics for a wallet, aggregated
+// from the ledger. Optional ?from= and ?to= are RFC3339 timestamps.
+func (h *WalletHandler) Analytics(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	from := r.URL.Query().Get("from")
+	to := r.URL.Query().Get("to")
+
+	data, err := h.svc.Analytics(r.Context(), id, from, to)
+	if err != nil {
+		if errors.Is(err, service.ErrWalletNotFound) {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "wallet not found")
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",
+			"failed to retrieve analytics")
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write(data)
+}
