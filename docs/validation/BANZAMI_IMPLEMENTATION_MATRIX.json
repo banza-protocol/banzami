@@ -1383,7 +1383,7 @@
       "referenceSection": "§9.1",
       "description": "Geração de QR estático codificando banza://@banza do comerciante. Permanente, imprimível, válido indefinidamente.",
       "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprimível em alta resolução.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Go · Flutter",
@@ -1399,7 +1399,7 @@
         "Permanente — não expira",
         "Funcional em app Banza e câmara nativa"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -1415,6 +1415,11 @@
           "type": "config",
           "label": "0013_qr_codes_schema.sql",
           "ref": "db/migrations/0013_qr_codes_schema.sql"
+        },
+        {
+          "type": "test",
+          "label": "qr_integration.rs",
+          "ref": "core/qr/tests/qr_integration.rs"
         }
       ],
       "dependencies": [
@@ -1438,19 +1443,20 @@
           "id": "INV-QR-001-1",
           "name": "QR merchant binding invariant",
           "rule": "Static QR code must resolve to exactly one merchant wallet; no ambiguous resolution",
-          "status": "NOT_RUN"
+          "status": "PASS"
         }
       ],
       "confidence": {
         "score": 80,
         "level": "VERY_HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "code-level evidence audit 2026-06-14",
+          "real-DB integration tests (INV-QR-001-1 PASS) 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T13:14:35Z",
+      "validatedAgainstCommit": "6a3088385d5e943087a15371c8ffa47789288984",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1472,6 +1478,17 @@
             "core/qr/src/engine.rs",
             "services/api-gateway/internal/handler/qr.go",
             "db/migrations/0013_qr_codes_schema.sql"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T13:14:35Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "06501760c30c6342",
+          "reason": "INV-QR-001-1 (merchant binding) PASS via real-DB integration tests; static QR persistence, permanence and merchant-binding verified.",
+          "evidence": [
+            "core/qr/tests/qr_integration.rs"
           ]
         }
       ],
