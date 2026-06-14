@@ -3051,7 +3051,7 @@
       "referenceSection": "§11.2.2",
       "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
       "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · TypeScript · Go",
@@ -3071,6 +3071,21 @@
           "type": "component",
           "label": "page.tsx",
           "ref": "apps/dashboard/app/(dashboard)/page.tsx"
+        },
+        {
+          "type": "frontend",
+          "label": "sidebar sections",
+          "ref": "apps/dashboard/components/layout/sidebar.tsx"
+        },
+        {
+          "type": "frontend",
+          "label": "refunds action",
+          "ref": "apps/dashboard/app/(dashboard)/refunds/page.tsx"
+        },
+        {
+          "type": "frontend",
+          "label": "payouts action",
+          "ref": "apps/dashboard/app/(dashboard)/payouts/page.tsx"
         }
       ],
       "dependencies": [
@@ -3085,15 +3100,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "dashboard sections + real-time balance verified 2026-06-14",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T21:25:05Z",
+      "validatedAgainstCommit": "171cf97",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3122,6 +3138,18 @@
           "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
           "evidence": [
             "apps/dashboard/app/(dashboard)/page.tsx"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:25:05Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "ac4e9e4eea1a5a2d",
+          "reason": "Dashboard sections complete (incl. analytics + team), near-real-time balance (15s polling), filtered transactions, working refund/payout actions.",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/page.tsx",
+            "apps/dashboard/components/layout/sidebar.tsx"
           ]
         }
       ],
