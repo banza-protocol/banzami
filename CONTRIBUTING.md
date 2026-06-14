@@ -9,7 +9,7 @@ Thank you for your interest in contributing to Banzami — the reference operato
 Banzami is the reference operator. It demonstrates how to implement the BANZA protocol as a production payment product for Angola.
 
 **What lives here:**
-- Product applications (merchant dashboard, admin portal, docs site, pay page, checkout)
+- Product applications (merchant dashboard, admin portal, pay page, checkout)
 - Go API services (gateway, public-api, admin-api)
 - Rust financial core implementation (ledger, wallets, transactions, settlement, QR)
 - Flutter mobile SDK integration
@@ -108,8 +108,7 @@ infra(docker): update base image to debian-slim
 
 For new features:
 - Update the relevant section in `docs/domains/<domain-name>/`
-- Update `docs/BANZA_REFERENCE.md` if the feature changes the operator's public-facing behaviour
-- API changes require OpenAPI spec updates in `contracts/`
+- API changes require OpenAPI spec updates in `docs/api/`
 
 ### 6. Pull request
 

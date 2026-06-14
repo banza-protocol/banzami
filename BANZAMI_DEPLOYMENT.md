@@ -36,7 +36,6 @@ All deployments go through `./deploy.sh` at the repository root.
 | `admin-frontend` | Next.js admin portal |
 | `pay-frontend` | Next.js consumer pay page |
 | `checkout-frontend` | Next.js hosted checkout |
-| `docs-frontend` | Next.js public docs site (banzami.com) |
 | `staging` | Full staging environment |
 
 ---
@@ -85,25 +84,6 @@ For routine application deployments (bug fixes, feature additions), staging is r
 | `admin-frontend` | `apps/admin/Dockerfile` |
 | `pay-frontend` | `apps/pay/Dockerfile` |
 | `checkout-frontend` | `apps/checkout/Dockerfile` |
-| `docs-frontend` | `apps/docs/Dockerfile` |
-
----
-
-## docs-frontend Deployment
-
-The `docs-frontend` service has a special deployment requirement: files from `docs/` that are read at build time must be synced to the server.
-
-The `deploy.sh` rsync section handles this. If you add a new file under `docs/` that is read at build time, you MUST add it to:
-1. `deploy.sh` — rsync section for docs-frontend
-2. `apps/docs/Dockerfile` — COPY instruction
-
-**Canonical example:**
-
-```dockerfile
-# apps/docs/Dockerfile
-COPY docs/BANZA_REFERENCE.md ./docs/BANZA_REFERENCE.md
-COPY docs/BANZAMI_REFERENCE.md ./docs/BANZAMI_REFERENCE.md
-```
 
 ---
 

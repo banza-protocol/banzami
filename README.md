@@ -194,16 +194,18 @@ configuration: [docs/](docs/).
 
 All technical documentation lives in [docs/](docs/) — architecture, domains,
 runbooks, security, sandbox, and integration guides. Start at
-[docs/index.md](docs/index.md).
+[docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md).
 
 ---
 
 ## Status
 
-Banzami is in active development. The Rust financial core (ledger, wallets,
-transfers, QR, payment links), the consumer and merchant apps, the Business
-Dashboard, and the integration SDKs are implemented and exercised against a real
-database in a sandbox environment.
+Banzami is in active development and **not yet production-ready**. The financial
+core — double-entry ledger, atomic postings, consumer wallets, balance derivation,
+P2P transfers, and `@banza` handles — is implemented and validated against a real
+database. QR payments, merchant apps, the Business Dashboard, and the SDK platform
+are in progress. Real Kwanza funding and withdrawals (EMIS) and KYC are not yet
+operational; the default acquiring provider is simulated.
 
 **Roadmap**
 

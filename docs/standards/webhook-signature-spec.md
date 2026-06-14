@@ -272,6 +272,6 @@ SDKs failing any of these requirements MUST NOT be marked production-ready.
 
 ## Cross-SDK Certification
 
-The `sdk-certification/` directory at the repository root contains golden test vectors that all SDK implementations MUST pass. New SDK PRs that fail certification cannot be merged.
+The BANZA protocol repo owns the conformance test vectors for webhook signatures; Banzami SDKs implement this scheme to match them.
 
-See `sdk-certification/README.md` for the verification protocol.
+See the BANZA protocol repo (github.com/banza-protocol/banza) for the canonical signature specification.

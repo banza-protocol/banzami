@@ -166,11 +166,11 @@ O campo `requires[]` é distinto do campo `dependencies[]` (informativo). Apenas
 
 ## Propósito
 
-Este ficheiro é a base de dados operacional do sistema de validação — mapeia cada funcionalidade descrita em `BANZA_REFERENCE.md` ao seu estado de implementação, evidências e critérios de aceitação.
+Este ficheiro é a base de dados operacional do sistema de validação — mapeia cada funcionalidade descrita em `BANZAMI_REFERENCE.md` ao seu estado de implementação, evidências e critérios de aceitação.
 
 ## Regra fundamental
 
-**`BANZA_REFERENCE.md` define o QUÊ.**
+**`BANZAMI_REFERENCE.md` define o QUÊ.**
 **`BANZAMI_IMPLEMENTATION_MATRIX.json` prova o QUÊ existe, o que funciona e o que falta.**
 
 Nada pode aparecer como VALIDATED sem evidência. Nada pode ser marcado como IMPLEMENTED sem existir código real.
@@ -246,7 +246,6 @@ Todas as alterações ao estado de validação seguem obrigatoriamente este flux
 3. Guardar em disco via "Pré-visualizar e guardar"
 4. Criar commit via botão "Git Commit" no Studio
 5. Push para origin/main (manual: git push origin main)
-6. Deploy via ./deploy.sh docs-frontend
 ```
 
 Também é possível editar `BANZAMI_IMPLEMENTATION_MATRIX.json` directamente com um editor de texto, seguindo o mesmo fluxo de commit e deploy.
@@ -267,7 +266,7 @@ Nenhuma alteração pode ser feita directamente em produção, via interface web
 
 ## Como actualizar
 
-1. Actualizar `BANZA_REFERENCE.md` primeiro (ADR-015 — referência é canónica)
+1. Actualizar `BANZAMI_REFERENCE.md` primeiro (ADR-015 — referência é canónica)
 2. Criar ou actualizar o item correspondente neste JSON
 3. Adicionar evidência quando o item transita para IMPLEMENTED ou VALIDATED
 4. Actualizar `meta.lastUpdated` e o `lastUpdated` do item
@@ -277,7 +276,7 @@ Nenhuma alteração pode ser feita directamente em produção, via interface web
 
 Acessível em `/validacao` — renderiza este JSON com filtros, pesquisa e métricas de progresso.
 
-Derivado de: `BANZA_REFERENCE.md` · ADR-015
+Derivado de: `BANZAMI_REFERENCE.md` · ADR-015
 
 ---
 
@@ -289,7 +288,7 @@ A arquitectura de governança de validação está **madura e suficiente**.
 
 As seguintes camadas são consideradas estáveis e fundacionais:
 
-- BANZA_REFERENCE.md
+- BANZAMI_REFERENCE.md
 - Validation Matrix
 - Página pública /validacao
 - Local Validation Studio

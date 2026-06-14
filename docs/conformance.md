@@ -19,4 +19,4 @@ Banzami **runs** the BANZA conformance suite against its implementation to demon
 
 Banzami consumes the conformance definition from BANZA; it never redefines it locally.
 
-*(This file was a full copy of the protocol conformance spec; it was reduced to a pointer in BANZAMI-PURIFICATION-EXECUTION-001 to keep the operator repo free of protocol-owned content.)*
+*(This file was a full copy of the protocol conformance spec; it is a pointer because the protocol owns this content, not the operator.)*

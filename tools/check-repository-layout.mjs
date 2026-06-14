@@ -128,8 +128,7 @@ const ACCEPTED_TOP_LEVEL = new Set([
   'node_modules',        // gitignored dependency tree (present locally)
   // Operator top-level documents
   'BANZAMI_ARCHITECTURE.md', 'BANZAMI_DEPLOYMENT.md', 'BANZAMI_GOVERNANCE.md',
-  'BANZAMI_OPERATIONS.md', 'BANZAMI_PRODUCTS.md', 'BANZAMI_REFERENCE.md',
-  'BANZAMI_ROADMAP.md', 'BANZAMI_SECURITY.md',
+  'BANZAMI_OPERATIONS.md', 'BANZAMI_REFERENCE.md', 'BANZAMI_SECURITY.md',
   'CODE_OF_CONDUCT.md', 'CONTRIBUTING.md', 'LICENSE',
 ]);
 

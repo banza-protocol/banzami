@@ -587,4 +587,3 @@ Para Angola.
 
 Ver também:
 - [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — O protocolo BANZA
-- `docs/BANZA_REFERENCE.md` — Fonte de conteúdo do website banzami.com

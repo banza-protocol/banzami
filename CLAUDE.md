@@ -618,66 +618,13 @@ Future: Laravel package, WordPress/WooCommerce plugin, Android native, iOS nativ
 
 ---
 
-# 14. Documentation Source of Truth
+# 14. Documentation
 
-> ⚠️ **OBSOLETE (BANZAMI-REPOSITORY-MINIMALIZATION-001).** The public Banzami website (`apps/docs` — banzami.com) was removed: the operator does not need a public marketing/docs site to process payments. This entire section described how that website was driven by `BANZA_REFERENCE.md`; it no longer applies. Operator documentation now lives as markdown under `docs/`. Retained for historical context only.
-
-## 14.1 The Rule
-
-`docs/BANZA_REFERENCE.md` is the **single source of truth** for the entire public Banzami website.
-
-This is a binding architectural constraint.
-
-## 14.2 What BANZA_REFERENCE.md Is
-
-It is simultaneously:
-
-* the canonical product definition for the Banzami reference implementation,
-* the official ecosystem description of the BANZA protocol,
-* the official public positioning,
-* the official architecture reference,
-* the official payment philosophy,
-* the authoritative content source for banzami.com.
-
-Think of it as: **The Constitution of the Banza Ecosystem — rendered by Banzami.**
-
-The public website is only the visual interface for consuming that constitution.
-
-## 14.3 The Mandatory Content Flow
-
-```text
-BANZA_REFERENCE.md
-↓
-structured parsing / rendering
-↓
-website sections
-↓
-banzami.com
-```
-
-NEVER the reverse. Website first → markdown later is FORBIDDEN.
-
-## 14.4 The Publication Rule
-
-NOTHING may appear on banzami.com WITHOUT FIRST existing inside `docs/BANZA_REFERENCE.md`.
-
-## 14.5 The Update Rule
-
-Whenever a new concept is added (QR feature, wallet flow, SDK flow, merchant experience, risk model, EMIS integration, mobile UX, ecosystem principle), it MUST first be documented in `BANZA_REFERENCE.md`. Only after that may it appear publicly on the website.
-
-## 14.6 Technical Implementation
-
-The `apps/docs` website uses:
-
-* `lib/reference.ts` — the content parsing engine reading `docs/BANZA_REFERENCE.md` at build time,
-* section-based routing derived from H2 headings,
-* slug-based navigation (slugs are stable; section numbers are positional and can shift).
-
-## 14.7 Deploy Sync
-
-Any new file under `docs/` that is read at build time MUST be added to BOTH:
-- `deploy.sh` (rsync section for docs-frontend)
-- `apps/docs/Dockerfile` (COPY instruction)
+Operator documentation lives as markdown under `docs/` (see
+[docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md)). The public Banzami website
+was removed — there is no website content pipeline. Protocol documentation
+(BANZA_REFERENCE, certification, conformance) is owned by the BANZA protocol repo,
+not this operator.
 
 ---
 
@@ -771,8 +718,7 @@ The institutional separation is complete. These are the current canonical names:
 
 ## 15.9 Content update flow
 
-ALWAYS update `docs/BANZA_REFERENCE.md` FIRST.  
-Never update website, UI, or SDK naming before the reference document is coherent.
+Keep operator documentation (`docs/`, root `BANZAMI_*.md`) coherent with the code. Protocol naming and rules are owned by BANZA — change them via an ADR in `~/banza`, not here.
 
 ---
 

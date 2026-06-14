@@ -1,4 +1,6 @@
-# ADR-015: Markdown-First Content Architecture — BANZA_REFERENCE.md as Single Source of Truth
+# ADR-015: Markdown-First Content Architecture â BANZA_REFERENCE.md as Single Source of Truth
+
+> ⚠️ **OBSOLETE.** The public website (apps/docs) and its BANZA_REFERENCE content pipeline were removed. This ADR describes a system that no longer exists in the operator repo; kept only as a historical decision record.
 
 **Status:** Accepted  
 **Date:** 2026-05-19  
