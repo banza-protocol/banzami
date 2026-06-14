@@ -144,15 +144,18 @@ every Angolan application can build on.
 
 ## Ecosystem
 
-Banzami is one operator built on the open BANZA protocol.
+Banzami is the first commercial operator built on the BANZA protocol. BANZA
+defines the open protocol; Banzami implements it as a wallet-native payment
+network. BanzAI is an adjacent protocol knowledge system that helps developers
+and operators understand the protocol — it does not operate payments and is not
+part of the Banzami operator.
 
-![Ecosystem — BANZA, Banzami, BanzAI](docs/diagrams/banzami-ecosystem-v1.svg)
+![Ecosystem — BANZA defines, Banzami operates, BanzAI explains](docs/diagrams/banzami-ecosystem-v1.svg)
 
-**BANZA** — the open financial protocol Banzami is built on, owned and governed
-independently at [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
-**BanzAI** — the protocol's intelligence system, at
-[github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai); it
-is not a Banzami product.
+**BANZA** — the open financial protocol, owned and governed independently at
+[github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
+**BanzAI** — the protocol's knowledge system, at
+[github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai).
 
 ---
 
