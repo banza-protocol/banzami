@@ -22,7 +22,7 @@ function makeItem(overrides: Partial<ValidationItem> = {}): ValidationItem {
     id: 'TEST-001',
     title: 'Test item',
     categoryId: 'cat-sandbox',
-    validationDomain: 'DOM-OPS',
+    validationDomain: 'DOM-OPERATIONS',
     referenceSection: '§1',
     description: 'A test item',
     requirement: 'Must do something',

@@ -1,210 +1,51 @@
-# Banzami Validation Domains
+# Banzami Validation Domains — Operator Readiness Pillars
 
-Official domain taxonomy for all validation items. Each item in
-`BANZAMI_IMPLEMENTATION_MATRIX.json` must belong to exactly one primary
-validation domain.
-
-**Version:** 1.0  
-**Status:** Active
-
----
+Official domain taxonomy for the Validation Studio. Every validation item in
+`BANZAMI_IMPLEMENTATION_MATRIX.json` carries exactly one **readiness pillar** as
+its `validationDomain`.
 
 ## Purpose
 
-Validation domains group items by the *engineering concern* they address,
-independent of product category. A QR payment item might live in the
-`Consumer Experience` product category but belong to the `Financial Integrity`
-domain if its primary concern is ledger correctness.
-
-Domains are used for:
-- domain-level health dashboards,
-- filtering by engineering discipline,
-- assigning cross-domain ownership,
-- confidence scoring thresholds (some domains have higher standards),
-- freeze impact analysis (changes in one domain propagate to dependents).
+The Validation Studio is an **Operator Readiness Center**. It answers one
+question: *Can Banzami safely operate real-world payments today?* The domains are
+the **readiness pillars** that answer it — each maps to one question on the
+Operator Readiness Dashboard. (Feature areas live in `categoryId`; pillars are the
+higher-level launch lens.)
 
 ---
 
-## Domain Definitions
+## Pillars
 
-### DOM-FIN — Financial Integrity
-
-**Scope:** Ledger engine, wallet engine, settlement, P2P transfers, payouts, refunds, reconciliation.
-
-**Concern:** Any item whose correctness is measured in terms of money: double-entry accuracy, balance consistency, atomic posting, idempotency of financial operations, ledger immutability.
-
-**Standard:** Highest. All invariants must be PASS. Confidence must be ≥ 80 for VALIDATED.
-
-**Owner area:** Core / Financeiro
-
-**Category IDs:** `cat-ledger`, `cat-wallet`, `cat-p2p`, `cat-payouts`, `cat-refunds`
-
----
-
-### DOM-IDENTITY — Wallet & Identity
-
-**Scope:** Consumer identity, handle registry, consumer wallet lifecycle, consumer authentication.
-
-**Concern:** Wallet provisioning, handle uniqueness, consumer registration, PIN management, balance isolation between consumers.
-
-**Standard:** High. Security invariants mandatory for VALIDATED.
-
-**Owner area:** Core / Identidade
-
-**Category IDs:** `cat-identity`, `cat-handle`
+| Pillar | Question | Covers |
+|--------|----------|--------|
+| **DOM-IDENTITY** | Can consumers use wallets & @handles? | Identity, positioning, `@banza` handle registration & resolution |
+| **DOM-MONEY-MOVE** | Can money move between wallets? | Consumer wallet, P2P, QR payments, pay links, payment requests |
+| **DOM-MONEY-IN** | Can real Kwanza enter the system? | Wallet funding, EMIS acquiring |
+| **DOM-MONEY-OUT** | Can money leave to a bank account? | Withdrawals, settlement, refunds & disputes |
+| **DOM-MERCHANT** | Can merchants accept & manage payments? | Merchant app, Business Dashboard |
+| **DOM-DEVELOPER** | Can developers integrate safely? | SDKs, REST API, webhooks, sandbox |
+| **DOM-LEDGER** | Is the money provably correct? | Double-entry ledger, immutability, atomicity, reconciliation |
+| **DOM-TRUST** | Is it safe & auditable for regulators? | KYC/KYB, risk engine, security, audit trails |
+| **DOM-OPERATIONS** | Can incidents be detected & handled? Can it scale? | Observability, operations, incident response |
 
 ---
 
-### DOM-CONSUMER — Consumer Experience
+## Status → readiness
 
-**Scope:** QR payments, payment links, payment requests, consumer-facing UX flows.
+An item is **ready** when its status is `VALIDATED` or `IMPLEMENTED`. A pillar is:
 
-**Concern:** End-to-end consumer payment experience: scan-confirm-paid latency, QR resolution accuracy, payment link reliability, UX correctness.
+- **ready** — every item ready, no critical gap;
+- **partial** — some ready, no critical gap;
+- **blocked** — has a `CRITICAL` item not yet ready, or a `BLOCKED` item.
 
-**Standard:** High. QR invariants mandatory. E2E/manual UX validation recommended.
-
-**Owner area:** Produto / Consumer
-
-**Category IDs:** `cat-qr`, `cat-paylinks`, `cat-payrequests`
-
----
-
-### DOM-MERCHANT — Merchant Experience
-
-**Scope:** Merchant mobile app (Banza Business), merchant web dashboard.
-
-**Concern:** Merchant-facing UX: payment reception, balance visibility, transaction history, payout flows, QR generation, settlement reports.
-
-**Standard:** Medium-High. Manual UX validation and sandbox testing recommended.
-
-**Owner area:** Produto / Merchant
-
-**Category IDs:** `cat-biz-mobile`, `cat-biz-web`
+**Can Banzami launch?** = no `CRITICAL` item is unready or blocked. The dashboard
+lists every launch blocker by ID.
 
 ---
 
-### DOM-DEV — Developer Platform
+## Governance notes
 
-**Scope:** SDKs, REST API, webhooks, sandbox environment.
-
-**Concern:** Developer experience: API contract stability, SDK correctness, webhook reliability, sandbox fidelity, documentation accuracy.
-
-**Standard:** High. Webhook invariants mandatory. Integration tests required for VALIDATED.
-
-**Owner area:** Plataforma / Developer
-
-**Category IDs:** `cat-sdk`, `cat-api`, `cat-webhooks`, `cat-sandbox`
-
----
-
-### DOM-SEC — Security
-
-**Scope:** Authentication, authorization, key management, secret storage, network isolation, Go/Rust boundary.
-
-**Concern:** Security properties: key hashing, PIN security, environment isolation, admin route protection, financial write boundary.
-
-**Standard:** Highest. All security invariants must be PASS. No VALIDATED without security review.
-
-**Owner area:** Segurança / Infra
-
-**Category IDs:** `cat-security`, `cat-risk`
-
----
-
-### DOM-COMPLIANCE — Compliance
-
-**Scope:** KYB/KYC, AML, regulatory compliance enforcement.
-
-**Concern:** Legal and regulatory requirements: merchant KYB gates, KYC transaction limits, AML flagging, compliance state machine correctness.
-
-**Standard:** High. KYC invariants mandatory for VALIDATED.
-
-**Owner area:** Compliance / Legal
-
-**Category IDs:** `cat-kyc`
-
----
-
-### DOM-OPS — Operations
-
-**Scope:** Background workers, scheduled jobs, settlement scheduler, QR expiry worker, balance checker.
-
-**Concern:** Operational reliability: worker health, scheduler correctness, failure handling, safe degradation.
-
-**Standard:** Medium-High. Integration tests required.
-
-**Owner area:** Plataforma / Operations
-
-**Category IDs:** (items tagged with technicalArea containing "worker", "scheduler", "job")
-
----
-
-### DOM-OBS — Observability
-
-**Scope:** Metrics, tracing, structured logging, health endpoints, Grafana dashboards.
-
-**Concern:** System visibility: all services expose required signals, latency tracking, payment lifecycle tracing, alert correctness.
-
-**Standard:** Medium. Integration and configuration review required.
-
-**Owner area:** Plataforma / SRE
-
-**Category IDs:** `cat-observability`
-
----
-
-## Category → Domain Mapping
-
-| Category ID | Category Name | Primary Domain |
-|-------------|---------------|----------------|
-| `cat-ledger` | Ledger | DOM-FIN |
-| `cat-wallet` | Wallets | DOM-FIN |
-| `cat-p2p` | P2P Transfers | DOM-FIN |
-| `cat-payouts` | Payouts | DOM-FIN |
-| `cat-refunds` | Refunds | DOM-FIN |
-| `cat-identity` | Identidade do consumidor | DOM-IDENTITY |
-| `cat-handle` | Handles | DOM-IDENTITY |
-| `cat-qr` | QR Payments | DOM-CONSUMER |
-| `cat-paylinks` | Payment Links | DOM-CONSUMER |
-| `cat-payrequests` | Payment Requests | DOM-CONSUMER |
-| `cat-biz-mobile` | Banza Business Mobile | DOM-MERCHANT |
-| `cat-biz-web` | Banza Business Web | DOM-MERCHANT |
-| `cat-sdk` | SDKs | DOM-DEV |
-| `cat-api` | API | DOM-DEV |
-| `cat-webhooks` | Webhooks | DOM-DEV |
-| `cat-sandbox` | Sandbox | DOM-DEV |
-| `cat-security` | Segurança | DOM-SEC |
-| `cat-risk` | Risco | DOM-SEC |
-| `cat-kyc` | KYC/KYB | DOM-COMPLIANCE |
-| `cat-observability` | Observabilidade | DOM-OBS |
-| `cat-emis` | EMIS / Multicaixa | DOM-FIN |
-
----
-
-## Domain in the Matrix
-
-Every item in `BANZAMI_IMPLEMENTATION_MATRIX.json` must have a `validationDomain` field
-matching a `DOM-*` identifier from this document.
-
-```json
-{
-  "id": "LED-001",
-  "validationDomain": "DOM-FIN",
-  ...
-}
-```
-
-Domain is used as a filter dimension in both the Validation Studio and the public
-`/validacao` page.
-
----
-
-## Governance Notes
-
-- Domain assignments are stable but not immutable: a reclassification requires updating
-  the item in the matrix and a note in the item's `history[]`.
-- Domain is informational for most items; it is enforcement-relevant only for security
-  (`DOM-SEC`) and financial integrity (`DOM-FIN`) items where it gates which invariants
-  are required.
-- Cross-domain items exist (e.g. QR payments touch both `DOM-CONSUMER` and `DOM-FIN`);
-  the primary domain is the one governing the item's validation standard.
+- Pillars are operator-only. No protocol, federation, governance, or documentation
+  domains exist — those belong to the BANZA protocol, not the operator.
+- `FINANCIAL_CRITICAL_CATEGORIES` (ledger, wallet, P2P, QR, payouts, refunds) is
+  keyed by `categoryId`, independent of the pillar model.

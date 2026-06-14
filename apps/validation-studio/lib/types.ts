@@ -27,17 +27,18 @@ export type InvariantStatus = 'PASS' | 'FAIL' | 'UNKNOWN' | 'NOT_RUN'
 
 export type ConfidenceLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'VERY_HIGH'
 
-// Official validation domains — see docs/validation/VALIDATION_DOMAINS.md
+// Operator-readiness pillars — see docs/validation/VALIDATION_DOMAINS.md
+// Each pillar answers one question on the Operator Readiness Dashboard.
 export type ValidationDomain =
-  | 'DOM-FIN'        // Financial Integrity
-  | 'DOM-IDENTITY'   // Wallet & Identity
-  | 'DOM-CONSUMER'   // Consumer Experience
-  | 'DOM-MERCHANT'   // Merchant Experience
-  | 'DOM-DEV'        // Developer Platform
-  | 'DOM-SEC'        // Security
-  | 'DOM-COMPLIANCE' // Compliance
-  | 'DOM-OPS'        // Operations
-  | 'DOM-OBS'        // Observability
+  | 'DOM-IDENTITY'    // Identity & Handles
+  | 'DOM-MONEY-MOVE'  // Money Movement (wallet, P2P, QR, links)
+  | 'DOM-MONEY-IN'    // Money In (funding)
+  | 'DOM-MONEY-OUT'   // Money Out (withdrawals, settlement)
+  | 'DOM-MERCHANT'    // Merchant
+  | 'DOM-DEVELOPER'   // Developer Platform
+  | 'DOM-LEDGER'      // Ledger & Accounting
+  | 'DOM-TRUST'       // Trust, Compliance & Security
+  | 'DOM-OPERATIONS'  // Operations
 
 export interface ConfidenceScore {
   score: number          // 0-100
@@ -231,20 +232,20 @@ export const ALL_EVIDENCE_TYPES: EvidenceType[] = [
 export const ALL_INVARIANT_STATUSES: InvariantStatus[] = ['PASS', 'FAIL', 'UNKNOWN', 'NOT_RUN']
 
 export const ALL_DOMAINS: ValidationDomain[] = [
-  'DOM-FIN', 'DOM-IDENTITY', 'DOM-CONSUMER', 'DOM-MERCHANT',
-  'DOM-DEV', 'DOM-SEC', 'DOM-COMPLIANCE', 'DOM-OPS', 'DOM-OBS',
+  'DOM-IDENTITY', 'DOM-MONEY-MOVE', 'DOM-MONEY-IN', 'DOM-MONEY-OUT',
+  'DOM-MERCHANT', 'DOM-DEVELOPER', 'DOM-LEDGER', 'DOM-TRUST', 'DOM-OPERATIONS',
 ]
 
 export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
-  'DOM-FIN':        'Financial Integrity',
-  'DOM-IDENTITY':   'Wallet & Identity',
-  'DOM-CONSUMER':   'Consumer Experience',
-  'DOM-MERCHANT':   'Merchant Experience',
-  'DOM-DEV':        'Developer Platform',
-  'DOM-SEC':        'Security',
-  'DOM-COMPLIANCE': 'Compliance',
-  'DOM-OPS':        'Operations',
-  'DOM-OBS':        'Observability',
+  'DOM-IDENTITY':   'Identity & Handles',
+  'DOM-MONEY-MOVE': 'Money Movement',
+  'DOM-MONEY-IN':   'Money In (Funding)',
+  'DOM-MONEY-OUT':  'Money Out (Withdrawals)',
+  'DOM-MERCHANT':   'Merchant',
+  'DOM-DEVELOPER':  'Developer Platform',
+  'DOM-LEDGER':     'Ledger & Accounting',
+  'DOM-TRUST':      'Trust & Compliance',
+  'DOM-OPERATIONS': 'Operations',
 }
 
 export const CONFIDENCE_LEVEL_LABELS: Record<ConfidenceLevel, string> = {
