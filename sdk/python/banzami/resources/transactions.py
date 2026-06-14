@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from banza.models.transaction import Transaction
-from banza.pagination import Page
-from banza.utils.ids import new_idempotency_key
+from banzami.models.transaction import Transaction
+from banzami.pagination import Page
+from banzami.utils.ids import new_idempotency_key
 
 from .base import AsyncResource
 

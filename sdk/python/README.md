@@ -17,7 +17,7 @@ pip install banzami
 
 ```python
 import asyncio
-from banza import Banzami
+from banzami import Banzami
 
 async def main():
     async with Banzami(api_key="bz_live_...") as client:
@@ -59,7 +59,7 @@ print(transfer.status)  # COMPLETED
 ## Webhook verification
 
 ```python
-from banza import Banzami, BanzamiWebhookSignatureError
+from banzami import Banzami, BanzamiWebhookSignatureError
 
 client = Banzami(api_key="...", webhook_secret="whsec_...")
 
@@ -89,7 +89,7 @@ client = Banzami(
 ## Observability hooks
 
 ```python
-from banza import Banzami, BanzamiHooks
+from banzami import Banzami, BanzamiHooks
 import logging
 
 log = logging.getLogger("payments")
@@ -110,7 +110,7 @@ client = Banzami(
 ## Money helpers
 
 ```python
-from banza.utils.money import format_minor, to_minor, from_minor
+from banzami.utils.money import format_minor, to_minor, from_minor
 
 format_minor(50000, "AOA")   # "50.000 Kz"
 format_minor(5000,  "USD")   # "USD 50.00"
@@ -121,7 +121,7 @@ to_minor(19.99,  "USD")      # 1999
 ## Pagination
 
 ```python
-from banza import auto_paginate
+from banzami import auto_paginate
 
 # Iterate over every transaction without managing cursors manually.
 async for tx in auto_paginate(client.transactions.list, limit=50):
@@ -206,9 +206,9 @@ page = await client.disputes.list(status=DisputeStatus.OPEN)
 ## Payment requests (pedido de pagamento)
 
 ```python
-from banza import PaymentRequestStatus
+from banzami import PaymentRequestStatus
 
-# Request money from a specific @banza handle
+# Request money from a specific @banzami handle
 req = await client.payment_requests.create(
     requester_id="con_001",
     amount=30000,           # 300 Kz

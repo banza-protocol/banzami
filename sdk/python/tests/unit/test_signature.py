@@ -16,7 +16,7 @@ import hashlib
 import hmac
 import time
 
-from banza.signature import (
+from banzami.signature import (
     SIGNATURE_HEADER,
     TOLERANCE_SECONDS,
     generate_test_signature,

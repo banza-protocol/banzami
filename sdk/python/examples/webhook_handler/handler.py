@@ -13,8 +13,8 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-from banza import Banzami, BanzaWebhookSignatureError
-from banza.models.webhook import WebhookEvent
+from banzami import Banzami, BanzamiWebhookSignatureError
+from banzami.models.webhook import WebhookEvent
 
 WEBHOOK_SECRET = os.environ["BANZAMI_WEBHOOK_SECRET"]
 PORT           = int(os.environ.get("PORT", "8090"))
@@ -30,7 +30,7 @@ class WebhookHandler(BaseHTTPRequestHandler):
 
         try:
             event = _client.webhooks.construct_event(raw, signature)
-        except BanzaWebhookSignatureError:
+        except BanzamiWebhookSignatureError:
             self._respond(400, {"error": "invalid signature"})
             return
         except ValueError as exc:

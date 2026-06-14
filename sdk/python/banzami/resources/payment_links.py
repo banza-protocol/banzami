@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from banza.models.payment_link import PaymentLink
-from banza.pagination import Page
-from banza.utils.ids import new_idempotency_key
+from banzami.models.payment_link import PaymentLink
+from banzami.pagination import Page
+from banzami.utils.ids import new_idempotency_key
 
 from .base import AsyncResource
 

@@ -4,9 +4,9 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from banza.models.payment_request import PaymentRequest, PaymentRequestStatus
-from banza.pagination import Page
-from banza.utils.ids import new_idempotency_key
+from banzami.models.payment_request import PaymentRequest, PaymentRequestStatus
+from banzami.pagination import Page
+from banzami.utils.ids import new_idempotency_key
 
 from .base import AsyncResource
 
@@ -32,7 +32,7 @@ class PaymentRequestsResource(AsyncResource):
         amount:
             Amount to request in minor units (Kz).
         payer_handle:
-            @banza handle of the intended payer. Omit for open requests.
+            @banzami handle of the intended payer. Omit for open requests.
         description:
             Optional note shown to the payer.
         expires_at:

@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 import respx
 
-from banza import Banzami
-from banza.models.payment_request import PaymentRequestStatus
+from banzami import Banzami
+from banzami.models.payment_request import PaymentRequestStatus
 
 BASE = "https://api.banzami.test"
 

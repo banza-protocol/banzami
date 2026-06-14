@@ -7,8 +7,8 @@ from datetime import UTC, datetime, timedelta
 import httpx
 import respx
 
-from banza import Banzami
-from banza.models.qr_payment import QrCodeStatus, QrCodeType
+from banzami import Banzami
+from banzami.models.qr_payment import QrCodeStatus, QrCodeType
 
 BASE = "https://api.banzami.test"
 
@@ -24,7 +24,7 @@ STATIC_QR = {
         "expires_at":   None,
         "created_at":   "2026-05-15T08:00:00Z",
     },
-    "payload": "banza://qr/static/qr_static_001",
+    "payload": "banzami://qr/static/qr_static_001",
 }
 
 DYNAMIC_QR = {
@@ -39,7 +39,7 @@ DYNAMIC_QR = {
         "expires_at":   "2026-05-15T08:15:00Z",
         "created_at":   "2026-05-15T08:00:00Z",
     },
-    "payload": "banza://qr/dynamic/qr_dyn_001?amt=75000",
+    "payload": "banzami://qr/dynamic/qr_dyn_001?amt=75000",
 }
 
 PARSED_QR = {
@@ -60,7 +60,7 @@ async def test_create_static_qr():
     assert qr.qr_code.type == QrCodeType.STATIC
     assert qr.qr_code.status == QrCodeStatus.ACTIVE
     assert qr.qr_code.amount_minor is None
-    assert qr.payload == "banza://qr/static/qr_static_001"
+    assert qr.payload == "banzami://qr/static/qr_static_001"
 
 
 async def test_create_dynamic_qr():
@@ -93,7 +93,7 @@ async def test_decode_qr():
     with respx.mock(base_url=BASE) as mock:
         mock.post("/v1/qr/decode").mock(return_value=httpx.Response(200, json=PARSED_QR))
         async with Banzami(api_key="bz_test", base_url=BASE) as c:
-            parsed = await c.qr_payments.decode("banza://qr/dynamic/qr_dyn_001?amt=75000")
+            parsed = await c.qr_payments.decode("banzami://qr/dynamic/qr_dyn_001?amt=75000")
 
     assert parsed.qr_code_id == "qr_dyn_001"
     assert parsed.is_dynamic is True

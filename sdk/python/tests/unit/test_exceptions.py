@@ -1,8 +1,8 @@
 """Exception hierarchy and factory tests."""
 
 
-from banza.exceptions import (
-    BanzaAPIError,
+from banzami.exceptions import (
+    BanzamiAPIError,
     BanzamiAuthenticationError,
     BanzamiInsufficientFundsError,
     BanzamiNotFoundError,
@@ -59,7 +59,7 @@ def test_factory_insufficient_funds():
 
 def test_api_error_is_base():
     err = api_error_from_response(401, "X", "y")
-    assert isinstance(err, BanzaAPIError)
+    assert isinstance(err, BanzamiAPIError)
 
 
 def test_request_id_propagated():

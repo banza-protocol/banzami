@@ -5,8 +5,8 @@ from __future__ import annotations
 import httpx
 import respx
 
-from banza import Banzami
-from banza.models.dispute import DisputeStatus
+from banzami import Banzami
+from banzami.models.dispute import DisputeStatus
 
 BASE = "https://api.banzami.test"
 

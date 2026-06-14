@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from banza.models.transaction import Transaction
-from banza.pagination import Page, auto_paginate
+from banzami.models.transaction import Transaction
+from banzami.pagination import Page, auto_paginate
 
 
 def _make_tx(id: str) -> dict:

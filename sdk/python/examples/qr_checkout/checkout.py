@@ -10,9 +10,9 @@ import asyncio
 import os
 from datetime import datetime, timedelta, timezone
 
-from banza import Banzami
-from banza.models.qr_payment import QrCodeStatus
-from banza.utils.money import format_minor, to_minor
+from banzami import Banzami
+from banzami.models.qr_payment import QrCodeStatus
+from banzami.utils.money import format_minor, to_minor
 
 
 async def main() -> None:

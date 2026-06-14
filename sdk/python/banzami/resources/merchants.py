@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from banza.models.merchant import ApiKey, Merchant, NewApiKey
+from banzami.models.merchant import ApiKey, Merchant, NewApiKey
 
 from .base import AsyncResource
 

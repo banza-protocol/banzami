@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from banza.models.wallet import Wallet, WalletBalance
+from banzami.models.wallet import Wallet, WalletBalance
 
 from .base import AsyncResource
 

@@ -5,9 +5,9 @@ from __future__ import annotations
 import httpx
 import respx
 
-from banza import Banzami
-from banza.models.transaction import TransactionStatus
-from banza.pagination import auto_paginate
+from banzami import Banzami
+from banzami.models.transaction import TransactionStatus
+from banzami.pagination import auto_paginate
 
 BASE = "https://api.banzami.test"
 

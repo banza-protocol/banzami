@@ -12,8 +12,8 @@ import os
 
 from flask import Flask, jsonify, request
 
-from banza import Banzami, BanzaWebhookSignatureError
-from banza.utils.money import to_minor
+from banzami import Banzami, BanzamiWebhookSignatureError
+from banzami.utils.money import to_minor
 
 app = Flask(__name__)
 
@@ -49,7 +49,7 @@ def handle_webhook():
     c = _client()
     try:
         event = c.webhooks.construct_event(raw, sig)
-    except BanzaWebhookSignatureError:
+    except BanzamiWebhookSignatureError:
         return jsonify({"error": "bad signature"}), 400
 
     print(f"[banzami] Event received: {event.type}")
