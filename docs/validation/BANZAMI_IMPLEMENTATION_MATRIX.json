@@ -9,27 +9,22 @@
   "categories": [
     {
       "id": "cat-identity",
-      "name": "Identidade & Posicionamento",
+      "name": "Identity & Handles",
       "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e definição do ecossistema."
     },
     {
       "id": "cat-wallet",
-      "name": "Banzami Wallet",
+      "name": "Consumer Wallet",
       "description": "Carteiras digitais em Kwanza — criação, saldos, histórico e carregamento."
     },
     {
-      "id": "cat-handle",
-      "name": "@banza",
-      "description": "Sistema de identidade de pagamento — registo, resolução e pesquisa de @banza."
-    },
-    {
       "id": "cat-qr",
-      "name": "Pagamentos QR",
+      "name": "QR Payments",
       "description": "QR estático, dinâmico, scan, resolução e loja QR pública do comerciante."
     },
     {
       "id": "cat-p2p",
-      "name": "Transferências P2P",
+      "name": "P2P Transfers",
       "description": "Transferências pessoa-a-pessoa por @banza e divisão de contas por QR."
     },
     {
@@ -39,27 +34,27 @@
     },
     {
       "id": "cat-payrequests",
-      "name": "Pedidos de Pagamento",
+      "name": "Payment Requests",
       "description": "Facturas digitais enviadas directamente para carteiras — criar, notificar, pagar."
     },
     {
       "id": "cat-biz-mobile",
-      "name": "Banzami Business (Móvel)",
+      "name": "Merchant App (Mobile)",
       "description": "Interface móvel para operação diária do comerciante — QR, notificações, saldo."
     },
     {
       "id": "cat-biz-web",
-      "name": "Banzami Business (Web)",
+      "name": "Business Dashboard",
       "description": "Dashboard web para administração — analytics, chaves API, equipa, disputas."
     },
     {
       "id": "cat-sdk",
-      "name": "SDKs",
+      "name": "SDK Platform",
       "description": "SDKs oficiais Banza — TypeScript, PHP, Go, Python, Flutter."
     },
     {
       "id": "cat-api",
-      "name": "API REST",
+      "name": "REST API",
       "description": "API HTTP versionada e idempotente para todas as operações da plataforma."
     },
     {
@@ -74,42 +69,42 @@
     },
     {
       "id": "cat-ledger",
-      "name": "Ledger & Contabilidade",
+      "name": "Ledger & Accounting",
       "description": "Ledger de dupla entrada, imutabilidade, operações atómicas e reconciliação."
     },
     {
       "id": "cat-kyc",
-      "name": "KYC/KYB",
+      "name": "KYC / KYB",
       "description": "Verificação de identidade de consumidores e comerciantes conforme requisitos BNA."
     },
     {
       "id": "cat-risk",
-      "name": "Motor de Risco",
+      "name": "Risk Engine",
       "description": "Triagem de transacções em tempo real — fraude, velocidade, sinais de dispositivo."
     },
     {
       "id": "cat-security",
-      "name": "Segurança",
+      "name": "Security",
       "description": "TLS, encriptação, idempotência, auditoria e segurança de credenciais."
     },
     {
       "id": "cat-payouts",
-      "name": "Levantamentos",
+      "name": "Withdrawals",
       "description": "Transferência de saldo de carteira para conta bancária angolana via EMIS."
     },
     {
       "id": "cat-refunds",
-      "name": "Reembolsos & Disputas",
+      "name": "Refunds & Disputes",
       "description": "Reembolsos parciais/totais e processo de resolução de disputas."
     },
     {
       "id": "cat-observability",
-      "name": "Observabilidade",
+      "name": "Observability",
       "description": "OpenTelemetry, Prometheus, Grafana e logs estruturados."
     },
     {
       "id": "cat-emis",
-      "name": "EMIS & Bancos",
+      "name": "EMIS & Banking",
       "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano."
     }
   ],
@@ -123,7 +118,7 @@
       "description": "Regras vinculativas de marca: Banzami = organização/infraestrutura, Banza = produto principal. Género gramatical, hierarquia de produto e nomenclatura SDK.",
       "requirement": "Todas as superfícies públicas (site, SDKs, documentação, código) devem seguir a arquitectura de marca definida. Banzami e Banza nunca confundidos.",
       "status": "VALIDATED",
-      "priority": "CRITICAL",
+      "priority": "MEDIUM",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Documentação · Código",
       "validationMethods": [
@@ -219,6 +214,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -232,7 +236,7 @@
       "description": "Posicionamento público do Banzami como construtor da infraestrutura angolana de pagamentos digitais, com Banza como produto principal QR-native.",
       "requirement": "Toda a comunicação pública deve ser consistente com o posicionamento definido. Nenhuma descrição incorrecta (pan-africano, Stripe para África, etc.) deve aparecer.",
       "status": "VALIDATED",
-      "priority": "HIGH",
+      "priority": "MEDIUM",
       "ownerArea": "Organização Banzami",
       "technicalArea": "Documentação · Site",
       "validationMethods": [
@@ -311,6 +315,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -319,7 +332,7 @@
       "id": "WAL-001",
       "title": "Criação e onboarding de Banzami Wallet",
       "categoryId": "cat-wallet",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.2, §13.2",
       "description": "Fluxo de onboarding de consumidor: número de telemóvel → verificação OTP → escolha de @banza → definir PIN → carteira pronta.",
       "requirement": "Onboarding completo em menos de 2 minutos. Carteira pronta para receber dinheiro imediatamente após onboarding.",
@@ -545,6 +558,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -553,7 +575,7 @@
       "id": "WAL-002",
       "title": "Saldo disponível vs. reservado em tempo real",
       "categoryId": "cat-wallet",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.2",
       "description": "Carteira com dois estados de saldo: disponível (gastável imediatamente) e reservado (operações pendentes). Ambos exactos e em tempo real.",
       "requirement": "Saldo disponível e reservado sempre exactos. Sem atraso de actualização. Sem inconsistência eventual.",
@@ -661,15 +683,24 @@
             "production-sql: 3 wallets, negative_balance=0, negative_reservations=0",
             "production-sql: all wallets have available+reserved account IDs"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WAL-003",
       "title": "Histórico de transacções da carteira",
       "categoryId": "cat-wallet",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§13.7",
       "description": "Feed de actividade pública do consumidor: projecção legível de todos os eventos financeiros com respaldo no ledger — transferências enviadas/recebidas, carregamentos e reversões de carteira.",
       "requirement": "GET /v1/me/activity — histórico completo, ordenado, paginado com cursor. Direcção (OUTGOING/INCOMING) computada no servidor. Sem eventos em falta, duplicados ou sem respaldo no ledger.",
@@ -827,15 +858,24 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Limpeza de mencoes residuais a contracts/openapi em campos nao-evidencia (contrato canonico vive no repo BANZA).",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WAL-004",
       "title": "Carregamento de carteira (depósito)",
       "categoryId": "cat-wallet",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-IN",
       "referenceSection": "§6.2, §10.3",
       "description": "Mecanismo de carregamento da Banzami Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
       "requirement": "Consumidor pode adicionar fundos à carteira a partir do sistema bancário angolano. Saldo actualiza após confirmação.",
@@ -962,6 +1002,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -969,7 +1018,7 @@
     {
       "id": "HDL-001",
       "title": "Sistema @banza — registo e unicidade",
-      "categoryId": "cat-handle",
+      "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "Sistema de identidade de pagamento @banza — handle único e legível por humanos para cada conta. Registo, validação de formato e garantia de unicidade.",
@@ -1087,14 +1136,23 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "HDL-002",
       "title": "Resolução de @banza para carteira",
-      "categoryId": "cat-handle",
+      "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "API que resolve um @banza para a carteira correspondente em tempo real, usada em transferências, QR e pedidos de pagamento.",
@@ -1223,15 +1281,24 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13",
+      "lastUpdated": "2026-06-14",
       "notes": "Redis cache remains a future throughput optimization for high-load scenarios. Criterion 4 was corrected from implementation mechanism (Redis cache) to product outcome (p99<100ms, deterministic, ACTIVE-only). p99=6ms without cache is 16x under the 100ms threshold. Redis is tracked as a roadmap item, not a validation blocker."
     },
     {
       "id": "HDL-003",
       "title": "Pesquisa e sugestão de @banza",
-      "categoryId": "cat-handle",
+      "categoryId": "cat-identity",
       "validationDomain": "DOM-IDENTITY",
       "referenceSection": "§6.3",
       "description": "Funcionalidade de pesquisa de @banza na app do consumidor — sugestões durante digitação, verificação de disponibilidade em tempo real.",
@@ -1273,14 +1340,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "QR-001",
       "title": "QR Estático — geração permanente para comerciante",
       "categoryId": "cat-qr",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§9.1",
       "description": "Geração de QR estático codificando banza://@banza do comerciante. Permanente, imprimível, válido indefinidamente.",
       "requirement": "QR gerado correctamente e resolve para a carteira do comerciante. Imprimível em alta resolução.",
@@ -1339,14 +1416,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "QR-002",
       "title": "QR Dinâmico — por transacção com valor e expiração",
       "categoryId": "cat-qr",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§9.2",
       "description": "QR gerado por transacção com valor pré-definido, referência e expiração. O consumidor só precisa de confirmar — valor pré-preenchido.",
       "requirement": "QR dinâmico expira após uso ou timeout. Valor e referência correctos ao resolver.",
@@ -1411,14 +1498,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "QR-003",
       "title": "Scan e resolução de QR na app Banza",
       "categoryId": "cat-qr",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.4",
       "description": "Experiência de scan de QR na app Banza — câmara, descodificação, ecrã de confirmação, PIN/biometria e confirmação de pagamento.",
       "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especificação §6.4.",
@@ -1471,14 +1568,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "QR-004",
       "title": "Loja QR pública do comerciante",
       "categoryId": "cat-qr",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§9.3, §11.6",
       "description": "Página pública por comerciante em pay.banzami.com/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
       "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
@@ -1522,14 +1629,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "QR-005",
       "title": "QR P2P — consumidor para consumidor",
       "categoryId": "cat-qr",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§9.4",
       "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou família — mesmo fluxo que comerciante, wallet-to-wallet.",
       "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo idêntico ao pagamento a comerciante.",
@@ -1575,14 +1692,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "P2P-001",
       "title": "Transferência P2P por @banza",
       "categoryId": "cat-p2p",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§13.4",
       "description": "Envio de dinheiro de uma carteira para outra via @banza — sem dados bancários, sem IBAN, liquidação instantânea.",
       "requirement": "Transferência de carteira-para-carteira por @banza, confirmada e liquidada instantaneamente.",
@@ -1709,15 +1836,24 @@
             "Latency: p99=46ms over 15 requests",
             "WAL-003 cross-validation: P2P_SENT/P2P_RECEIVED in activity feed"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "P2P-002",
       "title": "Divisão de conta por QR (split payments)",
       "categoryId": "cat-p2p",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§8.8, §13.8",
       "description": "QR dinâmico de grupo gerado para total de mesa. Cada pessoa faz scan e paga a sua parte. Mesa liquidada quando total atingido.",
       "requirement": "Múltiplos consumidores pagam partes de um total via QR. Sistema reconcilia total automaticamente.",
@@ -1763,14 +1899,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "P2P-003",
       "title": "API pública de transferência P2P para consumidores",
       "categoryId": "cat-p2p",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§13.4",
       "description": "Endpoint público autenticado por JWT que expõe a transferência P2P ao consumidor: POST /v1/transfers com rate limiting, idempotência obrigatória, identidade do remetente derivada do token, receipt canónico sem identificadores internos.",
       "requirement": "POST /v1/transfers funcional com auth JWT, idempotência, rate limiting (20/min), mapeamento de erros completo, sem exposição de IDs internos. GET /v1/transfers e GET /v1/transfers/{id} disponíveis.",
@@ -1925,15 +2071,24 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Limpeza de mencoes residuais a contracts/openapi em campos nao-evidencia (contrato canonico vive no repo BANZA).",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "APP-001",
       "title": "Aplicação móvel consumidor Banza — fluxo P2P completo",
       "categoryId": "cat-p2p",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§12.2, §14.1",
       "description": "App móvel Flutter para consumidores Banza: autenticação por PIN + biometria, saldo em tempo real, envio P2P com ecrã de confirmação obrigatório e comprovativo, feed de actividade. Wired to WAL-003 activity feed and P2P-003 canonical receipt.",
       "requirement": "Consumidor completa o ciclo financeiro completo: login → saldo → enviar para @banza → confirmar → comprovativo → saldo actualizado. Ecrã de confirmação obrigatório antes do POST irreversível.",
@@ -2046,20 +2201,29 @@
             "dart analyze: 0 errors 2026-05-22",
             "apps/mobile/test/widget_test.dart 14/14 commit 37b12ef"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-22"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PL-001",
       "title": "Criação de links de pagamento",
       "categoryId": "cat-paylinks",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.5, §7",
       "description": "API e interface para criar links de pagamento configuráveis — montante, descrição, expiração, referência de encomenda.",
       "requirement": "Link de pagamento criável via SDK, API e Banzami Business. URL partilhável gerada imediatamente.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Payment Links",
       "technicalArea": "Go · Rust · TypeScript SDK",
       "validationMethods": [
@@ -2108,6 +2272,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2116,12 +2289,12 @@
       "id": "PL-002",
       "title": "Página pública de pagamento (pay.banzami.com)",
       "categoryId": "cat-paylinks",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.5",
       "description": "Página pública acessível por qualquer utilizador — exibe comerciante, valor e botão de pagamento. Funciona sem app instalada.",
       "requirement": "Página acessível sem conta, exibe todas as informações do link, permite pagamento com app Banza.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
       "validationMethods": [
@@ -2159,19 +2332,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PL-003",
       "title": "Liquidação via link de pagamento e webhooks",
       "categoryId": "cat-paylinks",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.5, §12.6",
       "description": "Quando consumidor paga via link, liquidação acontece instantaneamente e webhook é enviado ao comerciante dentro de 2 segundos.",
       "requirement": "Liquidação de link de pagamento instantânea. Webhook entregue em menos de 2 segundos.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
       "validationMethods": [
@@ -2212,14 +2395,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PR-001",
       "title": "Criação e envio de pedido de pagamento",
       "categoryId": "cat-payrequests",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.6, §7",
       "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
       "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
@@ -2262,14 +2455,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PR-002",
       "title": "Pagamento e recusa de pedido de pagamento",
       "categoryId": "cat-payrequests",
-      "validationDomain": "DOM-CONSUMER",
+      "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§6.6, §13.6",
       "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
       "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
@@ -2314,8 +2517,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BM-001",
@@ -2326,7 +2539,7 @@
       "description": "App móvel para operação diária do comerciante — notificações, QR, saldo, pedidos de pagamento e levantamentos. Optimizada para uso no terreno.",
       "requirement": "Interface móvel completa cobrindo todos os fluxos de operação diária. Sem necessidade de computador.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
       "validationMethods": [
@@ -2376,6 +2589,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -2389,7 +2611,7 @@
       "description": "Push notification instantânea ao comerciante quando um pagamento é recebido — valor, @banza do pagador e timestamp.",
       "requirement": "Notificação entregue em menos de 2 segundos após liquidação. Mesmo com app em background.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "FCM · Go · Flutter",
       "validationMethods": [
@@ -2428,8 +2650,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BM-003",
@@ -2440,7 +2672,7 @@
       "description": "Comerciante gera QR estático (imprimir uma vez) e QR dinâmico (por transacção com valor) directamente na app móvel.",
       "requirement": "QR gerado instantaneamente na app, partilhável e imprimível.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
       "validationMethods": [
@@ -2477,8 +2709,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "BW-001",
@@ -2489,7 +2731,7 @@
       "description": "Interface web avançada para comerciante — saldo, transacções, análises, links de pagamento, pedidos, reembolsos, disputas, levantamentos, equipa e chaves API.",
       "requirement": "Dashboard web completo cobrindo todas as secções descritas em §11.2.2.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · TypeScript · Go",
       "validationMethods": [
@@ -2535,6 +2777,15 @@
           "approvedBy": "local-admin",
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
         }
       ],
@@ -2708,12 +2959,12 @@
       "id": "SDK-001",
       "title": "TypeScript SDK (@banza/sdk)",
       "categoryId": "cat-sdk",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.2, §12.3",
       "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempotência automática, retry com backoff exponencial e verificação de webhooks.",
       "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das operações da API. Documentação completa.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "TypeScript · Node.js",
       "validationMethods": [
@@ -2757,19 +3008,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SDK-002",
       "title": "PHP SDK (banza/sdk-php)",
       "categoryId": "cat-sdk",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.2, §12.4",
       "description": "SDK PHP compatível com PSR-18, com BanzaClient e integração Laravel nativa.",
       "requirement": "SDK publicado no Packagist. Compatível com Laravel. Cobertura de API completa.",
       "status": "PLANNED",
-      "priority": "HIGH",
+      "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "PHP · Laravel",
       "validationMethods": [
@@ -2810,19 +3071,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SDK-003",
       "title": "Flutter SDK (banza_flutter / BanzaPay)",
       "categoryId": "cat-sdk",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.2, §12.5",
       "description": "SDK Flutter para fluxos de pagamento in-app e comércio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
       "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementação de lógica de pagamento na app anfitriã.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Flutter · Dart",
       "validationMethods": [
@@ -2865,14 +3136,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SDK-004",
       "title": "Go SDK (banza-go)",
       "categoryId": "cat-sdk",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.2",
       "description": "Cliente Go nativo com propagação de contexto, erros estruturados e idempotência automática.",
       "requirement": "Módulo Go publicado. Propagação de contexto correcta. Erros estruturados.",
@@ -2916,14 +3197,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SDK-005",
       "title": "Python SDK (banza-python)",
       "categoryId": "cat-sdk",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.2",
       "description": "SDK async-first com Pydantic v2 e suporte Django/FastAPI.",
       "requirement": "SDK publicado no PyPI. async-first. Pydantic v2 para validação de tipos.",
@@ -2967,14 +3258,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "API-001",
       "title": "API REST — transacções, carteiras e transferências",
       "categoryId": "cat-api",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.8",
       "description": "Endpoints REST para operações core — criar/capturar/anular transacções, obter saldo de carteiras, listar transacções e criar transferências.",
       "requirement": "API versionada, idempotente, com autenticação por chave API. Erros estruturados. Paginação.",
@@ -3024,19 +3325,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "API-002",
       "title": "API REST — QR, links de pagamento e pedidos",
       "categoryId": "cat-api",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
       "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Redis",
       "validationMethods": [
@@ -3075,19 +3386,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "API-003",
       "title": "API REST — levantamentos, reembolsos e disputas",
       "categoryId": "cat-api",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.8",
       "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
       "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
       "status": "PLANNED",
-      "priority": "HIGH",
+      "priority": "MEDIUM",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Rust",
       "validationMethods": [
@@ -3128,19 +3449,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WH-001",
       "title": "Sistema de webhooks — entrega de eventos",
       "categoryId": "cat-webhooks",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.6, §18.4",
       "description": "Entrega de eventos em tempo real para endpoints registados — 9 tipos de evento, entrega garantida, retry automático.",
       "requirement": "Eventos entregues em menos de 2 segundos após acção desencadeadora. Retry com backoff. Rastreamento de entregas.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis · PostgreSQL",
       "validationMethods": [
@@ -3178,14 +3509,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WH-002",
       "title": "Verificação de assinatura HMAC-SHA256",
       "categoryId": "cat-webhooks",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.6, §16",
       "description": "Cada webhook entregue com header banza-signature assinado por HMAC-SHA256 usando o segredo do endpoint.",
       "requirement": "Assinatura verificável em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
@@ -3227,14 +3568,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WH-003",
       "title": "Retry automático com backoff exponencial",
       "categoryId": "cat-webhooks",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.6",
       "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo após falhas persistentes.",
       "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante após falha persistente.",
@@ -3274,14 +3625,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SBX-001",
       "title": "Ambiente sandbox completamente isolado",
       "categoryId": "cat-sandbox",
-      "validationDomain": "DOM-DEV",
+      "validationDomain": "DOM-DEVELOPER",
       "referenceSection": "§12.7, §16.7",
       "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superfície de API idêntica à produção.",
       "requirement": "Sandbox completamente isolado — diferentes chaves, diferentes dados, sem movimento de dinheiro real. API idêntica.",
@@ -3324,14 +3685,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "LED-001",
       "title": "Ledger de dupla entrada",
       "categoryId": "cat-ledger",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-LEDGER",
       "referenceSection": "§16.1",
       "description": "Cada movimento monetário registado como par de entradas de ledger de dupla entrada — débito e crédito atomicamente. Líquido sempre zero.",
       "requirement": "Cada transacção cria exactamente duas entradas de ledger opostas. Soma de todos os saldos = 0 sempre.",
@@ -3433,15 +3804,24 @@
             "db/migrations/0033_ledger_immutability.sql",
             "production-sql: triggers=4, orphans=0, dup_idem=0, currency_mixed=0"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "LED-002",
       "title": "Imutabilidade de entradas do ledger",
       "categoryId": "cat-ledger",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-LEDGER",
       "referenceSection": "§16.2",
       "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Histórico financeiro completo e inviolável.",
       "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Histórico completamente reconstruível.",
@@ -3494,14 +3874,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "LED-003",
       "title": "Operações atómicas de pagamento",
       "categoryId": "cat-ledger",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-LEDGER",
       "referenceSection": "§17.5",
       "description": "Todas as operações financeiras dentro de transacções PostgreSQL — ou tudo commit, ou tudo rollback. Sem estado intermédio.",
       "requirement": "Sem estado de pagamento intermédio visível. Transacção confirma ou falha — nunca parcialmente.",
@@ -3619,20 +4009,29 @@
             "production-sql: orphans=0, dup_idem=0, FK confirmed",
             "production-sql: idempotency_key UNIQUE constraint active"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-05-20"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "LED-004",
       "title": "Reconciliação automática diária",
       "categoryId": "cat-ledger",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-LEDGER",
       "referenceSection": "§16.8",
       "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com créditos bancários reais.",
       "requirement": "Reconciliação diária automática. Qualquer discrepância gera alerta. Zero discrepâncias não resolvidas permitidas.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Reconciliation (Rust)",
       "technicalArea": "Rust · PostgreSQL · EMIS",
       "validationMethods": [
@@ -3674,14 +4073,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "KYC-001",
       "title": "Verificação KYC de consumidores",
       "categoryId": "cat-kyc",
-      "validationDomain": "DOM-COMPLIANCE",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.5",
       "description": "Verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Por níveis conforme volume.",
       "requirement": "KYC obrigatório antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
@@ -3729,14 +4138,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-20"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "KYC-002",
       "title": "Verificação KYB de comerciantes",
       "categoryId": "cat-kyc",
-      "validationDomain": "DOM-COMPLIANCE",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.5",
       "description": "Verificação de negócio para comerciantes — NIF para entidades formais, verificação de identidade para individuais.",
       "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
@@ -3779,19 +4198,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "RSK-001",
       "title": "Motor de risco em tempo real",
       "categoryId": "cat-risk",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.4",
       "description": "Triagem de transacções em tempo real antes de confirmar no ledger — velocidade, anomalias de valor, sinais de conta e dispositivo.",
       "requirement": "Motor de risco no caminho crítico. Transacções acima de limiares retidas ou recusadas antes do ledger.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Risk (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
       "validationMethods": [
@@ -3831,14 +4260,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "RSK-002",
       "title": "Revisão e alertas de transacções suspeitas",
       "categoryId": "cat-risk",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.4",
       "description": "Fila de revisão para transacções sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolução.",
       "requirement": "Fila de revisão no painel admin. Alertas em tempo real. Resolução com trilho de auditoria.",
@@ -3880,14 +4319,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SEC-001",
       "title": "TLS 1.3 em todas as comunicações",
       "categoryId": "cat-security",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.6",
       "description": "Toda a comunicação cliente-servidor e serviço-serviço usa TLS 1.3. Cloudflare como terminação TLS pública.",
       "requirement": "Zero comunicação não encriptada. TLS 1.3 obrigatório. Certificados geridos e renovados automaticamente.",
@@ -3937,6 +4386,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -3945,12 +4403,12 @@
       "id": "SEC-002",
       "title": "Encriptação AES-256 em repouso",
       "categoryId": "cat-security",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.6",
       "description": "Dados sensíveis encriptados em repouso — documentos KYC, segredos de webhook e chaves API em hash SHA-256.",
       "requirement": "Dados sensíveis nunca em claro em disco. Chaves API hasheadas. Documentos KYC encriptados com log de acesso.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / Security",
       "technicalArea": "PostgreSQL · Rust · Go",
       "validationMethods": [
@@ -3985,14 +4443,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SEC-003",
       "title": "Idempotência de operações de pagamento",
       "categoryId": "cat-security",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.3",
       "description": "Cada operação de pagamento identificada por chave de idempotência única. Segundo submit retorna resultado original sem novo efeito.",
       "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobranças duplicadas por retry.",
@@ -4035,14 +4503,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SEC-004",
       "title": "Auditoria e trilhos de auditoria imutáveis",
       "categoryId": "cat-security",
-      "validationDomain": "DOM-SEC",
+      "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.1, §16.2",
       "description": "Trilho de auditoria completo e imutável para cada operação financeira — quem fez, quando, com que resultado.",
       "requirement": "Cada acção financeira e de autenticação auditável. Trilho não editável. Disponível para reguladores.",
@@ -4084,19 +4562,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PAY-001",
       "title": "Levantamentos para conta bancária angolana",
       "categoryId": "cat-payouts",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§11.5, §7",
       "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta bancária angolana registada. Iniciado via interface móvel, web ou API.",
       "requirement": "Levantamento iniciado imediatamente. Transferência EMIS iniciada. Estado rastreável até confirmação.",
       "status": "PLANNED",
-      "priority": "HIGH",
+      "priority": "CRITICAL",
       "ownerArea": "Core / Payouts",
       "technicalArea": "Rust · Go · EMIS",
       "validationMethods": [
@@ -4149,14 +4637,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "PAY-002",
       "title": "Rastreamento de levantamentos e conciliação EMIS",
       "categoryId": "cat-payouts",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§11.5, §16.8",
       "description": "Cada levantamento rastreado desde a criação até à confirmação bancária. Reconciliação com extractos EMIS.",
       "requirement": "Estado de levantamento visível em tempo real. Reconciliação automática com confirmações EMIS.",
@@ -4199,14 +4697,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "REF-001",
       "title": "Reembolsos parciais e totais",
       "categoryId": "cat-refunds",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§7, §16.2",
       "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banzami Business ou via API. Nova entrada de ledger oposta criada.",
       "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
@@ -4277,6 +4785,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4285,7 +4802,7 @@
       "id": "REF-002",
       "title": "Processo de resolução de disputas",
       "categoryId": "cat-refunds",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§7, §11.2.2",
       "description": "Consumidor abre disputa sobre uma transacção. Comerciante responde. Processo estruturado de resolução com trilho de auditoria.",
       "requirement": "Disputas abertas via app, com prazo de resposta, evidências e decisão documentada.",
@@ -4332,19 +4849,29 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "OBS-001",
       "title": "OpenTelemetry + Prometheus — métricas e traços",
       "categoryId": "cat-observability",
-      "validationDomain": "DOM-OBS",
+      "validationDomain": "DOM-OPERATIONS",
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Instrumentação OpenTelemetry em todos os serviços, Prometheus para métricas e traços ponta-a-ponta desde gateway até ledger.",
       "requirement": "Cada serviço emite métricas e traços. Latências do caminho de pagamento rastreadas.",
       "status": "PLANNED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "OpenTelemetry · Prometheus · Go · Rust",
       "validationMethods": [
@@ -4387,6 +4914,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4395,12 +4931,12 @@
       "id": "OBS-002",
       "title": "Painéis Grafana operacionais",
       "categoryId": "cat-observability",
-      "validationDomain": "DOM-OBS",
+      "validationDomain": "DOM-OPERATIONS",
       "referenceSection": "§17.7",
       "description": "Três painéis Grafana — Pagamentos, Carteiras e Ledger, Liquidações e Levantamentos — conforme §17.7.",
       "requirement": "Três painéis Grafana operacionais com os indicadores definidos em §17.7.",
       "status": "PLANNED",
-      "priority": "HIGH",
+      "priority": "MEDIUM",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Grafana · Prometheus",
       "validationMethods": [
@@ -4436,14 +4972,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "OBS-003",
       "title": "Logs estruturados JSON em todos os serviços",
       "categoryId": "cat-observability",
-      "validationDomain": "DOM-OBS",
+      "validationDomain": "DOM-OPERATIONS",
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Logs estruturados JSON com IDs de transacção, tipos de operação e resultados. Sem logs de texto livre em serviços de produção.",
       "requirement": "Todos os serviços emitem logs JSON com campos obrigatórios: transaction_id, operation_type, result, latency_ms.",
@@ -4491,6 +5037,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4499,7 +5054,7 @@
       "id": "EMS-001",
       "title": "Integração EMIS/Multicaixa Express",
       "categoryId": "cat-emis",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-IN",
       "referenceSection": "§6.7, §10.4",
       "description": "Integração com EMIS (Empresa Interbancária de Serviços) — infraestrutura de pagamentos interbancários de Angola — para liquidação e levantamentos.",
       "requirement": "Integração EMIS completa para carregamento de carteiras e liquidação de levantamentos. Conforme regulação BNA.",
@@ -4554,6 +5109,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -4562,7 +5126,7 @@
       "id": "EMS-002",
       "title": "Liquidação interbancária via EMIS",
       "categoryId": "cat-emis",
-      "validationDomain": "DOM-FIN",
+      "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§6.7, §15.2",
       "description": "Liquidação de levantamentos de comerciantes e carregamentos de consumidores via rede interbancária EMIS/Multicaixa Express.",
       "requirement": "Dinheiro flui entre carteiras Banza e sistema bancário angolano de forma fiável e auditável via EMIS.",
@@ -4612,6 +5176,15 @@
           "approvedBy": "local-admin",
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:29:32.157Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
         }
       ],
