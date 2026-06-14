@@ -8,11 +8,6 @@
   },
   "categories": [
     {
-      "id": "cat-docs",
-      "name": "Site & Documentação",
-      "description": "Plataforma de documentação pública, renderização do documento de referência e navegação."
-    },
-    {
       "id": "cat-identity",
       "name": "Identidade & Posicionamento",
       "description": "Arquitectura de marca Banzami/Banza, posicionamento oficial e definição do ecossistema."
@@ -108,11 +103,6 @@
       "description": "Reembolsos parciais/totais e processo de resolução de disputas."
     },
     {
-      "id": "cat-arch",
-      "name": "Arquitectura",
-      "description": "Decisões e implementação da arquitectura técnica — Rust, Go, PostgreSQL, Redis."
-    },
-    {
       "id": "cat-observability",
       "name": "Observabilidade",
       "description": "OpenTelemetry, Prometheus, Grafana e logs estruturados."
@@ -121,241 +111,9 @@
       "id": "cat-emis",
       "name": "EMIS & Bancos",
       "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano."
-    },
-    {
-      "id": "cat-roadmap",
-      "name": "Roadmap",
-      "description": "Funcionalidades futuras — médio e longo prazo, conforme §19 da referência."
     }
   ],
   "items": [
-    {
-      "id": "DOC-004",
-      "title": "Plataforma de validacao (validation-studio)",
-      "categoryId": "cat-docs",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§15 (ADR-015)",
-      "description": "Infraestrutura de governança de validação que mapeia cada funcionalidade descrita em BANZA_REFERENCE.md ao seu estado de execução, evidências e critérios de aceitação. Inclui página pública /validacao, Validation Studio local, governance engine com checkItem/checkRequires/checkInvariants, sistema de fingerprint, portas de aprovação por frases exactas, histórico imutável e testes automatizados da engine.",
-      "requirement": "Página /validacao com matriz completa de implementação, filtros por status/prioridade/categoria/domínio, pesquisa por palavra-chave, métricas globais (confidence, arquitectura, cobertura de testes), rastreabilidade a BANZA_REFERENCE.md, Validation Studio local com governance engine, sistema de fingerprint determinístico, portas de aprovação humana com frases exactas, histórico append-only e suite de testes automatizados (≥80 casos).",
-      "status": "VALIDATED",
-      "priority": "HIGH",
-      "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "Next.js · TypeScript · JSON",
-      "validationMethods": [
-        "manual_ux",
-        "production_review",
-        "unit_tests",
-        "security_audit"
-      ],
-      "acceptanceCriteria": [
-        "Matriz JSON parseável e válida sem erros de schema",
-        "Página /validacao acessível em produção (banzami.com/validacao)",
-        "Todas as categorias do ecossistema representadas na matriz",
-        "Filtros por status, prioridade, categoria e domínio operacionais",
-        "Pesquisa por palavra-chave em tempo real funcional",
-        "Rastreabilidade ao BANZAMI_REFERENCE.md via campo referenceSection",
-        "Métricas globais exibidas e computadas correctamente",
-        "Validation Studio acessível localmente em localhost:3099",
-        "Governance engine cobre todas as regras §17 do CLAUDE.md (checkItem, checkRequires, checkInvariants)",
-        "Sistema de aprovação por frases exactas implementado nos comandos Claude",
-        "Fingerprint computado deterministicamente e verificado antes de apply",
-        "Histórico de transições imutável (append-only)",
-        "Testes automatizados da engine de governança (≥80 casos)",
-        "Validation Studio é local-only — zero rotas de escrita públicas"
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "config",
-          "label": "Matriz JSON",
-          "ref": "docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json"
-        },
-        {
-          "type": "config",
-          "label": "vitest.config.ts (studio)",
-          "ref": "apps/validation-studio/vitest.config.ts"
-        },
-        {
-          "type": "test",
-          "label": "governance.test.ts (55+ testes)",
-          "ref": "apps/validation-studio/lib/__tests__/governance.test.ts"
-        },
-        {
-          "type": "test",
-          "label": "fingerprint.test.ts (32 testes)",
-          "ref": "apps/validation-studio/lib/__tests__/fingerprint.test.ts"
-        },
-        {
-          "type": "adr",
-          "label": "ADR-015 (markdown-first content)",
-          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
-        },
-        {
-          "type": "route",
-          "label": "Validation Studio local",
-          "ref": "apps/validation-studio/app/page.tsx"
-        },
-        {
-          "type": "adr",
-          "label": "CLAUDE.md §17 Validation Governance",
-          "ref": "CLAUDE.md"
-        },
-        {
-          "type": "config",
-          "label": "Governance engine",
-          "ref": "apps/validation-studio/lib/governance.ts"
-        }
-      ],
-      "dependencies": [
-        "DOC-001"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": "2026-05-20",
-      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-      "history": [
-        {
-          "timestamp": "2026-05-20T08:15:40.576Z",
-          "from": "IMPLEMENTED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "f9a79663d89963ed",
-          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Governance infrastructure validated: 115 automated tests (87 studio + 28 docs) pass, all 14 acceptance criteria met, confidence 80/100 (VERY_HIGH).",
-          "evidence": [
-            "apps/validation-studio/lib/__tests__/governance.test.ts",
-            "apps/validation-studio/lib/__tests__/fingerprint.test.ts",
-            "apps/docs/lib/__tests__/validation.test.ts",
-            "apps/docs/app/validacao/page.tsx",
-            "apps/docs/components/validation/ValidationDashboard.tsx"
-          ]
-        },
-        {
-          "timestamp": "2026-06-13T19:44:55.643Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "348b619d06d0776a",
-          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
-          "evidence": [
-            "apps/validation-studio/lib/governance.ts",
-            "apps/validation-studio/app/page.tsx"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-06-13"
-    },
-    {
-      "id": "IDT-001",
-      "title": "Documento de referência oficial (BANZA_REFERENCE.md)",
-      "categoryId": "cat-identity",
-      "validationDomain": "DOM-IDENTITY",
-      "referenceSection": "§1 — §20",
-      "description": "Fonte única de verdade para todo o ecossistema Banza — definição canónica de protocolo, arquitectura, filosofia, UX e posicionamento.",
-      "requirement": "Documento completo, coerente e actualizado cobrindo todas as 20 secções do ecossistema. Nada pode aparecer no site sem existir primeiro aqui.",
-      "status": "VALIDATED",
-      "priority": "CRITICAL",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Markdown · Git",
-      "validationMethods": [
-        "manual_ux",
-        "production_review",
-        "unit_tests"
-      ],
-      "acceptanceCriteria": [
-        "20 secções completas, numeradas sequencialmente sem lacunas",
-        "Terminologia de marca consistente (Banzami/Banza)",
-        "Gramática portuguesa institucional correcta",
-        "Meta-dados (Version, Date, Author, Status) presentes e não vazios",
-        "Status \"Official\" e Version \"1.0\" confirmados no documento",
-        "Integridade estrutural validada por testes automatizados"
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "adr",
-          "label": "ADR-015 — Markdown-first",
-          "ref": "docs/adr/ADR-015-markdown-first-content-architecture.md"
-        },
-        {
-          "type": "component",
-          "label": "Ficheiro de referência",
-          "ref": "BANZAMI_REFERENCE.md"
-        },
-        {
-          "type": "adr",
-          "label": "CLAUDE.md §15 (source of truth)",
-          "ref": "CLAUDE.md"
-        }
-      ],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/identity/**",
-        "core/consumer-wallets/**",
-        "db/migrations/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": "2026-05-20",
-      "validatedAgainstCommit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-      "history": [
-        {
-          "timestamp": "2026-05-20T10:31:38.478Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "8057a91c65ebefcf",
-          "commit": "bd109e14b519912c0ce74aff5fbd0b00392357e7",
-          "reason": "Revalidação com unit_tests: reference.test.ts valida estrutura do documento (20 secções, meta, conteúdo, sequência). Confidence 65 → 80 (VERY_HIGH).",
-          "evidence": [
-            "apps/docs/lib/__tests__/reference.test.ts"
-          ]
-        },
-        {
-          "timestamp": "2026-06-13T19:44:55.643Z",
-          "from": "VALIDATED",
-          "to": "VALIDATED",
-          "approvedBy": "local-admin",
-          "fingerprint": "348b619d06d0776a",
-          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
-          "evidence": [
-            "BANZAMI_REFERENCE.md"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-06-13"
-    },
     {
       "id": "IDT-002",
       "title": "Arquitectura de marca Banzami/Banza",
@@ -390,9 +148,7 @@
         "apps/pay/app/layout.tsx:title=Banzami Pay",
         "apps/checkout/app/layout.tsx:title=Banzami Checkout"
       ],
-      "dependencies": [
-        "IDT-001"
-      ],
+      "dependencies": [],
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
@@ -454,6 +210,15 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
@@ -486,7 +251,6 @@
         "CLAUDE.md §1.5 — posicionamento oficial do operador (Angola QR-native)"
       ],
       "dependencies": [
-        "IDT-001",
         "IDT-002"
       ],
       "requires": [],
@@ -538,9 +302,18 @@
           "evidence": [
             "CLAUDE.md §1.5"
           ]
+        },
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-13"
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "WAL-001",
@@ -4134,9 +3907,7 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": [
-        "ARC-002"
-      ],
+      "dependencies": [],
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
@@ -4157,8 +3928,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "SEC-002",
@@ -4555,315 +4336,6 @@
       "lastUpdated": "2026-05-19"
     },
     {
-      "id": "ARC-001",
-      "title": "Core financeiro em Rust",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.1)",
-      "description": "Motor financeiro core em Rust — ledger, carteiras, transacções, liquidação, reconciliação, risco e conformidade.",
-      "requirement": "Core financeiro implementado em Rust com segurança de memória, desempenho determinístico e sem GC no caminho de pagamento.",
-      "status": "IN_PROGRESS",
-      "priority": "CRITICAL",
-      "ownerArea": "Core Engineering / Rust",
-      "technicalArea": "Rust · PostgreSQL",
-      "validationMethods": [
-        "financial_invariant",
-        "unit_tests",
-        "integration_tests",
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "Motor de ledger em Rust funcional",
-        "Motor de carteiras em Rust funcional",
-        "Motor de transacções processando pagamentos",
-        "Sem alocações unsafe em código de pagamento",
-        "Testes de invariante financeiro passando"
-      ],
-      "testCoverage": false,
-      "evidence": [
-        {
-          "type": "adr",
-          "label": "CLAUDE.md §3.1 — Rust para Core Financeiro",
-          "ref": "CLAUDE.md"
-        }
-      ],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/**",
-        "services/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 85,
-        "level": "VERY_HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit tests (+15)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "ARC-002",
-      "title": "Camada API em Go (gateway + APIs públicas/admin)",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2, §17.3 (CLAUDE.md §3.2)",
-      "description": "API Gateway, API Pública e API Admin em Go — auth, rate limiting, routing, entrega de webhooks.",
-      "requirement": "Camada API Go funcional com gateway, APIs públicas e admin. Autenticação e rate limiting operacionais.",
-      "status": "IN_PROGRESS",
-      "priority": "CRITICAL",
-      "ownerArea": "Core Engineering / Go",
-      "technicalArea": "Go · Redis · PostgreSQL",
-      "validationMethods": [
-        "integration_tests",
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "API Gateway com auth e rate limiting",
-        "API Pública com endpoints de pagamento",
-        "API Admin com operações de liquidação e disputas",
-        "Rate limiting por chave API",
-        "Entrega de webhooks pelo gateway"
-      ],
-      "testCoverage": false,
-      "evidence": [
-        {
-          "type": "adr",
-          "label": "CLAUDE.md §3.2 — Go para API Layer",
-          "ref": "CLAUDE.md"
-        }
-      ],
-      "dependencies": [
-        "ARC-001"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/**",
-        "services/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 70,
-        "level": "HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "integration tests (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "ARC-003",
-      "title": "Frontend TypeScript/Next.js",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.3)",
-      "description": "Frontend em TypeScript/Next.js para dashboard de comerciante, administração e documentação pública.",
-      "requirement": "Frontend implementado em Next.js com TypeScript. Site de documentação em produção.",
-      "status": "IMPLEMENTED",
-      "priority": "HIGH",
-      "ownerArea": "Plataforma / Frontend",
-      "technicalArea": "TypeScript · Next.js · React",
-      "validationMethods": [
-        "manual_ux",
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "Site de documentação em produção",
-        "TypeScript estrito em todo o código frontend",
-        "Build sem erros",
-        "Deploy automatizado via deploy.sh"
-      ],
-      "testCoverage": false,
-      "evidence": [
-        {
-          "type": "route",
-          "label": "Dashboard do comerciante (Next.js)",
-          "ref": "apps/dashboard/app/(dashboard)/page.tsx"
-        },
-        {
-          "type": "route",
-          "label": "Portal admin (Next.js)",
-          "ref": "apps/admin/app/page.tsx"
-        },
-        {
-          "type": "route",
-          "label": "Pagina de pagamento (Next.js)",
-          "ref": "apps/pay/app/page.tsx"
-        },
-        {
-          "type": "route",
-          "label": "Checkout hosted (Next.js)",
-          "ref": "apps/checkout/app/page.tsx"
-        }
-      ],
-      "notes": "Site de documentação em produção e validado. Dashboard de comerciante planeado.",
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/**",
-        "services/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 65,
-        "level": "HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "E2E / manual UX (+15)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [
-        {
-          "timestamp": "2026-06-13T19:44:55.643Z",
-          "from": "IMPLEMENTED",
-          "to": "IMPLEMENTED",
-          "approvedBy": "local-admin",
-          "fingerprint": "348b619d06d0776a",
-          "reason": "Cleanup apos remocao do website (apps/docs) e do mirror BANZA_REFERENCE.md; evidencia repointada para artefactos operador existentes.",
-          "evidence": [
-            "apps/dashboard",
-            "apps/admin",
-            "apps/pay",
-            "apps/checkout"
-          ]
-        }
-      ],
-      "lastUpdated": "2026-06-13"
-    },
-    {
-      "id": "ARC-004",
-      "title": "Base de dados PostgreSQL como fonte única de verdade",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.2 (CLAUDE.md §3.5)",
-      "description": "PostgreSQL como única fonte de verdade financeira com garantias ACID. Sem outras fontes de verdade para dados financeiros.",
-      "requirement": "PostgreSQL configurado com backups, replicação e índices optimizados para o caminho de pagamento.",
-      "status": "PLANNED",
-      "priority": "CRITICAL",
-      "ownerArea": "Core Engineering / Database",
-      "technicalArea": "PostgreSQL",
-      "validationMethods": [
-        "financial_invariant",
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "PostgreSQL em produção com backup automático",
-        "Replicação configurada",
-        "Índices em tabelas de transacção e carteiras",
-        "Sem queries analíticas no caminho de pagamento",
-        "RTO e RPO definidos e testados"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/**",
-        "services/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 30,
-        "level": "LOW",
-        "basis": [
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "ARC-005",
-      "title": "Decisão de arquitectura: Monólito Modular",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§17.6 (CLAUDE.md §2.3)",
-      "description": "Arquitectura de monólito modular definida e documentada — módulos isolados internamente, fronteiras de domínio claras, deploy único.",
-      "requirement": "Decisão arquitectural documentada em ADR. Estrutura de módulos conforme CLAUDE.md e referência técnica.",
-      "status": "IMPLEMENTED",
-      "priority": "CRITICAL",
-      "ownerArea": "Core Engineering",
-      "technicalArea": "Arquitectura",
-      "validationMethods": [
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "ADR documentando a decisão",
-        "Estrutura de módulos definida",
-        "Fronteiras de domínio documentadas",
-        "Critérios de extracção para microserviços definidos"
-      ],
-      "testCoverage": false,
-      "evidence": [
-        {
-          "type": "adr",
-          "label": "CLAUDE.md §2.3 — Modular Monolith First",
-          "ref": "CLAUDE.md"
-        },
-        {
-          "type": "config",
-          "label": "Estrutura de repositório CLAUDE.md §4",
-          "ref": "CLAUDE.md"
-        }
-      ],
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "core/**",
-        "services/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
-        "basis": [
-          "implementation evidence (+20)",
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
       "id": "OBS-001",
       "title": "OpenTelemetry + Prometheus — métricas e traços",
       "categoryId": "cat-observability",
@@ -4886,10 +4358,7 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": [
-        "ARC-001",
-        "ARC-002"
-      ],
+      "dependencies": [],
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
@@ -4909,8 +4378,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "OBS-002",
@@ -4983,10 +4462,7 @@
       ],
       "testCoverage": false,
       "evidence": [],
-      "dependencies": [
-        "ARC-001",
-        "ARC-002"
-      ],
+      "dependencies": [],
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
@@ -5006,14 +4482,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "EMS-001",
       "title": "Integração EMIS/Multicaixa Express",
       "categoryId": "cat-emis",
-      "validationDomain": "DOM-INFRA",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§6.7, §10.4",
       "description": "Integração com EMIS (Empresa Interbancária de Serviços) — infraestrutura de pagamentos interbancários de Angola — para liquidação e levantamentos.",
       "requirement": "Integração EMIS completa para carregamento de carteiras e liquidação de levantamentos. Conforme regulação BNA.",
@@ -5059,14 +4545,24 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
+      "history": [
+        {
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "348b619d06d0776a",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-14"
     },
     {
       "id": "EMS-002",
       "title": "Liquidação interbancária via EMIS",
       "categoryId": "cat-emis",
-      "validationDomain": "DOM-INFRA",
+      "validationDomain": "DOM-FIN",
       "referenceSection": "§6.7, §15.2",
       "description": "Liquidação de levantamentos de comerciantes e carregamentos de consumidores via rede interbancária EMIS/Multicaixa Express.",
       "requirement": "Dinheiro flui entre carteiras Banza e sistema bancário angolano de forma fiável e auditável via EMIS.",
@@ -5108,358 +4604,18 @@
       "freezeReason": null,
       "lastValidatedAt": null,
       "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "RD-001",
-      "title": "App móvel do consumidor Banza (Flutter)",
-      "categoryId": "cat-roadmap",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§6.4, §13",
-      "description": "App Flutter nativa para consumidores — carteira, scanner QR, transferências P2P, histórico e gestão de conta. Este é o produto principal do consumidor, não uma funcionalidade de roadmap.",
-      "requirement": "App nativa disponível em Android e iOS. UX da §6.4 e §13 completamente implementada.",
-      "status": "PLANNED",
-      "priority": "CRITICAL",
-      "ownerArea": "Consumer Platform / Flutter",
-      "technicalArea": "Flutter · Dart",
-      "validationMethods": [
-        "manual_ux",
-        "e2e_tests"
-      ],
-      "acceptanceCriteria": [
-        "App publicada em Google Play e App Store",
-        "Onboarding completo em <2 minutos",
-        "Scanner QR funcional",
-        "Transferências P2P funcionais"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "notes": "Reclassificado de FUTURE para PLANNED — a app do consumidor é o produto, não roadmap. Sem ela nenhum consumidor pode pagar via QR. Integração na Fase 4 do roadmap de execução.",
-      "dependencies": [
-        "API-001",
-        "API-002",
-        "QR-003"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 35,
-        "level": "LOW",
-        "basis": [
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-20"
-    },
-    {
-      "id": "RD-002",
-      "title": "Pagamentos recorrentes",
-      "categoryId": "cat-roadmap",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§19 — Médio prazo",
-      "description": "Pedidos de pagamento agendados para subscrições, propinas escolares e quotas periódicas.",
-      "requirement": "Sistema de recorrência com frequência configurável, notificações automáticas e gestão de falhas.",
-      "status": "FUTURE",
-      "priority": "MEDIUM",
-      "ownerArea": "Core / Payment Requests",
-      "technicalArea": "Go · PostgreSQL",
-      "validationMethods": [
-        "integration_tests"
-      ],
-      "acceptanceCriteria": [
-        "Recorrência configurável: semanal, mensal, trimestral",
-        "Notificação automática antes da data",
-        "Gestão de falhas com retry"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "dependencies": [
-        "PR-001"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
-        "basis": [
-          "integration tests (+20)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "RD-003",
-      "title": "Plugin WooCommerce/WordPress",
-      "categoryId": "cat-roadmap",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§18.3",
-      "description": "Plugin de gateway de pagamento WooCommerce para lojas angolanas. Usa PHP SDK internamente.",
-      "requirement": "Plugin publicado no repositório WordPress. Usa banza/sdk-php. Suporte a pagamentos QR e links.",
-      "status": "FUTURE",
-      "priority": "MEDIUM",
-      "ownerArea": "Developer Platform / Plugins",
-      "technicalArea": "PHP · WooCommerce",
-      "validationMethods": [
-        "manual_ux",
-        "integration_tests"
-      ],
-      "acceptanceCriteria": [
-        "Plugin publicado no repositório WordPress",
-        "Integração via banza/sdk-php",
-        "Checkout Banza funcional no WooCommerce",
-        "Webhooks configurados automaticamente"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "dependencies": [
-        "SDK-002"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
-        "basis": [
-          "integration tests (+20)",
-          "E2E / manual UX (+15)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "RD-004",
-      "title": "Carregamento de carteira por cartão de débito",
-      "categoryId": "cat-roadmap",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§10.3, §19 — Longo prazo",
-      "description": "Mecanismo para financiar Banzami Wallet usando cartão de débito angolano. Cartão como via de financiamento — não modelo de pagamento.",
-      "requirement": "Carregamento por cartão disponível como opcional. Cartão NUNCA usado para pagamentos directos — apenas para top-up de carteira.",
-      "status": "FUTURE",
-      "priority": "LOW",
-      "ownerArea": "Core / Funding",
-      "technicalArea": "Go · Card Processor",
-      "validationMethods": [
-        "financial_invariant",
-        "security_audit"
-      ],
-      "acceptanceCriteria": [
-        "Carregamento por cartão de débito angolano funcional",
-        "Cartão nunca exposto no fluxo de pagamento",
-        "Saldo Banzami Wallet actualizado após confirmação",
-        "Trilho de auditoria completo do carregamento"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "notes": "Cartão = via de financiamento APENAS. O pagamento continua a ser sempre wallet-to-wallet.",
-      "dependencies": [
-        "WAL-001",
-        "EMS-001"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 20,
-        "level": "LOW",
-        "basis": [
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
       "history": [
         {
-          "timestamp": "2026-06-13T22:54:03.981Z",
-          "from": "FUTURE",
-          "to": "FUTURE",
+          "timestamp": "2026-06-14T00:18:33.031Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
           "approvedBy": "local-admin",
           "fingerprint": "348b619d06d0776a",
-          "reason": "Correcao de nomenclatura de produto antiga (Banza -> Banzami) — operador; @banza/BANZA protocolo nao tocados.",
+          "reason": "Operator-only purification: remocao de items de documentacao/arquitectura/roadmap; matriz responde apenas a prontidao operacional de pagamentos.",
           "evidence": []
         }
       ],
       "lastUpdated": "2026-06-14"
-    },
-    {
-      "id": "RD-005",
-      "title": "Expansão geográfica além de Angola",
-      "categoryId": "cat-roadmap",
-      "validationDomain": "DOM-DOCS",
-      "referenceSection": "§19 — Longo prazo",
-      "description": "Após Angola atingir densidade de rede: aplicação do mesmo modelo a mercados vizinhos africanos.",
-      "requirement": "Expansão apenas após rede angolana demonstrar density e operação estável. Arquitectura já preparada.",
-      "status": "FUTURE",
-      "priority": "LOW",
-      "ownerArea": "Organização Banzami",
-      "technicalArea": "Multi-tenant · Localização",
-      "validationMethods": [
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "Densidade de rede Angola atingida (critérios a definir)",
-        "Arquitectura multi-tenant testada",
-        "Primeiro mercado externo seleccionado",
-        "Parceiros locais identificados"
-      ],
-      "testCoverage": false,
-      "evidence": [],
-      "notes": "O momento ainda não chegou. Angola vem primeiro.",
-      "dependencies": [
-        "EMS-001",
-        "KYC-001",
-        "WAL-001"
-      ],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "docs/**"
-      ],
-      "blockingIssues": [
-        "Densidade de rede Angola não atingida"
-      ],
-      "invariants": [],
-      "confidence": {
-        "score": 30,
-        "level": "LOW",
-        "basis": [
-          "production / sandbox evidence (+10)",
-          "non-financial item (invariants not required, +20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [],
-      "lastUpdated": "2026-05-19"
-    },
-    {
-      "id": "ARCH-REPO-001",
-      "title": "Repository layout freeze",
-      "categoryId": "cat-arch",
-      "validationDomain": "DOM-INFRA",
-      "referenceSection": "§20 (CLAUDE.md §20)",
-      "description": "Arquitectura do repositório estabilizada e congelada. Zonas semânticas definidas, diretórios obrigatórios criados, verificação automática de layout em CI.",
-      "requirement": "README actualizado com layout alvo. CLAUDE.md §20 com regras vinculativas. Diretórios contracts/, core/jobs/, infra/terraform/* criados. Check automático implementado e a passar. Sem diretórios de topo desconhecidos.",
-      "status": "IMPLEMENTED",
-      "priority": "HIGH",
-      "ownerArea": "Arquitectura / Governação",
-      "technicalArea": "Repository Structure · Node.js tooling · Documentation",
-      "validationMethods": [
-        "unit_tests",
-        "production_review"
-      ],
-      "acceptanceCriteria": [
-        "README.md actualizado com layout actual e alvo",
-        "CLAUDE.md §20 contém as 10 regras vinculativas",
-        "contracts/ e subdirectórios criados",
-        "core/jobs/ criado com README",
-        "infra/terraform/ subdividido por provider/domínio",
-        "tools/check-repository-layout.mjs implementado",
-        "make check-repo-layout passa sem falhas",
-        "make check-all inclui o check de layout",
-        "Nenhum diretório de topo desconhecido detectado"
-      ],
-      "testCoverage": true,
-      "evidence": [
-        {
-          "type": "file",
-          "label": "tools/check-repository-layout.mjs — layout compliance check",
-          "ref": "tools/check-repository-layout.mjs"
-        },
-        {
-          "type": "file",
-          "label": "core/jobs/README.md — background job home",
-          "ref": "core/jobs/README.md"
-        },
-        {
-          "type": "config",
-          "label": "Makefile — check-repo-layout and check-all targets",
-          "ref": "Makefile"
-        },
-        {
-          "type": "docs",
-          "label": "CLAUDE.md §20 — Repository Layout Freeze",
-          "ref": "CLAUDE.md"
-        },
-        {
-          "type": "docs",
-          "label": "README.md — Repository Layout section with target architecture",
-          "ref": "README.md"
-        }
-      ],
-      "notes": "Layout congelado ao nível operador. Activos de protocolo (contracts/, sdk-certification/) e o website (apps/docs) foram removidos do repo do operador — ver docs/governance/. tools/check-repository-layout.mjs reflecte o layout actual.",
-      "dependencies": [],
-      "requires": [],
-      "affects": [],
-      "revalidateWhenChanged": [
-        "tools/check-repository-layout.mjs",
-        "CLAUDE.md",
-        "README.md",
-        "Makefile"
-      ],
-      "blockingIssues": [],
-      "invariants": [],
-      "confidence": {
-        "score": 65,
-        "level": "HIGH",
-        "basis": [
-          "implementation evidence (+20)",
-          "unit_tests — check script passing (+15)",
-          "production_review — full audit (+10)",
-          "non-financial item (+20)"
-        ]
-      },
-      "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
-      "history": [
-        {
-          "timestamp": "2026-06-13T19:47:55.092Z",
-          "from": "IMPLEMENTED",
-          "to": "IMPLEMENTED",
-          "approvedBy": "local-admin",
-          "fingerprint": "348b619d06d0776a",
-          "reason": "Cleanup apos remocao do website (apps/docs), mirror BANZA_REFERENCE.md e contracts/; evidencia stale removida/repointada.",
-          "evidence": []
-        }
-      ],
-      "lastUpdated": "2026-06-13"
     }
   ]
 }
