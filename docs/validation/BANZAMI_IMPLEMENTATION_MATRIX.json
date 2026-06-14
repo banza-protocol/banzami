@@ -3135,7 +3135,7 @@
       "referenceSection": "§11.2.2",
       "description": "Volume diário/mensal, contagens de transacções, horas de pico e tendências para o comerciante.",
       "requirement": "Análises precisas derivadas do ledger. Filtráveis por período. Exportáveis.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · PostgreSQL",
@@ -3154,6 +3154,21 @@
           "type": "component",
           "label": "page.tsx",
           "ref": "apps/dashboard/app/(dashboard)/transactions/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "analytics.rs",
+          "ref": "core/api/src/routes/analytics.rs"
+        },
+        {
+          "type": "route",
+          "label": "wallet analytics proxy",
+          "ref": "services/api-gateway/internal/handler/wallets.go"
+        },
+        {
+          "type": "frontend",
+          "label": "analytics page",
+          "ref": "apps/dashboard/app/(dashboard)/analytics/page.tsx"
         }
       ],
       "dependencies": [
@@ -3167,15 +3182,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "built end-to-end 2026-06-14 (analytics endpoint + dashboard page)",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T21:19:50Z",
+      "validatedAgainstCommit": "3ebe027",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3195,6 +3211,18 @@
           "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
           "evidence": [
             "apps/dashboard/app/(dashboard)/transactions/page.tsx"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:19:50Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "34723232b40b6ed0",
+          "reason": "Analytics built end-to-end: ledger-derived daily/monthly volume, peak-hours chart, period filters, CSV export.",
+          "evidence": [
+            "core/api/src/routes/analytics.rs",
+            "apps/dashboard/app/(dashboard)/analytics/page.tsx"
           ]
         }
       ],
