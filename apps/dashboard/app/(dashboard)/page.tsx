@@ -37,20 +37,29 @@ export default function OverviewPage() {
     const session = getSession();
     if (!session) return;
     const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
+    let cancelled = false;
 
-    const tasks: Promise<void>[] = [
-      api.listTransactions({ limit: 100 })
-        .then(p => setTxs(p.data))
-        .catch(e => setError(e instanceof Error ? e.message : 'Erro')),
-    ];
+    async function load() {
+      const tasks: Promise<void>[] = [
+        api.listTransactions({ limit: 100 })
+          .then(p => { if (!cancelled) setTxs(p.data); })
+          .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : 'Erro'); }),
+      ];
 
-    const loadBalance = session.walletId
-      ? api.getWalletBalance(session.walletId)
-      : api.getMerchantWallet().then(w => api.getWalletBalance(w.id));
+      const loadBalance = session!.walletId
+        ? api.getWalletBalance(session!.walletId)
+        : api.getMerchantWallet().then(w => api.getWalletBalance(w.id));
 
-    tasks.push(loadBalance.then(b => setBalance(b)).catch(() => {}));
+      tasks.push(loadBalance.then(b => { if (!cancelled) setBalance(b); }).catch(() => {}));
+      await Promise.all(tasks);
+      if (!cancelled) setLoading(false);
+    }
 
-    Promise.all(tasks).finally(() => setLoading(false));
+    load();
+    // Near-real-time: refresh balance + recent activity every 15s so incoming
+    // payments surface without a manual reload. Money moves at internet speed.
+    const timer = setInterval(load, 15_000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, []);
 
   const currency  = txs[0]?.currency ?? balance?.currency ?? 'AOA';
