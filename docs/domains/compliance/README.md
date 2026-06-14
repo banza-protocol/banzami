@@ -98,6 +98,63 @@ Three checks, evaluated in order:
 
 ---
 
+## Identity Verification Provider
+
+The compliance **engine** owns the verification *state machine* (levels, statuses,
+gating). Establishing an identity — actually checking a consumer's Bilhete de
+Identidade or a merchant's NIF — is delegated to a **provider**, mirroring the
+acquiring layer. The provider is the seam to an external verification vendor.
+
+```
+  submit document ─► KycProvider ─► VerificationOutcome ─► engine persists
+   (BI / NIF)        (decides)      (decision + level)      (status + level)
+```
+
+### Provider strategy
+
+Selected at boot via the `KYC_PROVIDER` env var:
+
+| Value      | Provider               | Use case                                          |
+|------------|------------------------|---------------------------------------------------|
+| (default)  | `SimulatedKycProvider` | Development, sandbox — deterministic checks        |
+| `EXTERNAL` | `ExternalKycProvider`  | Production (requires `KYC_API_BASE`/`KYC_API_KEY`) |
+
+**Safety guard:** the server refuses to boot if `APP_ENV=production` and
+`KYC_PROVIDER` is not `EXTERNAL` — preventing a production deployment that would
+approve identities with the simulated provider. The `ExternalKycProvider` is a
+stub today: it errors until a verification vendor is wired, so the production
+path is explicit rather than silently approving.
+
+### Decisions
+
+A provider returns one of three decisions, which the engine maps onto the
+compliance record:
+
+| Decision        | Consumer (KYC)                                | Merchant (KYB)     |
+|-----------------|-----------------------------------------------|--------------------|
+| `Approved`      | KYC level raised to granted level, `Approved` | KYB + AML → `Approved` |
+| `Rejected`      | status `Rejected`, level unchanged            | KYB → `Rejected`   |
+| `PendingReview` | status `UnderReview`, level unchanged         | KYB → `UnderReview` |
+
+The simulated provider grants the requested level capped at `Enhanced`: it can
+verify a document but cannot establish the proof-of-address + face match that
+`Full` requires, so `Full` requests route to manual review. Sandbox callers can
+force each branch — a name or document containing `REJECT`/`REVIEW`, or an
+all-zero document number, drives the corresponding decision.
+
+### Endpoints (internal core-api)
+
+```
+POST /internal/v1/compliance/customers/:id/verify   — run consumer KYC
+POST /internal/v1/compliance/merchants/:id/verify    — run merchant KYB
+```
+
+`verify` runs the document through the configured provider and persists the
+outcome; the existing `approve`/`reject` endpoints remain the manual override
+path for a compliance officer.
+
+---
+
 ## Compliance Status Values
 
 | Value          | Meaning                                                  |
