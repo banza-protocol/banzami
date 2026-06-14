@@ -140,7 +140,7 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
             left:  0,
             right: 0,
             child: Text(
-              'BANZA',
+              'BANZAMI',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color:         Colors.white.withValues(alpha: 0.92),

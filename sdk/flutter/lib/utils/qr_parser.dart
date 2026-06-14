@@ -4,11 +4,11 @@
 ///  • https://pay.banzami.org/r/{code}[?sandbox=1]
 ///  • https://pay.banzami.org/u/{handle}[?amount=N&note=...&sandbox=1]
 ///  • banzami://pay?request={code}
-///  • banza-sandbox://pay?request={code}
+///  • banzami-sandbox://pay?request={code}
 ///  • banzami://pay/u/{handle}[?amount=N&note=...]
-///  • banza-sandbox://pay/u/{handle}[?amount=N&note=...]
+///  • banzami-sandbox://pay/u/{handle}[?amount=N&note=...]
 ///  • banza:@{handle}[?amount=N&currency=AOA]
-///  • banza-sandbox:@{handle}[?amount=N&currency=AOA]
+///  • banzami-sandbox:@{handle}[?amount=N&currency=AOA]
 library;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -97,9 +97,9 @@ class BanzamiQrParser {
       }
     }
 
-    // ── Deep link: banzami:// or banza-sandbox:// ───────────────────────────────
-    if (raw.startsWith('banzami://') || raw.startsWith('banza-sandbox://')) {
-      final isSandbox = raw.startsWith('banza-sandbox://');
+    // ── Deep link: banzami:// or banzami-sandbox:// ───────────────────────────────
+    if (raw.startsWith('banzami://') || raw.startsWith('banzami-sandbox://')) {
+      final isSandbox = raw.startsWith('banzami-sandbox://');
       final uri       = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('Link inválido');
 
@@ -124,11 +124,11 @@ class BanzamiQrParser {
       return const BanzamiQrInvalid('Formato de link inválido');
     }
 
-    // ── Handle QR: banza:@{handle} or banza-sandbox:@{handle} ────────────────
-    if (raw.startsWith('banza:@') || raw.startsWith('banza-sandbox:@')) {
-      final isSandbox = raw.startsWith('banza-sandbox:');
+    // ── Handle QR: banza:@{handle} or banzami-sandbox:@{handle} ────────────────
+    if (raw.startsWith('banza:@') || raw.startsWith('banzami-sandbox:@')) {
+      final isSandbox = raw.startsWith('banzami-sandbox:');
       final rest      = isSandbox
-          ? raw.substring('banza-sandbox:@'.length)
+          ? raw.substring('banzami-sandbox:@'.length)
           : raw.substring('banza:@'.length);
       // rest = 'fm65' or 'fm65?amount=5000&currency=AOA'
       final qIdx      = rest.indexOf('?');

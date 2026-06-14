@@ -2,11 +2,11 @@
 
 declare(strict_types=1);
 
-namespace Banza\Tests;
+namespace Banzami\Tests;
 
-use Banza\BanzaClient;
-use Banza\BanzamiException;
-use Banza\WebhookHandler;
+use Banzami\BanzamiClient;
+use Banzami\BanzamiException;
+use Banzami\WebhookHandler;
 use PHPUnit\Framework\TestCase;
 
 class WebhookHandlerTest extends TestCase

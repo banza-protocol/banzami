@@ -46,7 +46,7 @@ class WebhookHandler
      */
     public function parse(string $rawBody, string $signature): array
     {
-        if (!BanzaClient::verifyWebhookSignature($rawBody, $signature, $this->secret)) {
+        if (!BanzamiClient::verifyWebhookSignature($rawBody, $signature, $this->secret)) {
             throw new BanzamiException('Invalid webhook signature', 401);
         }
 

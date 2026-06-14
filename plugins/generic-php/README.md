@@ -17,10 +17,10 @@ composer require banzami/banzami-php
 ## Quick Start
 
 ```php
-use Banza\BanzaClient;
-use Banza\BanzamiException;
+use Banzami\BanzamiClient;
+use Banzami\BanzamiException;
 
-$client = new BanzaClient('https://api.banzami.com', 'bz_live_YOUR_KEY');
+$client = new BanzamiClient('https://api.banzami.com', 'bz_live_YOUR_KEY');
 
 // 1. Create a payment link
 $link = $client->createPaymentLink([
@@ -59,7 +59,7 @@ try {
 ### Constructor
 
 ```php
-$client = new BanzaClient(
+$client = new BanzamiClient(
     string $baseUrl,          // e.g. 'https://api.banzami.com'
     string $apiKey,           // e.g. 'bz_live_...'
     int    $timeout = 30,     // cURL timeout in seconds
@@ -183,7 +183,7 @@ $wallet = $client->getWallet('wal_abc123');
 
 ```php
 $balance = $client->getWalletBalance('wal_abc123');
-echo BanzaClient::formatAmount($balance['available_minor'], $balance['currency']);
+echo BanzamiClient::formatAmount($balance['available_minor'], $balance['currency']);
 // e.g. "75.000 Kz"
 ```
 
@@ -243,8 +243,8 @@ Banza signs every webhook payload with HMAC-SHA256. Always verify the signature 
 #### Using `WebhookHandler`
 
 ```php
-use Banza\WebhookHandler;
-use Banza\BanzamiException;
+use Banzami\WebhookHandler;
+use Banzami\BanzamiException;
 
 $handler = new WebhookHandler(getenv('BANZAMI_WEBHOOK_SECRET'));
 
@@ -284,7 +284,7 @@ http_response_code(200);
 #### Manual verification (without `WebhookHandler`)
 
 ```php
-$valid = BanzaClient::verifyWebhookSignature(
+$valid = BanzamiClient::verifyWebhookSignature(
     $rawBody,
     $_SERVER['HTTP_X_BANZAMI_SIGNATURE'] ?? '',
     getenv('BANZAMI_WEBHOOK_SECRET')
@@ -304,26 +304,26 @@ The `Banza-Signature` header format is `sha256=<hex_digest>`.
 
 Banza always works in minor units (integers) to avoid floating-point errors.
 
-#### `BanzaClient::formatAmount(int $amountMinor, string $currency): string`
+#### `BanzamiClient::formatAmount(int $amountMinor, string $currency): string`
 
 Converts a minor-unit amount to a human-readable string.
 
 ```php
-BanzaClient::formatAmount(50000, 'AOA'); // "50.000 Kz"
-BanzaClient::formatAmount(1999, 'USD');  // "19,99 USD"
+BanzamiClient::formatAmount(50000, 'AOA'); // "50.000 Kz"
+BanzamiClient::formatAmount(1999, 'USD');  // "19,99 USD"
 ```
 
 - AOA: minor unit = 1 Kwanza (no subdivision). Returns `"N Kz"`.
 - All other currencies: minor unit = 1/100 of the major unit.
 
-#### `BanzaClient::toMinorUnits(float $total, string $currency): int`
+#### `BanzamiClient::toMinorUnits(float $total, string $currency): int`
 
 Converts a decimal amount to minor units for use in API calls.
 
 ```php
-BanzaClient::toMinorUnits(500.0,  'AOA'); // 500
-BanzaClient::toMinorUnits(19.99,  'USD'); // 1999
-BanzaClient::toMinorUnits(1499.5, 'AOA'); // 1500 (rounded)
+BanzamiClient::toMinorUnits(500.0,  'AOA'); // 500
+BanzamiClient::toMinorUnits(19.99,  'USD'); // 1999
+BanzamiClient::toMinorUnits(1499.5, 'AOA'); // 1500 (rounded)
 ```
 
 ---
@@ -333,7 +333,7 @@ BanzaClient::toMinorUnits(1499.5, 'AOA'); // 1500 (rounded)
 All API errors throw `Banzami\BanzamiException`, which extends `\RuntimeException`.
 
 ```php
-use Banza\BanzamiException;
+use Banzami\BanzamiException;
 
 try {
     $link = $client->getPaymentLink('pl_missing');
@@ -399,7 +399,7 @@ $handler = function (string $method, string $url, array $headers, ?string $body)
     ];
 };
 
-$client = new BanzaClient('https://api.banzami.com', 'bz_test_key', 30, $handler);
+$client = new BanzamiClient('https://api.banzami.com', 'bz_test_key', 30, $handler);
 ```
 
 Never pass `$httpHandler` in production code.

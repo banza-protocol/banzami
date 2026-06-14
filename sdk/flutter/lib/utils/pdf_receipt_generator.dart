@@ -81,7 +81,7 @@ class BanzamiPdfReceiptGenerator {
 
     final bytes = await doc.save();
     final dir   = await getTemporaryDirectory();
-    final file  = File('${dir.path}/banza-receipt-$ref8.pdf');
+    final file  = File('${dir.path}/banzami-receipt-$ref8.pdf');
     await file.writeAsBytes(bytes);
     return file;
   }

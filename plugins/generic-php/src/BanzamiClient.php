@@ -11,7 +11,7 @@ namespace Banza;
  * No external dependencies — drop this library into any PHP project.
  *
  * Usage:
- *   $client = new BanzaClient('https://api.banzami.ao', 'bz_live_...');
+ *   $client = new BanzamiClient('https://api.banzami.ao', 'bz_live_...');
  *   $link   = $client->createPaymentLink([
  *       'merchant_id'  => '...',
  *       'wallet_id'    => '...',
@@ -21,7 +21,7 @@ namespace Banza;
  *   ]);
  *   echo $link['slug']; // redirect customer to pay.banzami.co/{slug}
  */
-class BanzaClient
+class BanzamiClient
 {
     private string $baseUrl;
     private string $apiKey;

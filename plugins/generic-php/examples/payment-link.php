@@ -5,9 +5,9 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use Banza\BanzaClient;
+use Banzami\BanzamiClient;
 
-$client = new BanzaClient(
+$client = new BanzamiClient(
     baseUrl: getenv('BANZAMI_GATEWAY_URL') ?: 'https://api.banzami.ao',
     apiKey:  getenv('BANZAMI_API_KEY'),
 );

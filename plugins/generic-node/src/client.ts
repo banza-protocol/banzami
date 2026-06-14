@@ -1,13 +1,13 @@
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
 
-export class BanzaError extends Error {
+export class BanzamiError extends Error {
   constructor(
     message: string,
     public readonly code: string,
     public readonly status: number,
   ) {
     super(message);
-    this.name = 'BanzaError';
+    this.name = 'BanzamiError';
   }
 
   get isNotFound():          boolean { return this.status === 404; }
@@ -26,7 +26,7 @@ export interface BanzamiHooks {
   onError?:    (method: string, path: string, error: Error, attempts: number) => void;
 }
 
-export interface BanzaClientConfig {
+export interface BanzamiClientConfig {
   gatewayUrl:   string;
   apiKey:       string;
   timeout?:     number; // ms, default 30000
@@ -117,9 +117,9 @@ export interface Merchant {
  * Uses the native fetch API (Node >= 18). No external dependencies.
  *
  * ```ts
- * import { BanzaClient } from '@banzami/node';
+ * import { BanzamiClient } from '@banzami/node';
  *
- * const client = new BanzaClient({
+ * const client = new BanzamiClient({
  *   gatewayUrl: 'https://api.banzami.com',
  *   apiKey:     'bz_live_...',
  * });
@@ -133,7 +133,7 @@ export interface Merchant {
  * // Redirect customer to: https://pay.banzami.com/${link.slug}
  * ```
  */
-export class BanzaClient {
+export class BanzamiClient {
   private readonly base:       string;
   private readonly key:        string;
   private readonly timeout:    number;
@@ -141,7 +141,7 @@ export class BanzaClient {
   private readonly retryDelay: number;
   private readonly hooks:      BanzamiHooks;
 
-  constructor(cfg: BanzaClientConfig) {
+  constructor(cfg: BanzamiClientConfig) {
     this.base       = cfg.gatewayUrl.replace(/\/$/, '');
     this.key        = cfg.apiKey;
     this.timeout    = cfg.timeout    ?? 30_000;
@@ -324,7 +324,7 @@ export class BanzaClient {
     // Generate the idempotency key once before the first attempt so all retries
     // of the same logical operation share the key — critical for financial safety.
     const idempotencyKey = method === 'POST' ? randomUUID() : undefined;
-    let lastError: BanzaError | undefined;
+    let lastError: BanzamiError | undefined;
 
     for (let attempt = 0; attempt <= this.maxRetries; attempt++) {
       if (attempt > 0) {
@@ -337,7 +337,7 @@ export class BanzaClient {
         this.hooks.onResponse?.(method, path, 200, Date.now() - t0);
         return res;
       } catch (err) {
-        if (!(err instanceof BanzaError) || !this.shouldRetry(err.status, attempt)) {
+        if (!(err instanceof BanzamiError) || !this.shouldRetry(err.status, attempt)) {
           this.hooks.onError?.(method, path, err instanceof Error ? err : new Error(String(err)), attempt + 1);
           throw err;
         }
@@ -385,7 +385,7 @@ export class BanzaClient {
     if (!res.ok) {
       const msg  = data?.error?.message ?? `HTTP ${res.status}`;
       const code = data?.error?.code    ?? 'UNKNOWN';
-      throw new BanzaError(msg, code, res.status);
+      throw new BanzamiError(msg, code, res.status);
     }
     return data as T;
   }
