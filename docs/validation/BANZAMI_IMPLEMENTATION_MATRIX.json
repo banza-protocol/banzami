@@ -3236,7 +3236,7 @@
       "referenceSection": "§11.2.2, §12",
       "description": "Interface para gerar, listar e revogar chaves API de sandbox e produção. Chave bruta visível apenas uma vez após criação.",
       "requirement": "Chaves API geridas de forma segura. Chave bruta mostrada apenas uma vez. Revogação imediata.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -3261,6 +3261,16 @@
           "type": "config",
           "label": "0015_public_api_credentials.sql",
           "ref": "db/migrations/0015_public_api_credentials.sql"
+        },
+        {
+          "type": "sdk",
+          "label": "createApiKey environment",
+          "ref": "sdk/typescript/src/client.ts"
+        },
+        {
+          "type": "component",
+          "label": "api_key bz_live_/bz_test_",
+          "ref": "core/merchants/src/api_key.rs"
         }
       ],
       "dependencies": [
@@ -3274,15 +3284,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "sandbox/prod separation shipped 2026-06-14",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T21:23:39Z",
+      "validatedAgainstCommit": "b6749d5",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -3303,6 +3314,18 @@
           "evidence": [
             "apps/dashboard/app/(dashboard)/settings/page.tsx",
             "db/migrations/0015_public_api_credentials.sql"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:23:39Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "46d6e6d6c9fa6c9b",
+          "reason": "API key management: single-reveal, masked listing, immediate revoke, and clear sandbox vs production separation (env selector + grouped sections + SDK environment param).",
+          "evidence": [
+            "apps/dashboard/app/(dashboard)/settings/page.tsx",
+            "sdk/typescript/src/client.ts"
           ]
         }
       ],
