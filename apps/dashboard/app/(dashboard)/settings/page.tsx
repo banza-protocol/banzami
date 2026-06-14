@@ -57,7 +57,7 @@ export default function SettingsPage() {
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-sm h-8 px-md bg-wine text-white rounded-md text-xs font-medium hover:bg-wine-dark transition-colors"
+            className="flex items-center gap-sm h-8 px-md bg-banzami text-white rounded-md text-xs font-medium hover:bg-banzami-dark transition-colors"
           >
             <Plus size={14} />
             Nova chave
@@ -249,7 +249,7 @@ function CreateKeyModal({
               type="text"
               value={label}
               onChange={e => setLabel(e.target.value)}
-              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors"
+              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-banzami/30 focus:bg-white transition-colors"
               placeholder="ex: Produção"
             />
           </div>
@@ -262,7 +262,7 @@ function CreateKeyModal({
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors">
+              className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark disabled:opacity-60 transition-colors">
               {loading ? 'A criar…' : 'Criar chave'}
             </button>
           </div>
@@ -304,7 +304,7 @@ function NewKeyReveal({ apiKey, onDismiss }: { apiKey: NewApiKey; onDismiss: () 
           <button onClick={() => setVisible(v => !v)} className="text-gray-400 hover:text-gray-700 shrink-0">
             {visible ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
-          <button onClick={copy} className="text-gray-400 hover:text-wine shrink-0" title="Copiar">
+          <button onClick={copy} className="text-gray-400 hover:text-banzami shrink-0" title="Copiar">
             <Copy size={16} />
           </button>
         </div>
@@ -313,7 +313,7 @@ function NewKeyReveal({ apiKey, onDismiss }: { apiKey: NewApiKey; onDismiss: () 
 
         <button
           onClick={onDismiss}
-          className="h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+          className="h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
         >
           Guardei a chave
         </button>

@@ -131,7 +131,7 @@ class BanzamiCameraPermission {
                   Expanded(
                     child: FilledButton(
                       style: FilledButton.styleFrom(
-                        backgroundColor: BanzamiColors.wine,
+                        backgroundColor: BanzamiColors.primary,
                         shape:          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         padding:        const EdgeInsets.symmetric(vertical: 13),
                       ),

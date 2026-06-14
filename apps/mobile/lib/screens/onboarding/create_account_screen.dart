@@ -97,7 +97,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   controller:      _handleCtrl,
                   decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
                   style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
-                  cursorColor:     BanzamiColors.wine,
+                  cursorColor:     BanzamiColors.primary,
                   keyboardType:    TextInputType.visiblePassword,
                   textInputAction: TextInputAction.next,
                   autocorrect:     false,
@@ -121,7 +121,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
                   controller:         _nameCtrl,
                   decoration:         _fieldDecoration(hint: 'Nome (opcional)'),
                   style:              BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
-                  cursorColor:        BanzamiColors.wine,
+                  cursorColor:        BanzamiColors.primary,
                   textCapitalization: TextCapitalization.words,
                   textInputAction:    TextInputAction.done,
                   onFieldSubmitted:   (_) => _continue(),
@@ -161,7 +161,7 @@ class _CreateAccountScreenState extends State<CreateAccountScreen> {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,

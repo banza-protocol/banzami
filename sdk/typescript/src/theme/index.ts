@@ -6,12 +6,12 @@
 
 export const colors = {
   // Official Banzami red palette
-  wine: '#B5101F',
-  wineDark: '#9A1B22',
-  wineMedium: '#D7242E',
+  banzami: '#B5101F',
+  banzamiDark: '#9A1B22',
+  banzamiMedium: '#D7242E',
 
   // Secondary
-  wineRose: '#FBD2D0',
+  banzamiRose: '#FBD2D0',
 
   // Accent — Savanna Gold
   gold: '#C89B3C',
@@ -85,7 +85,7 @@ export const shadows = {
 export const borders = {
   default:  `1px solid ${colors.gray100}`,
   strong:   `1px solid ${colors.gray400}`,
-  focused:  `1.5px solid ${colors.wine}`,
+  focused:  `1.5px solid ${colors.banzami}`,
   error:    `1.5px solid ${colors.error}`,
 } as const;
 
@@ -96,11 +96,11 @@ export const borders = {
 
 export const tailwindTokens = {
   colors: {
-    wine: {
-      DEFAULT: colors.wine,
-      dark:    colors.wineDark,
-      medium:  colors.wineMedium,
-      rose:    colors.wineRose,
+    banzami: {
+      DEFAULT: colors.banzami,
+      dark:    colors.banzamiDark,
+      medium:  colors.banzamiMedium,
+      rose:    colors.banzamiRose,
     },
     gold: {
       DEFAULT: colors.gold,
@@ -164,10 +164,10 @@ export const tailwindTokens = {
 // ---------------------------------------------------------------------------
 
 export const cssVariables = `
-  --color-wine: ${colors.wine};
-  --color-wine-dark: ${colors.wineDark};
-  --color-wine-medium: ${colors.wineMedium};
-  --color-wine-rose: ${colors.wineRose};
+  --color-banzami: ${colors.banzami};
+  --color-banzami-dark: ${colors.banzamiDark};
+  --color-banzami-medium: ${colors.banzamiMedium};
+  --color-banzami-rose: ${colors.banzamiRose};
   --color-gold: ${colors.gold};
   --color-gold-light: ${colors.goldLight};
   --color-white: ${colors.white};

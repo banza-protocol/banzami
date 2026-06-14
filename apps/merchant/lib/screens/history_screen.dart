@@ -71,7 +71,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
         ],
       ),
       body: RefreshIndicator(
-        color:     BanzamiColors.wine,
+        color:     BanzamiColors.primary,
         onRefresh: () => _load(refresh: true),
         child:     _buildBody(),
       ),
@@ -80,7 +80,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
 
   Widget _buildBody() {
     if (_loading && _links.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     }
     if (_error != null && _links.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -107,7 +107,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen> {
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(24),
-            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
           );
         }
         return _PaymentLinkTile(link: _links[i]);
@@ -124,7 +124,7 @@ class _PaymentLinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (link.status) {
       PaymentLinkStatus.active    => (BanzamiColors.success,  'Activo',    Icons.hourglass_top_rounded),
-      PaymentLinkStatus.used      => (BanzamiColors.wine,     'Pago',      Icons.check_circle_rounded),
+      PaymentLinkStatus.used      => (BanzamiColors.primary,     'Pago',      Icons.check_circle_rounded),
       PaymentLinkStatus.expired   => (BanzamiColors.gray400,  'Expirado',  Icons.timer_off_rounded),
       PaymentLinkStatus.cancelled => (BanzamiColors.error,    'Cancelado', Icons.cancel_rounded),
     };

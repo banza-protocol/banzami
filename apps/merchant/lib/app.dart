@@ -54,8 +54,8 @@ class BanzamiMerchantApp extends StatelessWidget {
   ThemeData _buildTheme() {
     final base = ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor:  BanzamiColors.wine,
-        primary:    BanzamiColors.wine,
+        seedColor:  BanzamiColors.primary,
+        primary:    BanzamiColors.primary,
         brightness: Brightness.light,
       ),
       useMaterial3: true,
@@ -75,7 +75,7 @@ class BanzamiMerchantApp extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:   const BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   const BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -91,13 +91,13 @@ class BanzamiMerchantApp extends StatelessWidget {
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return BanzamiTextStyles.label.copyWith(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzamiColors.primary : BanzamiColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {
           final selected = states.contains(WidgetState.selected);
           return IconThemeData(
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzamiColors.primary : BanzamiColors.gray400,
             size:  24,
           );
         }),

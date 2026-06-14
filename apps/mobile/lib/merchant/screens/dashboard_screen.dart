@@ -87,10 +87,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
       body: RefreshIndicator(
-        color:     BanzamiColors.wine,
+        color:     BanzamiColors.primary,
         onRefresh: _load,
         child: _loading && _balance == null
-            ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
+            ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
             : _error != null && _balance == null
                 ? _buildError()
                 : _buildContent(session),
@@ -217,7 +217,7 @@ class _DashboardHeader extends StatelessWidget {
     final firstName = session.merchantName.split(' ').first;
 
     return Container(
-      decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
+      decoration: const BoxDecoration(gradient: BanzamiGradients.primary),
       padding: EdgeInsets.fromLTRB(
         BanzamiSpacing.xl,
         MediaQuery.of(context).padding.top + BanzamiSpacing.lg,
@@ -339,10 +339,10 @@ class _StatCard extends StatelessWidget {
             width:  28,
             height: 28,
             decoration: BoxDecoration(
-              color:        BanzamiColors.wine.withValues(alpha: 0.08),
+              color:        BanzamiColors.primary.withValues(alpha: 0.08),
               borderRadius: BanzamiRadius.smAll,
             ),
-            child: Icon(icon, color: BanzamiColors.wine, size: 15),
+            child: Icon(icon, color: BanzamiColors.primary, size: 15),
           ),
           const SizedBox(width: BanzamiSpacing.sm),
           Text(
@@ -379,7 +379,7 @@ class _NewChargeButton extends StatelessWidget {
         icon:  const Icon(Icons.add_circle_outline_rounded),
         label: const Text('Nova cobrança'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzamiColors.wine,
+          backgroundColor: BanzamiColors.primary,
           foregroundColor: BanzamiColors.white,
           padding:   const EdgeInsets.symmetric(vertical: 16),
           shape:     const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
@@ -403,7 +403,7 @@ class _LinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, label) = switch (link.status) {
       PaymentLinkStatus.active    => (BanzamiColors.success, 'Activo'),
-      PaymentLinkStatus.used      => (BanzamiColors.wine,    'Pago'),
+      PaymentLinkStatus.used      => (BanzamiColors.primary,    'Pago'),
       PaymentLinkStatus.expired   => (BanzamiColors.gray400, 'Expirado'),
       PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado'),
     };

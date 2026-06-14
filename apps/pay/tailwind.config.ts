@@ -5,7 +5,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        wine: {
+        banzami: {
           DEFAULT: '#B5101F',
           dark:    '#9A1B22',
           medium:  '#D7242E',
@@ -55,7 +55,7 @@ const config: Config = {
         modal: '0 8px 24px rgba(0,0,0,0.12)',
       },
       backgroundImage: {
-        'wine-gradient': 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)',
+        'banzami-gradient': 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)',
       },
       animation: {
         float:      'float 3s ease-in-out infinite',

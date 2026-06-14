@@ -66,7 +66,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
             _ActionTile(
               icon:  Icons.logout_rounded,
               label: 'Terminar sessão',
-              color: BanzamiColors.wine,
+              color: BanzamiColors.primary,
               onTap: () => _confirmLogout(svc),
             ),
 
@@ -145,11 +145,11 @@ class _MerchantProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient:     BanzamiGradients.wine,
+        gradient:     BanzamiGradients.primary,
         borderRadius: BanzamiRadius.xlAll,
         boxShadow: [
           BoxShadow(
-            color:      BanzamiColors.wineDark.withValues(alpha: 0.30),
+            color:      BanzamiColors.primaryDark.withValues(alpha: 0.30),
             blurRadius: 24,
             offset:     const Offset(0, 8),
           ),
@@ -427,20 +427,20 @@ class _SecuritySection extends StatelessWidget {
               const SizedBox(
                 width:  22,
                 height: 22,
-                child:  CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
+                child:  CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.primary),
               )
             else
               Switch(
                 value:            biometricsEnabled,
                 onChanged:        onToggle,
-                activeThumbColor: BanzamiColors.wine,
+                activeThumbColor: BanzamiColors.primary,
                 trackColor: WidgetStateProperty.resolveWith((states) =>
                   states.contains(WidgetState.selected)
-                      ? BanzamiColors.wine.withValues(alpha: 0.25)
+                      ? BanzamiColors.primary.withValues(alpha: 0.25)
                       : BanzamiColors.gray200),
                 thumbColor: WidgetStateProperty.resolveWith((states) =>
                   states.contains(WidgetState.selected)
-                      ? BanzamiColors.wine
+                      ? BanzamiColors.primary
                       : BanzamiColors.white),
               ),
           ]),
@@ -524,7 +524,7 @@ class _IconBox extends StatelessWidget {
 
   const _IconBox({
     required this.icon,
-    this.color = BanzamiColors.wine,
+    this.color = BanzamiColors.primary,
   });
 
   @override

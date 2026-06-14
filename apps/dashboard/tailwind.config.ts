@@ -9,7 +9,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        wine: {
+        banzami: {
           DEFAULT: '#B5101F',
           dark:    '#9A1B22',
           medium:  '#D7242E',
@@ -75,7 +75,7 @@ const config: Config = {
         page:    '64px',
       },
       backgroundImage: {
-        'wine-gradient': 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)',
+        'banzami-gradient': 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)',
       },
     },
   },

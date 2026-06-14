@@ -9,7 +9,7 @@ interface CountdownTimerProps {
 }
 
 /**
- * MM:SS countdown with a wine progress bar.
+ * MM:SS countdown with a banzami progress bar.
  * Calls onExpired once when the timer reaches zero.
  */
 export default function CountdownTimer({ expiresAt, onExpired }: CountdownTimerProps) {
@@ -66,7 +66,7 @@ export default function CountdownTimer({ expiresAt, onExpired }: CountdownTimerP
       <div className="h-1 w-full overflow-hidden rounded-full bg-gray-200">
         <div
           className={`h-full rounded-full transition-all duration-1000 ease-linear ${
-            isUrgent ? 'bg-warning' : 'bg-wine'
+            isUrgent ? 'bg-warning' : 'bg-banzami'
           }`}
           style={{ width: `${progress}%` }}
         />

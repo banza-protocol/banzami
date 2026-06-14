@@ -94,7 +94,7 @@ export default function CheckoutClient({
             Obrigado. O pagamento foi recebido com sucesso.
           </p>
           <p className="mt-10 text-xs text-gray-400">
-            Powered by <span className="font-semibold text-wine">Banzami</span>
+            Powered by <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </CheckoutShell>
@@ -122,7 +122,7 @@ export default function CheckoutClient({
             O tempo de pagamento deste link expirou.
           </p>
           <p className="mt-10 text-xs text-gray-400">
-            Powered by <span className="font-semibold text-wine">Banzami</span>
+            Powered by <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </CheckoutShell>
@@ -135,7 +135,7 @@ export default function CheckoutClient({
       <div className="space-y-3">
 
         {/* Wine header card */}
-        <div className="rounded-2xl bg-wine-gradient px-6 py-7 shadow-elevated">
+        <div className="rounded-2xl bg-banzami-gradient px-6 py-7 shadow-elevated">
           <div className="mb-1 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-widest text-white/70">
               {merchantName}
@@ -178,7 +178,7 @@ export default function CheckoutClient({
             {/* Primary — deep link into the Banza app */}
             <a
               href={deepLink}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-wine-gradient py-3.5 text-sm font-semibold text-white shadow-card transition hover:opacity-90 active:opacity-80"
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-banzami-gradient py-3.5 text-sm font-semibold text-white shadow-card transition hover:opacity-90 active:opacity-80"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 18.75a6 6 0 006-6v-1.5m-6 7.5a6 6 0 01-6-6v-1.5m6 7.5v3.75m-3.75 0h7.5M12 15.75a3 3 0 01-3-3V4.5a3 3 0 116 0v8.25a3 3 0 01-3 3z" />
@@ -206,7 +206,7 @@ export default function CheckoutClient({
         </p>
 
         <p className="pb-2 text-center text-xs text-gray-400">
-          Powered by <span className="font-semibold text-wine">Banzami</span>
+          Powered by <span className="font-semibold text-banzami">Banzami</span>
         </p>
 
       </div>

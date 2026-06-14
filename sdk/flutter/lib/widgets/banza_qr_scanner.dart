@@ -115,7 +115,7 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
             width:       260,
             height:      260,
             decoration:  BoxDecoration(
-              border:       Border.all(color: BanzamiColors.wine, width: 2.5),
+              border:       Border.all(color: BanzamiColors.primary, width: 2.5),
               borderRadius: BanzamiRadius.lgAll,
             ),
           ),

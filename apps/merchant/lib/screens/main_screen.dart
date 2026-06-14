@@ -51,22 +51,22 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
         selectedIndex:   _tab,
         onDestinationSelected: (i) => setState(() => _tab = i),
         backgroundColor: BanzamiColors.white,
-        indicatorColor:  BanzamiColors.wine.withValues(alpha: 0.12),
+        indicatorColor:  BanzamiColors.primary.withValues(alpha: 0.12),
         labelBehavior:   NavigationDestinationLabelBehavior.alwaysShow,
         destinations: const [
           NavigationDestination(
             icon:         Icon(Icons.dashboard_outlined),
-            selectedIcon: Icon(Icons.dashboard_rounded, color: BanzamiColors.wine),
+            selectedIcon: Icon(Icons.dashboard_rounded, color: BanzamiColors.primary),
             label:        'Início',
           ),
           NavigationDestination(
             icon:         Icon(Icons.history_outlined),
-            selectedIcon: Icon(Icons.history_rounded, color: BanzamiColors.wine),
+            selectedIcon: Icon(Icons.history_rounded, color: BanzamiColors.primary),
             label:        'Histórico',
           ),
           NavigationDestination(
             icon:         Icon(Icons.person_outline_rounded),
-            selectedIcon: Icon(Icons.person_rounded, color: BanzamiColors.wine),
+            selectedIcon: Icon(Icons.person_rounded, color: BanzamiColors.primary),
             label:        'Perfil',
           ),
         ],

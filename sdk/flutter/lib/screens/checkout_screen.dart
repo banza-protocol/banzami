@@ -139,7 +139,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     }
     if (_error != null) {
       return Center(
@@ -199,7 +199,7 @@ class _ActivePayment extends StatelessWidget {
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           decoration: BoxDecoration(
-            color: BanzamiColors.wine,
+            color: BanzamiColors.primary,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(children: [
@@ -236,7 +236,7 @@ class _ActivePayment extends StatelessWidget {
                 errorCorrectionLevel: QrErrorCorrectLevel.H,
                 eyeStyle: const QrEyeStyle(
                   eyeShape: QrEyeShape.square,
-                  color:    BanzamiColors.wine,
+                  color:    BanzamiColors.primary,
                 ),
                 dataModuleStyle: const QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
@@ -254,7 +254,7 @@ class _ActivePayment extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: onOpenApp,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: BanzamiColors.wine,
+                  backgroundColor: BanzamiColors.primary,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),

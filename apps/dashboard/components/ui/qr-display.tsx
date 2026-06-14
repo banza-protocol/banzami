@@ -83,7 +83,7 @@ export function QrDisplay({
         {showCopy && (
           <button
             onClick={handleCopy}
-            className="flex items-center gap-sm h-9 px-lg bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+            className="flex items-center gap-sm h-9 px-lg bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
           >
             {copied ? <Check size={15} /> : <Copy size={15} />}
             {copied ? 'Copiado' : 'Copiar link'}

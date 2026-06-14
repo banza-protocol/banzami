@@ -54,7 +54,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
       appBar: AppBar(
-        backgroundColor: BanzamiColors.wine,
+        backgroundColor: BanzamiColors.primary,
         foregroundColor: BanzamiColors.white,
         elevation:       0,
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -72,10 +72,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: RefreshIndicator(
-        color:     BanzamiColors.wine,
+        color:     BanzamiColors.primary,
         onRefresh: _load,
         child: _loading && _balance == null
-            ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
+            ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
             : _error != null && _balance == null
                 ? _buildError()
                 : _buildBody(),
@@ -125,7 +125,7 @@ class _BalanceCard extends StatelessWidget {
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [BanzamiColors.wine, BanzamiColors.wine.withValues(alpha: 0.8)],
+          colors: [BanzamiColors.primary, BanzamiColors.primary.withValues(alpha: 0.8)],
           begin:  Alignment.topLeft,
           end:    Alignment.bottomRight,
         ),
@@ -169,7 +169,7 @@ class _QuickChargeButton extends StatelessWidget {
         icon:  const Icon(Icons.add_circle_outline_rounded),
         label: const Text('Nova cobrança'),
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzamiColors.wine,
+          backgroundColor: BanzamiColors.primary,
           foregroundColor: BanzamiColors.white,
           padding:    const EdgeInsets.symmetric(vertical: 16),
           shape:      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -188,7 +188,7 @@ class _LinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = switch (link.status) {
       PaymentLinkStatus.active    => BanzamiColors.success,
-      PaymentLinkStatus.used      => BanzamiColors.wine,
+      PaymentLinkStatus.used      => BanzamiColors.primary,
       PaymentLinkStatus.expired   => BanzamiColors.gray400,
       PaymentLinkStatus.cancelled => BanzamiColors.error,
     };

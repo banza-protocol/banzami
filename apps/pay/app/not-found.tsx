@@ -11,7 +11,7 @@ export default function NotFound() {
         <p className="mt-2 text-sm text-gray-400">Esta ligação não existe ou expirou.</p>
         <a
           href="banza://open"
-          className="mt-6 inline-block w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
+          className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
           Abrir Banza
         </a>

@@ -163,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
               controller:      _handleCtrl,
               decoration:      _fieldDecoration(hint: 'joaosilva', prefix: '@'),
               style:           BanzamiTextStyles.bodyLg.copyWith(color: BanzamiColors.black),
-              cursorColor:     BanzamiColors.wine,
+              cursorColor:     BanzamiColors.primary,
               keyboardType:    TextInputType.visiblePassword,
               textInputAction: TextInputAction.done,
               autocorrect:     false,
@@ -210,7 +210,7 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 40),
               if (_loading)
-                const CircularProgressIndicator(color: BanzamiColors.wine)
+                const CircularProgressIndicator(color: BanzamiColors.primary)
               else
                 PinPad(
                   onChanged:  (v) => setState(() { _pin = v; _error = null; }),
@@ -241,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,

@@ -141,7 +141,7 @@ class _HistoryScreenState extends State<HistoryScreen>
             ),
             Expanded(
               child: RefreshIndicator(
-                color:           BanzamiColors.wine,
+                color:           BanzamiColors.primary,
                 backgroundColor: BanzamiColors.white,
                 strokeWidth:     2.5,
                 displacement:    40,
@@ -203,7 +203,7 @@ class _HistoryScreenState extends State<HistoryScreen>
                   width:  22,
                   height: 22,
                   child:  CircularProgressIndicator(
-                    color: BanzamiColors.wine, strokeWidth: 2,
+                    color: BanzamiColors.primary, strokeWidth: 2,
                   ),
                 ),
               ),
@@ -255,13 +255,13 @@ class _CountBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color:        BanzamiColors.wine.withValues(alpha: 0.08),
+        color:        BanzamiColors.primary.withValues(alpha: 0.08),
         borderRadius: BanzamiRadius.fullAll,
       ),
       child: Text(
         '$count',
         style: BanzamiTextStyles.label.copyWith(
-          color:      BanzamiColors.wine,
+          color:      BanzamiColors.primary,
           fontWeight: FontWeight.w700,
           fontSize:   11,
         ),
@@ -325,11 +325,11 @@ class _FilterChip extends StatelessWidget {
         padding:  const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
         decoration: selected
             ? BoxDecoration(
-                gradient:     BanzamiGradients.wine,
+                gradient:     BanzamiGradients.primary,
                 borderRadius: BanzamiRadius.fullAll,
                 boxShadow: [
                   BoxShadow(
-                    color:        BanzamiColors.wine.withValues(alpha: 0.28),
+                    color:        BanzamiColors.primary.withValues(alpha: 0.28),
                     blurRadius:   12,
                     spreadRadius: -2,
                     offset:       const Offset(0, 4),
@@ -536,7 +536,7 @@ class _EmptyStateCard extends StatelessWidget {
               shape:     BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:        BanzamiColors.wine.withValues(alpha: 0.08),
+                  color:        BanzamiColors.primary.withValues(alpha: 0.08),
                   blurRadius:   20,
                   spreadRadius: 0,
                   offset:       const Offset(0, 6),
@@ -662,11 +662,11 @@ class _ErrorCard extends StatelessWidget {
               width:  double.infinity,
               height: 52,
               decoration: BoxDecoration(
-                gradient:     BanzamiGradients.wine,
+                gradient:     BanzamiGradients.primary,
                 borderRadius: BanzamiRadius.fieldAll,
                 boxShadow: [
                   BoxShadow(
-                    color:        BanzamiColors.wine.withValues(alpha: 0.30),
+                    color:        BanzamiColors.primary.withValues(alpha: 0.30),
                     blurRadius:   16,
                     spreadRadius: -2,
                     offset:       const Offset(0, 4),
@@ -862,7 +862,7 @@ class _Avatar extends StatelessWidget {
       width:  44,
       height: 44,
       decoration: const BoxDecoration(
-        gradient: BanzamiGradients.wine,
+        gradient: BanzamiGradients.primary,
         shape:    BoxShape.circle,
       ),
       child: Center(

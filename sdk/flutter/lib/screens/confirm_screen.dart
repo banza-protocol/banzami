@@ -13,8 +13,8 @@ import 'receipt_screen.dart';
 
 const _kCardRadius = 28.0;
 const _kCardBR     = BorderRadius.all(Radius.circular(_kCardRadius));
-const _kBadgeBg    = Color(0x14990011); // wine 8 %
-const _kDotColor   = BanzamiColors.wine;
+const _kBadgeBg    = Color(0x14990011); // primary 8 %
+const _kDotColor   = BanzamiColors.primary;
 
 // ── Transfer-progress overlay colours ─────────────────────────────────────────
 
@@ -169,7 +169,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
             width:  56,
             height: 56,
             decoration: const BoxDecoration(
-              gradient: BanzamiGradients.wine,
+              gradient: BanzamiGradients.primary,
               shape:    BoxShape.circle,
             ),
             child: Center(
@@ -238,7 +238,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                         Text(
                           'Endereço Banza',
                           style: BanzamiTextStyles.label.copyWith(
-                            color:      BanzamiColors.wine,
+                            color:      BanzamiColors.primary,
                             fontSize:   11,
                             fontWeight: FontWeight.w600,
                           ),

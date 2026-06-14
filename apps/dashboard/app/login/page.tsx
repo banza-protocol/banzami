@@ -83,7 +83,7 @@ export default function LoginPage() {
       <div className="w-full max-w-sm bg-white rounded-xl shadow-card p-2xl flex flex-col gap-xl">
         {/* Header */}
         <div>
-          <p className="text-xs font-semibold text-wine uppercase tracking-widest mb-xs">Banzami</p>
+          <p className="text-xs font-semibold text-banzami uppercase tracking-widest mb-xs">Banzami</p>
           <h1 className="text-xl font-bold text-gray-900">Acesso ao Business</h1>
           <p className="text-sm text-gray-400 mt-xs">
             Introduza as credenciais fornecidas pelo Banzami.
@@ -122,7 +122,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full h-12 bg-wine text-white rounded-md text-sm font-semibold hover:bg-wine-dark transition-colors disabled:opacity-60"
+            className="w-full h-12 bg-banzami text-white rounded-md text-sm font-semibold hover:bg-banzami-dark transition-colors disabled:opacity-60"
           >
             {loading ? 'A verificar…' : 'Entrar'}
           </button>
@@ -130,7 +130,7 @@ export default function LoginPage() {
 
         <p className="text-xs text-center text-gray-400">
           Não tem credenciais? Contacte{' '}
-          <a href="mailto:contact@banzami.com" className="text-wine hover:underline">
+          <a href="mailto:contact@banzami.com" className="text-banzami hover:underline">
             contact@banzami.com
           </a>
         </p>
@@ -149,4 +149,4 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 const inputCls =
-  'w-full h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors';
+  'w-full h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-banzami/30 focus:bg-white transition-colors';

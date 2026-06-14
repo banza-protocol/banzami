@@ -239,7 +239,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
           Text(
             formatMinor(link.amountMinor!, link.currency),
             style: BanzamiTextStyles.displayLg.copyWith(
-              color:      BanzamiColors.wine,
+              color:      BanzamiColors.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -273,7 +273,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               errorCorrectionLevel: QrErrorCorrectLevel.H,
               eyeStyle: const QrEyeStyle(
                 eyeShape: QrEyeShape.square,
-                color:    BanzamiColors.wine,
+                color:    BanzamiColors.primary,
               ),
               dataModuleStyle: const QrDataModuleStyle(
                 dataModuleShape: QrDataModuleShape.square,
@@ -333,8 +333,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
           child: OutlinedButton(
             onPressed: () => setState(() { _link = null; _amountCtrl.clear(); _descCtrl.clear(); }),
             style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.wine,
-              side:            const BorderSide(color: BanzamiColors.wine),
+              foregroundColor: BanzamiColors.primary,
+              side:            const BorderSide(color: BanzamiColors.primary),
               padding:         const EdgeInsets.symmetric(vertical: 14),
               shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),

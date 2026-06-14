@@ -73,7 +73,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
           TextButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Confirmar',
-                style: TextStyle(color: BanzamiColors.wine)),
+                style: TextStyle(color: BanzamiColors.primary)),
           ),
         ],
       ),
@@ -150,7 +150,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
             child: ElevatedButton(
               onPressed: () => Navigator.of(context).pop(),
               style: ElevatedButton.styleFrom(
-                backgroundColor: BanzamiColors.wine,
+                backgroundColor: BanzamiColors.primary,
                 foregroundColor: BanzamiColors.white,
                 padding:   const EdgeInsets.symmetric(vertical: 14),
                 shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
@@ -175,17 +175,17 @@ class _PayoutScreenState extends State<PayoutScreen> {
           Container(
             padding: const EdgeInsets.all(BanzamiSpacing.md),
             decoration: BoxDecoration(
-              color:        BanzamiColors.wine.withValues(alpha: 0.06),
+              color:        BanzamiColors.primary.withValues(alpha: 0.06),
               borderRadius: BorderRadius.circular(12),
-              border:       Border.all(color: BanzamiColors.wine.withValues(alpha: 0.2)),
+              border:       Border.all(color: BanzamiColors.primary.withValues(alpha: 0.2)),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Icon(Icons.info_outline_rounded,
-                  color: BanzamiColors.wine, size: 18),
+                  color: BanzamiColors.primary, size: 18),
               const SizedBox(width: 10),
               Expanded(child: Text(
                 'O valor será transferido para a conta bancária indicada em 1-3 dias úteis.',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.wine),
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.primary),
               )),
             ]),
           ),

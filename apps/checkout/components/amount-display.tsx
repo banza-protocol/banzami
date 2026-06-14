@@ -4,7 +4,7 @@ interface AmountDisplayProps {
 }
 
 /**
- * Large amount + description shown in the wine header card.
+ * Large amount + description shown in the banzami header card.
  */
 export default function AmountDisplay({ amountDisplay, description }: AmountDisplayProps) {
   return (

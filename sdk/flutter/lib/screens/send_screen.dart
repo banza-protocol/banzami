@@ -342,7 +342,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                 padding: EdgeInsets.all(12),
                                 child: SizedBox(
                                   width: 16, height: 16,
-                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.primary),
                                 ),
                               )
                             : _handleConfirmed
@@ -353,7 +353,7 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                       padding: EdgeInsets.all(10),
                                       child: Icon(
                                         Icons.qr_code_scanner_rounded,
-                                        color: BanzamiColors.wine,
+                                        color: BanzamiColors.primary,
                                         size:  22,
                                       ),
                                     ),
@@ -456,7 +456,7 @@ class _SuggestionList extends StatelessWidget {
                     child: Text(
                       s.handle[0].toUpperCase(),
                       style: BanzamiTextStyles.bodySm.copyWith(
-                        color:      BanzamiColors.wine,
+                        color:      BanzamiColors.primary,
                         fontWeight: FontWeight.w700,
                       ),
                     ),

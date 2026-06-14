@@ -9,7 +9,7 @@ interface QrDisplayProps {
 export default function QrDisplay({ qrDataUrl }: QrDisplayProps) {
   return (
     <div className="flex justify-center">
-      <div className="relative inline-block rounded-2xl border-2 border-wine/20 p-4 shadow-card bg-white">
+      <div className="relative inline-block rounded-2xl border-2 border-banzami/20 p-4 shadow-card bg-white">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrDataUrl}

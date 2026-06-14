@@ -79,7 +79,7 @@ class BanzamiButton extends StatelessWidget {
       BanzamiButtonVariant.primary => ElevatedButton(
           onPressed: isLoading ? null : onPressed,
           style: ElevatedButton.styleFrom(
-            backgroundColor: BanzamiColors.wine,
+            backgroundColor: BanzamiColors.primary,
             foregroundColor: BanzamiColors.white,
             minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
             shape:           const RoundedRectangleBorder(
@@ -92,12 +92,12 @@ class BanzamiButton extends StatelessWidget {
       BanzamiButtonVariant.secondary => OutlinedButton(
           onPressed: isLoading ? null : onPressed,
           style: OutlinedButton.styleFrom(
-            foregroundColor: BanzamiColors.wine,
+            foregroundColor: BanzamiColors.primary,
             minimumSize:     Size(fullWidth ? double.infinity : 0, 48),
             shape:           const RoundedRectangleBorder(
               borderRadius: BanzamiRadius.mdAll,
             ),
-            side: const BorderSide(color: BanzamiColors.wine, width: 1.5),
+            side: const BorderSide(color: BanzamiColors.primary, width: 1.5),
           ),
           child: child,
         ),
@@ -125,8 +125,8 @@ class BanzamiButton extends StatelessWidget {
 
   Color get _contentColor => switch (variant) {
     BanzamiButtonVariant.primary     => BanzamiColors.white,
-    BanzamiButtonVariant.secondary   => BanzamiColors.wine,
-    BanzamiButtonVariant.ghost       => BanzamiColors.wine,
+    BanzamiButtonVariant.secondary   => BanzamiColors.primary,
+    BanzamiButtonVariant.ghost       => BanzamiColors.primary,
     BanzamiButtonVariant.destructive => BanzamiColors.white,
   };
 

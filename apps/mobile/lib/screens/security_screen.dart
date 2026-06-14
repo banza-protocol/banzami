@@ -252,13 +252,13 @@ class _RowToggle extends StatelessWidget {
         if (busy)
           const SizedBox(
             width: 22, height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.wine),
+            child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.primary),
           )
         else
           Switch(
             value:     value,
             onChanged: onChanged,
-            activeTrackColor:  BanzamiColors.wine,
+            activeTrackColor:  BanzamiColors.primary,
             inactiveThumbColor: BanzamiColors.white,
           ),
       ]),
@@ -276,10 +276,10 @@ class _IconChip extends StatelessWidget {
       width:  36,
       height: 36,
       decoration: BoxDecoration(
-        color:        BanzamiColors.wine.withValues(alpha: 0.10),
+        color:        BanzamiColors.primary.withValues(alpha: 0.10),
         borderRadius: BanzamiRadius.mdAll,
       ),
-      child: Icon(icon, color: BanzamiColors.wine, size: 18),
+      child: Icon(icon, color: BanzamiColors.primary, size: 18),
     );
   }
 }
@@ -323,13 +323,13 @@ class _RowStatus extends StatelessWidget {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color:        BanzamiColors.wine.withValues(alpha: 0.10),
+            color:        BanzamiColors.primary.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             status,
             style: BanzamiTextStyles.label.copyWith(
-              color:    BanzamiColors.wine,
+              color:    BanzamiColors.primary,
               fontSize: 11,
             ),
           ),

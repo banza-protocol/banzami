@@ -449,7 +449,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     child: ColoredBox(color: Colors.black),
   );
 
-  // Screen recording / mirroring — dark wine with camera-off icon.
+  // Screen recording / mirroring — dark primary with camera-off icon.
   Widget _buildCaptureOverlay() {
     return Positioned.fill(
       child: Container(
@@ -705,7 +705,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               onPressed: _done,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.white,
-                                foregroundColor: BanzamiColors.wine,
+                                foregroundColor: BanzamiColors.primary,
                                 elevation:       0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(22),
@@ -720,7 +720,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                     decoration: BoxDecoration(
                                       shape:  BoxShape.circle,
                                       border: Border.all(
-                                        color: BanzamiColors.wine,
+                                        color: BanzamiColors.primary,
                                         width: 1.5,
                                       ),
                                     ),
@@ -733,7 +733,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                   Text(
                                     'Concluído',
                                     style: BanzamiTextStyles.bodyMd.copyWith(
-                                      color:      BanzamiColors.wine,
+                                      color:      BanzamiColors.primary,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),

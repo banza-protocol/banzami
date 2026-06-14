@@ -174,7 +174,7 @@ class _FloatingTabBar extends StatelessWidget {
           borderRadius: BanzamiRadius.xxlAll,
           boxShadow: [
             BoxShadow(
-              color:      BanzamiColors.wineDark.withValues(alpha: 0.08),
+              color:      BanzamiColors.primaryDark.withValues(alpha: 0.08),
               blurRadius: 24,
               spreadRadius: 0,
               offset:     const Offset(0, 4),
@@ -239,7 +239,7 @@ class _TabItem extends StatelessWidget {
           padding:  const EdgeInsets.symmetric(vertical: 10, horizontal: 4),
           decoration: BoxDecoration(
             color:        isSelected
-                ? BanzamiColors.wine.withValues(alpha: 0.08)
+                ? BanzamiColors.primary.withValues(alpha: 0.08)
                 : Colors.transparent,
             borderRadius: BanzamiRadius.xlAll,
           ),
@@ -249,14 +249,14 @@ class _TabItem extends StatelessWidget {
               Icon(
                 isSelected ? filledIcon : outlinedIcon,
                 size:  22,
-                color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
+                color: isSelected ? BanzamiColors.primary : BanzamiColors.gray400,
               ),
               const SizedBox(height: 3),
               Text(
                 label,
                 style: BanzamiTextStyles.label.copyWith(
                   fontSize: 10,
-                  color: isSelected ? BanzamiColors.wine : BanzamiColors.gray400,
+                  color: isSelected ? BanzamiColors.primary : BanzamiColors.gray400,
                 ),
               ),
             ],

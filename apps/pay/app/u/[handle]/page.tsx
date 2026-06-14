@@ -33,7 +33,7 @@ export default function UserPayPage({ params, searchParams }: Props) {
 
         <div className="bg-white rounded-3xl shadow-card overflow-hidden">
           {/* Wine header strip */}
-          <div className="bg-wine-gradient px-6 pt-8 pb-10 flex flex-col items-center gap-3">
+          <div className="bg-banzami-gradient px-6 pt-8 pb-10 flex flex-col items-center gap-3">
             <div className="h-16 w-16 rounded-full bg-white/15 flex items-center justify-center shrink-0">
               <span className="text-2xl font-bold text-white select-none">{initial}</span>
             </div>
@@ -54,7 +54,7 @@ export default function UserPayPage({ params, searchParams }: Props) {
           <div className="px-6 py-6 flex flex-col gap-3">
             <a
               href={deepLink}
-              className="flex items-center justify-center gap-2 w-full h-14 bg-wine text-white rounded-2xl text-base font-semibold shadow-sm active:bg-wine/90 transition-colors"
+              className="flex items-center justify-center gap-2 w-full h-14 bg-banzami text-white rounded-2xl text-base font-semibold shadow-sm active:bg-banzami/90 transition-colors"
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <rect x="3"  y="3"  width="7" height="7" rx="1" />
@@ -73,7 +73,7 @@ export default function UserPayPage({ params, searchParams }: Props) {
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Pagamentos via{' '}
-          <span className="font-semibold text-wine">Banza</span>
+          <span className="font-semibold text-banzami">Banza</span>
         </p>
       </div>
     </main>

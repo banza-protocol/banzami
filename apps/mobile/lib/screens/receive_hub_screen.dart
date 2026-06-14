@@ -220,7 +220,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: RefreshIndicator(
-          color:     BanzamiColors.wine,
+          color:     BanzamiColors.primary,
           onRefresh: _loadReceived,
           child: CustomScrollView(
             slivers: [
@@ -404,7 +404,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                         child: Text(
                           'Ver todos',
                           style: BanzamiTextStyles.label.copyWith(
-                            color:   BanzamiColors.wine,
+                            color:   BanzamiColors.primary,
                             fontSize: 13,
                           ),
                         ),
@@ -419,7 +419,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.all(BanzamiSpacing.xl),
-                  child: Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+                  child: Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
                 ),
               )
             else if (_transferError != null && _received.isEmpty)

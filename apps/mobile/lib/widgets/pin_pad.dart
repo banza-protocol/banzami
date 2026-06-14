@@ -29,7 +29,7 @@ class PinDots extends StatelessWidget {
           decoration: BoxDecoration(
             shape:    BoxShape.circle,
             // gradient for normal filled; flat color for error; transparent for empty
-            gradient: isFilled && !isError ? BanzamiGradients.wine : null,
+            gradient: isFilled && !isError ? BanzamiGradients.primary : null,
             color:    isFilled
                 ? (isError ? BanzamiColors.error : null)
                 : Colors.transparent,
@@ -37,7 +37,7 @@ class PinDots extends StatelessWidget {
               color: isError
                   ? BanzamiColors.error
                   : isFilled
-                      ? BanzamiColors.wineDark
+                      ? BanzamiColors.primaryDark
                       : const Color(0xFFD8D0CF), // Soft Neutral
               width: 2,
             ),

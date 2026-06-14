@@ -201,7 +201,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
         errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle: const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.wine,
+          color:    BanzamiColors.primary,
         ),
         dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,

@@ -152,10 +152,10 @@ class _Row extends StatelessWidget {
             width:  36,
             height: 36,
             decoration: BoxDecoration(
-              color:        BanzamiColors.wine.withValues(alpha: 0.08),
+              color:        BanzamiColors.primary.withValues(alpha: 0.08),
               borderRadius: BanzamiRadius.mdAll,
             ),
-            child: Icon(icon, color: BanzamiColors.wine, size: 18),
+            child: Icon(icon, color: BanzamiColors.primary, size: 18),
           ),
           const SizedBox(width: BanzamiSpacing.md),
           Expanded(

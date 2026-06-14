@@ -425,7 +425,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
             borderRadius: BanzamiRadius.lgAll,
             child: Container(
               width: double.infinity,
-              decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
+              decoration: const BoxDecoration(gradient: BanzamiGradients.primary),
               child: DecoratedBox(
                 position: DecorationPosition.foreground,
                 decoration: BoxDecoration(
@@ -492,7 +492,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                             child: Text(
                               _initials(displayName ?? handle),
                               style: const TextStyle(
-                                color:      BanzamiColors.wine,
+                                color:      BanzamiColors.primary,
                                 fontSize:   17,
                                 fontWeight: FontWeight.w700,
                                 fontFamily: 'Inter',
@@ -545,7 +545,7 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                               errorCorrectionLevel: QrErrorCorrectLevel.H,
                               eyeStyle: const QrEyeStyle(
                                 eyeShape: QrEyeShape.square,
-                                color:    BanzamiColors.wine,
+                                color:    BanzamiColors.primary,
                               ),
                               dataModuleStyle: const QrDataModuleStyle(
                                 dataModuleShape: QrDataModuleShape.square,

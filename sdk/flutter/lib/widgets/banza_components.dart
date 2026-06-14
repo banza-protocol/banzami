@@ -177,7 +177,7 @@ class BanzamiGlassCard extends StatelessWidget {
 }
 
 // =============================================================================
-// BanzamiPrimaryButton — full-width cherry/wine CTA with haptics
+// BanzamiPrimaryButton — full-width cherry/primary CTA with haptics
 // =============================================================================
 
 class BanzamiPrimaryButton extends StatefulWidget {
@@ -249,14 +249,14 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
     final fg          = widget.foregroundColor ?? BanzamiColors.white;
 
     final LinearGradient? gradient = (!hasCustomBg && !isDisabled)
-        ? (widget.gradient ?? BanzamiGradients.wine)
+        ? (widget.gradient ?? BanzamiGradients.primary)
         : null;
 
     final Color? flatColor = hasCustomBg
         ? (isDisabled
               ? widget.backgroundColor!.withValues(alpha: 0.5)
               : widget.backgroundColor)
-        : (isDisabled ? BanzamiColors.wine.withValues(alpha: 0.40) : null);
+        : (isDisabled ? BanzamiColors.primary.withValues(alpha: 0.40) : null);
 
     return ScaleTransition(
       scale: _scale,
@@ -276,7 +276,7 @@ class _BanzamiPrimaryButtonState extends State<BanzamiPrimaryButton>
                 ? null
                 : [
                     BoxShadow(
-                      color:        BanzamiColors.wine.withValues(alpha: 0.32),
+                      color:        BanzamiColors.primary.withValues(alpha: 0.32),
                       blurRadius:   16,
                       offset:       const Offset(0, 4),
                       spreadRadius: -2,
@@ -341,8 +341,8 @@ class BanzamiSecondaryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = foregroundColor ?? BanzamiColors.wine;
-    final bc = borderColor ?? BanzamiColors.wine;
+    final fg = foregroundColor ?? BanzamiColors.primary;
+    final bc = borderColor ?? BanzamiColors.primary;
 
     return SizedBox(
       height: height,
@@ -433,7 +433,7 @@ class BanzamiSectionTitle extends StatelessWidget {
               child: Text(
                 action!,
                 style: BanzamiTextStyles.label.copyWith(
-                  color:    BanzamiColors.wine,
+                  color:    BanzamiColors.primary,
                   fontSize: 13,
                 ),
               ),
@@ -452,7 +452,7 @@ class BanzamiActionTile extends StatefulWidget {
   final IconData     icon;
   final String       label;
   final VoidCallback onTap;
-  /// Full wine-gradient tile — strongest visual weight.
+  /// Full primary-gradient tile — strongest visual weight.
   final bool primary;
   /// Wine-tinted icon on white tile — secondary prominence, used for QR.
   final bool accent;
@@ -508,11 +508,11 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
             padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.lg),
             decoration: BoxDecoration(
               color:        isPrimary ? null : BanzamiColors.white,
-              gradient:     isPrimary ? BanzamiGradients.wine : null,
+              gradient:     isPrimary ? BanzamiGradients.primary : null,
               borderRadius: BanzamiRadius.xlAll,
               boxShadow: isPrimary ? [
                 BoxShadow(
-                  color:        BanzamiColors.wine.withValues(alpha: 0.38),
+                  color:        BanzamiColors.primary.withValues(alpha: 0.38),
                   blurRadius:   18,
                   offset:       const Offset(0, 6),
                   spreadRadius: -2,
@@ -545,7 +545,7 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
                     color: isPrimary
                         ? BanzamiColors.white.withValues(alpha: 0.20)
                         : isAccent
-                            ? BanzamiColors.wine.withValues(alpha: 0.09)
+                            ? BanzamiColors.primary.withValues(alpha: 0.09)
                             : BanzamiColors.gray100,
                     shape: BoxShape.circle,
                     border: isPrimary
@@ -557,7 +557,7 @@ class _BanzamiActionTileState extends State<BanzamiActionTile>
                   ),
                   child: Icon(
                     widget.icon,
-                    color: isAccent ? BanzamiColors.wine : fg,
+                    color: isAccent ? BanzamiColors.primary : fg,
                     size:  20,
                   ),
                 ),
@@ -682,7 +682,7 @@ class _DefaultAvatar extends StatelessWidget {
       width:  44,
       height: 44,
       decoration: const BoxDecoration(
-        gradient: BanzamiGradients.wine,
+        gradient: BanzamiGradients.primary,
         shape:    BoxShape.circle,
       ),
       child: Center(
@@ -771,7 +771,7 @@ class BanzamiTextField extends StatelessWidget {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
@@ -784,7 +784,7 @@ class BanzamiTextField extends StatelessWidget {
         hintStyle:  BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
         labelStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
         errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
-        floatingLabelStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.wine),
+        floatingLabelStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.primary),
       ),
     );
   }

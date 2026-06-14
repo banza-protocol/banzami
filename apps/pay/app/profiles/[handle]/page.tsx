@@ -23,18 +23,18 @@ export default async function MerchantProfilePage({ params }: Props) {
     <main className="min-h-screen bg-off-white">
       {/* Cover */}
       <div
-        className="w-full h-40 bg-gradient-to-br from-wine to-wine/70"
+        className="w-full h-40 bg-gradient-to-br from-banzami to-banzami/70"
         style={profile.cover_url ? { backgroundImage: `url(${profile.cover_url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
       />
 
       <div className="max-w-2xl mx-auto px-4 pb-12">
         {/* Avatar + identity */}
         <div className="flex items-end gap-4 -mt-10 mb-6">
-          <div className="h-20 w-20 rounded-2xl border-4 border-white bg-wine/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
+          <div className="h-20 w-20 rounded-2xl border-4 border-white bg-banzami/10 flex items-center justify-center overflow-hidden shrink-0 shadow-md">
             {profile.logo_url ? (
               <img src={profile.logo_url} alt={profile.display_name} className="h-full w-full object-cover" />
             ) : (
-              <span className="text-3xl font-bold text-wine select-none">
+              <span className="text-3xl font-bold text-banzami select-none">
                 {profile.display_name[0]?.toUpperCase()}
               </span>
             )}
@@ -61,7 +61,7 @@ export default async function MerchantProfilePage({ params }: Props) {
           {/* Category */}
           {profile.category && (
             <div className="flex items-center gap-2">
-              <span className="bg-wine/10 text-wine text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="bg-banzami/10 text-banzami text-xs font-semibold px-3 py-1 rounded-full">
                 {profile.category}
               </span>
             </div>
@@ -95,7 +95,7 @@ export default async function MerchantProfilePage({ params }: Props) {
 
           {/* Banzami attribution */}
           <p className="text-center text-xs text-gray-300 pt-2">
-            Pagamentos via <span className="font-semibold text-wine">Banzami</span>
+            Pagamentos via <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </div>
@@ -108,7 +108,7 @@ function PayButton({ profile }: { profile: MerchantProfile }) {
   return (
     <a
       href={deepLink}
-      className="flex items-center justify-center gap-2 h-14 bg-wine text-white rounded-2xl text-base font-semibold shadow-md hover:bg-wine/90 transition-colors"
+      className="flex items-center justify-center gap-2 h-14 bg-banzami text-white rounded-2xl text-base font-semibold shadow-md hover:bg-banzami/90 transition-colors"
     >
       <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
         <rect x="3" y="3" width="7" height="7" rx="1" />

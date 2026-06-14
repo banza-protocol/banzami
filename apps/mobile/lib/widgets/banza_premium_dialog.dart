@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 // ── Variant ───────────────────────────────────────────────────────────────────
 
 enum BanzamiDialogVariant {
-  /// Default wine-red confirm button.
+  /// Default primary-red confirm button.
   standard,
 
   /// Amber confirm button — "use another account" type actions.
@@ -108,7 +108,7 @@ class _BanzamiDialogContent extends StatelessWidget {
   List<Color> get _confirmGradient => switch (variant) {
     BanzamiDialogVariant.warning  => const [Color(0xFFF59E0B), Color(0xFFD97706)],
     BanzamiDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF991B1B)],
-    BanzamiDialogVariant.standard => [BanzamiColors.wine, BanzamiColors.wineDark],
+    BanzamiDialogVariant.standard => [BanzamiColors.primary, BanzamiColors.primaryDark],
   };
 
   @override

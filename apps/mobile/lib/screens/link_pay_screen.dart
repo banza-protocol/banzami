@@ -98,7 +98,7 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 
   Widget _buildBody() {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     }
 
     if (_error != null && _link == null) {
@@ -140,7 +140,7 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
         Container(
           width:       double.infinity,
           padding:     const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl, vertical: BanzamiSpacing.xxl),
-          decoration:  const BoxDecoration(gradient: BanzamiGradients.wine,
+          decoration:  const BoxDecoration(gradient: BanzamiGradients.primary,
               borderRadius: BanzamiRadius.xlAll),
           child: Column(children: [
             Text(

@@ -41,9 +41,9 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.wine,
+      backgroundColor: BanzamiColors.primary,
       body: Container(
-        decoration: const BoxDecoration(gradient: BanzamiGradients.wine),
+        decoration: const BoxDecoration(gradient: BanzamiGradients.primary),
         child: SafeArea(
           child: FadeTransition(
             opacity: _fade,
@@ -112,7 +112,7 @@ class _WelcomeScreenState extends State<WelcomeScreen>
                     BanzamiPrimaryButton(
                       label:           'Criar conta',
                       backgroundColor: BanzamiColors.white,
-                      foregroundColor: BanzamiColors.wine,
+                      foregroundColor: BanzamiColors.primary,
                       onPressed: () => Navigator.of(context).push(
                         BanzamiPageRoute(page: const CreateAccountScreen()),
                       ),

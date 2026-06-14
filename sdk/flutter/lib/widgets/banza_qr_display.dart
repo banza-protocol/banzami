@@ -130,7 +130,7 @@ class _BanzamiQrDisplayState extends State<BanzamiQrDisplay> {
                   : QrErrorCorrectLevel.M,
               eyeStyle:        const QrEyeStyle(
                 eyeShape: QrEyeShape.square,
-                color:    BanzamiColors.wine,
+                color:    BanzamiColors.primary,
               ),
               dataModuleStyle: const QrDataModuleStyle(
                 dataModuleShape: QrDataModuleShape.square,

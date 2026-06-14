@@ -23,7 +23,7 @@ export default function PayIndexPage() {
         </p>
         <p className="mt-6 text-xs text-gray-400">
           Powered by{' '}
-          <span className="font-semibold text-wine">Banzami</span>
+          <span className="font-semibold text-banzami">Banzami</span>
         </p>
       </div>
     </main>

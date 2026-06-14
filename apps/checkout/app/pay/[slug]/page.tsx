@@ -25,7 +25,7 @@ export default async function CheckoutPage({ params }: Props) {
           <h1 className="text-xl font-bold text-gray-900">Pagamento recebido</h1>
           <p className="mt-2 text-sm text-gray-400">Este link de pagamento já foi utilizado.</p>
           <p className="mt-8 text-xs text-gray-400">
-            Powered by <span className="font-semibold text-wine">Banzami</span>
+            Powered by <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </CheckoutShell>
@@ -44,7 +44,7 @@ export default async function CheckoutPage({ params }: Props) {
           <h1 className="text-xl font-bold text-gray-900">Link expirado</h1>
           <p className="mt-2 text-sm text-gray-400">O tempo de pagamento deste link expirou.</p>
           <p className="mt-8 text-xs text-gray-400">
-            Powered by <span className="font-semibold text-wine">Banzami</span>
+            Powered by <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </CheckoutShell>
@@ -63,7 +63,7 @@ export default async function CheckoutPage({ params }: Props) {
           <h1 className="text-xl font-bold text-gray-900">Link cancelado</h1>
           <p className="mt-2 text-sm text-gray-400">Este link de pagamento foi cancelado.</p>
           <p className="mt-8 text-xs text-gray-400">
-            Powered by <span className="font-semibold text-wine">Banzami</span>
+            Powered by <span className="font-semibold text-banzami">Banzami</span>
           </p>
         </div>
       </CheckoutShell>

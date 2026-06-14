@@ -188,7 +188,7 @@ class _SetupPinScreenState extends State<SetupPinScreen> {
                   const SizedBox(height: 40),
 
                   if (_saving)
-                    const CircularProgressIndicator(color: BanzamiColors.wine)
+                    const CircularProgressIndicator(color: BanzamiColors.primary)
                   else
                     PinPad(
                       key:        ValueKey(_step),
@@ -220,7 +220,7 @@ class _BiometricsSheet extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzamiColors.wine),
+          const Icon(Icons.fingerprint_rounded, size: 56, color: BanzamiColors.primary),
           const SizedBox(height: BanzamiSpacing.lg),
           const Text('Activar biometria?', style: BanzamiTextStyles.headingMd),
           const SizedBox(height: BanzamiSpacing.sm),

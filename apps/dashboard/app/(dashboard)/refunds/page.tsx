@@ -84,7 +84,7 @@ export default function RefundsPage() {
         <h1 className="text-xl font-semibold text-gray-900">Reembolsos</h1>
         <button
           onClick={() => setShowForm(v => !v)}
-          className="h-9 px-xl bg-wine text-white rounded-md text-sm font-medium hover:bg-wine/90 transition-colors"
+          className="h-9 px-xl bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami/90 transition-colors"
         >
           {showForm ? 'Cancelar' : '+ Novo reembolso'}
         </button>
@@ -101,7 +101,7 @@ export default function RefundsPage() {
                 value={txId}
                 onChange={e => setTxId(e.target.value)}
                 placeholder="uuid"
-                className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-wine/30"
+                className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-banzami/30"
               />
             </div>
             <div className="flex flex-col gap-xs">
@@ -113,7 +113,7 @@ export default function RefundsPage() {
                 value={amount}
                 onChange={e => setAmount(e.target.value)}
                 placeholder="0.00"
-                className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-wine/30"
+                className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-banzami/30"
               />
             </div>
           </div>
@@ -123,13 +123,13 @@ export default function RefundsPage() {
               value={reason}
               onChange={e => setReason(e.target.value)}
               placeholder="ex: produto com defeito"
-              className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-wine/30"
+              className="h-9 border border-gray-200 rounded-md px-md text-sm outline-none focus:ring-2 focus:ring-banzami/30"
             />
           </div>
           <button
             type="submit"
             disabled={submitting}
-            className="self-end h-9 px-xl bg-wine text-white rounded-md text-sm font-medium hover:bg-wine/90 disabled:opacity-50 transition-colors"
+            className="self-end h-9 px-xl bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami/90 disabled:opacity-50 transition-colors"
           >
             {submitting ? 'A processar…' : 'Criar reembolso'}
           </button>

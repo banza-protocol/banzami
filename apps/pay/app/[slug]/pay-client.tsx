@@ -136,7 +136,7 @@ export default function PayClient({
             )}
 
             <div className="flex items-center gap-2 rounded-xl bg-gray-100 px-3 py-2.5">
-              <span className="h-2 w-2 shrink-0 rounded-full bg-wine animate-pulse" />
+              <span className="h-2 w-2 shrink-0 rounded-full bg-banzami animate-pulse" />
               <p className="text-xs text-gray-600">A aguardar confirmação de pagamento…</p>
             </div>
           </div>
@@ -223,7 +223,7 @@ export default function PayClient({
           >
             {step.type === 'loading' ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="h-4 w-4 rounded-full border-2 border-wine border-t-transparent animate-spin" />
+                <span className="h-4 w-4 rounded-full border-2 border-banzami border-t-transparent animate-spin" />
                 A preparar…
               </span>
             ) : (
@@ -301,7 +301,7 @@ function InstructionStep({ n, label }: { n: number; label: string }) {
   return (
     <div className="flex items-start gap-3">
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full
-                       bg-wine text-xs font-bold text-white">
+                       bg-banzami text-xs font-bold text-white">
         {n}
       </span>
       <p className="pt-0.5 text-sm text-gray-600">{label}</p>

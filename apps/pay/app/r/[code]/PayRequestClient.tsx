@@ -25,7 +25,7 @@ function SandboxBadge({ extra }: { extra?: string }) {
 
 function LiveBadge({ extra }: { extra?: string }) {
   return (
-    <span className="inline-flex items-center rounded-full border border-wine bg-white px-3 py-1 text-xs font-semibold text-wine">
+    <span className="inline-flex items-center rounded-full border border-banzami bg-white px-3 py-1 text-xs font-semibold text-banzami">
       Banza LIVE{extra ? ` • ${extra}` : ''}
     </span>
   );
@@ -37,7 +37,7 @@ function LoadingUI() {
   return (
     <main className="flex min-h-screen items-center justify-center p-4">
       <div className="flex flex-col items-center gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-wine border-t-transparent" />
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-banzami border-t-transparent" />
         <p className="text-sm text-gray-400">A carregar pedido…</p>
       </div>
     </main>
@@ -66,7 +66,7 @@ function NotFoundUI({ sandbox }: { sandbox: boolean }) {
         )}
         <a
           href="banza://open"
-          className="mt-6 inline-block w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
+          className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
           Abrir Banza
         </a>
@@ -94,7 +94,7 @@ function ErrorUI({ title, body, sandbox }: { title: string; body: string; sandbo
         )}
         <button
           onClick={() => window.location.reload()}
-          className="mt-6 w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
+          className="mt-6 w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
           Tentar novamente
         </button>
@@ -289,7 +289,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
         <div className="bg-white rounded-3xl shadow-card overflow-hidden">
 
           {/* Wine header */}
-          <div className="bg-wine-gradient px-6 pt-8 pb-10 flex flex-col items-center gap-3">
+          <div className="bg-banzami-gradient px-6 pt-8 pb-10 flex flex-col items-center gap-3">
             <div className="h-16 w-16 rounded-full bg-white/15 flex items-center justify-center shrink-0">
               <span className="text-2xl font-bold text-white select-none">{initial}</span>
             </div>
@@ -364,7 +364,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
             {/* ── opening: waiting for OS to switch to app ── */}
             {openPhase === 'opening' && (
               <div className="flex h-14 items-center justify-center gap-2.5">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-wine border-t-transparent" />
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-banzami border-t-transparent" />
                 <span className="text-sm text-gray-400">A abrir o Banza…</span>
               </div>
             )}
@@ -412,7 +412,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                   <button
                     type="button"
                     onClick={() => { window.location.href = deepLink; openApp(); }}
-                    className="text-sm font-medium text-wine underline"
+                    className="text-sm font-medium text-banzami underline"
                   >
                     Abrir Banza novamente
                   </button>
@@ -429,7 +429,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                 <button
                   type="button"
                   onClick={() => { window.location.href = deepLink; openApp(); }}
-                  className="w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
+                  className="w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
                 >
                   Tentar novamente
                 </button>
@@ -441,7 +441,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
 
         <p className="text-center text-xs text-gray-400 mt-6">
           Pagamentos via{' '}
-          <span className="font-semibold text-wine">Banza</span>
+          <span className="font-semibold text-banzami">Banza</span>
         </p>
       </div>
     </main>

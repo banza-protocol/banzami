@@ -113,7 +113,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon:  Icons.logout_rounded,
                 label: 'Terminar sessão',
                 onTap: () => _confirmLogout(svc),
-                color: BanzamiColors.wine,
+                color: BanzamiColors.primary,
               ),
               const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
               _RowChevron(
@@ -208,11 +208,11 @@ class _ProfileHeader extends StatelessWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        gradient:     BanzamiGradients.wine,
+        gradient:     BanzamiGradients.primary,
         borderRadius: BanzamiRadius.xlAll,
         boxShadow: [
           BoxShadow(
-            color:      BanzamiColors.wineDark.withValues(alpha: 0.28),
+            color:      BanzamiColors.primaryDark.withValues(alpha: 0.28),
             blurRadius: 24,
             offset:     const Offset(0, 8),
           ),
@@ -242,7 +242,7 @@ class _ProfileHeader extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       shape: BoxShape.circle,
-                      color: BanzamiColors.wineDark,
+                      color: BanzamiColors.primaryDark,
                     ),
                     child: Center(
                       child: Text(
@@ -376,10 +376,10 @@ class _PaymentAddressCard extends StatelessWidget {
               width:  36,
               height: 36,
               decoration: BoxDecoration(
-                color:        BanzamiColors.wine.withValues(alpha: 0.08),
+                color:        BanzamiColors.primary.withValues(alpha: 0.08),
                 borderRadius: BanzamiRadius.mdAll,
               ),
-              child: const Icon(Icons.alternate_email_rounded, color: BanzamiColors.wine, size: 18),
+              child: const Icon(Icons.alternate_email_rounded, color: BanzamiColors.primary, size: 18),
             ),
             const SizedBox(width: BanzamiSpacing.md),
             const Text('Endereço de pagamento', style: BanzamiTextStyles.headingSm),

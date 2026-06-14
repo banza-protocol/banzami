@@ -189,7 +189,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
       width:  72,
       height: 72,
       decoration: const BoxDecoration(
-        gradient: BanzamiGradients.wine,
+        gradient: BanzamiGradients.primary,
         shape:    BoxShape.circle,
       ),
       child: Center(
@@ -209,7 +209,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       decoration: BoxDecoration(
-        color:        BanzamiColors.wine,
+        color:        BanzamiColors.primary,
         borderRadius: BorderRadius.circular(BanzamiRadius.full),
       ),
       child: Text(
@@ -236,7 +236,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
               borderRadius: BorderRadius.circular(BanzamiRadius.sm),
             ),
             child: const Icon(Icons.account_balance_wallet_rounded,
-                size: 18, color: BanzamiColors.wine),
+                size: 18, color: BanzamiColors.primary),
           ),
           const SizedBox(width: BanzamiSpacing.md),
           Expanded(

@@ -140,7 +140,7 @@ export default function WalletsPage() {
 
       <button
         onClick={load}
-        className="self-start flex items-center gap-sm text-sm font-medium text-wine hover:underline"
+        className="self-start flex items-center gap-sm text-sm font-medium text-banzami hover:underline"
       >
         <RefreshCw size={14} />
         Actualizar saldo

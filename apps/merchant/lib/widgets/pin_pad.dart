@@ -12,7 +12,7 @@ class PinDots extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = error ? BanzamiColors.error : BanzamiColors.wine;
+    final color = error ? BanzamiColors.error : BanzamiColors.primary;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: List.generate(kPinLength, (i) {

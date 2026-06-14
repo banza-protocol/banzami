@@ -44,9 +44,9 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="w-64 h-screen sticky top-0 bg-wine flex flex-col shrink-0 overflow-y-auto">
+    <aside className="w-64 h-screen sticky top-0 bg-banzami flex flex-col shrink-0 overflow-y-auto">
       {/* Logo */}
-      <div className="px-xl py-xl border-b border-wine-medium">
+      <div className="px-xl py-xl border-b border-banzami-medium">
         <span className="text-white font-bold text-lg tracking-tight">Banzami</span>
         <span className="ml-sm text-xs text-white/50 font-medium uppercase tracking-widest">Business</span>
       </div>

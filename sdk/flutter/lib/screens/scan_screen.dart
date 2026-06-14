@@ -283,7 +283,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(color: BanzamiColors.wine),
+            CircularProgressIndicator(color: BanzamiColors.primary),
             SizedBox(height: BanzamiSpacing.lg),
             Text('A carregar pagamento…', style: BanzamiTextStyles.bodyMd),
           ],

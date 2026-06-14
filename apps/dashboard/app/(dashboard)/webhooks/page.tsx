@@ -52,7 +52,7 @@ export default function WebhooksPage() {
             onClick={() => setTab(t)}
             className={`px-lg py-sm text-sm font-medium border-b-2 transition-colors -mb-px ${
               tab === t
-                ? 'border-wine text-wine'
+                ? 'border-banzami text-banzami'
                 : 'border-transparent text-gray-400 hover:text-gray-700'
             }`}
           >
@@ -126,7 +126,7 @@ function EndpointsTab() {
       <div className="flex justify-end">
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-sm h-9 px-lg bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+          className="flex items-center gap-sm h-9 px-lg bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
         >
           <Plus size={16} />
           Registar endpoint
@@ -383,7 +383,7 @@ function EventsTab() {
 
       {hasMore && !loading && (
         <div className="border-t border-gray-100 px-xl py-md">
-          <button onClick={() => load(cursor)} className="text-sm font-medium text-wine hover:underline">
+          <button onClick={() => load(cursor)} className="text-sm font-medium text-banzami hover:underline">
             Carregar mais
           </button>
         </div>
@@ -521,7 +521,7 @@ function RegisterEndpointModal({
               type="url"
               value={url}
               onChange={e => setUrl(e.target.value)}
-              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors"
+              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-banzami/30 focus:bg-white transition-colors"
               placeholder="https://meu-site.com/webhook"
               required
             />
@@ -535,7 +535,7 @@ function RegisterEndpointModal({
                   type="checkbox"
                   checked={events.includes(ev)}
                   onChange={() => toggleEvent(ev)}
-                  className="accent-wine"
+                  className="accent-banzami"
                 />
                 {ev}
               </label>
@@ -552,7 +552,7 @@ function RegisterEndpointModal({
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors">
+              className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark disabled:opacity-60 transition-colors">
               {loading ? 'A registar…' : 'Registar'}
             </button>
           </div>

@@ -61,7 +61,7 @@ export default function DisputesPage() {
         <select
           value={status}
           onChange={e => setStatus(e.target.value)}
-          className="h-8 bg-white border border-gray-100 rounded-md px-md text-sm text-gray-900 outline-none focus:ring-2 focus:ring-wine/30"
+          className="h-8 bg-white border border-gray-100 rounded-md px-md text-sm text-gray-900 outline-none focus:ring-2 focus:ring-banzami/30"
         >
           {STATUSES.map(s => <option key={s} value={s}>{s || 'Todos os estados'}</option>)}
         </select>

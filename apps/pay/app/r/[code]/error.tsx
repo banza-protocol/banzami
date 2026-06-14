@@ -18,7 +18,7 @@ export default function Error({ error, reset }: { error: Error; reset: () => voi
         <p className="mt-2 text-sm text-gray-400">Não foi possível carregar o pedido.</p>
         <button
           onClick={reset}
-          className="mt-6 w-full rounded-2xl bg-wine py-3 text-sm font-semibold text-white active:bg-wine-medium"
+          className="mt-6 w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
           Tentar novamente
         </button>

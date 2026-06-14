@@ -144,7 +144,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 
     return BanzamiScaffold(
       body: RefreshIndicator(
-        color:        BanzamiColors.wine,
+        color:        BanzamiColors.primary,
         displacement: 60,
         onRefresh:    _load,
         child: FadeTransition(
@@ -247,7 +247,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                       padding: EdgeInsets.all(BanzamiSpacing.xxl),
                       child: Center(
                         child: CircularProgressIndicator(
-                          color: BanzamiColors.wine,
+                          color: BanzamiColors.primary,
                           strokeWidth: 2,
                         ),
                       ),
@@ -328,7 +328,7 @@ class _TopBar extends StatelessWidget {
             width:  40,
             height: 40,
             decoration: const BoxDecoration(
-              gradient: BanzamiGradients.wine,
+              gradient: BanzamiGradients.primary,
               shape:    BoxShape.circle,
             ),
             child: Center(
@@ -406,7 +406,7 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        gradient: BanzamiGradients.wine,
+        gradient: BanzamiGradients.primary,
         borderRadius: BanzamiRadius.xxlAll,
         boxShadow: [
           BoxShadow(
@@ -626,7 +626,7 @@ class _ActivityIcon extends StatelessWidget {
       width:  44,
       height: 44,
       decoration: const BoxDecoration(
-        gradient: BanzamiGradients.wine,
+        gradient: BanzamiGradients.primary,
         shape:    BoxShape.circle,
       ),
       child: Center(

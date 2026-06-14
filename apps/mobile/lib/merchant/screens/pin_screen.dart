@@ -115,9 +115,9 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                   if (session?.biometricsEnabled == true)
                     TextButton.icon(
                       onPressed: _tryBiometrics,
-                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.wine),
+                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.primary),
                       label: Text('Usar biometria',
-                          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.wine)),
+                          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.primary)),
                     ),
                   const SizedBox(height: 8),
                   TextButton(

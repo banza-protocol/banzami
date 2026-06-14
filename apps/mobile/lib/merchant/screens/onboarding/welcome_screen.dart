@@ -10,7 +10,7 @@ class MerchantWelcomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: BanzamiColors.wine,
+      backgroundColor: BanzamiColors.primary,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -70,7 +70,7 @@ class MerchantWelcomeScreen extends StatelessWidget {
                   ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: BanzamiColors.white,
-                    foregroundColor: BanzamiColors.wine,
+                    foregroundColor: BanzamiColors.primary,
                     padding:   const EdgeInsets.symmetric(vertical: 16),
                     shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                     textStyle: BanzamiTextStyles.headingSm,

@@ -24,7 +24,7 @@ class BanzamiTransferItem extends StatelessWidget {
 
     final amountColor = isOut ? BanzamiColors.gray900 : BanzamiColors.success;
     final amountSign  = isOut ? '− ' : '+ ';
-    final iconColor   = isOut ? BanzamiColors.wine : BanzamiColors.success;
+    final iconColor   = isOut ? BanzamiColors.primary : BanzamiColors.success;
 
     final (icon, label) = switch (item.itemType) {
       'P2P_SENT'       => (Icons.arrow_upward_rounded,   'Enviado'),

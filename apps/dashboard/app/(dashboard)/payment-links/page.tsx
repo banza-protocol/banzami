@@ -85,7 +85,7 @@ export default function PaymentLinksPage() {
         <select
           value={status}
           onChange={e => setStatus(e.target.value)}
-          className="h-8 bg-white border border-gray-100 rounded-md px-md text-sm text-gray-900 outline-none focus:ring-2 focus:ring-wine/30"
+          className="h-8 bg-white border border-gray-100 rounded-md px-md text-sm text-gray-900 outline-none focus:ring-2 focus:ring-banzami/30"
         >
           {STATUSES.map(s => (
             <option key={s} value={s}>{s || 'Todos'}</option>
@@ -94,7 +94,7 @@ export default function PaymentLinksPage() {
 
         <button
           onClick={() => setShowModal(true)}
-          className="ml-auto flex items-center gap-sm h-9 px-lg bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+          className="ml-auto flex items-center gap-sm h-9 px-lg bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
         >
           <Plus size={16} />
           Nova cobrança
@@ -137,7 +137,7 @@ export default function PaymentLinksPage() {
           <div className="border-t border-gray-100 px-xl py-md">
             <button
               onClick={() => load(cursor)}
-              className="text-sm font-medium text-wine hover:underline"
+              className="text-sm font-medium text-banzami hover:underline"
             >
               Carregar mais
             </button>
@@ -175,7 +175,7 @@ function LinkRow({ link, onCancel }: { link: PaymentLink; onCancel: (id: string)
           <button
             onClick={copy}
             title="Copiar URL"
-            className="text-gray-400 hover:text-wine transition-colors shrink-0"
+            className="text-gray-400 hover:text-banzami transition-colors shrink-0"
           >
             {copied ? <Check size={14} className="text-success" /> : <Copy size={14} />}
           </button>
@@ -296,7 +296,7 @@ function CreateLinkModal({
     setError('');
   }
 
-  const inputCls = 'h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors';
+  const inputCls = 'h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 outline-none focus:ring-2 focus:ring-banzami/30 focus:bg-white transition-colors';
   const url      = created ? linkUrl(created.slug) : '';
 
   return (
@@ -336,7 +336,7 @@ function CreateLinkModal({
                   </button>
                   <button
                     onClick={onClose}
-                    className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+                    className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
                   >
                     Fechar
                   </button>
@@ -372,7 +372,7 @@ function CreateLinkModal({
                 </button>
                 <button
                   onClick={onClose}
-                  className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark transition-colors"
+                  className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark transition-colors"
                 >
                   Fechar
                 </button>
@@ -437,7 +437,7 @@ function CreateLinkModal({
               <button
                 type="submit"
                 disabled={loading}
-                className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors"
+                className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark disabled:opacity-60 transition-colors"
               >
                 {loading ? 'A criar…' : 'Criar cobrança'}
               </button>

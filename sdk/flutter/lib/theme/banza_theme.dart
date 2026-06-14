@@ -6,13 +6,13 @@ import 'package:flutter/material.dart';
 
 abstract class BanzamiColors {
   // Primary — official Banzami red palette
-  static const Color wine        = Color(0xFFB5101F); // Banzami red — primary brand
-  static const Color wineLight   = Color(0xFFE8434B); // Banzami red — light/highlight — hover, QR centres, secondary fills
-  static const Color wineDark    = Color(0xFF9A1B22); // Banzami red — dark variant — gradient terminus, pressed state
-  static const Color wineMid     = Color(0xFFD7242E); // Banzami red — mid gradient stop
+  static const Color primary        = Color(0xFFB5101F); // Banzami red — primary brand
+  static const Color primaryLight   = Color(0xFFE8434B); // Banzami red — light/highlight — hover, QR centres, secondary fills
+  static const Color primaryDark    = Color(0xFF9A1B22); // Banzami red — dark variant — gradient terminus, pressed state
+  static const Color primaryMid     = Color(0xFFD7242E); // Banzami red — mid gradient stop
 
   // Secondary — Wine Rose
-  static const Color wineRose    = Color(0xFFFBD2D0); // secondary — badges, tags, accents
+  static const Color tint    = Color(0xFFFBD2D0); // secondary — badges, tags, accents
 
   // Accent — Savanna Gold
   static const Color gold        = Color(0xFFC89B3C); // accent — highlights, positive emphasis
@@ -53,7 +53,7 @@ abstract class BanzamiGradients {
   /// Primary Banza gradient — balance card, key headers, confirm screen avatar.
   /// 4-stop Banzami red gradient at ~145°. Start darkened from #E8434B → #B5101F for
   /// a calmer, more premium look — reduces left-side saturation jump.
-  static const LinearGradient wine = LinearGradient(
+  static const LinearGradient primary = LinearGradient(
     begin:  Alignment(-0.57, -0.82),
     end:    Alignment(0.57, 0.82),
     colors: [
@@ -78,7 +78,7 @@ abstract class BanzamiGradients {
   );
 
   /// Banzami red highlight gradient — secondary CTAs, outlined fills.
-  static const LinearGradient wineLight = LinearGradient(
+  static const LinearGradient primaryLight = LinearGradient(
     begin:  Alignment.topLeft,
     end:    Alignment.bottomRight,
     colors: [
@@ -318,12 +318,12 @@ abstract class BanzamiMotion {
 abstract class BanzamiTheme {
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor:   BanzamiColors.wine,
-      primary:     BanzamiColors.wine,
+      seedColor:   BanzamiColors.primary,
+      primary:     BanzamiColors.primary,
       onPrimary:   BanzamiColors.white,
-      secondary:   BanzamiColors.wineLight,
+      secondary:   BanzamiColors.primaryLight,
       onSecondary: BanzamiColors.white,
-      tertiary:    BanzamiColors.wineDark,
+      tertiary:    BanzamiColors.primaryDark,
       onTertiary:  BanzamiColors.white,
       surface:     BanzamiColors.white,
       onSurface:   BanzamiColors.gray900,
@@ -350,7 +350,7 @@ abstract class BanzamiTheme {
 
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: BanzamiColors.wine,
+          backgroundColor: BanzamiColors.primary,
           foregroundColor: BanzamiColors.white,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
@@ -366,12 +366,12 @@ abstract class BanzamiTheme {
 
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
+          foregroundColor: BanzamiColors.primary,
           minimumSize:     const Size(double.infinity, 50),
           shape: const RoundedRectangleBorder(
             borderRadius: BanzamiRadius.lgAll,
           ),
-          side: const BorderSide(color: BanzamiColors.wine, width: 1.5),
+          side: const BorderSide(color: BanzamiColors.primary, width: 1.5),
           textStyle: BanzamiTextStyles.label.copyWith(
             fontSize:   15,
             fontWeight: FontWeight.w600,
@@ -381,7 +381,7 @@ abstract class BanzamiTheme {
 
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
-          foregroundColor: BanzamiColors.wine,
+          foregroundColor: BanzamiColors.primary,
           textStyle: BanzamiTextStyles.label.copyWith(
             fontSize:   14,
             fontWeight: FontWeight.w600,
@@ -406,7 +406,7 @@ abstract class BanzamiTheme {
         ),
         focusedBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
-          borderSide:   BorderSide(color: BanzamiColors.wine, width: 1.5),
+          borderSide:   BorderSide(color: BanzamiColors.primary, width: 1.5),
         ),
         errorBorder: const OutlineInputBorder(
           borderRadius: BanzamiRadius.fieldAll,
@@ -420,7 +420,7 @@ abstract class BanzamiTheme {
         labelStyle: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray600),
         errorStyle: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error),
         floatingLabelStyle: const TextStyle(
-          color:      BanzamiColors.wine,
+          color:      BanzamiColors.primary,
           fontSize:   12,
           fontWeight: FontWeight.w500,
         ),
@@ -451,7 +451,7 @@ abstract class BanzamiTheme {
       ),
 
       progressIndicatorTheme: const ProgressIndicatorThemeData(
-        color: BanzamiColors.wine,
+        color: BanzamiColors.primary,
       ),
 
       snackBarTheme: SnackBarThemeData(
@@ -475,7 +475,7 @@ abstract class BanzamiTheme {
 
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: BanzamiColors.white,
-        indicatorColor:  BanzamiColors.wine,
+        indicatorColor:  BanzamiColors.primary,
         surfaceTintColor: Colors.transparent,
         elevation:  0,
         shadowColor: const Color(0x1A000000),
@@ -483,7 +483,7 @@ abstract class BanzamiTheme {
           final selected = states.contains(WidgetState.selected);
           return BanzamiTextStyles.label.copyWith(
             fontSize: 11,
-            color: selected ? BanzamiColors.wine : BanzamiColors.gray400,
+            color: selected ? BanzamiColors.primary : BanzamiColors.gray400,
           );
         }),
         iconTheme: WidgetStateProperty.resolveWith((states) {

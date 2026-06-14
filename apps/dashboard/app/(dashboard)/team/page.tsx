@@ -83,7 +83,7 @@ export default function TeamPage() {
           </div>
           <button
             onClick={() => setShow(true)}
-            className="flex items-center gap-sm h-8 px-md bg-wine text-white rounded-md text-xs font-medium hover:bg-wine-dark transition-colors"
+            className="flex items-center gap-sm h-8 px-md bg-banzami text-white rounded-md text-xs font-medium hover:bg-banzami-dark transition-colors"
           >
             <Plus size={14} /> Convidar
           </button>
@@ -188,7 +188,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
               required
               value={email}
               onChange={e => setEmail(e.target.value)}
-              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-wine/30 focus:bg-white transition-colors"
+              className="h-10 bg-gray-100 rounded-md px-lg text-sm outline-none focus:ring-2 focus:ring-banzami/30 focus:bg-white transition-colors"
               placeholder="membro@exemplo.com"
             />
           </div>
@@ -221,7 +221,7 @@ function InviteModal({ onClose, onInvited }: { onClose: () => void; onInvited: (
               Cancelar
             </button>
             <button type="submit" disabled={loading}
-              className="flex-1 h-10 bg-wine text-white rounded-md text-sm font-medium hover:bg-wine-dark disabled:opacity-60 transition-colors">
+              className="flex-1 h-10 bg-banzami text-white rounded-md text-sm font-medium hover:bg-banzami-dark disabled:opacity-60 transition-colors">
               {loading ? 'A convidar…' : 'Enviar convite'}
             </button>
           </div>

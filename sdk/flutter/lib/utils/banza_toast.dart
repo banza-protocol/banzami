@@ -234,7 +234,7 @@ _ToastConfig _config(_ToastType type) {
     case _ToastType.info:
       return const _ToastConfig(
         background: BanzamiColors.gray100,
-        accent:     BanzamiColors.wine,
+        accent:     BanzamiColors.primary,
         textColor:  BanzamiColors.gray900,
         icon:       Icons.info_outline_rounded,
       );

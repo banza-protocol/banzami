@@ -81,7 +81,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         errorCorrectionLevel: QrErrorCorrectLevel.H,
         eyeStyle:        const QrEyeStyle(
           eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.wine,
+          color:    BanzamiColors.primary,
         ),
         dataModuleStyle: const QrDataModuleStyle(
           dataModuleShape: QrDataModuleShape.square,
@@ -136,7 +136,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
         ],
       ),
       body: _loading
-          ? const Center(child: CircularProgressIndicator(color: BanzamiColors.wine))
+          ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
           : _error != null
               ? _buildError()
               : _buildBody(session),
@@ -183,7 +183,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                 errorCorrectionLevel: QrErrorCorrectLevel.H,
                 eyeStyle: const QrEyeStyle(
                   eyeShape: QrEyeShape.square,
-                  color:    BanzamiColors.wine,
+                  color:    BanzamiColors.primary,
                 ),
                 dataModuleStyle: const QrDataModuleStyle(
                   dataModuleShape: QrDataModuleShape.square,
@@ -224,7 +224,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                 : const Icon(Icons.share_rounded),
             label: const Text('Partilhar QR'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: BanzamiColors.wine,
+              backgroundColor: BanzamiColors.primary,
               foregroundColor: BanzamiColors.white,
               padding:         const EdgeInsets.symmetric(vertical: 16),
               shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
@@ -244,8 +244,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
             icon:  const Icon(Icons.add_rounded),
             label: const Text('Cobrança com valor fixo'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.wine,
-              side:            const BorderSide(color: BanzamiColors.wine),
+              foregroundColor: BanzamiColors.primary,
+              side:            const BorderSide(color: BanzamiColors.primary),
               padding:         const EdgeInsets.symmetric(vertical: 16),
               shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
               textStyle:       BanzamiTextStyles.headingSm,

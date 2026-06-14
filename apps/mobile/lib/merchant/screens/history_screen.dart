@@ -41,9 +41,9 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
         title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
         bottom: TabBar(
           controller:          _tabs,
-          labelColor:          BanzamiColors.wine,
+          labelColor:          BanzamiColors.primary,
           unselectedLabelColor: BanzamiColors.gray400,
-          indicatorColor:      BanzamiColors.wine,
+          indicatorColor:      BanzamiColors.primary,
           indicatorWeight:     2,
           labelStyle:          BanzamiTextStyles.label.copyWith(
             fontSize:   14,
@@ -173,7 +173,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
   Widget build(BuildContext context) {
     super.build(context);
     return RefreshIndicator(
-      color:     BanzamiColors.wine,
+      color:     BanzamiColors.primary,
       onRefresh: () => _load(refresh: true),
       child:     _buildBody(),
     );
@@ -181,7 +181,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
 
   Widget _buildBody() {
     if (_loading && _txs.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     }
     if (_error != null && _txs.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -211,7 +211,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(BanzamiSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
           );
         }
 
@@ -292,7 +292,7 @@ class _TransactionTile extends StatelessWidget {
       ),
       _ => (
         Icons.access_time_rounded,
-        BanzamiColors.wine,
+        BanzamiColors.primary,
         tx.description ?? 'Pendente',
         BanzamiColors.gray900,
         '',
@@ -405,7 +405,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
   Widget build(BuildContext context) {
     super.build(context);
     return RefreshIndicator(
-      color:     BanzamiColors.wine,
+      color:     BanzamiColors.primary,
       onRefresh: () => _load(refresh: true),
       child:     _buildBody(),
     );
@@ -413,7 +413,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
 
   Widget _buildBody() {
     if (_loading && _links.isEmpty) {
-      return const Center(child: CircularProgressIndicator(color: BanzamiColors.wine));
+      return const Center(child: CircularProgressIndicator(color: BanzamiColors.primary));
     }
     if (_error != null && _links.isEmpty) {
       return Center(child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -441,7 +441,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
           if (!_loading) _load();
           return const Padding(
             padding: EdgeInsets.all(BanzamiSpacing.xl),
-            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.wine)),
+            child:   Center(child: CircularProgressIndicator(color: BanzamiColors.primary)),
           );
         }
 
@@ -479,7 +479,7 @@ class _PaymentLinkTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final (color, label, icon) = switch (link.status) {
       PaymentLinkStatus.active    => (BanzamiColors.success, 'Activo',    Icons.hourglass_top_rounded),
-      PaymentLinkStatus.used      => (BanzamiColors.wine,    'Pago',      Icons.check_circle_rounded),
+      PaymentLinkStatus.used      => (BanzamiColors.primary,    'Pago',      Icons.check_circle_rounded),
       PaymentLinkStatus.expired   => (BanzamiColors.gray400, 'Expirado',  Icons.timer_off_rounded),
       PaymentLinkStatus.cancelled => (BanzamiColors.error,   'Cancelado', Icons.cancel_rounded),
     };
