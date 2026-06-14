@@ -24,8 +24,8 @@
   <text x="299" y="180" font-size="9.5" fill="#6B7280">defines the protocol</text>
 
   <rect x="120" y="196" width="330" height="58" rx="12" fill="url(#hg)"/>
-  <text x="285" y="222" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">Banzami</text>
-  <text x="285" y="241" text-anchor="middle" font-size="9.5" fill="#FBD2D0">commercial operator — this repository</text>
+  <text x="285" y="221" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">Banzami — First Operator</text>
+  <text x="285" y="240" text-anchor="middle" font-size="9.5" fill="#FBD2D0">founding operator of the BANZA ecosystem</text>
 
   <line x1="285" y1="254" x2="285" y2="288" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
   <text x="299" y="276" font-size="9.5" fill="#6B7280">operates wallets · QR · links · APIs</text>

@@ -27,7 +27,7 @@ Read the shared operating rules first: [../banza/docs/governance/CLAUDE_BASE.md]
 
 ## Reference Operator Guardrail
 
-**Banzami is one implementation of BANZA.**
+**Banzami is the first operator built on BANZA.**
 
 - Banzami does NOT own the protocol.
 - Banzami does NOT define the protocol rules.
@@ -115,7 +115,7 @@ CORRECT descriptions of Banzami:
 
 * Angola's instant payment network (reference operator)
 * QR-native payment experience built on BANZA
-* Banzami is one operator — BANZA is the protocol
+* Banzami is the first operator — BANZA is the protocol
 * "Powered by the BANZA protocol"
 
 INCORRECT descriptions of Banzami:

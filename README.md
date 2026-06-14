@@ -1,9 +1,10 @@
 ![Banzami — Angola's Wallet-Native Payment Network](docs/diagrams/banzami-hero-v1.svg)
 
-**Angola's wallet-native payment network.** Banzami is an independent Angolan
-startup building the network that moves Kwanza at internet speed — where every
-account is a wallet, every payment is an instant transfer, and money settles in
-seconds without cash, cards, terminals, or proof-of-payment screenshots.
+**Angola's wallet-native payment network.** Banzami is the **first operator
+built on the open BANZA protocol** — an independent Angolan startup building the
+network that moves Kwanza at internet speed, where every account is a wallet,
+every payment is an instant transfer, and money settles in seconds without cash,
+cards, terminals, or proof-of-payment screenshots.
 
 > **Money moves at internet speed.**
 

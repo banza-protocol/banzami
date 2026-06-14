@@ -82,7 +82,7 @@ The engineering constitution for this repository is defined in [CLAUDE.md](CLAUD
 
 ## Ecosystem Relationship
 
-Banzami is one implementation of the BANZA protocol:
+Banzami is the first operator built on the BANZA protocol:
 
 ```
 BANZA (open protocol)

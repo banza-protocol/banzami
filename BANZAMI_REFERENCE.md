@@ -18,7 +18,7 @@ Banzami  = reference operator implementation            ← THIS DOCUMENT
 
 This document defines only: **Banzami — the reference operator implementation of the BANZA financial infrastructure protocol.**
 
-Banzami is one implementation of BANZA. The protocol is not owned by Banzami. The protocol exists independently of Banzami.
+Banzami is the first operator built on BANZA. The protocol is not owned by Banzami. The protocol exists independently of Banzami.
 
 Anything outside this scope is defined in:
 - [BANZA_REFERENCE.md](../banza/BANZA_REFERENCE.md) — The BANZA open protocol (rules, invariants, certification, governance)
