@@ -678,15 +678,25 @@ BANZA (open protocol)
     └── @banza (handle identity — protocol level)
 ```
 
-## 15.5 SDK naming (protocol-level, Banza-prefixed)
+## 15.5 SDK naming (operator-level, Banzami-prefixed)
 
-* TypeScript: `@banza/sdk`, class `BanzaClient`
-* PHP: `banza/sdk-php`, class `BanzaClient`
-* Go: `banza-go`
-* Python: `banza-python`
-* Flutter: `banza_flutter`, class `BanzaPay`
+The SDKs are built and published by the operator (Banzami), so they carry the
+Banzami name. (This supersedes the earlier "protocol-level, Banza-prefixed" SDK
+naming: `banza` appears in the operator product only for the BANZA protocol
+itself and the `@banza` handle identity.)
+
+* TypeScript: `@banzami/sdk`, class `BanzamiClient`
+* PHP: `banzami/sdk-php`, namespace `Banzami\`, class `BanzamiClient`
+* Go: `banzami-go`
+* Python: `banzami-python`, package `banzami`
+* Flutter: `banzami_flutter`, class `BanzamiClient`
+* Node plugins scope: `@banzami/*`
+
+**Preserved as protocol-level wire contracts** (unchanged to avoid breaking
+existing integrations; the BANZA protocol defines the signing convention):
+
 * Webhook header: `banza-signature`
-* Env var: `BANZA_WEBHOOK_SECRET`
+* Env vars: `BANZA_WEBHOOK_SECRET`, `BANZA_API_KEY`
 
 ## 15.6 Grammatical gender — binding rule
 
