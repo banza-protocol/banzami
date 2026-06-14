@@ -28,7 +28,11 @@ pub async fn run_expiry_worker(pool: PgPool, tick_interval: Duration) {
     }
 }
 
-pub(crate) async fn expire_stale_codes(pool: &PgPool) -> Result<u64, sqlx::Error> {
+/// Transition every ACTIVE dynamic QR code whose `expires_at` has passed to
+/// EXPIRED, returning the number of rows affected. This is the single query the
+/// background [`run_expiry_worker`] runs each tick; it is exposed so integration
+/// tests can exercise the real expiry path without spinning up the worker loop.
+pub async fn expire_stale_codes(pool: &PgPool) -> Result<u64, sqlx::Error> {
     let result = sqlx::query(
         "UPDATE qr_codes
          SET    status = 'EXPIRED'
