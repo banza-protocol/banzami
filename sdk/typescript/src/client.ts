@@ -394,10 +394,19 @@ export class BanzaClient {
     return this.request<ApiKey[]>(`/merchants/${merchantId}/api-keys`);
   }
 
-  createApiKey(merchantId: string, label?: string): Promise<NewApiKey> {
+  /**
+   * Create an API key. `environment` selects the data universe the key operates
+   * in: `'LIVE'` (default, `bz_live_` prefix) or `'SANDBOX'` (`bz_test_` prefix).
+   * Live and sandbox keys never share financial data.
+   */
+  createApiKey(
+    merchantId: string,
+    label?: string,
+    environment: 'LIVE' | 'SANDBOX' = 'LIVE',
+  ): Promise<NewApiKey> {
     return this.request<NewApiKey>(`/merchants/${merchantId}/api-keys`, {
       method: 'POST',
-      body:   JSON.stringify({ label: label ?? null }),
+      body:   JSON.stringify({ label: label ?? null, environment }),
     });
   }
 

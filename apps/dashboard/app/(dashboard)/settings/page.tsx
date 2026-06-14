@@ -69,27 +69,20 @@ export default function SettingsPage() {
         {error && <p className="px-xl py-lg text-sm text-error">{error}</p>}
 
         {keys.length > 0 && (
-          <ul className="divide-y divide-gray-100">
-            {keys.map(k => (
-              <li key={k.id} className="flex items-center gap-md px-xl py-md">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-mono text-gray-900">{k.prefix}••••••••</p>
-                  {k.label && <p className="text-xs text-gray-400 mt-micro">{k.label}</p>}
-                  <p className="text-xs text-gray-400">
-                    Criada {new Date(k.created_at).toLocaleDateString('pt-AO', { dateStyle: 'medium' })}
-                    {k.last_used_at && ` · Última utilização ${new Date(k.last_used_at).toLocaleDateString('pt-AO', { dateStyle: 'medium' })}`}
-                  </p>
-                </div>
-                <button
-                  onClick={() => handleRevoke(k.id)}
-                  title="Revogar chave"
-                  className="text-gray-400 hover:text-error transition-colors"
-                >
-                  <Trash2 size={15} />
-                </button>
-              </li>
-            ))}
-          </ul>
+          <div>
+            <KeyGroup
+              title="Produção"
+              hint="Chaves bz_live_ — movem dinheiro real."
+              keys={keys.filter(k => k.environment === 'LIVE')}
+              onRevoke={handleRevoke}
+            />
+            <KeyGroup
+              title="Sandbox"
+              hint="Chaves bz_test_ — universo de testes isolado, sem dinheiro real."
+              keys={keys.filter(k => k.environment === 'SANDBOX')}
+              onRevoke={handleRevoke}
+            />
+          </div>
         )}
       </div>
 
@@ -137,6 +130,60 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   );
 }
 
+function EnvBadge({ environment }: { environment: 'LIVE' | 'SANDBOX' }) {
+  const live = environment === 'LIVE';
+  return (
+    <span className={`inline-flex items-center rounded-full px-md py-micro text-[10px] font-semibold uppercase tracking-wide ${
+      live ? 'bg-success-bg text-success' : 'bg-warning-bg text-warning'
+    }`}>
+      {live ? 'Produção' : 'Sandbox'}
+    </span>
+  );
+}
+
+function KeyGroup({
+  title, hint, keys, onRevoke,
+}: {
+  title: string;
+  hint: string;
+  keys: ApiKey[];
+  onRevoke: (id: string) => void;
+}) {
+  if (keys.length === 0) return null;
+  return (
+    <div className="border-t border-gray-100 first:border-t-0">
+      <div className="px-xl pt-md pb-xs">
+        <p className="text-xs font-semibold text-gray-700">{title}</p>
+        <p className="text-[11px] text-gray-400">{hint}</p>
+      </div>
+      <ul className="divide-y divide-gray-100">
+        {keys.map(k => (
+          <li key={k.id} className="flex items-center gap-md px-xl py-md">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-sm">
+                <p className="text-sm font-mono text-gray-900">{k.prefix}••••••••</p>
+                <EnvBadge environment={k.environment} />
+              </div>
+              {k.label && <p className="text-xs text-gray-400 mt-micro">{k.label}</p>}
+              <p className="text-xs text-gray-400">
+                Criada {new Date(k.created_at).toLocaleDateString('pt-AO', { dateStyle: 'medium' })}
+                {k.last_used_at && ` · Última utilização ${new Date(k.last_used_at).toLocaleDateString('pt-AO', { dateStyle: 'medium' })}`}
+              </p>
+            </div>
+            <button
+              onClick={() => onRevoke(k.id)}
+              title="Revogar chave"
+              className="text-gray-400 hover:text-error transition-colors"
+            >
+              <Trash2 size={15} />
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 function CreateKeyModal({
   onClose,
   onCreated,
@@ -145,6 +192,7 @@ function CreateKeyModal({
   onCreated: (k: NewApiKey) => void;
 }) {
   const [label, setLabel]     = useState('');
+  const [environment, setEnvironment] = useState<'LIVE' | 'SANDBOX'>('LIVE');
   const [error, setError]     = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -156,7 +204,7 @@ function CreateKeyModal({
     setError('');
     try {
       const api = new BanzamiApi(session.gatewayUrl, session.apiKey);
-      const k   = await api.createApiKey(session.merchantId, label.trim() || undefined);
+      const k   = await api.createApiKey(session.merchantId, label.trim() || undefined, environment);
       onCreated(k);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Erro');
@@ -173,6 +221,28 @@ function CreateKeyModal({
           <button onClick={onClose} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
         </div>
         <form onSubmit={submit} className="flex flex-col gap-lg">
+          <div className="flex flex-col gap-xs">
+            <label className="text-xs font-medium text-gray-700">Ambiente</label>
+            <div className="inline-flex rounded-md border border-gray-200 p-0.5">
+              {(['LIVE', 'SANDBOX'] as const).map(env => (
+                <button
+                  key={env}
+                  type="button"
+                  onClick={() => setEnvironment(env)}
+                  className={`flex-1 h-8 rounded text-xs font-medium transition-colors ${
+                    environment === env ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900'
+                  }`}
+                >
+                  {env === 'LIVE' ? 'Produção (bz_live_)' : 'Sandbox (bz_test_)'}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-gray-400">
+              {environment === 'LIVE'
+                ? 'Move dinheiro real. Use apenas em produção.'
+                : 'Universo de testes isolado — sem dinheiro real.'}
+            </p>
+          </div>
           <div className="flex flex-col gap-xs">
             <label className="text-xs font-medium text-gray-700">Etiqueta (opcional)</label>
             <input
@@ -216,7 +286,10 @@ function NewKeyReveal({ apiKey, onDismiss }: { apiKey: NewApiKey; onDismiss: () 
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-xl">
       <div className="bg-white rounded-xl shadow-modal w-full max-w-sm p-xl flex flex-col gap-lg">
         <div className="flex items-center justify-between">
-          <h2 className="text-base font-semibold text-gray-900">Chave Criada</h2>
+          <div className="flex items-center gap-sm">
+            <h2 className="text-base font-semibold text-gray-900">Chave Criada</h2>
+            <EnvBadge environment={apiKey.environment} />
+          </div>
           <button onClick={onDismiss} className="text-gray-400 hover:text-gray-700"><X size={18} /></button>
         </div>
 

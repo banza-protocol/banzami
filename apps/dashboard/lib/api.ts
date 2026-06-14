@@ -226,8 +226,8 @@ export class BanzamiApi {
     return this.client.listApiKeys(merchantId);
   }
 
-  createApiKey(merchantId: string, label?: string) {
-    return this.client.createApiKey(merchantId, label);
+  createApiKey(merchantId: string, label?: string, environment: 'LIVE' | 'SANDBOX' = 'LIVE') {
+    return this.client.createApiKey(merchantId, label, environment);
   }
 
   revokeApiKey(merchantId: string, keyId: string) {
