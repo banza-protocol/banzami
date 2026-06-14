@@ -264,26 +264,6 @@ class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
-  // QR codes
-  // ---------------------------------------------------------------------------
-
-  /// Create (or regenerate) a permanent static QR for receiving payments and
-  /// return its scannable payload string. The payer chooses the amount, so the
-  /// same code can be printed once and reused indefinitely — it never expires.
-  Future<String> createStaticQr({
-    required String ownerId,
-    String ownerType = 'MERCHANT',
-    String currency = 'AOA',
-  }) async {
-    final json = await _postWithRetry('/v1/qr/static', {
-      'owner_id':   ownerId,
-      'owner_type': ownerType,
-      'currency':   currency,
-    });
-    return json['payload'] as String;
-  }
-
-  // ---------------------------------------------------------------------------
   // Transactions (merchant)
   // ---------------------------------------------------------------------------
 

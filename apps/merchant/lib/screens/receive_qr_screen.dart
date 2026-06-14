@@ -37,8 +37,11 @@ class _ReceiveQrScreenState extends State<ReceiveQrScreen> {
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
     try {
-      final payload = await client.createStaticQr(ownerId: session.merchantId);
-      if (mounted) setState(() => _payload = payload);
+      final qr = await client.createStaticQr(
+        ownerId:   session.merchantId,
+        ownerType: 'MERCHANT',
+      );
+      if (mounted) setState(() => _payload = qr.payload);
     } on BanzamiApiException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } on BanzamiNetworkException {

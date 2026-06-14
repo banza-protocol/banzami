@@ -4,6 +4,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
+import 'receive_qr_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -101,9 +102,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         _BalanceCard(balance: _balance),
         const SizedBox(height: BanzamiSpacing.lg),
-        _QuickChargeButton(onTap: () => Navigator.of(context).push(
-          MaterialPageRoute(builder: (_) => const ChargeScreen()),
-        ).then((_) => _load())),
+        Row(children: [
+          Expanded(
+            child: _ActionButton(
+              icon:    Icons.add_circle_outline_rounded,
+              label:   'Nova cobrança',
+              filled:  true,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ChargeScreen()),
+              ).then((_) => _load()),
+            ),
+          ),
+          const SizedBox(width: BanzamiSpacing.md),
+          Expanded(
+            child: _ActionButton(
+              icon:   Icons.qr_code_2_rounded,
+              label:  'Meu QR',
+              filled: false,
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const ReceiveQrScreen()),
+              ),
+            ),
+          ),
+        ]),
         const SizedBox(height: BanzamiSpacing.xl),
         if (_recent.isNotEmpty) ...[
           const Text('Recentes', style: BanzamiTextStyles.headingSm),
@@ -156,25 +177,46 @@ class _BalanceCard extends StatelessWidget {
   }
 }
 
-class _QuickChargeButton extends StatelessWidget {
+class _ActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool filled;
   final VoidCallback onTap;
-  const _QuickChargeButton({required this.onTap});
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.filled,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
+    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(14));
+    const pad = EdgeInsets.symmetric(vertical: 16);
+    if (filled) {
+      return ElevatedButton.icon(
         onPressed: onTap,
-        icon:  const Icon(Icons.add_circle_outline_rounded),
-        label: const Text('Nova cobrança'),
+        icon:  Icon(icon),
+        label: Text(label),
         style: ElevatedButton.styleFrom(
           backgroundColor: BanzamiColors.primary,
           foregroundColor: BanzamiColors.white,
-          padding:    const EdgeInsets.symmetric(vertical: 16),
-          shape:      RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-          textStyle:  BanzamiTextStyles.headingSm,
+          padding:   pad,
+          shape:     shape,
+          textStyle: BanzamiTextStyles.headingSm,
         ),
+      );
+    }
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon:  Icon(icon),
+      label: Text(label),
+      style: OutlinedButton.styleFrom(
+        foregroundColor: BanzamiColors.primary,
+        side:      const BorderSide(color: BanzamiColors.primary),
+        padding:   pad,
+        shape:     shape,
+        textStyle: BanzamiTextStyles.headingSm,
       ),
     );
   }
