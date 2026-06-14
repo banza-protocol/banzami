@@ -26,3 +26,9 @@ tokio  = { workspace = true, features = ["macros", "rt-multi-thread"] }
 sqlx   = { workspace = true }
 uuid   = { workspace = true }
 chrono = { workspace = true }
+# Cross-crate integration test for the QR payment invariant (INV-QR-002-1):
+# QR amount == consumer ledger debit == merchant ledger credit.
+banzami-ledger           = { workspace = true }
+banzami-wallets          = { workspace = true }
+banzami-consumer-wallets = { workspace = true }
+banzami-transfers        = { workspace = true }

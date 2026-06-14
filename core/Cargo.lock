@@ -332,7 +332,11 @@ dependencies = [
 name = "banzami-qr"
 version = "0.1.0"
 dependencies = [
+ "banzami-consumer-wallets",
+ "banzami-ledger",
+ "banzami-transfers",
  "banzami-types",
+ "banzami-wallets",
  "base64 0.22.1",
  "chrono",
  "hmac",
