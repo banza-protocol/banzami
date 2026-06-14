@@ -9,8 +9,8 @@ function makeItem(overrides: Partial<ValidationItem> = {}): ValidationItem {
   return {
     id: 'DOC-004',
     title: 'Plataforma de validação',
-    categoryId: 'cat-docs',
-    validationDomain: 'DOM-DOCS',
+    categoryId: 'cat-sandbox',
+    validationDomain: 'DOM-OPS',
     referenceSection: '§17',
     description: 'Governance infrastructure',
     requirement: 'Must govern validation lifecycle',

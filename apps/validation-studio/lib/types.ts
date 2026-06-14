@@ -38,8 +38,6 @@ export type ValidationDomain =
   | 'DOM-COMPLIANCE' // Compliance
   | 'DOM-OPS'        // Operations
   | 'DOM-OBS'        // Observability
-  | 'DOM-INFRA'      // Infrastructure
-  | 'DOM-DOCS'       // Documentation & Governance
 
 export interface ConfidenceScore {
   score: number          // 0-100
@@ -235,7 +233,6 @@ export const ALL_INVARIANT_STATUSES: InvariantStatus[] = ['PASS', 'FAIL', 'UNKNO
 export const ALL_DOMAINS: ValidationDomain[] = [
   'DOM-FIN', 'DOM-IDENTITY', 'DOM-CONSUMER', 'DOM-MERCHANT',
   'DOM-DEV', 'DOM-SEC', 'DOM-COMPLIANCE', 'DOM-OPS', 'DOM-OBS',
-  'DOM-INFRA', 'DOM-DOCS',
 ]
 
 export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
@@ -248,8 +245,6 @@ export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
   'DOM-COMPLIANCE': 'Compliance',
   'DOM-OPS':        'Operations',
   'DOM-OBS':        'Observability',
-  'DOM-INFRA':      'Infrastructure',
-  'DOM-DOCS':       'Docs & Governance',
 }
 
 export const CONFIDENCE_LEVEL_LABELS: Record<ConfidenceLevel, string> = {

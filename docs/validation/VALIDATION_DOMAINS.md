@@ -153,34 +153,6 @@ Domains are used for:
 
 ---
 
-### DOM-INFRA — Infrastructure
-
-**Scope:** Architecture patterns, Docker, nginx, EMIS integration, Multicaixa Express bridge, modular monolith structure.
-
-**Concern:** Infrastructure correctness: container isolation, reverse proxy configuration, acquiring integration, Go↔Rust boundary enforcement.
-
-**Standard:** High for EMIS/acquiring. Medium for infrastructure tooling.
-
-**Owner area:** Infra / Arquitectura
-
-**Category IDs:** `cat-arch`, `cat-emis`
-
----
-
-### DOM-DOCS — Documentation & Governance
-
-**Scope:** Documentation site, reference document, validation matrix, ADRs, brand architecture.
-
-**Concern:** Documentation completeness and accuracy: BANZA_REFERENCE.md as source of truth, site rendering, matrix governance.
-
-**Standard:** Medium. Manual review and production verification sufficient.
-
-**Owner area:** Produto / Documentação
-
-**Category IDs:** `cat-docs`, `cat-roadmap`
-
----
-
 ## Category → Domain Mapping
 
 | Category ID | Category Name | Primary Domain |
@@ -205,10 +177,7 @@ Domains are used for:
 | `cat-risk` | Risco | DOM-SEC |
 | `cat-kyc` | KYC/KYB | DOM-COMPLIANCE |
 | `cat-observability` | Observabilidade | DOM-OBS |
-| `cat-arch` | Arquitectura | DOM-INFRA |
-| `cat-emis` | EMIS / Multicaixa | DOM-INFRA |
-| `cat-docs` | Documentação | DOM-DOCS |
-| `cat-roadmap` | Roadmap | DOM-DOCS |
+| `cat-emis` | EMIS / Multicaixa | DOM-FIN |
 
 ---
 

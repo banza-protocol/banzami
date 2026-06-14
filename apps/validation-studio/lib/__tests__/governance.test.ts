@@ -21,8 +21,8 @@ function makeItem(overrides: Partial<ValidationItem> = {}): ValidationItem {
   return {
     id: 'TEST-001',
     title: 'Test item',
-    categoryId: 'cat-docs',
-    validationDomain: 'DOM-DOCS',
+    categoryId: 'cat-sandbox',
+    validationDomain: 'DOM-OPS',
     referenceSection: '§1',
     description: 'A test item',
     requirement: 'Must do something',
@@ -72,7 +72,7 @@ function makeMatrix(
 
 describe('computeConfidence', () => {
   it('returns +20 for non-financial item even with no evidence or methods', () => {
-    const item = makeItem({ categoryId: 'cat-docs', evidence: [], validationMethods: [] })
+    const item = makeItem({ categoryId: 'cat-sandbox', evidence: [], validationMethods: [] })
     const result = computeConfidence(item)
     expect(result.score).toBe(20)
     expect(result.level).toBe('LOW')
@@ -144,7 +144,7 @@ describe('computeConfidence', () => {
 
   it('produces exactly 65 for the DOC-004 current method set (non-financial, evidence, manual_ux, production_review)', () => {
     const item = makeItem({
-      categoryId: 'cat-docs',
+      categoryId: 'cat-sandbox',
       evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['manual_ux', 'production_review'],
     })
@@ -153,7 +153,7 @@ describe('computeConfidence', () => {
 
   it('produces exactly 80 for DOC-004 after adding unit_tests', () => {
     const item = makeItem({
-      categoryId: 'cat-docs',
+      categoryId: 'cat-sandbox',
       evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
       validationMethods: ['unit_tests', 'manual_ux', 'production_review'],
     })
@@ -388,7 +388,7 @@ describe('getRequiresBlockers', () => {
 describe('checkInvariants — financial invariant blocking', () => {
   it('returns no issues for non-financial categories', () => {
     const item = makeItem({
-      categoryId: 'cat-docs',
+      categoryId: 'cat-sandbox',
       status: 'VALIDATED',
       invariants: [makeInvariant({ status: 'FAIL' })],
     })
