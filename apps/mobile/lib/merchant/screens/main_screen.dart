@@ -40,7 +40,7 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     final granted = await PushNotificationService.requestPermission();
     if (!granted) return;
 
-    await PushNotificationService.subscribeToTopic('merchant_${session.merchantId}');
+    await PushNotificationService.subscribeMerchant(session.merchantId);
     await PushNotificationService.getToken();
   }
 
