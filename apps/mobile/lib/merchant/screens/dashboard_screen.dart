@@ -4,6 +4,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
+import 'payment_requests_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -149,6 +150,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _NewChargeButton(onTap: () => Navigator.of(context)
                   .push(MaterialPageRoute(builder: (_) => const ChargeScreen()))
                   .then((_) => _load())),
+
+              const SizedBox(height: BanzamiSpacing.sm),
+              SizedBox(
+                width: double.infinity,
+                child: TextButton.icon(
+                  onPressed: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PaymentRequestsScreen()),
+                  ),
+                  icon:  const Icon(Icons.request_quote_outlined, size: 18),
+                  label: const Text('Pedidos de pagamento'),
+                  style: TextButton.styleFrom(foregroundColor: BanzamiColors.primary),
+                ),
+              ),
 
               // Recent charges
               if (_recent.isNotEmpty) ...[

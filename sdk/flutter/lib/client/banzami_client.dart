@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 import '../models/consumer.dart';
 import '../models/merchant.dart';
 import '../models/payment_link.dart';
+import '../models/payment_request.dart';
 import '../models/qr_code.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
@@ -261,6 +262,48 @@ class BanzamiClient {
   Future<PaymentLink> cancelPaymentLink(String id) async {
     final json = await _delete('/v1/payment-links/$id');
     return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment requests — a merchant asks a specific @banza payer for a fixed amount
+  // ---------------------------------------------------------------------------
+
+  Future<PaymentRequest> createPaymentRequest({
+    required String requesterId,
+    required int amountMinor,
+    String? payerHandle,
+    String currency = 'AOA',
+    String? description,
+    DateTime? expiresAt,
+    String? idempotencyKey,
+  }) async {
+    final json = await _postWithRetry('/v1/payment-requests', {
+      'requester_id':    requesterId,
+      'amount_minor':    amountMinor,
+      'currency':        currency,
+      if (payerHandle != null) 'payer_handle': payerHandle,
+      if (description != null) 'description':  description,
+      if (expiresAt   != null) 'expires_at':   expiresAt.toUtc().toIso8601String(),
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+    }, idempotencyKey: idempotencyKey);
+    return PaymentRequest.fromJson(json);
+  }
+
+  Future<PaymentRequestPage> listPaymentRequests({String? status, int limit = 20}) async {
+    var path = '/v1/payment-requests?limit=$limit';
+    if (status != null) path += '&status=$status';
+    final json = await _get(path);
+    return PaymentRequestPage.fromJson(json);
+  }
+
+  Future<PaymentRequest> getPaymentRequest(String id) async {
+    final json = await _get('/v1/payment-requests/$id');
+    return PaymentRequest.fromJson(json);
+  }
+
+  Future<PaymentRequest> cancelPaymentRequest(String id) async {
+    final json = await _postWithRetry('/v1/payment-requests/$id/cancel', const {});
+    return PaymentRequest.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------
