@@ -29,8 +29,13 @@ cards, terminals, or proof-of-payment screenshots.
 Banzami is **infrastructure first**. It is not a wallet app, a QR app, or a
 payment-link app — those are products that sit on top of the network. Banzami
 is the network itself: a real-time, wallet-native settlement layer for Kwanza,
-addressable by human-readable `@handles`, accessible through QR codes, payment
-links, and developer SDKs.
+addressable by a human-readable **`@banza`** — accessible through QR codes,
+payment links, and developer SDKs.
+
+> **What is a `@banza`?** It is the Banzami handle — the name we give to a user's
+> username. We call it `@banza` because it is short, easy to pronounce, and easy
+> to remember (you pay `@maria`, not an IBAN). It is **not** the BANZA protocol:
+> `@banza` is simply Banzami's word for "handle".
 
 ```
 Pix      → Brazil
@@ -107,8 +112,8 @@ writer of financial state — no service above it can violate a financial invari
 ## Why Banzami
 
 ### For consumers
-A free Kwanza wallet with a human `@handle`. Send and receive money instantly,
-pay any merchant by scanning a QR — no cash, no IBAN, no card.
+A free Kwanza wallet with a human `@banza` (your Banzami handle). Send and receive
+money instantly, pay any merchant by scanning a QR — no cash, no IBAN, no card.
 
 ### For merchants
 Accept payments with zero terminal hardware. Print a QR or share a link, receive
