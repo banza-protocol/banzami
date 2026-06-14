@@ -2976,7 +2976,7 @@
       "referenceSection": "§11.4",
       "description": "Comerciante gera QR estático (imprimir uma vez) e QR dinâmico (por transacção com valor) directamente na app móvel.",
       "requirement": "QR gerado instantaneamente na app, partilhável e imprimível.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -2992,9 +2992,14 @@
       "testCoverage": false,
       "evidence": [
         {
-          "type": "component",
-          "label": "qr_screen.dart",
-          "ref": "apps/merchant/lib/screens/qr_screen.dart"
+          "type": "frontend",
+          "label": "qr_screen (static QR)",
+          "ref": "apps/mobile/lib/merchant/screens/qr_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "charge_screen (dynamic QR)",
+          "ref": "apps/mobile/lib/merchant/screens/charge_screen.dart"
         }
       ],
       "dependencies": [
@@ -3004,21 +3009,21 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/mobile/**",
-        "apps/merchant/**"
+        "apps/mobile/**"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "static+dynamic QR in the merchant flavor of apps/mobile 2026-06-14",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T21:27:16Z",
+      "validatedAgainstCommit": "5877483",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -3038,6 +3043,17 @@
           "reason": "Alinhamento com evidencia de codigo (BANZAMI-EVIDENCE-AUDIT): status reflecte o codigo existente; nenhum codigo escrito.",
           "evidence": [
             "apps/merchant/lib/screens/qr_screen.dart"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T21:27:16Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "c47e0d78467d20dd",
+          "reason": "Static (high-res, printable) + dynamic (merchant amount) QR generation, shareable, in the merchant flavor of apps/mobile. Evidence repointed from removed apps/merchant.",
+          "evidence": [
+            "apps/mobile/lib/merchant/screens/qr_screen.dart"
           ]
         }
       ],
