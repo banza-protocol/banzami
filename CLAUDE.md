@@ -675,15 +675,20 @@ BANZA (open protocol)
     ├── Banzami QR
     ├── Banzami Checkout
     ├── Banzami Pay Links
-    └── @banza (handle identity — protocol level)
+    └── @banza (the Banzami handle — operator's word for "handle"/username)
 ```
+
+> **`@banza` is NOT the BANZA protocol.** It is simply the name Banzami chose to
+> replace the English word "handle"/username — picked because it is easy to
+> pronounce and memorable. It is intentional Banzami product terminology; never
+> rename it to `@banzami` and never treat it as protocol naming.
 
 ## 15.5 SDK naming (operator-level, Banzami-prefixed)
 
 The SDKs are built and published by the operator (Banzami), so they carry the
 Banzami name. (This supersedes the earlier "protocol-level, Banza-prefixed" SDK
 naming: `banza` appears in the operator product only for the BANZA protocol
-itself and the `@banza` handle identity.)
+itself and for `@banza` — which is the Banzami handle term, not the protocol.)
 
 * TypeScript: `@banzami/sdk`, class `BanzamiClient`
 * PHP: `banzami/sdk-php`, namespace `Banzami\`, class `BanzamiClient`
@@ -713,7 +718,7 @@ Both brand names are grammatically **masculine** in Portuguese:
 
 The institutional separation is complete. These are the current canonical names:
 
-* `@banza` — permanent handle identity (protocol level)
+* `@banza` — permanent handle identity; the Banzami term for "handle"/username (NOT the BANZA protocol)
 * `banzami.com` — **active** primary domain
 * `contact@banzami.com`, `security@banzami.com` — **active** contact emails
 * `github.com/banzami/banzami` — **active** GitHub repo (post-transfer)
