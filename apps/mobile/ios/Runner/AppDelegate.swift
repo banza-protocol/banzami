@@ -17,8 +17,8 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BanzaScreenSecurityPlugin") {
-      BanzaScreenSecurityPlugin.register(with: registrar)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "BanzamiScreenSecurityPlugin") {
+      BanzamiScreenSecurityPlugin.register(with: registrar)
     }
   }
 

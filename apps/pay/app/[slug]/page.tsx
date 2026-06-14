@@ -48,7 +48,7 @@ export default async function PayPage({ params }: Props) {
     ? formatAmount(link.amount_minor, link.currency)
     : null;
 
-  const deepLink = `banza://pay/link/${link.slug}`;
+  const deepLink = `banzami://pay/link/${link.slug}`;
 
   return (
     <PayClient

@@ -104,7 +104,7 @@ export default async function MerchantProfilePage({ params }: Props) {
 }
 
 function PayButton({ profile }: { profile: MerchantProfile }) {
-  const deepLink = `banza://pay/profile/${profile.handle}`;
+  const deepLink = `banzami://pay/profile/${profile.handle}`;
   return (
     <a
       href={deepLink}

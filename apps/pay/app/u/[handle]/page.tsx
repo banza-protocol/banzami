@@ -22,8 +22,8 @@ export default function UserPayPage({ params, searchParams }: Props) {
   const amountDisplay = amountMinor != null ? formatAmount(amountMinor, currency) : null;
 
   const deepLink = amountMinor != null
-    ? `banza://pay/u/${handle}?amount=${amountMinor}&currency=${currency}`
-    : `banza://pay/u/${handle}`;
+    ? `banzami://pay/u/${handle}?amount=${amountMinor}&currency=${currency}`
+    : `banzami://pay/u/${handle}`;
 
   const initial = handle[0]?.toUpperCase() ?? 'B';
 

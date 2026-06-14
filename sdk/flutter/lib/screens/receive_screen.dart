@@ -129,7 +129,7 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
-    if (_activeLink != null) return 'banza://pay?request=${_activeLink!.linkCode}';
+    if (_activeLink != null) return 'banzami://pay?request=${_activeLink!.linkCode}';
     return 'banza:@${widget.handle}';
   }
 

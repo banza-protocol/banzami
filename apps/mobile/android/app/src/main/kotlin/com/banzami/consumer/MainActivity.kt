@@ -1,4 +1,4 @@
-package com.banza.consumer
+package com.banzami.consumer
 
 import android.view.WindowManager
 import io.flutter.embedding.android.FlutterActivity
@@ -10,7 +10,7 @@ class MainActivity : FlutterActivity() {
         super.configureFlutterEngine(flutterEngine)
         MethodChannel(
             flutterEngine.dartExecutor.binaryMessenger,
-            "banza/screen_security",
+            "banzami/screen_security",
         ).setMethodCallHandler { call, result ->
             when (call.method) {
                 "setSecure" -> {

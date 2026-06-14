@@ -1,6 +1,6 @@
 #include "Flutter/Release.xcconfig"
 #include "Pods/Target Support Files/Pods-Runner/Pods-Runner.profile-merchant.xcconfig"
-PRODUCT_BUNDLE_IDENTIFIER = com.banza.merchant
+PRODUCT_BUNDLE_IDENTIFIER = com.banzami.merchant
 FLUTTER_TARGET = lib/main_merchant.dart
 APP_FLAVOR = merchant
 APP_DISPLAY_NAME = Banzami Business

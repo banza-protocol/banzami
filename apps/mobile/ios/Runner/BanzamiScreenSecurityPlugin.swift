@@ -3,23 +3,23 @@ import UIKit
 
 /// Registers two channels on binaryMessenger:
 ///
-/// - MethodChannel  `banza/screen_security` — `setSecure(bool)` is a no-op on
+/// - MethodChannel  `banzami/screen_security` — `setSecure(bool)` is a no-op on
 ///   iOS; FLAG_SECURE is Android-only. The method always succeeds.
 ///
-/// - EventChannel `banza/capture_state` — emits `Bool` whenever
+/// - EventChannel `banzami/capture_state` — emits `Bool` whenever
 ///   `UIScreen.capturedDidChangeNotification` fires, plus once immediately on
 ///   listen with the current `UIScreen.main.isCaptured` value.
-final class BanzaScreenSecurityPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
+final class BanzamiScreenSecurityPlugin: NSObject, FlutterPlugin, FlutterStreamHandler {
 
   private var eventSink: FlutterEventSink?
 
   // MARK: - FlutterPlugin
 
   static func register(with registrar: FlutterPluginRegistrar) {
-    let instance = BanzaScreenSecurityPlugin()
+    let instance = BanzamiScreenSecurityPlugin()
 
     let methodChannel = FlutterMethodChannel(
-      name: "banza/screen_security",
+      name: "banzami/screen_security",
       binaryMessenger: registrar.messenger()
     )
     methodChannel.setMethodCallHandler { call, result in
@@ -31,7 +31,7 @@ final class BanzaScreenSecurityPlugin: NSObject, FlutterPlugin, FlutterStreamHan
     }
 
     let eventChannel = FlutterEventChannel(
-      name: "banza/capture_state",
+      name: "banzami/capture_state",
       binaryMessenger: registrar.messenger()
     )
     eventChannel.setStreamHandler(instance)

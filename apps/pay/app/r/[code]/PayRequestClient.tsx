@@ -65,7 +65,7 @@ function NotFoundUI({ sandbox }: { sandbox: boolean }) {
           </div>
         )}
         <a
-          href="banza://open"
+          href="banzami://open"
           className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
           Abrir Banzami
@@ -281,7 +281,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
   const displayName = link.receiver_display_name;
   const amtDisplay  = link.amount_minor != null ? formatAmt(link.amount_minor, link.currency) : null;
   const initial     = (displayName ?? handle)[0]?.toUpperCase() ?? 'B';
-  const deepLink    = `banza://pay?request=${code}${sandbox ? '&sandbox=1' : ''}`;
+  const deepLink    = `banzami://pay?request=${code}${sandbox ? '&sandbox=1' : ''}`;
 
   return (
     <main className="min-h-screen bg-off-white flex flex-col items-center justify-center p-4">

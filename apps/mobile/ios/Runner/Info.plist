@@ -90,10 +90,10 @@
 			<dict>
 				<key>CFBundleURLSchemes</key>
 				<array>
-					<string>banza</string>
+					<string>banzami</string>
 				</array>
 				<key>CFBundleURLName</key>
-				<string>org.banza.app</string>
+				<string>org.banzami.app</string>
 			</dict>
 		</array>
 		<key>NSLocalNetworkUsageDescription</key>

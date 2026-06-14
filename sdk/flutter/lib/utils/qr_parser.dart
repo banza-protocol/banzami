@@ -3,9 +3,9 @@
 /// Supported formats:
 ///  • https://pay.banzami.org/r/{code}[?sandbox=1]
 ///  • https://pay.banzami.org/u/{handle}[?amount=N&note=...&sandbox=1]
-///  • banza://pay?request={code}
+///  • banzami://pay?request={code}
 ///  • banza-sandbox://pay?request={code}
-///  • banza://pay/u/{handle}[?amount=N&note=...]
+///  • banzami://pay/u/{handle}[?amount=N&note=...]
 ///  • banza-sandbox://pay/u/{handle}[?amount=N&note=...]
 ///  • banza:@{handle}[?amount=N&currency=AOA]
 ///  • banza-sandbox:@{handle}[?amount=N&currency=AOA]
@@ -97,19 +97,19 @@ class BanzamiQrParser {
       }
     }
 
-    // ── Deep link: banza:// or banza-sandbox:// ───────────────────────────────
-    if (raw.startsWith('banza://') || raw.startsWith('banza-sandbox://')) {
+    // ── Deep link: banzami:// or banza-sandbox:// ───────────────────────────────
+    if (raw.startsWith('banzami://') || raw.startsWith('banza-sandbox://')) {
       final isSandbox = raw.startsWith('banza-sandbox://');
       final uri       = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('Link inválido');
 
-      // banza://pay?request={code}
+      // banzami://pay?request={code}
       final code = uri.queryParameters['request'];
       if (code != null && code.isNotEmpty) {
         return BanzamiQrPaymentRequest(code: code, isSandbox: isSandbox);
       }
 
-      // banza://pay/u/{handle}[?amount=N&note=...]
+      // banzami://pay/u/{handle}[?amount=N&note=...]
       final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
       if (segs.length >= 2 && segs[0] == 'u') {
         final amountStr = uri.queryParameters['amount'];

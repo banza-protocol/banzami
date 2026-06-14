@@ -34,7 +34,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   // ── URI dedup guard ────────────────────────────────────────────────────────
   // iOS fires both getInitialLink() and uriLinkStream with the same launch URI
   // on cold start. Normalized form strips the ?sandbox param so that
-  // banza://pay?request=X and banza://pay?request=X&sandbox=1 are treated
+  // banzami://pay?request=X and banzami://pay?request=X&sandbox=1 are treated
   // identically for dedup purposes.
   String?   _lastHandledNorm;
   DateTime? _lastHandledAt;
@@ -183,7 +183,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // ── Custom scheme: banza://pay/... ─────────────────────────────────────
+    // ── Custom scheme: banzami://pay/... ─────────────────────────────────────
     if (uri.scheme != 'banza' || uri.host != 'pay') return;
     _handleBanzamiScheme(uri);
   }
@@ -210,11 +210,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     switch (segs[0]) {
       case 'r':
-        // Payment-request link — maps 1:1 to banza://pay?request={code}
+        // Payment-request link — maps 1:1 to banzami://pay?request={code}
         if (segs.length >= 2) _openPaymentRequest(segs[1]);
 
       case 'u':
-        // Handle-based pay link — maps to banza://pay/u/{handle}
+        // Handle-based pay link — maps to banzami://pay/u/{handle}
         if (segs.length >= 2) _openHandlePay(uri, segs[1]);
     }
   }
@@ -222,7 +222,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
   void _handleBanzamiScheme(Uri uri) {
     final segs = uri.pathSegments;
 
-    // banza://pay/link/{slug}
+    // banzami://pay/link/{slug}
     if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
       _navigatorKey.currentState?.push(MaterialPageRoute(
         builder: (_) => LinkPayScreen(slug: segs[1]),
@@ -230,13 +230,13 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // banza://pay/u/{handle}?amount={minor}&currency={currency}
+    // banzami://pay/u/{handle}?amount={minor}&currency={currency}
     if (segs.isNotEmpty && segs[0] == 'u' && segs.length >= 2) {
       _openHandlePay(uri, segs[1]);
       return;
     }
 
-    // banza://pay?request={code}
+    // banzami://pay?request={code}
     if (segs.isEmpty) {
       final code = uri.queryParameters['request'];
       if (code != null && code.isNotEmpty) _openPaymentRequest(code);
@@ -361,7 +361,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
               if (session.isLocked && _pendingDeepLinkUri == null) {
                 // Session loaded but locked — park URI and show PIN before
                 // processing the payment link.
-                _pendingDeepLinkUri = Uri.parse('banza://pay?request=$pending');
+                _pendingDeepLinkUri = Uri.parse('banzami://pay?request=$pending');
                 _pendingRequestCode = null;
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   debugPrint('[deep-link] coldStart+locked → triggering unlock code=$pending');

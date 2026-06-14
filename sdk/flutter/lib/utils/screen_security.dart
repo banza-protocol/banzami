@@ -1,13 +1,13 @@
 import 'package:flutter/services.dart';
 
-/// Dart-side wrapper for the banza/screen_security platform channels.
+/// Dart-side wrapper for the banzami/screen_security platform channels.
 ///
 /// Android: MethodChannel `setSecure` maps to FLAG_SECURE.
 /// iOS: MethodChannel `setSecure` is a no-op; isCaptured state is delivered
-///      via EventChannel `banza/capture_state`.
+///      via EventChannel `banzami/capture_state`.
 class BanzamiScreenSecurity {
-  static const _methodCh = MethodChannel('banza/screen_security');
-  static const _eventCh  = EventChannel('banza/capture_state');
+  static const _methodCh = MethodChannel('banzami/screen_security');
+  static const _eventCh  = EventChannel('banzami/capture_state');
 
   // Cached broadcast stream — avoids registering multiple native listeners when
   // both captureState and screenshotTaken are subscribed simultaneously.

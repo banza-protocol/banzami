@@ -42,12 +42,12 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-            <!-- Custom scheme: banza://pay/... (QR codes, in-app links) -->
+            <!-- Custom scheme: banzami://pay/... (QR codes, in-app links) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="banza" android:host="pay"/>
+                <data android:scheme="banzami" android:host="pay"/>
             </intent-filter>
             <!-- Android App Links: https://pay.banzami.org/r/* /pay/* /u/*
                  autoVerify triggers verification against /.well-known/assetlinks.json
