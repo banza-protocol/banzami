@@ -1,7 +1,14 @@
 pub mod engine;
+pub mod provider;
+pub mod providers;
 pub mod repository;
 
 pub use engine::{ComplianceEngine, PostgresComplianceEngine};
+pub use provider::{
+    CustomerVerificationRequest, IdDocumentType, KycProvider, KycProviderError,
+    MerchantVerificationRequest, VerificationDecision, VerificationOutcome,
+};
+pub use providers::{ExternalKycProvider, KycProviderKind, SimulatedKycProvider};
 pub use repository::{ComplianceRepository, PostgresComplianceRepository};
 
 use chrono::{DateTime, Utc};
@@ -163,6 +170,12 @@ pub enum ComplianceError {
 
     #[error("unknown status: {0}")]
     UnknownStatus(String),
+
+    #[error("invalid identity document: {0}")]
+    InvalidDocument(String),
+
+    #[error("identity verification provider error: {0}")]
+    ProviderError(String),
 
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),

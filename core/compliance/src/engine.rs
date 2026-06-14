@@ -3,8 +3,12 @@ use chrono::Utc;
 use banzami_types::{CustomerId, MerchantId, Money};
 
 use crate::{
-    repository::ComplianceRepository, ComplianceError, ComplianceStatus, CustomerCompliance,
-    KycLevel, MerchantCompliance,
+    provider::{
+        CustomerVerificationRequest, KycProvider, KycProviderError, MerchantVerificationRequest,
+        VerificationDecision,
+    },
+    repository::ComplianceRepository,
+    ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
 };
 
 // ---------------------------------------------------------------------------
@@ -85,6 +89,104 @@ pub struct PostgresComplianceEngine<R: ComplianceRepository> {
 impl<R: ComplianceRepository> PostgresComplianceEngine<R> {
     pub fn new(repo: R) -> Self {
         Self { repo }
+    }
+
+    /// Run a consumer identity document through the verification `provider` and
+    /// persist the outcome onto the customer's compliance record.
+    ///
+    /// - `Approved`      → KYC level raised to the granted level, status `Approved`
+    /// - `Rejected`      → status `Rejected`, level left unchanged
+    /// - `PendingReview` → status `UnderReview`, level left unchanged
+    ///
+    /// This is the missing link between the verification vendor and the
+    /// compliance state machine: callers submit a document, the provider decides,
+    /// and the engine records the result so transaction gating reflects it.
+    pub async fn verify_customer<P: KycProvider>(
+        &self,
+        provider: &P,
+        req: CustomerVerificationRequest,
+    ) -> Result<CustomerCompliance, ComplianceError> {
+        let customer_id = req.customer_id;
+        let outcome = provider.verify_customer(req).await.map_err(map_provider_err)?;
+
+        let mut record = self.get_or_create_customer(customer_id).await?;
+        record.updated_at = Utc::now();
+        match outcome.decision {
+            VerificationDecision::Approved => {
+                record.kyc_level = outcome.granted_level;
+                record.status = ComplianceStatus::Approved;
+                record.reviewed_at = Some(Utc::now());
+            }
+            VerificationDecision::Rejected => {
+                record.status = ComplianceStatus::Rejected;
+                record.reviewed_at = Some(Utc::now());
+            }
+            VerificationDecision::PendingReview => {
+                record.status = ComplianceStatus::UnderReview;
+            }
+        }
+
+        tracing::info!(
+            provider = provider.provider_name(),
+            customer = %customer_id.as_uuid(),
+            decision = ?outcome.decision,
+            reference = %outcome.provider_reference,
+            "customer KYC verification recorded"
+        );
+
+        self.repo.upsert_customer(&record).await?;
+        Ok(record)
+    }
+
+    /// Run a merchant business identity through the verification `provider` and
+    /// persist the outcome (KYB + AML) onto the merchant's compliance record.
+    ///
+    /// - `Approved`      → KYB and AML set to `Approved`
+    /// - `Rejected`      → KYB set to `Rejected`
+    /// - `PendingReview` → KYB set to `UnderReview`
+    pub async fn verify_merchant<P: KycProvider>(
+        &self,
+        provider: &P,
+        req: MerchantVerificationRequest,
+    ) -> Result<MerchantCompliance, ComplianceError> {
+        let merchant_id = req.merchant_id;
+        let outcome = provider.verify_merchant(req).await.map_err(map_provider_err)?;
+
+        let mut record = self.get_or_create_merchant(merchant_id).await?;
+        record.updated_at = Utc::now();
+        record.notes = outcome.reason.clone();
+        match outcome.decision {
+            VerificationDecision::Approved => {
+                record.kyb_status = ComplianceStatus::Approved;
+                record.aml_status = ComplianceStatus::Approved;
+                record.reviewed_at = Some(Utc::now());
+            }
+            VerificationDecision::Rejected => {
+                record.kyb_status = ComplianceStatus::Rejected;
+                record.reviewed_at = Some(Utc::now());
+            }
+            VerificationDecision::PendingReview => {
+                record.kyb_status = ComplianceStatus::UnderReview;
+            }
+        }
+
+        tracing::info!(
+            provider = provider.provider_name(),
+            merchant = %merchant_id.as_uuid(),
+            decision = ?outcome.decision,
+            reference = %outcome.provider_reference,
+            "merchant KYB verification recorded"
+        );
+
+        self.repo.upsert_merchant(&record).await?;
+        Ok(record)
+    }
+}
+
+fn map_provider_err(e: KycProviderError) -> ComplianceError {
+    match e {
+        KycProviderError::InvalidDocument(s) => ComplianceError::InvalidDocument(s),
+        KycProviderError::Provider(s) => ComplianceError::ProviderError(s),
     }
 }
 

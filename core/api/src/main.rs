@@ -39,7 +39,22 @@ async fn main() {
         );
         std::process::exit(1);
     }
-    tracing::info!(app_env = %app_env, acquiring_provider = %acquiring_prov, "boot: environment validated");
+    // Safety guard: refuse to boot approving identities with a simulated KYC
+    // provider in production.
+    let kyc_prov = env::var("KYC_PROVIDER").unwrap_or_default();
+    if app_env.eq_ignore_ascii_case("production") && !kyc_prov.eq_ignore_ascii_case("EXTERNAL") {
+        eprintln!(
+            "FATAL: APP_ENV=production requires KYC_PROVIDER=EXTERNAL. \
+             Refusing to boot with simulated KYC provider in production."
+        );
+        std::process::exit(1);
+    }
+    tracing::info!(
+        app_env = %app_env,
+        acquiring_provider = %acquiring_prov,
+        kyc_provider = %kyc_prov,
+        "boot: environment validated"
+    );
 
     let database_url = env::var("DATABASE_URL").expect("DATABASE_URL must be set");
     let port = env::var("CORE_API_PORT")
@@ -302,6 +317,14 @@ async fn main() {
         .route(
             "/internal/v1/compliance/merchants/:id/flag-aml",
             post(routes::compliance::flag_aml),
+        )
+        .route(
+            "/internal/v1/compliance/merchants/:id/verify",
+            post(routes::compliance::verify_merchant),
+        )
+        .route(
+            "/internal/v1/compliance/customers/:id/verify",
+            post(routes::compliance::verify_customer),
         )
         // Reconciliation
         .route(

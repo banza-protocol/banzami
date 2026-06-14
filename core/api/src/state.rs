@@ -75,7 +75,7 @@ use banzami_acquiring::{
     AcquirerKind, EMISProvider, PostgresAcquiringEngine, PostgresAcquiringRepository,
     SimulatedProvider,
 };
-use banzami_compliance::{PostgresComplianceEngine, PostgresComplianceRepository};
+use banzami_compliance::{KycProviderKind, PostgresComplianceEngine, PostgresComplianceRepository};
 use banzami_consumer_wallets::{
     PostgresConsumerWalletEngine, PostgresConsumerWalletRepository, PostgresOnboardingRepository,
 };
@@ -135,6 +135,7 @@ pub struct AppState {
     pub settlement: Arc<SettlementEng>,
     pub payout: Arc<PayoutEng>,
     pub compliance: Arc<ComplianceEng>,
+    pub kyc_provider: Arc<KycProviderKind>,
     pub reconciliation: Arc<ReconEng>,
     #[allow(dead_code)]
     pub routing: Arc<StaticRoutingEngine>,
@@ -207,6 +208,11 @@ impl AppState {
         let compliance_repo = PostgresComplianceRepository::new(pool.clone());
         let compliance = Arc::new(PostgresComplianceEngine::new(compliance_repo));
 
+        // --- KYC/KYB identity-verification provider ---
+        // Selected by KYC_PROVIDER env var (default: SIMULATED).
+        // For production, set KYC_PROVIDER=EXTERNAL and the KYC_* env vars.
+        let kyc_provider = Arc::new(KycProviderKind::from_env());
+
         // --- Reconciliation engine ---
         let recon_repo = PostgresReconciliationRepository::new(pool.clone());
         let reconciliation = Arc::new(StaticReconciliationEngine::new(recon_repo));
@@ -271,6 +277,7 @@ impl AppState {
             settlement,
             payout,
             compliance,
+            kyc_provider,
             reconciliation,
             routing,
             risk,
