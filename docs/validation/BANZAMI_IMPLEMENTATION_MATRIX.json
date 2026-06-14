@@ -1502,7 +1502,7 @@
       "referenceSection": "§9.2",
       "description": "QR gerado por transacção com valor pré-definido, referência e expiração. O consumidor só precisa de confirmar — valor pré-preenchido.",
       "requirement": "QR dinâmico expira após uso ou timeout. Valor e referência correctos ao resolver.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / QR Platform",
       "technicalArea": "Rust · Go",
@@ -1518,7 +1518,7 @@
         "Expira por timeout configurável",
         "Não reutilizável após expiração"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -1529,6 +1529,16 @@
           "type": "component",
           "label": "expiry_worker.rs",
           "ref": "core/qr/src/expiry_worker.rs"
+        },
+        {
+          "type": "test",
+          "label": "qr_integration.rs",
+          "ref": "core/qr/tests/qr_integration.rs"
+        },
+        {
+          "type": "test",
+          "label": "qr_payment_integration.rs",
+          "ref": "core/qr/tests/qr_payment_integration.rs"
         }
       ],
       "dependencies": [
@@ -1553,25 +1563,26 @@
           "id": "INV-QR-002-1",
           "name": "Payment amount invariant",
           "rule": "QR payment amount == ledger debit on consumer wallet == ledger credit on merchant wallet",
-          "status": "NOT_RUN"
+          "status": "PASS"
         },
         {
           "id": "INV-QR-002-2",
           "name": "QR expiry invariant",
           "rule": "Dynamic QR codes past their expiry must be rejected — no payment may settle against expired QR",
-          "status": "NOT_RUN"
+          "status": "PASS"
         }
       ],
       "confidence": {
         "score": 80,
         "level": "VERY_HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "code-level evidence audit 2026-06-14",
+          "real-DB integration tests (INV-QR-002-1 + INV-QR-002-2 PASS) 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-14T13:16:13Z",
+      "validatedAgainstCommit": "d33dc511a0befc00f4e67e8a84c1aefc2a763efd",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1592,6 +1603,18 @@
           "evidence": [
             "core/qr/src/engine.rs",
             "core/qr/src/expiry_worker.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-06-14T13:16:13Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "b14bd62933b1649c",
+          "reason": "INV-QR-002-1 (amount==debit==credit, balanced posting) and INV-QR-002-2 (expiry/non-reuse) PASS via real-DB integration tests; architecture lock QR-001 + LED-003 VALIDATED.",
+          "evidence": [
+            "core/qr/tests/qr_payment_integration.rs",
+            "core/qr/tests/qr_integration.rs"
           ]
         }
       ],
