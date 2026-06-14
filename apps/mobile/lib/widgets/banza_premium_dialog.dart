@@ -102,7 +102,7 @@ class _BanzaDialogContent extends StatelessWidget {
   List<Color> get _iconGradient => switch (variant) {
     BanzaDialogVariant.warning  => const [Color(0xFFFFB347), Color(0xFFD97706)],
     BanzaDialogVariant.danger   => const [Color(0xFFDC2626), Color(0xFF7F1D1D)],
-    BanzaDialogVariant.standard => const [Color(0xFF990011), Color(0xFF5E000A)],
+    BanzaDialogVariant.standard => const [Color(0xFFB5101F), Color(0xFF9A1B22)],
   };
 
   List<Color> get _confirmGradient => switch (variant) {

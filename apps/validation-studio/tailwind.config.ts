@@ -8,9 +8,9 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'bz-primary':       '#990011',
+        'bz-primary':       '#B5101F',
         'bz-primary-light': '#F9ECEC',
-        'bz-primary-hover': '#7a0009',
+        'bz-primary-hover': '#9A1B22',
         'bz-bg':            '#FCF6F5',
         'bz-surface':       '#EAE0DF',
         'bz-border':        '#D4C8C7',

@@ -13,8 +13,8 @@ import 'receipt_screen.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 
-const _kBgTop    = Color(0xFF990011);
-const _kBgMid    = Color(0xFF5E000A);
+const _kBgTop    = Color(0xFFB5101F);
+const _kBgMid    = Color(0xFF9A1B22);
 const _kBgBottom = Color(0xFF2A0005);
 const _kOrbCenter = Color(0x40FFFFFF);
 const _kOrbMid    = Color(0x99C21A2C);
@@ -414,12 +414,12 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
         ),
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFFC21A2C).withValues(alpha: 0.48),
+            color:        const Color(0xFFE8434B).withValues(alpha: 0.48),
             blurRadius:   52,
             spreadRadius: 10,
           ),
           BoxShadow(
-            color:        const Color(0xFFC21A2C).withValues(alpha: 0.20),
+            color:        const Color(0xFFE8434B).withValues(alpha: 0.20),
             blurRadius:   88,
             spreadRadius: 24,
           ),

@@ -331,7 +331,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                   href={deepLink}
                   onClick={openApp}
                   style={{
-                    background: 'linear-gradient(135deg, #d90429 0%, #b00020 55%, #7a0014 100%)',
+                    background: 'linear-gradient(135deg, #B5101F 0%, #D7242E 55%, #E8434B 100%)',
                     boxShadow: '0 4px 20px rgba(176, 0, 32, 0.38), 0 1px 4px rgba(0, 0, 0, 0.14)',
                   }}
                   className="relative flex items-center justify-center gap-2.5 w-full h-14 text-white rounded-2xl text-base font-semibold tracking-tight overflow-hidden select-none transition-[transform,filter] duration-[120ms] ease-out hover:brightness-[1.07] active:scale-[0.985] active:brightness-90"
@@ -377,7 +377,7 @@ export default function PayRequestClient({ code, sandbox }: { code: string; sand
                   href={deepLink}
                   onClick={openApp}
                   style={{
-                    background: 'linear-gradient(135deg, #d90429 0%, #b00020 55%, #7a0014 100%)',
+                    background: 'linear-gradient(135deg, #B5101F 0%, #D7242E 55%, #E8434B 100%)',
                     boxShadow: '0 4px 20px rgba(176, 0, 32, 0.38), 0 1px 4px rgba(0, 0, 0, 0.14)',
                   }}
                   className="relative flex items-center justify-center gap-2.5 w-full h-14 text-white rounded-2xl text-base font-semibold tracking-tight overflow-hidden select-none transition-[transform,filter] duration-[120ms] ease-out hover:brightness-[1.07] active:scale-[0.985] active:brightness-90"

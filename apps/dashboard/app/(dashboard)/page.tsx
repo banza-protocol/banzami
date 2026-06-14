@@ -73,7 +73,7 @@ export default function OverviewPage() {
       {/* Balance card */}
       <div
         className="rounded-xl p-xl text-white"
-        style={{ background: 'linear-gradient(135deg, #990011 0%, #6B000B 100%)' }}
+        style={{ background: 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)' }}
       >
         <p className="text-xs font-medium text-white/60 uppercase tracking-wide mb-xs">
           Saldo disponível

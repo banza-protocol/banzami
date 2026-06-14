@@ -75,7 +75,7 @@ export default async function CheckoutPage({ params }: Props) {
   const qrDataUrl = await QRCode.toDataURL(deepLink, {
     width:                220,
     margin:               2,
-    color:                { dark: '#990011', light: '#ffffff' },
+    color:                { dark: '#B5101F', light: '#ffffff' },
     errorCorrectionLevel: 'M',
   });
 

@@ -410,13 +410,13 @@ class _BalanceCard extends StatelessWidget {
         borderRadius: BanzaRadius.xxlAll,
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFF990011).withValues(alpha: 0.42),
+            color:        const Color(0xFFB5101F).withValues(alpha: 0.42),
             blurRadius:   36,
             offset:       const Offset(0, 12),
             spreadRadius: -6,
           ),
           BoxShadow(
-            color:        const Color(0xFF5E000A).withValues(alpha: 0.22),
+            color:        const Color(0xFF9A1B22).withValues(alpha: 0.22),
             blurRadius:   8,
             offset:       const Offset(0, 3),
           ),

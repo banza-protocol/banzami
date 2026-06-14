@@ -161,15 +161,15 @@ The consumer **Criar conta** screen checks handle availability before navigating
 
 ## Design system
 
-The design language is **Space Cherry + Warm White** — a high-contrast palette rooted in a deep crimson primary and warm neutral backgrounds, designed to feel premium, trustworthy and distinctly African.
+The design language is **Banzami Red + Warm White** — a high-contrast palette rooted in a official Banzami red primary (#B5101F) and warm neutral backgrounds, designed to feel premium, trustworthy and distinctly African.
 
 ### Colour palette
 
 | Token | Hex | Usage |
 |---|---|---|
-| `BanzaColors.wine` | `#990011` | Primary — buttons, icons, active states |
-| `BanzaColors.wineDark` | `#6B000B` | Gradient deep end, pressed states |
-| `BanzaColors.wineLight` | `#B5001A` | Gradient light end, hover |
+| `BanzaColors.wine` | `#B5101F` | Primary — buttons, icons, active states |
+| `BanzaColors.wineDark` | `#9A1B22` | Gradient deep end, pressed states |
+| `BanzaColors.wineLight` | `#E8434B` | Gradient light end, hover |
 | `BanzaColors.offWhite` | `#FCF6F5` | App scaffold background (Warm White) |
 | `BanzaColors.white` | `#FFFFFF` | Card / surface background |
 | `BanzaColors.gray100` | `#F5EEED` | Form fills, chips |
@@ -188,8 +188,8 @@ All grays are warm-tinted (slight red undertone) to pair harmoniously with the c
 
 | Token | Direction | Usage |
 |---|---|---|
-| `BanzaGradients.wine` | `#990011 → #6B000B` | Balance card headers, key surfaces |
-| `BanzaGradients.wineLight` | `#990011 → #B5001A` | Secondary gradient surfaces |
+| `BanzaGradients.wine` | `#B5101F → #9A1B22` | Balance card headers, key surfaces |
+| `BanzaGradients.wineLight` | `#B5101F → #E8434B` | Secondary gradient surfaces |
 
 ### Typography
 
@@ -230,7 +230,7 @@ The same palette is applied to all three web apps via Tailwind CSS:
 | `apps/admin` | same palette + `info` colour token |
 | `apps/pay` | same palette |
 
-Background: `#FCF6F5` · Text: `#1C0D0D` · Primary: `#990011`
+Background: `#FCF6F5` · Text: `#1C0D0D` · Primary: `#B5101F`
 
 ---
 

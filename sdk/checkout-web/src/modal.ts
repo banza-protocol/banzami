@@ -2,7 +2,7 @@ import { PaymentLink, formatAmount } from './api';
 
 declare const QRCode: any; // loaded from CDN in browser context
 
-const WINE = '#6D071A';
+const BANZAMI_RED = '#B5101F';
 const STYLE = `
   #bz-checkout-overlay {
     position: fixed; inset: 0; z-index: 99999;
@@ -26,7 +26,7 @@ const STYLE = `
   }
   #bz-checkout-close:hover { color: #4A4744 }
   #bz-checkout-header {
-    background: ${WINE}; color: #fff; border-radius: 10px;
+    background: ${BANZAMI_RED}; color: #fff; border-radius: 10px;
     padding: 14px 18px; margin-bottom: 16px;
   }
   #bz-checkout-label { font-size: 11px; opacity: .7; text-transform: uppercase; letter-spacing: .05em; margin: 0 0 4px; }
@@ -34,7 +34,7 @@ const STYLE = `
   #bz-checkout-desc { font-size: 13px; margin: 8px 0 0; opacity: .75; }
   #bz-checkout-qr { display: flex; justify-content: center; margin: 12px 0; }
   #bz-checkout-btn {
-    display: block; width: 100%; background: ${WINE};
+    display: block; width: 100%; background: ${BANZAMI_RED};
     color: #fff; border: none; border-radius: 8px;
     padding: 12px; font-size: 14px; font-weight: 600;
     cursor: pointer; text-decoration: none; margin-bottom: 10px;
@@ -135,7 +135,7 @@ export class CheckoutModal {
         text:         deepLink,
         width:        180,
         height:       180,
-        colorDark:    WINE,
+        colorDark:    BANZAMI_RED,
         colorLight:   '#ffffff',
         correctLevel: QRCode.CorrectLevel.M,
       });

@@ -4,7 +4,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { Download, Copy, Check } from 'lucide-react';
 import { useState } from 'react';
 
-const WINE = '#990011';
+const WINE = '#B5101F';
 const DARK = '#1A1A1A';
 
 interface Props {

@@ -6,10 +6,10 @@ const config: Config = {
     extend: {
       colors: {
         wine: {
-          DEFAULT: '#B30012',
-          dark:    '#4A0005',
-          medium:  '#8E000D',
-          rose:    '#A63A50',
+          DEFAULT: '#B5101F',
+          dark:    '#9A1B22',
+          medium:  '#D7242E',
+          rose:    '#FBD2D0',
         },
         gold: {
           DEFAULT: '#C89B3C',
@@ -55,7 +55,7 @@ const config: Config = {
         modal: '0 8px 24px rgba(0,0,0,0.12)',
       },
       backgroundImage: {
-        'wine-gradient': 'linear-gradient(135deg, #B30012 0%, #4A0005 100%)',
+        'wine-gradient': 'linear-gradient(135deg, #B5101F 0%, #9A1B22 100%)',
       },
       animation: {
         float:      'float 3s ease-in-out infinite',

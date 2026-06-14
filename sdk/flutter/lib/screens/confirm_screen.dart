@@ -23,8 +23,8 @@ const _kOrbMid     = Color(0x99C21A2C); // cherry 60 %
 const _kOrbEdge    = Color(0xCC5E000A); // deep-shadow 80 %
 const _kGlowInner  = Color(0x73C21A2C); // cherry glow inner 45 %
 const _kGlowOuter  = Color(0x33C21A2C); // cherry glow outer 20 %
-const _kBgTop      = Color(0xFF990011);
-const _kBgMid      = Color(0xFF5E000A);
+const _kBgTop      = Color(0xFFB5101F);
+const _kBgMid      = Color(0xFF9A1B22);
 const _kBgBottom   = Color(0xFF2A0005);
 
 // ---------------------------------------------------------------------------
@@ -413,12 +413,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
         ),
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFFC21A2C).withValues(alpha: 0.48),
+            color:        const Color(0xFFE8434B).withValues(alpha: 0.48),
             blurRadius:   52,
             spreadRadius: 10,
           ),
           BoxShadow(
-            color:        const Color(0xFFC21A2C).withValues(alpha: 0.20),
+            color:        const Color(0xFFE8434B).withValues(alpha: 0.20),
             blurRadius:   88,
             spreadRadius: 24,
           ),

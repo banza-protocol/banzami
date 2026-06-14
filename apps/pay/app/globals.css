@@ -28,7 +28,7 @@
   /* ── Hero payment card ──────────────────────────────────────────────────── */
   .bz-hero-card {
     @apply relative w-full overflow-hidden rounded-2xl p-6;
-    background: linear-gradient(135deg, #B30012 0%, #4A0005 100%);
+    background: linear-gradient(135deg, #B5101F 0%, #9A1B22 100%);
     box-shadow:
       0 8px 32px rgba(179, 0, 18, 0.38),
       0 2px 8px rgba(0, 0, 0, 0.12);
@@ -57,7 +57,7 @@
   /* ── Primary CTA button (cherry gradient) ───────────────────────────────── */
   .bz-btn-primary {
     @apply block rounded-2xl px-6 py-4 text-center font-bold text-white transition-all duration-200;
-    background: linear-gradient(135deg, #B30012 0%, #8E000D 100%);
+    background: linear-gradient(135deg, #B5101F 0%, #D7242E 100%);
     box-shadow: 0 4px 16px rgba(179, 0, 18, 0.4);
   }
 

@@ -11,7 +11,7 @@ import 'money_format.dart';
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
 
-const _kWine     = PdfColor.fromInt(0xFF990011);
+const _kWine     = PdfColor.fromInt(0xFFB5101F);
 const _kWineDark = PdfColor.fromInt(0xFF6B000B);
 const _kGray900  = PdfColor.fromInt(0xFF111827);
 const _kGray600  = PdfColor.fromInt(0xFF4B5563);

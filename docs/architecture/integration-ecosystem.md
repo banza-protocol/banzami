@@ -150,8 +150,8 @@ The following widget layer is planned for v1.1. Designs must use the official Ba
 ```dart
 // Official Banzami theme token — never hardcode colors in widgets
 class BanzaColors {
-  static const primary    = Color(0xFF990011);  // Space Cherry
-  static const wineRose   = Color(0xFFA63A50);
+  static const primary    = Color(0xFFB5101F);  // Space Cherry
+  static const wineRose   = Color(0xFFFBD2D0);
   static const savannaGold= Color(0xFFC89B3C);
   static const background = Color(0xFFFCF6F5);
   static const textPrimary= Color(0xFF1A1A1A);
@@ -347,7 +347,7 @@ A slow or visually untrustworthy checkout page directly causes payment abandonme
 ```typescript
 // tailwind.config.ts — Banzami design tokens
 colors: {
-  wine:     { DEFAULT: '#990011', rose: '#A63A50' },
+  wine:     { DEFAULT: '#B5101F', rose: '#FBD2D0' },
   gold:     { DEFAULT: '#C89B3C' },
   offwhite: { DEFAULT: '#FCF6F5' },
 }
@@ -385,15 +385,15 @@ All consumer-facing surfaces — `apps/checkout/`, Flutter widgets, WooCommerce 
 
 | Name | Hex | Usage |
 |------|-----|-------|
-| Space Cherry | `#990011` | Primary buttons, QR frame, confirmation state |
-| Wine Rose | `#A63A50` | Secondary actions, borders, hover states |
+| Space Cherry | `#B5101F` | Primary buttons, QR frame, confirmation state |
+| Wine Rose | `#FBD2D0` | Secondary actions, borders, hover states |
 | Savanna Gold | `#C89B3C` | Accent, amount display, brand differentiation |
 | Off-white | `#FCF6F5` | Page background, card backgrounds |
 | Text Primary | `#1A1A1A` | All body text |
 
 ### Visual direction
 
-- **Elegant, not aggressive** — the primary red (`#990011`) is used purposefully, not as a dominant background.
+- **Elegant, not aggressive** — the primary red (`#B5101F`) is used purposefully, not as a dominant background.
 - **Light theme first** — dark mode support is a future consideration; do not design for dark mode prematurely.
 - **Premium and minimal** — sufficient whitespace, clean typography, no decorative clutter.
 - **Locally rooted** — the visual language should feel appropriate for Angola and Portuguese-speaking Africa, not copied from a Silicon Valley template.

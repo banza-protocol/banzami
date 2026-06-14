@@ -412,7 +412,7 @@ The SDK ships a complete design token set. Use it directly in host apps to stay 
 import 'package:banza_flutter/banza_flutter.dart';
 
 // Colors
-BanzaColors.wine       // #990011 — primary brand
+BanzaColors.wine       // #B5101F — primary brand
 BanzaColors.gold       // #C89B3C — accent
 BanzaColors.gray900    // #1A1A1A — primary text
 BanzaColors.success    // #166534

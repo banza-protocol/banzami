@@ -5,13 +5,13 @@
 // All values are CSS-compatible strings unless noted.
 
 export const colors = {
-  // Primary wine palette
-  wine: '#B30012',
-  wineDark: '#4A0005',
-  wineMedium: '#8E000D',
+  // Official Banzami red palette
+  wine: '#B5101F',
+  wineDark: '#9A1B22',
+  wineMedium: '#D7242E',
 
   // Secondary
-  wineRose: '#A63A50',
+  wineRose: '#FBD2D0',
 
   // Accent — Savanna Gold
   gold: '#C89B3C',

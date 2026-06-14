@@ -156,7 +156,7 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF5E000A),
+      backgroundColor: const Color(0xFF9A1B22),
       body: Stack(
         children: [
           // ── Background gradient — top light, bottom dark ─────────────────
@@ -167,10 +167,10 @@ class _SplashScreenState extends State<SplashScreen>
                   begin:  Alignment.topLeft,
                   end:    Alignment.bottomRight,
                   colors: [
-                    Color(0xFFC21A2C),
-                    Color(0xFF990011),
-                    Color(0xFF7A000D),
-                    Color(0xFF5E000A),
+                    Color(0xFFE8434B),
+                    Color(0xFFB5101F),
+                    Color(0xFFD7242E),
+                    Color(0xFF9A1B22),
                   ],
                   stops: [0.0, 0.38, 0.72, 1.0],
                 ),

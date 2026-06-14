@@ -18,9 +18,9 @@ import '../utils/screen_security.dart';
 // Cherry design tokens — local aliases matching the official BanzaColors family
 // ---------------------------------------------------------------------------
 
-const _kCherry     = Color(0xFFC21A2C);
-const _kMidWine    = Color(0xFF7A000D);
-const _kDeepShadow = Color(0xFF5E000A);
+const _kCherry     = Color(0xFFE8434B);
+const _kMidWine    = Color(0xFFD7242E);
+const _kDeepShadow = Color(0xFF9A1B22);
 
 // ---------------------------------------------------------------------------
 // BanzaVerifiedMark — premium layered authenticity seal with rotating ring
@@ -560,7 +560,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
               gradient: LinearGradient(
                 begin:  Alignment.topCenter,
                 end:    Alignment.bottomCenter,
-                colors: [_kCherry, Color(0xFF990011), _kMidWine, _kDeepShadow],
+                colors: [_kCherry, Color(0xFFB5101F), _kMidWine, _kDeepShadow],
                 stops:  [0.0,      0.35,              0.65,      1.0],
               ),
             ),

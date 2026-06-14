@@ -109,8 +109,8 @@ All consumer-facing UI (checkout app, Flutter SDK widgets, WooCommerce plugin) m
 
 | Token | Value |
 |-------|-------|
-| Primary | `#990011` |
-| Wine Rose | `#A63A50` |
+| Primary | `#B5101F` |
+| Wine Rose | `#FBD2D0` |
 | Savanna Gold | `#C89B3C` |
 | Background | `#FCF6F5` |
 | Text Primary | `#1A1A1A` |

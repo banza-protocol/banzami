@@ -190,7 +190,7 @@ export default function PayClient({
               <QRCode
                 value={deepLink}
                 size={172}
-                fgColor="#B30012"
+                fgColor="#B5101F"
                 bgColor="#ffffff"
                 level="M"
               />

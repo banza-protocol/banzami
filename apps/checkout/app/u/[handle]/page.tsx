@@ -23,7 +23,7 @@ export default async function HandlePayPage({ params, searchParams }: Props) {
   const qrDataUrl = await QRCode.toDataURL(qrPayload, {
     width:                220,
     margin:               2,
-    color:                { dark: '#990011', light: '#ffffff' },
+    color:                { dark: '#B5101F', light: '#ffffff' },
     errorCorrectionLevel: 'M',
   });
 
