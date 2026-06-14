@@ -136,11 +136,11 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   String _qrPayload(String handle) {
     if (_activeLink != null) {
-      final scheme = AppConfig.isSandbox ? 'banza-sandbox' : 'banza';
+      final scheme = AppConfig.isSandbox ? 'banzami-sandbox' : 'banzami';
       return '$scheme://pay?request=${_activeLink!.linkCode}';
     }
     // Sandbox QR uses a distinct scheme so it cannot be scanned as live payment.
-    final scheme = AppConfig.isSandbox ? 'banza-sandbox' : 'banza';
+    final scheme = AppConfig.isSandbox ? 'banzami-sandbox' : 'banzami';
     return '$scheme:@$handle';
   }
 

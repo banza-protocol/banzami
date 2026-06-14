@@ -184,7 +184,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }
 
     // ── Custom scheme: banzami://pay/... ─────────────────────────────────────
-    if (uri.scheme != 'banza' || uri.host != 'pay') return;
+    if (uri.scheme != 'banzami' || uri.host != 'pay') return;
     _handleBanzamiScheme(uri);
   }
 
@@ -197,7 +197,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
       _handleUniversalLink(uri);
-    } else if (uri.scheme == 'banza' && uri.host == 'pay') {
+    } else if (uri.scheme == 'banzami' && uri.host == 'pay') {
       _handleBanzamiScheme(uri);
     }
   }
