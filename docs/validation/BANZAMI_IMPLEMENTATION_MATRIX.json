@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-14",
+    "lastUpdated": "2026-06-15",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -2927,7 +2927,7 @@
       "referenceSection": "§11.2.1",
       "description": "Push notification instantânea ao comerciante quando um pagamento é recebido — valor, @banza do pagador e timestamp.",
       "requirement": "Notificação entregue em menos de 2 segundos após liquidação. Mesmo com app em background.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Flutter",
       "technicalArea": "FCM · Go · Flutter",
@@ -2945,8 +2945,18 @@
       "evidence": [
         {
           "type": "component",
-          "label": "fcm.go",
+          "label": "SendPaymentToMerchant (value+@banza)",
           "ref": "services/api-gateway/internal/notify/fcm.go"
+        },
+        {
+          "type": "frontend",
+          "label": "subscribeMerchant + foreground sound",
+          "ref": "apps/mobile/lib/merchant/screens/main_screen.dart"
+        },
+        {
+          "type": "frontend",
+          "label": "configurable sound toggle",
+          "ref": "apps/mobile/lib/merchant/screens/profile_screen.dart"
         }
       ],
       "dependencies": [
@@ -2956,21 +2966,21 @@
       "requires": [],
       "affects": [],
       "revalidateWhenChanged": [
-        "apps/mobile/**",
-        "apps/merchant/**"
+        "apps/mobile/**"
       ],
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "VERY_HIGH",
         "basis": [
+          "realtime FCM (phone-tested) + payer @banza in body + configurable sound 2026-06-15",
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-15T06:13:26Z",
+      "validatedAgainstCommit": "24d6c41",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -2991,9 +3001,21 @@
           "evidence": [
             "services/api-gateway/internal/notify/fcm.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-15T06:13:26Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "ec99373efee20430",
+          "reason": "Realtime payment push (phone-tested, sandbox-isolated topic): <2s, background/closed, value + payer @banza in the merchant notification, and a configurable confirmation sound.",
+          "evidence": [
+            "services/api-gateway/internal/notify/fcm.go",
+            "apps/mobile/lib/merchant/screens/main_screen.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-15"
     },
     {
       "id": "BM-003",
