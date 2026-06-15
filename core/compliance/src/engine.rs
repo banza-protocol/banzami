@@ -9,6 +9,7 @@ use crate::{
     },
     repository::ComplianceRepository,
     ComplianceError, ComplianceStatus, CustomerCompliance, KycLevel, MerchantCompliance,
+    OperationType, TransactionAuthorization, UNVERIFIED_INBOUND_CAP_MINOR,
 };
 
 // ---------------------------------------------------------------------------
@@ -76,6 +77,17 @@ pub trait ComplianceEngine: Send + Sync {
         amount_minor: i64,
         daily_volume_minor: i64,
     ) -> Result<(), ComplianceError>;
+
+    /// Progressive-KYC authorization: decide whether `operation` of `amount_minor`
+    /// is allowed for the customer given their KYC level, status, and today's
+    /// volume. Returns a structured result (never errors on a blocked operation).
+    async fn authorize_operation(
+        &self,
+        customer_id: CustomerId,
+        operation: OperationType,
+        amount_minor: i64,
+        daily_volume_minor: i64,
+    ) -> Result<TransactionAuthorization, ComplianceError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -336,44 +348,108 @@ impl<R: ComplianceRepository> ComplianceEngine for PostgresComplianceEngine<R> {
         Ok(record)
     }
 
+    /// Backward-compatible gate: treats the operation as a `Send` (the most
+    /// common outbound spend) and maps the structured decision to a Result.
     async fn check_customer_can_transact(
         &self,
         customer_id: CustomerId,
         amount_minor: i64,
         daily_volume_minor: i64,
     ) -> Result<(), ComplianceError> {
-        let record = match self.repo.get_customer(customer_id).await? {
-            Some(r) => r,
-            None => {
-                return Err(ComplianceError::InsufficientKycLevel {
-                    required: KycLevel::Basic,
-                    current: KycLevel::None,
-                });
-            }
+        let auth = self
+            .authorize_operation(
+                customer_id,
+                OperationType::Send,
+                amount_minor,
+                daily_volume_minor,
+            )
+            .await?;
+        if auth.can_transact {
+            Ok(())
+        } else {
+            Err(ComplianceError::InsufficientKycLevel {
+                required: auth.required_level.unwrap_or(KycLevel::Enhanced),
+                current: auth.current_level,
+            })
+        }
+    }
+
+    async fn authorize_operation(
+        &self,
+        customer_id: CustomerId,
+        operation: OperationType,
+        amount_minor: i64,
+        daily_volume_minor: i64,
+    ) -> Result<TransactionAuthorization, ComplianceError> {
+        // Absent record == a freshly created, unverified account (KYC_LEVEL_0).
+        let (level, status) = match self.repo.get_customer(customer_id).await? {
+            Some(r) => (r.kyc_level, r.status),
+            None => (KycLevel::None, ComplianceStatus::Pending),
         };
 
-        if record.kyc_level == KycLevel::None {
-            return Err(ComplianceError::InsufficientKycLevel {
-                required: KycLevel::Basic,
-                current: KycLevel::None,
-            });
+        let allow = |reason: &str| TransactionAuthorization {
+            can_transact: true,
+            reason: reason.to_string(),
+            current_level: level,
+            required_level: None,
+            message: "Operation permitted.".into(),
+        };
+        let block =
+            |reason: &str, required: Option<KycLevel>, message: &str| TransactionAuthorization {
+                can_transact: false,
+                reason: reason.to_string(),
+                current_level: level,
+                required_level: required,
+                message: message.to_string(),
+            };
+
+        // A rejected or suspended account can do nothing financial.
+        if matches!(
+            status,
+            ComplianceStatus::Rejected | ComplianceStatus::Suspended
+        ) {
+            return Ok(block(
+                "KYC_NOT_APPROVED",
+                None,
+                "Your identity verification was not approved. Contact support.",
+            ));
         }
 
-        if amount_minor > record.kyc_level.max_single_transaction_minor() {
-            return Err(ComplianceError::InsufficientKycLevel {
-                required: KycLevel::Enhanced,
-                current: record.kyc_level,
-            });
+        // The operation needs at least its minimum KYC level.
+        let required = operation.min_level();
+        if level < required {
+            return Ok(block(
+                "KYC_REQUIRED",
+                Some(required),
+                "Identity verification is required to perform this operation.",
+            ));
         }
 
-        if daily_volume_minor + amount_minor > record.kyc_level.max_daily_volume_minor() {
-            return Err(ComplianceError::InsufficientKycLevel {
-                required: KycLevel::Enhanced,
-                current: record.kyc_level,
-            });
+        // Limit policy: inbound at KYC_LEVEL_0 is capped; otherwise the level's limits.
+        let (single_limit, daily_limit) = if operation.is_inbound() && level == KycLevel::None {
+            (UNVERIFIED_INBOUND_CAP_MINOR, UNVERIFIED_INBOUND_CAP_MINOR)
+        } else {
+            (
+                level.max_single_transaction_minor(),
+                level.max_daily_volume_minor(),
+            )
+        };
+
+        if amount_minor > single_limit || daily_volume_minor + amount_minor > daily_limit {
+            let needed = KycLevel::min_level_for_amount(amount_minor, daily_volume_minor);
+            let required = if needed.level_number() > level.level_number() {
+                Some(needed)
+            } else {
+                Some(level.next())
+            };
+            return Ok(block(
+                "LIMIT_EXCEEDED",
+                required,
+                "This amount exceeds your current limit. Verify a higher level to continue.",
+            ));
         }
 
-        Ok(())
+        Ok(allow("OK"))
     }
 }
 
@@ -603,5 +679,93 @@ mod tests {
             result,
             Err(ComplianceError::InsufficientKycLevel { .. })
         ));
+    }
+
+    // -----------------------------------------------------------------------
+    // Progressive KYC — authorize_operation
+    // -----------------------------------------------------------------------
+
+    #[tokio::test]
+    async fn level0_blocks_send_and_requires_basic() {
+        let eng = engine();
+        // Fresh, unverified customer (no record) == KYC_LEVEL_0.
+        let auth = eng
+            .authorize_operation(CustomerId::new(), OperationType::Send, 1_000, 0)
+            .await
+            .unwrap();
+        assert!(!auth.can_transact);
+        assert_eq!(auth.reason, "KYC_REQUIRED");
+        assert_eq!(auth.current_level, KycLevel::None);
+        assert_eq!(auth.required_level, Some(KycLevel::Basic));
+    }
+
+    #[tokio::test]
+    async fn level0_allows_small_receive() {
+        let eng = engine();
+        let auth = eng
+            .authorize_operation(CustomerId::new(), OperationType::Receive, 500_000, 0)
+            .await
+            .unwrap();
+        assert!(auth.can_transact, "small receive allowed before KYC");
+        assert_eq!(auth.reason, "OK");
+    }
+
+    #[tokio::test]
+    async fn level0_blocks_receive_above_cap() {
+        let eng = engine();
+        // Above the unverified inbound cap (100,000 AOA).
+        let auth = eng
+            .authorize_operation(
+                CustomerId::new(),
+                OperationType::TopUp,
+                UNVERIFIED_INBOUND_CAP_MINOR + 1,
+                0,
+            )
+            .await
+            .unwrap();
+        assert!(!auth.can_transact);
+        assert_eq!(auth.reason, "LIMIT_EXCEEDED");
+    }
+
+    #[tokio::test]
+    async fn cashout_requires_enhanced_level() {
+        let eng = engine();
+        let customer_id = CustomerId::new();
+        eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
+        let auth = eng
+            .authorize_operation(customer_id, OperationType::CashOut, 1_000, 0)
+            .await
+            .unwrap();
+        assert!(!auth.can_transact);
+        assert_eq!(auth.reason, "KYC_REQUIRED");
+        assert_eq!(auth.required_level, Some(KycLevel::Enhanced));
+    }
+
+    #[tokio::test]
+    async fn basic_allows_send_within_limit() {
+        let eng = engine();
+        let customer_id = CustomerId::new();
+        eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
+        let auth = eng
+            .authorize_operation(customer_id, OperationType::Send, 1_000_000, 0)
+            .await
+            .unwrap();
+        assert!(auth.can_transact);
+        assert_eq!(auth.reason, "OK");
+    }
+
+    #[tokio::test]
+    async fn limit_exceeded_suggests_higher_level() {
+        let eng = engine();
+        let customer_id = CustomerId::new();
+        eng.upgrade_kyc(customer_id, KycLevel::Basic).await.unwrap();
+        // 1,000,000 AOA send exceeds the Basic single limit (50,000 AOA).
+        let auth = eng
+            .authorize_operation(customer_id, OperationType::Send, 100_000_000, 0)
+            .await
+            .unwrap();
+        assert!(!auth.can_transact);
+        assert_eq!(auth.reason, "LIMIT_EXCEEDED");
+        assert!(auth.required_level.unwrap().level_number() > KycLevel::Basic.level_number());
     }
 }
