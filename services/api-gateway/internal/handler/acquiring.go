@@ -116,10 +116,7 @@ func (h *AcquiringHandler) EmisCallback(w http.ResponseWriter, r *http.Request) 
 			"error", mlErr,
 		)
 	} else {
-		go h.fcm.SendToMerchant(context.Background(), link.MerchantID,
-			"Pagamento recebido",
-			notifAmount(payment.AmountMinor, payment.Currency),
-		)
+		go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)
 	}
 
 	respond(w, http.StatusOK, payment)
@@ -158,10 +155,7 @@ func (h *AcquiringHandler) TestConfirm(w http.ResponseWriter, r *http.Request) {
 		)
 	}
 
-	go h.fcm.SendToMerchant(context.Background(), link.MerchantID,
-		"Pagamento recebido",
-		notifAmount(payment.AmountMinor, payment.Currency),
-	)
+	go h.fcm.SendPaymentToMerchant(context.Background(), link.MerchantID, "", payment.AmountMinor, payment.Currency)
 
 	respond(w, http.StatusOK, payment)
 }

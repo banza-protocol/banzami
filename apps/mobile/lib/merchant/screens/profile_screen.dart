@@ -17,6 +17,14 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
   bool          _bioBusy = false;
   bool          _copied  = false;
   Future<bool>? _canUseBio;
+  bool?         _soundOn;
+
+  @override
+  void initState() {
+    super.initState();
+    MerchantSessionService.isNotifSoundEnabled()
+        .then((v) { if (mounted) setState(() => _soundOn = v); });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -77,6 +85,26 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                 ]);
               },
             ),
+
+            // Configurable confirmation sound for payment notifications.
+            Container(
+              decoration: BoxDecoration(
+                color:        BanzamiColors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: SwitchListTile(
+                value: _soundOn ?? true,
+                activeColor: BanzamiColors.primary,
+                secondary: const Icon(Icons.volume_up_outlined, color: BanzamiColors.primary),
+                title:    const Text('Som de notificação'),
+                subtitle: const Text('Tocar som ao receber um pagamento'),
+                onChanged: (v) async {
+                  await MerchantSessionService.setNotifSoundEnabled(v);
+                  if (mounted) setState(() => _soundOn = v);
+                },
+              ),
+            ),
+            const SizedBox(height: BanzamiSpacing.sm),
 
             _ActionTile(
               icon:     Icons.account_balance_outlined,

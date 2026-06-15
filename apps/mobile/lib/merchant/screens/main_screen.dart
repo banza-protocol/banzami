@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
@@ -36,6 +37,15 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     final client  = context.read<BanzamiClient>();
     final session = context.read<MerchantSessionService>().session!;
     _notifSvc = PaymentNotificationService(client)..startPolling();
+
+    // Foreground payment push: play the configurable confirmation sound.
+    PushNotificationService.onForegroundMessage = (msg) async {
+      if (msg.data['type'] != 'payment_received') return;
+      if (await MerchantSessionService.isNotifSoundEnabled()) {
+        await SystemSound.play(SystemSoundType.alert);
+        await HapticFeedback.mediumImpact();
+      }
+    };
 
     final granted = await PushNotificationService.requestPermission();
     if (!granted) return;

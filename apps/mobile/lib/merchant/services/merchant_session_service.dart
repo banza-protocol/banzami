@@ -58,6 +58,14 @@ class MerchantSessionService extends ChangeNotifier {
   static const _kPinHash       = 'merchant_pin_hash';
   static const _kBioEnabled    = 'merchant_bio_enabled';
   static const _kVerified      = 'merchant_verified';
+  static const _kNotifSound    = 'merchant_notif_sound';
+
+  /// Whether to play a confirmation sound on incoming payment notifications.
+  /// Defaults to on. Background notifications also follow the OS sound settings.
+  static Future<bool> isNotifSoundEnabled() async =>
+      (await _store.read(key: _kNotifSound)) != '0';
+  static Future<void> setNotifSoundEnabled(bool on) async =>
+      _store.write(key: _kNotifSound, value: on ? '1' : '0');
 
   MerchantSession? _session;
   bool             _locked      = true;

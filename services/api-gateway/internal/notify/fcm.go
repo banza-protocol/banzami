@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"strconv"
+	"strings"
 
 	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
@@ -182,6 +183,44 @@ func (s *FCMService) SendToMerchant(ctx context.Context, merchantID, title, body
 		)
 	} else {
 		slog.Info("[FCM] merchant notification sent", "topic", topic)
+	}
+}
+
+// SendPaymentToMerchant publishes a payment-received push to the merchant topic
+// with the value and, when the payer is a Banzami wallet, their @banza handle.
+// For external (acquiring) payers, payerHandle is empty and the body shows the
+// value only. Carries a data payload so the app can render value + payer exactly.
+func (s *FCMService) SendPaymentToMerchant(ctx context.Context, merchantID, payerHandle string, amountMinor int64, currency string) {
+	if s == nil {
+		return
+	}
+	prefix := s.sandboxPrefix()
+	topic  := s.topicForMerchant(merchantID)
+	amount := formatAmount(amountMinor, currency)
+	body   := "Recebeu " + amount
+	if payerHandle != "" {
+		body += " de @" + strings.TrimPrefix(payerHandle, "@")
+	}
+	_, err := s.client.Send(ctx, &messaging.Message{
+		Notification: &messaging.Notification{Title: prefix + "Pagamento recebido", Body: body},
+		Data: map[string]string{
+			"type":         "payment_received",
+			"environment":  s.environment,
+			"amount_minor": strconv.FormatInt(amountMinor, 10),
+			"currency":     currency,
+			"payer_handle": payerHandle,
+			"route":        "activity",
+		},
+		Android: &messaging.AndroidConfig{Priority: "high"},
+		APNS: &messaging.APNSConfig{
+			Payload: &messaging.APNSPayload{Aps: &messaging.Aps{Sound: "default"}},
+		},
+		Topic: topic,
+	})
+	if err != nil {
+		slog.Error("[FCM] merchant payment notification failed", "merchant_id", merchantID, "error", err)
+	} else {
+		slog.Info("[FCM] merchant payment notification sent", "topic", topic, "has_handle", payerHandle != "")
 	}
 }
 
