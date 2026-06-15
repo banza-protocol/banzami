@@ -8,6 +8,7 @@ import '../services/session_service.dart';
 import '../widgets/banzami_premium_dialog.dart';
 import '../widgets/sandbox_banner.dart';
 import 'help_screen.dart';
+import 'kyc_screen.dart';
 import 'notifications_screen.dart';
 import 'onboarding/welcome_screen.dart';
 import 'security_screen.dart';
@@ -80,6 +81,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 sub:   'Gerir PIN e biometria',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(builder: (_) => const SecurityScreen()),
+                ),
+              ),
+              const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),
+              _RowChevron(
+                icon:  Icons.verified_user_outlined,
+                label: 'Verificar identidade',
+                sub:   'KYC — aumentar limites',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const KycScreen()),
                 ),
               ),
               const Divider(height: 1, indent: 56, color: BanzamiColors.gray100),

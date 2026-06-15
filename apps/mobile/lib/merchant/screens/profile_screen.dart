@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
+import 'kyb_screen.dart';
 import 'payout_screen.dart';
 
 class MerchantProfileScreen extends StatefulWidget {
@@ -104,6 +105,18 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
                 },
               ),
             ),
+            const SizedBox(height: BanzamiSpacing.sm),
+
+            _ActionTile(
+              icon:     Icons.verified_outlined,
+              label:    'Verificar negócio (KYB)',
+              sublabel: 'Verificação para processar pagamentos',
+              color:    BanzamiColors.primary,
+              onTap:    () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const KybScreen()),
+              ),
+            ),
+
             const SizedBox(height: BanzamiSpacing.sm),
 
             _ActionTile(

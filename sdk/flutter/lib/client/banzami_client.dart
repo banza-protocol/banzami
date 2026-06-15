@@ -307,6 +307,49 @@ class BanzamiClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Identity verification (KYC / KYB) — verifies the authenticated principal
+  // ---------------------------------------------------------------------------
+
+  /// Submit a consumer identity document for KYC verification. Returns the
+  /// updated compliance record (status + kyc_level). `documentType` is
+  /// 'BILHETE_DE_IDENTIDADE' (default) or 'PASSPORT'; `requestedLevel` is
+  /// 'BASIC' (default), 'ENHANCED', or 'FULL'.
+  Future<Map<String, dynamic>> verifyCustomerKyc({
+    required String fullName,
+    required String documentNumber,
+    required DateTime dateOfBirth,
+    String documentType  = 'BILHETE_DE_IDENTIDADE',
+    String requestedLevel = 'BASIC',
+  }) async {
+    return _postWithRetry('/v1/compliance/customers/verify', {
+      'full_name':       fullName,
+      'document_type':   documentType,
+      'document_number': documentNumber,
+      'date_of_birth':   _ymd(dateOfBirth),
+      'requested_level': requestedLevel,
+    });
+  }
+
+  /// Submit a merchant business identity for KYB verification. Returns the
+  /// updated compliance record (kyb_status + aml_status).
+  Future<Map<String, dynamic>> verifyMerchantKyb({
+    required String legalName,
+    required String taxId,
+    required String representativeName,
+  }) async {
+    return _postWithRetry('/v1/compliance/merchants/verify', {
+      'legal_name':          legalName,
+      'tax_id':              taxId,
+      'representative_name': representativeName,
+    });
+  }
+
+  static String _ymd(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
+
+  // ---------------------------------------------------------------------------
   // Transactions (merchant)
   // ---------------------------------------------------------------------------
 

@@ -98,6 +98,7 @@ func main() {
 		ConsumerPayLinkSvc:  service.NewCoreApiConsumerPayLinkService(coreClient),
 		FCMSvc:              fcmSvc,
 		TeamSvc:             teamSvc,
+		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)

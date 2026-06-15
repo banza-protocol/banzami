@@ -1045,6 +1045,34 @@ func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeReco
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Compliance (KYC / KYB) — raw JSON passthrough to the core
+// ---------------------------------------------------------------------------
+
+type CoreApiComplianceService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiComplianceService(client *CoreApiClient) *CoreApiComplianceService {
+	return &CoreApiComplianceService{client: client}
+}
+
+func (s *CoreApiComplianceService) VerifyCustomer(ctx context.Context, customerID string, body json.RawMessage) (json.RawMessage, error) {
+	var resp json.RawMessage
+	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+customerID+"/verify", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (s *CoreApiComplianceService) VerifyMerchant(ctx context.Context, merchantID string, body json.RawMessage) (json.RawMessage, error) {
+	var resp json.RawMessage
+	if err := s.client.post(ctx, "/internal/v1/compliance/merchants/"+merchantID+"/verify", body, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {
