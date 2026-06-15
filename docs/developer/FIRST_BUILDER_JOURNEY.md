@@ -113,7 +113,7 @@ The builder follows the link and gets a sandbox API key.
 
 **The experience they expect:** Sign up (email + password), receive key immediately, no human approval, no waiting for an email from a sales team, no KYC at this stage.
 
-**What currently exists:** Key issuance requires the dashboard (Settings → API Keys). The dashboard requires a merchant account. Merchant registration requires a KYC flow.
+**What currently exists:** Key issuance requires the dashboard (Settings → API Keys). The dashboard requires a merchant account. Merchant registration requires a KYB flow (business verification; the legal representative does personal KYC separately).
 
 **The gap:** KYC at sandbox entry is a hard stop. A developer who just wants to test a payment flow does not have a business registered and does not want to submit business documents before they have validated that the tool is worth their time.
 

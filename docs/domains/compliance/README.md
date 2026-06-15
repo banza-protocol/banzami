@@ -16,6 +16,80 @@ The compliance domain is a gate: transactions cannot be processed unless both me
 
 ---
 
+## Progressive KYC (product principle)
+
+> **KYC is not the entry barrier. KYC is the financial-movement barrier.**
+> *(O KYC não é a barreira de entrada. O KYC é a barreira de movimentação financeira.)*
+
+A consumer can create an account in seconds — phone verified, `@banza` handle,
+PIN — **without any document**. The account exists but is **limited**. Financial
+capabilities unlock **progressively** as the consumer verifies their identity.
+Documents are requested by **risk, volume, and operation**, not at sign-up.
+
+### Consumer KYC levels
+
+| Level | Name | Requirements | Capability |
+|-------|------|--------------|------------|
+| **KYC_LEVEL_0** | Account / unverified | Phone + name + PIN + `@banza` (no document) | Explore the app; small inbound only (receive/top-up ≤ 100,000 AOA). Outbound blocked. |
+| **KYC_LEVEL_1** | Basic identity | Full name, date of birth, B.I./document number | Low limits — 50,000 AOA / tx, 500,000 AOA / day. Can send & pay merchants. |
+| **KYC_LEVEL_2** | Document verified | B.I./passport photo, OCR + manual review (with provider) | Normal limits — 500,000 AOA / tx, 5,000,000 AOA / day. Cash-out / withdrawal unlocked. |
+| **KYC_LEVEL_3** | Enhanced KYC | Proof of address, source of funds, manual review | High limits — applied for high value, suspicious behaviour, or elevated risk. |
+
+(Levels map to the `KycLevel` enum: None=0, Basic=1, Enhanced=2, Full=3.)
+
+### Operation gating
+
+Authorization is **operation-aware** (`OperationType`): inbound operations are
+lower risk than cash leaving the network.
+
+| Operation | Minimum level |
+|-----------|---------------|
+| `RECEIVE`, `TOP_UP` | KYC_LEVEL_0 (capped) |
+| `SEND`, `PAY_MERCHANT` | KYC_LEVEL_1 |
+| `CASH_OUT`, `WITHDRAWAL`, `PAYOUT` | KYC_LEVEL_2 |
+
+`ComplianceEngine::authorize_operation(customer, operation, amount, daily_volume)`
+returns a structured `TransactionAuthorization`:
+
+```json
+{
+  "can_transact":   false,
+  "reason":         "KYC_REQUIRED",
+  "required_level": "KYC_LEVEL_2",
+  "current_level":  "KYC_LEVEL_0",
+  "message":        "Identity verification is required to perform this operation."
+}
+```
+
+`reason` ∈ `OK` · `KYC_REQUIRED` · `KYC_NOT_APPROVED` · `LIMIT_EXCEEDED`.
+
+The consumer app reflects this with a **"Conta limitada"** banner and a
+**"Verificar identidade"** CTA; states: *not verified · pending · approved ·
+rejected · manual review*.
+
+---
+
+## Three distinct identities — never conflated
+
+Consumer KYC, Merchant KYB, and the merchant **representative's** personal KYC
+are **separate concerns** with separate records and separate matrix items:
+
+| Concept | Who | Verifies | Matrix item |
+|---------|-----|----------|-------------|
+| **Consumer KYC** | the natural person using a Banzami wallet | name, DOB, B.I./passport, levels by volume | `KYC-001` |
+| **Merchant KYB** | the business/merchant | legal name, NIF, registo comercial, atividade, conta de liquidação, beneficiário efetivo | `KYB-001` |
+| **Merchant Representative KYC** | the natural person who represents the merchant | personal KYC of the representative (reuses the consumer KYC flow) | `KYC-002` |
+
+A merchant is **not** validated by consumer KYC alone: to accept payments
+officially it needs **KYB approved**, and its **legal representative** must pass
+**personal KYC** separately. The representative's KYC is not the KYB.
+
+> Sandbox/dev uses the simulated provider only. Production requires a real
+> verification vendor (`KYC_PROVIDER=EXTERNAL`); KYC/KYB are **not** production-
+> ready until that vendor is integrated.
+
+---
+
 ## Architecture
 
 ```
