@@ -36,10 +36,10 @@ use banzami_qr::{
 use banzami_transfers::{
     PostgresTransferEngine, PostgresTransferRepository, SendTransferRequest, TransferEngine,
 };
+use banzami_types::{ConsumerId, Currency, MerchantId};
 use banzami_wallets::{
     CreateWalletRequest, PostgresWalletEngine, PostgresWalletRepository, WalletEngine,
 };
-use banzami_types::{ConsumerId, Currency, MerchantId};
 
 // ---------------------------------------------------------------------------
 // Engine builders (mirror core-api wiring)
@@ -64,7 +64,10 @@ fn transfer_engine(pool: PgPool) -> impl TransferEngine {
 }
 
 fn qr_engine(pool: PgPool) -> PostgresQrEngine<PostgresQrRepository> {
-    PostgresQrEngine::new(PostgresQrRepository::new(pool), b"qr-payment-test-key".to_vec())
+    PostgresQrEngine::new(
+        PostgresQrRepository::new(pool),
+        b"qr-payment-test-key".to_vec(),
+    )
 }
 
 // ---------------------------------------------------------------------------
@@ -249,7 +252,10 @@ async fn qr_payment_amount_equals_debit_equals_credit(pool: PgPool) {
     let credit = merchant_after - merchant_before;
 
     // INV-QR-002-1: amount settled == QR amount, and debit == credit == amount.
-    assert_eq!(amount_to_settle, qr_amount, "settled the QR's encoded amount");
+    assert_eq!(
+        amount_to_settle, qr_amount,
+        "settled the QR's encoded amount"
+    );
     assert_eq!(debit, qr_amount, "consumer debited exactly the QR amount");
     assert_eq!(credit, qr_amount, "merchant credited exactly the QR amount");
     assert_eq!(debit, credit, "debit must equal credit");

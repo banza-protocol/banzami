@@ -21,7 +21,12 @@ fn engine(pool: PgPool) -> PostgresComplianceEngine<PostgresComplianceRepository
     PostgresComplianceEngine::new(PostgresComplianceRepository::new(pool))
 }
 
-fn customer_req(id: CustomerId, name: &str, doc: &str, level: KycLevel) -> CustomerVerificationRequest {
+fn customer_req(
+    id: CustomerId,
+    name: &str,
+    doc: &str,
+    level: KycLevel,
+) -> CustomerVerificationRequest {
     CustomerVerificationRequest {
         customer_id: id,
         full_name: name.into(),
@@ -47,7 +52,12 @@ async fn approved_customer_verification_persists_level(pool: PgPool) {
     let record = eng
         .verify_customer(
             &provider,
-            customer_req(customer_id, "João Manuel", "006887496LA042", KycLevel::Enhanced),
+            customer_req(
+                customer_id,
+                "João Manuel",
+                "006887496LA042",
+                KycLevel::Enhanced,
+            ),
         )
         .await
         .expect("verification should succeed");
@@ -71,12 +81,19 @@ async fn verification_unblocks_transactions(pool: PgPool) {
     let customer_id = CustomerId::new();
 
     // No record yet → blocked.
-    let before = eng.check_customer_can_transact(customer_id, 10_000, 10_000).await;
+    let before = eng
+        .check_customer_can_transact(customer_id, 10_000, 10_000)
+        .await;
     assert!(before.is_err(), "unverified customer must be blocked");
 
     eng.verify_customer(
         &provider,
-        customer_req(customer_id, "Maria Lopes", "004112233LA088", KycLevel::Basic),
+        customer_req(
+            customer_id,
+            "Maria Lopes",
+            "004112233LA088",
+            KycLevel::Basic,
+        ),
     )
     .await
     .unwrap();
@@ -97,7 +114,12 @@ async fn rejected_customer_verification_keeps_blocked(pool: PgPool) {
     let record = eng
         .verify_customer(
             &provider,
-            customer_req(customer_id, "REJECT Test", "006887496LA042", KycLevel::Basic),
+            customer_req(
+                customer_id,
+                "REJECT Test",
+                "006887496LA042",
+                KycLevel::Basic,
+            ),
         )
         .await
         .unwrap();
@@ -105,7 +127,9 @@ async fn rejected_customer_verification_keeps_blocked(pool: PgPool) {
     assert_eq!(record.status, ComplianceStatus::Rejected);
     assert_eq!(record.kyc_level, KycLevel::None);
 
-    let gate = eng.check_customer_can_transact(customer_id, 10_000, 10_000).await;
+    let gate = eng
+        .check_customer_can_transact(customer_id, 10_000, 10_000)
+        .await;
     assert!(gate.is_err(), "rejected customer must stay blocked");
 }
 

@@ -107,7 +107,10 @@ impl<R: ComplianceRepository> PostgresComplianceEngine<R> {
         req: CustomerVerificationRequest,
     ) -> Result<CustomerCompliance, ComplianceError> {
         let customer_id = req.customer_id;
-        let outcome = provider.verify_customer(req).await.map_err(map_provider_err)?;
+        let outcome = provider
+            .verify_customer(req)
+            .await
+            .map_err(map_provider_err)?;
 
         let mut record = self.get_or_create_customer(customer_id).await?;
         record.updated_at = Utc::now();
@@ -150,7 +153,10 @@ impl<R: ComplianceRepository> PostgresComplianceEngine<R> {
         req: MerchantVerificationRequest,
     ) -> Result<MerchantCompliance, ComplianceError> {
         let merchant_id = req.merchant_id;
-        let outcome = provider.verify_merchant(req).await.map_err(map_provider_err)?;
+        let outcome = provider
+            .verify_merchant(req)
+            .await
+            .map_err(map_provider_err)?;
 
         let mut record = self.get_or_create_merchant(merchant_id).await?;
         record.updated_at = Utc::now();

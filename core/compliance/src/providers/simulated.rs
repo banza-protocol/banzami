@@ -44,7 +44,10 @@ impl SimulatedKycProvider {
     fn classify(fields: &[&str]) -> Option<(VerificationDecision, &'static str)> {
         let upper: String = fields.join(" ").to_uppercase();
         if upper.contains("REJECT") {
-            Some((VerificationDecision::Rejected, "document failed verification"))
+            Some((
+                VerificationDecision::Rejected,
+                "document failed verification",
+            ))
         } else if upper.contains("REVIEW") {
             Some((
                 VerificationDecision::PendingReview,
@@ -141,9 +144,7 @@ impl KycProvider for SimulatedKycProvider {
         let nif = req.tax_id.trim();
 
         if name.is_empty() {
-            return Err(KycProviderError::InvalidDocument(
-                "empty legal name".into(),
-            ));
+            return Err(KycProviderError::InvalidDocument("empty legal name".into()));
         }
         if nif.len() < 6 {
             return Err(KycProviderError::InvalidDocument("NIF too short".into()));
@@ -218,7 +219,11 @@ mod tests {
     async fn approves_valid_customer_at_requested_level() {
         let p = SimulatedKycProvider::new();
         let out = p
-            .verify_customer(customer_req("João Manuel", "006887496LA042", KycLevel::Enhanced))
+            .verify_customer(customer_req(
+                "João Manuel",
+                "006887496LA042",
+                KycLevel::Enhanced,
+            ))
             .await
             .unwrap();
         assert_eq!(out.decision, VerificationDecision::Approved);
