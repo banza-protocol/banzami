@@ -129,6 +129,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 			r.Route("/compliance", func(r chi.Router) {
 				r.Post("/customers/verify", complianceHandler.VerifyCustomer)
+				r.Get("/customers/status", complianceHandler.KycStatus)
 				r.Post("/merchants/verify", complianceHandler.VerifyMerchant)
 			})
 

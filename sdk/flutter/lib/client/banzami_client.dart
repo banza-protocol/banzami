@@ -330,6 +330,14 @@ class BanzamiClient {
     });
   }
 
+  /// Progressive-KYC status for the authenticated consumer: current level,
+  /// status, the limits it grants, and whether financial operations are
+  /// unlocked (`kyc_level`, `api_level`, `level_number`, `kyc_status`,
+  /// `limits`, `can_transact`).
+  Future<Map<String, dynamic>> getKycStatus() async {
+    return _get('/v1/compliance/customers/status');
+  }
+
   /// Submit a merchant business identity for KYB verification. Returns the
   /// updated compliance record (kyb_status + aml_status).
   Future<Map<String, dynamic>> verifyMerchantKyb({

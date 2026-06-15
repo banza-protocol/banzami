@@ -7,6 +7,7 @@ import '../config.dart';
 import '../services/push_notification_service.dart';
 import '../services/session_service.dart';
 import '../services/transfer_notification_service.dart';
+import '../widgets/kyc_status_banner.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 import 'receive_hub_screen.dart';
@@ -125,7 +126,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       backgroundColor: BanzamiColors.offWhite,
       body: Column(
         children: [
-Expanded(child: IndexedStack(index: _tab, children: tabs)),
+          if (_tab == 0) const KycStatusBanner(),
+          Expanded(child: IndexedStack(index: _tab, children: tabs)),
         ],
       ),
       bottomNavigationBar: _FloatingTabBar(

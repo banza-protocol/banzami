@@ -15,4 +15,7 @@ type ComplianceService interface {
 	// VerifyMerchant runs a merchant KYB verification. body is the raw request
 	// (legal_name, tax_id, representative_name).
 	VerifyMerchant(ctx context.Context, merchantID string, body json.RawMessage) (json.RawMessage, error)
+	// GetCustomerStatus returns the consumer's Progressive-KYC status (level,
+	// status, limits, can_transact) as raw JSON.
+	GetCustomerStatus(ctx context.Context, customerID string) (json.RawMessage, error)
 }

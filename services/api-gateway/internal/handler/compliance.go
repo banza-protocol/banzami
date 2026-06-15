@@ -61,6 +61,22 @@ func (h *ComplianceHandler) VerifyMerchant(w http.ResponseWriter, r *http.Reques
 	writeRaw(w, http.StatusOK, data)
 }
 
+// KycStatus returns the authenticated consumer's Progressive-KYC status.
+// GET /v1/compliance/customers/status
+func (h *ComplianceHandler) KycStatus(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.CustomerID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "consumer authentication required")
+		return
+	}
+	data, err := h.svc.GetCustomerStatus(r.Context(), principal.CustomerID)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadGateway, "STATUS_UNAVAILABLE", "could not fetch KYC status")
+		return
+	}
+	writeRaw(w, http.StatusOK, data)
+}
+
 func writeRaw(w http.ResponseWriter, status int, data []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

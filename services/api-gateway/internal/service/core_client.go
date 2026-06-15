@@ -1073,6 +1073,14 @@ func (s *CoreApiComplianceService) VerifyMerchant(ctx context.Context, merchantI
 	return resp, nil
 }
 
+func (s *CoreApiComplianceService) GetCustomerStatus(ctx context.Context, customerID string) (json.RawMessage, error) {
+	var resp json.RawMessage
+	if err := s.client.get(ctx, "/internal/v1/compliance/customers/"+customerID, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {

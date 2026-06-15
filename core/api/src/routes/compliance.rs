@@ -181,6 +181,36 @@ pub async fn verify_customer(
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
+/// GET /internal/v1/compliance/customers/:id — Progressive-KYC status: current
+/// level, status, the limits it grants, and whether financial ops are unlocked.
+pub async fn get_customer_status(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let customer_id: CustomerId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid customer id"))?;
+    let record = state
+        .compliance
+        .get_or_create_customer(customer_id)
+        .await
+        .map_err(compliance_err)?;
+    let lvl = record.kyc_level;
+    Ok(Json(serde_json::json!({
+        "customer_id":  id,
+        "kyc_level":    lvl.as_str(),
+        "api_level":    lvl.as_api_level(),
+        "level_number": lvl.level_number(),
+        "kyc_status":   record.status.as_str(),
+        "limits": {
+            "single_transaction_minor": lvl.max_single_transaction_minor(),
+            "daily_volume_minor":       lvl.max_daily_volume_minor(),
+        },
+        // KYC_LEVEL_0 (None) cannot perform outbound financial operations.
+        "can_transact": lvl != KycLevel::None,
+    })))
+}
+
 #[derive(Deserialize)]
 pub struct VerifyMerchantBody {
     pub legal_name: String,

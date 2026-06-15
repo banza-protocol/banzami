@@ -330,6 +330,10 @@ async fn main() {
             "/internal/v1/compliance/customers/:id/verify",
             post(routes::compliance::verify_customer),
         )
+        .route(
+            "/internal/v1/compliance/customers/:id",
+            get(routes::compliance::get_customer_status),
+        )
         // Reconciliation
         .route(
             "/internal/v1/reconciliation/run",
