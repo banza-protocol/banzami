@@ -334,6 +334,10 @@ async fn main() {
             "/internal/v1/compliance/customers/:id",
             get(routes::compliance::get_customer_status),
         )
+        .route(
+            "/internal/v1/compliance/customers/:id/authorize",
+            post(routes::compliance::authorize_customer),
+        )
         // Reconciliation
         .route(
             "/internal/v1/reconciliation/run",

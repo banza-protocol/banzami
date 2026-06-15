@@ -17,12 +17,13 @@ import (
 )
 
 type TransferHandler struct {
-	svc service.TransferService
-	fcm *notify.FCMService
+	svc        service.TransferService
+	fcm        *notify.FCMService
+	compliance service.ComplianceService
 }
 
-func NewTransferHandler(svc service.TransferService, fcm *notify.FCMService) *TransferHandler {
-	return &TransferHandler{svc: svc, fcm: fcm}
+func NewTransferHandler(svc service.TransferService, fcm *notify.FCMService, compliance service.ComplianceService) *TransferHandler {
+	return &TransferHandler{svc: svc, fcm: fcm, compliance: compliance}
 }
 
 // POST /v1/transfers
@@ -56,6 +57,23 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 	case body.Currency == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "currency is required")
 		return
+	}
+
+	// Progressive-KYC gate: a SEND requires the sender to have at least basic
+	// identity (KYC_LEVEL_1) and to be within their level's limits.
+	if h.compliance != nil {
+		auth, kErr := h.compliance.AuthorizeOperation(
+			r.Context(), body.SenderID, "SEND", body.AmountMinor, 0,
+		)
+		if kErr == nil && auth != nil && !auth.CanTransact {
+			writeJSON(w, http.StatusForbidden, map[string]any{
+				"code":           auth.Reason,
+				"message":        auth.Message,
+				"required_level": auth.RequiredLevel,
+				"current_level":  auth.CurrentLevel,
+			})
+			return
+		}
 	}
 
 	transfer, err := h.svc.Send(r.Context(), service.SendTransferRequest{

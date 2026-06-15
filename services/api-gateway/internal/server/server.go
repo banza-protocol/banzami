@@ -80,7 +80,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc)
 	consumerHandler       := handler.NewConsumerHandler(deps.ConsumerSvc)
 	consumerWltHandler    := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
-	transferHandler       := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc)
+	transferHandler       := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
 	qrHandler             := handler.NewQrHandler(deps.QrSvc)
 	paymentLinkHandler    := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
 	acquiringHandler      := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)

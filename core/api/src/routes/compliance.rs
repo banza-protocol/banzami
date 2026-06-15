@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 use banzami_compliance::{
     ComplianceEngine, ComplianceError, CustomerVerificationRequest, IdDocumentType, KycLevel,
-    MerchantVerificationRequest,
+    MerchantVerificationRequest, OperationType,
 };
 use banzami_merchants::{MerchantEngine, MerchantError};
 use banzami_types::{CustomerId, MerchantId};
@@ -208,6 +208,48 @@ pub async fn get_customer_status(
         },
         // KYC_LEVEL_0 (None) cannot perform outbound financial operations.
         "can_transact": lvl != KycLevel::None,
+    })))
+}
+
+#[derive(Deserialize)]
+pub struct AuthorizeBody {
+    /// SEND | RECEIVE | PAY_MERCHANT | CASH_OUT | WITHDRAWAL | PAYOUT | TOP_UP
+    pub operation: String,
+    pub amount_minor: i64,
+    #[serde(default)]
+    pub daily_volume_minor: i64,
+}
+
+/// POST /internal/v1/compliance/customers/:id/authorize — Progressive-KYC gate
+/// for a specific operation. Returns the structured authorization decision.
+pub async fn authorize_customer(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<AuthorizeBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let customer_id: CustomerId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid customer id"))?;
+    let operation = OperationType::try_from_str(&body.operation)
+        .ok_or_else(|| ApiError::bad_request(format!("unknown operation: {}", body.operation)))?;
+
+    let auth = state
+        .compliance
+        .authorize_operation(
+            customer_id,
+            operation,
+            body.amount_minor,
+            body.daily_volume_minor,
+        )
+        .await
+        .map_err(compliance_err)?;
+
+    Ok(Json(serde_json::json!({
+        "can_transact":   auth.can_transact,
+        "reason":         auth.reason,
+        "current_level":  auth.current_level.as_api_level(),
+        "required_level": auth.required_level.map(|l| l.as_api_level()),
+        "message":        auth.message,
     })))
 }
 

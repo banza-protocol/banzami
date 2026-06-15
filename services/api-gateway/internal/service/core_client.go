@@ -1081,6 +1081,19 @@ func (s *CoreApiComplianceService) GetCustomerStatus(ctx context.Context, custom
 	return resp, nil
 }
 
+func (s *CoreApiComplianceService) AuthorizeOperation(ctx context.Context, customerID, operation string, amountMinor, dailyVolumeMinor int64) (*Authorization, error) {
+	body := map[string]any{
+		"operation":          operation,
+		"amount_minor":       amountMinor,
+		"daily_volume_minor": dailyVolumeMinor,
+	}
+	var resp Authorization
+	if err := s.client.post(ctx, "/internal/v1/compliance/customers/"+customerID+"/authorize", body, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {

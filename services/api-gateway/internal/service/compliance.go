@@ -18,4 +18,16 @@ type ComplianceService interface {
 	// GetCustomerStatus returns the consumer's Progressive-KYC status (level,
 	// status, limits, can_transact) as raw JSON.
 	GetCustomerStatus(ctx context.Context, customerID string) (json.RawMessage, error)
+	// AuthorizeOperation returns the Progressive-KYC decision for a specific
+	// operation (SEND, CASH_OUT, …) and amount.
+	AuthorizeOperation(ctx context.Context, customerID, operation string, amountMinor, dailyVolumeMinor int64) (*Authorization, error)
+}
+
+// Authorization is the decoded Progressive-KYC decision.
+type Authorization struct {
+	CanTransact   bool    `json:"can_transact"`
+	Reason        string  `json:"reason"`
+	CurrentLevel  string  `json:"current_level"`
+	RequiredLevel *string `json:"required_level"`
+	Message       string  `json:"message"`
 }
