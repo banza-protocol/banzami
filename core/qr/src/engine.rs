@@ -8,7 +8,7 @@ use banzami_types::QrCodeId;
 use crate::{
     qr_code::{
         CreateDynamicQrRequest, CreateStaticQrRequest, ParsedQr, QrCode, QrCodeStatus, QrCodeType,
-        QrOwnerType,
+        QrOwnerType, ResolvedQrTarget,
     },
     repository::QrRepository,
     QrError,
@@ -57,6 +57,16 @@ pub trait QrEngine: Send + Sync {
 
     /// Mark a dynamic QR code as used after a successful payment.
     async fn mark_used(&self, id: QrCodeId) -> Result<QrCode, QrError>;
+
+    /// Resolve a scanned payload into an integrity-verified payment target.
+    ///
+    /// This is the single entry point the payment path must use. For dynamic QR
+    /// it fetches the DB record, verifies the HMAC signature against it, and
+    /// checks the code is `Active` and not expired — so a forged or tampered
+    /// dynamic payload is rejected before any money moves. For static QR it
+    /// returns the owner taken from the (signature-less) payload; the amount is
+    /// supplied by the payer.
+    async fn resolve_for_payment(&self, payload: &str) -> Result<ResolvedQrTarget, QrError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -81,7 +91,6 @@ impl<R: QrRepository> PostgresQrEngine<R> {
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
     }
 
-    #[allow(dead_code)]
     fn hmac_verify(&self, message: &str, expected: &str) -> bool {
         let computed = self.hmac_sign(message);
         // Constant-time comparison.
@@ -217,6 +226,7 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     owner_type: Some(ot),
                     currency: Some(currency),
                     qr_code_id: None,
+                    signature: None,
                 })
             }
             "D" => {
@@ -228,9 +238,9 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     .map_err(|_| QrError::InvalidPayload("invalid qr_code_id UUID".into()))?;
 
                 // For dynamic QR, full signature verification requires fetching the DB record
-                // (to get amount, currency, expiry). We only do structural validation here.
-                // The caller must call `get()` and re-verify on critical paths.
-                let _ = v["sig"]
+                // (to get amount, currency, expiry). We carry the signature through so the
+                // payment path (`resolve_for_payment`) can verify it after `get()`.
+                let sig = v["sig"]
                     .as_str()
                     .ok_or_else(|| QrError::InvalidPayload("missing 'sig'".into()))?;
 
@@ -240,6 +250,7 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     owner_type: None,
                     currency: None,
                     qr_code_id: Some(QrCodeId::from_uuid(qr_id)),
+                    signature: Some(sig.to_string()),
                 })
             }
             _ => Err(QrError::InvalidPayload(format!("unknown QR type: {t}"))),
@@ -262,6 +273,60 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
         }
 
         self.repo.update_status(id, QrCodeStatus::Used).await
+    }
+
+    async fn resolve_for_payment(&self, payload: &str) -> Result<ResolvedQrTarget, QrError> {
+        let parsed = self.decode(payload)?;
+
+        match parsed.qr_type {
+            QrCodeType::Static => Ok(ResolvedQrTarget {
+                qr_type: QrCodeType::Static,
+                owner_id: parsed
+                    .owner_id
+                    .ok_or_else(|| QrError::InvalidPayload("static QR missing owner".into()))?,
+                owner_type: parsed.owner_type.ok_or_else(|| {
+                    QrError::InvalidPayload("static QR missing owner type".into())
+                })?,
+                currency: parsed
+                    .currency
+                    .ok_or_else(|| QrError::InvalidPayload("static QR missing currency".into()))?,
+                amount_minor: None,
+                qr_code_id: None,
+            }),
+            QrCodeType::Dynamic => {
+                let qr_id = parsed
+                    .qr_code_id
+                    .ok_or_else(|| QrError::InvalidPayload("dynamic QR missing id".into()))?;
+                let signature = parsed.signature.ok_or_else(|| {
+                    QrError::InvalidPayload("dynamic QR missing signature".into())
+                })?;
+
+                // Fetch the authoritative record and verify the signature binds
+                // this id to its owner/amount/currency/expiry. A forged or
+                // tampered payload fails here before any money moves.
+                let qr = self.repo.get(qr_id).await?;
+                if !self.hmac_verify(&Self::sign_message(&qr), &signature) {
+                    return Err(QrError::InvalidSignature);
+                }
+                if qr.status != QrCodeStatus::Active {
+                    return Err(QrError::AlreadyUsedOrExpired);
+                }
+                if let Some(exp) = qr.expires_at {
+                    if exp <= Utc::now() {
+                        return Err(QrError::AlreadyExpired);
+                    }
+                }
+
+                Ok(ResolvedQrTarget {
+                    qr_type: QrCodeType::Dynamic,
+                    owner_id: qr.owner_id,
+                    owner_type: qr.owner_type,
+                    currency: qr.currency,
+                    amount_minor: qr.amount_minor,
+                    qr_code_id: Some(qr.id),
+                })
+            }
+        }
     }
 }
 
@@ -386,6 +451,110 @@ mod tests {
 
         let used = eng.mark_used(qr.id).await.unwrap();
         assert_eq!(used.status, QrCodeStatus::Used);
+    }
+
+    // --- resolve_for_payment: integrity-verified payment path -------------
+
+    #[tokio::test]
+    async fn resolve_static_returns_owner_and_no_amount() {
+        let eng = engine();
+        let owner = uuid::Uuid::new_v4();
+        let qr = eng
+            .create_static(CreateStaticQrRequest {
+                owner_id: owner,
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: None,
+            })
+            .await
+            .unwrap();
+        let payload = eng.encode(&qr).unwrap();
+
+        let target = eng.resolve_for_payment(&payload).await.unwrap();
+        assert_eq!(target.qr_type, QrCodeType::Static);
+        assert_eq!(target.owner_id, owner);
+        assert_eq!(target.amount_minor, None); // payer enters the amount
+        assert_eq!(target.qr_code_id, None);
+    }
+
+    #[tokio::test]
+    async fn resolve_dynamic_returns_fixed_amount_and_id() {
+        let eng = engine();
+        let future = Utc::now() + chrono::Duration::hours(1);
+        let qr = eng
+            .create_dynamic(CreateDynamicQrRequest {
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: 75_000,
+                expires_at: future,
+                reference: None,
+            })
+            .await
+            .unwrap();
+        let payload = eng.encode(&qr).unwrap();
+
+        let target = eng.resolve_for_payment(&payload).await.unwrap();
+        assert_eq!(target.qr_type, QrCodeType::Dynamic);
+        assert_eq!(target.amount_minor, Some(75_000)); // amount comes from the record
+        assert_eq!(target.qr_code_id, Some(qr.id));
+    }
+
+    // INVARIANT: a dynamic payload whose signature does not match the record is
+    // rejected — a forged/tampered QR must never resolve to a payment.
+    #[tokio::test]
+    async fn resolve_dynamic_rejects_tampered_signature() {
+        let eng = engine();
+        let future = Utc::now() + chrono::Duration::hours(1);
+        let qr = eng
+            .create_dynamic(CreateDynamicQrRequest {
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: 50_000,
+                expires_at: future,
+                reference: None,
+            })
+            .await
+            .unwrap();
+
+        // Hand-craft a payload with a bogus signature for the real id.
+        let forged = base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(
+            serde_json::json!({
+                "t": "D",
+                "id": qr.id.as_uuid().to_string(),
+                "sig": "not-a-valid-signature",
+            })
+            .to_string()
+            .as_bytes(),
+        );
+
+        let err = eng.resolve_for_payment(&forged).await.unwrap_err();
+        assert!(matches!(err, QrError::InvalidSignature), "got {err:?}");
+    }
+
+    // INVARIANT: an already-used dynamic QR cannot resolve again (no double-spend).
+    #[tokio::test]
+    async fn resolve_dynamic_rejects_already_used() {
+        let eng = engine();
+        let future = Utc::now() + chrono::Duration::hours(1);
+        let qr = eng
+            .create_dynamic(CreateDynamicQrRequest {
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: 50_000,
+                expires_at: future,
+                reference: None,
+            })
+            .await
+            .unwrap();
+        let payload = eng.encode(&qr).unwrap();
+
+        eng.mark_used(qr.id).await.unwrap();
+
+        let err = eng.resolve_for_payment(&payload).await.unwrap_err();
+        assert!(matches!(err, QrError::AlreadyUsedOrExpired), "got {err:?}");
     }
 
     #[tokio::test]

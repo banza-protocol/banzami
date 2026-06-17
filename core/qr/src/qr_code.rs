@@ -144,4 +144,25 @@ pub struct ParsedQr {
     pub currency: Option<Currency>,
     /// `qr_code_id` for dynamic QR — needed to fetch the DB record.
     pub qr_code_id: Option<QrCodeId>,
+    /// HMAC signature carried by dynamic QR payloads. Verified against the DB
+    /// record on the payment path (see `QrEngine::resolve_for_payment`).
+    pub signature: Option<String>,
+}
+
+/// A fully resolved, integrity-verified payment target produced by
+/// [`crate::engine::QrEngine::resolve_for_payment`].
+///
+/// For dynamic QR the record has been fetched, its HMAC signature verified, and
+/// its status/expiry checked, so the caller can move money against it directly.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct ResolvedQrTarget {
+    pub qr_type: QrCodeType,
+    /// Consumer/merchant UUID that receives the payment.
+    pub owner_id: uuid::Uuid,
+    pub owner_type: QrOwnerType,
+    pub currency: Currency,
+    /// Fixed amount for dynamic QR. `None` for static (payer enters amount).
+    pub amount_minor: Option<i64>,
+    /// Present for dynamic QR — the caller must `mark_used` it after settlement.
+    pub qr_code_id: Option<QrCodeId>,
 }

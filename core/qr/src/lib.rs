@@ -7,7 +7,7 @@ pub use engine::{PostgresQrEngine, QrEngine};
 pub use expiry_worker::{expire_stale_codes, run_expiry_worker};
 pub use qr_code::{
     CreateDynamicQrRequest, CreateStaticQrRequest, ParsedQr, QrCode, QrCodeStatus, QrCodeType,
-    QrOwnerType,
+    QrOwnerType, ResolvedQrTarget,
 };
 pub use repository::{PostgresQrRepository, QrRepository};
 
