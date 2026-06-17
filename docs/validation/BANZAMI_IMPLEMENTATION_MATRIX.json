@@ -2829,7 +2829,7 @@
       "referenceSection": "§6.6, §7",
       "description": "Comerciante ou sistema cria pedido de pagamento com valor, descrição e @banza do destinatário. Enviado como notificação push.",
       "requirement": "Pedido criado e entregue ao consumidor como notificação push. Referência e valor correctos.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Payment Requests",
       "technicalArea": "Go · FCM · Flutter",
@@ -2854,6 +2854,11 @@
           "type": "config",
           "label": "0030_payment_requests.sql",
           "ref": "db/migrations/0030_payment_requests.sql"
+        },
+        {
+          "type": "component",
+          "label": "requests screen in app",
+          "ref": "apps/mobile/lib/merchant/screens/payment_requests_screen.dart"
         }
       ],
       "dependencies": [
@@ -2868,15 +2873,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "create via API/SDK, push to consumer, visible in app, configurable expiry",
+          "deployed"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T21:05:00.000Z",
+      "validatedAgainstCommit": "1d51eb94b6646d2fb79a967cbfa5181c83caefd5",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -2898,9 +2904,21 @@
             "services/api-gateway/internal/handler/payment_requests.go",
             "db/migrations/0030_payment_requests.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T21:05:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "f6905cabfb31de57",
+          "reason": "Payment request creation complete: created via API/SDK with amount/description, push delivered to the consumer, visible in the app, configurable expiry. Not financial-critical category.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payment_requests.go",
+            "db/migrations/0030_payment_requests.sql"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "PR-002",
