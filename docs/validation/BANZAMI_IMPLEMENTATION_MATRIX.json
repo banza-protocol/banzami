@@ -2628,7 +2628,7 @@
       "referenceSection": "§6.5",
       "description": "Página pública acessível por qualquer utilizador — exibe comerciante, valor e botão de pagamento. Funciona sem app instalada.",
       "requirement": "Página acessível sem conta, exibe todas as informações do link, permite pagamento com app Banza.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
@@ -2654,6 +2654,11 @@
           "type": "route",
           "label": "consumer_pay_links.go",
           "ref": "services/public-api/internal/handler/consumer_pay_links.go"
+        },
+        {
+          "type": "component",
+          "label": "pay client (QR + status polling)",
+          "ref": "apps/pay/app/[slug]/pay-client.tsx"
         }
       ],
       "dependencies": [
@@ -2668,15 +2673,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "public pay page: no-auth, merchant/amount/desc, QR shown, pay button, paid state via polling",
+          "deployed"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T21:00:00.000Z",
+      "validatedAgainstCommit": "b6d2c01391cb2648420b8bcd2c1d01b7716fcb02",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -2698,9 +2704,20 @@
             "apps/pay/app/[slug]/page.tsx",
             "services/public-api/internal/handler/consumer_pay_links.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T21:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "5dd580105967e2eb",
+          "reason": "Public pay page complete: accessible without auth, shows merchant/amount/description, renders a payment QR, pay button, and flips to a Paid state via status polling. Deployed; not financial-critical.",
+          "evidence": [
+            "apps/pay/app/[slug]/pay-client.tsx"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "PL-003",
