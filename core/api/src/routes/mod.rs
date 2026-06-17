@@ -19,6 +19,7 @@ pub mod reconciliation;
 pub mod refunds;
 pub mod risk;
 pub mod settlements;
+pub mod splits;
 pub mod transactions;
 pub mod transfers;
 pub mod wallets;
