@@ -1628,7 +1628,7 @@
       "referenceSection": "§6.4",
       "description": "Experiência de scan de QR na app Banza — câmara, descodificação, ecrã de confirmação, PIN/biometria e confirmação de pagamento.",
       "requirement": "Fluxo completo scan-to-paid em menos de 3 segundos. UX conforme especificação §6.4.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go · Rust",
@@ -1644,17 +1644,37 @@
         "Confirmação com PIN ou biometria",
         "Sucesso confirmado em menos de 3 segundos do scan"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
-          "label": "engine.rs",
+          "label": "resolve_for_payment + atomic claim",
           "ref": "core/qr/src/engine.rs"
         },
         {
           "type": "route",
-          "label": "qr.go",
+          "label": "pay-by-QR orchestration",
+          "ref": "core/api/src/routes/qr.rs"
+        },
+        {
+          "type": "route",
+          "label": "gateway pay proxy",
           "ref": "services/api-gateway/internal/handler/qr.go"
+        },
+        {
+          "type": "component",
+          "label": "structured QR parser",
+          "ref": "sdk/flutter/lib/utils/qr_parser.dart"
+        },
+        {
+          "type": "component",
+          "label": "premium confirm/pay/success",
+          "ref": "sdk/flutter/lib/screens/structured_qr_pay_screen.dart"
+        },
+        {
+          "type": "test",
+          "label": "settlement + no-double-spend invariants (real DB)",
+          "ref": "core/qr/tests/qr_payment_integration.rs"
         }
       ],
       "dependencies": [
@@ -1676,17 +1696,35 @@
         "db/migrations/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-QR-003-1",
+          "name": "scan-pay amount == ledger debit == ledger credit",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-QR-003-2",
+          "name": "dynamic QR settles at most once (no double-spend)",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-QR-003-3",
+          "name": "forged/tampered QR rejected before settlement",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 75,
+        "score": 85,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "scan-to-pay built end-to-end (core + gateway + SDK + app)",
+          "11 unit/integration tests + settlement invariant proven on real DB",
+          "premium confirm/pay/success flow wired via BanzamiScanScreen"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T20:33:59.000Z",
+      "validatedAgainstCommit": "943a5acd18aa2a1daa5daacc39b52f660cd3ba25",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1708,9 +1746,22 @@
             "core/qr/src/engine.rs",
             "services/api-gateway/internal/handler/qr.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T20:33:59.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "ce8a46724abd7744",
+          "reason": "Scan-to-pay built and verified end-to-end: integrity-verified resolve + atomic one-time claim + premium app flow; 3 financial invariants PASS on real DB; architecture lock satisfied (QR-001/QR-002/WAL-001 VALIDATED).",
+          "evidence": [
+            "core/qr/src/engine.rs",
+            "core/api/src/routes/qr.rs",
+            "core/qr/tests/qr_payment_integration.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "QR-004",
