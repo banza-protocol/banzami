@@ -501,20 +501,20 @@ func NewCoreApiPayoutService(client *CoreApiClient) *CoreApiPayoutService {
 // corePayoutResp mirrors the Rust Payout JSON, where the monetary value is a
 // nested Money object { amount_minor, currency } rather than flat fields.
 type corePayoutResp struct {
-	ID              string        `json:"id"`
-	MerchantID      string        `json:"merchant_id"`
-	WalletID        string        `json:"wallet_id"`
-	IdempotencyKey  string        `json:"idempotency_key"`
-	Status          string        `json:"status"`
-	Amount          coreMoneyResp `json:"amount"`
+	ID              string          `json:"id"`
+	MerchantID      string          `json:"merchant_id"`
+	WalletID        string          `json:"wallet_id"`
+	IdempotencyKey  string          `json:"idempotency_key"`
+	Status          string          `json:"status"`
+	Amount          coreMoneyResp   `json:"amount"`
 	Destination     BankDestination `json:"destination"`
-	LedgerPostingID *string       `json:"ledger_posting_id"`
-	FailureReason   *string       `json:"failure_reason"`
-	CreatedAt       time.Time     `json:"created_at"`
-	SentAt          *time.Time    `json:"sent_at"`
-	ConfirmedAt     *time.Time    `json:"confirmed_at"`
-	ReturnedAt      *time.Time    `json:"returned_at"`
-	FailedAt        *time.Time    `json:"failed_at"`
+	LedgerPostingID *string         `json:"ledger_posting_id"`
+	FailureReason   *string         `json:"failure_reason"`
+	CreatedAt       time.Time       `json:"created_at"`
+	SentAt          *time.Time      `json:"sent_at"`
+	ConfirmedAt     *time.Time      `json:"confirmed_at"`
+	ReturnedAt      *time.Time      `json:"returned_at"`
+	FailedAt        *time.Time      `json:"failed_at"`
 }
 
 func (r *corePayoutResp) toPayout() *Payout {
@@ -608,12 +608,12 @@ func NewCoreApiConsumerService(client *CoreApiClient) *CoreApiConsumerService {
 }
 
 type coreConsumerResp struct {
-	ID          string     `json:"id"`
-	Handle      string     `json:"handle"`
-	DisplayName *string    `json:"display_name"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          string    `json:"id"`
+	Handle      string    `json:"handle"`
+	DisplayName *string   `json:"display_name"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 func (r *coreConsumerResp) toConsumerRecord() *ConsumerRecord {
@@ -1041,6 +1041,22 @@ func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeReco
 	return resp.toRecord(), nil
 }
 
+func (s *CoreApiQrService) Pay(ctx context.Context, req PayQrRequest) (int, json.RawMessage, error) {
+	body := map[string]any{
+		"idempotency_key": req.IdempotencyKey,
+		"payer":           req.Payer,
+		"payload":         req.Payload,
+		"note":            req.Note,
+	}
+	if req.AmountMinor != nil {
+		body["amount_minor"] = *req.AmountMinor
+	}
+	// The core owns the QR resolution, compliance gate, atomic claim and
+	// settlement; forward its status + body verbatim so the app sees the exact
+	// outcome code.
+	return s.client.postRaw(ctx, "/internal/v1/qr/pay", body)
+}
+
 // ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
@@ -1100,6 +1116,32 @@ func (s *CoreApiComplianceService) GetMerchantStatus(ctx context.Context, mercha
 		return nil, err
 	}
 	return &resp, nil
+}
+
+// postRaw sends a POST and returns the core's HTTP status code and raw body
+// verbatim, without collapsing error codes into Go errors. This lets a gateway
+// handler forward the core's structured responses (e.g. KYC_REQUIRED,
+// INSUFFICIENT_FUNDS, QR_ALREADY_USED) to the caller unchanged. Only a transport
+// failure returns a non-nil error.
+func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any) (int, json.RawMessage, error) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return 0, nil, fmt.Errorf("core-api marshal: %w", err)
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, c.baseURL+path, bytes.NewReader(data))
+	if err != nil {
+		return 0, nil, fmt.Errorf("core-api request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("core-api transport: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, json.RawMessage(raw), nil
 }
 
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {

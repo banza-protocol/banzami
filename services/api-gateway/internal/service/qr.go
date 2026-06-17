@@ -2,15 +2,16 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"time"
 )
 
-var ErrQrNotFound             = errors.New("QR code not found")
-var ErrQrExpired              = errors.New("QR code has expired")
-var ErrQrAlreadyUsed          = errors.New("QR code has already been used")
+var ErrQrNotFound = errors.New("QR code not found")
+var ErrQrExpired = errors.New("QR code has expired")
+var ErrQrAlreadyUsed = errors.New("QR code has already been used")
 var ErrQrCannotMarkStaticUsed = errors.New("static QR codes cannot be marked as used")
-var ErrQrInvalidPayload       = errors.New("invalid QR payload")
+var ErrQrInvalidPayload = errors.New("invalid QR payload")
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -59,6 +60,16 @@ type CreateDynamicQrRequest struct {
 	Reference   string
 }
 
+// PayQrRequest is a scan-to-pay request. AmountMinor is required for static QR
+// (the payer enters it) and ignored for dynamic QR (the amount is fixed).
+type PayQrRequest struct {
+	IdempotencyKey string
+	Payer          string
+	Payload        string
+	AmountMinor    *int64
+	Note           string
+}
+
 // ---------------------------------------------------------------------------
 // Interface
 // ---------------------------------------------------------------------------
@@ -69,4 +80,8 @@ type QrService interface {
 	Get(ctx context.Context, id string) (*QrResponse, error)
 	Decode(ctx context.Context, payload string) (*ParsedQr, error)
 	MarkUsed(ctx context.Context, id string) (*QrCodeRecord, error)
+	// Pay settles a scan-to-pay request. It returns the core's HTTP status and
+	// raw JSON body verbatim so structured outcomes (KYC_REQUIRED,
+	// INSUFFICIENT_FUNDS, QR_ALREADY_USED, …) are forwarded faithfully.
+	Pay(ctx context.Context, req PayQrRequest) (int, json.RawMessage, error)
 }

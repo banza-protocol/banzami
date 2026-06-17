@@ -438,6 +438,7 @@ async fn main() {
         .route("/internal/v1/qr/static", post(routes::qr::create_static))
         .route("/internal/v1/qr/dynamic", post(routes::qr::create_dynamic))
         .route("/internal/v1/qr/decode", post(routes::qr::decode))
+        .route("/internal/v1/qr/pay", post(routes::qr::pay))
         .route("/internal/v1/qr/:id", get(routes::qr::get))
         .route("/internal/v1/qr/:id/use", post(routes::qr::mark_used))
         // Payment links

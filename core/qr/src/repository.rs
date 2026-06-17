@@ -19,6 +19,14 @@ pub trait QrRepository: Send + Sync {
     /// rest get `AlreadyUsedOrExpired` — closing the double-spend window that a
     /// read-then-write (`get` + `update_status`) leaves open.
     async fn claim_dynamic_for_payment(&self, id: QrCodeId) -> Result<QrCode, QrError>;
+
+    /// Release a previously-claimed dynamic QR code back to `ACTIVE`.
+    ///
+    /// Used by the payment orchestration to roll back a claim when settlement
+    /// fails after the claim succeeded, so the payer can retry. Only a `USED`
+    /// row is reopened (conditional `UPDATE`), and only the claim winner ever
+    /// calls this for a given code.
+    async fn release_dynamic_claim(&self, id: QrCodeId) -> Result<QrCode, QrError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -151,6 +159,20 @@ impl QrRepository for PostgresQrRepository {
                 }
             }
         }
+    }
+
+    async fn release_dynamic_claim(&self, id: QrCodeId) -> Result<QrCode, QrError> {
+        sqlx::query(
+            "UPDATE qr_codes
+                SET status = 'ACTIVE', used_at = NULL
+              WHERE id = $1 AND qr_type = 'DYNAMIC' AND status = 'USED'",
+        )
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(QrError::Database)?;
+
+        self.get(id).await
     }
 }
 

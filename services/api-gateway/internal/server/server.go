@@ -20,26 +20,26 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis                 *redis.Client
-	TransactionSvc        service.TransactionService
-	WebhookSvc            service.WebhookService
-	MerchantSvc           service.MerchantService
-	WalletSvc             service.WalletService
-	PayoutSvc             service.PayoutService
-	ConsumerSvc           service.ConsumerService
-	ConsumerWalletSvc     service.ConsumerWalletService
-	TransferSvc           service.TransferService
-	QrSvc                 service.QrService
-	PaymentLinkSvc        service.PaymentLinkService
-	AcquiringSvc          service.AcquiringService
-	RefundSvc             service.RefundService
-	DisputeSvc            service.DisputeService
-	PaymentRequestSvc     service.PaymentRequestService
-	MerchantProfileSvc    service.MerchantProfileService
-	ConsumerPayLinkSvc    service.ConsumerPayLinkService
-	FCMSvc                *notify.FCMService
-	TeamSvc               service.TeamService
-	ComplianceSvc         service.ComplianceService
+	Redis              *redis.Client
+	TransactionSvc     service.TransactionService
+	WebhookSvc         service.WebhookService
+	MerchantSvc        service.MerchantService
+	WalletSvc          service.WalletService
+	PayoutSvc          service.PayoutService
+	ConsumerSvc        service.ConsumerService
+	ConsumerWalletSvc  service.ConsumerWalletService
+	TransferSvc        service.TransferService
+	QrSvc              service.QrService
+	PaymentLinkSvc     service.PaymentLinkService
+	AcquiringSvc       service.AcquiringService
+	RefundSvc          service.RefundService
+	DisputeSvc         service.DisputeService
+	PaymentRequestSvc  service.PaymentRequestService
+	MerchantProfileSvc service.MerchantProfileService
+	ConsumerPayLinkSvc service.ConsumerPayLinkService
+	FCMSvc             *notify.FCMService
+	TeamSvc            service.TeamService
+	ComplianceSvc      service.ComplianceService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -57,7 +57,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Use(middleware.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(60 * time.Second))
-	r.Use(middleware.RouteSpan)        // enriches the otelhttp span with chi route pattern
+	r.Use(middleware.RouteSpan)       // enriches the otelhttp span with chi route pattern
 	r.Use(chimw.RequestSize(4 << 20)) // 4 MB global cap — blocks oversized payloads before handlers
 
 	// ---------------------------------------------------------------------------
@@ -70,26 +70,26 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	// Handlers
 	// ---------------------------------------------------------------------------
-	authHandler           := handler.NewAuthHandler(cfg, deps.MerchantSvc)
-	txHandler             := handler.NewTransactionHandler(deps.TransactionSvc)
-	wbhHandler            := handler.NewWebhookHandler(deps.WebhookSvc)
-	mchHandler            := handler.NewMerchantHandler(deps.MerchantSvc)
-	teamHandler           := handler.NewTeamHandler(deps.TeamSvc)
-	complianceHandler     := handler.NewComplianceHandler(deps.ComplianceSvc)
-	wltHandler            := handler.NewWalletHandler(deps.WalletSvc)
-	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
-	consumerHandler       := handler.NewConsumerHandler(deps.ConsumerSvc)
-	consumerWltHandler    := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
-	transferHandler       := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
-	qrHandler             := handler.NewQrHandler(deps.QrSvc)
-	paymentLinkHandler    := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
-	acquiringHandler      := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
-	sandboxHandler        := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
-	refundHandler         := handler.NewRefundHandler(deps.RefundSvc)
-	disputeHandler        := handler.NewDisputeHandler(deps.DisputeSvc)
-	paymentReqHandler     := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
-	profileHandler        := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
-	consumerPayLinkPubH   := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
+	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
+	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
+	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
+	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
+	teamHandler := handler.NewTeamHandler(deps.TeamSvc)
+	complianceHandler := handler.NewComplianceHandler(deps.ComplianceSvc)
+	wltHandler := handler.NewWalletHandler(deps.WalletSvc)
+	payoutHandler := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
+	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
+	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
+	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
+	qrHandler := handler.NewQrHandler(deps.QrSvc)
+	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
+	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
+	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
+	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
+	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
+	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
+	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
+	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
@@ -183,6 +183,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/static", qrHandler.CreateStatic)
 				r.Post("/dynamic", qrHandler.CreateDynamic)
 				r.Post("/decode", qrHandler.Decode)
+				r.Post("/pay", qrHandler.Pay)
 				r.Get("/{id}", qrHandler.Get)
 				r.Post("/{id}/use", qrHandler.MarkUsed)
 			})

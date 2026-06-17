@@ -67,6 +67,10 @@ pub trait QrEngine: Send + Sync {
     /// returns the owner taken from the (signature-less) payload; the amount is
     /// supplied by the payer.
     async fn resolve_for_payment(&self, payload: &str) -> Result<ResolvedQrTarget, QrError>;
+
+    /// Roll back a dynamic-QR claim (`USED → ACTIVE`) when settlement fails
+    /// after a successful `mark_used`, so the payer can retry the same code.
+    async fn release_claim(&self, id: QrCodeId) -> Result<QrCode, QrError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -267,6 +271,10 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
         self.repo.claim_dynamic_for_payment(id).await
     }
 
+    async fn release_claim(&self, id: QrCodeId) -> Result<QrCode, QrError> {
+        self.repo.release_dynamic_claim(id).await
+    }
+
     async fn resolve_for_payment(&self, payload: &str) -> Result<ResolvedQrTarget, QrError> {
         let parsed = self.decode(payload)?;
 
@@ -409,6 +417,19 @@ mod tests {
             }
             qr.status = QrCodeStatus::Used;
             qr.used_at = Some(Utc::now());
+            Ok(qr.clone())
+        }
+
+        async fn release_dynamic_claim(&self, id: QrCodeId) -> Result<QrCode, QrError> {
+            let mut store = self.codes.lock().unwrap();
+            let qr = store
+                .iter_mut()
+                .find(|q| q.id == id)
+                .ok_or(QrError::NotFound(id))?;
+            if qr.qr_type == QrCodeType::Dynamic && qr.status == QrCodeStatus::Used {
+                qr.status = QrCodeStatus::Active;
+                qr.used_at = None;
+            }
             Ok(qr.clone())
         }
     }
@@ -609,6 +630,33 @@ mod tests {
         assert!(
             matches!(second, Err(QrError::AlreadyUsedOrExpired)),
             "second claim must lose: {second:?}"
+        );
+    }
+
+    // A released claim (settlement failed after claiming) becomes claimable
+    // again, so the payer can retry the same dynamic code.
+    #[tokio::test]
+    async fn released_claim_can_be_claimed_again() {
+        let eng = engine();
+        let future = Utc::now() + chrono::Duration::hours(1);
+        let qr = eng
+            .create_dynamic(CreateDynamicQrRequest {
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: 50_000,
+                expires_at: future,
+                reference: None,
+            })
+            .await
+            .unwrap();
+
+        eng.mark_used(qr.id).await.unwrap(); // claim
+        let released = eng.release_claim(qr.id).await.unwrap();
+        assert_eq!(released.status, QrCodeStatus::Active);
+        assert!(
+            eng.mark_used(qr.id).await.is_ok(),
+            "a released code must be claimable again"
         );
     }
 
