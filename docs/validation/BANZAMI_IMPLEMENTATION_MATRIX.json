@@ -2928,7 +2928,7 @@
       "referenceSection": "§6.6, §13.6",
       "description": "Consumidor recebe pedido, vê detalhes, paga com um toque ou recusa. Liquidação instantânea. Notificação ao emissor.",
       "requirement": "Consumidor pode pagar ou recusar com um toque. Liquidação instantânea se pago. Notificação ao emissor em ambos os casos.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Rust · Go",
@@ -2964,15 +2964,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "pay/decline endpoints, instant settlement, issuer notification, payment_request.paid/declined webhooks",
+          "deployed"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T21:07:00.000Z",
+      "validatedAgainstCommit": "1a79ce256e6111569aee4c4fd42645009b3aa303",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -2993,9 +2994,20 @@
           "evidence": [
             "services/api-gateway/internal/handler/payment_requests.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T21:07:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "ee10b17e6b5104c2",
+          "reason": "Payment request pay/decline complete: one-tap pay (app-level biometric lock), instant settlement, issuer notification, payment_request.paid/declined webhooks. Not financial-critical category.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payment_requests.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "BM-001",
