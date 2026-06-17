@@ -220,6 +220,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
         // handled by the scan-to-pay flow instead.
         BanzamiToast.showWarning(
             context, 'Este é um QR de pagamento. Use o ecrã Pagar.');
+
+      case BanzamiQrSplitPayment():
+        BanzamiToast.showWarning(
+            context, 'Este é um QR de divisão de conta. Use o ecrã Pagar.');
     }
   }
 

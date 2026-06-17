@@ -368,6 +368,49 @@ class ConsumerPublicClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Split payments (P2P-002)
+  // ---------------------------------------------------------------------------
+
+  /// Open a split session for a group total (the authenticated consumer is the
+  /// owner/recipient). Returns the session including a `qr_payload` to display.
+  Future<Map<String, dynamic>> createSplit({
+    required String ownerId,
+    required int totalMinor,
+    String ownerType = 'CONSUMER',
+    String currency = 'AOA',
+    String? reference,
+  }) {
+    return _call(method: 'POST', path: '/v1/splits', body: {
+      'owner_id': ownerId,
+      'owner_type': ownerType,
+      'currency': currency,
+      'total_minor': totalMinor,
+      if (reference != null) 'reference': reference,
+    });
+  }
+
+  /// Fetch a split session: total, paid, remaining, status, contributions.
+  Future<Map<String, dynamic>> getSplit(String id) =>
+      _call(method: 'GET', path: '/v1/splits/$id');
+
+  /// Contribute [amountMinor] to a split session as [payer] (own @banza handle).
+  /// Throws [BanzamiApiException] carrying the outcome code on refusal
+  /// (`AMOUNT_EXCEEDS_REMAINING`, `SPLIT_NOT_OPEN`, `INSUFFICIENT_FUNDS`,
+  /// `KYC_REQUIRED`, …).
+  Future<Map<String, dynamic>> paySplit({
+    required String id,
+    required String payer,
+    required int amountMinor,
+    String? idempotencyKey,
+  }) {
+    return _call(method: 'POST', path: '/v1/splits/$id/pay', body: {
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      'payer': payer,
+      'amount_minor': amountMinor,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
   // Sandbox utilities
   // ---------------------------------------------------------------------------
 

@@ -64,5 +64,12 @@ void main() {
       expect(result, isA<BanzamiQrPaymentRequest>());
       expect((result as BanzamiQrPaymentRequest).code, 'abc123');
     });
+
+    test('split deep link resolves to a split payment', () {
+      final result =
+          BanzamiQrParser.parse('banzami://pay/split/abc-split-123');
+      expect(result, isA<BanzamiQrSplitPayment>());
+      expect((result as BanzamiQrSplitPayment).splitId, 'abc-split-123');
+    });
   });
 }

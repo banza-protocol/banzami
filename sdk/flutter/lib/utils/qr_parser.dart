@@ -57,6 +57,14 @@ class BanzamiQrStructuredPayment extends BanzamiQrResult {
   const BanzamiQrStructuredPayment({required this.payload, required this.isStatic});
 }
 
+/// A split-payment session (P2P-002) — `banzami://split/{id}`. The payer
+/// contributes a portion via `ConsumerPublicClient.paySplit`.
+class BanzamiQrSplitPayment extends BanzamiQrResult {
+  final String splitId;
+  final bool   isSandbox;
+  const BanzamiQrSplitPayment({required this.splitId, required this.isSandbox});
+}
+
 /// Not a recognised Banzami QR payload.
 class BanzamiQrInvalid extends BanzamiQrResult {
   final String reason;
@@ -124,8 +132,13 @@ class BanzamiQrParser {
         return BanzamiQrPaymentRequest(code: code, isSandbox: isSandbox);
       }
 
-      // banzami://pay/u/{handle}[?amount=N&note=...]
+      // banzami://split/{id} — split-payment session
       final segs = uri.pathSegments.where((s) => s.isNotEmpty).toList();
+      if (segs.length >= 2 && segs[0] == 'split') {
+        return BanzamiQrSplitPayment(splitId: segs[1], isSandbox: isSandbox);
+      }
+
+      // banzami://pay/u/{handle}[?amount=N&note=...]
       if (segs.length >= 2 && segs[0] == 'u') {
         final amountStr = uri.queryParameters['amount'];
         return BanzamiQrHandlePayment(

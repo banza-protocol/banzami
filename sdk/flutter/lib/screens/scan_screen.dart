@@ -10,6 +10,7 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
+import 'split_pay_screen.dart';
 import 'structured_qr_pay_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
@@ -125,7 +126,26 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
       case BanzamiQrStructuredPayment(:final payload, :final isStatic):
         debugPrint('[QR-SCAN] route=StructuredQrPay static=$isStatic');
         await _openStructuredPayment(payload: payload, isStatic: isStatic);
+
+      case BanzamiQrSplitPayment(:final splitId, :final isSandbox):
+        debugPrint('[QR-SCAN] route=SplitPay split=$splitId');
+        if (_sandboxMismatch(isSandbox)) return;
+        await _openSplitPayment(splitId);
     }
+  }
+
+  Future<void> _openSplitPayment(String splitId) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiSplitPayScreen(
+        client:      widget.client,
+        splitId:     splitId,
+        payerHandle: widget.ownHandle ?? '',
+        isSandbox:   widget.isSandbox,
+        onSuccess:   widget.onSuccess,
+      ),
+    ));
+    if (mounted) _rescan();
   }
 
   Future<void> _openStructuredPayment({

@@ -58,7 +58,7 @@ fn session_json(
         "status":         status,
         "reference":      reference,
         // Scannable token: the in-app router/scanner opens the pay-into-split flow.
-        "qr_payload":     format!("banzami://split/{id}"),
+        "qr_payload":     format!("banzami://pay/split/{id}"),
     })
 }
 
