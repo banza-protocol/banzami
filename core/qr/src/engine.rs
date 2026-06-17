@@ -91,15 +91,18 @@ impl<R: QrRepository> PostgresQrEngine<R> {
         base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(mac.finalize().into_bytes())
     }
 
-    fn hmac_verify(&self, message: &str, expected: &str) -> bool {
-        let computed = self.hmac_sign(message);
-        // Constant-time comparison.
-        computed.len() == expected.len()
-            && computed
-                .bytes()
-                .zip(expected.bytes())
-                .fold(0u8, |acc, (a, b)| acc | (a ^ b))
-                == 0
+    /// Constant-time verification of a Base64url-encoded HMAC signature against
+    /// `message`. Uses the `hmac` crate's `verify_slice`, which compares the raw
+    /// MAC bytes in constant time — never a hand-rolled string comparison.
+    fn hmac_verify(&self, message: &str, expected_b64: &str) -> bool {
+        let Ok(expected) = base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(expected_b64)
+        else {
+            return false;
+        };
+        let mut mac = HmacSha256::new_from_slice(&self.signing_key)
+            .expect("HMAC can take keys of any length");
+        mac.update(message.as_bytes());
+        mac.verify_slice(&expected).is_ok()
     }
 
     fn sign_message(qr: &QrCode) -> String {
@@ -258,21 +261,10 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
     }
 
     async fn mark_used(&self, id: QrCodeId) -> Result<QrCode, QrError> {
-        let qr = self.repo.get(id).await?;
-
-        if qr.qr_type == QrCodeType::Static {
-            return Err(QrError::CannotMarkStaticAsUsed);
-        }
-        if qr.status != QrCodeStatus::Active {
-            return Err(QrError::AlreadyUsedOrExpired);
-        }
-        if let Some(exp) = qr.expires_at {
-            if exp <= Utc::now() {
-                return Err(QrError::AlreadyExpired);
-            }
-        }
-
-        self.repo.update_status(id, QrCodeStatus::Used).await
+        // Atomic claim: ACTIVE → USED in a single conditional update so that
+        // exactly one of N concurrent scans of the same dynamic code wins.
+        // The repository disambiguates static / expired / already-used errors.
+        self.repo.claim_dynamic_for_payment(id).await
     }
 
     async fn resolve_for_payment(&self, payload: &str) -> Result<ResolvedQrTarget, QrError> {
@@ -317,12 +309,23 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     }
                 }
 
+                // A dynamic QR carries a fixed, positive amount. Reject a
+                // malformed record rather than resolving to a zero/absent value.
+                let amount_minor = match qr.amount_minor {
+                    Some(a) if a > 0 => a,
+                    _ => {
+                        return Err(QrError::InvalidPayload(
+                            "dynamic QR has no positive amount".into(),
+                        ))
+                    }
+                };
+
                 Ok(ResolvedQrTarget {
                     qr_type: QrCodeType::Dynamic,
                     owner_id: qr.owner_id,
                     owner_type: qr.owner_type,
                     currency: qr.currency,
-                    amount_minor: qr.amount_minor,
+                    amount_minor: Some(amount_minor),
                     qr_code_id: Some(qr.id),
                 })
             }
@@ -382,6 +385,30 @@ mod tests {
                 .find(|q| q.id == id)
                 .ok_or(QrError::NotFound(id))?;
             qr.status = status;
+            Ok(qr.clone())
+        }
+
+        async fn claim_dynamic_for_payment(&self, id: QrCodeId) -> Result<QrCode, QrError> {
+            // Mirrors the Postgres conditional UPDATE: the mutex makes the
+            // check-and-set atomic, so concurrent claims cannot both succeed.
+            let mut store = self.codes.lock().unwrap();
+            let qr = store
+                .iter_mut()
+                .find(|q| q.id == id)
+                .ok_or(QrError::NotFound(id))?;
+            if qr.qr_type == QrCodeType::Static {
+                return Err(QrError::CannotMarkStaticAsUsed);
+            }
+            if qr.status != QrCodeStatus::Active {
+                // Terminal state — already USED or swept to EXPIRED.
+                return Err(QrError::AlreadyUsedOrExpired);
+            }
+            if qr.expires_at.is_some_and(|exp| exp <= Utc::now()) {
+                // Still ACTIVE but aged past expiry (the sweep has not run yet).
+                return Err(QrError::AlreadyExpired);
+            }
+            qr.status = QrCodeStatus::Used;
+            qr.used_at = Some(Utc::now());
             Ok(qr.clone())
         }
     }
@@ -555,6 +582,34 @@ mod tests {
 
         let err = eng.resolve_for_payment(&payload).await.unwrap_err();
         assert!(matches!(err, QrError::AlreadyUsedOrExpired), "got {err:?}");
+    }
+
+    // INVARIANT: claiming the same dynamic QR twice — exactly one claim wins,
+    // the second is rejected (no double-spend even if resolve ran twice).
+    #[tokio::test]
+    async fn dynamic_qr_can_only_be_claimed_once() {
+        let eng = engine();
+        let future = Utc::now() + chrono::Duration::hours(1);
+        let qr = eng
+            .create_dynamic(CreateDynamicQrRequest {
+                owner_id: uuid::Uuid::new_v4(),
+                owner_type: QrOwnerType::Merchant,
+                currency: Currency::AOA,
+                amount_minor: 50_000,
+                expires_at: future,
+                reference: None,
+            })
+            .await
+            .unwrap();
+
+        let first = eng.mark_used(qr.id).await;
+        let second = eng.mark_used(qr.id).await;
+
+        assert!(first.is_ok(), "first claim should win: {first:?}");
+        assert!(
+            matches!(second, Err(QrError::AlreadyUsedOrExpired)),
+            "second claim must lose: {second:?}"
+        );
     }
 
     #[tokio::test]

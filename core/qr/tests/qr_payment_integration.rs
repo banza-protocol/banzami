@@ -272,3 +272,46 @@ async fn qr_payment_amount_equals_debit_equals_credit(pool: PgPool) {
     assert_eq!(transfer.amount.amount_minor(), qr_amount);
     assert_eq!(transfer.status.as_str(), "COMPLETED");
 }
+
+// INVARIANT (no double-spend, real DB): N concurrent claims of the same dynamic
+// QR must settle it at most once. This proves the atomicity of the conditional
+// `UPDATE ... WHERE status='ACTIVE'` against genuine PostgreSQL concurrency —
+// the MockRepo unit test only proves the logic, not the database guarantee.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn concurrent_dynamic_qr_claims_win_at_most_once(pool: PgPool) {
+    let qr = qr_engine(pool.clone());
+
+    let created = qr
+        .create_dynamic(CreateDynamicQrRequest {
+            owner_id: uuid::Uuid::new_v4(),
+            owner_type: QrOwnerType::Merchant,
+            currency: Currency::AOA,
+            amount_minor: 100_000,
+            expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
+            reference: None,
+        })
+        .await
+        .unwrap();
+    let id = created.id;
+
+    // Fire many concurrent claims against the real database.
+    let mut handles = Vec::new();
+    for _ in 0..8 {
+        let eng = qr_engine(pool.clone());
+        handles.push(tokio::spawn(async move { eng.mark_used(id).await.is_ok() }));
+    }
+
+    let mut wins = 0;
+    for h in handles {
+        if h.await.unwrap() {
+            wins += 1;
+        }
+    }
+
+    assert_eq!(wins, 1, "exactly one concurrent claim may win — never two");
+    assert_eq!(
+        qr.get(id).await.unwrap().status,
+        QrCodeStatus::Used,
+        "the QR must end USED after the winning claim"
+    );
+}

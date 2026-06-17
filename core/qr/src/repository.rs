@@ -11,6 +11,14 @@ pub trait QrRepository: Send + Sync {
     async fn create(&self, qr: QrCode) -> Result<QrCode, QrError>;
     async fn get(&self, id: QrCodeId) -> Result<QrCode, QrError>;
     async fn update_status(&self, id: QrCodeId, status: QrCodeStatus) -> Result<QrCode, QrError>;
+
+    /// Atomically claim a dynamic QR code for a one-time payment.
+    ///
+    /// Transitions `ACTIVE → USED` in a single conditional `UPDATE`, so that
+    /// under concurrent scans of the same code exactly one caller wins and the
+    /// rest get `AlreadyUsedOrExpired` — closing the double-spend window that a
+    /// read-then-write (`get` + `update_status`) leaves open.
+    async fn claim_dynamic_for_payment(&self, id: QrCodeId) -> Result<QrCode, QrError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +113,44 @@ impl QrRepository for PostgresQrRepository {
         .map_err(QrError::Database)?;
 
         self.get(id).await
+    }
+
+    async fn claim_dynamic_for_payment(&self, id: QrCodeId) -> Result<QrCode, QrError> {
+        // Single atomic conditional update: only an ACTIVE, unexpired DYNAMIC
+        // row transitions to USED. RETURNING tells us whether we won the claim.
+        let row = sqlx::query_as::<_, QrRow>(
+            "UPDATE qr_codes
+                SET status = 'USED', used_at = now()
+              WHERE id = $1
+                AND qr_type = 'DYNAMIC'
+                AND status = 'ACTIVE'
+                AND (expires_at IS NULL OR expires_at > now())
+            RETURNING id, owner_id, owner_type, qr_type, currency, amount_minor,
+                      status, expires_at, used_at, reference, created_at",
+        )
+        .bind(id.as_uuid())
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(QrError::Database)?;
+
+        match row {
+            Some(r) => qr_from_row(r),
+            None => {
+                // We did not win the claim — disambiguate why for a precise error.
+                let existing = self.get(id).await?; // NotFound if it truly does not exist
+                if existing.qr_type == QrCodeType::Static {
+                    Err(QrError::CannotMarkStaticAsUsed)
+                } else if existing.status != QrCodeStatus::Active {
+                    // Terminal state — already USED or swept to EXPIRED.
+                    Err(QrError::AlreadyUsedOrExpired)
+                } else if existing.expires_at.is_some_and(|exp| exp <= Utc::now()) {
+                    // Still ACTIVE but aged past expiry (the sweep has not run yet).
+                    Err(QrError::AlreadyExpired)
+                } else {
+                    Err(QrError::AlreadyUsedOrExpired)
+                }
+            }
+        }
     }
 }
 
