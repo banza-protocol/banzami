@@ -79,26 +79,27 @@ func main() {
 	}
 
 	deps := server.Dependencies{
-		Redis:             rdb,
-		TransactionSvc:    service.NewCoreApiTransactionService(coreClient),
-		WebhookSvc:        webhookSvc,
-		MerchantSvc:       service.NewCoreApiMerchantService(coreClient),
-		WalletSvc:         service.NewCoreApiWalletService(coreClient),
-		PayoutSvc:         service.NewCoreApiPayoutService(coreClient),
-		ConsumerSvc:       service.NewCoreApiConsumerService(coreClient),
-		ConsumerWalletSvc: service.NewCoreApiConsumerWalletService(coreClient),
-		TransferSvc:       service.NewCoreApiTransferService(coreClient),
-		QrSvc:             service.NewCoreApiQrService(coreClient),
-		PaymentLinkSvc:    service.NewCoreApiPaymentLinkService(coreClient),
-		AcquiringSvc:      service.NewCoreApiAcquiringService(coreClient),
+		Redis:              rdb,
+		TransactionSvc:     service.NewCoreApiTransactionService(coreClient),
+		WebhookSvc:         webhookSvc,
+		MerchantSvc:        service.NewCoreApiMerchantService(coreClient),
+		WalletSvc:          service.NewCoreApiWalletService(coreClient),
+		PayoutSvc:          service.NewCoreApiPayoutService(coreClient),
+		ConsumerSvc:        service.NewCoreApiConsumerService(coreClient),
+		ConsumerWalletSvc:  service.NewCoreApiConsumerWalletService(coreClient),
+		TransferSvc:        service.NewCoreApiTransferService(coreClient),
+		QrSvc:              service.NewCoreApiQrService(coreClient),
+		PaymentLinkSvc:     service.NewCoreApiPaymentLinkService(coreClient),
+		AcquiringSvc:       service.NewCoreApiAcquiringService(coreClient),
 		RefundSvc:          service.NewCoreApiRefundService(coreClient),
 		DisputeSvc:         service.NewCoreApiDisputeService(coreClient),
 		PaymentRequestSvc:  service.NewCoreApiPaymentRequestService(coreClient),
-		MerchantProfileSvc:  service.NewCoreApiMerchantProfileService(coreClient),
-		ConsumerPayLinkSvc:  service.NewCoreApiConsumerPayLinkService(coreClient),
-		FCMSvc:              fcmSvc,
-		TeamSvc:             teamSvc,
-		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
+		MerchantProfileSvc: service.NewCoreApiMerchantProfileService(coreClient),
+		ConsumerPayLinkSvc: service.NewCoreApiConsumerPayLinkService(coreClient),
+		FCMSvc:             fcmSvc,
+		TeamSvc:            teamSvc,
+		ComplianceSvc:      service.NewCoreApiComplianceService(coreClient),
+		SplitSvc:           service.NewCoreApiSplitService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)
@@ -109,10 +110,10 @@ func main() {
 
 	go func() {
 		slog.Info("api-gateway starting",
-			"port",         cfg.Port,
-			"environment",  cfg.Environment,
-			"log_level",    cfg.LogLevel,
-			"log_format",   cfg.LogFormat,
+			"port", cfg.Port,
+			"environment", cfg.Environment,
+			"log_level", cfg.LogLevel,
+			"log_format", cfg.LogFormat,
 			"otlp_enabled", cfg.OTLPEndpoint != "",
 		)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {

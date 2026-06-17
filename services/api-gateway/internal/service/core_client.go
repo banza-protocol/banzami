@@ -1041,6 +1041,34 @@ func (s *CoreApiQrService) MarkUsed(ctx context.Context, id string) (*QrCodeReco
 	return resp.toRecord(), nil
 }
 
+// ---------------------------------------------------------------------------
+// CoreApiSplitService — split payments (P2P-002) via the Rust core
+// ---------------------------------------------------------------------------
+
+type CoreApiSplitService struct {
+	client *CoreApiClient
+}
+
+func NewCoreApiSplitService(client *CoreApiClient) *CoreApiSplitService {
+	return &CoreApiSplitService{client: client}
+}
+
+func (s *CoreApiSplitService) Create(ctx context.Context, body json.RawMessage) (int, json.RawMessage, error) {
+	return s.client.postRaw(ctx, "/internal/v1/splits", body)
+}
+
+func (s *CoreApiSplitService) Get(ctx context.Context, id string) (json.RawMessage, error) {
+	var resp json.RawMessage
+	if err := s.client.get(ctx, "/internal/v1/splits/"+id, &resp); err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func (s *CoreApiSplitService) Pay(ctx context.Context, id string, body json.RawMessage) (int, json.RawMessage, error) {
+	return s.client.postRaw(ctx, "/internal/v1/splits/"+id+"/pay", body)
+}
+
 func (s *CoreApiQrService) Pay(ctx context.Context, req PayQrRequest) (int, json.RawMessage, error) {
 	body := map[string]any{
 		"idempotency_key": req.IdempotencyKey,

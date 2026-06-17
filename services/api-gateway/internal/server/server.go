@@ -40,6 +40,7 @@ type Dependencies struct {
 	FCMSvc             *notify.FCMService
 	TeamSvc            service.TeamService
 	ComplianceSvc      service.ComplianceService
+	SplitSvc           service.SplitService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -82,6 +83,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
+	splitHandler := handler.NewSplitHandler(deps.SplitSvc)
 	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
@@ -186,6 +188,12 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/pay", qrHandler.Pay)
 				r.Get("/{id}", qrHandler.Get)
 				r.Post("/{id}/use", qrHandler.MarkUsed)
+			})
+
+			r.Route("/splits", func(r chi.Router) {
+				r.Post("/", splitHandler.Create)
+				r.Get("/{id}", splitHandler.Get)
+				r.Post("/{id}/pay", splitHandler.Pay)
 			})
 
 			// Payment links
