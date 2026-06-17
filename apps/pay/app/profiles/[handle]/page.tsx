@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
-import { getMerchantProfile, type MerchantProfile } from '@/lib/api';
+import { getMerchantProfile } from '@/lib/api';
 import type { Metadata } from 'next';
+import ProfilePayCard from './profile-pay-card';
 
 interface Props {
   params: { handle: string };
@@ -67,8 +68,8 @@ export default async function MerchantProfilePage({ params }: Props) {
             </div>
           )}
 
-          {/* Pay button */}
-          <PayButton profile={profile} />
+          {/* Static QR + pay + share */}
+          <ProfilePayCard handle={profile.handle} displayName={profile.display_name} />
 
           {/* Social links */}
           {profile.social_links.length > 0 && (
@@ -103,20 +104,3 @@ export default async function MerchantProfilePage({ params }: Props) {
   );
 }
 
-function PayButton({ profile }: { profile: MerchantProfile }) {
-  const deepLink = `banzami://pay/profile/${profile.handle}`;
-  return (
-    <a
-      href={deepLink}
-      className="flex items-center justify-center gap-2 h-14 bg-banzami text-white rounded-2xl text-base font-semibold shadow-md hover:bg-banzami/90 transition-colors"
-    >
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <circle cx="17.5" cy="17.5" r="2.5" />
-      </svg>
-      Pagar a @{profile.handle}
-    </a>
-  );
-}
