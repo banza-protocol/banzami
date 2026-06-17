@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-15",
+    "lastUpdated": "2026-06-17",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -4941,9 +4941,9 @@
       "categoryId": "cat-kyc",
       "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.5",
-      "description": "Verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Por níveis conforme volume.",
+      "description": "Consumer KYC — verificação de identidade de consumidores com documentos angolanos (B.I., Passaporte, Carta de Condução). Progressive KYC por níveis (KYC_LEVEL_0..3) conforme volume. Distinto do KYB do negócio e do KYC do representante.",
       "requirement": "KYC obrigatório antes de activar pagamentos em directo. Processo totalmente digital. Conforme requisitos BNA.",
-      "status": "BLOCKED",
+      "status": "IN_PROGRESS",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Go · Flutter · Parceiro KYC",
@@ -4963,8 +4963,28 @@
       "evidence": [
         {
           "type": "component",
-          "label": "lib.rs",
-          "ref": "core/compliance/src/lib.rs"
+          "label": "Progressive KYC model + engine",
+          "ref": "core/compliance/src/engine.rs"
+        },
+        {
+          "type": "component",
+          "label": "verify/authorize/status routes",
+          "ref": "core/api/src/routes/compliance.rs"
+        },
+        {
+          "type": "component",
+          "label": "KYC submission screen",
+          "ref": "apps/mobile/lib/screens/kyc_screen.dart"
+        },
+        {
+          "type": "component",
+          "label": "'Conta limitada' banner",
+          "ref": "apps/mobile/lib/widgets/kyc_status_banner.dart"
+        },
+        {
+          "type": "enforcement",
+          "label": "fail-closed SEND gate",
+          "ref": "services/api-gateway/internal/handler/transfers.go"
         }
       ],
       "dependencies": [
@@ -4982,10 +5002,12 @@
       ],
       "invariants": [],
       "confidence": {
-        "score": 45,
+        "score": 65,
         "level": "MEDIUM",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "Progressive KYC implemented + 32 tests green",
+          "sandbox functional",
+          "blocked on external vendor for production"
         ]
       },
       "freezeReason": null,
@@ -5011,17 +5033,30 @@
           "evidence": [
             "core/compliance/src/lib.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T16:01:26.000Z",
+          "from": "BLOCKED",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "aae83cc1d05c8718",
+          "reason": "KYC/KYB restructure: clarified as Consumer KYC. Progressive KYC + verify/authorize + app UX + fail-closed enforcement exist and are sandbox-functional; production gated on KYC_PROVIDER=EXTERNAL vendor.",
+          "evidence": [
+            "core/compliance/src/engine.rs",
+            "core/api/src/routes/compliance.rs",
+            "apps/mobile/lib/screens/kyc_screen.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "KYC-002",
-      "title": "Verificação KYB de comerciantes",
+      "title": "Verificação KYC do representante do comerciante",
       "categoryId": "cat-kyc",
       "validationDomain": "DOM-TRUST",
       "referenceSection": "§16.5",
-      "description": "Verificação de negócio para comerciantes — NIF para entidades formais, verificação de identidade para individuais.",
+      "description": "Merchant Representative KYC — o representante legal do comerciante é uma pessoa singular que completa o fluxo Consumer KYC. Rastreado à parte da verificação do negócio (KYB). A liquidação requer KYB do negócio aprovado E KYC do representante.",
       "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
       "status": "IN_PROGRESS",
       "priority": "CRITICAL",
@@ -5032,17 +5067,22 @@
         "production_review"
       ],
       "acceptanceCriteria": [
-        "Verificação NIF para entidades formais",
-        "Verificação de identidade para comerciantes individuais",
-        "Liquidação bloqueada até KYB aprovado",
-        "QR estático disponível antes de KYB (modo restrito)"
+        "Representante legal identificado e ligado ao comerciante",
+        "Representante completa Consumer KYC (B.I./Passaporte)",
+        "Verificação do representante rastreada à parte do KYB do negócio",
+        "Liquidação requer KYB do negócio aprovado E KYC do representante"
       ],
       "testCoverage": false,
       "evidence": [
         {
           "type": "component",
-          "label": "lib.rs",
-          "ref": "core/compliance/src/lib.rs"
+          "label": "reutiliza fluxo Consumer KYC",
+          "ref": "core/api/src/routes/compliance.rs"
+        },
+        {
+          "type": "doc",
+          "label": "Three distinct identities",
+          "ref": "docs/domains/compliance/README.md"
         }
       ],
       "dependencies": [
@@ -5057,10 +5097,12 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
+        "score": 55,
         "level": "MEDIUM",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "reuses Consumer KYC flow",
+          "conceptual separation documented",
+          "link/tracking to merchant pending"
         ]
       },
       "freezeReason": null,
@@ -5086,9 +5128,104 @@
           "evidence": [
             "core/compliance/src/lib.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T16:01:26.000Z",
+          "from": "IN_PROGRESS",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "aae83cc1d05c8718",
+          "reason": "KYC/KYB restructure: re-purposed from 'Verificação KYB de comerciantes' to Merchant Representative KYC. Business verification (KYB) moved to new item KYB-001. The representative is a natural person who completes Consumer KYC, tracked distinctly from the business KYB.",
+          "evidence": [
+            "docs/domains/compliance/README.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
+    },
+    {
+      "id": "KYB-001",
+      "title": "Verificação KYB de comerciantes",
+      "categoryId": "cat-kyc",
+      "validationDomain": "DOM-TRUST",
+      "referenceSection": "§16.5",
+      "description": "Merchant KYB — verificação do negócio: NIF/entidade formal, atividade, conta de liquidação, beneficiário efetivo. Distinto do Consumer KYC e do KYC do representante.",
+      "requirement": "KYB obrigatório antes de activar liquidação em directo. Suporte a comerciantes formais e informais.",
+      "status": "IMPLEMENTED",
+      "priority": "CRITICAL",
+      "ownerArea": "Core / Compliance",
+      "technicalArea": "Rust · Go · Merchant Platform",
+      "validationMethods": [
+        "manual_ux",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Verificação NIF para entidades formais",
+        "Verificação de identidade para comerciantes individuais",
+        "Liquidação bloqueada até KYB aprovado",
+        "QR estático disponível antes de KYB (modo restrito)"
+      ],
+      "testCoverage": true,
+      "evidence": [
+        {
+          "type": "component",
+          "label": "verify_merchant route",
+          "ref": "core/api/src/routes/compliance.rs"
+        },
+        {
+          "type": "component",
+          "label": "KYB submission screen",
+          "ref": "apps/mobile/lib/merchant/screens/kyb_screen.dart"
+        },
+        {
+          "type": "enforcement",
+          "label": "fail-closed KYB payout gate",
+          "ref": "services/api-gateway/internal/handler/payouts.go"
+        },
+        {
+          "type": "component",
+          "label": "MerchantComplianceStatus.CanProcess",
+          "ref": "services/api-gateway/internal/service/compliance.go"
+        }
+      ],
+      "dependencies": [
+        "BM-001"
+      ],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/compliance/**",
+        "services/api-gateway/internal/handler/payouts.go"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 70,
+        "level": "MEDIUM",
+        "basis": [
+          "verify_merchant + KYB payout gate implemented",
+          "integration test green",
+          "sandbox functional"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-17T16:01:26.000Z",
+          "from": "(new)",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "aae83cc1d05c8718",
+          "reason": "KYC/KYB restructure: new item separating Merchant KYB (business verification) from Consumer KYC and Merchant Representative KYC. verify_merchant + fail-closed payout gate implemented; sandbox functional.",
+          "evidence": [
+            "core/api/src/routes/compliance.rs",
+            "services/api-gateway/internal/handler/payouts.go"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "RSK-001",
