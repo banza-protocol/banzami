@@ -88,7 +88,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: BanzamiSpacing.md),
             DropdownButtonFormField<String>(
-              value: _docType,
+              initialValue: _docType,
               decoration: const InputDecoration(labelText: 'Tipo de documento'),
               items: const [
                 DropdownMenuItem(value: 'BILHETE_DE_IDENTIDADE', child: Text('Bilhete de Identidade')),
@@ -116,7 +116,7 @@ class _KycScreenState extends State<KycScreen> {
             ),
             const SizedBox(height: BanzamiSpacing.md),
             DropdownButtonFormField<String>(
-              value: _level,
+              initialValue: _level,
               decoration: const InputDecoration(labelText: 'Nível pretendido'),
               items: const [
                 DropdownMenuItem(value: 'BASIC',    child: Text('Básico')),
