@@ -69,4 +69,5 @@ export 'screens/payment_request_screen.dart';
 export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
+export 'screens/structured_qr_pay_screen.dart';
 export 'screens/checkout_screen.dart';

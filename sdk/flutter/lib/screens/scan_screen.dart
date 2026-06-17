@@ -10,6 +10,7 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
+import 'structured_qr_pay_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
 
@@ -120,7 +121,29 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         } else {
           await _openSendScreen(handle: handle);
         }
+
+      case BanzamiQrStructuredPayment(:final payload, :final isStatic):
+        debugPrint('[QR-SCAN] route=StructuredQrPay static=$isStatic');
+        await _openStructuredPayment(payload: payload, isStatic: isStatic);
     }
+  }
+
+  Future<void> _openStructuredPayment({
+    required String payload,
+    required bool   isStatic,
+  }) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiStructuredQrPayScreen(
+        client:      widget.client,
+        payload:     payload,
+        isStatic:    isStatic,
+        payerHandle: widget.ownHandle ?? '',
+        isSandbox:   widget.isSandbox,
+        onSuccess:   widget.onSuccess,
+      ),
+    ));
+    if (mounted) _rescan();
   }
 
   // Returns true (and shows error) if the QR environment doesn't match the app.

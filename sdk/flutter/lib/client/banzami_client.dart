@@ -210,6 +210,29 @@ class BanzamiClient {
     return QrCode.fromJson(json);
   }
 
+  /// Scan-to-pay: settle a scanned structured QR (static or dynamic).
+  ///
+  /// [payer] is the payer's @banza handle. [amountMinor] is required for a
+  /// static QR (the payer enters it) and ignored for a dynamic QR (the amount
+  /// is fixed and verified server-side). Throws [BanzamiApiException] carrying
+  /// the outcome code on refusal (`KYC_REQUIRED`, `INSUFFICIENT_FUNDS`,
+  /// `QR_ALREADY_USED`, `QR_EXPIRED`, `QR_INVALID_SIGNATURE`, ...).
+  Future<Map<String, dynamic>> payQr({
+    required String payer,
+    required String payload,
+    int? amountMinor,
+    String? note,
+    String? idempotencyKey,
+  }) async {
+    return _postWithRetry('/v1/qr/pay', {
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      'payer':           payer,
+      'payload':         payload,
+      if (amountMinor != null) 'amount_minor': amountMinor,
+      if (note != null) 'note': note,
+    }, idempotencyKey: idempotencyKey);
+  }
+
   // ---------------------------------------------------------------------------
   // Merchants
   // ---------------------------------------------------------------------------

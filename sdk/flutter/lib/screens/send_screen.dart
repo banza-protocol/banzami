@@ -214,6 +214,12 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
                                  :final note, :final isSandbox):
         if (_sandboxMismatch(isSandbox)) return;
         _prefillFromQr(handle: handle, amountMinor: amountMinor, note: note);
+
+      case BanzamiQrStructuredPayment():
+        // The send screen chooses a person to pay; a merchant payment QR is
+        // handled by the scan-to-pay flow instead.
+        BanzamiToast.showWarning(
+            context, 'Este é um QR de pagamento. Use o ecrã Pagar.');
     }
   }
 

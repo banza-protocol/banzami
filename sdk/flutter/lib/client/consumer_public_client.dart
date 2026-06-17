@@ -332,6 +332,42 @@ class ConsumerPublicClient {
   }
 
   // ---------------------------------------------------------------------------
+  // Structured QR (scan-to-pay)
+  // ---------------------------------------------------------------------------
+
+  /// Decode a scanned structured QR payload into its parsed fields
+  /// (`qr_type`, `qr_code_id`, `owner_type`, …). Used to learn whether the code
+  /// is static (payer enters the amount) or dynamic (fixed amount).
+  Future<Map<String, dynamic>> decodeQr(String payload) =>
+      _call(method: 'POST', path: '/v1/qr/decode', body: {'payload': payload});
+
+  /// Fetch a QR code record by id — used to read a dynamic QR's fixed amount
+  /// before confirming the payment.
+  Future<Map<String, dynamic>> getQrCode(String id) =>
+      _call(method: 'GET', path: '/v1/qr/$id');
+
+  /// Settle a scanned structured QR. [payer] is the authenticated consumer's
+  /// @banza handle. [amountMinor] is required for static QR and ignored for
+  /// dynamic QR. Throws [BanzamiApiException] carrying the outcome code on
+  /// refusal (`KYC_REQUIRED`, `INSUFFICIENT_FUNDS`, `QR_ALREADY_USED`, …).
+  Future<Map<String, dynamic>> payStructuredQr({
+    required String payer,
+    required String payload,
+    int?    amountMinor,
+    String? note,
+    String? idempotencyKey,
+  }) {
+    final body = <String, dynamic>{
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+      'payer':           payer,
+      'payload':         payload,
+      if (amountMinor != null && amountMinor > 0) 'amount_minor': amountMinor,
+      if (note != null) 'note': note,
+    };
+    return _call(method: 'POST', path: '/v1/qr/pay', body: body);
+  }
+
+  // ---------------------------------------------------------------------------
   // Sandbox utilities
   // ---------------------------------------------------------------------------
 

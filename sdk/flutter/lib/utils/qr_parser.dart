@@ -11,6 +11,8 @@
 ///  • banzami-sandbox:@{handle}[?amount=N&currency=AOA]
 library;
 
+import 'dart:convert';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Result types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -40,6 +42,19 @@ class BanzamiQrHandlePayment extends BanzamiQrResult {
     this.currency = 'AOA',
     required this.isSandbox,
   });
+}
+
+/// A structured Banzami QR — the base64url payload a merchant (or consumer)
+/// generates via `/v1/qr/static` or `/v1/qr/dynamic`. Settled by passing the
+/// raw payload to `/v1/qr/pay`.
+class BanzamiQrStructuredPayment extends BanzamiQrResult {
+  /// The raw scannable payload, forwarded verbatim to the pay endpoint.
+  final String payload;
+
+  /// Static QR needs a payer-entered amount; dynamic carries a fixed amount.
+  final bool isStatic;
+
+  const BanzamiQrStructuredPayment({required this.payload, required this.isStatic});
 }
 
 /// Not a recognised Banzami QR payload.
@@ -145,6 +160,36 @@ class BanzamiQrParser {
       );
     }
 
+    // ── Structured QR: base64url(JSON {"t":"S"|"D", ...}) ─────────────────────
+    // The payload a merchant/consumer generates via /v1/qr/static|dynamic.
+    final structured = _tryParseStructured(raw);
+    if (structured != null) return structured;
+
     return const BanzamiQrInvalid('Código QR não reconhecido');
+  }
+
+  /// Detects a structured Banzami QR payload: base64url(no-pad) of a small JSON
+  /// object tagged `"t":"S"` (static) or `"t":"D"` (dynamic). Returns null when
+  /// [raw] is not such a payload, so [parse] can fall through to other formats.
+  static BanzamiQrResult? _tryParseStructured(String raw) {
+    // base64url alphabet only — cheap reject for anything with URL/scheme chars.
+    if (!RegExp(r'^[A-Za-z0-9_-]+$').hasMatch(raw)) return null;
+    try {
+      var b64 = raw;
+      final rem = b64.length % 4;
+      if (rem != 0) b64 += '=' * (4 - rem); // restore stripped padding
+      final obj = jsonDecode(utf8.decode(base64Url.decode(b64)));
+      if (obj is! Map) return null;
+      switch (obj['t']) {
+        case 'S':
+          return BanzamiQrStructuredPayment(payload: raw, isStatic: true);
+        case 'D':
+          return BanzamiQrStructuredPayment(payload: raw, isStatic: false);
+        default:
+          return null;
+      }
+    } catch (_) {
+      return null;
+    }
   }
 }
