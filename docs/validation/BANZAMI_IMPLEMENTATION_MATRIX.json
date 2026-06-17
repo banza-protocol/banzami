@@ -1866,7 +1866,7 @@
       "referenceSection": "§9.4",
       "description": "Consumidores exibem QR pessoal para receber dinheiro de amigos ou família — mesmo fluxo que comerciante, wallet-to-wallet.",
       "requirement": "Qualquer consumidor pode exibir o seu QR para receber dinheiro. Fluxo idêntico ao pagamento a comerciante.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -1880,17 +1880,27 @@
         "Liquidação instantânea",
         "Notificação ao receptor"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
-          "label": "engine.rs",
-          "ref": "core/qr/src/engine.rs"
+          "label": "personal QR in receive hub",
+          "ref": "apps/mobile/lib/screens/receive_hub_screen.dart"
         },
         {
           "type": "component",
-          "label": "engine.rs",
-          "ref": "core/transfers/src/engine.rs"
+          "label": "handle QR parsing",
+          "ref": "sdk/flutter/lib/utils/qr_parser.dart"
+        },
+        {
+          "type": "component",
+          "label": "scan -> pay routing",
+          "ref": "sdk/flutter/lib/screens/scan_screen.dart"
+        },
+        {
+          "type": "test",
+          "label": "P2P settlement invariant",
+          "ref": "core/transfers/tests/p2p_integration.rs"
         }
       ],
       "dependencies": [
@@ -1907,17 +1917,24 @@
         "db/migrations/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-QR-005-1",
+          "name": "personal-QR scan settles as a balanced P2P transfer to the correct wallet",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 40,
-        "level": "MEDIUM",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "personal QR (receive hub) + scan->handle-pay both built",
+          "P2P settlement proven by p2p_integration tests"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T20:45:00.000Z",
+      "validatedAgainstCommit": "1bb6063c915145817a624af999d7a476610f2d78",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1939,9 +1956,21 @@
             "core/qr/src/engine.rs",
             "core/transfers/src/engine.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T20:45:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "7cc85d0462d446f1",
+          "reason": "Consumer-to-consumer QR P2P realized via the personal QR (banza:@handle) shown in the receive hub + the scan->handle-pay flow; settles as a balanced synchronous P2P transfer with receiver notification. Architecture lock satisfied (QR-003, WAL-001 VALIDATED).",
+          "evidence": [
+            "apps/mobile/lib/screens/receive_hub_screen.dart",
+            "core/transfers/tests/p2p_integration.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "P2P-001",
