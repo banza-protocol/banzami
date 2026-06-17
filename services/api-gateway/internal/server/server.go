@@ -77,7 +77,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	teamHandler           := handler.NewTeamHandler(deps.TeamSvc)
 	complianceHandler     := handler.NewComplianceHandler(deps.ComplianceSvc)
 	wltHandler            := handler.NewWalletHandler(deps.WalletSvc)
-	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc)
+	payoutHandler         := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
 	consumerHandler       := handler.NewConsumerHandler(deps.ConsumerSvc)
 	consumerWltHandler    := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler       := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)

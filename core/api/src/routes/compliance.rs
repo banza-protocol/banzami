@@ -233,13 +233,33 @@ pub async fn authorize_customer(
     let operation = OperationType::try_from_str(&body.operation)
         .ok_or_else(|| ApiError::bad_request(format!("unknown operation: {}", body.operation)))?;
 
+    // Daily-volume aggregation: for outbound operations, if the caller did not
+    // supply today's volume, derive it from the ledger (sum of today's debits
+    // across the consumer's available accounts) so the daily-limit gate is real.
+    let daily_volume_minor = if body.daily_volume_minor > 0 || operation.is_inbound() {
+        body.daily_volume_minor
+    } else {
+        sqlx::query_scalar::<_, i64>(
+            "SELECT COALESCE(SUM(le.amount_minor), 0)::BIGINT
+             FROM ledger_entries le
+             JOIN consumer_wallets w ON w.available_account_id = le.account_id
+             WHERE w.consumer_id = $1
+               AND le.entry_type = 'DEBIT'
+               AND le.created_at >= date_trunc('day', now())",
+        )
+        .bind(customer_id.as_uuid())
+        .fetch_one(&state.pool)
+        .await
+        .unwrap_or(0)
+    };
+
     let auth = state
         .compliance
         .authorize_operation(
             customer_id,
             operation,
             body.amount_minor,
-            body.daily_volume_minor,
+            daily_volume_minor,
         )
         .await
         .map_err(compliance_err)?;

@@ -1094,6 +1094,14 @@ func (s *CoreApiComplianceService) AuthorizeOperation(ctx context.Context, custo
 	return &resp, nil
 }
 
+func (s *CoreApiComplianceService) GetMerchantStatus(ctx context.Context, merchantID string) (*MerchantComplianceStatus, error) {
+	var resp MerchantComplianceStatus
+	if err := s.client.get(ctx, "/internal/v1/compliance/merchants/"+merchantID, &resp); err != nil {
+		return nil, err
+	}
+	return &resp, nil
+}
+
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {

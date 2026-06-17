@@ -15,11 +15,12 @@ import (
 
 // PayoutHandler handles payout-related HTTP routes for the merchant-facing API.
 type PayoutHandler struct {
-	svc service.PayoutService
+	svc        service.PayoutService
+	compliance service.ComplianceService
 }
 
-func NewPayoutHandler(svc service.PayoutService) *PayoutHandler {
-	return &PayoutHandler{svc: svc}
+func NewPayoutHandler(svc service.PayoutService, compliance service.ComplianceService) *PayoutHandler {
+	return &PayoutHandler{svc: svc, compliance: compliance}
 }
 
 type createPayoutBody struct {
@@ -74,6 +75,21 @@ func (h *PayoutHandler) Create(w http.ResponseWriter, r *http.Request) {
 	case body.AccountHolderName == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "account_holder_name is required")
 		return
+	}
+
+	// KYB gate: a merchant may only settle funds to a bank account once its
+	// business verification (KYB + AML) is approved.
+	if h.compliance != nil {
+		status, cErr := h.compliance.GetMerchantStatus(r.Context(), principal.MerchantID)
+		if cErr == nil && status != nil && !status.CanProcess() {
+			writeJSON(w, http.StatusForbidden, map[string]any{
+				"code":       "KYB_REQUIRED",
+				"message":    "Business verification (KYB) must be approved before requesting a payout.",
+				"kyb_status": status.KybStatus,
+				"aml_status": status.AmlStatus,
+			})
+			return
+		}
 	}
 
 	payout, err := h.svc.Create(r.Context(), service.CreatePayoutRequest{

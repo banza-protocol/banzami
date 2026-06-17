@@ -21,6 +21,20 @@ type ComplianceService interface {
 	// AuthorizeOperation returns the Progressive-KYC decision for a specific
 	// operation (SEND, CASH_OUT, …) and amount.
 	AuthorizeOperation(ctx context.Context, customerID, operation string, amountMinor, dailyVolumeMinor int64) (*Authorization, error)
+	// GetMerchantStatus returns the merchant's KYB + AML compliance status.
+	GetMerchantStatus(ctx context.Context, merchantID string) (*MerchantComplianceStatus, error)
+}
+
+// MerchantComplianceStatus is the decoded KYB/AML state of a merchant.
+type MerchantComplianceStatus struct {
+	KybStatus string `json:"kyb_status"`
+	AmlStatus string `json:"aml_status"`
+}
+
+// CanProcess reports whether the merchant may process/settle payments — both
+// KYB and AML must be approved.
+func (m *MerchantComplianceStatus) CanProcess() bool {
+	return m.KybStatus == "APPROVED" && m.AmlStatus == "APPROVED"
 }
 
 // Authorization is the decoded Progressive-KYC decision.
