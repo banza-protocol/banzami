@@ -29,12 +29,12 @@ func NewTransferHandler(svc service.TransferService, fcm *notify.FCMService, com
 // POST /v1/transfers
 func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		IdempotencyKey string  `json:"idempotency_key"`
-		SenderID       string  `json:"sender_id"`
-		RecipientID    string  `json:"recipient_id"`
-		AmountMinor    int64   `json:"amount_minor"`
-		Currency       string  `json:"currency"`
-		Description    string  `json:"description"`
+		IdempotencyKey string `json:"idempotency_key"`
+		SenderID       string `json:"sender_id"`
+		RecipientID    string `json:"recipient_id"`
+		AmountMinor    int64  `json:"amount_minor"`
+		Currency       string `json:"currency"`
+		Description    string `json:"description"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -61,11 +61,24 @@ func (h *TransferHandler) Send(w http.ResponseWriter, r *http.Request) {
 
 	// Progressive-KYC gate: a SEND requires the sender to have at least basic
 	// identity (KYC_LEVEL_1) and to be within their level's limits.
+	//
+	// This gate is FAIL-CLOSED: moving money is a financially critical action,
+	// so if the compliance authority cannot be reached we refuse the transfer
+	// (503) rather than letting an unverified send through.
 	if h.compliance != nil {
 		auth, kErr := h.compliance.AuthorizeOperation(
 			r.Context(), body.SenderID, "SEND", body.AmountMinor, 0,
 		)
-		if kErr == nil && auth != nil && !auth.CanTransact {
+		switch {
+		case kErr != nil || auth == nil:
+			slog.Error("compliance authorize unavailable; refusing transfer (fail-closed)",
+				"sender_id", body.SenderID, "amount_minor", body.AmountMinor, "error", kErr)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"code":    "COMPLIANCE_UNAVAILABLE",
+				"message": "A verificação de conformidade está indisponível. Tenta novamente em instantes.",
+			})
+			return
+		case !auth.CanTransact:
 			writeJSON(w, http.StatusForbidden, map[string]any{
 				"code":           auth.Reason,
 				"message":        auth.Message,
@@ -114,7 +127,7 @@ func (h *TransferHandler) notifyRecipient(t *service.Transfer) {
 	defer cancel()
 
 	slog.Info("[FCM] event created",
-		"event",        "payment_received",
+		"event", "payment_received",
 		"recipient_id", t.RecipientID,
 		"amount_minor", t.Amount.AmountMinor,
 	)

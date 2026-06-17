@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -79,9 +80,22 @@ func (h *PayoutHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	// KYB gate: a merchant may only settle funds to a bank account once its
 	// business verification (KYB + AML) is approved.
+	//
+	// FAIL-CLOSED: settlement is financially critical, so if the compliance
+	// authority is unreachable we refuse the payout (503) rather than letting
+	// an unverified merchant withdraw funds.
 	if h.compliance != nil {
 		status, cErr := h.compliance.GetMerchantStatus(r.Context(), principal.MerchantID)
-		if cErr == nil && status != nil && !status.CanProcess() {
+		switch {
+		case cErr != nil || status == nil:
+			slog.Error("compliance merchant-status unavailable; refusing payout (fail-closed)",
+				"merchant_id", principal.MerchantID, "error", cErr)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"code":    "COMPLIANCE_UNAVAILABLE",
+				"message": "A verificação de conformidade está indisponível. Tenta novamente em instantes.",
+			})
+			return
+		case !status.CanProcess():
 			writeJSON(w, http.StatusForbidden, map[string]any{
 				"code":       "KYB_REQUIRED",
 				"message":    "Business verification (KYB) must be approved before requesting a payout.",
