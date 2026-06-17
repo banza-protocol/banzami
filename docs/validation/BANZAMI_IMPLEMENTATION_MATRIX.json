@@ -2727,7 +2727,7 @@
       "referenceSection": "§6.5, §12.6",
       "description": "Quando consumidor paga via link, liquidação acontece instantaneamente e webhook é enviado ao comerciante dentro de 2 segundos.",
       "requirement": "Liquidação de link de pagamento instantânea. Webhook entregue em menos de 2 segundos.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
@@ -2753,6 +2753,11 @@
           "type": "component",
           "label": "postgres_webhooks.go",
           "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        },
+        {
+          "type": "route",
+          "label": "acquiring settlement + mark used",
+          "ref": "services/api-gateway/internal/handler/acquiring.go"
         }
       ],
       "dependencies": [
@@ -2769,15 +2774,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "settlement updates merchant balance, marks link used after first payment, dispatches transaction.completed webhook",
+          "no double-charge"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T21:02:00.000Z",
+      "validatedAgainstCommit": "0c02807c41e9537c223aa28c7defde670bb57645",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -2799,9 +2805,21 @@
             "services/api-gateway/internal/handler/payment_links.go",
             "services/api-gateway/internal/service/postgres_webhooks.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T21:02:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "bcbde1a43d2bbe0a",
+          "reason": "Payment-link settlement complete: merchant balance updated, link marked used after the first payment (no double-charge), transaction.completed webhook dispatched. Not financial-critical category.",
+          "evidence": [
+            "services/api-gateway/internal/handler/acquiring.go",
+            "services/api-gateway/internal/service/postgres_webhooks.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "PR-001",
