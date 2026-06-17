@@ -63,6 +63,8 @@ class _BanzamiStructuredQrPayScreenState
   bool _resolving = true; // resolving the dynamic amount / owner
   bool _sending = false;
   bool _entered = false;
+  bool _paid = false; // settled — showing the success state
+  dynamic _result;
   String? _error;
   String? _amountError;
 
@@ -154,8 +156,11 @@ class _BanzamiStructuredQrPayScreenState
       _pulseCtrl.stop();
       _pulseCtrl.reset();
       HapticFeedback.heavyImpact();
-      widget.onSuccess(result);
-      Navigator.of(context).pop();
+      setState(() {
+        _sending = false;
+        _paid = true;
+        _result = result;
+      });
     } on BanzamiApiException catch (e) {
       if (!mounted) return;
       _pulseCtrl.stop();
@@ -457,6 +462,59 @@ class _BanzamiStructuredQrPayScreenState
     );
   }
 
+  // ── Success state ────────────────────────────────────────────────────────
+
+  Widget _buildSuccessUI() {
+    final amount = formatMinor(_amountMinor ?? 0, widget.currency);
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
+        child: Column(
+          children: [
+            const Spacer(),
+            Container(
+              width: 96,
+              height: 96,
+              decoration: const BoxDecoration(
+                gradient: BanzamiGradients.primary,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.check_rounded,
+                  color: BanzamiColors.white, size: 52),
+            ),
+            const SizedBox(height: BanzamiSpacing.xl),
+            Text('Pagamento concluído',
+                style: BanzamiTextStyles.headingSm.copyWith(
+                  color: BanzamiColors.gray900,
+                  fontWeight: FontWeight.w700,
+                )),
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text(amount,
+                style: BanzamiTextStyles.monoLg.copyWith(
+                  color: BanzamiColors.primary,
+                  fontSize: 34,
+                  fontWeight: FontWeight.w700,
+                )),
+            const SizedBox(height: 4),
+            Text(_ownerLabel,
+                style: BanzamiTextStyles.bodyMd
+                    .copyWith(color: BanzamiColors.gray400)),
+            const Spacer(),
+            BanzamiPrimaryButton(
+              label: 'Concluir',
+              height: 58,
+              onPressed: () {
+                widget.onSuccess(_result);
+                Navigator.of(context).pop();
+              },
+            ),
+            const SizedBox(height: BanzamiSpacing.xl),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_resolving) {
@@ -464,6 +522,9 @@ class _BanzamiStructuredQrPayScreenState
         appBar: BanzamiAppBar(title: 'Pagar', showBack: true),
         body: Center(child: CircularProgressIndicator()),
       );
+    }
+    if (_paid) {
+      return BanzamiScaffold(body: _buildSuccessUI());
     }
     return BanzamiScaffold(
       appBar: _sending
