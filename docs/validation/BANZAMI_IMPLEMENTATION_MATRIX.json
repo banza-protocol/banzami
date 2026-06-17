@@ -1771,7 +1771,7 @@
       "referenceSection": "§9.3, §11.6",
       "description": "Página pública por comerciante em pay.banzami.com/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
       "requirement": "Cada comerciante tem uma loja QR pública acessível sem conta Banza. Qualquer utilizador pode pagar a partir da página.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go",
@@ -1790,8 +1790,13 @@
       "evidence": [
         {
           "type": "component",
-          "label": "engine.rs",
-          "ref": "core/qr/src/engine.rs"
+          "label": "merchant profile page",
+          "ref": "apps/pay/app/profiles/[handle]/page.tsx"
+        },
+        {
+          "type": "component",
+          "label": "QR + pay + share card",
+          "ref": "apps/pay/app/profiles/[handle]/profile-pay-card.tsx"
         }
       ],
       "dependencies": [
@@ -1807,15 +1812,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 45,
-        "level": "MEDIUM",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "public profile page complete: static QR + working pay deep link + share",
+          "typecheck clean, deployed to production"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-17T20:40:00.000Z",
+      "validatedAgainstCommit": "01ff8f66ef9981b74be8a636bdedf6ea6c917374",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1836,9 +1842,21 @@
           "evidence": [
             "core/qr/src/engine.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-17T20:40:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4341e02c1155452c",
+          "reason": "Public merchant store completed: renders a scannable static QR (banza:@handle), pay button uses the app-handled banzami://pay/u/{handle} deep link, and Web Share API sharing. All 5 acceptance criteria PASS; no hard deps.",
+          "evidence": [
+            "apps/pay/app/profiles/[handle]/page.tsx",
+            "apps/pay/app/profiles/[handle]/profile-pay-card.tsx"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-17"
     },
     {
       "id": "QR-005",
