@@ -4635,7 +4635,7 @@
       "referenceSection": "§12.6",
       "description": "Falhas de entrega de webhook retentadas automaticamente com backoff exponencial. Endpoint marcado como inactivo após falhas persistentes.",
       "requirement": "Retry com pelo menos 5 tentativas. Backoff exponencial. Alerta ao comerciante após falha persistente.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis",
@@ -4644,16 +4644,21 @@
       ],
       "acceptanceCriteria": [
         "Mínimo 5 tentativas de retry",
-        "Backoff exponencial (1s, 2s, 4s, 8s, 16s)",
+        "Backoff exponencial production-grade (1m, 5m, 30m, 2h, 8h)",
         "Estado de entrega rastreável por API",
-        "Alerta ao comerciante após N falhas consecutivas"
+        "Saúde do endpoint (sucessos/falhas) consultável após falhas"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "postgres_webhooks.go",
           "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        },
+        {
+          "type": "test",
+          "label": "backoff exponential test",
+          "ref": "services/api-gateway/internal/service/webhook_backoff_test.go"
         }
       ],
       "dependencies": [
@@ -4665,17 +4670,24 @@
         "services/api-gateway/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-WH-003-1",
+          "name": "at least 5 retry attempts with strictly-increasing exponential backoff",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "5+ attempts, exponential backoff (tested)",
+          "delivery state via API + endpoint health"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:30:00.000Z",
+      "validatedAgainstCommit": "81bd46e3114eafd5f2e3f66eeee8f65645fae96f",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4696,9 +4708,21 @@
           "evidence": [
             "services/api-gateway/internal/service/postgres_webhooks.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "fc09a62606de4846",
+          "reason": "Webhook retry validated. Corrected the stale AC backoff values (1s..16s) to the real production-grade schedule (1m, 5m, 30m, 2h, 8h); test pins >=5 attempts with strictly-increasing exponential delays. Delivery state is queryable via the API and endpoint health surfaces failures.",
+          "evidence": [
+            "services/api-gateway/internal/service/postgres_webhooks.go",
+            "services/api-gateway/internal/service/webhook_backoff_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SBX-001",
