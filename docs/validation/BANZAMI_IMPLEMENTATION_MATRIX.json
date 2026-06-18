@@ -6921,7 +6921,7 @@
         "Decisão registada com trilho de auditoria",
         "Webhook dispute.opened e dispute.resolved entregues"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -6932,6 +6932,16 @@
           "type": "config",
           "label": "0028_disputes.sql",
           "ref": "db/migrations/0028_disputes.sql"
+        },
+        {
+          "type": "test",
+          "label": "dispute invariant tests (real DB)",
+          "ref": "core/api/src/routes/refunds_disputes_tests.rs"
+        },
+        {
+          "type": "migration",
+          "label": "audit action constraint fix",
+          "ref": "db/migrations/0045_audit_log_refund_dispute_actions.sql"
         }
       ],
       "dependencies": [
@@ -6947,13 +6957,36 @@
         "core/wallets/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [],
-      "invariants": [],
+      "blockingIssues": [
+        "Architecture lock: requires REF-001, which is IMPLEMENTED (not VALIDATED) — REF-002 cannot be VALIDATED until REF-001 is.",
+        "Webhook AC unmet: dispute.opened and dispute.resolved are not delivered to merchants."
+      ],
+      "invariants": [
+        {
+          "id": "INV-REF-002-1",
+          "name": "Dispute lifecycle consistency",
+          "rule": "OPEN→UNDER_REVIEW(on evidence)→terminal; no second open dispute on the same transaction",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-REF-002-2",
+          "name": "Resolve idempotency",
+          "rule": "A resolved dispute cannot be resolved again; evidence rejected after closure",
+          "status": "PASS"
+        },
+        {
+          "id": "INV-REF-002-3",
+          "name": "WON_BY_CONSUMER balanced refund",
+          "rule": "Consumer win posts a balanced merchant-DR/consumer-CR entry (debits==credits, no money creation), idempotent on the posting key",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 65,
-        "level": "HIGH",
+        "score": 78,
+        "level": "MEDIUM",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "real-DB #[sqlx::test] tests pass: lifecycle, duplicate-open block, resolve idempotency, WON_BY_CONSUMER balanced posting, audit trail",
+          "locked behind REF-001 (not VALIDATED); dispute webhook delivery unmet"
         ]
       },
       "freezeReason": null,
@@ -6980,9 +7013,21 @@
             "services/api-gateway/internal/handler/disputes.go",
             "db/migrations/0028_disputes.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T19:45:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "8b60fd44b1640d0b",
+          "reason": "Recorded proven dispute invariants without advancing to VALIDATED. Real-DB #[sqlx::test] tests pass: dispute lifecycle (OPEN→UNDER_REVIEW→terminal), duplicate-open blocked, resolve idempotency (no double resolution; evidence rejected after closure), and WON_BY_CONSUMER posting balanced (merchant DR == consumer CR, no money creation, idempotent). Audit trail fixed via migration 0045. Stays IMPLEMENTED: locked behind REF-001 (not VALIDATED) and the dispute.opened/resolved webhook delivery is unmet.",
+          "evidence": [
+            "core/api/src/routes/refunds_disputes_tests.rs",
+            "db/migrations/0045_audit_log_refund_dispute_actions.sql"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "OBS-001",
