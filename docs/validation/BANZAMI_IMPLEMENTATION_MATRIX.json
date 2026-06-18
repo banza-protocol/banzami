@@ -4625,7 +4625,7 @@
         "services/admin-api/**"
       ],
       "blockingIssues": [
-        "Execução da liquidação bancária via EMIS é rastreada em EMS-001/002 (Money Out) — fora do scope da API REST"
+        "Execução da liquidação bancária (via o rail de settlement configurado) é rastreada em Money Out (PAY-002 / EMS-001/002 / BANK-002) — fora do scope da API REST"
       ],
       "invariants": [
         {
@@ -4678,6 +4678,17 @@
           "evidence": [
             "services/api-gateway/internal/handler/payouts.go",
             "core/payouts/src/lib.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T18:40:00.000Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "audit-money-rails",
+          "reason": "Audit (ADR-018): genericised 'liquidação via EMIS' to 'via o rail de settlement configurado' in blockingIssues. Status unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
           ]
         }
       ],
@@ -5463,7 +5474,7 @@
       "categoryId": "cat-ledger",
       "validationDomain": "DOM-LEDGER",
       "referenceSection": "§16.8",
-      "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e valores EMIS esperados com créditos bancários reais.",
+      "description": "Job diário que reconcilia soma de saldos de carteiras com entradas de ledger, e os valores esperados do provider/rail de settlement configurado com créditos bancários reais.",
       "requirement": "Reconciliação diária automática. Qualquer discrepância gera alerta. Zero discrepâncias não resolvidas permitidas.",
       "status": "VALIDATED",
       "priority": "HIGH",
@@ -5476,7 +5487,7 @@
       "acceptanceCriteria": [
         "Job executa automaticamente cada dia",
         "Soma de saldos de carteiras = soma de ledger",
-        "EMIS esperado = créditos bancários reais",
+        "Valor esperado do provider de settlement = créditos bancários reais",
         "Alerta imediato a qualquer discrepância",
         "Relatório de reconciliação gerado"
       ],
@@ -5527,9 +5538,7 @@
         "core/ledger/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [
-        "EMIS integration bloqueada"
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-LED-004-1",
@@ -5591,6 +5600,17 @@
           "evidence": [
             "core/reconciliation/src/balance_checker.rs",
             "core/reconciliation/tests/ledger_invariants_integration.rs"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T18:40:00.000Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "audit-money-rails",
+          "reason": "Audit (ADR-018): genericised EMIS-only wording to 'configured settlement provider/rail' in description + acceptance criteria; removed stale 'EMIS integration bloqueada' blocker contradicting the VALIDATED status (wallet=ledger reconciliation is validated; provider-settlement reconciliation runs against whichever rail is configured). Status unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
           ]
         }
       ],
@@ -5755,7 +5775,9 @@
         "core/compliance/**",
         "services/admin-api/**"
       ],
-      "blockingIssues": [],
+      "blockingIssues": [
+        "Decisão de parceiro KYC angolano pendente — o representante legal completa Consumer KYC, que depende do mesmo provider externo de identidade que KYC-001 (acção não técnica, bloqueia o arranque KYC)"
+      ],
       "invariants": [],
       "confidence": {
         "score": 55,
@@ -5800,9 +5822,20 @@
           "evidence": [
             "docs/domains/compliance/README.md"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T18:40:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "audit-money-rails",
+          "reason": "Audit: KYC-002 was a CRITICAL launch blocker with empty blockingIssues; added the vendor-pending reason for consistency with KYC-001. Status unchanged (IN_PROGRESS, vendor-blocked).",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "KYB-001",

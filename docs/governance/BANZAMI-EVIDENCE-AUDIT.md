@@ -65,7 +65,7 @@ code. **Trust code, not assumptions. Nothing was implemented.**
 | `RSK-002` Suspicious-tx review & alerts | PLANNED | `services/admin-api/.../risk.go` (freeze/flags/audit) exists; alerting partial | 50 |
 | `KYC-001` Consumer KYC | **BLOCKED** | `core/compliance/` state machine (`CustomerCompliance`, `can_process_transactions`) + `db/0008`; **real identity-verification provider absent** | 45 |
 | `KYC-002` Merchant KYB | PLANNED | `core/compliance/` (`MerchantCompliance`) exists; real verification absent | 45 |
-| `PAY-001` Bank withdrawals | PLANNED | `core/payouts/` (1194 lines, +test) + `handler/payouts.go` + `db/0006`; **real bank disbursement depends on EMIS (stub)** | 55 |
+| `PAY-001` Bank withdrawals | PLANNED | `core/payouts/` (1194 lines, +test) + `handler/payouts.go` + `db/0006`; **real disbursement requires at least one approved withdrawal provider/rail (EMIS or partner bank — currently stubbed)** | 55 |
 | `PAY-002` Payout reconciliation (EMIS) | **BLOCKED** | `core/reconciliation/` + admin handler exist; EMIS leg stubbed | 40 |
 | `LED-004` Automatic daily reconciliation | PLANNED | `core/reconciliation/` engine + admin manual trigger; **no scheduled daily job** (`core/jobs` absent) | 50 |
 | `EMS-001` EMIS / Multicaixa integration | **BLOCKED** | `core/acquiring/` framework + working `SimulatedProvider`; **real `EMISProvider.initiate_payment` is a stub (TODO)** | 50 |
