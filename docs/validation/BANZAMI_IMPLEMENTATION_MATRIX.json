@@ -6805,6 +6805,26 @@
           "type": "migration",
           "label": "audit action constraint fix",
           "ref": "db/migrations/0045_audit_log_refund_dispute_actions.sql"
+        },
+        {
+          "type": "adr",
+          "label": "BANZA ADR-030 — wallet-native payment refund source model (protocol)",
+          "ref": "~/banza/docs/adr/ADR-030-wallet-native-payment-refund-source-model.md"
+        },
+        {
+          "type": "migration",
+          "label": "wallet_payments object (ADR-030 prerequisite)",
+          "ref": "db/migrations/0046_wallet_payments.sql"
+        },
+        {
+          "type": "component",
+          "label": "wallet payment recording (owner_type-aware, idempotent)",
+          "ref": "core/api/src/routes/wallet_payments.rs"
+        },
+        {
+          "type": "route",
+          "label": "QR merchant-pay records typed wallet payment",
+          "ref": "core/api/src/routes/qr.rs"
         }
       ],
       "dependencies": [
@@ -6893,6 +6913,20 @@
           "evidence": [
             "core/api/src/routes/refunds_disputes_tests.rs",
             "db/migrations/0045_audit_log_refund_dispute_actions.sql"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T21:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "evidence-only-adr030-prereq",
+          "reason": "Evidence-only update (no status/confidence/invariant/blocker change). Recorded that the structural prerequisite defined by BANZA ADR-030 has started in Banzami: the wallet_payments object (migration 0046) makes a merchant QR payment a typed, refundable source distinct from a P2P transfer (commit 898fe2e). P2P transfers remain non-refundable. This technically unblocks the next refund step but does NOT complete REF-001 — wallet-native refund crediting the consumer and refund.completed webhook delivery remain open (blockingIssues unchanged). REF-001 stays IMPLEMENTED.",
+          "evidence": [
+            "~/banza/docs/adr/ADR-030-wallet-native-payment-refund-source-model.md",
+            "db/migrations/0046_wallet_payments.sql",
+            "core/api/src/routes/wallet_payments.rs",
+            "commit:898fe2e"
           ]
         }
       ],
