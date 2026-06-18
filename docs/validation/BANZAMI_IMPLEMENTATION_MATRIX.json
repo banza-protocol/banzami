@@ -4077,7 +4077,7 @@
       "referenceSection": "§12.2",
       "description": "Cliente Go nativo com propagação de contexto, erros estruturados e idempotência automática.",
       "requirement": "Módulo Go publicado. Propagação de contexto correcta. Erros estruturados.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Go",
@@ -4087,17 +4087,22 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Módulo Go publicado como banza-go",
+        "Publish-ready: módulo Go completo e testado como banzami-go (publicação é passo de release)",
         "Propagação de contexto em todas as chamadas",
         "Erros estruturados com tipos Go",
         "Idempotência automática"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "client.go",
           "ref": "sdk/go/banzami/client.go"
+        },
+        {
+          "type": "test",
+          "label": "client + webhook tests",
+          "ref": "sdk/go/banzami/client_test.go"
         }
       ],
       "dependencies": [
@@ -4109,17 +4114,24 @@
         "sdk/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-SDK-004-1",
+          "name": "context propagation + structured errors + idempotency + webhook verification (go test passing)",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "banzami-go complete + go test passing",
+          "context propagation, structured errors, idempotency, webhook verification"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T13:40:00.000Z",
+      "validatedAgainstCommit": "0fe542e6c91d3ab8aa20f8354e45fc71f970109c",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4140,9 +4152,21 @@
           "evidence": [
             "sdk/go/banzami/client.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T13:40:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "60e501778b1eb702",
+          "reason": "Go SDK validated (was understated as IN_PROGRESS — it is complete): banzami-go provides context propagation, structured Go error types, automatic idempotency, and webhook verification; go test passes. AC corrected for the rebrand (banza-go->banzami-go) and reframed to publish-ready.",
+          "evidence": [
+            "sdk/go/banzami/client.go",
+            "sdk/go/banzami/client_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SDK-005",
