@@ -5646,7 +5646,7 @@
       "referenceSection": "§16.4",
       "description": "Fila de revisão para transacções sinalizadas pelo motor de risco. Alertas operacionais e fluxo de resolução.",
       "requirement": "Fila de revisão no painel admin. Alertas em tempo real. Resolução com trilho de auditoria.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Risk · Admin Platform",
       "technicalArea": "Go · Admin Dashboard",
@@ -5660,12 +5660,32 @@
         "Aprovação e rejeição com auditoria completa",
         "Tempo de resolução rastreado"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
           "label": "risk.go",
           "ref": "services/admin-api/internal/handler/risk.go"
+        },
+        {
+          "type": "migration",
+          "label": "risk flag resolution column",
+          "ref": "db/migrations/0043_risk_flag_resolution.sql"
+        },
+        {
+          "type": "route",
+          "label": "resolve + resolution time + audit",
+          "ref": "core/api/src/routes/admin.rs"
+        },
+        {
+          "type": "route",
+          "label": "auto-flag into review queue",
+          "ref": "core/api/src/routes/transactions.rs"
+        },
+        {
+          "type": "component",
+          "label": "admin approve/reject + resolution time",
+          "ref": "apps/admin/app/(admin)/risk/page.tsx"
         }
       ],
       "dependencies": [
@@ -5677,17 +5697,24 @@
         "core/risk/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-RSK-002-1",
+          "name": "a resolved risk flag cannot be re-resolved (single audited resolution)",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 50,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "review queue auto-fed by risk declines; approve/reject + audit + resolution-time tracked",
+          "resolve workflow verified on real DB (resolution_seconds + single-resolution)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T11:30:00.000Z",
+      "validatedAgainstCommit": "91f8602ec7acbfd36f4bfe1098d6f752df2b84b4",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -5708,9 +5735,22 @@
           "evidence": [
             "services/admin-api/internal/handler/risk.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T11:30:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "7586240d2d5f366c",
+          "reason": "Suspicious-transaction review workflow completed: risk declines auto-open a risk_flags entry in the operator queue; operators approve/reject with a full audit_log trail; resolution time is tracked (resolved_at - created_at) and shown in the admin UI. Verified on a real database (resolution_seconds returned; a resolved flag cannot be re-resolved).",
+          "evidence": [
+            "db/migrations/0043_risk_flag_resolution.sql",
+            "core/api/src/routes/admin.rs",
+            "apps/admin/app/(admin)/risk/page.tsx"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SEC-001",
