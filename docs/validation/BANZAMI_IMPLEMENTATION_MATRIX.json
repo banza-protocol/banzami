@@ -4178,7 +4178,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints REST para operações core — criar/capturar/anular transacções, obter saldo de carteiras, listar transacções e criar transferências.",
       "requirement": "API versionada, idempotente, com autenticação por chave API. Erros estruturados. Paginação.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · PostgreSQL · Redis",
@@ -4195,7 +4195,7 @@
         "Erros em formato estruturado JSON",
         "Paginação cursor-based"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -4211,6 +4211,16 @@
           "type": "route",
           "label": "transfers.go",
           "ref": "services/api-gateway/internal/handler/transfers.go"
+        },
+        {
+          "type": "handler",
+          "label": "transactions handler + tests",
+          "ref": "services/api-gateway/internal/handler/transactions_test.go"
+        },
+        {
+          "type": "middleware",
+          "label": "bearer auth tests",
+          "ref": "services/api-gateway/internal/middleware/auth_test.go"
         }
       ],
       "dependencies": [
@@ -4224,20 +4234,19 @@
         "services/public-api/**",
         "services/admin-api/**"
       ],
-      "blockingIssues": [
-        "Core Rust + API Go em desenvolvimento"
-      ],
+      "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "REST API in production (Money Movement validated through it)",
+          "handler tests + idempotency (SEC-003) + bearer auth tests"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:40:00.000Z",
+      "validatedAgainstCommit": "a241db02f4ac20391397e7ac764bd906170871ac",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4260,9 +4269,21 @@
             "services/api-gateway/internal/handler/wallets.go",
             "services/api-gateway/internal/handler/transfers.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:40:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "77aa4c1e7cf6ded9",
+          "reason": "REST API for transactions/wallets/transfers validated: in production and exercised end-to-end by the validated Money Movement pillar; idempotency (SEC-003 VALIDATED), bearer-token auth (auth_test), structured JSON errors and cursor pagination. Stale 'core in development' blocker removed.",
+          "evidence": [
+            "services/api-gateway/internal/handler/transactions_test.go",
+            "services/api-gateway/internal/middleware/auth_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "API-002",
