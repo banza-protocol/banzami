@@ -190,6 +190,16 @@ func (c *CoreAdminClient) ListRiskFlags(ctx context.Context, resolved bool) ([]m
 	return out, c.get(ctx, path, &out)
 }
 
+// ResolveRiskFlag resolves a risk flag with an outcome (APPROVED/REJECTED),
+// recording who resolved it for the audit trail (RSK-002).
+func (c *CoreAdminClient) ResolveRiskFlag(ctx context.Context, id, resolution, resolvedBy string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/admin/risk-flags/"+id+"/resolve", map[string]any{
+		"resolution":  resolution,
+		"resolved_by": resolvedBy,
+	}, &out)
+}
+
 func (c *CoreAdminClient) QueryAuditLog(ctx context.Context, subject, actor, action string, limit int) ([]map[string]any, error) {
 	path := fmt.Sprintf("/internal/v1/admin/audit-log?limit=%d", limit)
 	if subject != "" {

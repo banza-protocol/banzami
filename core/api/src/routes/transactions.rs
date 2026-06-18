@@ -174,7 +174,17 @@ pub async fn authorize(
             .decline_reason
             .clone()
             .unwrap_or_else(|| "risk threshold breached".to_owned());
-        // RSK-002: record the suspicious event for review (fire-and-forget).
+        // RSK-002: open a risk flag in the operator review queue AND record the
+        // event in the suspicious-activity log (both fire-and-forget).
+        super::risk::flag_risk(
+            &state.pool,
+            "MERCHANT",
+            merchant_id.as_uuid(),
+            "VELOCITY_BREACH",
+            "HIGH",
+            &reason,
+        )
+        .await;
         super::risk::flag_suspicious(
             &state.pool,
             "MERCHANT",

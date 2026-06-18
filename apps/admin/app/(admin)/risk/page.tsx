@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
   ShieldAlert, Snowflake, Flag, BookOpen, RefreshCw,
-  Play, ChevronRight, CheckCircle2, AlertTriangle,
+  Play, ChevronRight, CheckCircle2, AlertTriangle, Check, X,
 } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import {
@@ -182,6 +182,7 @@ function FlagsTab() {
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
   const [showResolved, setShowResolved] = useState(false);
+  const [resolving, setResolving] = useState<string | null>(null);
 
   const load = useCallback(async (resolved: boolean) => {
     setLoading(true); setError('');
@@ -196,6 +197,27 @@ function FlagsTab() {
   }, []);
 
   useEffect(() => { load(showResolved); }, [load, showResolved]);
+
+  async function resolve(id: string, resolution: 'APPROVED' | 'REJECTED') {
+    setResolving(id); setError('');
+    try {
+      await api().resolveRiskFlag(id, resolution, 'ADMIN');
+      // Drop it from the active list immediately.
+      setFlags(prev => prev.filter(f => f.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Erro ao resolver.');
+    } finally {
+      setResolving(null);
+    }
+  }
+
+  function resolutionTime(secs?: number | null): string {
+    if (secs == null) return '—';
+    if (secs < 60) return `${secs}s`;
+    if (secs < 3600) return `${Math.round(secs / 60)}m`;
+    if (secs < 86400) return `${Math.round(secs / 3600)}h`;
+    return `${Math.round(secs / 86400)}d`;
+  }
 
   return (
     <div className="flex flex-col gap-xl">
@@ -235,11 +257,38 @@ function FlagsTab() {
                     <span className="text-xs font-semibold text-gray-900">{f.flag_type}</span>
                     <SeverityBadge s={f.severity} />
                     <Badge label={f.entity_type} />
+                    {f.resolution && (
+                      <span className={`text-xs px-sm py-xs rounded-md font-medium ${
+                        f.resolution === 'APPROVED' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
+                      }`}>
+                        {f.resolution === 'APPROVED' ? 'Aprovado' : 'Rejeitado'}
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-gray-500 mt-xs">{f.description}</p>
                   <p className="text-xs font-mono text-gray-400 mt-xs">{f.entity_id}</p>
+                  {f.resolved && (
+                    <p className="text-xs text-gray-400 mt-xs">
+                      Resolvido por <strong className="text-gray-600">{f.resolved_by ?? '—'}</strong>
+                      {' · '}tempo de resolução <strong className="text-gray-600">{resolutionTime(f.resolution_seconds)}</strong>
+                    </p>
+                  )}
                 </div>
-                <span className="text-xs text-gray-400 whitespace-nowrap">{fmt(f.created_at)}</span>
+                <div className="flex flex-col items-end gap-sm shrink-0">
+                  <span className="text-xs text-gray-400 whitespace-nowrap">{fmt(f.created_at)}</span>
+                  {!f.resolved && (
+                    <div className="flex gap-sm">
+                      <button onClick={() => resolve(f.id, 'APPROVED')} disabled={resolving === f.id}
+                        className="h-7 px-md flex items-center gap-xs text-xs font-medium rounded-md bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-60 transition-colors">
+                        <Check size={13} /> Aprovar
+                      </button>
+                      <button onClick={() => resolve(f.id, 'REJECTED')} disabled={resolving === f.id}
+                        className="h-7 px-md flex items-center gap-xs text-xs font-medium rounded-md bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-60 transition-colors">
+                        <X size={13} /> Rejeitar
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           ))}

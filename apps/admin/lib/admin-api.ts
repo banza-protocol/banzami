@@ -101,6 +101,10 @@ export interface RiskFlag {
   description: string;
   resolved:    boolean;
   created_at:  string;
+  resolved_at?:        string | null;
+  resolved_by?:        string | null;
+  resolution?:         'APPROVED' | 'REJECTED' | null;
+  resolution_seconds?: number | null;
 }
 
 export interface AuditEntry {
@@ -340,6 +344,13 @@ export class AdminApi {
   }
   listRiskFlags(resolved = false): Promise<{ data: RiskFlag[] }> {
     return this.req(`/admin/v1/risk/flags?resolved=${resolved}`);
+  }
+
+  resolveRiskFlag(id: string, resolution: 'APPROVED' | 'REJECTED', resolvedBy: string): Promise<Record<string, unknown>> {
+    return this.req(`/admin/v1/risk/flags/${id}/resolve`, {
+      method: 'POST',
+      body:   JSON.stringify({ resolution, resolved_by: resolvedBy }),
+    });
   }
   queryAuditLog(params?: { subject?: string; actor?: string; action?: string; limit?: number }): Promise<{ data: AuditEntry[] }> {
     const q = new URLSearchParams();

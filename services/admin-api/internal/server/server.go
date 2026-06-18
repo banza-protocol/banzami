@@ -41,36 +41,36 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.AdminAuth(cfg.AdminAPIKey))
 
-		complianceH     := handler.NewComplianceHandler(core)
-		settlementH     := handler.NewSettlementHandler(core)
-		payoutH         := handler.NewPayoutHandler(core)
-		merchantH       := handler.NewMerchantHandler(core)
-		merchantSetupH  := handler.NewMerchantSetupHandler(core, mailer)
+		complianceH := handler.NewComplianceHandler(core)
+		settlementH := handler.NewSettlementHandler(core)
+		payoutH := handler.NewPayoutHandler(core)
+		merchantH := handler.NewMerchantHandler(core)
+		merchantSetupH := handler.NewMerchantSetupHandler(core, mailer)
 		reconciliationH := handler.NewReconciliationHandler(core)
-		consumerH       := handler.NewConsumerHandler(core)
-		walletH         := handler.NewWalletHandler(core)
-		riskH           := handler.NewRiskHandler(core)
-		disputeH        := handler.NewDisputeHandler(core)
+		consumerH := handler.NewConsumerHandler(core)
+		walletH := handler.NewWalletHandler(core)
+		riskH := handler.NewRiskHandler(core)
+		disputeH := handler.NewDisputeHandler(core)
 
 		// Merchants
-		r.Post("/admin/v1/merchants",                    merchantSetupH.Create)
-		r.Get("/admin/v1/merchants",                     merchantH.List)
-		r.Get("/admin/v1/merchants/{id}",                merchantH.Get)
-			r.Delete("/admin/v1/merchants/{id}",             merchantH.Delete)
-			r.Patch("/admin/v1/merchants/{id}/verified",     merchantH.SetVerified)
-			r.Post("/admin/v1/merchants/{id}/api-keys",           merchantSetupH.CreateApiKey)
+		r.Post("/admin/v1/merchants", merchantSetupH.Create)
+		r.Get("/admin/v1/merchants", merchantH.List)
+		r.Get("/admin/v1/merchants/{id}", merchantH.Get)
+		r.Delete("/admin/v1/merchants/{id}", merchantH.Delete)
+		r.Patch("/admin/v1/merchants/{id}/verified", merchantH.SetVerified)
+		r.Post("/admin/v1/merchants/{id}/api-keys", merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
-		r.Post("/admin/v1/merchants/{id}/wallets",       merchantSetupH.CreateWallet)
+		r.Post("/admin/v1/merchants/{id}/wallets", merchantSetupH.CreateWallet)
 
 		// Wallets
-		r.Get("/admin/v1/wallets",                       walletH.GetForMerchant)
-		r.Post("/admin/v1/wallets/{id}/credit",          walletH.AdminCredit)
+		r.Get("/admin/v1/wallets", walletH.GetForMerchant)
+		r.Post("/admin/v1/wallets/{id}/credit", walletH.AdminCredit)
 
 		// Consumers
-		r.Get("/admin/v1/consumers",                    consumerH.List)
-		r.Get("/admin/v1/consumers/{id}",               consumerH.Get)
-		r.Post("/admin/v1/consumers/{id}/suspend",      consumerH.Suspend)
-		r.Patch("/admin/v1/consumers/{id}/badge",       consumerH.SetBadge)
+		r.Get("/admin/v1/consumers", consumerH.List)
+		r.Get("/admin/v1/consumers/{id}", consumerH.Get)
+		r.Post("/admin/v1/consumers/{id}/suspend", consumerH.Suspend)
+		r.Patch("/admin/v1/consumers/{id}/badge", consumerH.SetBadge)
 
 		// Compliance
 		r.Get("/admin/v1/compliance/merchants/{id}", complianceH.GetMerchant)
@@ -99,21 +99,22 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/payouts/{id}/returned", payoutH.MarkReturned)
 
 		// Reconciliation (settlement-level)
-		r.Post("/admin/v1/reconciliation/run",       reconciliationH.Run)
-		r.Get("/admin/v1/reconciliation/runs/{id}",  reconciliationH.Get)
+		r.Post("/admin/v1/reconciliation/run", reconciliationH.Run)
+		r.Get("/admin/v1/reconciliation/runs/{id}", reconciliationH.Get)
 
 		// Risk — freeze/unfreeze, risk flags, audit log, acquiring reconciliation
-		r.Post("/admin/v1/risk/freeze",                           riskH.FreezeAccount)
+		r.Post("/admin/v1/risk/freeze", riskH.FreezeAccount)
 		r.Delete("/admin/v1/risk/freeze/{entity_type}/{entity_id}", riskH.UnfreezeAccount)
-		r.Get("/admin/v1/risk/flags",                             riskH.ListRiskFlags)
-		r.Get("/admin/v1/risk/audit-log",                         riskH.QueryAuditLog)
-		r.Post("/admin/v1/risk/acquiring-recon",                  riskH.RunAcquiringReconciliation)
-		r.Get("/admin/v1/risk/acquiring-recon",                   riskH.ListAcquiringReconciliationRuns)
-		r.Get("/admin/v1/risk/acquiring-recon/{id}",              riskH.GetAcquiringReconciliationRun)
+		r.Get("/admin/v1/risk/flags", riskH.ListRiskFlags)
+		r.Post("/admin/v1/risk/flags/{id}/resolve", riskH.ResolveRiskFlag)
+		r.Get("/admin/v1/risk/audit-log", riskH.QueryAuditLog)
+		r.Post("/admin/v1/risk/acquiring-recon", riskH.RunAcquiringReconciliation)
+		r.Get("/admin/v1/risk/acquiring-recon", riskH.ListAcquiringReconciliationRuns)
+		r.Get("/admin/v1/risk/acquiring-recon/{id}", riskH.GetAcquiringReconciliationRun)
 
 		// Disputes — admin resolution
-		r.Get("/admin/v1/disputes",            disputeH.List)
-		r.Get("/admin/v1/disputes/{id}",       disputeH.Get)
+		r.Get("/admin/v1/disputes", disputeH.List)
+		r.Get("/admin/v1/disputes/{id}", disputeH.Get)
 		r.Post("/admin/v1/disputes/{id}/resolve", disputeH.Resolve)
 	})
 

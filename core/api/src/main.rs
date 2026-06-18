@@ -496,6 +496,10 @@ async fn main() {
             get(routes::admin::list_risk_flags),
         )
         .route(
+            "/internal/v1/admin/risk-flags/:id/resolve",
+            post(routes::admin::resolve_risk_flag),
+        )
+        .route(
             "/internal/v1/admin/audit-log",
             get(routes::admin::query_audit_log),
         )

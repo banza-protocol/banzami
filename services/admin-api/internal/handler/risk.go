@@ -53,7 +53,7 @@ func (h *RiskHandler) FreezeAccount(w http.ResponseWriter, r *http.Request) {
 // UnfreezeAccount handles DELETE /admin/v1/risk/freeze/{entity_type}/{entity_id}.
 func (h *RiskHandler) UnfreezeAccount(w http.ResponseWriter, r *http.Request) {
 	entityType := chi.URLParam(r, "entity_type")
-	entityID   := chi.URLParam(r, "entity_id")
+	entityID := chi.URLParam(r, "entity_id")
 
 	var body struct {
 		Reason string `json:"reason"`
@@ -87,6 +87,35 @@ func (h *RiskHandler) ListRiskFlags(w http.ResponseWriter, r *http.Request) {
 		flags = []map[string]any{}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"data": flags})
+}
+
+type resolveRiskFlagBody struct {
+	Resolution string `json:"resolution"` // APPROVED | REJECTED
+	ResolvedBy string `json:"resolved_by"`
+}
+
+// ResolveRiskFlag handles POST /admin/v1/risk/flags/{id}/resolve.
+func (h *RiskHandler) ResolveRiskFlag(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body resolveRiskFlagBody
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
+		return
+	}
+	if body.Resolution != "APPROVED" && body.Resolution != "REJECTED" {
+		writeError(w, http.StatusBadRequest, "INVALID_RESOLUTION", "resolution must be APPROVED or REJECTED")
+		return
+	}
+	if body.ResolvedBy == "" {
+		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "resolved_by is required")
+		return
+	}
+	res, err := h.core.ResolveRiskFlag(r.Context(), id, body.Resolution, body.ResolvedBy)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, res)
 }
 
 // ---------------------------------------------------------------------------
@@ -152,4 +181,3 @@ func (h *RiskHandler) GetAcquiringReconciliationRun(w http.ResponseWriter, r *ht
 	}
 	writeJSON(w, http.StatusOK, out)
 }
-

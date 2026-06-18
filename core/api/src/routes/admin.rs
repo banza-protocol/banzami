@@ -201,6 +201,12 @@ pub struct RiskFlagRow {
     pub description: String,
     pub resolved: bool,
     pub created_at: chrono::DateTime<Utc>,
+    pub resolved_at: Option<chrono::DateTime<Utc>>,
+    pub resolved_by: Option<String>,
+    pub resolution: Option<String>,
+    /// Seconds from flag creation to resolution (null while open) — RSK-002
+    /// "tempo de resolução rastreado".
+    pub resolution_seconds: Option<i64>,
 }
 
 #[derive(Deserialize)]
@@ -218,6 +224,7 @@ pub async fn list_risk_flags(
     Query(q): Query<RiskFlagsQuery>,
 ) -> ApiResult<Json<Vec<RiskFlagRow>>> {
     let resolved = q.resolved.unwrap_or(false);
+    #[allow(clippy::type_complexity)]
     let rows: Vec<(
         Uuid,
         String,
@@ -227,8 +234,12 @@ pub async fn list_risk_flags(
         String,
         bool,
         chrono::DateTime<Utc>,
+        Option<chrono::DateTime<Utc>>,
+        Option<String>,
+        Option<String>,
     )> = sqlx::query_as(
-        "SELECT id, entity_type, entity_id, flag_type, severity, description, resolved, created_at
+        "SELECT id, entity_type, entity_id, flag_type, severity, description, resolved,
+                created_at, resolved_at, resolved_by, resolution
              FROM risk_flags
              WHERE resolved = $1
              ORDER BY created_at DESC
@@ -251,7 +262,11 @@ pub async fn list_risk_flags(
                     description,
                     resolved,
                     created_at,
+                    resolved_at,
+                    resolved_by,
+                    resolution,
                 )| {
+                    let resolution_seconds = resolved_at.map(|r| (r - created_at).num_seconds());
                     RiskFlagRow {
                         id: id.to_string(),
                         entity_type,
@@ -261,11 +276,86 @@ pub async fn list_risk_flags(
                         description,
                         resolved,
                         created_at,
+                        resolved_at,
+                        resolved_by,
+                        resolution,
+                        resolution_seconds,
                     }
                 },
             )
             .collect(),
     ))
+}
+
+#[derive(Deserialize)]
+pub struct ResolveRiskFlagBody {
+    /// "APPROVED" (legitimate) or "REJECTED" (confirmed suspicious).
+    pub resolution: String,
+    pub resolved_by: String,
+}
+
+/// POST /internal/v1/admin/risk-flags/:id/resolve — resolve a flag with an
+/// outcome, recording who/when for a full audit trail (RSK-002).
+pub async fn resolve_risk_flag(
+    State(state): State<AppState>,
+    axum::extract::Path(id): axum::extract::Path<String>,
+    Json(body): Json<ResolveRiskFlagBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let flag_id: Uuid = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid risk flag id"))?;
+    let resolution = match body.resolution.to_uppercase().as_str() {
+        "APPROVED" => "APPROVED",
+        "REJECTED" => "REJECTED",
+        _ => {
+            return Err(ApiError::bad_request(
+                "resolution must be APPROVED or REJECTED",
+            ))
+        }
+    };
+    if body.resolved_by.trim().is_empty() {
+        return Err(ApiError::bad_request("resolved_by is required"));
+    }
+
+    let row: Option<(chrono::DateTime<Utc>, chrono::DateTime<Utc>)> = sqlx::query_as(
+        "UPDATE risk_flags
+            SET resolved = TRUE, resolved_at = now(), resolved_by = $2, resolution = $3
+          WHERE id = $1 AND resolved = FALSE
+        RETURNING created_at, resolved_at",
+    )
+    .bind(flag_id)
+    .bind(&body.resolved_by)
+    .bind(resolution)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let (created_at, resolved_at) = row.ok_or_else(|| {
+        ApiError::unprocessable(
+            "ALREADY_RESOLVED",
+            "risk flag not found or already resolved",
+        )
+    })?;
+
+    // Full audit trail of the review decision.
+    super::risk::audit(
+        &state.pool,
+        &body.resolved_by,
+        "RISK_FLAG_RESOLVED",
+        &flag_id.to_string(),
+        serde_json::json!({ "resolution": resolution }),
+        None,
+    )
+    .await;
+
+    Ok(Json(serde_json::json!({
+        "id":                 flag_id,
+        "resolved":           true,
+        "resolution":         resolution,
+        "resolved_by":        body.resolved_by,
+        "resolved_at":        resolved_at,
+        "resolution_seconds": (resolved_at - created_at).num_seconds(),
+    })))
 }
 
 // ---------------------------------------------------------------------------

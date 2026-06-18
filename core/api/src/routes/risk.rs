@@ -68,6 +68,29 @@ pub async fn flag_suspicious(
     .await;
 }
 
+/// Opens a risk flag in the operator review queue (`risk_flags`).
+/// Fire-and-forget — flagging failures must never block the caller's response.
+pub async fn flag_risk(
+    pool: &PgPool,
+    entity_type: &str,
+    entity_id: uuid::Uuid,
+    flag_type: &str,
+    severity: &str,
+    description: &str,
+) {
+    let _ = sqlx::query(
+        "INSERT INTO risk_flags (entity_type, entity_id, flag_type, severity, description)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(entity_type)
+    .bind(entity_id)
+    .bind(flag_type)
+    .bind(severity)
+    .bind(description)
+    .execute(pool)
+    .await;
+}
+
 /// Upserts a velocity counter row for the given entity and time window.
 /// `window_start` should be truncated to the start of the relevant window
 /// (beginning of the current hour for HOURLY, beginning of the day for DAILY).
