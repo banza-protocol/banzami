@@ -418,6 +418,25 @@ pub async fn pay(
         }
     };
 
+    // BANZA ADR-030: a wallet-native MERCHANT payment is a first-class, refundable
+    // payment object — distinct from a P2P transfer. Record it after the transfer
+    // settles. Best-effort + idempotent on the transfer id: a P2P (consumer-owned)
+    // QR records nothing, and a retry re-records the same row at most once. The
+    // payment has already settled, so a recording hiccup never fails the payment.
+    let _ = super::wallet_payments::record_merchant_qr_payment(
+        &state.pool,
+        target.owner_type,
+        target.owner_id,
+        transfer.id.as_uuid(),
+        payer.consumer_id.as_uuid(),
+        target.qr_code_id.map(|q| q.as_uuid()),
+        amount_minor,
+        currency.code(),
+        &body.idempotency_key,
+        state.environment.as_str(),
+    )
+    .await;
+
     Ok((
         StatusCode::CREATED,
         Json(serde_json::json!({

@@ -24,4 +24,5 @@ pub mod settlements;
 pub mod splits;
 pub mod transactions;
 pub mod transfers;
+pub mod wallet_payments;
 pub mod wallets;

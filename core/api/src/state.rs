@@ -23,6 +23,14 @@ impl CoreEnvironment {
         }
     }
 
+    /// Canonical string used in persisted records (e.g. wallet_payments).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            CoreEnvironment::Live => "LIVE",
+            CoreEnvironment::Sandbox => "SANDBOX",
+        }
+    }
+
     pub fn is_live(self) -> bool {
         self == CoreEnvironment::Live
     }
