@@ -6825,6 +6825,16 @@
           "type": "route",
           "label": "QR merchant-pay records typed wallet payment",
           "ref": "core/api/src/routes/qr.rs"
+        },
+        {
+          "type": "migration",
+          "label": "source-aware refunds (source_type/source_id)",
+          "ref": "db/migrations/0047_refunds_source_aware.sql"
+        },
+        {
+          "type": "route",
+          "label": "source-aware refund creation",
+          "ref": "core/api/src/routes/refunds.rs"
         }
       ],
       "dependencies": [
@@ -6843,7 +6853,6 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Consumer-credit AC unmet: a refund credits the transit account (refunds.rs:197), not the payer's consumer wallet — transactions carry no consumer_id, so funds are held in transit for restitution.",
         "Webhook AC unmet: refund.completed is not delivered to merchants; only the internal refund.succeeded event is recorded."
       ],
       "invariants": [
@@ -6861,12 +6870,12 @@
         }
       ],
       "confidence": {
-        "score": 78,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "HIGH",
         "basis": [
-          "11 real-DB #[sqlx::test] invariant tests pass (refunds+disputes)",
-          "ceiling + idempotency invariants PASS; balanced double-entry, no money creation",
-          "two product acceptance criteria unmet (consumer-credit goes to transit; webhook delivery)"
+          "source-aware refunds (ADR-030): wallet-native credits the consumer wallet, acquiring credits transit",
+          "invariants PASS; 12 real-DB refund tests (acquiring + wallet-native)",
+          "only remaining gap is refund.completed webhook delivery"
         ]
       },
       "freezeReason": null,
@@ -6927,6 +6936,19 @@
             "db/migrations/0046_wallet_payments.sql",
             "core/api/src/routes/wallet_payments.rs",
             "commit:898fe2e"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T22:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4adce58097c8f283",
+          "reason": "Step 2B (BANZA ADR-030): refunds are now source-aware. WALLET_PAYMENT refunds credit the original payer's consumer wallet (merchant.available DR -> consumer.available CR), resolving the consumer-credit acceptance criterion (proven by tests); TRANSACTION/acquiring refunds still credit transit, which is correct by design. The over-refund ceiling and idempotency are scoped by typed source, wallet-native refunds are authorized to the owning merchant only, P2P is not refundable, and the source object is never modified. 12 real-DB refund tests pass. The consumer-credit blocker is removed; the only remaining REF-001 blocker is refund.completed webhook delivery, so the item stays IMPLEMENTED (not VALIDATED). Confidence 78->80.",
+          "evidence": [
+            "db/migrations/0047_refunds_source_aware.sql",
+            "core/api/src/routes/refunds.rs",
+            "commit:4ef0906"
           ]
         }
       ],
