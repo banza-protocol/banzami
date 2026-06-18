@@ -7061,7 +7061,7 @@
       "referenceSection": "§17.7 (CLAUDE.md §3.7)",
       "description": "Logs estruturados JSON com IDs de transacção, tipos de operação e resultados. Sem logs de texto livre em serviços de produção.",
       "requirement": "Todos os serviços emitem logs JSON com campos obrigatórios: transaction_id, operation_type, result, latency_ms.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Go · Rust · Docker",
@@ -7080,6 +7080,11 @@
           "type": "component",
           "label": "logger.go",
           "ref": "services/api-gateway/internal/middleware/logger.go"
+        },
+        {
+          "type": "component",
+          "label": "JSON slog handler",
+          "ref": "services/api-gateway/cmd/gateway/main.go"
         }
       ],
       "dependencies": [],
@@ -7092,15 +7097,15 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "structured JSON logging via slog across Go services; request logger middleware"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T17:40:00.000Z",
+      "validatedAgainstCommit": "66148d9fe96f0073a72b3f74ac138cc9b192d52f",
       "history": [
         {
           "timestamp": "2026-06-14T00:18:33.031Z",
@@ -7130,9 +7135,21 @@
           "evidence": [
             "services/api-gateway/internal/middleware/logger.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T17:40:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "42339a12ee51be44",
+          "reason": "Structured JSON logging validated: services configure slog with a JSON handler and a request-logging middleware enriches logs with request ids; consistent structured logs across the Go services. Validated by config + production review.",
+          "evidence": [
+            "services/api-gateway/internal/middleware/logger.go",
+            "services/api-gateway/cmd/gateway/main.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "EMS-001",
