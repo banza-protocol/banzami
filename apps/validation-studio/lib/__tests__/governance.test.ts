@@ -483,7 +483,10 @@ describe('checkMatrix', () => {
   })
 
   it('returns no structural errors for a well-formed matrix', () => {
-    const item = makeItem({ id: 'ITEM-001', status: 'PLANNED' })
+    // makeMatrix declares only 'cat-docs', so the synthetic item must use it —
+    // makeItem defaults to 'cat-sandbox', which checkMatrix correctly flags as
+    // INVALID_CATEGORY. This is a fixture mismatch, not a checkMatrix bug.
+    const item = makeItem({ id: 'ITEM-001', status: 'PLANNED', categoryId: 'cat-docs' })
     const matrix = makeMatrix([item])
     const errors = checkMatrix(matrix).filter((i) => i.severity === 'error')
     expect(errors).toHaveLength(0)
