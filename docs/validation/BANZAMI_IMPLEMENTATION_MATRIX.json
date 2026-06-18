@@ -5843,7 +5843,7 @@
       "referenceSection": "§16.4",
       "description": "Triagem de transacções em tempo real antes de confirmar no ledger — velocidade, anomalias de valor, sinais de conta e dispositivo.",
       "requirement": "Motor de risco no caminho crítico. Transacções acima de limiares retidas ou recusadas antes do ledger.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Risk (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
@@ -5859,7 +5859,7 @@
         "Latência do motor de risco <50ms p99",
         "Transacções recusadas com erro estruturado"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -5870,6 +5870,26 @@
           "type": "config",
           "label": "0024_risk_fraud.sql",
           "ref": "db/migrations/0024_risk_fraud.sql"
+        },
+        {
+          "type": "route",
+          "label": "account signal wiring",
+          "ref": "core/api/src/routes/transactions.rs"
+        },
+        {
+          "type": "route",
+          "label": "device signal (consumer QR pay)",
+          "ref": "core/api/src/routes/qr.rs"
+        },
+        {
+          "type": "migration",
+          "label": "consumer_devices",
+          "ref": "db/migrations/0044_consumer_devices.sql"
+        },
+        {
+          "type": "component",
+          "label": "app device identity",
+          "ref": "apps/mobile/lib/services/device_identity.dart"
         }
       ],
       "dependencies": [
@@ -5880,20 +5900,25 @@
       "revalidateWhenChanged": [
         "core/risk/**"
       ],
-      "blockingIssues": [
-        "Core Rust em desenvolvimento"
+      "blockingIssues": [],
+      "invariants": [
+        {
+          "id": "INV-RSK-001-1",
+          "name": "hard limits Decline; young-account / unrecognized-device high-value Review (flagged)",
+          "status": "PASS"
+        }
       ],
-      "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "velocity/amount/daily limits enforced (Decline); account + device signals (Review)",
+          "10 engine tests; device recognition verified on real DB; active end-to-end"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T17:00:00.000Z",
+      "validatedAgainstCommit": "6c85f4e378c3f45d4158d202861507f9f9a2e28b",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -5915,9 +5940,22 @@
             "core/risk/src/engine.rs",
             "db/migrations/0024_risk_fraud.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T17:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "de9d54dc7255d6b6",
+          "reason": "Real-time risk engine validated. Hard limits (single-amount, hourly velocity, daily amount) decline; soft account + device signals trigger operator review. Account signal (merchant account age) is wired on the authorize path; the device signal is now active end-to-end on the consumer QR-pay path: the app sends a stable X-Device-Id, the core hashes it (SHA-256, raw never stored), records it per consumer, and flags a high-value payment from a device not seen before — verified against a real database. 10 engine tests; structured RISK_DECLINED. Stale 'core in development' blocker removed.",
+          "evidence": [
+            "core/risk/src/engine.rs",
+            "core/api/src/routes/qr.rs",
+            "db/migrations/0044_consumer_devices.sql"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "RSK-002",
