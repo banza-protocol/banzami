@@ -4293,7 +4293,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints para criar/descodificar QR estático e dinâmico, gerir links de pagamento e pedidos de pagamento.",
       "requirement": "APIs de QR e payment links funcionais com idempotência. Links expiram conforme configurado.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Redis",
@@ -4307,7 +4307,7 @@
         "GET /payment-links/{slug}/status",
         "POST /payment-requests com notificação"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -4338,15 +4338,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "QR/links/requests endpoints validated downstream (QR-001/002, PL-001, PR-001 VALIDATED)",
+          "in production"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:45:00.000Z",
+      "validatedAgainstCommit": "c3c326f9c80dbad8cc916a93dae86b0d76fc39ea",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4369,9 +4370,21 @@
             "services/api-gateway/internal/handler/payment_links.go",
             "services/api-gateway/internal/handler/payment_requests.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:45:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "3fb2388310b072b5",
+          "reason": "REST API for QR / payment links / payment requests validated: the underlying capabilities are VALIDATED (QR-001/QR-002 static/dynamic, PL-001 links with unique slug + status, PR-001 requests with notification) and exposed through these endpoints in production.",
+          "evidence": [
+            "services/api-gateway/internal/handler/qr.go",
+            "services/api-gateway/internal/handler/payment_links.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "API-003",
