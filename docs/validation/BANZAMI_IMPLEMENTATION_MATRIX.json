@@ -4732,7 +4732,7 @@
       "referenceSection": "§12.7, §16.7",
       "description": "Sandbox com chaves separadas (bz_sandbox_...), dados isolados, infraestrutura separada. Superfície de API idêntica à produção.",
       "requirement": "Sandbox completamente isolado — diferentes chaves, diferentes dados, sem movimento de dinheiro real. API idêntica.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Developer Platform",
       "technicalArea": "Go · PostgreSQL · Redis",
@@ -4747,7 +4747,7 @@
         "API superfície idêntica à produção",
         "Reset de dados sandbox disponível"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -4758,6 +4758,11 @@
           "type": "config",
           "label": "0018_sandbox_environment.sql",
           "ref": "db/migrations/0018_sandbox_environment.sql"
+        },
+        {
+          "type": "test",
+          "label": "live key rejected / sandbox allowed",
+          "ref": "services/api-gateway/internal/handler/sandbox_gate_test.go"
         }
       ],
       "dependencies": [
@@ -4770,17 +4775,24 @@
         "core/api/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-SBX-001-1",
+          "name": "a LIVE key is rejected on sandbox endpoints; sandbox moves no real money",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "sandbox principal gate (403 SANDBOX_ONLY) tested",
+          "simulated payments, no real money, identical surface"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:35:00.000Z",
+      "validatedAgainstCommit": "a801590f2d0e974d3fa23e91f2905f514814d634",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4802,9 +4814,21 @@
             "services/api-gateway/internal/handler/sandbox.go",
             "db/migrations/0018_sandbox_environment.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:35:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "84829848dc4c366c",
+          "reason": "Sandbox isolation validated: every sandbox endpoint enforces a SANDBOX principal and rejects LIVE keys with 403 SANDBOX_ONLY (tested); payments are simulated (no real money), the API surface mirrors production. bz_test_ keys cannot operate in production.",
+          "evidence": [
+            "services/api-gateway/internal/handler/sandbox.go",
+            "services/api-gateway/internal/handler/sandbox_gate_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "LED-001",
