@@ -4532,7 +4532,7 @@
       "referenceSection": "§12.6, §16",
       "description": "Cada webhook entregue com header banza-signature assinado por HMAC-SHA256 usando o segredo do endpoint.",
       "requirement": "Assinatura verificável em todos os SDKs. Segredo armazenado em hash. Chave bruta nunca em logs.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Security",
       "technicalArea": "Go · Criptografia",
@@ -4546,12 +4546,22 @@
         "BanzaWebhooks.constructEvent() no TypeScript SDK",
         "Segredo nunca em logs ou respostas de API"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "signer.go",
           "ref": "services/api-gateway/internal/webhook/signer.go"
+        },
+        {
+          "type": "test",
+          "label": "wire contract tests",
+          "ref": "services/api-gateway/internal/webhook/signer_test.go"
+        },
+        {
+          "type": "service",
+          "label": "signed delivery",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
         }
       ],
       "dependencies": [
@@ -4564,17 +4574,23 @@
         "services/api-gateway/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-WH-002-1",
+          "name": "Banza-Signature verifiable; tampered payload / wrong secret / replay rejected",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
         "score": 85,
-        "level": "VERY_HIGH",
+        "level": "HIGH",
         "basis": [
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:00:00.000Z",
+      "validatedAgainstCommit": "3b3612f0076fdf47cbccf30848f151ac546fecde",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4595,9 +4611,21 @@
           "evidence": [
             "services/api-gateway/internal/webhook/signer.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "b739d6880e7a61b5",
+          "reason": "Webhook HMAC-SHA256 signature validated: the Banza-Signature header (protocol wire contract) is set on every delivery and verified with constant-time comparison + replay tolerance. Tests prove round-trip plus rejection of tampered payloads, wrong secrets, and stale-timestamp replays.",
+          "evidence": [
+            "services/api-gateway/internal/webhook/signer.go",
+            "services/api-gateway/internal/webhook/signer_test.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "WH-003",
