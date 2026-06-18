@@ -17,6 +17,12 @@ pub struct RiskLimits {
     pub max_hourly_count: u32,
     /// Maximum cumulative amount per merchant in the trailing day (minor units). 0 = no limit.
     pub max_daily_amount_minor: i64,
+    /// Amount at/above which account + device signals trigger a review.
+    /// 0 = account/device signals disabled.
+    pub elevated_amount_minor: i64,
+    /// Accounts younger than this (days) are "young" for the account signal.
+    /// 0 = account-age signal disabled.
+    pub min_account_age_days: u32,
 }
 
 impl RiskLimits {
@@ -26,6 +32,8 @@ impl RiskLimits {
             max_single_amount_minor: 50_000_000, // 500 000 Kz
             max_hourly_count: 100,
             max_daily_amount_minor: 500_000_000, // 5 000 000 Kz
+            elevated_amount_minor: 10_000_000,   // 100 000 Kz — review threshold
+            min_account_age_days: 7,
         }
     }
 }
@@ -43,6 +51,12 @@ pub struct RiskContext {
     pub hourly_count: u32,
     /// Total amount transacted by this merchant today (minor units).
     pub daily_amount_minor: i64,
+    /// Age of the transacting account in days (account signal).
+    pub account_age_days: u32,
+    /// Whether the originating device has been seen before for this entity
+    /// (device signal). `None` when no device context is available (e.g. a
+    /// server-to-server merchant transaction).
+    pub device_recognized: Option<bool>,
 }
 
 // ---------------------------------------------------------------------------
@@ -98,10 +112,20 @@ impl RiskEngine for StaticRiskEngine {
             && req.context.daily_amount_minor.saturating_add(amount_minor)
                 > lim.max_daily_amount_minor;
 
+        // Account + device signals only matter for elevated amounts.
+        let elevated = lim.elevated_amount_minor > 0 && amount_minor >= lim.elevated_amount_minor;
+        let young_account_high_value = elevated
+            && lim.min_account_age_days > 0
+            && req.context.account_age_days < lim.min_account_age_days;
+        let unrecognized_device_high_value =
+            elevated && req.context.device_recognized == Some(false);
+
         let signals = RiskSignals {
             amount_exceeds_limit,
             hourly_velocity_breach,
             daily_amount_breach,
+            young_account_high_value,
+            unrecognized_device_high_value,
         };
 
         let (decision, decline_reason) = if signals.any_breach() {
@@ -113,6 +137,14 @@ impl RiskEngine for StaticRiskEngine {
                 "daily amount limit would be exceeded"
             };
             (RiskDecision::Decline, Some(reason.to_owned()))
+        } else if signals.needs_review() {
+            // Soft signals — allow but flag for operator review.
+            let reason = if young_account_high_value {
+                "high-value transaction from a recently-created account — flagged for review"
+            } else {
+                "high-value transaction from an unrecognized device — flagged for review"
+            };
+            (RiskDecision::Review, Some(reason.to_owned()))
         } else {
             (RiskDecision::Allow, None)
         };
@@ -167,6 +199,8 @@ mod tests {
         RiskContext {
             hourly_count: 0,
             daily_amount_minor: 0,
+            account_age_days: 365,
+            device_recognized: None,
         }
     }
 
@@ -187,6 +221,8 @@ mod tests {
             max_single_amount_minor: 100_000,
             max_hourly_count: 0,
             max_daily_amount_minor: 0,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         let assessment = engine
             .evaluate(req(kz(100_001), clean_ctx()))
@@ -202,10 +238,14 @@ mod tests {
             max_single_amount_minor: 0,
             max_hourly_count: 10,
             max_daily_amount_minor: 0,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         let ctx = RiskContext {
             hourly_count: 10,
             daily_amount_minor: 0,
+            account_age_days: 365,
+            device_recognized: None,
         };
         let assessment = engine.evaluate(req(kz(1_000), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
@@ -218,10 +258,14 @@ mod tests {
             max_single_amount_minor: 0,
             max_hourly_count: 0,
             max_daily_amount_minor: 1_000_000,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         let ctx = RiskContext {
             hourly_count: 0,
             daily_amount_minor: 999_001,
+            account_age_days: 365,
+            device_recognized: None,
         };
         // 999_001 + 1_000 = 1_000_001 > 1_000_000
         let assessment = engine.evaluate(req(kz(1_000), ctx)).await.unwrap();
@@ -235,6 +279,8 @@ mod tests {
             max_single_amount_minor: 0,
             max_hourly_count: 0,
             max_daily_amount_minor: 0,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         // Enormous amount — should still be allowed because all limits are 0 (disabled)
         let assessment = engine
@@ -250,11 +296,15 @@ mod tests {
             max_single_amount_minor: 0,
             max_hourly_count: 5,
             max_daily_amount_minor: 0,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         // hourly_count == max → breach (>= comparison)
         let ctx = RiskContext {
             hourly_count: 5,
             daily_amount_minor: 0,
+            account_age_days: 365,
+            device_recognized: None,
         };
         let assessment = engine.evaluate(req(kz(100), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Decline);
@@ -266,12 +316,55 @@ mod tests {
             max_single_amount_minor: 0,
             max_hourly_count: 5,
             max_daily_amount_minor: 0,
+            elevated_amount_minor: 0,
+            min_account_age_days: 0,
         });
         let ctx = RiskContext {
             hourly_count: 4,
             daily_amount_minor: 0,
+            account_age_days: 365,
+            device_recognized: None,
         };
         let assessment = engine.evaluate(req(kz(100), ctx)).await.unwrap();
         assert_eq!(assessment.decision, RiskDecision::Allow);
+    }
+
+    // --- account + device signals (RSK-001) ----------------------------------
+
+    #[tokio::test]
+    async fn young_account_high_value_is_flagged_for_review() {
+        let engine = StaticRiskEngine::conservative();
+        // 200 000 Kz: >= 100 000 elevated threshold, < 500 000 hard limit.
+        let ctx = RiskContext {
+            account_age_days: 2,
+            ..clean_ctx()
+        };
+        let a = engine.evaluate(req(kz(20_000_000), ctx)).await.unwrap();
+        assert_eq!(a.decision, RiskDecision::Review);
+        assert!(a.signals.young_account_high_value);
+    }
+
+    #[tokio::test]
+    async fn unrecognized_device_high_value_is_flagged_for_review() {
+        let engine = StaticRiskEngine::conservative();
+        let ctx = RiskContext {
+            device_recognized: Some(false),
+            ..clean_ctx()
+        };
+        let a = engine.evaluate(req(kz(20_000_000), ctx)).await.unwrap();
+        assert_eq!(a.decision, RiskDecision::Review);
+        assert!(a.signals.unrecognized_device_high_value);
+    }
+
+    #[tokio::test]
+    async fn old_account_known_device_high_value_is_allowed() {
+        let engine = StaticRiskEngine::conservative();
+        // Old account (365d), recognized device, elevated but under the hard limit.
+        let ctx = RiskContext {
+            device_recognized: Some(true),
+            ..clean_ctx()
+        };
+        let a = engine.evaluate(req(kz(20_000_000), ctx)).await.unwrap();
+        assert_eq!(a.decision, RiskDecision::Allow);
     }
 }

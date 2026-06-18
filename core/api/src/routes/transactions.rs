@@ -155,6 +155,18 @@ pub async fn authorize(
     .await
     .unwrap_or((0, 0));
 
+    // Account signal: age of the merchant account in days.
+    let account_age_days: i64 = sqlx::query_scalar(
+        "SELECT GREATEST(0, EXTRACT(DAY FROM (now() - created_at)))::BIGINT
+         FROM merchants WHERE id = $1",
+    )
+    .bind(merchant_id.as_uuid())
+    .fetch_optional(&state.pool)
+    .await
+    .ok()
+    .flatten()
+    .unwrap_or(365);
+
     let assessment = state
         .risk
         .evaluate(RiskRequest {
@@ -164,42 +176,59 @@ pub async fn authorize(
             context: RiskContext {
                 hourly_count: hourly_count.max(0) as u32,
                 daily_amount_minor,
+                account_age_days: account_age_days.max(0) as u32,
+                // Server-to-server merchant transaction — no device context.
+                device_recognized: None,
             },
         })
         .await
         .map_err(|e| ApiError::internal(e.to_string()))?;
 
-    if assessment.decision == RiskDecision::Decline {
-        let reason = assessment
-            .decline_reason
-            .clone()
-            .unwrap_or_else(|| "risk threshold breached".to_owned());
-        // RSK-002: open a risk flag in the operator review queue AND record the
-        // event in the suspicious-activity log (both fire-and-forget).
-        super::risk::flag_risk(
-            &state.pool,
-            "MERCHANT",
-            merchant_id.as_uuid(),
-            "VELOCITY_BREACH",
-            "HIGH",
-            &reason,
-        )
-        .await;
-        super::risk::flag_suspicious(
-            &state.pool,
-            "MERCHANT",
-            merchant_id.as_uuid(),
-            "VELOCITY_BREACH",
-            &reason,
-            serde_json::json!({
-                "transaction_id": tx_id.to_string(),
-                "amount_minor":   pending.amount.amount_minor(),
-                "hourly_count":   hourly_count,
-                "daily_amount_minor": daily_amount_minor,
-            }),
-        )
-        .await;
-        return Err(ApiError::unprocessable("RISK_DECLINED", reason));
+    let reason = assessment
+        .decline_reason
+        .clone()
+        .unwrap_or_else(|| "risk threshold breached".to_owned());
+    match assessment.decision {
+        RiskDecision::Decline => {
+            // RSK-002: open a HIGH risk flag in the review queue + suspicious log.
+            super::risk::flag_risk(
+                &state.pool,
+                "MERCHANT",
+                merchant_id.as_uuid(),
+                "VELOCITY_BREACH",
+                "HIGH",
+                &reason,
+            )
+            .await;
+            super::risk::flag_suspicious(
+                &state.pool,
+                "MERCHANT",
+                merchant_id.as_uuid(),
+                "VELOCITY_BREACH",
+                &reason,
+                serde_json::json!({
+                    "transaction_id": tx_id.to_string(),
+                    "amount_minor":   pending.amount.amount_minor(),
+                    "hourly_count":   hourly_count,
+                    "daily_amount_minor": daily_amount_minor,
+                }),
+            )
+            .await;
+            return Err(ApiError::unprocessable("RISK_DECLINED", reason));
+        }
+        RiskDecision::Review => {
+            // Soft account/device signal — authorize but flag for review (MEDIUM).
+            super::risk::flag_risk(
+                &state.pool,
+                "MERCHANT",
+                merchant_id.as_uuid(),
+                "LARGE_AMOUNT",
+                "MEDIUM",
+                &reason,
+            )
+            .await;
+        }
+        RiskDecision::Allow => {}
     }
 
     let tx = state
