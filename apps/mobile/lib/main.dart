@@ -4,12 +4,14 @@ import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 import 'app.dart';
+import 'services/device_identity.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('pt', null);
 
   final pinnedClient = await PinnedHttpClient.create();
+  final deviceId = await DeviceIdentity.getOrCreate();
 
   // Lock orientation to portrait — standard for payment apps.
   await SystemChrome.setPreferredOrientations([
@@ -23,5 +25,5 @@ void main() async {
     statusBarBrightness:       Brightness.dark,
   ));
 
-  runApp(BanzamiApp(pinnedClient: pinnedClient));
+  runApp(BanzamiApp(pinnedClient: pinnedClient, deviceId: deviceId));
 }

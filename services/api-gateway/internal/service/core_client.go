@@ -1079,6 +1079,9 @@ func (s *CoreApiQrService) Pay(ctx context.Context, req PayQrRequest) (int, json
 	if req.AmountMinor != nil {
 		body["amount_minor"] = *req.AmountMinor
 	}
+	if req.DeviceID != "" {
+		body["device_id"] = req.DeviceID
+	}
 	// The core owns the QR resolution, compliance gate, atomic claim and
 	// settlement; forward its status + body verbatim so the app sees the exact
 	// outcome code.

@@ -55,7 +55,15 @@ pub struct PayQrBody {
     /// Required for STATIC QR (payer enters the amount). Ignored for DYNAMIC.
     pub amount_minor: Option<i64>,
     pub note: Option<String>,
+    /// Opaque client device identifier (RSK-001 device signal). When supplied,
+    /// a high-value payment from a device not seen before for this payer is
+    /// flagged for operator review. Hashed before storage — never persisted raw.
+    pub device_id: Option<String>,
 }
+
+/// Amount (minor units) at/above which a new-device payment is flagged for
+/// review — mirrors the risk engine's elevated-amount threshold (100 000 Kz).
+const DEVICE_REVIEW_THRESHOLD_MINOR: i64 = 10_000_000;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -329,6 +337,37 @@ pub async fn pay(
             _ => "KYC_REQUIRED",
         };
         return Err(ApiError::unprocessable(code, auth.message));
+    }
+
+    // 4c. Device signal (RSK-001): recognise the payer's device. A high-value
+    //     payment from a device not seen before is flagged for operator review
+    //     (the payment still proceeds — a soft signal, not a hard block). The
+    //     raw device id is hashed (SHA-256) in SQL and never persisted in clear.
+    if let Some(device_id) = body.device_id.as_deref() {
+        let is_new_device: bool = sqlx::query_scalar(
+            "INSERT INTO consumer_devices (consumer_id, device_hash)
+             VALUES ($1, encode(sha256(convert_to($2, 'UTF8')), 'hex'))
+             ON CONFLICT (consumer_id, device_hash)
+                 DO UPDATE SET last_seen_at = now()
+             RETURNING (xmax = 0)",
+        )
+        .bind(payer.consumer_id.as_uuid())
+        .bind(device_id)
+        .fetch_one(&state.pool)
+        .await
+        .unwrap_or(false);
+
+        if is_new_device && amount_minor >= DEVICE_REVIEW_THRESHOLD_MINOR {
+            super::risk::flag_risk(
+                &state.pool,
+                "CONSUMER",
+                payer.consumer_id.as_uuid(),
+                "SUSPICIOUS_FUNDING",
+                "MEDIUM",
+                "high-value payment from a device not seen before",
+            )
+            .await;
+        }
     }
 
     // 5. One-time claim for dynamic QR BEFORE settling (atomic; prevents

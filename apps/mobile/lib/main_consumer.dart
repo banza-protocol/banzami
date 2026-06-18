@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'app.dart';
+import 'services/device_identity.dart';
 import 'services/push_notification_service.dart';
 import 'services/transfer_notification_service.dart';
 
@@ -21,6 +22,7 @@ void main() async {
   unawaited(_initBackgroundServices());
 
   final pinnedClient = await PinnedHttpClient.create();
+  final deviceId = await DeviceIdentity.getOrCreate();
 
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -33,7 +35,7 @@ void main() async {
     statusBarBrightness:     Brightness.dark,
   ));
 
-  runApp(BanzamiApp(pinnedClient: pinnedClient));
+  runApp(BanzamiApp(pinnedClient: pinnedClient, deviceId: deviceId));
 }
 
 Future<void> _initBackgroundServices() async {

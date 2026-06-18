@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"cmp"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -161,6 +162,7 @@ func (h *QrHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		Payload        string `json:"payload"`
 		AmountMinor    *int64 `json:"amount_minor"`
 		Note           string `json:"note"`
+		DeviceID       string `json:"device_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -184,6 +186,8 @@ func (h *QrHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		Payload:        body.Payload,
 		AmountMinor:    body.AmountMinor,
 		Note:           body.Note,
+		// Device id from the body, falling back to the X-Device-Id header.
+		DeviceID: cmp.Or(body.DeviceID, r.Header.Get("X-Device-Id")),
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "payment could not be processed")

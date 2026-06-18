@@ -21,8 +21,9 @@ final _guardKey     = GlobalKey<SecureAppLifecycleGuardState>();
 
 class BanzamiApp extends StatefulWidget {
   final Client pinnedClient;
+  final String? deviceId;
 
-  const BanzamiApp({super.key, required this.pinnedClient});
+  const BanzamiApp({super.key, required this.pinnedClient, this.deviceId});
 
   @override
   State<BanzamiApp> createState() => _BanzamiAppState();
@@ -371,6 +372,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
               ? BanzamiEnvironment.sandbox
               : BanzamiEnvironment.production,
           httpClient: widget.pinnedClient,
+          deviceId:   widget.deviceId,
         )),
       ],
       child: Consumer<SessionService>(

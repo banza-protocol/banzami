@@ -75,6 +75,10 @@ class ConsumerPublicClient {
   /// to trigger logout and redirect to the welcome screen automatically.
   void Function()? onUnauthorized;
 
+  /// Stable per-install device identifier, sent as the `X-Device-Id` header so
+  /// the risk layer can recognise a known device vs a new one (RSK-001).
+  final String? deviceId;
+
   ConsumerPublicClient({
     required this.baseUrl,
     this.environment = BanzamiEnvironment.production,
@@ -82,6 +86,7 @@ class ConsumerPublicClient {
     this.onRequest,
     this.onResponse,
     this.onError,
+    this.deviceId,
   })  : _http = httpClient ?? http.Client(),
         _uuid = const Uuid();
 
@@ -457,6 +462,7 @@ class ConsumerPublicClient {
     'Content-Type': 'application/json',
     'User-Agent': 'Banzami/1.0 (mobile)',
     if (auth && _token != null) 'Authorization': 'Bearer $_token',
+    if (deviceId != null && deviceId!.isNotEmpty) 'X-Device-Id': deviceId!,
   };
 
   Future<Map<String, dynamic>> _call({

@@ -68,6 +68,7 @@ type PayQrRequest struct {
 	Payload        string
 	AmountMinor    *int64
 	Note           string
+	DeviceID       string
 }
 
 // ---------------------------------------------------------------------------
