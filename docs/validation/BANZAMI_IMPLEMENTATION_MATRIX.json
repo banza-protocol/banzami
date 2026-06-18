@@ -6784,7 +6784,7 @@
         "Webhook refund.completed entregue",
         "Suporte a reembolso parcial (valor < original)"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -6795,6 +6795,16 @@
           "type": "config",
           "label": "0027_refunds.sql",
           "ref": "db/migrations/0027_refunds.sql"
+        },
+        {
+          "type": "test",
+          "label": "refund invariant tests (real DB)",
+          "ref": "core/api/src/routes/refunds_disputes_tests.rs"
+        },
+        {
+          "type": "migration",
+          "label": "audit action constraint fix",
+          "ref": "db/migrations/0045_audit_log_refund_dispute_actions.sql"
         }
       ],
       "dependencies": [
@@ -6812,26 +6822,31 @@
         "core/wallets/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [],
+      "blockingIssues": [
+        "Consumer-credit AC unmet: a refund credits the transit account (refunds.rs:197), not the payer's consumer wallet — transactions carry no consumer_id, so funds are held in transit for restitution.",
+        "Webhook AC unmet: refund.completed is not delivered to merchants; only the internal refund.succeeded event is recorded."
+      ],
       "invariants": [
         {
           "id": "INV-REF-001-1",
           "name": "Refund ceiling invariant",
-          "rule": "refund.amount <= original_payment.amount; over-refund must be blocked at write time",
-          "status": "NOT_RUN"
+          "rule": "refund.amount <= original_payment.amount; over-refund blocked at write time",
+          "status": "PASS"
         },
         {
           "id": "INV-REF-001-2",
           "name": "Refund idempotency invariant",
           "rule": "Replaying a refund with the same idempotency key must not create duplicate ledger entries",
-          "status": "NOT_RUN"
+          "status": "PASS"
         }
       ],
       "confidence": {
-        "score": 70,
-        "level": "HIGH",
+        "score": 78,
+        "level": "MEDIUM",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "11 real-DB #[sqlx::test] invariant tests pass (refunds+disputes)",
+          "ceiling + idempotency invariants PASS; balanced double-entry, no money creation",
+          "two product acceptance criteria unmet (consumer-credit goes to transit; webhook delivery)"
         ]
       },
       "freezeReason": null,
@@ -6867,9 +6882,21 @@
             "services/api-gateway/internal/handler/refunds.go",
             "db/migrations/0027_refunds.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T19:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4adce58097c8f283",
+          "reason": "Recorded proven refund invariants without advancing to VALIDATED. 11 real-DB #[sqlx::test] tests pass: the refund ceiling (over-refund blocked) and idempotency (replay returns the same refund, single posting) invariants are PASS; the posting is a balanced double entry with no money creation, the original transaction is untouched, and partial refunds are supported. The tests surfaced and we fixed two real bugs (idempotency ran after the ceiling check; audit action was rejected by the CHECK constraint, migration 0045). Two product acceptance criteria remain unmet, kept as blockingIssues: refunds credit transit not the consumer wallet, and refund.completed webhook delivery is not implemented. Status stays IMPLEMENTED.",
+          "evidence": [
+            "core/api/src/routes/refunds_disputes_tests.rs",
+            "db/migrations/0045_audit_log_refund_dispute_actions.sql"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "REF-002",
