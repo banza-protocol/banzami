@@ -17,7 +17,7 @@ use crate::{
 // Response types
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct RefundResponse {
     pub id: String,
     pub transaction_id: String,
@@ -66,6 +66,22 @@ pub async fn create(
         .merchant_id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+
+    // Idempotency first: a replay of an already-recorded key returns the existing
+    // refund verbatim. This must run BEFORE the over-refund ceiling check —
+    // otherwise the original refund counts against the ceiling and a legitimate
+    // retry is wrongly rejected as REFUND_EXCEEDS_CAPTURED.
+    if let Some(existing_id) = sqlx::query_scalar!(
+        "SELECT id FROM refunds WHERE idempotency_key = $1",
+        body.idempotency_key,
+    )
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        let refund = fetch_refund(&state.pool, existing_id).await?;
+        return Ok((StatusCode::CREATED, Json(refund)));
+    }
 
     // Look up the transaction — must be CAPTURED or SETTLED
     let tx_row = sqlx::query!(

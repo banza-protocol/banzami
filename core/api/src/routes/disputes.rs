@@ -17,7 +17,7 @@ use crate::{
 // Response types
 // ---------------------------------------------------------------------------
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct DisputeResponse {
     pub id: String,
     pub transaction_id: String,
@@ -34,7 +34,7 @@ pub struct DisputeResponse {
     pub resolved_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct EvidenceResponse {
     pub id: String,
     pub dispute_id: String,
