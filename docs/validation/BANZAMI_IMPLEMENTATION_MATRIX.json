@@ -5943,7 +5943,7 @@
       "referenceSection": "§16.1, §16.2",
       "description": "Trilho de auditoria completo e imutável para cada operação financeira — quem fez, quando, com que resultado.",
       "requirement": "Cada acção financeira e de autenticação auditável. Trilho não editável. Disponível para reguladores.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Compliance",
       "technicalArea": "Rust · PostgreSQL",
@@ -5957,7 +5957,7 @@
         "Qualquer transacção rastreável do início à liquidação",
         "Exportável para auditoria regulatória"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "config",
@@ -5968,6 +5968,21 @@
           "type": "route",
           "label": "risk.rs",
           "ref": "core/api/src/routes/risk.rs"
+        },
+        {
+          "type": "migration",
+          "label": "immutability triggers",
+          "ref": "db/migrations/0033_ledger_immutability.sql"
+        },
+        {
+          "type": "test",
+          "label": "append-only proven (UPDATE/DELETE rejected)",
+          "ref": "core/reconciliation/tests/ledger_invariants_integration.rs"
+        },
+        {
+          "type": "migration",
+          "label": "ledger schema (timestamped postings/entries)",
+          "ref": "db/migrations/0001_ledger_schema.sql"
         }
       ],
       "dependencies": [
@@ -5981,17 +5996,23 @@
         "infra/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-SEC-004-1",
+          "name": "audit trail is append-only and immutable (UPDATE/DELETE rejected)",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
         "score": 80,
-        "level": "VERY_HIGH",
+        "level": "HIGH",
         "basis": [
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T10:10:00.000Z",
+      "validatedAgainstCommit": "f449b66706f70c72d3358ae0e9383240391a3f12",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -6013,9 +6034,21 @@
             "db/migrations/0025_audit_log.sql",
             "core/api/src/routes/risk.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T10:10:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "8925cf673d0495d2",
+          "reason": "Immutable audit trail validated: the ledger is the append-only audit record — every posting/entry is timestamped and keyed, UPDATE and DELETE are rejected by immutability triggers (proven by integration tests), and transactions are traceable through to settlement. Satisfies the regulatory non-editability requirement.",
+          "evidence": [
+            "db/migrations/0033_ledger_immutability.sql",
+            "core/reconciliation/tests/ledger_invariants_integration.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "PAY-001",
