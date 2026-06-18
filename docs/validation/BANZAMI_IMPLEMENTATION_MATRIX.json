@@ -6960,7 +6960,7 @@
       "referenceSection": "§17.7",
       "description": "Três painéis Grafana — Pagamentos, Carteiras e Ledger, Liquidações e Levantamentos — conforme §17.7.",
       "requirement": "Três painéis Grafana operacionais com os indicadores definidos em §17.7.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Infrastructure / Observability",
       "technicalArea": "Grafana · Prometheus",
@@ -6984,6 +6984,16 @@
           "type": "config",
           "label": "prometheus.yml",
           "ref": "infra/monitoring/prometheus.yml"
+        },
+        {
+          "type": "infra",
+          "label": "grafana dashboards",
+          "ref": "infra/monitoring/grafana/dashboards/"
+        },
+        {
+          "type": "infra",
+          "label": "grafana provisioning",
+          "ref": "infra/monitoring/grafana/provisioning/"
         }
       ],
       "dependencies": [
@@ -6998,15 +7008,15 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 80,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "3 provisioned Grafana dashboards (wallets-ledger, payments, settlements-payouts)"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T17:35:00.000Z",
+      "validatedAgainstCommit": "69886929239e88d7b22c92fa184aedf3654e69a7",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -7028,9 +7038,20 @@
             "infra/monitoring/grafana/dashboards",
             "infra/monitoring/prometheus.yml"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T17:35:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4d13d176d5981b40",
+          "reason": "Operational Grafana dashboards validated: wallets-ledger, payments, and settlements-payouts dashboards are provisioned under infra/monitoring/grafana. Validated by config (provisioned dashboards over the Prometheus datasource).",
+          "evidence": [
+            "infra/monitoring/grafana/dashboards/"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "OBS-003",
