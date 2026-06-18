@@ -1303,7 +1303,7 @@
       "referenceSection": "§6.3",
       "description": "Funcionalidade de pesquisa de @banza na app do consumidor — sugestões durante digitação, verificação de disponibilidade em tempo real.",
       "requirement": "Pesquisa responsiva durante onboarding e ao iniciar transferências. Feedback imediato sobre disponibilidade.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Consumer Platform / Flutter",
       "technicalArea": "Flutter · Go",
@@ -1326,6 +1326,16 @@
           "type": "component",
           "label": "identity.rs",
           "ref": "core/identity/src/identity.rs"
+        },
+        {
+          "type": "route",
+          "label": "handle search (ILIKE prefix)",
+          "ref": "core/api/src/routes/consumers.rs"
+        },
+        {
+          "type": "component",
+          "label": "SDK searchHandles",
+          "ref": "sdk/flutter/lib/client/consumer_public_client.dart"
         }
       ],
       "dependencies": [
@@ -1341,15 +1351,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 80,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "prefix handle search endpoint (ILIKE) + SDK searchHandles",
+          "in production"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T17:45:00.000Z",
+      "validatedAgainstCommit": "0a12a7354bb53a5d3ba8098e953cc7e3ed868ba1",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -1371,9 +1382,20 @@
             "services/public-api/internal/handler/consumer.go",
             "core/identity/src/identity.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T17:45:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "b6c0d10b7dbf9dda",
+          "reason": "Handle search/suggestion validated: a prefix (ILIKE) handle-search endpoint backs @banza autocomplete, exposed via the SDK (searchHandles) and used in the consumer send flow. In production.",
+          "evidence": [
+            "core/api/src/routes/consumers.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "QR-001",
