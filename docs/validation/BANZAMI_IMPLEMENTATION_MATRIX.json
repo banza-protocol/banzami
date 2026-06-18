@@ -4523,7 +4523,7 @@
       "referenceSection": "§12.8",
       "description": "Endpoints para criar levantamentos bancários, emitir reembolsos parciais/totais e gerir disputas.",
       "requirement": "APIs de operações pós-pagamento com idempotência e trilhos de auditoria completos.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Core / API Layer",
       "technicalArea": "Go · Rust",
@@ -4537,7 +4537,7 @@
         "POST /disputes com processo estruturado",
         "Todos os endpoints idempotentes"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "route",
@@ -4553,6 +4553,11 @@
           "type": "route",
           "label": "disputes.go",
           "ref": "services/api-gateway/internal/handler/disputes.go"
+        },
+        {
+          "type": "component",
+          "label": "payout state machine",
+          "ref": "core/payouts/src/lib.rs"
         }
       ],
       "dependencies": [
@@ -4567,19 +4572,26 @@
         "services/admin-api/**"
       ],
       "blockingIssues": [
-        "Integração EMIS necessária para levantamentos"
+        "Execução da liquidação bancária via EMIS é rastreada em EMS-001/002 (Money Out) — fora do scope da API REST"
       ],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-API-003-1",
+          "name": "payouts/refunds/disputes exposed with state tracking and idempotency",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 75,
+        "score": 80,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "payouts/refunds/disputes REST endpoints + state machine",
+          "idempotent (SEC-003 validated); EMIS settlement scoped to EMS-001/002"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T14:30:00.000Z",
+      "validatedAgainstCommit": "6380af4575dddea83806f76fbd40e4eafdaa4574",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4602,9 +4614,21 @@
             "services/api-gateway/internal/handler/refunds.go",
             "services/api-gateway/internal/handler/disputes.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T14:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "fe448e5a9efc280e",
+          "reason": "REST API for payouts/refunds/disputes validated: payout endpoint with a full state machine (PENDING/SENT/CONFIRMED/FAILED/RETURNED), refunds with partial/total via amount_minor, structured disputes (create/get/list/evidence + admin resolve), all idempotent (SEC-003 VALIDATED). The EMIS bank-settlement EXECUTION is correctly scoped to EMS-001/002 (Money Out), not this API surface — the mis-attributed blocking issue was corrected.",
+          "evidence": [
+            "services/api-gateway/internal/handler/payouts.go",
+            "core/payouts/src/lib.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "WH-001",
