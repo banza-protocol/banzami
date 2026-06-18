@@ -12,6 +12,7 @@ import {
   FINANCIAL_CRITICAL_CATEGORIES, DOMAIN_LABELS, CONFIDENCE_LEVEL_LABELS,
 } from '@/lib/types'
 import { getRequiresBlockers } from '@/lib/governance'
+import { isExternallyBlocked } from '@/lib/readiness'
 
 const STATUS_COLORS: Record<ValidationStatus, { dot: string; badge: string }> = {
   VALIDATED:               { dot: 'bg-emerald-500', badge: 'bg-emerald-50 text-emerald-700' },
@@ -214,6 +215,14 @@ export function ItemList({
                       <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold ${sc.badge}`}>
                         {STATUS_LABELS[item.status]}
                       </span>
+                      {isExternallyBlocked(item) && (
+                        <span
+                          className="shrink-0 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-700"
+                          title="Code-complete or in progress, but launch depends on an external provider/vendor/regulator"
+                        >
+                          ⚠ externally blocked
+                        </span>
+                      )}
                       {isFinancial && (
                         <span className="shrink-0 rounded bg-bz-primary-light px-1.5 py-0.5 text-[10px] font-bold text-bz-primary">∑</span>
                       )}

@@ -1,5 +1,17 @@
 // Operator Readiness — derives launch-readiness from the validation matrix.
 // The studio's one question: "Can Banzami safely operate real-world payments today?"
+//
+// Three lenses, all derived from the matrix (status + blockingIssues) — never a
+// status change at source:
+//   • LAUNCH-READY      = status VALIDATED (production-proven)
+//   • CODE-COMPLETE     = status VALIDATED | IMPLEMENTED (internal engineering done)
+//   • EXTERNALLY BLOCKED = not VALIDATED, blocked by an external dependency
+//                          (vendor / bank / provider / rail / regulator)
+//   • INTERNALLY BLOCKED = not VALIDATED, resolvable by internal engineering
+//
+// Launch-readiness is stricter than implementation-readiness: an IMPLEMENTED item
+// that still depends on an external provider (e.g. WAL-004 funding, KYB-001 KYC
+// vendor) is code-complete but NOT launch-ready.
 
 import type { ValidationMatrix, ValidationItem, ValidationDomain } from './types'
 
@@ -9,23 +21,72 @@ export interface PillarReadiness {
   domain: ValidationDomain
   label: string
   question: string
-  ready: number          // VALIDATED | IMPLEMENTED
+  launchReady: number    // VALIDATED
+  codeComplete: number    // VALIDATED | IMPLEMENTED
   total: number
-  criticalGaps: number   // CRITICAL items not yet ready (incl. BLOCKED)
-  blocked: number        // items with status BLOCKED
+  externallyBlocked: number
+  criticalGaps: number    // CRITICAL items not yet VALIDATED
   status: PillarStatus
+}
+
+export interface Blocker {
+  id: string
+  title: string
+  status: string
+  externallyBlocked: boolean
 }
 
 export interface Readiness {
   pillars: PillarReadiness[]
   canLaunch: boolean
+  // Launch-ready (strict) — the headline.
+  launchReady: number
+  total: number
+  launchReadyPct: number
+  criticalLaunchReady: number
   criticalTotal: number
-  criticalReady: number
-  blockers: { id: string; title: string; status: string }[]
-  readyPct: number
+  // Code-complete (secondary, informational).
+  codeComplete: number
+  criticalCodeComplete: number
+  // Gap explainers.
+  externallyBlocked: number
+  internallyBlocked: number
+  // Launch-critical gaps (CRITICAL not VALIDATED).
+  blockers: Blocker[]
 }
 
-const READY = new Set(['VALIDATED', 'IMPLEMENTED'])
+// External blocker markers — a non-validated item whose blockingIssues mention a
+// vendor, bank, provider, rail, or regulator is blocked by something outside our
+// engineering, not by missing internal code.
+const EXTERNAL_RE =
+  /PROVIDER_REQUIRED|RAIL_REQUIRED|RECONCILIATION_REQUIRED|VENDOR_REQUIRED|vendor|provider|parceiro|partner|EMIS|BNA|banco|bank|\brail\b|certifica/i
+
+export function isLaunchReady(i: ValidationItem): boolean {
+  return i.status === 'VALIDATED'
+}
+
+export function isCodeComplete(i: ValidationItem): boolean {
+  return i.status === 'VALIDATED' || i.status === 'IMPLEMENTED'
+}
+
+export function isExternallyBlocked(i: ValidationItem): boolean {
+  return i.status !== 'VALIDATED' && (i.blockingIssues ?? []).some((b) => EXTERNAL_RE.test(b))
+}
+
+export function isInternallyBlocked(i: ValidationItem): boolean {
+  return i.status !== 'VALIDATED' && !isExternallyBlocked(i)
+}
+
+// Per-item readiness lens for badges. An IMPLEMENTED item with an external blocker
+// reads as 'externally-blocked', not 'implemented'.
+export type ItemLens = 'validated' | 'implemented' | 'externally-blocked' | 'internally-blocked'
+
+export function itemLens(i: ValidationItem): ItemLens {
+  if (i.status === 'VALIDATED') return 'validated'
+  if (isExternallyBlocked(i)) return 'externally-blocked'
+  if (i.status === 'IMPLEMENTED') return 'implemented'
+  return 'internally-blocked'
+}
 
 // Each pillar answers one launch question.
 const PILLARS: { domain: ValidationDomain; label: string; question: string }[] = [
@@ -45,27 +106,38 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
 
   const pillars: PillarReadiness[] = PILLARS.map(({ domain, label, question }) => {
     const its = items.filter((i) => i.validationDomain === domain)
-    const ready = its.filter((i) => READY.has(i.status)).length
-    const blocked = its.filter((i) => i.status === 'BLOCKED').length
-    const criticalGaps = its.filter((i) => i.priority === 'CRITICAL' && !READY.has(i.status)).length
+    const launchReady = its.filter(isLaunchReady).length
+    const codeComplete = its.filter(isCodeComplete).length
+    const externallyBlocked = its.filter(isExternallyBlocked).length
+    const criticalGaps = its.filter((i) => i.priority === 'CRITICAL' && !isLaunchReady(i)).length
     let status: PillarStatus = 'partial'
-    if (criticalGaps === 0 && ready === its.length && its.length > 0) status = 'ready'
-    else if (criticalGaps > 0 || blocked > 0) status = 'blocked'
-    return { domain, label, question, ready, total: its.length, criticalGaps, blocked, status }
+    if (launchReady === its.length && its.length > 0) status = 'ready'
+    else if (criticalGaps > 0 || externallyBlocked > 0) status = 'blocked'
+    return { domain, label, question, launchReady, codeComplete, total: its.length, externallyBlocked, criticalGaps, status }
   })
 
   const criticals = items.filter((i) => i.priority === 'CRITICAL')
-  const criticalReady = criticals.filter((i) => READY.has(i.status)).length
-  const blockers = criticals
-    .filter((i) => !READY.has(i.status))
-    .map((i) => ({ id: i.id, title: i.title, status: i.status }))
+  const criticalLaunchReady = criticals.filter(isLaunchReady).length
+  const criticalCodeComplete = criticals.filter(isCodeComplete).length
+  const blockers: Blocker[] = criticals
+    .filter((i) => !isLaunchReady(i))
+    .map((i) => ({ id: i.id, title: i.title, status: i.status, externallyBlocked: isExternallyBlocked(i) }))
+
+  const launchReady = items.filter(isLaunchReady).length
+  const codeComplete = items.filter(isCodeComplete).length
 
   return {
     pillars,
-    canLaunch: blockers.length === 0,
+    canLaunch: criticalLaunchReady === criticals.length,
+    launchReady,
+    total: items.length,
+    launchReadyPct: items.length ? Math.round((launchReady / items.length) * 100) : 0,
+    criticalLaunchReady,
     criticalTotal: criticals.length,
-    criticalReady,
+    codeComplete,
+    criticalCodeComplete,
+    externallyBlocked: items.filter(isExternallyBlocked).length,
+    internallyBlocked: items.filter(isInternallyBlocked).length,
     blockers,
-    readyPct: items.length ? Math.round((items.filter((i) => READY.has(i.status)).length / items.length) * 100) : 0,
   }
 }

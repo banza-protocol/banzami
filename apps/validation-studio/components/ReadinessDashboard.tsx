@@ -12,13 +12,17 @@ const RING: Record<PillarStatus, string> = {
 }
 
 export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
-  const { canLaunch, criticalReady, criticalTotal, blockers, pillars, readyPct } = readiness
+  const {
+    canLaunch, blockers, pillars,
+    launchReady, codeComplete, total, externallyBlocked, internallyBlocked,
+    criticalLaunchReady, criticalCodeComplete, criticalTotal,
+  } = readiness
 
   return (
     <section className="border-b border-gray-200 bg-white px-6 py-5">
       {/* Verdict */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-xl">
           <div className="text-[11px] font-semibold uppercase tracking-widest text-gray-400">
             Operator Readiness
           </div>
@@ -32,16 +36,28 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
               {canLaunch ? 'YES' : 'NOT YET'}
             </span>
           </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {canLaunch
-              ? 'All launch-critical capabilities are operational.'
-              : `${blockers.length} launch-critical ${blockers.length === 1 ? 'capability' : 'capabilities'} not yet operational.`}
+          {/* Honest subtitle: code-complete internally, launch awaits external providers. */}
+          <p className="mt-1.5 text-sm text-gray-600">
+            Code-complete internally — launch awaits external providers
+            <span className="text-gray-400"> (KYC vendor · funding &amp; withdrawal rails · BNA).</span>
+          </p>
+          <p className="mt-0.5 text-[13px] font-semibold text-emerald-700">
+            {internallyBlocked} {internallyBlocked === 1 ? 'item' : 'items'} blocked on internal engineering
           </p>
         </div>
-        <div className="flex gap-6 text-right">
-          <Metric value={`${criticalReady}/${criticalTotal}`} label="Critical ready" />
-          <Metric value={`${readyPct}%`} label="Overall ready" />
+        <div className="flex gap-5 text-right">
+          <Metric value={`${launchReady}/${total}`} label="Launch-ready" tone="emerald" />
+          <Metric value={`${codeComplete}/${total}`} label="Code-complete" tone="gray" />
+          <Metric value={`${externallyBlocked}`} label="Externally blocked" tone="amber" />
         </div>
+      </div>
+
+      {/* Critical: strict primary + code-complete helper */}
+      <div className="mt-3 flex items-baseline gap-2 text-sm">
+        <span className="font-bold tabular-nums text-gray-900">{criticalLaunchReady}/{criticalTotal}</span>
+        <span className="font-semibold text-gray-600">launch-critical</span>
+        <span className="text-gray-300">·</span>
+        <span className="tabular-nums text-gray-400">{criticalCodeComplete}/{criticalTotal} implemented</span>
       </div>
 
       {/* Pillars */}
@@ -54,38 +70,47 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
                 {p.label}
               </span>
               <span className="text-xs font-semibold text-gray-500">
-                {p.ready}/{p.total}
+                {p.launchReady}/{p.total}
               </span>
             </div>
             <p className="mt-1.5 text-xs text-gray-600">{p.question}</p>
-            {p.criticalGaps > 0 && (
-              <p className="mt-1 text-[11px] font-semibold text-red-600">
-                {p.criticalGaps} critical gap{p.criticalGaps === 1 ? '' : 's'}
-                {p.blocked > 0 ? ` · ${p.blocked} blocked` : ''}
+            {(p.codeComplete > p.launchReady || p.externallyBlocked > 0) && (
+              <p className="mt-1 text-[11px] font-medium text-gray-500">
+                {p.codeComplete > p.launchReady && `${p.codeComplete}/${p.total} code-complete`}
+                {p.codeComplete > p.launchReady && p.externallyBlocked > 0 ? ' · ' : ''}
+                {p.externallyBlocked > 0 && (
+                  <span className="font-semibold text-amber-700">{p.externallyBlocked} externally blocked</span>
+                )}
               </p>
             )}
           </div>
         ))}
       </div>
 
-      {/* Blockers */}
+      {/* Launch-critical gaps — all externally blocked */}
       {blockers.length > 0 && (
-        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-          <div className="text-[11px] font-semibold uppercase tracking-widest text-red-500">
-            Launch blockers — critical, not yet operational
+        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <div className="text-[11px] font-semibold uppercase tracking-widest text-amber-600">
+            Launch-critical gaps — not yet validated{' '}
+            {blockers.every((b) => b.externallyBlocked) && '(all externally blocked)'}
           </div>
           <div className="mt-2 flex flex-wrap gap-1.5">
             {blockers.map((b) => (
               <span
                 key={b.id}
-                className="inline-flex items-center gap-1.5 rounded border border-red-200 bg-white px-2 py-1 text-xs text-gray-700"
+                className="inline-flex items-center gap-1.5 rounded border border-amber-200 bg-white px-2 py-1 text-xs text-gray-700"
                 title={b.title}
               >
-                <span className="font-mono font-semibold text-red-600">{b.id}</span>
-                <span className="max-w-[220px] truncate">{b.title}</span>
-                <span className="rounded bg-red-100 px-1 text-[10px] font-semibold text-red-700">
+                <span className="font-mono font-semibold text-amber-700">{b.id}</span>
+                <span className="max-w-[200px] truncate">{b.title}</span>
+                <span className="rounded bg-gray-100 px-1 text-[10px] font-semibold text-gray-600">
                   {b.status}
                 </span>
+                {b.externallyBlocked && (
+                  <span className="rounded bg-amber-100 px-1 text-[10px] font-semibold text-amber-700">
+                    externally blocked
+                  </span>
+                )}
               </span>
             ))}
           </div>
@@ -95,10 +120,12 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
   )
 }
 
-function Metric({ value, label }: { value: string; label: string }) {
+function Metric({ value, label, tone }: { value: string; label: string; tone: 'emerald' | 'gray' | 'amber' }) {
+  const color =
+    tone === 'emerald' ? 'text-emerald-700' : tone === 'amber' ? 'text-amber-700' : 'text-gray-900'
   return (
     <div>
-      <div className="text-2xl font-extrabold tabular-nums text-gray-900">{value}</div>
+      <div className={`text-2xl font-extrabold tabular-nums ${color}`}>{value}</div>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
     </div>
   )
