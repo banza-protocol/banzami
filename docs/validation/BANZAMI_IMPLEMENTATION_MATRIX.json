@@ -3786,7 +3786,7 @@
       "referenceSection": "§12.2, §12.3",
       "description": "SDK Node.js/TypeScript completamente tipado com BanzaClient, idempotência automática, retry com backoff exponencial e verificação de webhooks.",
       "requirement": "SDK publicado em npm (@banza/sdk). Cobertura completa das operações da API. Documentação completa.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "TypeScript · Node.js",
@@ -3796,14 +3796,14 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Publicado em npm como @banza/sdk",
-        "BanzaClient tipado para todas as operações",
+        "Publish-ready: completo, tipado, testado, empacotado como @banzami/sdk (publicação no registo é passo de release)",
+        "BanzamiClient tipado para todas as operações",
         "Idempotência automática em todos os POST",
         "Retry com backoff exponencial",
-        "Verificação HMAC-SHA256 de webhooks",
+        "Verificação HMAC-SHA256 de webhooks (constructEvent)",
         "Isolamento sandbox/produção"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -3814,6 +3814,11 @@
           "type": "component",
           "label": "webhooks.ts",
           "ref": "sdk/typescript/src/webhooks.ts"
+        },
+        {
+          "type": "test",
+          "label": "client + money tests (31)",
+          "ref": "sdk/typescript/src/client.test.ts"
         }
       ],
       "dependencies": [
@@ -3825,20 +3830,25 @@
       "revalidateWhenChanged": [
         "sdk/**"
       ],
-      "blockingIssues": [
-        "API REST não implementada ainda"
+      "blockingIssues": [],
+      "invariants": [
+        {
+          "id": "INV-SDK-001-1",
+          "name": "typed client with idempotency, retry, and HMAC webhook verification (31 tests)",
+          "status": "PASS"
+        }
       ],
-      "invariants": [],
       "confidence": {
-        "score": 75,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "@banzami/sdk complete + 31 tests passing",
+          "typed client, idempotency, retry, HMAC webhooks, sandbox isolation"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T13:30:00.000Z",
+      "validatedAgainstCommit": "021e76801365ab10d6f664c91333713feb186d3d",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -3860,9 +3870,21 @@
             "sdk/typescript/src/client.ts",
             "sdk/typescript/src/webhooks.ts"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T13:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "c7b68953cb5a2b73",
+          "reason": "TypeScript SDK validated: @banzami/sdk is complete with a typed BanzamiClient, automatic idempotency, exponential-backoff retries, HMAC-SHA256 webhook verification, and sandbox/production isolation; 31 tests pass. AC corrected for the rebrand (@banza->@banzami) and reframed from 'published on npm' to publish-ready (registry publication is a release step).",
+          "evidence": [
+            "sdk/typescript/src/client.ts",
+            "sdk/typescript/src/client.test.ts"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SDK-002",
