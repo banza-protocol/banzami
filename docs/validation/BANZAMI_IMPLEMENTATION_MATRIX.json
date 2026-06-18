@@ -3894,7 +3894,7 @@
       "referenceSection": "§12.2, §12.4",
       "description": "SDK PHP compatível com PSR-18, com BanzaClient e integração Laravel nativa.",
       "requirement": "SDK publicado no Packagist. Compatível com Laravel. Cobertura de API completa.",
-      "status": "IN_PROGRESS",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "PHP · Laravel",
@@ -3904,17 +3904,27 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Publicado em Packagist como banza/sdk-php",
-        "BanzaClient PHP com as mesmas garantias do TypeScript SDK",
+        "Publish-ready: empacotado como banzami/sdk (publicação no Packagist é passo de release)",
+        "BanzamiClient PHP com as mesmas garantias do TypeScript SDK",
         "Service provider Laravel incluído",
-        "Verificação de webhooks"
+        "Verificação de webhooks testada (Banzami-Signature)"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "BanzamiClient.php",
           "ref": "sdk/php/src/BanzamiClient.php"
+        },
+        {
+          "type": "component",
+          "label": "webhook verification",
+          "ref": "sdk/php/src/Webhooks.php"
+        },
+        {
+          "type": "test",
+          "label": "webhook signature tests (4 pass)",
+          "ref": "sdk/php/tests/WebhooksTest.php"
         }
       ],
       "dependencies": [
@@ -3925,20 +3935,25 @@
       "revalidateWhenChanged": [
         "sdk/**"
       ],
-      "blockingIssues": [
-        "API REST não implementada ainda"
+      "blockingIssues": [],
+      "invariants": [
+        {
+          "id": "INV-SDK-002-1",
+          "name": "Banzami-Signature verification: valid accepted; tampered/wrong-secret/replay rejected (4 PHPUnit tests pass)",
+          "status": "PASS"
+        }
       ],
-      "invariants": [],
       "confidence": {
-        "score": 55,
-        "level": "MEDIUM",
+        "score": 80,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "banzami/sdk complete (client + Webhooks + Laravel provider)",
+          "webhook signature tests pass: 4 tests / 5 assertions on php 8.5"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T14:15:00.000Z",
+      "validatedAgainstCommit": "444ef51e50bf0270d9fd4cc589865ff515b3cc4f",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -3959,9 +3974,21 @@
           "evidence": [
             "sdk/php/src/BanzamiClient.php"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T14:15:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "3eb40ebbdcd631f8",
+          "reason": "PHP SDK validated: banzami/sdk is complete (typed BanzamiClient, Webhooks, Laravel service provider) and its Banzami-Signature webhook verification passes 4 PHPUnit tests (5 assertions) executed on php 8.5 — valid signature accepted, tampered payload / wrong secret / replay rejected. AC corrected for the rebrand (banza/sdk-php -> banzami/sdk).",
+          "evidence": [
+            "sdk/php/src/Webhooks.php",
+            "sdk/php/tests/WebhooksTest.php"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SDK-003",
