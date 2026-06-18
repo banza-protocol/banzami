@@ -22,6 +22,10 @@ type Config struct {
 	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
 	// When empty, push notifications are silently disabled.
 	FirebaseCredentialsJSON string
+
+	// WebhookEncryptionKey is a base64-encoded 32-byte key used to encrypt
+	// webhook signing secrets at rest (SEC-002). Empty → plaintext (dev only).
+	WebhookEncryptionKey string
 }
 
 func Load() (*Config, error) {
@@ -51,6 +55,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		cfg.DatabaseURL = v
+	}
+	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {
+		cfg.WebhookEncryptionKey = v
 	}
 	if v := os.Getenv("REDIS_URL"); v != "" {
 		cfg.RedisURL = v

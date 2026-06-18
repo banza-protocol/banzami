@@ -14,6 +14,7 @@ import (
 	"github.com/redis/go-redis/v9"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
+	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
 	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/observability"
 	"github.com/banzami/banzami/services/api-gateway/internal/server"
@@ -67,7 +68,15 @@ func main() {
 			slog.Error("webhook db connect error", "error", err)
 			os.Exit(1)
 		}
-		pgWebhook := service.NewPostgresWebhookService(dbPool)
+		secretCipher, err := crypto.NewSecretCipher(cfg.WebhookEncryptionKey)
+		if err != nil {
+			slog.Error("webhook encryption key error", "error", err)
+			os.Exit(1)
+		}
+		if secretCipher == nil {
+			slog.Warn("[SEC-002] WEBHOOK_ENCRYPTION_KEY not set — webhook secrets stored in plaintext (dev only)")
+		}
+		pgWebhook := service.NewPostgresWebhookService(dbPool, secretCipher)
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
 		webhookSvc = pgWebhook
 		teamSvc = service.NewPostgresTeamService(dbPool)

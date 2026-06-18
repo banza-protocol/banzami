@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -33,12 +34,14 @@ var backoffSchedule = []time.Duration{
 type PostgresWebhookService struct {
 	pool   *pgxpool.Pool
 	client *http.Client
+	cipher *crypto.SecretCipher // encrypts webhook signing secrets at rest (SEC-002)
 }
 
-func NewPostgresWebhookService(pool *pgxpool.Pool) *PostgresWebhookService {
+func NewPostgresWebhookService(pool *pgxpool.Pool, cipher *crypto.SecretCipher) *PostgresWebhookService {
 	return &PostgresWebhookService{
 		pool:   pool,
 		client: &http.Client{Timeout: 30 * time.Second},
+		cipher: cipher,
 	}
 }
 
@@ -71,10 +74,17 @@ func (s *PostgresWebhookService) RegisterEndpoint(
 	id := uuid.NewString()
 	now := time.Now().UTC()
 
-	_, err := s.pool.Exec(ctx,
+	// Store the signing secret encrypted at rest (SEC-002). The plaintext is
+	// returned to the merchant once, here, and never persisted in the clear.
+	storedSecret, err := s.cipher.Encrypt(secret)
+	if err != nil {
+		return nil, fmt.Errorf("encrypt webhook secret: %w", err)
+	}
+
+	_, err = s.pool.Exec(ctx,
 		`INSERT INTO webhook_endpoints (id, merchant_id, url, events, active, secret, created_at)
 		 VALUES ($1, $2, $3, $4, true, $5, $6)`,
-		id, req.MerchantID, req.URL, req.Events, secret, now,
+		id, req.MerchantID, req.URL, req.Events, storedSecret, now,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("register webhook endpoint: %w", err)
@@ -367,11 +377,11 @@ func (s *PostgresWebhookService) EndpointHealth(ctx context.Context, merchantID,
 	}
 
 	type statsRow struct {
-		Total          int
-		Success        int
-		Failed         int
-		LastDelivered  *time.Time
-		LastFailed     *time.Time
+		Total         int
+		Success       int
+		Failed        int
+		LastDelivered *time.Time
+		LastFailed    *time.Time
 	}
 
 	var stats statsRow
@@ -463,7 +473,14 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 	now := time.Now().UTC()
 	attempt := d.attemptCount + 1
 
-	statusCode, respBody, deliveryErr := s.httpPost(d.url, d.secret, now, d.payload)
+	// Decrypt the at-rest signing secret to sign this delivery (SEC-002).
+	// Legacy plaintext secrets pass through unchanged.
+	secret, err := s.cipher.Decrypt(d.secret)
+	if err != nil {
+		slog.Error("[webhook] could not decrypt signing secret", "delivery_id", d.id, "error", err)
+		secret = d.secret
+	}
+	statusCode, respBody, deliveryErr := s.httpPost(d.url, secret, now, d.payload)
 
 	if deliveryErr == nil && statusCode < 400 {
 		// Success — mark terminal.
@@ -515,7 +532,7 @@ func (s *PostgresWebhookService) attemptDelivery(ctx context.Context, d pendingD
 	}
 	nextAt := now.Add(backoffSchedule[backoffIdx])
 
-	_, err := s.pool.Exec(ctx,
+	_, err = s.pool.Exec(ctx,
 		`UPDATE webhook_deliveries
 		 SET attempt_count = $2,
 		     status_code   = $3,
