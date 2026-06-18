@@ -56,6 +56,8 @@ func (s *PostgresWebhookService) StartWorker(ctx context.Context) {
 			case <-ctx.Done():
 				return
 			case <-ticker.C:
+				// Fan out core-emitted outbox events first, then deliver.
+				s.processOutbox(ctx)
 				s.processPendingDeliveries(ctx)
 			}
 		}
@@ -191,10 +193,11 @@ func (s *PostgresWebhookService) Dispatch(
 	}
 	defer tx.Rollback(ctx) //nolint:errcheck
 
-	// Persist the event.
+	// Persist the event. This inline path creates its deliveries in the same
+	// transaction, so the event is already dispatched — the outbox worker skips it.
 	_, err = tx.Exec(ctx,
-		`INSERT INTO webhook_events (id, merchant_id, event_type, payload, created_at)
-		 VALUES ($1, $2, $3, $4, $5)`,
+		`INSERT INTO webhook_events (id, merchant_id, event_type, payload, created_at, dispatched_at)
+		 VALUES ($1, $2, $3, $4, $5, $5)`,
 		eventID, req.MerchantID, req.EventType, envelope, now,
 	)
 	if err != nil {
@@ -430,6 +433,59 @@ type pendingDelivery struct {
 	payload      []byte
 	url          string
 	secret       string
+}
+
+// processOutbox fans core-emitted events (the transactional outbox written by
+// the Rust core for refund.completed / dispute.opened / dispute.resolved) out
+// into per-endpoint deliveries. Rows with dispatched_at IS NULL are awaiting
+// fan-out; the inline Dispatch path sets dispatched_at itself and is skipped.
+func (s *PostgresWebhookService) processOutbox(ctx context.Context) {
+	rows, err := s.pool.Query(ctx,
+		`SELECT id, merchant_id, event_type FROM webhook_events
+		 WHERE dispatched_at IS NULL
+		 ORDER BY created_at
+		 LIMIT 100`,
+	)
+	if err != nil {
+		slog.Error("webhook outbox: query failed", "error", err)
+		return
+	}
+	type outboxEvent struct {
+		id, merchantID, eventType string
+	}
+	var events []outboxEvent
+	for rows.Next() {
+		var e outboxEvent
+		if err := rows.Scan(&e.id, &e.merchantID, &e.eventType); err != nil {
+			slog.Error("webhook outbox: scan failed", "error", err)
+			continue
+		}
+		events = append(events, e)
+	}
+	rows.Close()
+
+	for _, e := range events {
+		// Create one PENDING delivery per matching active endpoint.
+		_, err := s.pool.Exec(ctx,
+			`INSERT INTO webhook_deliveries (id, event_id, endpoint_id, status, scheduled_at, created_at)
+			 SELECT gen_random_uuid(), $1, ep.id, 'PENDING', now(), now()
+			 FROM webhook_endpoints ep
+			 WHERE ep.merchant_id = $2 AND ep.active = true
+			   AND ($3 = ANY(ep.events) OR '*' = ANY(ep.events))
+			 ON CONFLICT (event_id, endpoint_id) DO NOTHING`,
+			e.id, e.merchantID, e.eventType,
+		)
+		if err != nil {
+			slog.Error("webhook outbox: fan-out failed", "event_id", e.id, "error", err)
+			continue
+		}
+		// Mark dispatched even when there are no endpoints — the event is handled.
+		if _, err := s.pool.Exec(ctx,
+			`UPDATE webhook_events SET dispatched_at = now() WHERE id = $1`, e.id,
+		); err != nil {
+			slog.Error("webhook outbox: mark dispatched failed", "event_id", e.id, "error", err)
+		}
+	}
 }
 
 func (s *PostgresWebhookService) processPendingDeliveries(ctx context.Context) {

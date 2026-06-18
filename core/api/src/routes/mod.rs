@@ -26,3 +26,4 @@ pub mod transactions;
 pub mod transfers;
 pub mod wallet_payments;
 pub mod wallets;
+pub mod webhooks;

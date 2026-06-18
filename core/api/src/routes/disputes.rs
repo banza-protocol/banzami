@@ -157,6 +157,28 @@ pub async fn open(
     )
     .await;
 
+    // Emit dispute.opened to the outbox (delivered to the affected merchant only).
+    // Idempotent on the dispute id — only one event per dispute opening.
+    let _ = super::webhooks::emit(
+        &state.pool,
+        merchant_id,
+        "dispute.opened",
+        &format!("dispute.opened:{dispute_id}"),
+        serde_json::json!({
+            "dispute_id": dispute_id,
+            "transaction_id": transaction_id,
+            "merchant_id": merchant_id,
+            "consumer_id": consumer_id,
+            "amount_minor": amount_minor,
+            "currency": currency,
+            "status": "OPEN",
+            "reason": body.reason,
+            "trace_id": dispute_id,
+            "created_at": Utc::now(),
+        }),
+    )
+    .await;
+
     let dispute = fetch_dispute(&state.pool, dispute_id).await?;
     Ok((StatusCode::CREATED, Json(dispute)))
 }
@@ -481,6 +503,28 @@ pub async fn resolve(
         &format!("dispute:{dispute_id}"),
         serde_json::json!({ "outcome": body.outcome, "resolved_by": resolved_by }),
         None,
+    )
+    .await;
+
+    // Emit dispute.resolved to the outbox (delivered to the affected merchant
+    // only). Idempotent on the dispute id — no duplicate on replay (a second
+    // resolve is rejected earlier as DISPUTE_ALREADY_RESOLVED).
+    let _ = super::webhooks::emit(
+        &state.pool,
+        dispute.merchant_id,
+        "dispute.resolved",
+        &format!("dispute.resolved:{dispute_id}"),
+        serde_json::json!({
+            "dispute_id": dispute_id,
+            "resolution": body.outcome,
+            "merchant_id": dispute.merchant_id,
+            "consumer_id": dispute.consumer_id,
+            "amount_minor": dispute.amount_minor,
+            "currency": dispute.currency,
+            "status": body.outcome,
+            "trace_id": dispute_id,
+            "resolved_at": now,
+        }),
     )
     .await;
 

@@ -279,6 +279,27 @@ pub async fn create(
     )
     .await;
 
+    // Emit refund.completed to the outbox (delivered to the source merchant only).
+    // Fires only here, after the refund SUCCEEDED; idempotent on the refund id.
+    let _ = super::webhooks::emit(
+        &state.pool,
+        merchant_id,
+        "refund.completed",
+        &format!("refund.completed:{actual_id}"),
+        serde_json::json!({
+            "refund_id": actual_id,
+            "source_type": source_type,
+            "source_id": source_id,
+            "merchant_id": merchant_id,
+            "amount_minor": body.amount_minor,
+            "currency": resolved.currency,
+            "status": "SUCCEEDED",
+            "trace_id": body.idempotency_key,
+            "created_at": now,
+        }),
+    )
+    .await;
+
     let refund = fetch_refund(&state.pool, actual_id).await?;
     Ok((StatusCode::CREATED, Json(refund)))
 }

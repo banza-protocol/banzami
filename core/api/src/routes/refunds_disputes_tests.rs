@@ -504,6 +504,51 @@ async fn wallet_payment_source_not_modified(pool: PgPool) {
     assert_eq!(amount, 2_000, "source amount unchanged");
 }
 
+async fn webhook_events_for(pool: &PgPool, event_type: &str, merchant: Uuid) -> i64 {
+    sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM webhook_events
+         WHERE event_type = $1 AND merchant_id = $2",
+    )
+    .bind(event_type)
+    .bind(merchant)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+// refund.completed is emitted to the outbox for the source merchant, once.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_emits_completed_event_idempotently(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+
+    for _ in 0..2 {
+        let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 500, "rk")))
+            .await
+            .expect("refund");
+    }
+    // Idempotent replay → exactly one event, for the right merchant.
+    assert_eq!(
+        webhook_events_for(&pool, "refund.completed", seed.merchant_id).await,
+        1,
+        "one refund.completed for the source merchant"
+    );
+    // Not delivered to an unrelated merchant.
+    assert_eq!(
+        webhook_events_for(&pool, "refund.completed", Uuid::new_v4()).await,
+        0
+    );
+    // Left undispatched for the gateway fan-out worker.
+    let undispatched = sqlx::query_scalar::<_, i64>(
+        "SELECT COUNT(*)::BIGINT FROM webhook_events
+         WHERE event_type = 'refund.completed' AND dispatched_at IS NULL",
+    )
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(undispatched, 1, "outbox row awaits fan-out");
+}
+
 async fn entry_on_account(pool: &PgPool, key: &str, etype: &str, account: Uuid) -> i64 {
     sqlx::query_scalar::<_, i64>(
         "SELECT COALESCE(SUM(e.amount_minor),0)::BIGINT FROM ledger_entries e
@@ -763,4 +808,41 @@ async fn dispute_open_and_resolve_are_audited(pool: PgPool) {
     .unwrap();
     assert_eq!(opened, 1, "DISPUTE_OPENED audited");
     assert_eq!(resolved, 1, "DISPUTE_RESOLVED audited");
+}
+
+// dispute.opened and dispute.resolved are emitted to the outbox for the affected
+// merchant, each once (resolve is idempotent — a second resolve is rejected).
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn dispute_emits_opened_and_resolved_events(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 2_000).await;
+    let d = open_dispute(&state, seed.transaction_id, Uuid::new_v4()).await;
+
+    let _ = disputes::resolve(
+        State(state),
+        Path(d.id.clone()),
+        Json(disputes::ResolveDisputeBody {
+            outcome: "WON_BY_MERCHANT".into(),
+            resolution_notes: None,
+            resolved_by: Uuid::new_v4().to_string(),
+        }),
+    )
+    .await
+    .expect("resolve");
+
+    assert_eq!(
+        webhook_events_for(&pool, "dispute.opened", seed.merchant_id).await,
+        1,
+        "one dispute.opened for the merchant"
+    );
+    assert_eq!(
+        webhook_events_for(&pool, "dispute.resolved", seed.merchant_id).await,
+        1,
+        "one dispute.resolved for the merchant"
+    );
+    // Nothing leaks to an unrelated merchant.
+    assert_eq!(
+        webhook_events_for(&pool, "dispute.opened", Uuid::new_v4()).await,
+        0
+    );
 }
