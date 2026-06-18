@@ -4485,7 +4485,7 @@
       "referenceSection": "§12.6, §18.4",
       "description": "Entrega de eventos em tempo real para endpoints registados — 9 tipos de evento, entrega garantida, retry automático.",
       "requirement": "Eventos entregues em menos de 2 segundos após acção desencadeadora. Retry com backoff. Rastreamento de entregas.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Webhooks",
       "technicalArea": "Go · Redis · PostgreSQL",
@@ -4500,7 +4500,7 @@
         "Todos os 9 tipos de evento implementados",
         "Endpoint de inspecção de entregas"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
@@ -4511,6 +4511,11 @@
           "type": "config",
           "label": "0009_webhooks_schema.sql",
           "ref": "db/migrations/0009_webhooks_schema.sql"
+        },
+        {
+          "type": "handler",
+          "label": "delivery inspection endpoint",
+          "ref": "services/api-gateway/internal/handler/webhooks.go"
         }
       ],
       "dependencies": [
@@ -4524,15 +4529,16 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 80,
-        "level": "VERY_HIGH",
+        "score": 82,
+        "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "async delivery worker + retry (WH-003) + signed (WH-002)",
+          "delivery state + inspection via API"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T12:50:00.000Z",
+      "validatedAgainstCommit": "6c6f1ef9c2f114f426d291cc1a9535305ffc5d97",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4554,9 +4560,21 @@
             "services/api-gateway/internal/service/postgres_webhooks.go",
             "db/migrations/0009_webhooks_schema.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T12:50:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "27e8e20307f3a83a",
+          "reason": "Webhook delivery system validated: a background worker dispatches events asynchronously with signed payloads (WH-002) and exponential-backoff retries (WH-003), delivery state is persisted and queryable, and deliveries are inspectable via the API.",
+          "evidence": [
+            "services/api-gateway/internal/service/postgres_webhooks.go",
+            "services/api-gateway/internal/handler/webhooks.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "WH-002",
