@@ -128,10 +128,95 @@ async fn count_postings(pool: &PgPool, idempotency_key: &str) -> i64 {
 
 fn refund_body(seed: &Seed, amount: i64, key: &str) -> refunds::CreateRefundBody {
     refunds::CreateRefundBody {
-        transaction_id: seed.transaction_id.to_string(),
+        source_type: None, // defaults to TRANSACTION
+        source_id: None,
+        transaction_id: Some(seed.transaction_id.to_string()),
         merchant_id: seed.merchant_id.to_string(),
         amount_minor: amount,
         reason: Some("test".into()),
+        idempotency_key: key.to_string(),
+    }
+}
+
+/// A seeded wallet-native merchant payment with both wallets provisioned.
+struct WalletPaymentSeed {
+    merchant_id: Uuid,
+    merchant_account: Uuid,
+    consumer_id: Uuid,
+    consumer_account: Uuid,
+    wallet_payment_id: Uuid,
+}
+
+async fn seed_wallet_payment(pool: &PgPool, amount: i64) -> WalletPaymentSeed {
+    // Merchant wallet.
+    let merchant_id = Uuid::new_v4();
+    let m_avail = ledger_account_typed(pool, "LIABILITY", "wp-merchant-available").await;
+    let m_res = ledger_account_typed(pool, "LIABILITY", "wp-merchant-reserved").await;
+    let m_wallet = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO wallets (id, merchant_id, currency, status, available_account_id, reserved_account_id)
+         VALUES ($1, $2, 'AOA', 'ACTIVE', $3, $4)",
+    )
+    .bind(m_wallet).bind(merchant_id).bind(m_avail).bind(m_res)
+    .execute(pool).await.unwrap();
+
+    // Consumer + consumer wallet.
+    let consumer_id = Uuid::new_v4();
+    sqlx::query("INSERT INTO consumers (id, handle, status) VALUES ($1, $2, 'ACTIVE')")
+        .bind(consumer_id)
+        .bind(format!("c{}", &consumer_id.to_string()[..8]))
+        .execute(pool)
+        .await
+        .unwrap();
+    let c_avail = ledger_account_typed(pool, "LIABILITY", "wp-consumer-available").await;
+    let c_res = ledger_account_typed(pool, "LIABILITY", "wp-consumer-reserved").await;
+    sqlx::query(
+        "INSERT INTO consumer_wallets (id, consumer_id, currency, status, available_account_id, reserved_account_id)
+         VALUES ($1, $2, 'AOA', 'ACTIVE', $3, $4)",
+    )
+    .bind(Uuid::new_v4()).bind(consumer_id).bind(c_avail).bind(c_res)
+    .execute(pool).await.unwrap();
+
+    // The wallet-native merchant payment (COMPLETED).
+    let wp_id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO wallet_payments
+            (id, transfer_id, merchant_id, consumer_id, amount_minor, currency, status, trace_id, environment)
+         VALUES ($1, $2, $3, $4, $5, 'AOA', 'COMPLETED', 'trace', 'SANDBOX')",
+    )
+    .bind(wp_id).bind(Uuid::new_v4()).bind(merchant_id).bind(consumer_id).bind(amount)
+    .execute(pool).await.unwrap();
+
+    WalletPaymentSeed {
+        merchant_id,
+        merchant_account: m_avail,
+        consumer_id,
+        consumer_account: c_avail,
+        wallet_payment_id: wp_id,
+    }
+}
+
+async fn ledger_account_typed(pool: &PgPool, atype: &str, name: &str) -> Uuid {
+    sqlx::query_scalar::<_, Uuid>(
+        "INSERT INTO ledger_accounts (id, account_type, name, currency)
+         VALUES ($1, $2, $3, 'AOA') RETURNING id",
+    )
+    .bind(Uuid::new_v4())
+    .bind(atype)
+    .bind(name)
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+fn wp_refund_body(s: &WalletPaymentSeed, amount: i64, key: &str) -> refunds::CreateRefundBody {
+    refunds::CreateRefundBody {
+        source_type: Some("WALLET_PAYMENT".into()),
+        source_id: Some(s.wallet_payment_id.to_string()),
+        transaction_id: None,
+        merchant_id: s.merchant_id.to_string(),
+        amount_minor: amount,
+        reason: Some("wallet-native refund".into()),
         idempotency_key: key.to_string(),
     }
 }
@@ -298,6 +383,139 @@ async fn refund_is_traceable_via_event_and_audit_log(pool: PgPool) {
     .await
     .unwrap();
     assert_eq!(audits, 1, "immutable audit-log entry recorded");
+}
+
+// ── REF-001 (Step 2B) — wallet-native (source_type = WALLET_PAYMENT) ─────────
+
+// A wallet-native refund credits the original payer's consumer wallet (not
+// transit) with a balanced double entry: merchant.available DR == consumer CR.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn wallet_native_refund_credits_consumer(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 2_000).await;
+
+    let (_, Json(resp)) = refunds::create(State(state), Json(wp_refund_body(&s, 2_000, "wn1")))
+        .await
+        .expect("wallet-native refund should succeed");
+    assert_eq!(resp.status, "SUCCEEDED");
+    assert_eq!(resp.source_type, "WALLET_PAYMENT");
+    assert_eq!(
+        resp.consumer_id.as_deref(),
+        Some(s.consumer_id.to_string().as_str())
+    );
+
+    let key = format!("refund-{}", resp.id);
+    let (debit, credit) = posting_sums(&pool, &key).await;
+    assert_eq!(debit, 2_000, "merchant debited");
+    assert_eq!(credit, 2_000, "consumer credited");
+    assert_eq!(debit, credit, "no money creation");
+
+    // The DR hits the merchant account and the CR hits the consumer account.
+    let merchant_dr = entry_on_account(&pool, &key, "DEBIT", s.merchant_account).await;
+    let consumer_cr = entry_on_account(&pool, &key, "CREDIT", s.consumer_account).await;
+    assert_eq!(merchant_dr, 2_000, "merchant available debited");
+    assert_eq!(
+        consumer_cr, 2_000,
+        "consumer available credited (not transit)"
+    );
+}
+
+// Over-refund is rejected and partials aggregate by the wallet-payment source.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn wallet_native_ceiling_by_source(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 1_000).await;
+
+    let _ = refunds::create(State(state.clone()), Json(wp_refund_body(&s, 600, "c1")))
+        .await
+        .expect("partial ok");
+    let err = refunds::create(State(state.clone()), Json(wp_refund_body(&s, 500, "c2")))
+        .await
+        .expect_err("over-refund blocked");
+    assert_eq!(err.code, "REFUND_EXCEEDS_CAPTURED");
+    let _ = refunds::create(State(state), Json(wp_refund_body(&s, 400, "c3")))
+        .await
+        .expect("refund to the ceiling ok");
+}
+
+// Idempotent replay of a wallet-native refund creates a single posting.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn wallet_native_refund_idempotent(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 1_000).await;
+    let (_, Json(a)) = refunds::create(State(state.clone()), Json(wp_refund_body(&s, 700, "same")))
+        .await
+        .unwrap();
+    let (_, Json(b)) = refunds::create(State(state), Json(wp_refund_body(&s, 700, "same")))
+        .await
+        .unwrap();
+    assert_eq!(a.id, b.id, "replay returns same refund");
+    assert_eq!(count_postings(&pool, &format!("refund-{}", a.id)).await, 1);
+}
+
+// Only the owning merchant may refund a wallet payment.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn wrong_merchant_cannot_refund_wallet_payment(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 1_000).await;
+    let mut body = wp_refund_body(&s, 500, "x");
+    body.merchant_id = Uuid::new_v4().to_string(); // a different merchant
+    let err = refunds::create(State(state), Json(body))
+        .await
+        .expect_err("foreign merchant cannot refund");
+    assert_eq!(err.code, "REFUND_NOT_AUTHORIZED");
+}
+
+// A P2P transfer (no wallet_payment row) is not refundable through this path.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn p2p_transfer_is_not_refundable(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let body = refunds::CreateRefundBody {
+        source_type: Some("WALLET_PAYMENT".into()),
+        source_id: Some(Uuid::new_v4().to_string()), // a transfer/unknown id
+        transaction_id: None,
+        merchant_id: Uuid::new_v4().to_string(),
+        amount_minor: 100,
+        reason: None,
+        idempotency_key: "p2p".into(),
+    };
+    let err = refunds::create(State(state), Json(body))
+        .await
+        .expect_err("no wallet payment exists");
+    assert_eq!(err.code, "NOT_FOUND");
+}
+
+// The source wallet_payment is never mutated by a refund.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn wallet_payment_source_not_modified(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let s = seed_wallet_payment(&pool, 2_000).await;
+    let _ = refunds::create(State(state), Json(wp_refund_body(&s, 1_000, "nm")))
+        .await
+        .unwrap();
+    let (status, amount) = sqlx::query_as::<_, (String, i64)>(
+        "SELECT status, amount_minor FROM wallet_payments WHERE id = $1",
+    )
+    .bind(s.wallet_payment_id)
+    .fetch_one(&pool)
+    .await
+    .unwrap();
+    assert_eq!(status, "COMPLETED", "source status unchanged");
+    assert_eq!(amount, 2_000, "source amount unchanged");
+}
+
+async fn entry_on_account(pool: &PgPool, key: &str, etype: &str, account: Uuid) -> i64 {
+    sqlx::query_scalar::<_, i64>(
+        "SELECT COALESCE(SUM(e.amount_minor),0)::BIGINT FROM ledger_entries e
+         JOIN ledger_postings p ON p.id = e.posting_id
+         WHERE p.idempotency_key = $1 AND e.entry_type = $2 AND e.account_id = $3",
+    )
+    .bind(key)
+    .bind(etype)
+    .bind(account)
+    .fetch_one(pool)
+    .await
+    .unwrap()
 }
 
 // ═══════════════════════════ REF-002 — disputes ═══════════════════════════
