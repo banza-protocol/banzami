@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-18",
+    "lastUpdated": "2026-06-19",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -6989,7 +6989,7 @@
       "referenceSection": "§7, §11.2.2",
       "description": "Consumidor abre disputa sobre uma transacção. Comerciante responde. Processo estruturado de resolução com trilho de auditoria.",
       "requirement": "Disputas abertas via app, com prazo de resposta, evidências e decisão documentada.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Disputes",
       "technicalArea": "Go · Admin Platform",
@@ -7025,6 +7025,21 @@
           "type": "migration",
           "label": "audit action constraint fix",
           "ref": "db/migrations/0045_audit_log_refund_dispute_actions.sql"
+        },
+        {
+          "type": "migration",
+          "label": "webhook outbox",
+          "ref": "db/migrations/0048_webhook_events_outbox.sql"
+        },
+        {
+          "type": "component",
+          "label": "core webhook emit (dispute.opened/resolved)",
+          "ref": "core/api/src/routes/webhooks.rs"
+        },
+        {
+          "type": "component",
+          "label": "gateway outbox fan-out + signed delivery",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
         }
       ],
       "dependencies": [
@@ -7040,10 +7055,7 @@
         "core/wallets/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [
-        "Architecture lock: requires REF-001, which is IMPLEMENTED (not VALIDATED) — REF-002 cannot be VALIDATED until REF-001 is.",
-        "Webhook AC unmet: dispute.opened and dispute.resolved are not delivered to merchants."
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-REF-002-1",
@@ -7065,16 +7077,17 @@
         }
       ],
       "confidence": {
-        "score": 78,
-        "level": "MEDIUM",
+        "score": 85,
+        "level": "HIGH",
         "basis": [
-          "real-DB #[sqlx::test] tests pass: lifecycle, duplicate-open block, resolve idempotency, WON_BY_CONSUMER balanced posting, audit trail",
-          "locked behind REF-001 (not VALIDATED); dispute webhook delivery unmet"
+          "dispute lifecycle + resolve idempotency + WON_BY_CONSUMER balanced posting invariants PASS",
+          "audit trail recorded (migration 0045); real-DB tests",
+          "dispute.opened/resolved delivered via outbox -> fan-out -> signed delivery with retry"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-19T00:05:00.000Z",
+      "validatedAgainstCommit": "b9935d914cda133d8eed5699539f0302d6f5f595",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -7108,9 +7121,23 @@
             "core/api/src/routes/refunds_disputes_tests.rs",
             "db/migrations/0045_audit_log_refund_dispute_actions.sql"
           ]
+        },
+        {
+          "timestamp": "2026-06-19T00:05:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "8b60fd44b1640d0b",
+          "reason": "All REF-002 acceptance criteria pass and REF-001 (its hard dependency) is VALIDATED. The dispute lifecycle is consistent (OPEN -> UNDER_REVIEW -> terminal; duplicate-open and double-resolve blocked), the decision is recorded with an immutable audit trail (migration 0045), and a WON_BY_CONSUMER resolution posts a balanced merchant-DR/consumer-CR refund with no money creation. dispute.opened and dispute.resolved are delivered through the transactional outbox: the core emits idempotently, the gateway fans out to the affected merchant only and delivers signed with Banza-Signature with retry. Invariants INV-REF-002-1/2/3 PASS; real-DB tests. Confidence 78->85; webhook blocker cleared.",
+          "evidence": [
+            "db/migrations/0048_webhook_events_outbox.sql",
+            "core/api/src/routes/webhooks.rs",
+            "services/api-gateway/internal/service/postgres_webhooks.go",
+            "commit:b9935d9"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-06-19"
     },
     {
       "id": "OBS-001",
