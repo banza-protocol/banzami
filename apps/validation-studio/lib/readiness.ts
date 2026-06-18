@@ -30,8 +30,8 @@ const READY = new Set(['VALIDATED', 'IMPLEMENTED'])
 // Each pillar answers one launch question.
 const PILLARS: { domain: ValidationDomain; label: string; question: string }[] = [
   { domain: 'DOM-MONEY-MOVE', label: 'Money Movement',  question: 'Can money move between wallets?' },
-  { domain: 'DOM-MONEY-IN',   label: 'Money In',         question: 'Can real Kwanza enter the system?' },
-  { domain: 'DOM-MONEY-OUT',  label: 'Money Out',        question: 'Can money leave to a bank account?' },
+  { domain: 'DOM-MONEY-IN',   label: 'Money In',         question: 'Can real Kwanza enter the system through at least one approved provider or banking rail?' },
+  { domain: 'DOM-MONEY-OUT',  label: 'Money Out',        question: 'Can money leave the system to a bank account or external rail through at least one approved provider?' },
   { domain: 'DOM-IDENTITY',   label: 'Identity',         question: 'Can consumers use wallets & @handles?' },
   { domain: 'DOM-MERCHANT',   label: 'Merchant',         question: 'Can merchants accept & manage payments?' },
   { domain: 'DOM-DEVELOPER',  label: 'Developer',        question: 'Can developers integrate safely?' },

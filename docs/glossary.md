@@ -29,7 +29,7 @@ A human-readable payment address uniquely identifying a consumer or merchant on 
 
 ## Acquiring
 
-The process of accepting payment card transactions. In Banza, acquiring refers specifically to EMIS/Multicaixa Express integration — the mechanism by which card payments are accepted and settled into Banzami wallets. Implemented in the `acquiring` Rust crate. Capability: `acquiring.emis`.
+The process of accepting real-money payments into Banzami wallets. Acquiring is **provider-agnostic**: the `acquiring` Rust crate defines an `AcquirerProvider` trait, and EMIS/Multicaixa Express is **one possible provider implementation** (selected via `ACQUIRING_PROVIDER=EMIS`), alongside a simulated provider for sandbox and future partner-bank or other licensed rails. EMIS is a rail, not the sole dependency.
 
 ---
 
@@ -264,7 +264,7 @@ A complete set of balanced ledger entries that are committed atomically. A posti
 
 ## Provider
 
-A payment rail provider. Banza integrates with EMIS (Empresa Interbancária de Serviços) and Multicaixa Express as payment rail providers for acquiring and settlement.
+A payment rail that moves real money in or out of Banzami wallets. Money In, Money Out, and settlement are **provider-agnostic capabilities**: any approved provider can satisfy them. Possible providers/rails include EMIS (Empresa Interbancária de Serviços) / Multicaixa Express, partner banks, direct bank transfers, settlement accounts, and other licensed providers. EMIS is **one** possible rail, not the sole dependency — Banzami needs at least one approved provider operational in production for funding, withdrawals, settlement, and reconciliation.
 
 ---
 
