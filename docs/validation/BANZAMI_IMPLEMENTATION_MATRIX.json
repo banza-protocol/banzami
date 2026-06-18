@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-17",
+    "lastUpdated": "2026-06-18",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -4881,7 +4881,7 @@
       "referenceSection": "§16.2",
       "description": "Entradas de ledger nunca editadas ou apagadas. Reembolsos criam novas entradas opostas. Histórico financeiro completo e inviolável.",
       "requirement": "Nenhum UPDATE ou DELETE nas tabelas de ledger. Reembolso = nova entrada oposta. Histórico completamente reconstruível.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Ledger (Rust)",
       "technicalArea": "Rust · PostgreSQL",
@@ -4895,7 +4895,7 @@
         "Histórico completo de qualquer carteira reconstruível",
         "Constraints PostgreSQL aplicando imutabilidade"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "config",
@@ -4906,6 +4906,16 @@
           "type": "component",
           "label": "posting.rs",
           "ref": "core/ledger/src/posting.rs"
+        },
+        {
+          "type": "test",
+          "label": "UPDATE/DELETE rejected (real DB)",
+          "ref": "core/reconciliation/tests/ledger_invariants_integration.rs"
+        },
+        {
+          "type": "route",
+          "label": "refund reversal posting",
+          "ref": "core/api/src/routes/disputes.rs"
         }
       ],
       "dependencies": [
@@ -4928,7 +4938,7 @@
           "id": "INV-LED-002-1",
           "name": "Append-only invariant",
           "rule": "ledger_entries table must have no UPDATE/DELETE triggers or permissions",
-          "status": "NOT_RUN"
+          "status": "PASS"
         }
       ],
       "confidence": {
@@ -4939,8 +4949,8 @@
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T09:00:00.000Z",
+      "validatedAgainstCommit": "6ab8bf52fd711f7e1c500d8801d793d1a689dfdf",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4962,9 +4972,21 @@
             "db/migrations/0033_ledger_immutability.sql",
             "core/ledger/src/posting.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T09:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "9cd91e03091aff66",
+          "reason": "Ledger immutability proven: append-only triggers reject UPDATE and DELETE on ledger_entries (real-DB integration tests), refunds create an opposite reversal posting (never a mutation), history is reconstructible. INV-LED-002-1 PASS; LED-001 VALIDATED.",
+          "evidence": [
+            "db/migrations/0033_ledger_immutability.sql",
+            "core/reconciliation/tests/ledger_invariants_integration.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "LED-003",
