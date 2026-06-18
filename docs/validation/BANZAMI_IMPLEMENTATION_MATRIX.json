@@ -104,8 +104,8 @@
     },
     {
       "id": "cat-emis",
-      "name": "EMIS & Banking",
-      "description": "Integração com EMIS/Multicaixa Express e sistema bancário angolano."
+      "name": "Payment rails & providers",
+      "description": "Rails provider-agnósticos de Money In/Out/settlement — EMIS/Multicaixa Express, bancos parceiros, contas de liquidação e outros providers licenciados. Nenhum rail é a dependência única."
     }
   ],
   "items": [
@@ -877,10 +877,10 @@
       "categoryId": "cat-wallet",
       "validationDomain": "DOM-MONEY-IN",
       "referenceSection": "§6.2, §10.3",
-      "description": "Mecanismo de carregamento da Banzami Wallet a partir de conta bancária angolana ou transferência interbancária via EMIS.",
+      "description": "Mecanismo provider-agnóstico de carregamento (Money In) da Banzami Wallet: dinheiro real entra através de pelo menos um provider de funding aprovado, sobre a abstração AcquirerProvider (core/acquiring). EMIS/Multicaixa Express é um rail possível; bancos parceiros e outros providers licenciados também.",
       "requirement": "Consumidor pode adicionar fundos à carteira a partir do sistema bancário angolano. Saldo actualiza após confirmação.",
       "status": "IMPLEMENTED",
-      "priority": "HIGH",
+      "priority": "CRITICAL",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · Go · EMIS",
       "validationMethods": [
@@ -922,7 +922,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "EMIS live provider integration not yet implemented (EMS-001) — tests run with SIMULATED provider"
+        "FUNDING_PROVIDER_REQUIRED: nenhum provider de funding operacional em produção. EMIS/Multicaixa Express, banco parceiro (BANK-001) ou outro provider licenciado pode satisfazer esta capacidade — corre com provider SIMULATED em testes."
       ],
       "invariants": [
         {
@@ -1011,9 +1011,31 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Reframed Money In as a provider-agnostic capability (ADR-018). Blocker generalised to FUNDING_PROVIDER_REQUIRED — the launch gate is the absence of any operational funding provider, not EMIS specifically. Status unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T18:15:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Priority HIGH→CRITICAL: Money In is a critical launch capability, symmetric to Money Out (PAY-001). The funding engine is IMPLEMENTED (works on the simulated provider); the production-provider gate is expressed by FUNDING_PROVIDER_REQUIRED and the HIGH provider-impl items (EMS-001, BANK-001). Status unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "HDL-001",
@@ -6513,7 +6535,7 @@
       "categoryId": "cat-payouts",
       "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§11.5, §7",
-      "description": "Comerciante inicia levantamento do saldo da carteira Banza para conta bancária angolana registada. Iniciado via interface móvel, web ou API.",
+      "description": "Comerciante inicia levantamento (Money Out) do saldo da carteira para uma conta bancária / rail externo, através de pelo menos um provider de withdrawal aprovado. Provider-agnóstico: EMIS é um rail possível, bancos parceiros outro.",
       "requirement": "Levantamento iniciado imediatamente. Transferência EMIS iniciada. Estado rastreável até confirmação.",
       "status": "IN_PROGRESS",
       "priority": "CRITICAL",
@@ -6527,7 +6549,7 @@
       "acceptanceCriteria": [
         "Levantamento criado via API/interface",
         "Saldo reservado imediatamente",
-        "Transferência EMIS iniciada automaticamente",
+        "Transferência iniciada via o provider de withdrawal configurado",
         "Estado rastreável: pendente → processando → concluído",
         "Webhook payout.completed entregue"
       ],
@@ -6559,7 +6581,7 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001"
+        "WITHDRAWAL_PROVIDER_REQUIRED: nenhum provider de withdrawal/cash-out operacional em produção. EMIS, banco parceiro (BANK-002) ou outro rail licenciado pode satisfazer esta capacidade."
       ],
       "invariants": [
         {
@@ -6600,17 +6622,28 @@
             "core/payouts/src/engine.rs",
             "services/api-gateway/internal/handler/payouts.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "IN_PROGRESS",
+          "to": "IN_PROGRESS",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Reframed Money Out as a provider-agnostic capability (ADR-018). Blocker generalised to WITHDRAWAL_PROVIDER_REQUIRED; EMIS-specific AC replaced by 'configured withdrawal provider'. Status/priority unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "PAY-002",
-      "title": "Rastreamento de levantamentos e conciliação EMIS",
+      "title": "Rastreamento de levantamentos e reconciliação (provider-agnostic)",
       "categoryId": "cat-payouts",
       "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§11.5, §16.8",
-      "description": "Cada levantamento rastreado desde a criação até à confirmação bancária. Reconciliação com extractos EMIS.",
+      "description": "Cada levantamento rastreado desde a criação até à confirmação externa, com reconciliação contra os extractos do provider/rail configurado. Provider-agnóstico — EMIS é um rail possível.",
       "requirement": "Estado de levantamento visível em tempo real. Reconciliação automática com confirmações EMIS.",
       "status": "BLOCKED",
       "priority": "HIGH",
@@ -6621,8 +6654,8 @@
         "financial_invariant"
       ],
       "acceptanceCriteria": [
-        "Estado do levantamento visível até confirmação bancária",
-        "Reconciliação automática com extractos EMIS",
+        "Estado do levantamento visível até confirmação externa",
+        "Reconciliação automática com extractos do provider configurado",
         "Alerta para levantamentos não confirmados",
         "Historial completo por levantamento"
       ],
@@ -6646,7 +6679,8 @@
         "db/migrations/**"
       ],
       "blockingIssues": [
-        "Integração EMIS bloqueada — ver EMS-001 e EMS-002"
+        "SETTLEMENT_RAIL_REQUIRED: nenhum settlement rail operacional em produção",
+        "RECONCILIATION_REQUIRED: fluxo de reconciliação contra um provider real ainda não validado"
       ],
       "invariants": [],
       "confidence": {
@@ -6679,9 +6713,20 @@
           "evidence": [
             "core/reconciliation/src/engine.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Reframed settlement/reconciliation as provider-agnostic (ADR-018). Removed EMIS from title and AC; blockers generalised to SETTLEMENT_RAIL_REQUIRED + RECONCILIATION_REQUIRED. Status unchanged.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "REF-001",
@@ -7184,14 +7229,14 @@
     },
     {
       "id": "EMS-001",
-      "title": "Integração EMIS/Multicaixa Express",
+      "title": "EMIS / Multicaixa Express — um possível provider de funding/settlement",
       "categoryId": "cat-emis",
       "validationDomain": "DOM-MONEY-IN",
       "referenceSection": "§6.7, §10.4",
-      "description": "Integração com EMIS (Empresa Interbancária de Serviços) — infraestrutura de pagamentos interbancários de Angola — para liquidação e levantamentos.",
+      "description": "Integração com EMIS (Empresa Interbancária de Serviços) / Multicaixa Express como UMA implementação possível da camada provider/rail (AcquirerProvider), para funding, cash-in/out ou settlement. Não representa sozinha a capacidade Money In/Out — é um rail entre vários.",
       "requirement": "Integração EMIS completa para carregamento de carteiras e liquidação de levantamentos. Conforme regulação BNA.",
       "status": "BLOCKED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · Go · EMIS API",
       "validationMethods": [
@@ -7226,8 +7271,8 @@
         "core/acquiring/**"
       ],
       "blockingIssues": [
-        "Certificação de operador de pagamento BNA pendente",
-        "Acordo com EMIS não formalizado",
+        "(aplica-se apenas se EMIS for o rail escolhido) Certificação de operador de pagamento BNA pendente",
+        "(aplica-se apenas se EMIS for o rail escolhido) Acordo com EMIS não formalizado",
         "Análise jurídica e de conformidade regulatória em curso"
       ],
       "invariants": [],
@@ -7271,20 +7316,31 @@
             "core/acquiring/src/providers/emis.rs",
             "core/acquiring/src/providers/simulated.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Reframed EMIS as one possible provider implementation, not the sole Money In/Out dependency (ADR-018). Priority CRITICAL→HIGH because it is one specific rail among several (EMIS, partner banks, other licensed providers) — not a reduction in importance. Status unchanged (BLOCKED).",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "EMS-002",
-      "title": "Liquidação interbancária via EMIS",
+      "title": "Liquidação via EMIS — um possível settlement rail",
       "categoryId": "cat-emis",
       "validationDomain": "DOM-MONEY-OUT",
       "referenceSection": "§6.7, §15.2",
-      "description": "Liquidação de levantamentos de comerciantes e carregamentos de consumidores via rede interbancária EMIS/Multicaixa Express.",
+      "description": "Liquidação interbancária de levantamentos e carregamentos via EMIS/Multicaixa Express como UMA implementação possível do settlement rail. Bancos parceiros e outras contas de liquidação são rails alternativos.",
       "requirement": "Dinheiro flui entre carteiras Banza e sistema bancário angolano de forma fiável e auditável via EMIS.",
       "status": "BLOCKED",
-      "priority": "CRITICAL",
+      "priority": "HIGH",
       "ownerArea": "Core / EMIS Integration",
       "technicalArea": "Rust · EMIS",
       "validationMethods": [
@@ -7356,9 +7412,144 @@
           "evidence": [
             "core/settlement/src/engine.rs"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Reframed EMIS interbank settlement as one possible settlement rail (ADR-018). Priority CRITICAL→HIGH (specific implementation, not the sole gate). Status unchanged (BLOCKED).",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
+    },
+    {
+      "id": "BANK-001",
+      "title": "Integração com banco parceiro (funding/settlement/reconciliação)",
+      "categoryId": "cat-emis",
+      "validationDomain": "DOM-MONEY-IN",
+      "referenceSection": "",
+      "description": "Integração com um banco parceiro como provider alternativo ao EMIS para funding, settlement, reconciliação ou contas de liquidação. Uma das implementações possíveis da camada provider/rail.",
+      "requirement": "Money In/Out deve poder ser satisfeito por pelo menos um provider aprovado; este é um provider alternativo ao EMIS.",
+      "status": "BLOCKED",
+      "priority": "HIGH",
+      "ownerArea": "payments",
+      "technicalArea": "acquiring/payouts",
+      "validationMethods": [
+        "integration_tests",
+        "reconciliation",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Conexão a banco parceiro estabelecida",
+        "Funding/crédito de carteira confirmado via banco parceiro",
+        "Reconciliação com extractos do banco parceiro",
+        "Conforme requisitos regulatórios aplicáveis"
+      ],
+      "testCoverage": false,
+      "evidence": [],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/acquiring/**",
+        "core/payouts/**"
+      ],
+      "blockingIssues": [
+        "FUNDING_PROVIDER_REQUIRED: nenhum banco parceiro integrado em produção",
+        "Acordo com banco parceiro não formalizado"
+      ],
+      "invariants": [],
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "provider-agnostic seam exists (AcquirerProvider); no partner bank integrated"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "—",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Created as an alternative provider implementation to EMIS (ADR-018). Models a partner bank as a possible Money In/Out rail; BLOCKED because no partner bank is integrated yet — does not assume one exists.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-18"
+    },
+    {
+      "id": "BANK-002",
+      "title": "Payout / levantamento para conta bancária via banco parceiro",
+      "categoryId": "cat-payouts",
+      "validationDomain": "DOM-MONEY-OUT",
+      "referenceSection": "",
+      "description": "Levantamentos/payouts para contas bancárias através de um banco parceiro ou rail bancário autorizado, como provider alternativo ao EMIS para Money Out.",
+      "requirement": "Money In/Out deve poder ser satisfeito por pelo menos um provider aprovado; este é um provider alternativo ao EMIS.",
+      "status": "BLOCKED",
+      "priority": "HIGH",
+      "ownerArea": "payments",
+      "technicalArea": "acquiring/payouts",
+      "validationMethods": [
+        "integration_tests",
+        "reconciliation",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Payout para conta bancária via banco parceiro",
+        "Saldo reservado imediatamente",
+        "Estado rastreável até confirmação bancária",
+        "Reconciliação com confirmações do banco parceiro"
+      ],
+      "testCoverage": false,
+      "evidence": [],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "core/acquiring/**",
+        "core/payouts/**"
+      ],
+      "blockingIssues": [
+        "WITHDRAWAL_PROVIDER_REQUIRED: nenhum banco parceiro de payout integrado em produção",
+        "Acordo com banco parceiro não formalizado"
+      ],
+      "invariants": [],
+      "confidence": {
+        "score": 30,
+        "level": "LOW",
+        "basis": [
+          "provider-agnostic seam exists (AcquirerProvider); no partner bank integrated"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-18T18:10:00.000Z",
+          "from": "—",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "restructure-money-rails",
+          "reason": "Created as an alternative provider implementation to EMIS (ADR-018). Models a partner bank as a possible Money In/Out rail; BLOCKED because no partner bank is integrated yet — does not assume one exists.",
+          "evidence": [
+            "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-18"
     }
   ]
 }
