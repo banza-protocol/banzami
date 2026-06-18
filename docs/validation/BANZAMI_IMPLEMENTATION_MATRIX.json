@@ -6769,7 +6769,7 @@
       "referenceSection": "§7, §16.2",
       "description": "Comerciante emite reembolso total ou parcial de uma transacção a partir do Banzami Business ou via API. Nova entrada de ledger oposta criada.",
       "requirement": "Reembolso cria nova entrada de ledger. Saldo do consumidor creditado. Sem modificação da transacção original.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Payments",
       "technicalArea": "Rust · Go",
@@ -6835,6 +6835,21 @@
           "type": "route",
           "label": "source-aware refund creation",
           "ref": "core/api/src/routes/refunds.rs"
+        },
+        {
+          "type": "migration",
+          "label": "webhook outbox (dispatched_at/idempotency_key)",
+          "ref": "db/migrations/0048_webhook_events_outbox.sql"
+        },
+        {
+          "type": "component",
+          "label": "core webhook emit (refund.completed)",
+          "ref": "core/api/src/routes/webhooks.rs"
+        },
+        {
+          "type": "component",
+          "label": "gateway outbox fan-out + signed delivery",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
         }
       ],
       "dependencies": [
@@ -6852,9 +6867,7 @@
         "core/wallets/**",
         "db/migrations/**"
       ],
-      "blockingIssues": [
-        "Webhook AC unmet: refund.completed is not delivered to merchants; only the internal refund.succeeded event is recorded."
-      ],
+      "blockingIssues": [],
       "invariants": [
         {
           "id": "INV-REF-001-1",
@@ -6870,17 +6883,17 @@
         }
       ],
       "confidence": {
-        "score": 80,
+        "score": 85,
         "level": "HIGH",
         "basis": [
-          "source-aware refunds (ADR-030): wallet-native credits the consumer wallet, acquiring credits transit",
-          "invariants PASS; 12 real-DB refund tests (acquiring + wallet-native)",
-          "only remaining gap is refund.completed webhook delivery"
+          "source-aware refunds (ADR-030): wallet-native credits consumer, acquiring credits transit",
+          "all invariants PASS; 18 real-DB refund/webhook tests",
+          "refund.completed delivered via outbox -> fan-out -> signed delivery (Banza-Signature) with retry"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T23:55:00.000Z",
+      "validatedAgainstCommit": "c43d5aa4c054ab7e1ca04fdf5970e7eb615abee2",
       "history": [
         {
           "timestamp": "2026-06-13T22:54:03.981Z",
@@ -6949,6 +6962,20 @@
             "db/migrations/0047_refunds_source_aware.sql",
             "core/api/src/routes/refunds.rs",
             "commit:4ef0906"
+          ]
+        },
+        {
+          "timestamp": "2026-06-18T23:55:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4adce58097c8f283",
+          "reason": "All REF-001 acceptance criteria pass. Refunds are source-aware (BANZA ADR-030): the refund posts a balanced opposite ledger entry (no money creation), the original source is never modified, partial refunds aggregate by typed source, wallet-native refunds credit the payer's consumer wallet and acquiring refunds credit transit by design. The refund.completed webhook is delivered through the existing pipeline via a transactional outbox: the core emits the event idempotently, the gateway worker fans it out to the source merchant's subscribed endpoints only, and delivers it signed with Banza-Signature with retry. Invariants INV-REF-001-1/2 PASS; 18 real-DB tests. Confidence 80->85; webhook blocker cleared.",
+          "evidence": [
+            "db/migrations/0048_webhook_events_outbox.sql",
+            "core/api/src/routes/webhooks.rs",
+            "services/api-gateway/internal/service/postgres_webhooks.go",
+            "commit:c43d5aa"
           ]
         }
       ],
