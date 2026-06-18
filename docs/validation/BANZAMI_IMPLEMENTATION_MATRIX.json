@@ -5855,7 +5855,7 @@
       ],
       "acceptanceCriteria": [
         "Verificação NIF para entidades formais",
-        "Verificação de identidade para comerciantes individuais",
+        "Verificação de identidade para comerciantes individuais (sole traders) — produção depende do vendor KYC (ver KYC-001/002)",
         "Liquidação bloqueada até KYB aprovado",
         "QR estático disponível antes de KYB (modo restrito)"
       ],
@@ -5880,6 +5880,11 @@
           "type": "component",
           "label": "MerchantComplianceStatus.CanProcess",
           "ref": "services/api-gateway/internal/service/compliance.go"
+        },
+        {
+          "type": "audit",
+          "label": "Global readiness audit — KYB-001 finding",
+          "ref": "docs/audit/2026-06-19-global-readiness-audit.md"
         }
       ],
       "dependencies": [
@@ -5891,7 +5896,9 @@
         "core/compliance/**",
         "services/api-gateway/internal/handler/payouts.go"
       ],
-      "blockingIssues": [],
+      "blockingIssues": [
+        "KYB_IDENTITY_VENDOR_REQUIRED: o workflow de KYB de negócio (NIF/entidade + gate de liquidação) está implementado e testado, mas a validação em produção da identidade de comerciantes individuais (sole traders) e do beneficiário efetivo depende do mesmo parceiro KYC externo que KYC-001/KYC-002. A identidade do representante de empresas é rastreada à parte por KYC-002."
+      ],
       "invariants": [],
       "confidence": {
         "score": 70,
@@ -5917,9 +5924,20 @@
             "core/api/src/routes/compliance.rs",
             "services/api-gateway/internal/handler/payouts.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-19T01:30:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": "ea05b366a66d8cca",
+          "reason": "Integrity correction (Option A) from the global readiness audit. The business KYB workflow (NIF/entity verification + fail-closed settlement gate) is implemented and tested, but production validation of individual-merchant (sole trader) and beneficial-owner identity depends on the same external KYC vendor as KYC-001/KYC-002; the company representative's identity is tracked separately by KYC-002. Added a KYB_IDENTITY_VENDOR_REQUIRED blocker and clarified the individual-merchant acceptance criterion as vendor-dependent so the dependency is visible. No status change (stays IMPLEMENTED, not VALIDATED), no confidence change, no counter change, no item split, KYC-001/002 untouched.",
+          "evidence": [
+            "docs/audit/2026-06-19-global-readiness-audit.md"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-06-19"
     },
     {
       "id": "RSK-001",
