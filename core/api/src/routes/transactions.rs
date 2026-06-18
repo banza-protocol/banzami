@@ -5,6 +5,7 @@ use axum::{
 };
 use serde::Deserialize;
 
+use banzami_risk::{RiskContext, RiskDecision, RiskEngine, RiskRequest};
 use banzami_transactions::{
     AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest, ReverseRequest,
     TransactionEngine, TransactionError, TransactionType,
@@ -127,6 +128,69 @@ pub async fn authorize(
     let tx_id: TransactionId = id
         .parse()
         .map_err(|_| ApiError::bad_request("invalid transaction id"))?;
+
+    // Real-time risk evaluation (RSK-001) before authorizing. We fetch the
+    // pending transaction, build the merchant's velocity context from the
+    // ledger of recent transactions, and run the risk engine. On a breach we
+    // record a suspicious-activity event (RSK-002) and decline the authorization.
+    let pending = state.tx_engine.get(tx_id).await.map_err(|e| match e {
+        TransactionError::NotFound(_) => ApiError::not_found("transaction not found"),
+        other => ApiError::internal(other.to_string()),
+    })?;
+    let merchant_id = pending.merchant_id;
+
+    let (hourly_count, daily_amount_minor): (i64, i64) = sqlx::query_as(
+        "SELECT
+            COUNT(*) FILTER (
+                WHERE created_at >= now() - interval '1 hour'
+                  AND status IN ('AUTHORIZED', 'CAPTURED'))::BIGINT,
+            COALESCE(SUM(amount_minor) FILTER (
+                WHERE created_at >= date_trunc('day', now())
+                  AND status IN ('AUTHORIZED', 'CAPTURED')), 0)::BIGINT
+         FROM transactions
+         WHERE merchant_id = $1",
+    )
+    .bind(merchant_id.as_uuid())
+    .fetch_one(&state.pool)
+    .await
+    .unwrap_or((0, 0));
+
+    let assessment = state
+        .risk
+        .evaluate(RiskRequest {
+            transaction_id: tx_id,
+            merchant_id,
+            amount: pending.amount,
+            context: RiskContext {
+                hourly_count: hourly_count.max(0) as u32,
+                daily_amount_minor,
+            },
+        })
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    if assessment.decision == RiskDecision::Decline {
+        let reason = assessment
+            .decline_reason
+            .clone()
+            .unwrap_or_else(|| "risk threshold breached".to_owned());
+        // RSK-002: record the suspicious event for review (fire-and-forget).
+        super::risk::flag_suspicious(
+            &state.pool,
+            "MERCHANT",
+            merchant_id.as_uuid(),
+            "VELOCITY_BREACH",
+            &reason,
+            serde_json::json!({
+                "transaction_id": tx_id.to_string(),
+                "amount_minor":   pending.amount.amount_minor(),
+                "hourly_count":   hourly_count,
+                "daily_amount_minor": daily_amount_minor,
+            }),
+        )
+        .await;
+        return Err(ApiError::unprocessable("RISK_DECLINED", reason));
+    }
 
     let tx = state
         .tx_engine
