@@ -830,9 +830,8 @@ The repository layout is frozen. The semantic zones below are binding architectu
 | `apps/` | Product-facing applications only (dashboard, admin, pay, checkout, docs site, mobile apps). Nothing operational or governance-related. |
 | `services/` | Go API services (gateway, public-api, admin-api) |
 | `core/` | Rust financial core (ledger, wallets, transactions, settlement, etc.) |
-| `sdk/` | Official BANZA protocol SDKs |
+| `sdk/` | This operator's own client SDKs (checkout-web, Flutter) for integrating with this operator's product. Not protocol SDKs — BANZA is contract-first and has no official SDK. |
 | `plugins/` | Commerce platform plugins |
-| `contracts/` | Public protocol contracts (OpenAPI, webhook schemas, QR spec, event contracts) |
 | `docs/` | Documentation — ADRs, domains, runbooks, audit, migration, validation |
 | `infra/` | Docker, Terraform, monitoring, deployment |
 | `tools/` | Internal tooling and scripts |
@@ -840,8 +839,8 @@ The repository layout is frozen. The semantic zones below are binding architectu
 ## 19.2 Frozen Rules
 
 1. No new top-level directory may be added without: (a) updating `README.md`, (b) updating this section, and (c) adding to `tools/check-repository-layout.mjs`.
-2. No protocol specification may exist only inside `docs/` once the feature it describes is being implemented — it must have a corresponding artifact in `contracts/`.
-3. Protocol rule changes belong in `~/banza`, not here. If a financial invariant or protocol contract needs updating, open an ADR in `~/banza`.
+2. Protocol contracts (OpenAPI, webhook schemas, QR payload, event/federation contracts) are **owned by `~/banza`** and consumed from there — never duplicated as a local source of truth. This operator has no `contracts/` directory; the canonical home is `~/banza/contracts/`. If offline access is needed, vendor a read-only, version-pinned mirror — never a parallel authority.
+3. Protocol rule changes belong in `~/banza`, not here. If a financial invariant or protocol contract needs updating, open an ADR in `~/banza`. Operator-local policy (e.g. KYC/AML tiers, fees, onboarding UX) stays here and needs no protocol ADR — see `~/banza/docs/governance/BANZA-PROTOCOL-VS-OPERATOR-POLICY.md`.
 
 ## 19.3 Compliance Check
 
