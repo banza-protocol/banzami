@@ -5844,7 +5844,7 @@
       "referenceSection": "§16.3",
       "description": "Cada operação de pagamento identificada por chave de idempotência única. Segundo submit retorna resultado original sem novo efeito.",
       "requirement": "Todos os POST de pagamento idempotentes via X-Idempotency-Key. Sem cobranças duplicadas por retry.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "CRITICAL",
       "ownerArea": "Core / Payments (Rust)",
       "technicalArea": "Rust · Redis · PostgreSQL",
@@ -5858,12 +5858,17 @@
         "Chave armazenada em Redis com TTL",
         "Sem transacção duplicada em nenhum cenário de retry"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "idempotency.go",
           "ref": "services/api-gateway/internal/middleware/idempotency.go"
+        },
+        {
+          "type": "test",
+          "label": "idempotent_send_returns_original_transfer",
+          "ref": "core/transfers/tests/integration.rs"
         }
       ],
       "dependencies": [
@@ -5877,17 +5882,23 @@
         "infra/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-SEC-003-1",
+          "name": "idempotent retry returns the original result with no duplicate transaction",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
         "score": 85,
-        "level": "VERY_HIGH",
+        "level": "HIGH",
         "basis": [
           "code-level evidence audit 2026-06-14"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T10:00:00.000Z",
+      "validatedAgainstCommit": "b8674904bcc6b3a3ee634a6af63591c4c0719c84",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -5908,9 +5919,21 @@
           "evidence": [
             "services/api-gateway/internal/middleware/idempotency.go"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T10:00:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "0515c82dc03a97fc",
+          "reason": "Payment idempotency proven: gateway middleware stores the Idempotency-Key in Redis (24h TTL, SetNX lock, replay header) and the engine returns the original transfer on a duplicate key (integration test idempotent_send_returns_original_transfer). No duplicate transaction under retry.",
+          "evidence": [
+            "services/api-gateway/internal/middleware/idempotency.go",
+            "core/transfers/tests/integration.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SEC-004",
