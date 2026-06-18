@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Banzami\Tests;
 
 use Banzami\Webhooks;
-use Banzami\WebhookSignatureException;
+use Banzami\Exceptions\WebhookSignatureException;
 use PHPUnit\Framework\TestCase;
 
 /**
