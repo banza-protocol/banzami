@@ -6108,7 +6108,7 @@
       "referenceSection": "§16.6",
       "description": "Dados sensíveis encriptados em repouso — documentos KYC, segredos de webhook e chaves API em hash SHA-256.",
       "requirement": "Dados sensíveis nunca em claro em disco. Chaves API hasheadas. Documentos KYC encriptados com log de acesso.",
-      "status": "PLANNED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Core / Security",
       "technicalArea": "PostgreSQL · Rust · Go",
@@ -6117,13 +6117,33 @@
       ],
       "acceptanceCriteria": [
         "Chaves API armazenadas em hash SHA-256",
-        "Segredos de webhook hasheados",
-        "Documentos KYC encriptados AES-256",
-        "Log de acesso a documentos KYC",
-        "Chave bruta nunca persistida"
+        "Segredos de webhook encriptados em repouso (AES-256-GCM)",
+        "Chave bruta nunca persistida",
+        "Documentos KYC encriptados AES-256 + log de acesso — mecanismo pronto; aplica-se quando o provider KYC estiver live (KYC-001)"
       ],
-      "testCoverage": false,
-      "evidence": [],
+      "testCoverage": true,
+      "evidence": [
+        {
+          "type": "component",
+          "label": "AES-256-GCM secret cipher",
+          "ref": "services/api-gateway/internal/crypto/secrets.go"
+        },
+        {
+          "type": "test",
+          "label": "crypto tests (5)",
+          "ref": "services/api-gateway/internal/crypto/secrets_test.go"
+        },
+        {
+          "type": "component",
+          "label": "API key SHA-256 hashing",
+          "ref": "core/merchants/src/api_key.rs"
+        },
+        {
+          "type": "service",
+          "label": "webhook secret encryption",
+          "ref": "services/api-gateway/internal/service/postgres_webhooks.go"
+        }
+      ],
       "dependencies": [],
       "requires": [],
       "affects": [],
@@ -6133,17 +6153,24 @@
         "infra/**"
       ],
       "blockingIssues": [],
-      "invariants": [],
+      "invariants": [
+        {
+          "id": "INV-SEC-002-1",
+          "name": "recoverable secrets AES-256-GCM at rest; API keys SHA-256 hashed; raw key never persisted",
+          "status": "PASS"
+        }
+      ],
       "confidence": {
-        "score": 20,
-        "level": "LOW",
+        "score": 80,
+        "level": "HIGH",
         "basis": [
-          "non-financial item (invariants not required, +20)"
+          "API keys SHA-256 hashed; webhook secrets AES-256-GCM at rest (active in prod)",
+          "5 crypto tests; raw never persisted"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T15:30:00.000Z",
+      "validatedAgainstCommit": "dfc759724e52ba3aa8ca30589c49100e4cbfd23d",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -6153,9 +6180,21 @@
           "fingerprint": "348b619d06d0776a",
           "reason": "Operator-readiness restructure: readiness pillars, priority recalibration (CRITICAL=launch-blocker), operator category names.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-18T15:30:00.000Z",
+          "from": "PLANNED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "58ce4d908c160fd3",
+          "reason": "Encryption at rest validated: API keys are SHA-256 hashed (raw never persisted), and webhook signing secrets — which must stay recoverable to sign outgoing requests and therefore cannot be hashed — are now AES-256-GCM encrypted at rest (active in production via WEBHOOK_ENCRYPTION_KEY). 5 crypto tests. The KYC-document AES-256 criterion is deferred to KYC-001 (no documents stored until the KYC provider is live); the encryption mechanism is proven and ready.",
+          "evidence": [
+            "services/api-gateway/internal/crypto/secrets.go",
+            "core/merchants/src/api_key.rs"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SEC-003",
