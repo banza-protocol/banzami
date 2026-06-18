@@ -127,6 +127,7 @@ services:
       LOG_LEVEL:                ${LOG_LEVEL:-info}
       OTLP_ENDPOINT:            ${OTLP_ENDPOINT:-}
       FIREBASE_CREDENTIALS_JSON: ${FIREBASE_CREDENTIALS_JSON:-}
+      WEBHOOK_ENCRYPTION_KEY:   ${WEBHOOK_ENCRYPTION_KEY:-}
     ports:
       - "8080:8080"
     depends_on:
