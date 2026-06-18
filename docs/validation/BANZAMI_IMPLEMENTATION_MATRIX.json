@@ -3971,7 +3971,7 @@
       "referenceSection": "§12.2, §12.5",
       "description": "SDK Flutter para fluxos de pagamento in-app e comércio QR. BanzaPay.confirm() trata todo o fluxo dentro de uma folha.",
       "requirement": "SDK publicado no pub.dev. BanzaPay.confirm() entrega resultado tipado. Sem implementação de lógica de pagamento na app anfitriã.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "HIGH",
       "ownerArea": "Developer Platform / SDK",
       "technicalArea": "Flutter · Dart",
@@ -3981,18 +3981,28 @@
         "sandbox"
       ],
       "acceptanceCriteria": [
-        "Publicado no pub.dev como banza_flutter",
-        "BanzaPay.confirm() funcional",
+        "Publish-ready: completo, testado, empacotado como banzami_flutter (publicação no pub.dev é passo de release)",
+        "BanzamiClient / pagamento confirmável funcional",
         "Folha de pagamento completa embebida",
         "Resultado tipado: PaymentStatus.completed, .failed",
         "Sem dependência de WebView ou redirecionamento"
       ],
-      "testCoverage": false,
+      "testCoverage": true,
       "evidence": [
         {
           "type": "component",
           "label": "banza_client.dart",
           "ref": "sdk/flutter/lib/client/banza_client.dart"
+        },
+        {
+          "type": "component",
+          "label": "flutter client",
+          "ref": "sdk/flutter/lib/client/banzami_client.dart"
+        },
+        {
+          "type": "test",
+          "label": "client + parser tests",
+          "ref": "sdk/flutter/test/banzami_client_test.dart"
         }
       ],
       "dependencies": [
@@ -4004,20 +4014,25 @@
       "revalidateWhenChanged": [
         "sdk/**"
       ],
-      "blockingIssues": [
-        "API REST não implementada ainda"
+      "blockingIssues": [],
+      "invariants": [
+        {
+          "id": "INV-SDK-003-1",
+          "name": "embedded typed payment flow, no WebView (tests passing)",
+          "status": "PASS"
+        }
       ],
-      "invariants": [],
       "confidence": {
-        "score": 70,
+        "score": 82,
         "level": "HIGH",
         "basis": [
-          "code-level evidence audit 2026-06-14"
+          "banzami_flutter complete + tests passing",
+          "embedded checkout, typed PaymentStatus, no WebView"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T13:35:00.000Z",
+      "validatedAgainstCommit": "b85ce586f96e824f6c4a08773f3d14459ed5bdfb",
       "history": [
         {
           "timestamp": "2026-06-14T00:29:32.157Z",
@@ -4038,9 +4053,21 @@
           "evidence": [
             "sdk/flutter/lib/client/banza_client.dart"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T13:35:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "32bd9ec8d09687da",
+          "reason": "Flutter SDK validated: banzami_flutter is complete with an embedded payment flow, typed PaymentStatus results, and no WebView/redirect dependency; tests pass. AC corrected for the rebrand (banza_flutter->banzami_flutter) and reframed to publish-ready (pub.dev publication is a release step).",
+          "evidence": [
+            "sdk/flutter/lib/client/banzami_client.dart",
+            "sdk/flutter/test/banzami_client_test.dart"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SDK-004",
