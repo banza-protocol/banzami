@@ -2,7 +2,7 @@ pub mod balance_checker;
 pub mod engine;
 pub mod repository;
 
-pub use balance_checker::run_balance_checker;
+pub use balance_checker::{check_ledger_invariants, run_balance_checker, LedgerCheckOutcome};
 pub use engine::{ReconciliationEngine, SettlementView, StaticReconciliationEngine};
 pub use repository::{PostgresReconciliationRepository, ReconciliationRepository};
 
