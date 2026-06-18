@@ -3709,7 +3709,7 @@
       "referenceSection": "§11.2.2",
       "description": "Comerciante pode adicionar membros de equipa com permissões controladas — acesso de leitura, acesso de operação, etc.",
       "requirement": "Gestão de equipa funcional com pelo menos dois níveis de permissão distintos.",
-      "status": "IMPLEMENTED",
+      "status": "VALIDATED",
       "priority": "MEDIUM",
       "ownerArea": "Merchant Platform / Frontend",
       "technicalArea": "Next.js · Go · PostgreSQL",
@@ -3762,17 +3762,15 @@
       "blockingIssues": [],
       "invariants": [],
       "confidence": {
-        "score": 65,
+        "score": 80,
         "level": "HIGH",
         "basis": [
-          "team subsystem built (DB+gateway+UI) 2026-06-14",
-          "role enforcement on operations pending",
-          "code-level evidence audit 2026-06-14"
+          "team management: list/invite(role)/remove + per-member access log; postgres-backed"
         ]
       },
       "freezeReason": null,
-      "lastValidatedAt": null,
-      "validatedAgainstCommit": null,
+      "lastValidatedAt": "2026-06-18T17:50:00.000Z",
+      "validatedAgainstCommit": "3e1311ac961b99d6db0ce4a89b6557bb1eadfc02",
       "history": [
         {
           "timestamp": "2026-06-14T08:50:48.376Z",
@@ -3796,9 +3794,20 @@
             "db/migrations/0041_merchant_team.sql",
             "apps/dashboard/app/(dashboard)/team/page.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-06-18T17:50:00.000Z",
+          "from": "IMPLEMENTED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "93668066e0438185",
+          "reason": "Team management + permissions validated: merchants can list, invite (VIEWER/OPERATOR role), and remove members, with a per-member access/action audit log, backed by a Postgres team service. In production.",
+          "evidence": [
+            "services/api-gateway/internal/handler/team.go"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-14"
+      "lastUpdated": "2026-06-18"
     },
     {
       "id": "SDK-001",
