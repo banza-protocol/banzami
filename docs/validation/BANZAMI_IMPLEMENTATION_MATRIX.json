@@ -1810,7 +1810,7 @@
     {
       "id": "QR-004",
       "title": "Loja QR pública do comerciante",
-      "categoryId": "cat-qr",
+      "categoryId": "cat-biz-web",
       "validationDomain": "DOM-MONEY-MOVE",
       "referenceSection": "§9.3, §11.6",
       "description": "Página pública por comerciante em pay.banzami.com/profiles/@banza — perfil, QR, botão de pagamento. Partilhável via link.",
@@ -1898,9 +1898,20 @@
             "apps/pay/app/profiles/[handle]/page.tsx",
             "apps/pay/app/profiles/[handle]/profile-pay-card.tsx"
           ]
+        },
+        {
+          "timestamp": "2026-06-19T03:00:00.000Z",
+          "from": "VALIDATED",
+          "to": "VALIDATED",
+          "approvedBy": "local-admin",
+          "fingerprint": "4341e02c1155452c",
+          "reason": "Integrity correction (categorization): QR-004 'Loja QR pública do comerciante' is a display-only public merchant storefront page (renders a static QR + a banzami://pay deep link + share; it does not execute payment, create transfers/ledger postings/wallet_payments, debit/credit wallets, or handle financial idempotency). It was mis-grouped under the financial-critical cat-qr, which made FINANCIAL_NO_INVARIANTS fire. Recategorized to cat-biz-web (the merchant public web surface), analogous to PL-002 (public pay page) in cat-paylinks. The QR payment-path invariants remain covered by QR-001/002/003/005, core qr.rs, transfers, wallet_payments, and REF-001/002. No status, confidence, evidence, acceptance-criteria, invariant, or readiness change.",
+          "evidence": [
+            "apps/pay/app/profiles/[handle]/profile-pay-card.tsx"
+          ]
         }
       ],
-      "lastUpdated": "2026-06-17"
+      "lastUpdated": "2026-06-19"
     },
     {
       "id": "QR-005",
