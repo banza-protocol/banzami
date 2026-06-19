@@ -2,6 +2,7 @@ pub mod engine;
 pub mod provider;
 pub mod providers;
 pub mod repository;
+pub mod verification;
 
 pub use engine::{ComplianceEngine, PostgresComplianceEngine};
 pub use provider::{
@@ -10,6 +11,7 @@ pub use provider::{
 };
 pub use providers::{ExternalKycProvider, KycProviderKind, SimulatedKycProvider};
 pub use repository::{ComplianceRepository, PostgresComplianceRepository};
+pub use verification::VerificationRecordStatus;
 
 use chrono::{DateTime, Utc};
 use thiserror::Error;
