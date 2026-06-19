@@ -38,13 +38,24 @@ export function checkItem(item: ValidationItem): GovernanceIssue[] {
       message: 'VALIDATED requer pelo menos uma evidência documentada',
     })
 
-  // VALIDATED → confidence threshold
+  // VALIDATED → confidence (hybrid model).
+  // The stored `confidence.score` is the §16 source of truth; `computeConfidence`
+  // is an advisory evidence-derived estimate used only for drift detection.
+  //   • stored < 80                        → ERROR  (real §16 violation)
+  //   • stored ≥ 80 but derived < 80       → WARNING CONFIDENCE_DRIFT (advisory)
+  //   • both ≥ 80                           → no issue
   if (item.status === 'VALIDATED') {
-    const confidence = computeConfidence(item)
-    if (confidence.score < VALIDATED_CONFIDENCE_THRESHOLD) {
+    const stored = item.confidence?.score ?? 0
+    const derived = computeConfidence(item).score
+    if (stored < VALIDATED_CONFIDENCE_THRESHOLD) {
       issues.push({
         itemId: item.id, severity: 'error', rule: 'VALIDATED_LOW_CONFIDENCE',
-        message: `VALIDATED requer confidence >= ${VALIDATED_CONFIDENCE_THRESHOLD} (actual: ${confidence.score})`,
+        message: `VALIDATED requer confidence >= ${VALIDATED_CONFIDENCE_THRESHOLD} (actual: ${stored})`,
+      })
+    } else if (derived < VALIDATED_CONFIDENCE_THRESHOLD) {
+      issues.push({
+        itemId: item.id, severity: 'warning', rule: 'CONFIDENCE_DRIFT',
+        message: `confidence aprovada (${stored}) válida, mas a estimativa derivada das validationMethods/evidence é ${derived} — metadados podem estar incompletos (advisory; não altera o status VALIDATED)`,
       })
     }
   }

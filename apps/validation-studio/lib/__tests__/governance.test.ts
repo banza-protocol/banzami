@@ -223,37 +223,44 @@ describe('confidenceLevelFromScore', () => {
 
 // ─── checkItem — confidence gate ──────────────────────────────────────────────
 
-describe('checkItem — confidence gate', () => {
-  it('emits VALIDATED_LOW_CONFIDENCE when VALIDATED and score is 65', () => {
-    const item = makeItem({
-      status: 'VALIDATED',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
-      validationMethods: ['manual_ux', 'production_review'],
-      // non-financial: score = 20+15+10+20 = 65
-    })
+describe('checkItem — confidence gate (hybrid: stored confidence is §16 source of truth)', () => {
+  const ref = 'apps/validation-studio/app/page.tsx'
+  // computeConfidence is non-financial here:
+  //   SPARSE methods → derived = 20(ev) + 15(manual_ux) + 20(non-financial) = 55  (< 80)
+  const SPARSE: Partial<ValidationItem> = {
+    evidence: [{ type: 'route', label: 'page', ref }],
+    validationMethods: ['manual_ux'],
+  }
+  //   FULL methods   → derived = 20 + 15(unit) + 15(manual_ux) + 10(prod) + 20 = 80 (≥ 80)
+  const FULL: Partial<ValidationItem> = {
+    evidence: [{ type: 'route', label: 'page', ref }],
+    validationMethods: ['unit_tests', 'manual_ux', 'production_review'],
+  }
+
+  it('emits ERROR VALIDATED_LOW_CONFIDENCE when stored confidence.score < 80 (real §16 violation)', () => {
+    const item = makeItem({ status: 'VALIDATED', confidence: { score: 65, level: 'MEDIUM', basis: [] }, ...FULL })
     const issues = checkItem(item)
-    expect(issues.some((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE')).toBe(true)
+    expect(issues.find((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE')?.severity).toBe('error')
+    expect(issues.some((i) => i.rule === 'CONFIDENCE_DRIFT')).toBe(false)
   })
 
-  it('does NOT emit VALIDATED_LOW_CONFIDENCE when VALIDATED and score is exactly 80', () => {
-    const item = makeItem({
-      status: 'VALIDATED',
-      evidence: [{ type: 'route', label: 'page', ref: 'apps/validation-studio/app/page.tsx' }],
-      validationMethods: ['unit_tests', 'manual_ux', 'production_review'],
-      // non-financial: score = 20+15+15+10+20 = 80
-    })
+  it('emits WARNING CONFIDENCE_DRIFT (not error) when stored >= 80 but derived < 80', () => {
+    const item = makeItem({ status: 'VALIDATED', confidence: { score: 85, level: 'HIGH', basis: [] }, ...SPARSE })
     const issues = checkItem(item)
     expect(issues.some((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE')).toBe(false)
+    expect(issues.find((i) => i.rule === 'CONFIDENCE_DRIFT')?.severity).toBe('warning')
   })
 
-  it('does NOT check confidence gate for IMPLEMENTED (not VALIDATED)', () => {
-    const item = makeItem({
-      status: 'IMPLEMENTED',
-      validationMethods: [],
-      evidence: [],
-    })
+  it('emits no confidence issue when stored >= 80 and derived >= 80', () => {
+    const item = makeItem({ status: 'VALIDATED', confidence: { score: 90, level: 'VERY_HIGH', basis: [] }, ...FULL })
     const issues = checkItem(item)
-    expect(issues.some((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE')).toBe(false)
+    expect(issues.some((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE' || i.rule === 'CONFIDENCE_DRIFT')).toBe(false)
+  })
+
+  it('does NOT apply the confidence gate to non-VALIDATED items', () => {
+    const item = makeItem({ status: 'IMPLEMENTED', confidence: { score: 10, level: 'LOW', basis: [] }, validationMethods: [], evidence: [] })
+    const issues = checkItem(item)
+    expect(issues.some((i) => i.rule === 'VALIDATED_LOW_CONFIDENCE' || i.rule === 'CONFIDENCE_DRIFT')).toBe(false)
   })
 })
 
