@@ -209,15 +209,16 @@ Banzami is in active development and **not yet production-ready**. The financial
 core — double-entry ledger, atomic postings, consumer wallets, balance derivation,
 P2P transfers, and `@banza` handles — is implemented and validated against a real
 database. QR payments, merchant apps, the Business Dashboard, and the SDK platform
-are in progress. Real Kwanza funding and withdrawals (EMIS) and KYC are not yet
-operational; the default acquiring provider is simulated.
+are in progress. Real Kwanza funding and withdrawals — through an approved payment
+rail such as EMIS or a partner-bank route — and KYC are not yet operational; the
+default acquiring provider is simulated.
 
 **Roadmap**
 
 | Horizon | Focus |
 |---------|-------|
 | **Now** | Wallets, transfers, QR, payment links, SDKs, sandbox |
-| **Next** | EMIS acquiring (real Kwanza funding) · automated bank payouts · PHP SDK v1 · production observability |
+| **Next** | Real Kwanza funding via an approved rail (EMIS or partner bank) · automated bank/rail payouts · PHP SDK v1 · production observability |
 | **Later** | Broader merchant tooling, platform integrations, and network growth |
 
 ---

@@ -11,12 +11,14 @@
 
 ## Banzami's relationship to certification
 
-Banzami is **one certified operator** built on BANZA. Banzami:
+Banzami is **designed to operate as a certified operator** built on BANZA, once the
+required validation, partner integrations, and regulatory/commercial approvals are
+completed. It is **not certified today**. Banzami:
 
 - **does not** define certification levels or rules,
 - **does not** operate the certification process,
-- **does** implement the protocol and aims to pass the BANZA conformance suite at its declared level.
+- **does** implement the protocol and **aims to pass** the BANZA conformance suite at its declared level.
 
-For Banzami's current certified level and conformance status, see the operator status reported by the BANZA certification process. Banzami consumes the certification definition from BANZA; it never redefines it locally.
+For Banzami's certification status (once achieved), see the operator status reported by the BANZA certification process. Banzami consumes the certification definition from BANZA; it never redefines it locally.
 
 *(This file was a full copy of the protocol certification spec; it is a pointer because the protocol owns this content, not the operator.)*
