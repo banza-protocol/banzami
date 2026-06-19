@@ -1,10 +1,21 @@
 name: CI
 
+# Docs-only commits do not run the build/test suite — they touch no code, so the
+# CI jobs would only waste Actions minutes (and show as failed while the account's
+# Actions billing is unresolved). Code changes still trigger the full suite.
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
   pull_request:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'LICENSE'
 
 env:
   CARGO_TERM_COLOR: always
