@@ -7676,7 +7676,7 @@
       "title": "Integração com banco parceiro (funding/settlement/reconciliação)",
       "categoryId": "cat-emis",
       "validationDomain": "DOM-MONEY-IN",
-      "referenceSection": "",
+      "referenceSection": "§6.7, §10.4",
       "description": "Integração com um banco parceiro como provider alternativo ao EMIS para funding, settlement, reconciliação ou contas de liquidação. Uma das implementações possíveis da camada provider/rail.",
       "requirement": "Money In/Out deve poder ser satisfeito por pelo menos um provider aprovado; este é um provider alternativo ao EMIS.",
       "status": "BLOCKED",
@@ -7729,16 +7729,25 @@
           "evidence": [
             "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
           ]
+        },
+        {
+          "timestamp": "2026-06-19T03:30:00.000Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "a5358cec954d55c2",
+          "reason": "Integrity correction (descriptive): populated the required referenceSection, left empty when BANK-001 was created during the provider-agnostic Money Rails restructure. Mirrors its EMS twin EMS-001 (§6.7, §10.4) — BANK-001 is the partner-bank alternative rail. No status change (stays BLOCKED), no priority/confidence/blocker/evidence/readiness change; the item remains externally blocked pending a real partner bank.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-06-19"
     },
     {
       "id": "BANK-002",
       "title": "Payout / levantamento para conta bancária via banco parceiro",
       "categoryId": "cat-payouts",
       "validationDomain": "DOM-MONEY-OUT",
-      "referenceSection": "",
+      "referenceSection": "§6.7, §15.2",
       "description": "Levantamentos/payouts para contas bancárias através de um banco parceiro ou rail bancário autorizado, como provider alternativo ao EMIS para Money Out.",
       "requirement": "Money In/Out deve poder ser satisfeito por pelo menos um provider aprovado; este é um provider alternativo ao EMIS.",
       "status": "BLOCKED",
@@ -7791,9 +7800,18 @@
           "evidence": [
             "docs/adr/ADR-018-provider-agnostic-money-in-out.md"
           ]
+        },
+        {
+          "timestamp": "2026-06-19T03:30:00.000Z",
+          "from": "BLOCKED",
+          "to": "BLOCKED",
+          "approvedBy": "local-admin",
+          "fingerprint": "e94c4f9365d6abde",
+          "reason": "Integrity correction (descriptive): populated the required referenceSection, left empty when BANK-002 was created during the provider-agnostic Money Rails restructure. Mirrors its EMS twin EMS-002 (§6.7, §15.2) — BANK-002 is the partner-bank alternative rail. No status change (stays BLOCKED), no priority/confidence/blocker/evidence/readiness change; the item remains externally blocked pending a real partner bank.",
+          "evidence": []
         }
       ],
-      "lastUpdated": "2026-06-18"
+      "lastUpdated": "2026-06-19"
     }
   ]
 }
