@@ -3,6 +3,8 @@ pub mod activity;
 pub mod admin;
 pub mod analytics;
 pub mod compliance;
+#[cfg(test)]
+mod compliance_tests;
 pub mod consumer_deposits;
 pub mod consumer_pay_links;
 pub mod consumer_wallets;

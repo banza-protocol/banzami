@@ -35,6 +35,10 @@ pub enum IdDocumentType {
     BilheteDeIdentidade,
     /// Passport (typically for foreign residents).
     Passport,
+    /// Angolan Carta de Condução (driver's licence). Accepted as an internal
+    /// document type; actual support depends on the selected KYC vendor (not yet
+    /// chosen). Harmless if a vendor does not support it — it is simply unused.
+    CartaDeConducao,
 }
 
 impl IdDocumentType {
@@ -42,7 +46,39 @@ impl IdDocumentType {
         match self {
             Self::BilheteDeIdentidade => "BILHETE_DE_IDENTIDADE",
             Self::Passport => "PASSPORT",
+            Self::CartaDeConducao => "CARTA_DE_CONDUCAO",
         }
+    }
+
+    /// Parse the canonical string form (the inverse of [`Self::as_str`]).
+    pub fn try_from_str(s: &str) -> Option<Self> {
+        match s {
+            "BILHETE_DE_IDENTIDADE" => Some(Self::BilheteDeIdentidade),
+            "PASSPORT" => Some(Self::Passport),
+            "CARTA_DE_CONDUCAO" => Some(Self::CartaDeConducao),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(test)]
+mod id_document_type_tests {
+    use super::IdDocumentType;
+
+    #[test]
+    fn as_str_from_str_roundtrip() {
+        for d in [
+            IdDocumentType::BilheteDeIdentidade,
+            IdDocumentType::Passport,
+            IdDocumentType::CartaDeConducao,
+        ] {
+            assert_eq!(IdDocumentType::try_from_str(d.as_str()), Some(d));
+        }
+        assert_eq!(IdDocumentType::try_from_str("UNKNOWN"), None);
+        assert_eq!(
+            IdDocumentType::CartaDeConducao.as_str(),
+            "CARTA_DE_CONDUCAO"
+        );
     }
 }
 

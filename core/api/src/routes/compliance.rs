@@ -58,6 +58,15 @@ pub async fn approve_merchant(
         .approve_merchant(merchant_id)
         .await
         .map_err(compliance_err)?;
+    super::risk::audit(
+        &state.pool,
+        "ADMIN",
+        "KYC_STATUS_CHANGED",
+        &format!("merchant:{merchant_id}"),
+        serde_json::json!({ "kind": "KYB", "decision": "APPROVED" }),
+        None,
+    )
+    .await;
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
@@ -79,6 +88,15 @@ pub async fn reject_merchant(
         .reject_merchant(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;
+    super::risk::audit(
+        &state.pool,
+        "ADMIN",
+        "KYC_STATUS_CHANGED",
+        &format!("merchant:{merchant_id}"),
+        serde_json::json!({ "kind": "KYB", "decision": "REJECTED" }),
+        None,
+    )
+    .await;
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
@@ -100,6 +118,15 @@ pub async fn suspend_merchant(
         .suspend(merchant_id)
         .await
         .map_err(merchant_err)?;
+    super::risk::audit(
+        &state.pool,
+        "ADMIN",
+        "MERCHANT_SUSPENDED",
+        &format!("merchant:{merchant_id}"),
+        serde_json::json!({ "kind": "COMPLIANCE_SUSPEND" }),
+        None,
+    )
+    .await;
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
@@ -116,6 +143,15 @@ pub async fn flag_aml(
         .flag_merchant_for_aml_review(merchant_id, body.notes)
         .await
         .map_err(compliance_err)?;
+    super::risk::audit(
+        &state.pool,
+        "ADMIN",
+        "KYC_STATUS_CHANGED",
+        &format!("merchant:{merchant_id}"),
+        serde_json::json!({ "kind": "AML", "status": "UNDER_REVIEW" }),
+        None,
+    )
+    .await;
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
 
@@ -148,13 +184,9 @@ pub async fn verify_customer(
         .map_err(|_| ApiError::bad_request("invalid customer id"))?;
 
     let document_type = match body.document_type.as_deref() {
-        Some("PASSPORT") => IdDocumentType::Passport,
-        None | Some("BILHETE_DE_IDENTIDADE") => IdDocumentType::BilheteDeIdentidade,
-        Some(other) => {
-            return Err(ApiError::bad_request(format!(
-                "unknown document_type: {other}"
-            )))
-        }
+        None => IdDocumentType::BilheteDeIdentidade,
+        Some(s) => IdDocumentType::try_from_str(s)
+            .ok_or_else(|| ApiError::bad_request(format!("unknown document_type: {s}")))?,
     };
     let requested_level = match body.requested_level.as_deref() {
         None => KycLevel::Basic,
@@ -177,6 +209,20 @@ pub async fn verify_customer(
         )
         .await
         .map_err(compliance_err)?;
+
+    super::risk::audit(
+        &state.pool,
+        "CONSUMER",
+        "KYC_STATUS_CHANGED",
+        &format!("consumer:{customer_id}"),
+        serde_json::json!({
+            "kind": "KYC",
+            "document_type": document_type.as_str(),
+            "status": record.status.as_str(),
+        }),
+        None,
+    )
+    .await;
 
     Ok(Json(serde_json::to_value(&record).unwrap()))
 }
