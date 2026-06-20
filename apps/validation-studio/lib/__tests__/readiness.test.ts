@@ -105,11 +105,12 @@ describe('readiness lenses', () => {
 describe('current matrix readiness snapshot', () => {
   const r = computeReadiness(readMatrix())
 
-  it('launch-ready is 56/76 and code-complete is 68/76', () => {
-    // 66 product items + 10 BANZA L0 conformance items (DOM-CONFORMANCE, IMPLEMENTED).
-    // Conformance adds code-complete (+10) but no launch-ready until validated via §16.
+  it('launch-ready is 66/76 and code-complete is 68/76', () => {
+    // 66 product items + 10 BANZA L0 conformance items (DOM-CONFORMANCE).
+    // The 10 conformance items are VALIDATED (§16-promoted), so they add to both
+    // launch-ready (+10) and code-complete (+10).
     expect(r.total).toBe(76)
-    expect(r.launchReady).toBe(56)
+    expect(r.launchReady).toBe(66)
     expect(r.codeComplete).toBe(68)
   })
 
@@ -120,19 +121,19 @@ describe('current matrix readiness snapshot', () => {
     expect(r.criticalCodeComplete).toBe(21)
   })
 
-  it('10 items are externally blocked and 10 await internal validation (the conformance batch)', () => {
+  it('10 items are externally blocked and 0 are blocked on internal engineering', () => {
     expect(r.externallyBlocked).toBe(10)
-    // The 10 BANZA L0 items are code-complete with no external blocker: they read as
-    // "internally blocked" (pending §16 validation sign-off, not engineering work).
-    expect(r.internallyBlocked).toBe(10)
+    // Conformance items are now VALIDATED, so nothing reads as internally blocked.
+    expect(r.internallyBlocked).toBe(0)
   })
 
-  it('Protocol Conformance pillar is 0/10 launch-ready · 10/10 code-complete', () => {
+  it('Protocol Conformance pillar is 10/10 validated (launch-ready)', () => {
     const conf = r.pillars.find((p) => p.domain === 'DOM-CONFORMANCE')!
     expect(conf.total).toBe(10)
-    expect(conf.launchReady).toBe(0)
+    expect(conf.launchReady).toBe(10)
     expect(conf.codeComplete).toBe(10)
     expect(conf.externallyBlocked).toBe(0)
+    expect(conf.status).toBe('ready')
   })
 
   it('WAL-004 and KYB-001 are code-complete but not launch-ready', () => {
