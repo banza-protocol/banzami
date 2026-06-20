@@ -1,7 +1,7 @@
 {
   "meta": {
     "version": "1.0",
-    "lastUpdated": "2026-06-19",
+    "lastUpdated": "2026-06-21",
     "referenceVersion": "1.0",
     "referenceFile": "BANZAMI_REFERENCE.md",
     "description": "Implementation and validation matrix for the Banza ecosystem — derived from BANZA_REFERENCE.md as single source of truth. Per ADR-015."
@@ -106,6 +106,11 @@
       "id": "cat-emis",
       "name": "Payment rails & providers",
       "description": "Rails provider-agnósticos de Money In/Out/settlement — EMIS/Multicaixa Express, bancos parceiros, contas de liquidação e outros providers licenciados. Nenhum rail é a dependência única."
+    },
+    {
+      "id": "cat-conformance",
+      "name": "Protocol Conformance",
+      "description": "Evidência operador-side de conformance BANZA L0 (sandbox dry-run): endpoints de saúde/manifesto, runner oficial reprodutível e relatório arquivado. Evidência, não certificação — a BANZA detém o framework de certificação."
     }
   ],
   "items": [
@@ -7812,6 +7817,654 @@
         }
       ],
       "lastUpdated": "2026-06-19"
+    },
+    {
+      "id": "BANZA-L0-001",
+      "title": "Endpoint público de sandbox disponível",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O Banzami expõe um endpoint público de sandbox para conformance dry-run BANZA L0.",
+      "requirement": "Existe um endpoint público de sandbox acessível para correr a suite de conformance BANZA L0.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Endpoint público de sandbox acessível",
+        "Suite L0 consegue alcançar o operador"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "https://sandbox.banzami.org",
+        "https://sandbox.banzami.org/health",
+        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "https://sandbox.banzami.org",
+            "https://sandbox.banzami.org/health"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-002",
+      "title": "Health endpoint declara flags de segurança de sandbox",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O /health do sandbox declara as flags de segurança exigidas pelo L0.",
+      "requirement": "GET /health devolve 200 e declara environment=sandbox, simulated=true, production_allowed=false.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "/health devolve 200",
+        "simulated=true",
+        "production_allowed=false",
+        "environment=sandbox"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "https://sandbox.banzami.org/health",
+        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "https://sandbox.banzami.org/health",
+            "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-003",
+      "title": "Operator manifest publicado",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O manifesto do operador está publicado em /.well-known/banza/operator.json com os campos L0.",
+      "requirement": "operator.json publicado com certification_level=0, environment=sandbox, simulated=true, production_allowed=false e capabilities.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "operator.json responde 200",
+        "certification_level=0",
+        "simulated=true",
+        "production_allowed=false",
+        "capabilities presentes"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "https://sandbox.banzami.org/.well-known/banza/operator.json",
+        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "https://sandbox.banzami.org/.well-known/banza/operator.json",
+            "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-004",
+      "title": "Endpoint de certificado de produção ausente",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "Nenhum certificado de produção é exposto — certificate.json devolve 404, o que é correcto porque nenhum certificado foi emitido.",
+      "requirement": "/.well-known/banza/certificate.json devolve 404 / ausente (correcto: nenhum certificado de produção emitido).",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "certificate.json devolve 404",
+        "Nenhum certificado de produção servido"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-005",
+      "title": "Evidência L0 PyPI arquivada",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "Relatório de conformance L0 gerado com o tooling oficial PyPI e arquivado no repositório.",
+      "requirement": "Relatório L0 gerado com banza-conformance 0.1.0 (PyPI): total=5, passed=5, failed=0, nível 0; statement = evidência, não certificado de produção.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "banza-conformance==0.1.0 usado",
+        "5/5 passed, 0 failed",
+        "nível 0 alcançado",
+        "statement = evidência, não certificado"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
+        "banza-conformance==0.1.0 (PyPI)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
+            "banza-conformance==0.1.0 (PyPI)"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-006",
+      "title": "Cross-validação L0 via GHCR",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O path de distribuição Docker (GHCR) foi cruz-validado com o mesmo resultado L0.",
+      "requirement": "ghcr.io/banza-protocol/banza-conformance:v0.1.0 produz o mesmo 5/5; o relatório canónico commitado é o do PyPI para evitar artefactos duplicados.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "GHCR v0.1.0 corre contra o mesmo sandbox",
+        "Mesmo resultado 5/5",
+        "Relatório canónico = PyPI (sem duplicação)"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "ghcr.io/banza-protocol/banza-conformance:v0.1.0",
+        "evidence/banza-conformance/l0/README.md"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "ghcr.io/banza-protocol/banza-conformance:v0.1.0",
+            "evidence/banza-conformance/l0/README.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L0-007",
+      "title": "Workflow de conformance reprodutível",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O Banzami pode regenerar a sua evidência BANZA L0 com o tooling oficial via script e make target.",
+      "requirement": "Existe um workflow reprodutível (tools/banza-conformance-l0.sh + make banza-conformance-l0) que regenera a evidência L0 com o tooling oficial.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Script reprodutível presente",
+        "Make target presente",
+        "Regenera evidência L0"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "tools/banza-conformance-l0.sh",
+        "Makefile:banza-conformance-l0"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "tools/banza-conformance-l0.sh",
+            "Makefile:banza-conformance-l0"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-GUARD-001",
+      "title": "Evidência não é representada como certificação",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O README e os documentos de evidência afirmam que PASS é evidência, não certificação; o Banzami não é um operador certificado.",
+      "requirement": "A documentação afirma explicitamente: PASS = evidência, não certificação; Banzami não é operador certificado.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "README declara evidência, não certificação",
+        "README de evidência declara não-certificado",
+        "Sem reivindicação de operador certificado"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status",
+        "evidence/banza-conformance/l0/README.md",
+        "docs/certification.md"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "README.md:#banza-conformance-status",
+            "evidence/banza-conformance/l0/README.md"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-GUARD-002",
+      "title": "Nenhum certificado BANZA de produção exposto",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "Nenhum certificate.json é exposto porque o Banzami não recebeu um certificado de produção da BANZA CA.",
+      "requirement": "Nenhum /.well-known/banza/certificate.json é exposto; certification_level=0 e production_allowed=false confirmam ausência de certificado de produção.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "certificate.json ausente (404)",
+        "certification_level=0",
+        "production_allowed=false"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)",
+        "https://sandbox.banzami.org/.well-known/banza/operator.json:certification_level=0"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)",
+            "https://sandbox.banzami.org/.well-known/banza/operator.json:certification_level=0"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-ROADMAP-001",
+      "title": "Progressão L0→L4 definida mas não reivindicada",
+      "categoryId": "cat-conformance",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0 conformance · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "O Banzami documenta a progressão de operador L0→L4 sem reivindicar certificação L1/L2/L3.",
+      "requirement": "A documentação descreve a progressão L0→L4 e marca L1 em progresso, L2/L3 não iniciados; nenhuma certificação L1/L2/L3 é reivindicada.",
+      "status": "IMPLEMENTED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Evidence",
+      "validationMethods": [
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "Roadmap L0→L4 documentado",
+        "L2/L3 marcados como não iniciados",
+        "Sem reivindicação de certificação L1/L2/L3"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
+          "evidence": [
+            "README.md:#banza-conformance-status (roadmap L0→L4)"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
     }
   ]
 }

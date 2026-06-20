@@ -105,21 +105,34 @@ describe('readiness lenses', () => {
 describe('current matrix readiness snapshot', () => {
   const r = computeReadiness(readMatrix())
 
-  it('launch-ready is 56/66 and code-complete is 58/66', () => {
-    expect(r.total).toBe(66)
+  it('launch-ready is 56/76 and code-complete is 68/76', () => {
+    // 66 product items + 10 BANZA L0 conformance items (DOM-CONFORMANCE, IMPLEMENTED).
+    // Conformance adds code-complete (+10) but no launch-ready until validated via §16.
+    expect(r.total).toBe(76)
     expect(r.launchReady).toBe(56)
-    expect(r.codeComplete).toBe(58)
+    expect(r.codeComplete).toBe(68)
   })
 
   it('launch-critical is 19/24 and implemented-critical is 21/24', () => {
+    // Conformance items are HIGH (not CRITICAL), so the launch-critical totals are unchanged.
     expect(r.criticalTotal).toBe(24)
     expect(r.criticalLaunchReady).toBe(19)
     expect(r.criticalCodeComplete).toBe(21)
   })
 
-  it('10 items are externally blocked and 0 are blocked on internal engineering', () => {
+  it('10 items are externally blocked and 10 await internal validation (the conformance batch)', () => {
     expect(r.externallyBlocked).toBe(10)
-    expect(r.internallyBlocked).toBe(0)
+    // The 10 BANZA L0 items are code-complete with no external blocker: they read as
+    // "internally blocked" (pending §16 validation sign-off, not engineering work).
+    expect(r.internallyBlocked).toBe(10)
+  })
+
+  it('Protocol Conformance pillar is 0/10 launch-ready · 10/10 code-complete', () => {
+    const conf = r.pillars.find((p) => p.domain === 'DOM-CONFORMANCE')!
+    expect(conf.total).toBe(10)
+    expect(conf.launchReady).toBe(0)
+    expect(conf.codeComplete).toBe(10)
+    expect(conf.externallyBlocked).toBe(0)
   })
 
   it('WAL-004 and KYB-001 are code-complete but not launch-ready', () => {

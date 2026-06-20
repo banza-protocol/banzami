@@ -27,6 +27,7 @@ higher-level launch lens.)
 | **DOM-LEDGER** | Is the money provably correct? | Double-entry ledger, immutability, atomicity, reconciliation |
 | **DOM-TRUST** | Is it safe & auditable for regulators? | KYC/KYB, risk engine, security, audit trails |
 | **DOM-OPERATIONS** | Can incidents be detected & handled? Can it scale? | Observability, operations, incident response |
+| **DOM-CONFORMANCE** | Can Banzami prove BANZA L0 sandbox conformance with official protocol tooling? | Operator-side BANZA conformance **evidence** (L0 sandbox suite, health/manifest, reproducible runner). Evidence, **not** certification — BANZA owns certification. |
 
 ---
 
@@ -45,7 +46,12 @@ lists every launch blocker by ID.
 
 ## Governance notes
 
-- Pillars are operator-only. No protocol, federation, governance, or documentation
-  domains exist — those belong to the BANZA protocol, not the operator.
+- Pillars are operator-only. No protocol-ownership, federation, governance, or
+  documentation domains exist — those belong to the BANZA protocol, not the
+  operator. `DOM-CONFORMANCE` is **not** an exception: it tracks the operator's
+  own **evidence** of passing the BANZA conformance suite at L0 (a dry run against
+  the Banzami sandbox), never protocol authority or a certification claim. BANZA
+  owns the certification framework; passing the suite is evidence, not a
+  certificate, and Banzami is not a certified operator.
 - `FINANCIAL_CRITICAL_CATEGORIES` (ledger, wallet, P2P, QR, payouts, refunds) is
   keyed by `categoryId`, independent of the pillar model.

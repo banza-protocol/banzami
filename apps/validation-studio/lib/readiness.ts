@@ -99,6 +99,7 @@ const PILLARS: { domain: ValidationDomain; label: string; question: string }[] =
   { domain: 'DOM-LEDGER',     label: 'Ledger',           question: 'Is the money provably correct?' },
   { domain: 'DOM-TRUST',      label: 'Trust & Compliance', question: 'Is it safe & auditable for regulators?' },
   { domain: 'DOM-OPERATIONS', label: 'Operations',       question: 'Can incidents be detected & handled?' },
+  { domain: 'DOM-CONFORMANCE', label: 'Protocol Conformance', question: 'Can Banzami prove BANZA L0 sandbox conformance with official protocol tooling? (evidence, not certification)' },
 ]
 
 export function computeReadiness(matrix: ValidationMatrix): Readiness {

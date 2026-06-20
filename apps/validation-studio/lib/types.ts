@@ -39,6 +39,7 @@ export type ValidationDomain =
   | 'DOM-LEDGER'      // Ledger & Accounting
   | 'DOM-TRUST'       // Trust, Compliance & Security
   | 'DOM-OPERATIONS'  // Operations
+  | 'DOM-CONFORMANCE' // Protocol Conformance (BANZA L0 sandbox evidence)
 
 export interface ConfidenceScore {
   score: number          // 0-100
@@ -234,6 +235,7 @@ export const ALL_INVARIANT_STATUSES: InvariantStatus[] = ['PASS', 'FAIL', 'UNKNO
 export const ALL_DOMAINS: ValidationDomain[] = [
   'DOM-IDENTITY', 'DOM-MONEY-MOVE', 'DOM-MONEY-IN', 'DOM-MONEY-OUT',
   'DOM-MERCHANT', 'DOM-DEVELOPER', 'DOM-LEDGER', 'DOM-TRUST', 'DOM-OPERATIONS',
+  'DOM-CONFORMANCE',
 ]
 
 export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
@@ -246,6 +248,7 @@ export const DOMAIN_LABELS: Record<ValidationDomain, string> = {
   'DOM-LEDGER':     'Ledger & Accounting',
   'DOM-TRUST':      'Trust & Compliance',
   'DOM-OPERATIONS': 'Operations',
+  'DOM-CONFORMANCE':'Protocol Conformance',
 }
 
 export const CONFIDENCE_LEVEL_LABELS: Record<ConfidenceLevel, string> = {
