@@ -122,6 +122,7 @@ section('6. No unexpected top-level directories');
 const ACCEPTED_TOP_LEVEL = new Set([
   'core', 'services', 'apps', 'sdk', 'plugins',
   'db', 'infra', 'docs', 'tools', 'assets',
+  'evidence',            // conformance / audit evidence artifacts (not a source of truth)
   '.git', '.github', '.gitignore', '.env', '.env.example',
   '.claude',             // Claude Code project config (memory, commands)
   '.DS_Store',           // macOS filesystem artifact

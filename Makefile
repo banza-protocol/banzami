@@ -91,6 +91,7 @@ help:
 	@printf "\n  \033[1mQuality\033[0m\n"
 	@printf "    make check-all       Run all linters, type-checkers, and layout check\n"
 	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
+	@printf "    make banza-conformance-l0  Run BANZA L0 conformance against the sandbox (evidence)\n"
 	@printf "    make test-all        Run all test suites\n"
 	@printf "\n"
 
@@ -260,10 +261,16 @@ stack-logs:
 	$(COMPOSE_FULL) logs -f
 
 # ─── Quality gates ────────────────────────────────────────────────────────────
-.PHONY: check-all test-all check-repo-layout
+.PHONY: check-all test-all check-repo-layout banza-conformance-l0
 
 check-repo-layout:
 	node tools/check-repository-layout.mjs
+
+# Run the official BANZA conformance suite (Level 0) against the Banzami sandbox
+# as an operator candidate. Produces evidence (not a certificate) under
+# evidence/banza-conformance/l0/. See that directory's README.
+banza-conformance-l0:
+	tools/banza-conformance-l0.sh
 
 check-all: core-check gateway-check admin-api-check public-api-check check-repo-layout
 	@printf "\nAll checks passed.\n"

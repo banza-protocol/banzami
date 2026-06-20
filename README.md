@@ -178,6 +178,7 @@ part of the Banzami operator.
 | `infra/` | Docker, deployment, and monitoring |
 | `docs/` | Operator documentation |
 | `tools/` | Internal tooling |
+| `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports) |
 
 ---
 
@@ -220,6 +221,39 @@ default acquiring provider is simulated.
 | **Now** | Wallets, transfers, QR, payment links, SDKs, sandbox |
 | **Next** | Real Kwanza funding via an approved rail (EMIS or partner bank) · automated bank/rail payouts · PHP SDK v1 · production observability |
 | **Later** | Broader merchant tooling, platform integrations, and network growth |
+
+---
+
+## BANZA conformance status
+
+Banzami runs the **official BANZA conformance suite** against its sandbox as an
+**operator candidate**. The current result is **Level 0 — reference-compatible
+(5/5 passed)**, generated with `banza-conformance` `0.1.0` against
+`https://sandbox.banzami.org`.
+
+This is **conformance evidence, not certification.** The BANZA protocol owns the
+certification framework; passing the suite does **not** make Banzami a certified
+operator and says nothing about production readiness. No certificate is issued or
+served, and Banzami is not in any production operator registry. Production
+certification is gated on later operator milestones (real rails, KYC/KYB,
+production keys), none of which are complete.
+
+Evidence and reproduction steps:
+[`evidence/banza-conformance/l0/`](evidence/banza-conformance/l0/) ·
+`make banza-conformance-l0`.
+
+**Operator conformance roadmap**
+
+| Level | Name | Meaning | Banzami status |
+|-------|------|---------|----------------|
+| **L0** | Protocol Sandbox | Sandbox responds correctly; `simulated=true`, `production_allowed=false` | **Evidence: 5/5 ✓ (candidate)** |
+| **L1** | Reference-compatible core | Wallet, QR, and ledger behaviour conform in sandbox | In progress |
+| **L2** | Operational | Real rails, KYC/KYB, reconciliation, production keys | Not started (M2) |
+| **L3** | Production federation | Certified production operation under the BANZA framework | Not started (M3) |
+| **L4** | — | Reserved by the BANZA protocol | — |
+
+Levels and rules are defined by BANZA, not by Banzami — see the protocol's
+`BANZA_CERTIFICATION.md`. See also [docs/certification.md](docs/certification.md).
 
 ---
 

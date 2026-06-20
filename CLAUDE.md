@@ -835,6 +835,7 @@ The repository layout is frozen. The semantic zones below are binding architectu
 | `docs/` | Documentation — ADRs, domains, runbooks, audit, migration, validation |
 | `infra/` | Docker, Terraform, monitoring, deployment |
 | `tools/` | Internal tooling and scripts |
+| `evidence/` | Conformance and audit evidence artifacts (e.g. BANZA conformance reports). Generated evidence only — never a source of truth and never protocol authority. Passing a BANZA conformance suite is evidence, not certification: BANZA owns the certification framework. |
 
 ## 19.2 Frozen Rules
 
