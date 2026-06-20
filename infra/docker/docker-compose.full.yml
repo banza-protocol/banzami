@@ -264,6 +264,26 @@ services:
     networks:
       - banzami_net
 
+  # ─── Sandbox operator (BANZA L0) ──────────────────────────────────────────────
+  # Minimal, stateless BANZA L0 (Protocol Sandbox) runtime behind
+  # sandbox.banzami.org. No database, no money movement, simulated=true,
+  # production_allowed=false. Internal-only — nginx proxies to sandbox-operator:8085.
+  sandbox-operator:
+    build:
+      context: ../../services/sandbox-operator
+      dockerfile: Dockerfile
+    environment:
+      SANDBOX_OPERATOR_PORT: "8085"
+    healthcheck:
+      test:     ["CMD", "curl", "-fsS", "http://localhost:8085/health"]
+      interval: 10s
+      timeout:  5s
+      start_period: 5s
+      retries:  5
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
   # ─── Frontend applications ────────────────────────────────────────────────────
 
   # Next.js pay page — public payment link checkout (pay.banzami.com).
