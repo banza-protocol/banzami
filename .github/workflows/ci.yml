@@ -1,21 +1,31 @@
 name: CI
 
-# Docs-only commits do not run the build/test suite — they touch no code, so the
-# CI jobs would only waste Actions minutes (and show as failed while the account's
-# Actions billing is unresolved). Code changes still trigger the full suite.
+# ─── Trigger: manual only (temporary) ─────────────────────────────────────────
+# Automatic push/pull_request triggers are DISABLED while the banza-protocol
+# org's GitHub Actions billing is unresolved. With billing blocked, every push
+# produced a red ✗ within ~5s because the jobs were "not started" (a billing
+# block, never a code failure). Deploys are manual (`./deploy.sh`, CLAUDE.md
+# §19.4) and the suite runs locally (`make check-all`, `cargo test`), so the
+# repo does not depend on this CI.
+#
+# Run on demand: Actions → CI → "Run workflow" (or `gh workflow run CI`).
+#
+# TO RESTORE automatic CI once billing is fixed: uncomment the push/pull_request
+# block below (the paths-ignore keeps docs-only commits from running the suite).
 on:
-  push:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'LICENSE'
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - '**.md'
-      - 'docs/**'
-      - 'LICENSE'
+  workflow_dispatch:
+  # push:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - '**.md'
+  #     - 'docs/**'
+  #     - 'LICENSE'
+  # pull_request:
+  #   branches: [main]
+  #   paths-ignore:
+  #     - '**.md'
+  #     - 'docs/**'
+  #     - 'LICENSE'
 
 env:
   CARGO_TERM_COLOR: always
