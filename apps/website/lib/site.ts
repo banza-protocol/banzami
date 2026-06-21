@@ -7,8 +7,8 @@ export const SITE = {
   url: 'https://banzami.com',
   email: 'contact@banzami.com',
   // The open BANZA protocol is owned and governed independently of Banzami.
-  // It lives in the protocol organisation, not on a Banzami domain.
-  protocolUrl: 'https://github.com/banza-protocol/banza',
+  // Its current website is banzami.org (temporary, per the protocol team).
+  protocolUrl: 'https://banzami.org',
   tagline: 'A carteira Kwanza de Angola. O dinheiro move-se à velocidade da internet.',
 } as const;
 
