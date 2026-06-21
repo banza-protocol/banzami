@@ -77,6 +77,46 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
       <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {pillars.map((p) => {
           const scope = p.total - p.roadmap - p.baseline
+
+          // Protocol Conformance is the strategic BANZA card — render it full-width
+          // with a detailed, data-driven summary. Display-only; no count changes.
+          if (p.domain === 'DOM-CONFORMANCE') {
+            return (
+              <div
+                key={p.domain}
+                className={`rounded-lg border px-4 py-3.5 sm:col-span-2 lg:col-span-3 ${RING[p.status]}`}
+              >
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <span className="flex items-center gap-2 text-sm font-bold text-gray-800">
+                      <span className={`h-2 w-2 rounded-full ${DOT[p.status]}`} />
+                      {p.label}
+                    </span>
+                    <p className="mt-1 text-xs text-gray-600">{p.question}</p>
+                    <p className="mt-0.5 text-[11px] font-medium text-gray-500">
+                      {p.baseline} baseline · {p.roadmap} roadmap ·{' '}
+                      <span className="text-gray-400">evidence, not certification · Banzami is not certified</span>
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-lg font-extrabold tabular-nums text-emerald-700">
+                      {p.launchReady}/{scope}
+                    </div>
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">
+                      L0 validated
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2 lg:grid-cols-4">
+                  <MiniStat label="L0 Evidence" value="VALIDATED" note="PyPI + GHCR 5/5" tone="emerald" />
+                  <MiniStat label="Evidence custody" value="ARCHIVED" note="evidence/banza-conformance/l0/" tone="emerald" />
+                  <MiniStat label="Certificate" value="NONE" note="no production certificate · certificate.json absent" tone="gray" />
+                  <MiniStat label="Roadmap" value="L1–L4 TRACKED" note="not validated" tone="gray" />
+                </div>
+              </div>
+            )
+          }
+
           const parts: { text: string; tone?: string }[] = []
           if (p.codeComplete > p.launchReady) parts.push({ text: `${p.codeComplete}/${scope} code-complete` })
           if (p.externallyBlocked > 0) parts.push({ text: `${p.externallyBlocked} externally blocked`, tone: 'text-amber-700' })
@@ -176,6 +216,28 @@ function Metric({ value, label, tone }: { value: string; label: string; tone: 'e
     <div>
       <div className={`text-2xl font-extrabold tabular-nums ${color}`}>{value}</div>
       <div className="text-[11px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
+    </div>
+  )
+}
+
+// A mini status block inside the full-width Protocol Conformance card.
+function MiniStat({
+  label,
+  value,
+  note,
+  tone,
+}: {
+  label: string
+  value: string
+  note: string
+  tone: 'emerald' | 'gray'
+}) {
+  const valueColor = tone === 'emerald' ? 'text-emerald-700' : 'text-gray-700'
+  return (
+    <div className="rounded-md border border-gray-200 bg-white/70 px-2.5 py-2">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-gray-400">{label}</div>
+      <div className={`mt-0.5 text-xs font-bold ${valueColor}`}>{value}</div>
+      <div className="mt-0.5 text-[10px] text-gray-400">{note}</div>
     </div>
   )
 }
