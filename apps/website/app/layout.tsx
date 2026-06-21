@@ -15,6 +15,16 @@ export const metadata: Metadata = {
     'O Banzami é a rede de pagamentos wallet-native de Angola. Carteira em Kwanza, paga por QR ou para um @banza, recebe em segundos. Construído sobre o protocolo aberto BANZA.',
   applicationName: 'Banzami',
   authors: [{ name: 'Banzami' }],
+  manifest: '/site.webmanifest',
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/favicon.ico', sizes: 'any' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+    ],
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
+  },
   keywords: [
     'Banzami',
     'Kwanza',
