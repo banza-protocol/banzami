@@ -95,3 +95,7 @@ temp/
 
 # banzami docs — generated artifacts (sourced from banza repo)
 apps/docs/data/
+
+# Website origin TLS certs (never commit)
+infra/docker/website-certs/*.pem
+infra/docker/website-certs/*.key

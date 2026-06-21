@@ -318,15 +318,30 @@ services:
       - banzami_net
 
   # Next.js official website (banzami.com) — public marketing/institutional site.
-  # Isolated from the payment runtime: no depends_on, makes no API calls.
+  # Isolated from the payment runtime: no depends_on, makes no API calls. Port
+  # 3000 is internal-only; the dedicated website-nginx below terminates TLS.
   website-frontend:
     build:
       context: ../../apps/website
       dockerfile: Dockerfile
     environment:
       NODE_ENV: production
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
+  # Dedicated nginx for the website ONLY — owns origin port 8443 (kept off the
+  # BANZA/payment nginx on :443). Cloudflare (separate Banzami zone) routes
+  # banzami.com → origin 217.160.9.248:8443. Config: infra/nginx/website.conf.
+  website-nginx:
+    image: nginx:1.27-alpine
     ports:
-      - "3000:3000"
+      - "8443:443"
+    volumes:
+      - ../nginx/website.conf:/etc/nginx/conf.d/website.conf:ro
+      - ./website-certs:/etc/nginx/certs:ro
+    depends_on:
+      - website-frontend
     restart: unless-stopped
     networks:
       - banzami_net

@@ -1,121 +1,85 @@
 # Banzami Website — Deployment
 
-The official Banzami website (`apps/website`) deploys as a **Next.js standalone
-container** to the existing production server, following the same pattern as the
-other Next.js frontends (`pay`, `checkout`, `dashboard`, `admin`).
+The official Banzami website (`apps/website`) is deployed as a **Next.js standalone
+container**, served by its **own dedicated nginx on origin port `8443`**, fully
+**isolated from the BANZA stack and the payment runtime**.
 
-It is **isolated from the payment runtime**: the container has no `depends_on`,
-makes no API calls, and exposes no payment endpoints. Deploying or rolling it
-back never affects `core-api` or the Go payment services.
+## Architecture (Option 2 — custom Cloudflare origin port)
 
-- **Domain:** `banzami.com` (+ `www.banzami.com` → 301 redirect to apex)
-- **Container:** `website-frontend` · internal port **3000** · network `banzami_net`
-- **Image:** `banzami/website-frontend:latest`
-- **Reverse proxy:** host nginx (`infra/nginx/banzami.conf`) → `website-frontend:3000`
+```
+Visitor ──HTTPS:443──▶ Cloudflare (separate Banzami zone/account)
+                          │  Origin Rule: origin port → 8443
+                          ▼
+        217.160.9.248:8443  (host)  ──▶  website-nginx (:443 in container, TLS)
+                                              │ proxy_pass
+                                              ▼
+                                       website-frontend:3000  (Next.js standalone)
+```
+
+- **Domain:** `banzami.com` (+ `www` → 301 to apex)
+- **Origin port:** `8443` (the BANZA/payment `banza-nginx` keeps `:443`, untouched)
+- **Stack:** `banzami` project at `/srv/banzami` · network `banzami_net`
+- **Containers:** `website-frontend` (Next, internal :3000) + `website-nginx`
+  (`nginx:1.27-alpine`, host `8443`→`443`)
+- **TLS at origin:** a Cloudflare **Origin Certificate** for `banzami.com` (+ `www`)
+  at `/srv/banzami/website-nginx/certs/banzami-com.{pem,key}` (SSL/TLS mode
+  *Full (strict)*). A self-signed cert + mode *Full* also works.
+
+> **Separation is deliberate.** banzami.com (Banzami operator) never shares the
+> BANZA reverse proxy, network, or Cloudflare zone. No change to `banza-nginx`,
+> `:443`, or any payment service.
 
 > **Status guardrail.** The site must always describe Banzami as **not certified**
-> and **not launch-ready** ("PASS significa evidência, não certificação"). Do not
-> introduce certification / launch-ready / production-ready claims at deploy time.
+> and **not launch-ready** ("PASS significa evidência, não certificação").
 
----
+## Server files
 
-## 1. Build & run locally (Docker)
+| Path | Purpose |
+|------|---------|
+| `/srv/banzami/docker-compose.yml` | `website-frontend` + `website-nginx` services (additive) |
+| `/srv/banzami/website-nginx/conf.d/website.conf` | website vhost (source: `infra/nginx/website.conf`) |
+| `/srv/banzami/website-nginx/certs/banzami-com.{pem,key}` | origin cert |
+| `/srv/banzami/src/apps/website/` | rsynced source for the image build |
 
-```bash
-# from repo root
-docker build -t banzami/website-frontend:latest apps/website
-docker run --rm -p 3000:3000 banzami/website-frontend:latest
-# → http://localhost:3000
-```
-
-Or the plain dev server (no Docker): `make website` → http://localhost:3005
-
----
-
-## 2. Pre-deploy checks (run before deploying)
+## Deploy / update
 
 ```bash
-cd apps/website
-npm run build           # production build OK
-npm run typecheck       # tsc --noEmit OK
-cd ../.. && make check-repo-layout
+# 1. Build image on the server
+rsync -az --delete --exclude='.git' --exclude='node_modules/' --exclude='.next/' \
+  apps/website/ root@217.160.9.248:/srv/banzami/src/apps/website/
+ssh root@217.160.9.248 'cd /srv/banzami/src/apps/website && docker build -t banzami/website-frontend:latest .'
+
+# 2. Start ONLY the website services (never touches other services)
+ssh root@217.160.9.248 'cd /srv/banzami && docker compose -p banzami up -d --no-deps website-frontend website-nginx'
 ```
 
-Content guardrails (must stay clean): Portuguese only, no `/internal/v1`, no
-secrets, no `banzami.org`, BANZA link → `github.com/banza-protocol/banza`,
-`banzami.com` + `contact@banzami.com` present, no forbidden claims.
+## Cloudflare (Banzami account, separate from BANZA)
 
----
+1. Zone `banzami.com` active; nameservers at LWS point to Cloudflare.
+2. DNS: `A @ → 217.160.9.248` **proxied**; `CNAME www → banzami.com` **proxied**;
+   keep `mail`/`MX`/`imap`/`pop`/`smtp` **DNS-only**; **no stray AAAA** to the origin.
+3. **Origin Rule:** for `banzami.com` (and `www`), override **origin port → 8443**.
+4. **SSL/TLS:** *Full (strict)* with a Cloudflare Origin Certificate (recommended),
+   or *Full* with the self-signed origin cert.
 
-## 3. DNS (must happen first — done outside the repo)
-
-`banzami.com` currently points to LWS shared hosting (a parking page), **not**
-this server. Before the site can serve on the domain:
-
-1. In the DNS provider (registrar / Cloudflare), point **`banzami.com`** and
-   **`www.banzami.com`** at the production server `217.160.9.248`
-   (or proxy through Cloudflare to that origin — the nginx config already reads
-   `$http_cf_connecting_ip`, consistent with the existing `.org` setup).
-2. Provision a TLS certificate for `banzami.com` on the server at
-   `/etc/nginx/certs/banzami-com.pem` and `/etc/nginx/certs/banzami-com.key`
-   (e.g. a Cloudflare origin certificate for `banzami.com`).
-
-TLS for `banzami.com` cannot be issued until DNS resolves to the server, so DNS
-comes first.
-
----
-
-## 4. Deploy
+## Verify
 
 ```bash
-# from repo root, after committing + pushing changes
-./deploy.sh website-frontend
+# Origin (bypass Cloudflare):
+curl -k --resolve banzami.com:8443:217.160.9.248 https://banzami.com:8443/ -I   # 200
+# Public (after the Origin Rule is live):
+curl -I https://banzami.com            # 200
+curl -I https://www.banzami.com        # 301 → apex
+for p in /programadores /comerciantes /conformance /sobre /contacto; do curl -I https://banzami.com$p; done
+curl -I https://banzami.com/nao-existe # 404
 ```
 
-This rsyncs `apps/website/` to `/srv/banzami/src/apps/website/`, builds the image
-on the server, and recreates only the `website-frontend` container. No other
-service is touched.
-
-Then apply the nginx config (the `banzami.com` server block is in
-`infra/nginx/banzami.conf`) and reload nginx **only after** the cert exists:
+## Rollback (isolated — never affects BANZA or payments)
 
 ```bash
-ssh root@217.160.9.248 'nginx -t && systemctl reload nginx'   # validate then reload
+ssh root@217.160.9.248 'cd /srv/banzami && \
+  docker compose -p banzami stop website-nginx website-frontend && \
+  docker compose -p banzami rm -f website-nginx website-frontend && \
+  cp docker-compose.yml.bak.website.<timestamp> docker-compose.yml'
+# Cloudflare: pause the zone or remove the Origin Rule. Nothing to undo on BANZA.
 ```
-
----
-
-## 5. Verify
-
-```bash
-curl -I https://banzami.com                 # 200
-curl -I https://banzami.com/programadores    # 200
-curl -I https://banzami.com/comerciantes     # 200
-curl -I https://banzami.com/conformance      # 200
-curl -I https://banzami.com/sobre            # 200
-curl -I https://banzami.com/contacto         # 200
-curl -I https://banzami.com/nao-existe        # 404
-curl -I http://banzami.com                   # 301 → https
-```
-
-Visual smoke test on desktop + mobile; check no console errors, no broken links,
-email `contact@banzami.com` visible.
-
----
-
-## 6. Rollback
-
-The website is independent, so rollback is safe and isolated:
-
-```bash
-# Stop the site (other services unaffected)
-ssh root@217.160.9.248 'cd /srv/banzami && docker compose stop website-frontend'
-
-# Or roll back to a previous image / commit and redeploy
-git revert <commit> && ./deploy.sh website-frontend
-
-# DNS-level rollback: point banzami.com back to the previous host.
-```
-
-Removing the `banzami.com` nginx server block (and reloading) returns the domain
-to its prior state. None of these steps affect the payment runtime.
