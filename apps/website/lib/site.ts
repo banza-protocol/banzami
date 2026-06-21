@@ -17,7 +17,7 @@ export const NAV_LINKS = [
   { label: 'Comerciantes', href: '/comerciantes' },
   { label: 'Programadores', href: '/programadores' },
   { label: 'Transparência', href: '/conformance' },
-  { label: 'Sobre', href: '/#sobre' },
+  { label: 'Sobre', href: '/sobre' },
 ] as const;
 
 export const mailto = (subject?: string) =>

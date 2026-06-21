@@ -24,7 +24,7 @@ const COLS: { title: string; links: { label: string; href: string; external?: bo
   {
     title: 'Empresa',
     links: [
-      { label: 'Sobre', href: '/#sobre' },
+      { label: 'Sobre', href: '/sobre' },
       { label: 'Contacto', href: '/contacto' },
       { label: 'Waitlist', href: `mailto:${SITE.email}?subject=Waitlist%20Banzami` },
       { label: 'Protocolo BANZA ↗', href: SITE.protocolUrl, external: true },

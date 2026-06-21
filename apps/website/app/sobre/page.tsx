@@ -30,7 +30,7 @@ const IMPACTO = [
 export default function SobrePage() {
   return (
     <main className="overflow-x-hidden bg-white">
-      <Nav active="/#sobre" />
+      <Nav active="/sobre" />
 
       {/* HERO */}
       <section className="relative overflow-hidden px-6 pb-14 pt-[130px]">
