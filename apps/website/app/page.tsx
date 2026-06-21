@@ -80,11 +80,17 @@ export default function HomePage() {
               <span className="bz-mono font-semibold text-banzami">@banza</span> e recebe em segundos
               — sem dinheiro físico, sem comprovativos.
             </p>
-            <div className="mt-[30px] flex flex-wrap gap-3">
-              <a href={mailto('Descarregar a app Banzami')} className="bz-btn-primary">
+            <div className="mt-[30px] flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href={mailto('Descarregar a app Banzami')}
+                className="bz-btn-primary w-full justify-center sm:w-auto sm:justify-start"
+              >
                 Descarregar app
               </a>
-              <Link href="/programadores" className="bz-btn-secondary">
+              <Link
+                href="/programadores"
+                className="bz-btn-secondary w-full justify-center sm:w-auto sm:justify-start"
+              >
                 Para programadores
               </Link>
             </div>

@@ -61,7 +61,7 @@ export function Nav({ active }: { active?: string }) {
         <div className="flex items-center gap-[10px]">
           <Link
             href="/#contacto"
-            className="bz-btn-primary !px-[22px] !py-[11px] !text-[14px] !shadow-[0_8px_18px_-6px_rgba(181,16,31,.5)]"
+            className="bz-btn-primary !px-[18px] !py-[10px] !text-[14px] !shadow-[0_8px_18px_-6px_rgba(181,16,31,.5)]"
           >
             Começar
           </Link>

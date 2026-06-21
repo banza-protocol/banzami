@@ -52,11 +52,19 @@ export default function ProgramadoresPage() {
               Uma API REST e SDKs oficiais para integrar pagamentos em Kwanza nativamente — do install
               ao primeiro pagamento em minutos, em sandbox.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a href={mailto('Acesso sandbox Banzami')} className="bz-btn-primary">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href={mailto('Acesso sandbox Banzami')}
+                className="bz-btn-primary w-full justify-center sm:w-auto sm:justify-start"
+              >
                 Pedir acesso ao sandbox
               </a>
-              <a href="#sdks" className="bz-btn-secondary">Ver SDKs</a>
+              <a
+                href="#sdks"
+                className="bz-btn-secondary w-full justify-center sm:w-auto sm:justify-start"
+              >
+                Ver SDKs
+              </a>
             </div>
             <p className="bz-mono m-0 mt-[22px] text-[12.5px] font-semibold text-ink-soft">
               Plataforma em desenvolvimento ativo · exemplos em sandbox.

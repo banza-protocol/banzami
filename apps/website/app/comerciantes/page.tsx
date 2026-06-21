@@ -48,11 +48,19 @@ export default function ComerciantesPage() {
               Imprime um QR, partilha um link, recebe em segundos dentro da rede. Onboarding em minutos,
               sem hardware e sem volume mínimo.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a href={mailto('Quero aceitar pagamentos')} className="bz-btn-primary">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+              <a
+                href={mailto('Quero aceitar pagamentos')}
+                className="bz-btn-primary w-full justify-center sm:w-auto sm:justify-start"
+              >
                 Quero aceitar pagamentos
               </a>
-              <a href="#como" className="bz-btn-secondary">Como começar</a>
+              <a
+                href="#como"
+                className="bz-btn-secondary w-full justify-center sm:w-auto sm:justify-start"
+              >
+                Como começar
+              </a>
             </div>
           </Reveal>
           <Reveal delay={80}>
