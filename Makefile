@@ -298,3 +298,11 @@ website-install:
 
 website: website-install
 	cd apps/website && npm run dev
+
+.PHONY: website-docker-build website-docker-run
+
+website-docker-build:
+	docker build -t banzami/website-frontend:latest apps/website
+
+website-docker-run: website-docker-build
+	docker run --rm -p 3000:3000 banzami/website-frontend:latest

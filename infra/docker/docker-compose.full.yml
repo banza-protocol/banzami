@@ -317,6 +317,20 @@ services:
     networks:
       - banzami_net
 
+  # Next.js official website (banzami.com) — public marketing/institutional site.
+  # Isolated from the payment runtime: no depends_on, makes no API calls.
+  website-frontend:
+    build:
+      context: ../../apps/website
+      dockerfile: Dockerfile
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    networks:
+      - banzami_net
+
 volumes:
   postgres_data:
   redis_data:

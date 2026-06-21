@@ -17,6 +17,7 @@
 #   dashboard-frontend Next.js merchant dashboard
 #   pay-frontend       Next.js pay page (pay.banzami.com)
 #   checkout-frontend  Next.js checkout page
+#   website-frontend   Next.js official website (banzami.com)
 #   staging            Staging sandbox (core-api-staging + public-api-staging)
 
 set -euo pipefail
@@ -27,7 +28,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -169,6 +170,11 @@ deploy_checkout_frontend() {
   _deploy_frontend "checkout" "checkout-frontend" "banzami/checkout-frontend:latest" "banzami-checkout-frontend-1"
 }
 
+deploy_website_frontend() {
+  step "website-frontend" "Next.js official website (banzami.com)"
+  _deploy_frontend "website" "website-frontend" "banzami/website-frontend:latest" "banzami-website-frontend-1"
+}
+
 # Shared frontend deploy (Next.js apps all follow the same pattern)
 _deploy_frontend() {
   local app_name="$1"       # e.g. "admin"
@@ -257,6 +263,7 @@ for svc in "${SERVICES[@]}"; do
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
     checkout-frontend)  deploy_checkout_frontend ;;
+    website-frontend)   deploy_website_frontend ;;
     staging)            deploy_staging ;;
   esac
 done
