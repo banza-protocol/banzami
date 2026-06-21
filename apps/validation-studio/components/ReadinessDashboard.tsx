@@ -64,10 +64,11 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
       {/* Pillars */}
       <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
         {pillars.map((p) => {
-          const scope = p.total - p.roadmap
+          const scope = p.total - p.roadmap - p.baseline
           const parts: { text: string; tone?: string }[] = []
           if (p.codeComplete > p.launchReady) parts.push({ text: `${p.codeComplete}/${scope} code-complete` })
           if (p.externallyBlocked > 0) parts.push({ text: `${p.externallyBlocked} externally blocked`, tone: 'text-amber-700' })
+          if (p.baseline > 0) parts.push({ text: `${p.baseline} baseline`, tone: 'text-emerald-700' })
           if (p.roadmap > 0) parts.push({ text: `${p.roadmap} roadmap`, tone: 'text-gray-500' })
           return (
             <div key={p.domain} className={`rounded-lg border px-3.5 py-3 ${RING[p.status]}`}>

@@ -21,10 +21,11 @@ export interface PillarReadiness {
   domain: ValidationDomain
   label: string
   question: string
-  launchReady: number    // VALIDATED
-  codeComplete: number    // VALIDATED | IMPLEMENTED
+  launchReady: number    // VALIDATED (excludes baseline pointers)
+  codeComplete: number    // VALIDATED | IMPLEMENTED (excludes baseline pointers)
   total: number
   roadmap: number         // FUTURE | PLANNED — tracked future scope, not launch surface
+  baseline: number        // display-only baseline pointers (excluded from launch math)
   externallyBlocked: number
   criticalGaps: number    // CRITICAL items not yet VALIDATED
   status: PillarStatus
@@ -42,9 +43,10 @@ export interface Readiness {
   canLaunch: boolean
   // Launch-ready (strict) — the headline.
   launchReady: number
-  total: number          // every tracked item (incl. roadmap)
-  launchScope: number    // total − roadmap: the current launch surface
+  total: number          // every tracked item (incl. roadmap + baseline)
+  launchScope: number    // total − roadmap − baseline: the current launch surface
   roadmap: number        // FUTURE | PLANNED: tracked future scope, not a blocker
+  baseline: number       // display-only baseline pointers (e.g. L0 in the roadmap)
   launchReadyPct: number
   criticalLaunchReady: number
   criticalTotal: number
@@ -84,8 +86,17 @@ export function isRoadmap(i: ValidationItem): boolean {
   return i.status === 'FUTURE' || i.status === 'PLANNED'
 }
 
+// Baseline pointers (e.g. the L0 baseline shown inside the BANZA Level Roadmap)
+// summarise an already-tracked achieved level. The evidence they reference is
+// already counted elsewhere (Protocol Conformance), so a baseline is display-only
+// and excluded from ALL launch math — it never inflates launch-ready/code-complete
+// and is never a blocker, regardless of its own status.
+export function isBaseline(i: ValidationItem): boolean {
+  return i.roadmapBaseline === true
+}
+
 export function isInternallyBlocked(i: ValidationItem): boolean {
-  return i.status !== 'VALIDATED' && !isExternallyBlocked(i) && !isRoadmap(i)
+  return i.status !== 'VALIDATED' && !isExternallyBlocked(i) && !isRoadmap(i) && !isBaseline(i)
 }
 
 // Per-item readiness lens for badges. An IMPLEMENTED item with an external blocker
@@ -120,16 +131,17 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
   const pillars: PillarReadiness[] = PILLARS.map(({ domain, label, question }) => {
     const its = items.filter((i) => i.validationDomain === domain)
     const roadmap = its.filter(isRoadmap).length
-    const launchScope = its.length - roadmap // items expected to be launch-ready
-    const launchReady = its.filter(isLaunchReady).length
-    const codeComplete = its.filter(isCodeComplete).length
+    const baseline = its.filter(isBaseline).length
+    const launchScope = its.length - roadmap - baseline // items expected to be launch-ready
+    const launchReady = its.filter((i) => isLaunchReady(i) && !isBaseline(i)).length
+    const codeComplete = its.filter((i) => isCodeComplete(i) && !isBaseline(i)).length
     const externallyBlocked = its.filter(isExternallyBlocked).length
     const criticalGaps = its.filter((i) => i.priority === 'CRITICAL' && !isLaunchReady(i)).length
-    // 'ready' = every launch-surface item validated (roadmap items don't block it).
+    // 'ready' = every launch-surface item validated (roadmap/baseline don't block it).
     let status: PillarStatus = 'partial'
     if (launchScope > 0 && launchReady === launchScope) status = 'ready'
     else if (criticalGaps > 0 || externallyBlocked > 0) status = 'blocked'
-    return { domain, label, question, launchReady, codeComplete, total: its.length, roadmap, externallyBlocked, criticalGaps, status }
+    return { domain, label, question, launchReady, codeComplete, total: its.length, roadmap, baseline, externallyBlocked, criticalGaps, status }
   })
 
   const criticals = items.filter((i) => i.priority === 'CRITICAL')
@@ -139,10 +151,11 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     .filter((i) => !isLaunchReady(i))
     .map((i) => ({ id: i.id, title: i.title, status: i.status, externallyBlocked: isExternallyBlocked(i) }))
 
-  const launchReady = items.filter(isLaunchReady).length
-  const codeComplete = items.filter(isCodeComplete).length
+  const launchReady = items.filter((i) => isLaunchReady(i) && !isBaseline(i)).length
+  const codeComplete = items.filter((i) => isCodeComplete(i) && !isBaseline(i)).length
   const roadmap = items.filter(isRoadmap).length
-  const launchScope = items.length - roadmap
+  const baseline = items.filter(isBaseline).length
+  const launchScope = items.length - roadmap - baseline
 
   return {
     pillars,
@@ -151,6 +164,7 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     total: items.length,
     launchScope,
     roadmap,
+    baseline,
     launchReadyPct: launchScope ? Math.round((launchReady / launchScope) * 100) : 0,
     criticalLaunchReady,
     criticalTotal: criticals.length,

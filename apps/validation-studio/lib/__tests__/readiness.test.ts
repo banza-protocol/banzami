@@ -6,6 +6,7 @@ import {
   isExternallyBlocked,
   isInternallyBlocked,
   isRoadmap,
+  isBaseline,
   itemLens,
 } from '@/lib/readiness'
 import { readMatrix } from '@/lib/matrix'
@@ -97,6 +98,28 @@ describe('readiness lenses', () => {
     expect(isRoadmap(item({ id: 'P', status: 'IN_PROGRESS' }))).toBe(false)
   })
 
+  it('a baseline pointer is display-only: never inflates launch math, never a blocker', () => {
+    const base = item({ id: 'BASE', status: 'IMPLEMENTED', roadmapBaseline: true, validationDomain: 'DOM-CONFORMANCE' })
+    expect(isBaseline(base)).toBe(true)
+    expect(isInternallyBlocked(base)).toBe(false) // excluded even though IMPLEMENTED
+    expect(isExternallyBlocked(base)).toBe(false)
+
+    const r = computeReadiness(
+      matrix([
+        item({ id: 'V', status: 'VALIDATED', priority: 'CRITICAL' }),
+        item({ id: 'BASE-V', status: 'VALIDATED', roadmapBaseline: true }), // even VALIDATED baseline
+        item({ id: 'BASE-I', status: 'IMPLEMENTED', roadmapBaseline: true }),
+      ]),
+    )
+    expect(r.total).toBe(3)
+    expect(r.baseline).toBe(2)
+    expect(r.launchScope).toBe(1)        // only 'V' is launch surface
+    expect(r.launchReady).toBe(1)        // baseline VALIDATED is NOT counted
+    expect(r.codeComplete).toBe(1)       // baseline IMPLEMENTED is NOT counted
+    expect(r.internallyBlocked).toBe(0)
+    expect(r.canLaunch).toBe(true)
+  })
+
   it('roadmap items do not dilute launch scope or add blockers', () => {
     const r = computeReadiness(
       matrix([
@@ -139,12 +162,13 @@ describe('readiness lenses', () => {
 describe('current matrix readiness snapshot', () => {
   const r = computeReadiness(readMatrix())
 
-  it('launch-ready is 66/76 over a 76-item launch scope, with 10 roadmap items tracked', () => {
-    // 86 tracked items = 76 launch-scope + 10 BANZA L1–L4 roadmap items
-    // (FUTURE/PLANNED). Roadmap is excluded from the launch-scope denominator, so
-    // the launch headline is unchanged by tracking the roadmap.
-    expect(r.total).toBe(86)
+  it('launch-ready is 66/76 launch scope, with 10 roadmap + 1 baseline tracked', () => {
+    // 87 tracked items = 76 launch-scope + 10 BANZA L1–L4 roadmap (FUTURE/PLANNED)
+    // + 1 L0 baseline pointer. Roadmap and baseline are excluded from the launch
+    // scope, so the launch headline is unchanged by adding them.
+    expect(r.total).toBe(87)
     expect(r.roadmap).toBe(10)
+    expect(r.baseline).toBe(1)
     expect(r.launchScope).toBe(76)
     expect(r.launchReady).toBe(66)
     expect(r.codeComplete).toBe(68)
@@ -163,12 +187,13 @@ describe('current matrix readiness snapshot', () => {
     expect(r.internallyBlocked).toBe(0)
   })
 
-  it('Protocol Conformance pillar is 10/10 validated (L0) with 10 roadmap (L1–L4)', () => {
+  it('Protocol Conformance pillar is 10/10 validated (L0) with 10 roadmap + 1 baseline', () => {
     const conf = r.pillars.find((p) => p.domain === 'DOM-CONFORMANCE')!
-    expect(conf.total).toBe(20)          // 10 L0 evidence + 10 L1–L4 roadmap
+    expect(conf.total).toBe(21)          // 10 L0 evidence + 10 L1–L4 roadmap + 1 L0 baseline
     expect(conf.roadmap).toBe(10)
+    expect(conf.baseline).toBe(1)
     expect(conf.launchReady).toBe(10)    // all 10 launch-surface (L0) items validated
-    expect(conf.total - conf.roadmap).toBe(10)
+    expect(conf.total - conf.roadmap - conf.baseline).toBe(10) // launch scope
     expect(conf.externallyBlocked).toBe(0)
     expect(conf.status).toBe('ready')    // launch surface fully validated
   })

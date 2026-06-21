@@ -99,6 +99,10 @@ export interface ValidationItem {
   freezeReason?: string           // populated when status is REVALIDATION_REQUIRED
   lastValidatedAt?: string        // ISO date of most recent VALIDATED transition
   validatedAgainstCommit?: string // git commit hash at time of last VALIDATED transition
+  // Baseline pointer: a display-only summary of an already-tracked achieved level
+  // (e.g. the L0 baseline shown inside the BANZA Level Roadmap). Excluded from all
+  // launch math so it never double-counts the evidence it points to.
+  roadmapBaseline?: boolean
   history: ValidationHistory[]
   lastUpdated: string
 }

@@ -8600,6 +8600,74 @@
       "lastUpdated": "2026-06-21"
     },
     {
+      "id": "BANZA-L0-ROADMAP-001",
+      "title": "L0 — evidência de sandbox validada (baseline)",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · evidence/banza-conformance/l0/ · README §BANZA conformance status",
+      "description": "Banzami validou a conformance BANZA L0 de sandbox usando o tooling oficial PyPI e GHCR. É evidência de conformance dry-run, não certificação. Baseline do roadmap: aponta para a evidência L0 já validada na pilastra Protocol Conformance (não é contabilizada duas vezes).",
+      "requirement": "Mostrar o nível L0 alcançado como baseline do roadmap. Guardrail: L0 PASS é evidência, não um certificado BANZA; Banzami não é um operador certificado. Pointer display-only — excluído da matemática de launch para não duplicar a evidência.",
+      "status": "IMPLEMENTED",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [
+        "sandbox",
+        "production_review"
+      ],
+      "acceptanceCriteria": [
+        "L0 visível como baseline no roadmap",
+        "Aponta para a evidência L0 validada",
+        "Não duplica contagem de launch",
+        "Sem reivindicação de certificação"
+      ],
+      "testCoverage": false,
+      "evidence": [
+        "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json",
+        "evidence/banza-conformance/l0/README.md",
+        "tools/banza-conformance-l0.sh",
+        "Makefile:banza-conformance-l0"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 85,
+        "level": "VERY_HIGH",
+        "basis": [
+          "evidence",
+          "sandbox",
+          "production_review",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "roadmapBaseline": true,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "IMPLEMENTED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Baseline L0 no roadmap (pointer para evidência L0 já validada); display-only, excluído da matemática de launch. Aguarda promoção §16 para VALIDATED.",
+          "evidence": [
+            "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json"
+          ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
       "id": "BANZA-L1-ROADMAP-001",
       "title": "L1 — requisitos de Core Payments mapeados",
       "categoryId": "cat-banza-roadmap",

@@ -118,6 +118,9 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
       // progression. Excluded from completion % so future scope does not read as
       // "incomplete launch work".
       roadmap: items.filter((i) => i.status === 'FUTURE' || i.status === 'PLANNED').length,
+      // Baseline = display-only pointers (e.g. L0 inside the roadmap). Excluded
+      // from completion % so they never double-count the evidence they point to.
+      baseline: items.filter((i) => i.roadmapBaseline === true).length,
       validated: items.filter((i) => i.status === 'VALIDATED').length,
       implemented: items.filter((i) => i.status === 'IMPLEMENTED').length,
       inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
@@ -132,10 +135,12 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
     }
   }, [liveMatrix])
 
-  const donePct =
-    metrics.total - metrics.roadmap > 0
-      ? Math.round(((metrics.validated + metrics.implemented) / (metrics.total - metrics.roadmap)) * 100)
-      : 0
+  const donePct = (() => {
+    // Launch surface only: exclude roadmap (future) and baseline (display-only).
+    const denom = metrics.total - metrics.roadmap - metrics.baseline
+    const done = metrics.validated + metrics.implemented - metrics.baseline
+    return denom > 0 ? Math.round((done / denom) * 100) : 0
+  })()
 
   // Select an item to edit
   const handleSelect = useCallback(
