@@ -88,6 +88,7 @@ help:
 	@printf "    make stack-logs      Tail all service logs\n"
 	@printf "\n  \033[1mLocal tools\033[0m\n"
 	@printf "    make studio          Validation Studio — local editor (:3099)\n"
+	@printf "    make website         Official Banzami website — local dev (:3005)\n"
 	@printf "\n  \033[1mQuality\033[0m\n"
 	@printf "    make check-all       Run all linters, type-checkers, and layout check\n"
 	@printf "    make check-repo-layout  Repository layout compliance check (CLAUDE.md §20)\n"
@@ -289,3 +290,11 @@ studio-install:
 
 studio: studio-install
 	cd apps/validation-studio && npm run dev
+
+.PHONY: website website-install
+
+website-install:
+	cd apps/website && npm install
+
+website: website-install
+	cd apps/website && npm run dev

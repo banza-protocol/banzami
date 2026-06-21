@@ -171,7 +171,7 @@ part of the Banzami operator.
 |-----------|----------|
 | `core/` | Rust financial core — ledger, wallets, transfers, QR, settlement, payouts |
 | `services/` | Go services — `api-gateway`, `public-api`, `admin-api` |
-| `apps/` | Product apps — mobile, merchant, dashboard, admin, pay, checkout |
+| `apps/` | Product apps — mobile, merchant, dashboard, admin, pay, checkout, website |
 | `sdk/` | Banzami integration SDKs — TypeScript, Flutter, Python, PHP, Go |
 | `plugins/` | Commerce platform adapters |
 | `db/` | PostgreSQL migrations |

@@ -95,7 +95,7 @@ section('5. apps/ — product applications');
 // 'mobile' is the unified Flutter app: it builds BOTH the consumer (users) and
 // merchant apps via flavors (main_consumer.dart / main_merchant.dart). There is
 // no separate 'merchant' directory — the two Banzami mobile apps come from here.
-const EXPECTED_APPS = new Set(['dashboard', 'admin', 'pay', 'checkout', 'mobile', 'validation-studio']);
+const EXPECTED_APPS = new Set(['dashboard', 'admin', 'pay', 'checkout', 'mobile', 'website', 'validation-studio']);
 const actualApps = readdirSync(join(ROOT, 'apps'), { withFileTypes: true })
   .filter(d => d.isDirectory())
   .map(d => d.name);
