@@ -206,15 +206,29 @@ runbooks, security, sandbox, and integration guides. Start at
 
 ## Status
 
-Banzami is in active development and **not yet production-ready**. The financial
-core — double-entry ledger, atomic postings, consumer wallets, balance derivation,
-P2P transfers, and `@banza` handles — is implemented and validated against a real
+Banzami is an **operator-side payment product and sandbox implementation aligned
+with the BANZA protocol**. BANZA is the protocol; Banzami is a candidate
+operator/product implementation built to consume BANZA conformance tooling — it
+does not own or govern the protocol (see [Ecosystem](#ecosystem)).
+
+It is in active development and **not yet launch-ready**. The financial core —
+double-entry ledger, atomic postings, consumer wallets, balance derivation, P2P
+transfers, and `@banza` handles — is implemented and validated against a real
 database. QR payments, merchant apps, the Business Dashboard, and the SDK platform
 are in progress. Real Kwanza funding and withdrawals — through an approved payment
-rail such as EMIS or a partner-bank route — and KYC are not yet operational; the
-default acquiring provider is simulated.
+rail such as EMIS or a partner-bank route — and KYC/KYB are not yet operational;
+the default acquiring provider is simulated.
 
-**Roadmap**
+```text
+Status:                         NOT YET launch-ready
+Internal engineering blockers:  0
+External blockers:              10
+BANZA L0 dry-run evidence:      validated
+BANZA certification:            not issued
+Production federation:          not live
+```
+
+**Product roadmap**
 
 | Horizon | Focus |
 |---------|-------|
@@ -224,36 +238,148 @@ default acquiring provider is simulated.
 
 ---
 
-## BANZA conformance status
+## Validation Studio and Implementation Matrix
 
-Banzami runs the **official BANZA conformance suite** against its sandbox as an
-**operator candidate**. The current result is **Level 0 — reference-compatible
-(5/5 passed)**, generated with `banza-conformance` `0.1.0` against
-`https://sandbox.banzami.org`.
+The **Validation Studio** is Banzami's readiness control room. It tracks every
+implementation domain, launch blocker, external dependency, roadmap item, and
+piece of validation evidence — and it deliberately keeps "implemented" separate
+from "launch-ready". It separates internal engineering readiness from external
+dependencies, and it is the source of truth for current Banzami readiness.
 
-This is **conformance evidence, not certification.** The BANZA protocol owns the
-certification framework; passing the suite does **not** make Banzami a certified
-operator and says nothing about production readiness. No certificate is issued or
-served, and Banzami is not in any production operator registry. Production
-certification is gated on later operator milestones (real rails, KYC/KYB,
-production keys), none of which are complete.
+- Source of truth: [`docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json`](docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json)
+- App: [`apps/validation-studio/`](apps/validation-studio/) — `make studio` (local-only)
 
-Evidence and reproduction steps:
-[`evidence/banza-conformance/l0/`](evidence/banza-conformance/l0/) ·
-`make banza-conformance-l0`.
+**Current snapshot**
 
-**Operator conformance roadmap**
+```text
+Total tracked:     87
+Launch scope:      76
+Launch-ready:      66/76
+Code-complete:     68/76
+Internal blockers:  0
+External blockers: 10
+Launch status:     NOT YET
+```
 
-| Level | Name | Meaning | Banzami status |
-|-------|------|---------|----------------|
-| **L0** | Protocol Sandbox | Sandbox responds correctly; `simulated=true`, `production_allowed=false` | **Evidence: 5/5 ✓ (candidate)** |
-| **L1** | Reference-compatible core | Wallet, QR, and ledger behaviour conform in sandbox | In progress |
-| **L2** | Operational | Real rails, KYC/KYB, reconciliation, production keys | Not started (M2) |
-| **L3** | Production federation | Certified production operation under the BANZA framework | Not started (M3) |
-| **L4** | — | Reserved by the BANZA protocol | — |
+What the figures mean:
+
+- **Launch-ready** — VALIDATED against real evidence (production-proven for its scope).
+- **Code-complete** — VALIDATED or IMPLEMENTED (internal engineering done).
+- **Internal blockers** — not launch-ready for reasons still under Banzami's own engineering control.
+- **External blockers** — blocked by a dependency outside Banzami's engineering control (KYC/KYB vendor, money-in/out rails, BNA / regulatory).
+- **Roadmap** — tracked future scope (e.g. BANZA L1–L4); **not** a launch blocker.
+- **Baseline** — an achieved capability shown for context (e.g. the L0 baseline) without double-counting the evidence it points to.
+
+---
+
+## Why the matrix matters
+
+The matrix is not a marketing dashboard. It is a governance and readiness
+instrument. It answers: what is implemented, what is validated, what is blocked,
+what is external, and what must not yet be claimed. Concretely, it:
+
+- prevents false readiness claims;
+- shows what is done, blocked, or future;
+- documents evidence for each validated item;
+- protects against subjective "we are ready" assertions;
+- creates an auditable governance trail (every VALIDATED status carries a fingerprint, approver, and commit);
+- separates code completion from business launch readiness.
+
+---
+
+## BANZA protocol conformance
+
+Banzami runs the **official BANZA conformance suite** against its sandbox
+(`https://sandbox.banzami.org`) as an **operator candidate**. The current result
+is **Level 0, 5/5 passed**, cross-validated on two distribution channels:
+
+- PyPI: `banza-conformance==0.1.0`
+- GHCR: `ghcr.io/banza-protocol/banza-conformance:v0.1.0`
+
+The report is archived at
+[`evidence/banza-conformance/l0/banzami-sandbox-l0-report.json`](evidence/banza-conformance/l0/banzami-sandbox-l0-report.json)
+(see the [evidence README](evidence/banza-conformance/l0/README.md)).
+
+**PASS means conformance evidence, not certification.** The BANZA protocol owns
+the certification framework; no production certificate is issued or served
+(`/.well-known/banza/certificate.json` is intentionally absent), and Banzami is
+not in any production operator registry. Production certification is gated on
+later operator milestones (real rails, KYC/KYB, production keys), none complete.
+
+Reproduce the L0 run:
+
+```bash
+# Convenience wrapper (auto-detects the PyPI CLI or Docker)
+make banza-conformance-l0
+
+# Official PyPI tool
+pip install banza-conformance==0.1.0
+banza-conformance \
+  --url https://sandbox.banzami.org \
+  --level 0 \
+  --output evidence/banza-conformance/l0/banzami-sandbox-l0-report.json
+
+# Pinned Docker image (GHCR)
+docker run --rm -v "$PWD/reports:/reports" \
+  ghcr.io/banza-protocol/banza-conformance:v0.1.0 \
+  --url https://sandbox.banzami.org \
+  --level 0 \
+  --output /reports/banzami-sandbox-l0-report.json
+```
+
+### BANZA Level Roadmap
+
+| Level | Meaning | Banzami status | Evidence / next step |
+|-------|---------|----------------|----------------------|
+| **L0** | Sandbox protocol conformance | **VALIDATED baseline** | archived L0 evidence (PyPI + GHCR 5/5) |
+| **L1** | Core payments | PLANNED | gap analysis required |
+| **L2** | Payment initiation | FUTURE | not started |
+| **L3** | Federation | FUTURE / M2–M3 gated | requires BANZA CA certificate and production trust |
+| **L4** | External interoperability | FUTURE | profile-defined |
 
 Levels and rules are defined by BANZA, not by Banzami — see the protocol's
-`BANZA_CERTIFICATION.md`. See also [docs/certification.md](docs/certification.md).
+`BANZA_CERTIFICATION.md` and [docs/certification.md](docs/certification.md).
+L1–L4 are roadmap; none are validated and none imply certification.
+
+---
+
+## Launch readiness
+
+Banzami has **no current internal engineering blockers** in the launch scope, but
+it is **not launch-ready** because external dependencies remain unresolved. The
+10 external blockers include:
+
+- KYC/KYB provider (vendor decision pending);
+- money-in rails (funding through an approved provider);
+- money-out rails (withdrawals / settlement through an approved provider);
+- BNA / regulatory / licensing dependencies.
+
+Until those are resolved, launch status remains **NOT YET**, regardless of how
+much internal engineering is complete.
+
+---
+
+## What this does not mean
+
+- Banzami is **not** a certified BANZA operator.
+- Banzami has **not** received a BANZA production certificate.
+- L0 PASS is **not** certification — it is dry-run conformance evidence.
+- L1 / L2 / L3 / L4 are **not** validated.
+- Production federation is **not** live.
+- M2 / M3 are **not** complete.
+- Conformance does **not** replace legal, regulatory, KYC/KYB, AML-CFT, banking, or licensing obligations.
+
+---
+
+## Useful commands
+
+```bash
+make studio                # Validation Studio — local readiness control room (:3099)
+make banza-conformance-l0  # Run BANZA L0 conformance against the sandbox (evidence)
+make check-repo-layout     # Repository layout compliance check
+make dev-up                # Start local infrastructure (PostgreSQL, Redis)
+make db-migrate            # Run database migrations
+```
 
 ---
 
