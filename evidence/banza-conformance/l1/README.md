@@ -11,11 +11,43 @@ report**, and no L1 capability is claimed or validated.
 
 | Field | Value |
 |-------|-------|
-| Stage | Gap analysis (planning) |
+| Stage | Gap analysis + L1 implementation work in progress |
 | Document | [`gap-analysis.md`](gap-analysis.md) |
-| L1 conformance report | **not generated** |
-| L1 status in the matrix | `PLANNED` (roadmap — `BANZA-L1-GAP-001` / `BANZA-L1-EVIDENCE-001`) |
+| Official sandbox L1 report | **not generated** (no L1 run against the public sandbox) |
+| Local pre-validation dry-run | passes **15/15** against the simulated surface on `localhost` (see below) |
+| L1 status in the matrix | `PLANNED` (roadmap — `BANZA-L1-GAP-001` / `BANZA-L1-EVIDENCE-001`) — **not validated** |
 | Certification | none — evidence, not certification |
+
+## L1 conformance-shaped sandbox surface (implementation work)
+
+The Go sandbox operator (`services/sandbox-operator/`) now carries an **additive,
+simulated, in-memory** L1 surface shaped to the `banza-conformance --level 1`
+contract — `POST/GET /wallets`, `POST /wallets/:id/seed`, `POST/GET /transfers`,
+`GET /traces/:id`, `GET /events/history` (`cmd/sandbox-operator/l1.go`). It is:
+
+- **gated behind `SANDBOX_L1_ENABLED` (default OFF)** — the public L0 sandbox
+  behaviour (`/health` + manifest) is unchanged unless explicitly enabled;
+- **simulated and in-memory** — no database, no ledger, no real funds; it does
+  **not** touch or expose the production `/internal/v1` Rust core API;
+- **L1 implementation work / pre-validation only** — it does **not** mean L1 is
+  validated, and Banzami is **not** certified.
+
+### Run the local dry-run (localhost only)
+
+```bash
+# build + start the operator with the L1 surface enabled, on a local port
+SANDBOX_L1_ENABLED=true SANDBOX_OPERATOR_PORT=8099 \
+  go run ./services/sandbox-operator/cmd/sandbox-operator &
+
+# run the official L1 suites against localhost (never the public sandbox)
+banza-conformance --url http://localhost:8099 --level 1
+```
+
+A local run currently passes **15/15** (health 2 · manifest 3 · wallets 4 ·
+transfers 4 · traces 2). This is **pre-validation evidence on localhost against a
+simulated surface — not an L1 validation, not certification, and not run against
+the public sandbox.** The Go tests in `cmd/sandbox-operator/l1_test.go` assert the
+same behaviours and run in CI-style `go test`.
 
 ## What L1 means
 
