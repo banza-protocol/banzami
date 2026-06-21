@@ -106,6 +106,12 @@ func newMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", handleHealth)
 	mux.HandleFunc("GET /.well-known/banza/operator.json", handleManifest)
+	// L1 conformance-shaped sandbox surface — additive, simulated, in-memory,
+	// and OFF unless SANDBOX_L1_ENABLED is set. The public L0 sandbox behaviour
+	// (health + manifest) is unchanged when disabled. See l1.go.
+	if l1Enabled() {
+		registerL1(mux, newL1Store())
+	}
 	return mux
 }
 
