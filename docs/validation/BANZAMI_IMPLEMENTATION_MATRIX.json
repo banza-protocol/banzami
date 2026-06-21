@@ -8737,8 +8737,8 @@
       "categoryId": "cat-banza-roadmap",
       "validationDomain": "DOM-CONFORMANCE",
       "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
-      "description": "É necessária uma análise formal de gaps comparando as capacidades implementadas (carteira/ledger/pagamentos) com os requisitos BANZA L1.",
-      "requirement": "Produzir uma gap analysis L1 formal antes de gerar evidência L1.",
+      "description": "Análise formal de gaps L1 criada (evidence/banza-conformance/l1/gap-analysis.md): compara as capacidades implementadas (carteira/ledger/transferências/idempotência) com o contrato do runner BANZA L1 (wallets/transfers/traces). L1 ainda NÃO está validado; permanece roadmap.",
+      "requirement": "Produzir e manter uma gap analysis L1 formal antes de gerar evidência L1. Gap analysis criada; L1 não é reivindicado nem validado até a suite oficial L1 passar localmente.",
       "status": "PLANNED",
       "priority": "HIGH",
       "ownerArea": "Banzami Operator",
@@ -8747,7 +8747,8 @@
       "acceptanceCriteria": [],
       "testCoverage": false,
       "evidence": [
-        "(planeado) evidence/banza-conformance/l1/gap-analysis.md"
+        "evidence/banza-conformance/l1/gap-analysis.md",
+        "evidence/banza-conformance/l1/README.md"
       ],
       "dependencies": [],
       "requires": [],
@@ -8778,6 +8779,18 @@
           "commit": null,
           "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
           "evidence": []
+        },
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": "PLANNED",
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Gap analysis L1 criada e referenciada; sem mudança de status (continua roadmap/PLANNED, sem blocker interno).",
+          "evidence": [
+            "evidence/banza-conformance/l1/gap-analysis.md"
+          ]
         }
       ],
       "lastUpdated": "2026-06-21"
