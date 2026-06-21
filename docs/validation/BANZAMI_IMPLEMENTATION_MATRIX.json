@@ -111,6 +111,11 @@
       "id": "cat-conformance",
       "name": "Protocol Conformance",
       "description": "Evidência operador-side de conformance BANZA L0 (sandbox dry-run): endpoints de saúde/manifesto, runner oficial reprodutível e relatório arquivado. Evidência, não certificação — a BANZA detém o framework de certificação."
+    },
+    {
+      "id": "cat-banza-roadmap",
+      "name": "BANZA Level Roadmap",
+      "description": "Progressão de conformance BANZA L1→L4 (rastreada, não reivindicada). Itens roadmap (FUTURE/PLANNED): não são launch-scope, não são certificação, e nenhum nível acima de L0 é reivindicado sem evidência."
     }
   ],
   "items": [
@@ -8590,6 +8595,519 @@
           "evidence": [
             "README.md:#banza-conformance-status (roadmap L0→L4)"
           ]
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L1-ROADMAP-001",
+      "title": "L1 — requisitos de Core Payments mapeados",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Banzami rastreia os requisitos BANZA L1: carteiras, QR estático, transferências P2P, ledger double-entry, representação monetária inteira, propagação de trace.",
+      "requirement": "Os requisitos L1 estão mapeados no roadmap; L1 não é reivindicado até a suite oficial L1 passar.",
+      "status": "PLANNED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L1-GAP-001",
+      "title": "L1 — análise de gaps de implementação necessária",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "É necessária uma análise formal de gaps comparando as capacidades implementadas (carteira/ledger/pagamentos) com os requisitos BANZA L1.",
+      "requirement": "Produzir uma gap analysis L1 formal antes de gerar evidência L1.",
+      "status": "PLANNED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "(planeado) evidence/banza-conformance/l1/gap-analysis.md"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L1-EVIDENCE-001",
+      "title": "L1 — evidência de conformance ainda não gerada",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Ainda não foi gerada evidência de conformance BANZA L1. L1 não deve ser reivindicado até o runner oficial passar todos os casos L1.",
+      "requirement": "Gerar um relatório de evidência L1 com o runner oficial; sem reivindicação L1 até passar. Guardrail: não validado, sem reivindicação de certificação L1.",
+      "status": "PLANNED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "(planeado) evidence/banza-conformance/l1/"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L2-ROADMAP-001",
+      "title": "L2 — requisitos de Payment Initiation mapeados",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Banzami rastreia os requisitos BANZA L2: payment requests, QR dinâmico, QR de uso único, payment links, execução instantânea T+0.",
+      "requirement": "Os requisitos L2 estão rastreados no roadmap; L2 não é reivindicado sem evidência.",
+      "status": "FUTURE",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L2-EVIDENCE-001",
+      "title": "L2 — evidência de conformance ainda não gerada",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Ainda não foi gerada evidência BANZA L2. L2 não deve ser reivindicado até o runner oficial passar todos os casos L2.",
+      "requirement": "Gerar relatório de evidência L2 com o runner oficial; sem reivindicação L2 até passar.",
+      "status": "FUTURE",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "(planeado) evidence/banza-conformance/l2/"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L3-ROADMAP-001",
+      "title": "L3 — requisitos de Federation rastreados",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Banzami rastreia os requisitos L3 de federação: certificado de operador, BRL checks, key manifest, routing de federação, obrigações, reconciliação e settlement.",
+      "requirement": "Os requisitos L3 estão rastreados no roadmap. Guardrail: a certificação L3 de produção é M2/M3-gated e exige emissão pela BANZA CA.",
+      "status": "FUTURE",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L3-BLOCKER-001",
+      "title": "L3 — confiança de produção depende de BANZA M2/M3",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "L3 exige artefactos de confiança de produção da BANZA e emissão de certificado. Banzami não deve reivindicar prontidão L3 antes de M2/M3 e da emissão pela CA. Não é um blocker de lançamento atual (fora do âmbito de lançamento Angola).",
+      "requirement": "Não reivindicar L3 antes de M2/M3 + emissão de certificado pela BANZA CA. Roadmap protocol-gated; não conta como blocker externo de lançamento.",
+      "status": "FUTURE",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-L4-ROADMAP-001",
+      "title": "L4 — perfil de External Interoperability rastreado",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "L4 é interoperabilidade externa definida por perfil. Banzami não reivindica prontidão L4.",
+      "requirement": "Rastrear L4 como perfil futuro. Guardrail: nenhuma reivindicação de certificação L4.",
+      "status": "FUTURE",
+      "priority": "LOW",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status (roadmap L0→L4)"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "FUTURE",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-CERT-GUARD-001",
+      "title": "Guardrail — sem reivindicação de certificação acima de L0",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Banzami afirma que apenas existe evidência dry-run L0; L1/L2/L3/L4 são alvos de roadmap ou evidência futura, não reivindicações de certificação. Postura mantida ao longo da progressão de níveis.",
+      "requirement": "Manter a postura: nenhuma reivindicação de certificação L1/L2/L3/L4 enquanto não houver evidência oficial aprovada. (A postura activa para L0 já está validada em BANZA-GUARD-001/002 e BANZA-ROADMAP-001.)",
+      "status": "PLANNED",
+      "priority": "HIGH",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "README.md:#banza-conformance-status",
+        "evidence/banza-conformance/l0/README.md",
+        "docs/validation/VALIDATION_DOMAINS.md"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
+        }
+      ],
+      "lastUpdated": "2026-06-21"
+    },
+    {
+      "id": "BANZA-EVIDENCE-ROADMAP-001",
+      "title": "Estrutura de evidência extensível a L1/L2/L3",
+      "categoryId": "cat-banza-roadmap",
+      "validationDomain": "DOM-CONFORMANCE",
+      "referenceSection": "BANZA L0→L4 roadmap · README §BANZA conformance status · evidence/banza-conformance/",
+      "description": "Banzami tem uma estrutura canónica de evidência de conformance (evidence/banza-conformance/l0/) e pode estendê-la a relatórios L1/L2/L3 sem poluir ficheiros de raiz. Pastas L1/L2/L3 ainda não criadas (sem pastas vazias).",
+      "requirement": "Documentar os caminhos esperados evidence/banza-conformance/l1|l2|l3/ e estender a estrutura quando a evidência existir; não criar pastas vazias.",
+      "status": "PLANNED",
+      "priority": "MEDIUM",
+      "ownerArea": "Banzami Operator",
+      "technicalArea": "Conformance · Roadmap",
+      "validationMethods": [],
+      "acceptanceCriteria": [],
+      "testCoverage": false,
+      "evidence": [
+        "evidence/banza-conformance/l0/",
+        "tools/banza-conformance-l0.sh"
+      ],
+      "dependencies": [],
+      "requires": [],
+      "affects": [],
+      "revalidateWhenChanged": [
+        "evidence/banza-conformance/**"
+      ],
+      "blockingIssues": [],
+      "invariants": [],
+      "confidence": {
+        "score": 0,
+        "level": "LOW",
+        "basis": [
+          "roadmap",
+          "non_financial"
+        ]
+      },
+      "freezeReason": null,
+      "lastValidatedAt": null,
+      "validatedAgainstCommit": null,
+      "history": [
+        {
+          "timestamp": "2026-06-21T00:00:00Z",
+          "from": null,
+          "to": "PLANNED",
+          "approvedBy": "local-admin",
+          "fingerprint": null,
+          "commit": null,
+          "reason": "Item roadmap de conformance BANZA — rastreado, não validado/reivindicado sem evidência.",
+          "evidence": []
         }
       ],
       "lastUpdated": "2026-06-21"

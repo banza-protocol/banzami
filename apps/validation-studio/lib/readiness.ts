@@ -24,6 +24,7 @@ export interface PillarReadiness {
   launchReady: number    // VALIDATED
   codeComplete: number    // VALIDATED | IMPLEMENTED
   total: number
+  roadmap: number         // FUTURE | PLANNED — tracked future scope, not launch surface
   externallyBlocked: number
   criticalGaps: number    // CRITICAL items not yet VALIDATED
   status: PillarStatus
@@ -41,7 +42,9 @@ export interface Readiness {
   canLaunch: boolean
   // Launch-ready (strict) — the headline.
   launchReady: number
-  total: number
+  total: number          // every tracked item (incl. roadmap)
+  launchScope: number    // total − roadmap: the current launch surface
+  roadmap: number        // FUTURE | PLANNED: tracked future scope, not a blocker
   launchReadyPct: number
   criticalLaunchReady: number
   criticalTotal: number
@@ -73,18 +76,27 @@ export function isExternallyBlocked(i: ValidationItem): boolean {
   return i.status !== 'VALIDATED' && (i.blockingIssues ?? []).some((b) => EXTERNAL_RE.test(b))
 }
 
+// Roadmap items are tracked future scope (FUTURE | PLANNED) — e.g. the BANZA
+// L1–L4 conformance progression. They are intentionally outside the current
+// launch surface: never launch-ready, never code-complete, and never counted as
+// an internal or external blocker. Tracking them must not make launch look worse.
+export function isRoadmap(i: ValidationItem): boolean {
+  return i.status === 'FUTURE' || i.status === 'PLANNED'
+}
+
 export function isInternallyBlocked(i: ValidationItem): boolean {
-  return i.status !== 'VALIDATED' && !isExternallyBlocked(i)
+  return i.status !== 'VALIDATED' && !isExternallyBlocked(i) && !isRoadmap(i)
 }
 
 // Per-item readiness lens for badges. An IMPLEMENTED item with an external blocker
 // reads as 'externally-blocked', not 'implemented'.
-export type ItemLens = 'validated' | 'implemented' | 'externally-blocked' | 'internally-blocked'
+export type ItemLens = 'validated' | 'implemented' | 'roadmap' | 'externally-blocked' | 'internally-blocked'
 
 export function itemLens(i: ValidationItem): ItemLens {
   if (i.status === 'VALIDATED') return 'validated'
   if (isExternallyBlocked(i)) return 'externally-blocked'
   if (i.status === 'IMPLEMENTED') return 'implemented'
+  if (isRoadmap(i)) return 'roadmap'
   return 'internally-blocked'
 }
 
@@ -107,14 +119,17 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
 
   const pillars: PillarReadiness[] = PILLARS.map(({ domain, label, question }) => {
     const its = items.filter((i) => i.validationDomain === domain)
+    const roadmap = its.filter(isRoadmap).length
+    const launchScope = its.length - roadmap // items expected to be launch-ready
     const launchReady = its.filter(isLaunchReady).length
     const codeComplete = its.filter(isCodeComplete).length
     const externallyBlocked = its.filter(isExternallyBlocked).length
     const criticalGaps = its.filter((i) => i.priority === 'CRITICAL' && !isLaunchReady(i)).length
+    // 'ready' = every launch-surface item validated (roadmap items don't block it).
     let status: PillarStatus = 'partial'
-    if (launchReady === its.length && its.length > 0) status = 'ready'
+    if (launchScope > 0 && launchReady === launchScope) status = 'ready'
     else if (criticalGaps > 0 || externallyBlocked > 0) status = 'blocked'
-    return { domain, label, question, launchReady, codeComplete, total: its.length, externallyBlocked, criticalGaps, status }
+    return { domain, label, question, launchReady, codeComplete, total: its.length, roadmap, externallyBlocked, criticalGaps, status }
   })
 
   const criticals = items.filter((i) => i.priority === 'CRITICAL')
@@ -126,13 +141,17 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
 
   const launchReady = items.filter(isLaunchReady).length
   const codeComplete = items.filter(isCodeComplete).length
+  const roadmap = items.filter(isRoadmap).length
+  const launchScope = items.length - roadmap
 
   return {
     pillars,
     canLaunch: criticalLaunchReady === criticals.length,
     launchReady,
     total: items.length,
-    launchReadyPct: items.length ? Math.round((launchReady / items.length) * 100) : 0,
+    launchScope,
+    roadmap,
+    launchReadyPct: launchScope ? Math.round((launchReady / launchScope) * 100) : 0,
     criticalLaunchReady,
     criticalTotal: criticals.length,
     codeComplete,

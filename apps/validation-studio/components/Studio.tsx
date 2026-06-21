@@ -114,6 +114,10 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
     const items = liveMatrix.items
     return {
       total: items.length,
+      // Roadmap = tracked future scope (FUTURE | PLANNED), e.g. the BANZA L1–L4
+      // progression. Excluded from completion % so future scope does not read as
+      // "incomplete launch work".
+      roadmap: items.filter((i) => i.status === 'FUTURE' || i.status === 'PLANNED').length,
       validated: items.filter((i) => i.status === 'VALIDATED').length,
       implemented: items.filter((i) => i.status === 'IMPLEMENTED').length,
       inProgress: items.filter((i) => i.status === 'IN_PROGRESS').length,
@@ -129,8 +133,8 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
   }, [liveMatrix])
 
   const donePct =
-    metrics.total > 0
-      ? Math.round(((metrics.validated + metrics.implemented) / metrics.total) * 100)
+    metrics.total - metrics.roadmap > 0
+      ? Math.round(((metrics.validated + metrics.implemented) / (metrics.total - metrics.roadmap)) * 100)
       : 0
 
   // Select an item to edit
@@ -256,6 +260,12 @@ export function Studio({ initialMatrix, gitBranch, gitStatus: initialGitStatus }
           <span>{donePct}% completo</span>
           <span className="text-bz-border">·</span>
           <span>{metrics.total} itens</span>
+          {metrics.roadmap > 0 && (
+            <>
+              <span className="text-bz-border">·</span>
+              <span className="text-gray-500">{metrics.roadmap} roadmap</span>
+            </>
+          )}
           {metrics.revalidationRequired > 0 && (
             <>
               <span className="text-bz-border">·</span>

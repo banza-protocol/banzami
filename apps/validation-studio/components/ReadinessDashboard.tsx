@@ -14,7 +14,7 @@ const RING: Record<PillarStatus, string> = {
 export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
   const {
     canLaunch, blockers, pillars,
-    launchReady, codeComplete, total, externallyBlocked, internallyBlocked,
+    launchReady, codeComplete, launchScope, roadmap, externallyBlocked, internallyBlocked,
     criticalLaunchReady, criticalCodeComplete, criticalTotal,
   } = readiness
 
@@ -46,9 +46,10 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
           </p>
         </div>
         <div className="flex gap-5 text-right">
-          <Metric value={`${launchReady}/${total}`} label="Launch-ready" tone="emerald" />
-          <Metric value={`${codeComplete}/${total}`} label="Code-complete" tone="gray" />
+          <Metric value={`${launchReady}/${launchScope}`} label="Launch-ready" tone="emerald" />
+          <Metric value={`${codeComplete}/${launchScope}`} label="Code-complete" tone="gray" />
           <Metric value={`${externallyBlocked}`} label="Externally blocked" tone="amber" />
+          {roadmap > 0 && <Metric value={`${roadmap}`} label="Roadmap (L1–L4)" tone="gray" />}
         </div>
       </div>
 
@@ -62,29 +63,36 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
 
       {/* Pillars */}
       <div className="mt-5 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-        {pillars.map((p) => (
-          <div key={p.domain} className={`rounded-lg border px-3.5 py-3 ${RING[p.status]}`}>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-2 text-sm font-bold text-gray-800">
-                <span className={`h-2 w-2 rounded-full ${DOT[p.status]}`} />
-                {p.label}
-              </span>
-              <span className="text-xs font-semibold text-gray-500">
-                {p.launchReady}/{p.total}
-              </span>
+        {pillars.map((p) => {
+          const scope = p.total - p.roadmap
+          const parts: { text: string; tone?: string }[] = []
+          if (p.codeComplete > p.launchReady) parts.push({ text: `${p.codeComplete}/${scope} code-complete` })
+          if (p.externallyBlocked > 0) parts.push({ text: `${p.externallyBlocked} externally blocked`, tone: 'text-amber-700' })
+          if (p.roadmap > 0) parts.push({ text: `${p.roadmap} roadmap`, tone: 'text-gray-500' })
+          return (
+            <div key={p.domain} className={`rounded-lg border px-3.5 py-3 ${RING[p.status]}`}>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-2 text-sm font-bold text-gray-800">
+                  <span className={`h-2 w-2 rounded-full ${DOT[p.status]}`} />
+                  {p.label}
+                </span>
+                <span className="text-xs font-semibold text-gray-500">
+                  {p.launchReady}/{scope}
+                </span>
+              </div>
+              <p className="mt-1.5 text-xs text-gray-600">{p.question}</p>
+              {parts.length > 0 && (
+                <p className="mt-1 text-[11px] font-medium text-gray-500">
+                  {parts.map((seg, i) => (
+                    <span key={seg.text} className={seg.tone ? `font-semibold ${seg.tone}` : undefined}>
+                      {i > 0 ? ' · ' : ''}{seg.text}
+                    </span>
+                  ))}
+                </p>
+              )}
             </div>
-            <p className="mt-1.5 text-xs text-gray-600">{p.question}</p>
-            {(p.codeComplete > p.launchReady || p.externallyBlocked > 0) && (
-              <p className="mt-1 text-[11px] font-medium text-gray-500">
-                {p.codeComplete > p.launchReady && `${p.codeComplete}/${p.total} code-complete`}
-                {p.codeComplete > p.launchReady && p.externallyBlocked > 0 ? ' · ' : ''}
-                {p.externallyBlocked > 0 && (
-                  <span className="font-semibold text-amber-700">{p.externallyBlocked} externally blocked</span>
-                )}
-              </p>
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Launch-critical gaps — all externally blocked */}

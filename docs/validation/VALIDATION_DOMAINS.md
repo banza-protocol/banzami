@@ -27,20 +27,33 @@ higher-level launch lens.)
 | **DOM-LEDGER** | Is the money provably correct? | Double-entry ledger, immutability, atomicity, reconciliation |
 | **DOM-TRUST** | Is it safe & auditable for regulators? | KYC/KYB, risk engine, security, audit trails |
 | **DOM-OPERATIONS** | Can incidents be detected & handled? Can it scale? | Observability, operations, incident response |
-| **DOM-CONFORMANCE** | Can Banzami prove BANZA L0 sandbox conformance with official protocol tooling? | Operator-side BANZA conformance **evidence** (L0 sandbox suite, health/manifest, reproducible runner). Evidence, **not** certification — BANZA owns certification. |
+| **DOM-CONFORMANCE** | Can Banzami prove BANZA L0 sandbox conformance with official protocol tooling? | Operator-side BANZA conformance **evidence** (L0 sandbox suite, health/manifest, reproducible runner) **plus the L1→L4 roadmap** tracked as `FUTURE`/`PLANNED`. L0 is validated evidence; L1–L4 are roadmap, not claims. Evidence, **not** certification — BANZA owns certification. |
 
 ---
 
 ## Status → readiness
 
-An item is **ready** when its status is `VALIDATED` or `IMPLEMENTED`. A pillar is:
+An item is **launch-ready** when `VALIDATED` and **code-complete** when `VALIDATED`
+or `IMPLEMENTED`. A pillar is:
 
-- **ready** — every item ready, no critical gap;
+- **ready** — every launch-surface item launch-ready, no critical gap;
 - **partial** — some ready, no critical gap;
 - **blocked** — has a `CRITICAL` item not yet ready, or a `BLOCKED` item.
 
 **Can Banzami launch?** = no `CRITICAL` item is unready or blocked. The dashboard
 lists every launch blocker by ID.
+
+### Roadmap items (`FUTURE` / `PLANNED`)
+
+Items with status `FUTURE` or `PLANNED` are **tracked future scope**, not part of
+the current launch surface. They are **excluded** from the launch-ready /
+code-complete denominators (`launchScope = total − roadmap`) and are **never**
+counted as an internal or external blocker — tracking a roadmap must never make
+launch look worse. They surface as a separate "Roadmap" count.
+
+This is how the **BANZA L1→L4 progression** is tracked: L0 evidence is `VALIDATED`,
+while L1/L2/L3/L4 are `PLANNED`/`FUTURE` roadmap items — visible and honest, but
+not a launch claim and not a certification claim (BANZA owns certification).
 
 ---
 

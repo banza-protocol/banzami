@@ -5,6 +5,7 @@ import {
   isCodeComplete,
   isExternallyBlocked,
   isInternallyBlocked,
+  isRoadmap,
   itemLens,
 } from '@/lib/readiness'
 import { readMatrix } from '@/lib/matrix'
@@ -81,6 +82,39 @@ describe('readiness lenses', () => {
     expect(itemLens(item({ id: 'V', status: 'VALIDATED' }))).toBe('validated')
   })
 
+  it('roadmap items (FUTURE/PLANNED) are tracked but never blockers', () => {
+    for (const status of ['FUTURE', 'PLANNED'] as const) {
+      const r = item({ id: status, status, validationDomain: 'DOM-CONFORMANCE' })
+      expect(isRoadmap(r)).toBe(true)
+      expect(isLaunchReady(r)).toBe(false)
+      expect(isCodeComplete(r)).toBe(false)
+      expect(isExternallyBlocked(r)).toBe(false)
+      expect(isInternallyBlocked(r)).toBe(false) // key: roadmap is not an internal blocker
+      expect(itemLens(r)).toBe('roadmap')
+    }
+    // VALIDATED/IMPLEMENTED are not roadmap.
+    expect(isRoadmap(item({ id: 'V', status: 'VALIDATED' }))).toBe(false)
+    expect(isRoadmap(item({ id: 'P', status: 'IN_PROGRESS' }))).toBe(false)
+  })
+
+  it('roadmap items do not dilute launch scope or add blockers', () => {
+    const r = computeReadiness(
+      matrix([
+        item({ id: 'V', status: 'VALIDATED', priority: 'CRITICAL' }),
+        item({ id: 'R1', status: 'FUTURE', priority: 'HIGH' }),
+        item({ id: 'R2', status: 'PLANNED', priority: 'MEDIUM' }),
+      ]),
+    )
+    expect(r.total).toBe(3)
+    expect(r.roadmap).toBe(2)
+    expect(r.launchScope).toBe(1)
+    expect(r.launchReady).toBe(1)
+    expect(r.launchReadyPct).toBe(100) // 1/1 launch scope, roadmap excluded
+    expect(r.internallyBlocked).toBe(0)
+    expect(r.externallyBlocked).toBe(0)
+    expect(r.canLaunch).toBe(true)
+  })
+
   it('computeReadiness separates launch-ready from code-complete', () => {
     const r = computeReadiness(
       matrix([
@@ -105,17 +139,19 @@ describe('readiness lenses', () => {
 describe('current matrix readiness snapshot', () => {
   const r = computeReadiness(readMatrix())
 
-  it('launch-ready is 66/76 and code-complete is 68/76', () => {
-    // 66 product items + 10 BANZA L0 conformance items (DOM-CONFORMANCE).
-    // The 10 conformance items are VALIDATED (§16-promoted), so they add to both
-    // launch-ready (+10) and code-complete (+10).
-    expect(r.total).toBe(76)
+  it('launch-ready is 66/76 over a 76-item launch scope, with 10 roadmap items tracked', () => {
+    // 86 tracked items = 76 launch-scope + 10 BANZA L1–L4 roadmap items
+    // (FUTURE/PLANNED). Roadmap is excluded from the launch-scope denominator, so
+    // the launch headline is unchanged by tracking the roadmap.
+    expect(r.total).toBe(86)
+    expect(r.roadmap).toBe(10)
+    expect(r.launchScope).toBe(76)
     expect(r.launchReady).toBe(66)
     expect(r.codeComplete).toBe(68)
   })
 
   it('launch-critical is 19/24 and implemented-critical is 21/24', () => {
-    // Conformance items are HIGH (not CRITICAL), so the launch-critical totals are unchanged.
+    // Roadmap items are HIGH/MEDIUM/LOW (never CRITICAL), so launch-critical is unchanged.
     expect(r.criticalTotal).toBe(24)
     expect(r.criticalLaunchReady).toBe(19)
     expect(r.criticalCodeComplete).toBe(21)
@@ -123,17 +159,18 @@ describe('current matrix readiness snapshot', () => {
 
   it('10 items are externally blocked and 0 are blocked on internal engineering', () => {
     expect(r.externallyBlocked).toBe(10)
-    // Conformance items are now VALIDATED, so nothing reads as internally blocked.
+    // Roadmap items (FUTURE/PLANNED) are never internal blockers.
     expect(r.internallyBlocked).toBe(0)
   })
 
-  it('Protocol Conformance pillar is 10/10 validated (launch-ready)', () => {
+  it('Protocol Conformance pillar is 10/10 validated (L0) with 10 roadmap (L1–L4)', () => {
     const conf = r.pillars.find((p) => p.domain === 'DOM-CONFORMANCE')!
-    expect(conf.total).toBe(10)
-    expect(conf.launchReady).toBe(10)
-    expect(conf.codeComplete).toBe(10)
+    expect(conf.total).toBe(20)          // 10 L0 evidence + 10 L1–L4 roadmap
+    expect(conf.roadmap).toBe(10)
+    expect(conf.launchReady).toBe(10)    // all 10 launch-surface (L0) items validated
+    expect(conf.total - conf.roadmap).toBe(10)
     expect(conf.externallyBlocked).toBe(0)
-    expect(conf.status).toBe('ready')
+    expect(conf.status).toBe('ready')    // launch surface fully validated
   })
 
   it('WAL-004 and KYB-001 are code-complete but not launch-ready', () => {
