@@ -13,7 +13,7 @@ export const SITE = {
 } as const;
 
 export const NAV_LINKS = [
-  { label: 'Produto', href: '/#solucao' },
+  { label: 'Produto', href: '/produto' },
   { label: 'Comerciantes', href: '/comerciantes' },
   { label: 'Programadores', href: '/programadores' },
   { label: 'Transparência', href: '/conformance' },

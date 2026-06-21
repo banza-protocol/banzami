@@ -271,6 +271,11 @@ export default function HomePage() {
               </div>
             </Reveal>
           </div>
+          <Reveal className="mt-7">
+            <Link href="/produto" className="bz-link text-[15px]">
+              Ver o produto ↗
+            </Link>
+          </Reveal>
         </div>
       </section>
 
