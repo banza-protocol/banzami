@@ -1,4 +1,4 @@
-import type { Readiness, PillarStatus } from '@/lib/readiness'
+import type { Readiness, PillarStatus, BanzaLevelStatus } from '@/lib/readiness'
 
 const DOT: Record<PillarStatus, string> = {
   ready:   'bg-emerald-500',
@@ -11,9 +11,21 @@ const RING: Record<PillarStatus, string> = {
   blocked: 'border-red-200 bg-red-50',
 }
 
+// BANZA level strip: validated = green, planned = amber, future = neutral.
+const LEVEL_RING: Record<BanzaLevelStatus, string> = {
+  validated: 'border-emerald-200 bg-emerald-50',
+  planned:   'border-amber-200 bg-amber-50',
+  future:    'border-gray-200 bg-gray-50',
+}
+const LEVEL_BADGE: Record<BanzaLevelStatus, string> = {
+  validated: 'bg-emerald-100 text-emerald-700',
+  planned:   'bg-amber-100 text-amber-700',
+  future:    'bg-gray-200 text-gray-600',
+}
+
 export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
   const {
-    canLaunch, blockers, pillars,
+    canLaunch, blockers, pillars, banzaLevels,
     launchReady, codeComplete, launchScope, roadmap, externallyBlocked, internallyBlocked,
     criticalLaunchReady, criticalCodeComplete, criticalTotal,
   } = readiness
@@ -95,6 +107,34 @@ export function ReadinessDashboard({ readiness }: { readiness: Readiness }) {
           )
         })}
       </div>
+
+      {/* BANZA conformance level path (L0 → L4) — display-only, derived from the
+          matrix. L0 is validated evidence; L1–L4 are roadmap/future, never a
+          launch blocker and never a certification claim. */}
+      {banzaLevels.length > 0 && (
+        <div className="mt-4">
+          <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+            BANZA conformance levels
+            <span className="ml-1.5 font-medium normal-case tracking-normal text-gray-400">
+              — L0 validated evidence · L1–L4 roadmap (evidence, not certification)
+            </span>
+          </div>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+            {banzaLevels.map((lv) => (
+              <div key={lv.level} className={`rounded-lg border px-3 py-2.5 ${LEVEL_RING[lv.status]}`}>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-gray-800">{lv.label}</span>
+                  <span className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${LEVEL_BADGE[lv.status]}`}>
+                    {lv.state}
+                  </span>
+                </div>
+                <p className="mt-1 text-[11px] font-medium text-gray-600">{lv.subtitle}</p>
+                <p className="mt-0.5 text-[10px] text-gray-400">{lv.note}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Launch-critical gaps — all externally blocked */}
       {blockers.length > 0 && (

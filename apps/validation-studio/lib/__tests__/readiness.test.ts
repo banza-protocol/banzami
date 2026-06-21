@@ -8,6 +8,7 @@ import {
   isRoadmap,
   isBaseline,
   itemLens,
+  banzaLevels,
 } from '@/lib/readiness'
 import { readMatrix } from '@/lib/matrix'
 import type { ValidationItem, ValidationMatrix } from '@/lib/types'
@@ -185,6 +186,22 @@ describe('current matrix readiness snapshot', () => {
     expect(r.externallyBlocked).toBe(10)
     // Roadmap items (FUTURE/PLANNED) are never internal blockers.
     expect(r.internallyBlocked).toBe(0)
+  })
+
+  it('BANZA level path reads L0 validated → L1 planned → L2/L3/L4 future', () => {
+    const levels = banzaLevels(readMatrix().items)
+    expect(levels.map((l) => l.level)).toEqual(['L0', 'L1', 'L2', 'L3', 'L4'])
+    const byLevel = Object.fromEntries(levels.map((l) => [l.level, l.status]))
+    expect(byLevel.L0).toBe('validated')
+    expect(byLevel.L1).toBe('planned')
+    expect(byLevel.L2).toBe('future')
+    expect(byLevel.L3).toBe('future')
+    expect(byLevel.L4).toBe('future')
+    // Display-only: no level above L0 is validated.
+    expect(levels.filter((l) => l.status === 'validated').map((l) => l.level)).toEqual(['L0'])
+    // Guardrail note framing, never a certification claim.
+    expect(levels.find((l) => l.level === 'L0')!.note).toBe('evidence, not certification')
+    expect(levels.find((l) => l.level === 'L3')!.note).toBe('M2/M3 + CA-gated')
   })
 
   it('Protocol Conformance pillar is 10/10 validated (L0) with 10 roadmap + 1 baseline', () => {

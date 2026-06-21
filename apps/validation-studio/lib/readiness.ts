@@ -58,6 +58,48 @@ export interface Readiness {
   internallyBlocked: number
   // Launch-critical gaps (CRITICAL not VALIDATED).
   blockers: Blocker[]
+  // BANZA conformance level path (L0→L4), display-only — derived from the matrix,
+  // never affects launch math.
+  banzaLevels: BanzaLevel[]
+}
+
+// BANZA operator conformance levels, shown as a top-level L0→L4 progression strip.
+// Status is derived from the matrix items, never hard-coded:
+//   validated → an item for that level is VALIDATED (L0 evidence/baseline)
+//   planned   → PLANNED roadmap item (L1)
+//   future    → FUTURE roadmap item (L2–L4)
+export type BanzaLevelStatus = 'validated' | 'planned' | 'future'
+
+export interface BanzaLevel {
+  level: string        // 'L0' … 'L4'
+  label: string        // 'BANZA L0'
+  status: BanzaLevelStatus
+  state: string        // display badge: 'VALIDATED' | 'PLANNED' | 'FUTURE'
+  subtitle: string
+  note: string         // small print — always evidence/roadmap framing, never a cert claim
+}
+
+const BANZA_LEVEL_META: { level: string; label: string; subtitle: string; note: string }[] = [
+  { level: 'L0', label: 'BANZA L0', subtitle: 'Sandbox conformance evidence validated', note: 'evidence, not certification' },
+  { level: 'L1', label: 'BANZA L1', subtitle: 'Core Payments roadmap',                  note: 'gap analysis required' },
+  { level: 'L2', label: 'BANZA L2', subtitle: 'Payment Initiation roadmap',             note: 'evidence not generated' },
+  { level: 'L3', label: 'BANZA L3', subtitle: 'Federation roadmap',                     note: 'M2/M3 + CA-gated' },
+  { level: 'L4', label: 'BANZA L4', subtitle: 'External interoperability',              note: 'profile-defined' },
+]
+
+export function banzaLevels(items: ValidationItem[]): BanzaLevel[] {
+  return BANZA_LEVEL_META.map((meta) => {
+    const levelItems = items.filter(
+      (i) => i.validationDomain === 'DOM-CONFORMANCE' && i.id.startsWith(`BANZA-${meta.level}-`),
+    )
+    const status: BanzaLevelStatus = levelItems.some((i) => i.status === 'VALIDATED')
+      ? 'validated'
+      : levelItems.some((i) => i.status === 'PLANNED')
+        ? 'planned'
+        : 'future'
+    const state = status === 'validated' ? 'VALIDATED' : status === 'planned' ? 'PLANNED' : 'FUTURE'
+    return { ...meta, status, state }
+  })
 }
 
 // External blocker markers — a non-validated item whose blockingIssues mention a
@@ -173,5 +215,6 @@ export function computeReadiness(matrix: ValidationMatrix): Readiness {
     externallyBlocked: items.filter(isExternallyBlocked).length,
     internallyBlocked: items.filter(isInternallyBlocked).length,
     blockers,
+    banzaLevels: banzaLevels(items),
   }
 }
