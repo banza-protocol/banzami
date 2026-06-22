@@ -5,7 +5,7 @@ import { Reveal } from '@/components/Reveal';
 import { PhoneFrame } from '@/components/app/PhoneFrame';
 import { AppScreen, type FrameName } from '@/components/app/AppScreen';
 
-export const metadata: Metadata = { title: 'App' };
+export const metadata: Metadata = { title: 'Ecrãs da app' };
 
 // The 8 gallery screens (mono labels mirror Banza App.dc.html).
 const SCREENS: { label: string; frame: FrameName }[] = [

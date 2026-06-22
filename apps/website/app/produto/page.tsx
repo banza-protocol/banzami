@@ -562,7 +562,7 @@ export default function ProdutoPage() {
             <p className="m-0 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
               Criar conta, pagar, receber e confirmar — tudo em poucos passos.{' '}
               <span className="text-ink-muted">Arrasta para ver →</span>{' '}
-              <Link href="/app" className="font-extrabold text-cherry no-underline">
+              <Link href="/ecras" className="font-extrabold text-cherry no-underline">
                 Ver todos os ecrãs ↗
               </Link>
             </p>
