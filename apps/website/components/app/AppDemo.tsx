@@ -128,7 +128,7 @@ export function AppDemo({ className = '' }: { className?: string }) {
             <p className="bz-mono" style={{ margin: '22px 0 0', fontSize: 12, fontWeight: 600, letterSpacing: '.32em', color: 'rgba(255,255,255,.7)', textIndent: '.32em' }}>DEMO INTERATIVA</p>
             <h2 style={{ margin: '10px 0 0', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: '#fff', lineHeight: 1.05 }}>Experimente a<br />app Banzami</h2>
             <p style={{ margin: '14px 0 0', fontSize: 15, fontWeight: 600, lineHeight: 1.45, color: 'rgba(255,255,255,.8)' }}>Crie conta, envie dinheiro e veja o comprovativo — tudo aqui mesmo.</p>
-            <div className="flex items-center justify-center" style={{ marginTop: 34, width: 66, height: 66, borderRadius: '50%', background: '#fff' }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7-11-7z" fill="#9A1B22" /></svg></div>
+            <div className="anim-bzpulse flex items-center justify-center" style={{ marginTop: 34, width: 66, height: 66, borderRadius: '50%', background: '#fff' }}><svg width="28" height="28" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7-11-7z" fill="#9A1B22" /></svg></div>
             <p style={{ margin: '18px 0 0', fontSize: 13, fontWeight: 800, color: '#fff' }}>Toca para começar</p>
           </button>
         )}
