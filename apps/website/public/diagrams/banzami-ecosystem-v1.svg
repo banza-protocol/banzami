@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 400" role="img" aria-label="Ecosystem" font-family="system-ui,-apple-system,sans-serif">
+  <title>Ecosystem — BANZA defines, Banzami operates, BanzAI explains</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"></stop><stop offset="100%" stop-color="#E03A43"></stop></linearGradient>
+    <linearGradient id="banza" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A0A14"></stop><stop offset="100%" stop-color="#A01020"></stop></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"></path></marker>
+    <marker id="ad" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#C9A9AC"></path></marker>
+  </defs>
+  <rect width="900" height="400" fill="#FFF7F6" rx="16"></rect>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"></rect>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"></rect>
+  <text x="32" y="28" font-family="ui-monospace,&#39;Courier New&#39;,monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-007 · ECOSYSTEM</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">BANZA defines · Banzami operates · BanzAI explains</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">Three roles, never merged</text>
+
+  
+  <text x="120" y="92" font-size="10.5" font-weight="700" fill="#9CA3AF" letter-spacing="1">THE OPERATIONAL CHAIN</text>
+
+  <rect x="120" y="100" width="330" height="58" rx="12" fill="url(#banza)"></rect>
+  <text x="285" y="126" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">BANZA</text>
+  <text x="285" y="145" text-anchor="middle" font-size="9.5" fill="#F3C9CD">open financial protocol — the rules</text>
+
+  <line x1="285" y1="158" x2="285" y2="192" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"></line>
+  <text x="299" y="180" font-size="9.5" fill="#6B7280">defines the protocol</text>
+
+  <rect x="120" y="196" width="330" height="58" rx="12" fill="url(#hg)"></rect>
+  <text x="285" y="221" text-anchor="middle" font-size="15" font-weight="800" fill="#FFFFFF">Banzami — First Operator</text>
+  <text x="285" y="240" text-anchor="middle" font-size="9.5" fill="#FBD2D0">founding operator of the BANZA ecosystem</text>
+
+  <line x1="285" y1="254" x2="285" y2="288" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"></line>
+  <text x="299" y="276" font-size="9.5" fill="#6B7280">operates wallets · QR · links · APIs</text>
+
+  <rect x="120" y="292" width="330" height="58" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"></rect>
+  <text x="285" y="318" text-anchor="middle" font-size="14" font-weight="800" fill="#374151">Users · Merchants · Developers</text>
+  <text x="285" y="337" text-anchor="middle" font-size="9.5" fill="#6B7280">instant Kwanza payments</text>
+
+  
+  <text x="566" y="92" font-size="10.5" font-weight="700" fill="#9CA3AF" letter-spacing="1">ADJACENT KNOWLEDGE LAYER</text>
+
+  
+  <line x1="450" y1="129" x2="562" y2="129" stroke="#C9A9AC" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#ad)"></line>
+  <text x="506" y="121" text-anchor="middle" font-size="9" fill="#B08A8E">explains</text>
+
+  <rect x="566" y="100" width="298" height="250" rx="12" fill="#FBFAF9" stroke="#D8C9CB" stroke-width="1.5" stroke-dasharray="6 4"></rect>
+  <text x="590" y="130" font-size="15" font-weight="800" fill="#7A2E33">BanzAI</text>
+  <text x="590" y="149" font-size="9.5" fill="#9A6A6E">protocol knowledge system</text>
+  <line x1="590" y1="162" x2="840" y2="162" stroke="#E7DADB" stroke-width="1"></line>
+  <g font-size="11" fill="#5B5052">
+    <text x="590" y="190">→ explains BANZA</text>
+    <text x="590" y="218">→ supports developers &amp; operators</text>
+    <text x="590" y="246">→ does not operate payments</text>
+    <text x="590" y="274">→ does not certify</text>
+  </g>
+  <rect x="590" y="298" width="248" height="36" rx="8" fill="#F4EEEF"></rect>
+  <text x="714" y="321" text-anchor="middle" font-size="9.5" font-style="italic" fill="#8A6E71">Not an operator. Not part of Banzami.</text>
+</svg>

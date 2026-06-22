@@ -1,456 +1,272 @@
 import Link from 'next/link';
-import { Nav } from '@/components/Nav';
-import { Footer } from '@/components/Footer';
-import { CTASection } from '@/components/CTASection';
-import { Reveal } from '@/components/Reveal';
-import { PhoneMockup } from '@/components/PhoneMockup';
-import { MerchantDashboard } from '@/components/MerchantDashboard';
-import { CodePanel } from '@/components/CodePanel';
-import { StatusGrid, LevelGrid } from '@/components/Conformance';
-import { SectionHeading, SoftCard, Mono } from '@/components/primitives';
+import { SiteHeader } from '@/components/site/SiteHeader';
+import { BrandMark, Logo } from '@/components/site/BrandMark';
+import { AppDemo } from '@/components/app/AppDemo';
 import { SITE, mailto } from '@/lib/site';
 
-const PROBLEMAS = [
-  { t: 'Dinheiro físico', d: 'Custo e risco para quem paga e para quem recebe.' },
-  { t: 'Comprovativos', d: 'Screenshots de transferências por WhatsApp como "prova".' },
-  { t: 'Confirmações lentas', d: 'A espera até o dinheiro "aparecer" do outro lado.' },
-  { t: 'Terminais caros', d: 'TPA/POS dispendiosos e fora do alcance dos pequenos.' },
-  { t: 'Pequenos de fora', d: 'Cantinas, táxis e bancas ficam fora do digital.' },
-  { t: 'Sem APIs simples', d: 'Sem uma API de pagamentos nativa em Kwanza.' },
+// Merchant handles for the hero marquee (duplicated so the -50% loop is seamless).
+const MERCHANTS = [
+  { initial: 'C', handle: '@cantina-alex', bg: '#FBD2D0', fg: '#B5101F' },
+  { initial: 'P', handle: '@padaria-luanda', bg: '#F8B4B1', fg: '#9A1B22' },
+  { initial: 'M', handle: '@mercado-k', bg: '#E8434B', fg: '#fff' },
+  { initial: 'F', handle: '@farmacia-vida', bg: '#FFE0DE', fg: '#B5101F' },
+  { initial: 'T', handle: '@taxi-luanda', bg: '#F8B4B1', fg: '#9A1B22' },
+  { initial: 'L', handle: '@loja-bita', bg: '#FBD2D0', fg: '#B5101F' },
 ];
 
-const SOLUCOES: { t: React.ReactNode; d: React.ReactNode }[] = [
-  { t: 'Carteira Kwanza', d: 'Saldo sempre exato: disponível, reservado, total — derivado do ledger.' },
-  { t: <Mono>@banza</Mono>, d: <>Paga a <span className="bz-mono text-[13px]">@maria</span>, não a um IBAN.</> },
-  { t: 'QR estático', d: 'Um código impresso transforma qualquer balcão num ponto de pagamento.' },
-  { t: 'Links de pagamento', d: 'Um URL partilhável que substitui o "envia o comprovativo".' },
-  { t: 'Em segundos', d: 'O destinatário é creditado no momento da confirmação, dentro da rede.' },
-  { t: 'API e SDKs', d: 'REST, idempotente, com SDKs tipados para integração rápida.' },
+function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
+  return (
+    <span className="inline-flex flex-none items-center gap-[9px] rounded-pill border border-border-soft bg-white py-[7px] pl-[7px] pr-[15px] shadow-[0_6px_16px_-10px_rgba(181,16,31,.25)]">
+      <span
+        className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black"
+        style={{ background: m.bg, color: m.fg }}
+      >
+        {m.initial}
+      </span>
+      <span className="bz-mono whitespace-nowrap text-[12.5px] font-semibold text-[#3a2a2e]">{m.handle}</span>
+    </span>
+  );
+}
+
+const STATS = [
+  {
+    value: '0',
+    label: 'UTILIZADORES',
+    icon: (
+      <>
+        <circle cx="9" cy="8.5" r="3" stroke="#B5101F" strokeWidth="1.9" />
+        <path d="M3.5 19a5.5 5.5 0 0111 0" stroke="#B5101F" strokeWidth="1.9" strokeLinecap="round" />
+        <path d="M16 6a3 3 0 010 5.6M16.5 13.5a5.5 5.5 0 014 5.3" stroke="#B5101F" strokeWidth="1.9" strokeLinecap="round" />
+      </>
+    ),
+  },
+  {
+    value: '0',
+    label: 'COMERCIANTES',
+    icon: (
+      <>
+        <path d="M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+        <path d="M3 6h18l-1.2 4.2a2.2 2.2 0 01-4.2 0 2.2 2.2 0 01-4.4 0 2.2 2.2 0 01-4.4 0A2.2 2.2 0 014.2 10L3 6z" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+        <path d="M9 19v-4h4v4" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
+    value: '0',
+    label: 'TRANSAÇÕES/DIA',
+    icon: (
+      <>
+        <rect x="3" y="6" width="13" height="11" rx="2.5" stroke="#B5101F" strokeWidth="1.9" />
+        <path d="M3 10h13" stroke="#B5101F" strokeWidth="1.9" />
+        <path d="M17 13h4m0 0l-2-2m2 2l-2 2" stroke="#B5101F" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
+    value: '18',
+    label: 'PROVÍNCIAS',
+    icon: (
+      <>
+        <path d="M12 21s6.5-5.4 6.5-10.5A6.5 6.5 0 005.5 10.5C5.5 15.6 12 21 12 21z" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+        <circle cx="12" cy="10.3" r="2.4" stroke="#B5101F" strokeWidth="1.9" />
+      </>
+    ),
+  },
 ];
 
-const PASSOS = [
-  { n: '1', t: 'Scan', d: <>Lê o QR do balcão ou escolhe um <span className="bz-mono text-[13px] text-banzami">@banza</span>.</> },
-  { n: '2', t: 'Confirmar', d: 'Confirmas com PIN ou biometria. Uma transação atómica no ledger.' },
-  { n: '3', t: 'Pago', d: 'Creditado em segundos, dentro da rede, com recibo na carteira.' },
+const EXPLORE: { label: string; href: string; external?: boolean; mailto?: boolean; arrow: 'chev' | 'out'; icon: React.ReactNode }[] = [
+  { label: 'Produtos', href: '/produto', arrow: 'chev', icon: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /></> },
+  { label: 'Sobre', href: '/sobre', arrow: 'chev', icon: <><circle cx="12" cy="12" r="9" stroke="#B5101F" strokeWidth="1.7" /><path d="M12 11.5v4.5M12 8h.01" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" /></> },
+  { label: 'Comerciantes', href: '/comerciantes', arrow: 'chev', icon: <><path d="M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /><path d="M3 6h18l-1.2 4.2a2.2 2.2 0 01-4.2 0 2.2 2.2 0 01-4.4 0 2.2 2.2 0 01-4.4 0A2.2 2.2 0 014.2 10L3 6z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /></> },
+  { label: 'Contacto', href: mailto(), mailto: true, arrow: 'chev', icon: <><rect x="3" y="5" width="18" height="14" rx="3" stroke="#B5101F" strokeWidth="1.7" /><path d="M4 7.5l8 5 8-5" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" /></> },
+  { label: 'Developers', href: '/developers', arrow: 'chev', icon: <path d="M9 7l-5 5 5 5M15 7l5 5-5 5" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /> },
+  { label: 'Waitlist', href: mailto('Waitlist Banzami'), mailto: true, arrow: 'chev', icon: <><circle cx="9" cy="9" r="3" stroke="#B5101F" strokeWidth="1.7" /><path d="M3.5 19a5.5 5.5 0 0111 0" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" /><path d="M16 7a3 3 0 010 5.6" stroke="#B5101F" strokeWidth="1.7" strokeLinecap="round" /></> },
+  { label: 'Suporte', href: '/suporte', arrow: 'chev', icon: <path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /> },
+  { label: 'Protocolo BANZA', href: SITE.protocolUrl, external: true, arrow: 'out', icon: <><path d="M12 3l9 5-9 5-9-5 9-5z" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /><path d="M3 12l9 5 9-5" stroke="#B5101F" strokeWidth="1.7" strokeLinejoin="round" /></> },
 ];
 
-const PRODUTOS = [
-  { t: 'App Consumidor', d: <>Carteira Kwanza com <span className="bz-mono text-[12px]">@banza</span>, QR e transferências.</>, badge: 'EM DESENV.' },
-  { t: 'App Comerciante', d: 'Aceita pagamentos sem terminal, com QR e links.', badge: 'EM PROGRESSO' },
-  { t: 'Business Dashboard', d: 'Saldo, transações, análises e chaves API.', badge: 'EM PROGRESSO' },
-  { t: 'Developer Platform', d: 'API REST, SDKs, sandbox e webhooks assinados.', badge: 'EM DESENV.' },
-  { t: 'QR Payments', d: 'QR estático e dinâmico para presencial.', badge: 'EM PROGRESSO' },
-  { t: 'SDKs & Checkout', d: 'TypeScript, Flutter, Python, PHP, Go + pay links.', badge: 'EM PROGRESSO' },
-];
-
-const SEGURANCA = [
-  { t: 'Ledger de dupla entrada', d: 'Cada lançamento tem origem e destino que se equilibram. Tudo auditável.' },
-  { t: 'Atomicidade & idempotência', d: 'Por inteiro ou não acontece. Repetir o pedido devolve o resultado original.' },
-  { t: 'Auditoria append-only', d: 'Lançamentos imutáveis com rasto completo, sem mutações silenciosas.' },
-  { t: 'Traces & observabilidade', d: 'Rastreabilidade da origem ao destino, com métricas e logs.' },
-  { t: 'Separação sandbox / produção', d: 'Ambientes isolados. O sandbox nunca acede a dados de produção.' },
-  { t: 'KYC/KYB & AML-CFT', d: 'Requisitos a cumprir — dependências externas ainda não operacionais. Não prometemos licença bancária.', bordered: true },
-];
-
-const ECOSSISTEMA = [
-  { tag: 'BANZA', t: 'O protocolo aberto', d: 'Define regras, invariantes, contratos e a certificação. Existe independentemente do Banzami.', link: true },
-  { tag: 'Banzami', t: 'O operador de referência', d: 'Constrói produto sobre o BANZA: carteiras, UX e serviços a comerciantes.', highlight: true },
-  { tag: 'BanzAI', t: 'O sistema de conhecimento', d: 'Explica e ajuda a entender o protocolo. Não opera pagamentos nem certifica sozinho.' },
-];
+function ExploreTile({ tile }: { tile: (typeof EXPLORE)[number] }) {
+  const inner = (
+    <>
+      <span className="flex h-7 w-7 flex-none items-center justify-center rounded-[8px] bg-white">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">{tile.icon}</svg>
+      </span>
+      <span className="flex-1 text-[13.5px] font-extrabold text-ink">{tile.label}</span>
+      {tile.arrow === 'chev' ? (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M9 6l6 6-6 6" stroke="#c2a8aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      ) : (
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 17L17 7M17 7H9M17 7v8" stroke="#c2a8aa" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      )}
+    </>
+  );
+  const cls = 'flex items-center gap-[9px] rounded-[12px] bg-cream-50 px-3 py-[9px] no-underline transition-colors hover:bg-[#FBE6E4]';
+  if (tile.external) return <a href={tile.href} target="_blank" rel="noopener noreferrer" className={cls}>{inner}</a>;
+  if (tile.mailto) return <a href={tile.href} className={cls}>{inner}</a>;
+  return <Link href={tile.href} className={cls}>{inner}</Link>;
+}
 
 export default function HomePage() {
   return (
     <main className="overflow-x-hidden bg-white">
-      <Nav />
+      <SiteHeader />
 
-      {/* HERO */}
-      <section id="inicio" className="relative overflow-hidden px-6 pb-[70px] pt-[130px]">
+      {/* ===================== HERO ===================== */}
+      <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
         <div className="bz-herogrid relative mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
           <div>
-            <span className="mb-6 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-2 text-[13px] font-extrabold text-banzami shadow-[0_6px_18px_-8px_rgba(181,16,31,.3)]">
-              <span className="block h-2 w-2 rounded-full bg-banzami" />A carteira Kwanza de Angola
+            <span className="mb-6 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-2 text-[13px] font-extrabold text-cherry shadow-[0_6px_18px_-8px_rgba(181,16,31,.3)]">
+              <span className="block h-2 w-2 rounded-full bg-cherry" />A carteira Kwanza de Angola
             </span>
-            <h1 className="m-0 text-[clamp(40px,6vw,72px)] font-black leading-none tracking-[-0.03em] text-ink">
+            <h1 className="m-0 text-[clamp(32px,5.4vw,56px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
               O novo caminho do Kwanza.
             </h1>
             <p className="m-0 mt-[22px] max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
               Cada conta é uma carteira em Kwanza. Paga por QR, envia para um{' '}
-              <span className="bz-mono font-semibold text-banzami">@banza</span> e recebe em segundos
+              <span className="bz-mono font-semibold text-cherry">@banza</span> e recebe em segundos
               — sem dinheiro físico, sem comprovativos.
             </p>
-            <div className="mt-[30px] flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <a
-                href={mailto('Descarregar a app Banzami')}
-                className="bz-btn-primary w-full justify-center sm:w-auto sm:justify-start"
-              >
-                Descarregar app
-              </a>
-              <Link
-                href="/programadores"
-                className="bz-btn-secondary w-full justify-center sm:w-auto sm:justify-start"
-              >
-                Para programadores
+            <div className="mt-[18px] flex flex-wrap gap-3">
+              <Link href="/produto#contacto" className="inline-flex items-center gap-[11px] rounded-[16px] bg-gradient-to-b from-cherry to-cherry-deeper px-5 py-[11px] no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
+                <svg width="21" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.55 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.53.98-1.45 1.39-2.85 1.41-2.92-.03-.01-2.7-1.04-2.73-4.11z" /><path d="M14.69 4.86c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z" /></svg>
+                <span className="flex flex-col leading-[1.12]">
+                  <span className="text-[10px] font-bold tracking-[0.07em] text-white/70">DISPONÍVEL NA</span>
+                  <span className="text-[17px] font-extrabold text-white">App Store</span>
+                </span>
+              </Link>
+              <Link href="/produto#contacto" className="inline-flex items-center gap-[11px] rounded-[16px] bg-gradient-to-b from-cherry to-cherry-deeper px-5 py-[11px] no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
+                <svg width="21" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M5 3.5v17l14-8.5z" /></svg>
+                <span className="flex flex-col leading-[1.12]">
+                  <span className="text-[10px] font-bold tracking-[0.07em] text-white/70">DISPONÍVEL NA</span>
+                  <span className="text-[17px] font-extrabold text-white">Google Play</span>
+                </span>
               </Link>
             </div>
-            <div className="mt-7 flex flex-wrap items-center gap-4">
-              <div className="flex items-center">
-                <span className="inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-white bg-pink-200 text-[13px] font-black text-banzami">J</span>
-                <span className="-ml-[10px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-white bg-[#F8B4B1] text-[13px] font-black text-banzami-deep">A</span>
-                <span className="-ml-[10px] inline-flex h-[34px] w-[34px] items-center justify-center rounded-full border-2 border-white bg-banzami-coral text-[13px] font-black text-white">M</span>
+            <div className="mt-[30px] max-w-[540px]">
+              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">COMERCIANTES &amp; EMPRESAS</p>
+              <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
+                <div className="anim-marquee flex w-max gap-[10px]">
+                  {[...MERCHANTS, ...MERCHANTS].map((m, i) => (
+                    <MerchantChip key={i} m={m} />
+                  ))}
+                </div>
               </div>
-              <p className="m-0 text-[13.5px] font-bold text-ink-soft">
-                Construído sobre o protocolo aberto{' '}
-                <a href={SITE.protocolUrl} target="_blank" rel="noopener noreferrer" className="bz-link">
-                  BANZA ↗
-                </a>
-              </p>
             </div>
           </div>
-          <PhoneMockup />
+
+          {/* interactive app demo */}
+          <div className="relative flex min-h-[680px] flex-col items-center justify-center">
+            <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
+            <div className="anim-floatyB absolute left-[14px] top-10 h-[60px] w-[60px] rounded-[20px] bg-pink-200" />
+            <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
+            <AppDemo />
+            <span className="mt-5 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-[9px] text-[12.5px] font-extrabold text-cherry-dark shadow-[0_10px_24px_-12px_rgba(181,16,31,.35)]">
+              <span className="block h-[7px] w-[7px] rounded-full bg-cherry" />Toca para navegar na app
+            </span>
+          </div>
         </div>
       </section>
 
-      {/* POSITIONING STRIP */}
+      {/* ===================== STATS STRIP ===================== */}
       <section className="px-6 pb-4 pt-2">
-        <div className="mx-auto flex max-w-container flex-wrap items-center justify-between gap-[18px] rounded-[28px] bg-pink-50 px-7 py-6">
-          <p className="m-0 text-[clamp(15px,1.5vw,18px)] font-extrabold tracking-[-0.01em]">
-            <span className="text-ink">BANZA é o protocolo.</span>{' '}
-            <span className="text-banzami">Banzami é como Angola paga.</span>
-          </p>
-          <div className="flex flex-wrap gap-[9px] text-[13px] font-extrabold">
-            <span className="rounded-pill bg-white px-[15px] py-2 text-ink-secondary">Wallet-native</span>
-            <span className="rounded-pill bg-white px-[15px] py-2 text-ink-secondary">Kwanza · AOA</span>
-            <span className="rounded-pill bg-white px-[15px] py-2 text-ink-secondary">Em segundos</span>
-            <span className="rounded-pill bg-pink-200 px-[15px] py-2 text-banzami-deep">Em desenvolvimento ativo</span>
-          </div>
-        </div>
-      </section>
-
-      {/* PROBLEMA */}
-      <section id="problema" className="bz-section px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-11 max-w-[660px]"
-            eyebrow="O PROBLEMA"
-            title="Pagar ainda depende de notas e de screenshots."
-            lead="O Banzami substitui tudo por um gesto simples: scan, confirmar, pago."
-          />
-          <div className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {PROBLEMAS.map((p, i) => (
-              <SoftCard key={p.t} title={p.t} delay={(i % 3) * 60}>
-                {p.d}
-              </SoftCard>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SOLUÇÃO */}
-      <section id="solucao" className="bz-section bg-gradient-to-b from-white to-pink-50 px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-11 max-w-[660px]"
-            eyebrow="A SOLUÇÃO"
-            title={<>Uma rede. Uma carteira. Um <Mono>@banza</Mono>.</>}
-            lead="Tudo o que precisas para pagar e receber em Kwanza — num só toque."
-          />
-          <div className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {SOLUCOES.map((s, i) => (
-              <Reveal key={i} delay={(i % 3) * 60} className="bz-card">
-                <h3 className="m-0 mb-2 text-[19px] font-black">{s.t}</h3>
-                <p className="m-0 text-[15px] font-semibold leading-[1.5] text-ink-muted">{s.d}</p>
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* COMO FUNCIONA */}
-      <section id="como-funciona" className="bz-section px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            center
-            className="mb-12 max-w-[600px]"
-            eyebrow="COMO FUNCIONA"
-            title="Scan. Confirmar. Pago."
-            lead="O dinheiro move-se de carteira para carteira, registado num ledger de dupla entrada."
-          />
-          <div className="bz-grid3 mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {PASSOS.map((p, i) => (
-              <Reveal key={p.n} delay={i * 80} className="rounded-card bg-pink-50 p-[30px]">
-                <span className="mb-4 inline-flex h-[42px] w-[42px] items-center justify-center rounded-[14px] bg-banzami text-[17px] font-black text-white">
-                  {p.n}
+        <div className="relative mx-auto max-w-container overflow-hidden rounded-[26px] border border-white/70 bg-[linear-gradient(135deg,#FFFCFB_0%,#FFF3F1_58%,#FFE9E7_100%)] p-[clamp(18px,2.4vw,26px)] shadow-[0_30px_70px_-50px_rgba(181,16,31,.5)]">
+          <div className="bz-stats grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {STATS.map((s) => (
+              <div key={s.label} className="flex items-center gap-[13px] rounded-[18px] border border-border-soft bg-white px-[15px] py-[13px] shadow-[0_14px_30px_-26px_rgba(181,16,31,.3)] transition-all hover:-translate-y-[3px]">
+                <span className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-[13px] bg-[linear-gradient(150deg,#FBD2D0,#FFE7E5)]">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true">{s.icon}</svg>
                 </span>
-                <h3 className="m-0 mb-2 text-[20px] font-black">{p.t}</h3>
-                <p className="m-0 text-[15px] font-semibold leading-[1.5] text-ink-muted">{p.d}</p>
-              </Reveal>
+                <div className="min-w-0">
+                  <p className="m-0 text-[clamp(24px,2.6vw,33px)] font-black leading-none tracking-[-0.03em] text-cherry">{s.value}</p>
+                  <p className="m-0 mt-[5px] whitespace-nowrap text-[11px] font-extrabold tracking-[0.08em] text-ink-muted">{s.label}</p>
+                </div>
+              </div>
             ))}
           </div>
-          <Reveal className="rounded-[28px] bg-gradient-to-br from-pink-50 to-[#FFEFEE] p-[clamp(28px,4vw,44px)]">
-            <div className="bz-wallets mx-auto flex max-w-[720px] flex-col items-center justify-between gap-[18px] sm:flex-row">
-              <div className="flex-1 text-center">
-                <div className="mx-auto mb-3 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-white shadow-[0_12px_26px_-12px_rgba(181,16,31,.3)]">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <rect x="3" y="6" width="18" height="13" rx="3" stroke="#B5101F" strokeWidth="1.8" />
-                    <path d="M3 10h18" stroke="#B5101F" strokeWidth="1.8" />
-                    <circle cx="16.5" cy="14.5" r="1.4" fill="#E8434B" />
-                  </svg>
-                </div>
-                <p className="bz-mono m-0 text-[13px] font-semibold text-ink">@joao</p>
-                <p className="m-0 mt-[3px] text-[12px] font-bold text-ink-faint">Consumidor</p>
-              </div>
-              <div className="relative mt-9 h-1 flex-[1.4] self-start rounded bg-pink-200">
-                <div className="anim-coin absolute left-[8%] top-1/2 h-5 w-5 rounded-full bg-gradient-to-br from-banzami-coral to-banzami shadow-[0_0_14px_3px_rgba(232,67,75,.4)]" />
-                <div className="anim-credit bz-mono absolute -top-[30px] left-1/2 -translate-x-1/2 whitespace-nowrap text-[12px] font-semibold text-banzami">
-                  +2.500 Kz
-                </div>
-              </div>
-              <div className="flex-1 text-center">
-                <div className="mx-auto mb-3 flex h-[72px] w-[72px] items-center justify-center rounded-[22px] bg-gradient-to-br from-banzami to-banzami-deep shadow-[0_14px_30px_-10px_rgba(181,16,31,.5)]">
-                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M3 21V9l9-6 9 6v12" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
-                    <path d="M9 21v-7h6v7" stroke="#fff" strokeWidth="1.8" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <p className="bz-mono m-0 text-[13px] font-semibold text-ink">@padaria-luanda</p>
-                <p className="m-0 mt-[3px] text-[12px] font-bold text-ink-faint">Comerciante</p>
-              </div>
+        </div>
+      </section>
+
+      {/* ===================== ZONA FINAL ===================== */}
+      <section className="px-6 pb-[18px] pt-2">
+        <div className="bz-footgrid mx-auto grid max-w-container grid-cols-1 gap-4 md:grid-cols-[1fr_1.1fr_0.9fr]">
+          {/* brand card */}
+          <div className="relative overflow-hidden rounded-card border border-border-soft bg-white p-7 shadow-[0_20px_50px_-36px_rgba(181,16,31,.3)]">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.08),rgba(232,67,75,0)_70%)]" />
+            <Logo />
+            <p className="m-0 mt-3 text-[14px] font-extrabold text-cherry">A carteira Kwanza de Angola.</p>
+            <p className="m-0 mb-[18px] mt-[10px] text-[14px] font-semibold leading-[1.55] text-ink-soft">
+              Simples, segura e feita para todos. Pagamentos instantâneos, QR e @handles numa
+              experiência pensada para o dia a dia em Angola.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <span className="inline-flex items-center gap-[6px] rounded-pill border border-border-soft bg-cream-100 px-3 py-[6px] text-[12px] font-extrabold text-cherry-dark">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#9A1B22" strokeWidth="1.9" /><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#9A1B22" strokeWidth="1.9" /><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#9A1B22" strokeWidth="1.9" /><path d="M14 14h3v3M21 14v7h-7" stroke="#9A1B22" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Pagamentos por QR
+              </span>
+              <span className="inline-flex items-center gap-[6px] rounded-pill border border-border-soft bg-cream-100 px-3 py-[6px] text-[12px] font-extrabold text-cherry-dark">
+                <span className="bz-mono text-[14px] font-semibold leading-none text-cherry-dark">@</span>@banza
+              </span>
+              <span className="inline-flex items-center gap-[6px] rounded-pill border border-border-soft bg-cream-100 px-3 py-[6px] text-[12px] font-extrabold text-cherry-dark">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#9A1B22" strokeWidth="1.9" strokeLinejoin="round" /><path d="M9.2 11.6l1.9 1.9 3.7-3.7" stroke="#9A1B22" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Comprovativo vivo
+              </span>
             </div>
-            <p className="mx-auto mt-[30px] max-w-[660px] text-center text-[13.5px] font-semibold leading-[1.55] text-ink-soft">
-              A liquidação instantânea acontece <strong className="text-ink-secondary">dentro da rede</strong>. O
-              funding em Kwanza real e os levantamentos dependem de rails externos aprovados que{' '}
-              <strong className="text-ink-secondary">ainda não estão ativos</strong>.
-            </p>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* PRODUTOS */}
-      <section id="produtos" className="bz-section bg-gradient-to-b from-white to-pink-50 px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-10 max-w-[660px]"
-            eyebrow="PRODUTOS"
-            title="Para ti, para o teu negócio, para a tua app."
-            lead="Cada produto é uma capacidade da rede — mostramos o estado real de cada um."
-          />
-          <div className="bz-grid4 grid grid-cols-1 gap-[14px] sm:grid-cols-2 lg:grid-cols-4">
-            {PRODUTOS.map((p, i) => (
-              <Reveal key={p.t} delay={(i % 4) * 50} className="rounded-[22px] bg-white p-6 shadow-[0_14px_40px_-24px_rgba(181,16,31,.2)]">
-                <div className="mb-[14px] flex items-start justify-between">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-pink-100">
-                    <span className="h-[18px] w-[18px] rounded-[5px] bg-banzami/80" />
-                  </div>
-                  <span className="rounded-pill bg-pink-200 px-[9px] py-1 text-[10px] font-black text-banzami-deep">
-                    {p.badge}
-                  </span>
-                </div>
-                <h3 className="m-0 mb-[6px] text-[16px] font-black">{p.t}</h3>
-                <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-ink-muted">{p.d}</p>
-              </Reveal>
-            ))}
-            <Reveal delay={150} className="flex flex-col justify-between rounded-[22px] bg-gradient-to-br from-banzami to-banzami-deep p-6 text-white sm:col-span-2">
-              <div className="mb-[14px] flex items-start justify-between">
-                <div className="flex h-10 w-10 items-center justify-center rounded-[13px] bg-white/[0.18]">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M9 3v6l-5 9a2 2 0 001.7 3h12.6a2 2 0 001.7-3l-5-9V3" stroke="#fff" strokeWidth="1.7" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <span className="rounded-pill bg-white/[0.22] px-[9px] py-1 text-[10px] font-black text-white">
-                  L0 · DRY-RUN
-                </span>
-              </div>
-              <div>
-                <h3 className="m-0 mb-[6px] text-[16px] font-black">Sandbox</h3>
-                <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-pink-200">
-                  Ambiente simulado e isolado da produção, para testar sem risco. Operacional ao nível
-                  de conformidade L0.
-                </p>
-              </div>
-            </Reveal>
           </div>
-          <Reveal className="mt-7">
-            <Link href="/produto" className="bz-link text-[15px]">
-              Ver o produto ↗
-            </Link>
-          </Reveal>
-        </div>
-      </section>
 
-      {/* COMERCIANTES */}
-      <section id="comerciantes" className="bz-section px-6">
-        <div className="bz-split mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-2">
-          <Reveal>
-            <p className="bz-eyebrow">PARA COMERCIANTES</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Aceita pagamentos sem terminal.
-            </h2>
-            <p className="m-0 mb-6 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              Imprime um QR, partilha um link, recebe em segundos. Onboarding em minutos, sem hardware.
-            </p>
-            <div className="flex flex-col gap-3">
-              {[
-                'Sem terminal físico — basta um smartphone.',
-                'Confirmação criptográfica, não screenshot.',
-                'Dashboard e histórico em tempo real.',
-              ].map((item) => (
-                <div key={item} className="flex items-center gap-3">
-                  <span className="flex h-7 w-7 flex-none items-center justify-center rounded-[10px] bg-pink-200">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                      <path d="M5 13l4 4L19 7" stroke="#B5101F" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  <p className="m-0 text-[15.5px] font-bold text-[#3a2a2e]">{item}</p>
-                </div>
+          {/* explore card */}
+          <div className="rounded-card border border-border-soft bg-white p-7 shadow-[0_20px_50px_-36px_rgba(181,16,31,.3)]">
+            <h3 className="m-0 mb-4 text-[18px] font-black text-ink">Explorar</h3>
+            <div className="grid grid-cols-1 gap-[9px] sm:grid-cols-2">
+              {EXPLORE.map((t) => (
+                <ExploreTile key={t.label} tile={t} />
               ))}
             </div>
-            <p className="m-0 mt-6 rounded-box bg-pink-50 px-4 py-[14px] text-[13px] font-semibold leading-[1.55] text-ink-soft">
-              Os levantamentos para conta bancária dependem de rails de saída aprovados ainda não
-              ativos — capacidade da rede e roadmap, não serviço comercial já disponível.
+            <p className="m-0 mt-4 text-[13px] font-semibold text-ink-muted">
+              Tudo o que precisas para usar, integrar e confiar no Banzami.
             </p>
-            <div className="mt-6">
-              <Link href="/comerciantes" className="bz-link text-[15px]">
-                Ver tudo para comerciantes ↗
-              </Link>
-            </div>
-          </Reveal>
-          <Reveal delay={80}>
-            <MerchantDashboard />
-          </Reveal>
-        </div>
-      </section>
+          </div>
 
-      {/* PROGRAMADORES */}
-      <section id="programadores" className="bz-section bg-gradient-to-b from-pink-50 to-white px-6">
-        <div className="bz-split mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1fr_1.05fr]">
-          <Reveal>
-            <p className="bz-eyebrow">PARA PROGRAMADORES</p>
-            <h2 className="m-0 text-[clamp(28px,4vw,44px)] font-black leading-[1.06] tracking-[-0.02em]">
-              Aceita Kwanza dentro da tua app.
-            </h2>
-            <p className="m-0 mb-6 mt-4 text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-              Uma API e SDKs oficiais — do install ao primeiro pagamento em minutos, em sandbox.
+          {/* red CTA card */}
+          <div className="relative overflow-hidden rounded-card bg-[linear-gradient(150deg,#B5101F,#6E0E14)] p-7 text-white shadow-[0_26px_56px_-30px_rgba(122,16,22,.6)]">
+            <div className="pointer-events-none absolute -bottom-20 -right-[60px] h-60 w-60 rounded-full border border-white/[0.12]" />
+            <div className="pointer-events-none absolute -bottom-10 -right-5 h-40 w-40 rounded-full border border-white/10" />
+            <h3 className="relative m-0 text-[20px] font-black">Explorar Banzami</h3>
+            <p className="relative m-0 mb-5 mt-3 text-[14px] font-semibold leading-[1.55] text-white/85">
+              Baixa a app ou junta-te à waitlist e sê um dos primeiros a experimentar o futuro dos
+              pagamentos em Angola.
             </p>
-            <div className="mb-[22px] grid grid-cols-1 gap-[10px] sm:grid-cols-2">
-              {[
-                ['API REST', 'Versionada e idempotente.'],
-                ['SDKs tipados', 'TS, Flutter, Python, PHP, Go.'],
-                ['Sandbox isolado', 'Testa sem risco.'],
-                ['Webhooks assinados', 'Assinatura verificável.'],
-              ].map(([t, d]) => (
-                <div key={t} className="rounded-box bg-white p-[15px] shadow-[0_10px_30px_-20px_rgba(181,16,31,.25)]">
-                  <p className="m-0 text-[14px] font-extrabold">{t}</p>
-                  <p className="m-0 mt-1 text-[12.5px] font-semibold text-ink-soft">{d}</p>
-                </div>
-              ))}
-            </div>
-            <p className="m-0 rounded-box bg-pink-100 px-4 py-[14px] text-[13px] font-semibold leading-[1.55] text-ink-soft">
-              Plataforma em desenvolvimento ativo. SDKs em diferentes graus de maturidade; exemplos
-              correm em sandbox. O caminho recomendado é sempre via SDK oficial.
-            </p>
-            <div className="mt-6">
-              <Link href="/programadores" className="bz-link text-[15px]">
-                Ver a Developer Platform ↗
+            <div className="relative flex flex-col gap-[10px]">
+              <Link href="/app-demo" className="flex items-center justify-between gap-2 rounded-[14px] bg-white px-4 py-[13px] text-[14px] font-extrabold text-cherry-dark no-underline">
+                Ver a app
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="#9A1B22" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
               </Link>
+              <a href={mailto('Waitlist Banzami')} className="flex items-center justify-between gap-2 rounded-[14px] border border-white/[0.28] bg-white/[0.12] px-4 py-[13px] text-[14px] font-extrabold text-white no-underline">
+                Entrar na waitlist
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </a>
             </div>
-          </Reveal>
-          <Reveal delay={80}>
-            <CodePanel />
-          </Reveal>
-        </div>
-      </section>
-
-      {/* TECNOLOGIA / SEGURANÇA */}
-      <section id="tecnologia" className="bz-section px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-10 max-w-[660px]"
-            eyebrow="TECNOLOGIA & SEGURANÇA"
-            title="Confiança é o produto."
-            lead="O saldo é sempre derivado do ledger, nunca alterado em silêncio. Correção financeira no centro."
-          />
-          <div id="seguranca" className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {SEGURANCA.map((s, i) => (
-              <SoftCard key={s.t} title={s.t} delay={(i % 3) * 50} bordered={s.bordered}>
-                {s.d}
-              </SoftCard>
-            ))}
+            <p className="relative m-0 mt-4 text-[12px] font-semibold text-white/70">
+              Banzami é construído sobre o protocolo aberto <strong className="text-white">BANZA</strong>.
+            </p>
           </div>
         </div>
-      </section>
 
-      {/* CONFORMANCE / TRANSPARÊNCIA */}
-      <section id="conformance" className="bz-section bg-pink-50 px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-9 max-w-[720px]"
-            eyebrow="BANZA CONFORMANCE · TRANSPARÊNCIA"
-            title="Transparentes sobre o que está pronto."
-            lead={
-              <>
-                Corremos a suite oficial de conformance do BANZA contra o sandbox, como operador
-                candidato. <strong className="text-ink">PASS significa evidência, não certificação.</strong> O
-                Banzami não é certificado e ainda não está launch-ready.
-              </>
-            }
-          />
-          <Reveal className="mb-7">
-            <StatusGrid />
-          </Reveal>
-          <Reveal>
-            <LevelGrid />
-            <p className="m-0 mt-6 text-[13px] font-semibold leading-[1.6] text-ink-soft">
-              O certificado de produção{' '}
-              <span className="bz-mono text-[12px] text-ink-secondary">/.well-known/banza/certificate.json</span>{' '}
-              está intencionalmente ausente (404). A framework de certificação é propriedade do BANZA,
-              não do Banzami. A produção depende de KYC/KYB, rails de money-in/money-out e dependências
-              regulatórias.
-            </p>
-            <div className="mt-5">
-              <Link href="/conformance" className="bz-link text-[15px]">
-                Ver a página de transparência ↗
-              </Link>
-            </div>
-          </Reveal>
+        {/* mini-footer */}
+        <div className="mx-auto mt-[14px] flex max-w-container flex-wrap items-center justify-between gap-3 rounded-[18px] border border-border-soft bg-white px-[22px] py-[14px]">
+          <span className="flex items-center gap-2 text-[13px] font-bold text-ink-soft">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2.5" stroke="#9a8a8e" strokeWidth="1.7" /><path d="M8 11V8a4 4 0 018 0v3" stroke="#9a8a8e" strokeWidth="1.7" /></svg>
+            Seguro por design. Privacidade por padrão.
+          </span>
+          <span className="text-[13px] font-bold text-ink-muted">© 2026 Banzami</span>
+          <span className="flex items-center gap-[10px] text-[13px] font-extrabold text-ink">
+            Banzami é como Angola paga.
+            <span className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-tile bg-cherry">
+              <BrandMark size={17} />
+            </span>
+          </span>
         </div>
       </section>
-
-      {/* SOBRE / ECOSSISTEMA */}
-      <section id="sobre" className="bz-section px-6">
-        <div className="mx-auto max-w-container">
-          <SectionHeading
-            className="mb-10 max-w-[660px]"
-            eyebrow="SOBRE · O ECOSSISTEMA"
-            title="BANZA, Banzami e BanzAI."
-            lead="O Banzami é o operador de referência construído sobre o protocolo aberto BANZA — não é o protocolo, nem um banco."
-          />
-          <div className="bz-grid3 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {ECOSSISTEMA.map((e, i) => (
-              <Reveal
-                key={e.tag}
-                delay={i * 60}
-                className={`rounded-card p-7 ${e.highlight ? 'bg-gradient-to-br from-pink-200 to-pink-100' : 'bg-pink-50'}`}
-              >
-                <p className="bz-mono m-0 mb-[10px] text-[13px] font-semibold text-banzami">{e.tag}</p>
-                <h3 className="m-0 mb-2 text-[18px] font-black">{e.t}</h3>
-                <p className={`m-0 text-[14.5px] font-semibold leading-[1.5] ${e.highlight ? 'text-[#7a5a5e]' : 'text-ink-muted'}`}>
-                  {e.d}
-                </p>
-                {e.link && (
-                  <a href={SITE.protocolUrl} target="_blank" rel="noopener noreferrer" className="bz-link mt-4 inline-flex items-center gap-[6px] text-[14px]">
-                    Ver o protocolo BANZA ↗
-                  </a>
-                )}
-              </Reveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <CTASection id="contacto" />
-      <Footer />
     </main>
   );
 }

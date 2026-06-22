@@ -1,31 +1,32 @@
 import Link from 'next/link';
 import { SITE } from '@/lib/site';
-import { BrandMark } from './BrandMark';
+import { Logo } from './BrandMark';
 
+// 4-column footer — verbatim from BanzamiCTAFooter.dc.html. Anchors that the
+// design points at the (old) home now live on /produto in this IA, so they
+// target /produto#… ; Programadores→/developers, Transparência→/suporte.
 const COLS: { title: string; links: { label: string; href: string; external?: boolean }[] }[] = [
   {
     title: 'Produto',
     links: [
-      { label: 'Solução', href: '/#solucao' },
-      { label: 'Como funciona', href: '/#como-funciona' },
-      { label: 'Produtos', href: '/#produtos' },
+      { label: 'Solução', href: '/produto#solucao' },
+      { label: 'Como funciona', href: '/produto#como-funciona' },
       { label: 'Comerciantes', href: '/comerciantes' },
     ],
   },
   {
     title: 'Plataforma',
     links: [
-      { label: 'Programadores', href: '/programadores' },
-      { label: 'Tecnologia', href: '/#tecnologia' },
-      { label: 'Segurança', href: '/#seguranca' },
-      { label: 'Transparência', href: '/conformance' },
+      { label: 'Developers', href: '/developers' },
+      { label: 'Transparência', href: '/suporte' },
+      { label: 'Tecnologia', href: '/produto#tecnologia' },
     ],
   },
   {
     title: 'Empresa',
     links: [
       { label: 'Sobre', href: '/sobre' },
-      { label: 'Contacto', href: '/contacto' },
+      { label: 'Contacto', href: `mailto:${SITE.email}` },
       { label: 'Waitlist', href: `mailto:${SITE.email}?subject=Waitlist%20Banzami` },
       { label: 'Protocolo BANZA ↗', href: SITE.protocolUrl, external: true },
     ],
@@ -34,24 +35,18 @@ const COLS: { title: string; links: { label: string; href: string; external?: bo
 
 export function Footer() {
   return (
-    <footer className="bg-pink-50 px-6 pb-[34px] pt-14">
+    <footer className="bg-cream-50 px-6 pb-[34px] pt-14">
       <div className="mx-auto max-w-container">
         <div className="bz-footer grid grid-cols-1 gap-[34px] border-b border-[rgba(181,16,31,0.12)] pb-[38px] sm:grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr_1fr]">
           <div>
-            <Link
-              href="/"
-              className="mb-[14px] flex items-center gap-[10px] text-[20px] font-black text-ink no-underline"
-            >
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-[10px] bg-banzami">
-                <BrandMark size={16} />
-              </span>
-              Banzami
+            <Link href="/" className="mb-[14px] inline-flex no-underline">
+              <Logo size={28} markSize={16} />
             </Link>
-            <p className="m-0 max-w-[320px] text-[14.5px] font-semibold leading-[1.6] text-ink-muted">
+            <p className="m-0 max-w-[320px] text-[14.5px] font-semibold leading-[1.6] text-ink-soft">
               {SITE.tagline}
             </p>
-            <p className="bz-mono m-0 mt-4 text-[13px] font-semibold text-banzami">{SITE.email}</p>
-            <p className="bz-mono m-0 mt-[5px] text-[13px] text-ink-faint">{SITE.domain}</p>
+            <p className="bz-mono m-0 mt-4 text-[13px] font-semibold text-cherry">{SITE.email}</p>
+            <p className="bz-mono m-0 mt-[5px] text-[13px] text-ink-muted">{SITE.domain}</p>
           </div>
 
           {COLS.map((col) => (
@@ -64,7 +59,7 @@ export function Footer() {
                       key={l.label}
                       href={l.href}
                       {...(l.external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
-                      className="text-ink-muted no-underline transition-colors hover:text-banzami"
+                      className="text-ink-soft no-underline transition-colors hover:text-cherry"
                     >
                       {l.label}
                     </a>
@@ -72,7 +67,7 @@ export function Footer() {
                     <Link
                       key={l.label}
                       href={l.href}
-                      className="text-ink-muted no-underline transition-colors hover:text-banzami"
+                      className="text-ink-soft no-underline transition-colors hover:text-cherry"
                     >
                       {l.label}
                     </Link>
@@ -84,20 +79,20 @@ export function Footer() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-4 pt-6">
-          <p className="m-0 max-w-[600px] text-[13px] font-semibold leading-[1.6] text-ink-faint">
+          <p className="m-0 max-w-[600px] text-[13px] font-semibold leading-[1.6] text-ink-muted">
             O Banzami é construído sobre o{' '}
             <a
               href={SITE.protocolUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="font-bold text-banzami no-underline"
+              className="font-bold text-cherry no-underline"
             >
               protocolo aberto BANZA ↗
             </a>
             . BANZA é o protocolo; Banzami é como Angola paga. Em desenvolvimento ativo — não é um
             banco nem um operador certificado.
           </p>
-          <p className="bz-mono m-0 text-[13px] text-ink-faint">© 2026 Banzami</p>
+          <p className="bz-mono m-0 text-[13px] text-ink-muted">© Banzami</p>
         </div>
       </div>
     </footer>

@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 /* ============================================================
-   Banzami website — base + design tokens
-   Reproduces the approved design handoff (clear, premium, fintech,
-   Banzami reds, very white). Source of truth: BANZAMI_REFERENCIA.md
+   Banzami website — base + helpers + animations.
+   Source of truth: ~/Downloads/design_handoff_banzami_site/
+   (README design tokens + inline styles of the .dc.html refs).
    ============================================================ */
 
 :root {
-  --ac: #b5101f; /* brand accent */
+  --ac: #b5101f; /* primary cherry */
   --ac2: #9a1b22; /* deep accent */
   --sp: clamp(64px, 9vw, 104px); /* section vertical padding */
 }
@@ -49,75 +49,11 @@ body {
 }
 
 .bz-eyebrow {
+  margin: 0 0 12px;
   font-size: 14px;
   font-weight: 900;
   color: var(--ac);
-  margin: 0 0 12px;
   letter-spacing: 0.01em;
-}
-
-/* ---------- Buttons ---------- */
-.bz-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 30px;
-  border-radius: 40px;
-  background: var(--ac);
-  color: #fff;
-  font-weight: 800;
-  font-size: 16px;
-  text-decoration: none;
-  box-shadow: 0 14px 30px -10px rgba(181, 16, 31, 0.5);
-  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
-}
-.bz-btn-primary:hover {
-  background: var(--ac2);
-  transform: translateY(-2px);
-  box-shadow: 0 16px 34px -10px rgba(181, 16, 31, 0.45);
-}
-
-.bz-btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 16px 28px;
-  border-radius: 40px;
-  background: #fff;
-  color: var(--ac);
-  font-weight: 800;
-  font-size: 16px;
-  text-decoration: none;
-  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.18);
-  transition: transform 0.2s, background 0.2s;
-}
-.bz-btn-secondary:hover {
-  background: #fff1f0;
-  transform: translateY(-2px);
-}
-
-/* ---------- Cards ---------- */
-.bz-card {
-  background: #fff;
-  border-radius: 24px;
-  padding: 28px;
-  box-shadow: 0 14px 40px -22px rgba(181, 16, 31, 0.2);
-}
-.bz-card-soft {
-  background: #fff7f6;
-  border-radius: 24px;
-  padding: 26px;
-}
-.bz-card h3 {
-  margin: 0 0 8px;
-  font-weight: 900;
-}
-.bz-card p,
-.bz-card-soft p {
-  margin: 0;
-  line-height: 1.5;
-  color: #7a6a6e;
-  font-weight: 600;
 }
 
 .bz-mono {
@@ -131,7 +67,46 @@ body {
   transition: color 0.15s;
 }
 
-/* ---------- Reveal on scroll ---------- */
+/* ---------- Buttons ---------- */
+.bz-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 30px;
+  background: var(--ac);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 8px 18px -6px rgba(181, 16, 31, 0.5);
+  transition: transform 0.2s, box-shadow 0.2s, background 0.2s;
+}
+.bz-btn-primary:hover {
+  background: var(--ac2);
+  transform: translateY(-2px);
+}
+
+.bz-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 22px;
+  border-radius: 30px;
+  background: #fff;
+  color: var(--ac);
+  font-weight: 800;
+  font-size: 14px;
+  text-decoration: none;
+  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.18);
+  transition: transform 0.2s, background 0.2s;
+}
+.bz-btn-secondary:hover {
+  background: #fff1f0;
+  transform: translateY(-2px);
+}
+
+/* ---------- Scroll reveal ---------- */
 .bz-reveal {
   opacity: 0;
   transform: translateY(26px);
@@ -144,41 +119,10 @@ body {
   transform: none;
 }
 
-/* ---------- Keyframes (hero mockup + diagrams) ---------- */
-@keyframes scene0 {
-  0%, 2% { opacity: 0; transform: translateY(12px) scale(0.98); }
-  6%, 28% { opacity: 1; transform: none; }
-  33%, 100% { opacity: 0; transform: translateY(-12px) scale(0.98); }
-}
-@keyframes scene1 {
-  0%, 35% { opacity: 0; transform: translateY(12px) scale(0.98); }
-  39%, 61% { opacity: 1; transform: none; }
-  66%, 100% { opacity: 0; transform: translateY(-12px) scale(0.98); }
-}
-@keyframes scene2 {
-  0%, 68% { opacity: 0; transform: translateY(12px) scale(0.98); }
-  72%, 97% { opacity: 1; transform: none; }
-  100% { opacity: 1; transform: none; }
-}
-@keyframes dot0 {
-  0%, 2% { opacity: 0.2; } 6%, 28% { opacity: 1; } 33%, 100% { opacity: 0.2; }
-}
-@keyframes dot1 {
-  0%, 35% { opacity: 0.2; } 39%, 61% { opacity: 1; } 66%, 100% { opacity: 0.2; }
-}
-@keyframes dot2 {
-  0%, 68% { opacity: 0.2; } 72%, 97% { opacity: 1; } 100% { opacity: 0.2; }
-}
-@keyframes coinTravel {
-  0% { left: 8%; opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-  12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  88% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-  100% { left: 92%; opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
-}
-@keyframes creditPop {
-  0%, 72% { opacity: 0; transform: translateY(6px); }
-  80%, 94% { opacity: 1; transform: none; }
-  100% { opacity: 0; transform: translateY(-4px); }
+/* ---------- Keyframes (hero, mockups, diagrams) ---------- */
+@keyframes bzmarquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
 }
 @keyframes floaty {
   0%, 100% { transform: translateY(0); }
@@ -192,27 +136,49 @@ body {
   0% { transform: scale(0.85); opacity: 0.55; }
   100% { transform: scale(1.7); opacity: 0; }
 }
+@keyframes bzpulsering {
+  0% { transform: scale(0.72); opacity: 0.55; }
+  100% { transform: scale(1.5); opacity: 0; }
+}
 @keyframes scanline {
-  0% { top: 14%; }
-  100% { top: 78%; }
+  0% { top: 9%; }
+  100% { top: 85%; }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes bzfade {
+  0% { opacity: 0; transform: translateY(6px); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes coinTravel {
+  0% { left: 8%; opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  88% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { left: 92%; opacity: 0; transform: translate(-50%, -50%) scale(0.6); }
+}
+@keyframes creditPop {
+  0%, 72% { opacity: 0; transform: translateY(6px); }
+  80%, 94% { opacity: 1; transform: none; }
+  100% { opacity: 0; transform: translateY(-4px); }
 }
 
-.anim-scene0 { animation: scene0 9s ease-in-out infinite; }
-.anim-scene1 { animation: scene1 9s ease-in-out infinite; }
-.anim-scene2 { animation: scene2 9s ease-in-out infinite; }
-.anim-dot0 { animation: dot0 9s ease-in-out infinite; }
-.anim-dot1 { animation: dot1 9s ease-in-out infinite; }
-.anim-dot2 { animation: dot2 9s ease-in-out infinite; }
-.anim-coin { animation: coinTravel 3.4s ease-in-out infinite; }
-.anim-credit { animation: creditPop 3.4s ease-in-out infinite; }
+.anim-marquee { animation: bzmarquee 24s linear infinite; }
 .anim-floaty { animation: floaty 6s ease-in-out infinite; }
 .anim-floaty-5 { animation: floaty 5s ease-in-out infinite; }
 .anim-floaty-7 { animation: floaty 7s ease-in-out infinite; }
 .anim-floatyB { animation: floatyB 7s ease-in-out infinite; }
 .anim-pulsering { animation: pulsering 2.4s ease-out infinite; }
-.anim-scanline { animation: scanline 1.6s ease-in-out infinite alternate; }
+.anim-bzpulsering { animation: bzpulsering 2.8s ease-out infinite; }
+.anim-bzpulsering-delayed { animation: bzpulsering 2.8s ease-out infinite 1.4s; }
+.anim-scanline { animation: scanline 2s ease-in-out infinite alternate; }
+.anim-spin { animation: spin 0.9s linear infinite; }
+.anim-spin-slow { animation: spin 16s linear infinite; }
+.anim-bzfade { animation: bzfade 0.35s ease; }
+.anim-coin { animation: coinTravel 3.4s ease-in-out infinite; }
+.anim-credit { animation: creditPop 3.4s ease-in-out infinite; }
 
-/* ---------- Reduced motion ---------- */
+/* ---------- Reduced motion (README: desligar todas as animações) ---------- */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

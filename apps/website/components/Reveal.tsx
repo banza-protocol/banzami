@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
-// Scroll-reveal wrapper. Honors prefers-reduced-motion: when reduced, content
-// is shown immediately with no animation.
+// Scroll-reveal wrapper. Honors prefers-reduced-motion (shown immediately).
 export function Reveal({
   children,
   delay = 0,

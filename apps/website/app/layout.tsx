@@ -25,15 +25,7 @@ export const metadata: Metadata = {
     ],
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
-  keywords: [
-    'Banzami',
-    'Kwanza',
-    'pagamentos Angola',
-    'carteira digital',
-    'QR',
-    'BANZA',
-    'wallet-native',
-  ],
+  keywords: ['Banzami', 'Kwanza', 'pagamentos Angola', 'carteira digital', 'QR', 'BANZA', 'wallet-native'],
   openGraph: {
     type: 'website',
     locale: 'pt_AO',
@@ -42,12 +34,13 @@ export const metadata: Metadata = {
     description:
       'A rede de pagamentos wallet-native de Angola. Paga por QR ou para um @banza e recebe em segundos. Construído sobre o protocolo aberto BANZA.',
     url: 'https://banzami.com',
+    images: [{ url: '/brand/banzami_icon.png', width: 1254, height: 1254, alt: 'Banzami' }],
   },
   twitter: {
     card: 'summary_large_image',
     title: 'Banzami — A carteira Kwanza de Angola',
-    description:
-      'A rede de pagamentos wallet-native de Angola. Construído sobre o protocolo aberto BANZA.',
+    description: 'A rede de pagamentos wallet-native de Angola. Construído sobre o protocolo aberto BANZA.',
+    images: ['/brand/banzami_icon.png'],
   },
 };
 
@@ -57,10 +50,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* Fonts loaded via <link> (not next/font) to avoid a build-time network
-            dependency; system-ui is the graceful fallback if offline. */}
+        {/* Dossier font import (README §Tipografia): Nunito + JetBrains Mono.
+            Loaded via <link> to avoid a build-time network dependency. */}
         <link
-          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap"
           rel="stylesheet"
         />
       </head>

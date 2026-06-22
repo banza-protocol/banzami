@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 360" role="img" aria-label="The Problem Banzami Solves" font-family="system-ui,-apple-system,sans-serif">
+  <title>The Problem Banzami Solves</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#B5101F"></stop><stop offset="100%" stop-color="#E03A43"></stop>
+    </linearGradient>
+    <marker id="ag" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"></path></marker>
+    <marker id="aw" markerWidth="8" markerHeight="8" refX="4" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#FFFFFF"></path></marker>
+  </defs>
+  <rect width="900" height="360" fill="#FFF7F6" rx="16"></rect>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"></rect>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"></rect>
+  <text x="32" y="28" font-family="ui-monospace,&#39;Courier New&#39;,monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-001 · THE PROBLEM</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Paying in Angola today</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">Slow · manual · unverifiable</text>
+
+  <text x="32" y="100" font-size="11" font-weight="700" fill="#6B7280" letter-spacing="1">TODAY — TRUST IN A SCREENSHOT</text>
+  <g font-size="11" font-weight="600" fill="#4B5563">
+    <rect x="32" y="112" width="150" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
+    <text x="107" y="143" text-anchor="middle">Consumer</text>
+    <rect x="216" y="112" width="150" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
+    <text x="291" y="137" text-anchor="middle">Bank transfer</text>
+    <text x="291" y="152" text-anchor="middle" font-size="9" font-weight="400" fill="#9CA3AF">+ screenshot</text>
+    <rect x="400" y="112" width="150" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
+    <text x="475" y="137" text-anchor="middle">WhatsApp</text>
+    <text x="475" y="152" text-anchor="middle" font-size="9" font-weight="400" fill="#9CA3AF">send the receipt</text>
+    <rect x="584" y="112" width="150" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
+    <text x="659" y="137" text-anchor="middle">Merchant</text>
+    <text x="659" y="152" text-anchor="middle" font-size="9" font-weight="400" fill="#9CA3AF">verifies by hand</text>
+    <rect x="768" y="112" width="100" height="52" rx="9" fill="#F3F4F6" stroke="#D1D5DB"></rect>
+    <text x="818" y="137" text-anchor="middle" font-size="10">Maybe</text>
+    <text x="818" y="152" text-anchor="middle" font-size="9" font-weight="400" fill="#9CA3AF">later</text>
+  </g>
+  <g stroke="#9CA3AF" stroke-width="1.5">
+    <line x1="184" y1="138" x2="212" y2="138" marker-end="url(#ag)"></line>
+    <line x1="368" y1="138" x2="396" y2="138" marker-end="url(#ag)"></line>
+    <line x1="552" y1="138" x2="580" y2="138" marker-end="url(#ag)"></line>
+    <line x1="736" y1="138" x2="764" y2="138" marker-end="url(#ag)"></line>
+  </g>
+
+  <line x1="450" y1="184" x2="450" y2="212" stroke="#B5101F" stroke-width="2" marker-end="url(#ag)"></line>
+  <text x="468" y="202" font-size="10.5" font-weight="700" fill="#B5101F">Banzami replaces the entire flow</text>
+
+  <text x="32" y="244" font-size="11" font-weight="700" fill="#9A1B22" letter-spacing="1">WITH BANZAMI — ONE MOTION</text>
+  <g font-size="15" font-weight="800" fill="#FFFFFF">
+    <rect x="32" y="256" width="252" height="68" rx="11" fill="url(#hg)"></rect>
+    <text x="158" y="297" text-anchor="middle">SCAN</text>
+    <rect x="324" y="256" width="252" height="68" rx="11" fill="url(#hg)"></rect>
+    <text x="450" y="297" text-anchor="middle">CONFIRM</text>
+    <rect x="616" y="256" width="252" height="68" rx="11" fill="url(#hg)"></rect>
+    <text x="742" y="297" text-anchor="middle">PAID INSTANTLY</text>
+  </g>
+  <g stroke="#E03A43" stroke-width="2">
+    <line x1="286" y1="290" x2="320" y2="290" marker-end="url(#aw)"></line>
+    <line x1="578" y1="290" x2="612" y2="290" marker-end="url(#aw)"></line>
+  </g>
+  <text x="32" y="344" font-size="9.5" fill="#9CA3AF">No screenshots · no manual verification · no waiting — settlement in seconds.</text>
+</svg>

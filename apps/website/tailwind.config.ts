@@ -1,56 +1,67 @@
 import type { Config } from 'tailwindcss';
 
-// Design tokens from the approved Banzami website handoff (design-handoff/README.md §3).
+// Design tokens — verbatim from the Banzami website dossier
+// (~/Downloads/design_handoff_banzami_site/README.md §"Design tokens").
 const config: Config = {
   content: ['./app/**/*.{ts,tsx}', './components/**/*.{ts,tsx}', './lib/**/*.{ts,tsx}'],
   theme: {
     extend: {
       colors: {
-        // Banzami red scale
-        banzami: {
-          DEFAULT: '#B5101F', // red/primary — brand, CTAs, eyebrows
-          bright:  '#D7242E', // red/bright
-          coral:   '#E8434B', // red/coral
-          deep:    '#9A1B22', // red/deep — hover, gradients
-          darker:  '#7C1016', // red/darker
+        // Cherry red brand scale
+        cherry: {
+          DEFAULT: '#B5101F', // Primário (CTA, acentos, logo, ativos)
+          dark: '#9A1B22', // Primário escuro (hover, texto de acento)
+          deep: '#6E0E14', // Bordô profundo (gradientes)
+          deeper: '#7C1016', // Bordô profundo (variante)
+          coral: '#E8434B', // Coral (formas decorativas, glow)
         },
-        // Pink tints
+        // Pink tints (logo tiles, chips, badges)
         pink: {
           200: '#FBD2D0',
+          150: '#FFE6E4',
+          100: '#FFE7E5',
+        },
+        // Cream / off-white surfaces
+        cream: {
+          DEFAULT: '#FBF3F1',
+          50: '#FFF7F6',
           100: '#FFF1F0',
-          50:  '#FFF7F6',
+          200: '#FFF3F1',
         },
-        // Warm near-black ink scale (typography)
         ink: {
-          DEFAULT:   '#2a2024',
-          secondary: '#6a5a5e',
-          muted:     '#7a6a6e',
-          soft:      '#8a7a7e',
-          faint:     '#9a8a8e',
-          ghost:     '#a89a9e',
+          DEFAULT: '#2a2024', // Texto base
+          secondary: '#6a5a5e', // Texto secundário
+          nav: '#5a4a4e', // Links de nav
+          soft: '#7a6a6e',
+          muted: '#9a8a8e', // labels, captions
         },
-        'border-soft': '#F3E3E1',
-        'code-green':  '#1f9a5b',
+        received: '#1f7a45', // Verde (valores recebidos na app)
+        border: {
+          soft: '#F3E3E1',
+          softer: '#F0D6D4',
+        },
       },
       fontFamily: {
         sans: ["'Nunito'", 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'sans-serif'],
         mono: ["'JetBrains Mono'", 'ui-monospace', 'monospace'],
       },
       borderRadius: {
-        card:   '24px',
-        pill:   '40px',
-        phone:  '46px',
-        box:    '16px',
+        pill: '30px', // botões / pílulas
+        nav: '40px', // navbar flutuante
+        card: '22px', // cartões / mega-menu
+        tile: '10px', // logo tile
       },
       boxShadow: {
-        'card-soft': '0 14px 40px -24px rgba(181,16,31,.2)',
-        'btn':       '0 14px 30px -10px rgba(181,16,31,.5)',
-        'nav':       '0 10px 30px -16px rgba(181,16,31,.28)',
-        'phone':     '0 40px 80px -28px rgba(181,16,31,.4)',
-        'panel':     '0 30px 70px -30px rgba(181,16,31,.3)',
+        cta: '0 8px 18px -6px rgba(181,16,31,.5)',
+        mega: '0 30px 70px -30px rgba(122,16,22,.35)',
+        card: '0 14px 30px -26px rgba(181,16,31,.3)',
       },
       maxWidth: {
         container: '1140px',
+      },
+      // Navbar glass border (README: rgba(150,0,20,.08))
+      borderColor: {
+        glass: 'rgba(150,0,20,0.08)',
       },
     },
   },

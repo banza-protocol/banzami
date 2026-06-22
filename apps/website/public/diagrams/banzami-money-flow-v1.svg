@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" role="img" aria-label="How Money Moves" font-family="system-ui,-apple-system,sans-serif">
+  <title>How Money Moves</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"></stop><stop offset="100%" stop-color="#E03A43"></stop></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#D7242E"></path></marker>
+  </defs>
+  <rect width="900" height="340" fill="#FFF7F6" rx="16"></rect>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"></rect>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"></rect>
+  <text x="32" y="28" font-family="ui-monospace,&#39;Courier New&#39;,monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-004 · HOW MONEY MOVES</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Wallet-native · instant settlement</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">No card rails · no terminal dependency</text>
+
+  
+  <g>
+    <rect x="120" y="92" width="300" height="56" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"></rect>
+    <text x="270" y="118" text-anchor="middle" font-size="13" font-weight="800" fill="#9A1B22">Consumer Wallet</text>
+    <text x="270" y="136" text-anchor="middle" font-size="9.5" fill="#B5323A">balance derived from the ledger</text>
+
+    <line x1="270" y1="150" x2="270" y2="178" stroke="#D7242E" stroke-width="2" marker-end="url(#ar)"></line>
+    <text x="286" y="169" font-size="9" fill="#9CA3AF">authorize · risk · ledger posting</text>
+
+    <rect x="120" y="182" width="300" height="56" rx="11" fill="url(#hg)"></rect>
+    <text x="270" y="208" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Instant Transfer</text>
+    <text x="270" y="226" text-anchor="middle" font-size="9.5" fill="#FBD2D0">double-entry · atomic · idempotent</text>
+
+    <line x1="270" y1="240" x2="270" y2="268" stroke="#D7242E" stroke-width="2" marker-end="url(#ar)"></line>
+    <text x="286" y="259" font-size="9" fill="#9CA3AF">commit · webhook dispatched</text>
+
+    <rect x="120" y="272" width="300" height="56" rx="11" fill="#FEF2F2" stroke="#FBCFCF" stroke-width="1.5"></rect>
+    <text x="270" y="298" text-anchor="middle" font-size="13" font-weight="800" fill="#9A1B22">Merchant Wallet</text>
+    <text x="270" y="316" text-anchor="middle" font-size="9.5" fill="#B5323A">T+0 credit — settled in seconds</text>
+  </g>
+
+  
+  <g>
+    <rect x="480" y="92" width="384" height="236" rx="12" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"></rect>
+    <text x="504" y="120" font-size="12" font-weight="800" fill="#9A1B22">The wallet-native model</text>
+    <g font-size="10.5">
+      <circle cx="510" cy="146" r="3" fill="#D7242E"></circle><text x="524" y="150" fill="#374151"><tspan font-weight="700">Wallet-native</tspan> — money moves wallet to wallet</text>
+      <circle cx="510" cy="174" r="3" fill="#D7242E"></circle><text x="524" y="178" fill="#374151"><tspan font-weight="700">Instant settlement</tspan> — credited on commit, not days later</text>
+      <circle cx="510" cy="202" r="3" fill="#D7242E"></circle><text x="524" y="206" fill="#374151"><tspan font-weight="700">No card rails</tspan> — no PAN, CVV, expiry or interchange</text>
+      <circle cx="510" cy="230" r="3" fill="#D7242E"></circle><text x="524" y="234" fill="#374151"><tspan font-weight="700">No terminal</tspan> — a printed QR or a link is enough</text>
+      <circle cx="510" cy="258" r="3" fill="#D7242E"></circle><text x="524" y="262" fill="#374151"><tspan font-weight="700">Ledger-true</tspan> — every posting balances to zero</text>
+    </g>
+    <text x="504" y="300" font-size="9.5" fill="#9CA3AF">Local rails (EMIS, Multicaixa) are integrations —</text>
+    <text x="504" y="315" font-size="9.5" fill="#9CA3AF">they fund and defund wallets; they are not the product.</text>
+  </g>
+</svg>
