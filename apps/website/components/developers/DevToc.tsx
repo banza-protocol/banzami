@@ -24,7 +24,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: 'going-live', label: 'Going Live' },
 ];
 
-const SCROLL_OFFSET = 120;
+const SCROLL_OFFSET = 140;
 
 export function DevToc() {
   const [active, setActive] = useState<string>(SECTIONS[0].id);
@@ -39,7 +39,7 @@ export function DevToc() {
           if (e.isIntersecting) setActive(e.target.id);
         });
       },
-      { rootMargin: '-130px 0px -65% 0px', threshold: 0 },
+      { rootMargin: '-150px 0px -65% 0px', threshold: 0 },
     );
     SECTIONS.forEach((s) => {
       const el = document.getElementById(s.id);
@@ -73,8 +73,8 @@ export function DevToc() {
 
   return (
     <div
-      className="sticky top-[76px] z-40 border-b border-border-soft"
-      style={{ background: 'rgba(255,247,246,.9)', backdropFilter: 'blur(10px)' }}
+      className="sticky top-[88px] z-40 border-b border-border-soft"
+      style={{ background: 'rgba(255,247,246,.92)', backdropFilter: 'blur(10px)' }}
     >
       <nav
         ref={navRef}
