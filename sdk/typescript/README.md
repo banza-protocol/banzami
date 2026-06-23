@@ -26,10 +26,55 @@ npm install @banzami/sdk
 import { BanzamiClient } from '@banzami/sdk';
 
 const client = new BanzamiClient({
-  baseUrl: 'https://api.banzami.com',
-  apiKey:  'bz_live_...',
+  apiKey: process.env.BANZAMI_API_KEY!, // bz_test_sk_… (sandbox) or bz_live_sk_… (live)
 });
 ```
+
+---
+
+## Environments & API keys
+
+Banzami has two environments. Every key carries its environment in the prefix,
+so a key can never be used against the wrong universe by accident.
+
+| Environment | What it is | Money | Secret key | Webhook secret |
+|-------------|------------|-------|------------|----------------|
+| **Sandbox** | Development & testing | Virtual — simulated confirmations, failures, refunds | `bz_test_sk_…` | `whsec_test_…` |
+| **Live**    | Production | Real Kwanza movement (requires activation) | `bz_live_sk_…` | `whsec_live_…` |
+
+> **Sandbox is for development. Live is for production.** Live requires onboarding
+> and activation of approved rails — it is not enabled by default.
+
+Publishable keys (`bz_test_pk_…` / `bz_live_pk_…`) are a planned client-safe key
+type for browser/mobile flows. **Secret keys (`…_sk_…`) are backend-only — never
+ship them in browser or mobile code.**
+
+### Environment detection
+
+The client resolves the environment in this order:
+
+1. The explicit `environment` option, if provided.
+2. The key prefix — `bz_test_…` → `sandbox`, `bz_live_…` → `live`.
+3. The base URL, if it mentions `sandbox`.
+4. Otherwise `live`.
+
+If an explicit `environment` conflicts with the key prefix, the constructor
+throws `BanzamiConfigError` before any request is made:
+
+```typescript
+// ✅ inferred from the key — no environment needed
+new BanzamiClient({ apiKey: 'bz_test_sk_...' }); // → sandbox
+
+// ✅ explicit and consistent
+new BanzamiClient({ environment: 'sandbox', apiKey: 'bz_test_sk_...' });
+
+// ❌ throws BanzamiConfigError:
+//    "Banzami environment/key mismatch: live environment cannot use sandbox key…"
+new BanzamiClient({ environment: 'live', apiKey: 'bz_test_sk_...' });
+```
+
+Legacy keys without the `_sk_` segment (`bz_test_…`, `bz_live_…`) remain fully
+supported — the prefix is all that matters for environment detection.
 
 ---
 

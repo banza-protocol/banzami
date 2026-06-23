@@ -1,3 +1,16 @@
+/**
+ * Thrown when the client is constructed with an invalid or inconsistent
+ * configuration — most importantly, an environment/key-prefix mismatch
+ * (e.g. `environment: 'live'` with a `bz_test_…` sandbox key). Surfaces
+ * configuration mistakes at construction time, before any money can move.
+ */
+export class BanzamiConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BanzamiConfigError';
+  }
+}
+
 export class BanzamiApiError extends Error {
   readonly status:  number;
   readonly code:    string;

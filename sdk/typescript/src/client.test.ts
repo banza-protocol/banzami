@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BanzamiClient } from './client.js';
-import { BanzamiApiError } from './errors.js';
+import { BanzamiClient, environmentFromKey, resolveEnvironment } from './client.js';
+import { BanzamiApiError, BanzamiConfigError } from './errors.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -24,6 +24,86 @@ let client: BanzamiClient;
 
 beforeEach(() => {
   client = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey' });
+});
+
+// ---------------------------------------------------------------------------
+// Environment / key model
+// ---------------------------------------------------------------------------
+
+describe('environmentFromKey', () => {
+  it('classifies sandbox keys (legacy and _sk_ / _pk_)', () => {
+    expect(environmentFromKey('bz_test_abc')).toBe('sandbox');
+    expect(environmentFromKey('bz_test_sk_abc')).toBe('sandbox');
+    expect(environmentFromKey('bz_test_pk_abc')).toBe('sandbox');
+  });
+
+  it('classifies live keys (legacy and _sk_ / _pk_)', () => {
+    expect(environmentFromKey('bz_live_abc')).toBe('live');
+    expect(environmentFromKey('bz_live_sk_abc')).toBe('live');
+    expect(environmentFromKey('bz_live_pk_abc')).toBe('live');
+  });
+
+  it('returns null for unrecognised or empty keys', () => {
+    expect(environmentFromKey('')).toBeNull();
+    expect(environmentFromKey('sk_test_stripe')).toBeNull();
+  });
+});
+
+describe('resolveEnvironment', () => {
+  it('infers from the key prefix when no environment is given', () => {
+    expect(resolveEnvironment('bz_test_sk_x')).toBe('sandbox');
+    expect(resolveEnvironment('bz_live_sk_x')).toBe('live');
+  });
+
+  it('honours an explicit environment that matches the key', () => {
+    expect(resolveEnvironment('bz_test_sk_x', 'sandbox')).toBe('sandbox');
+    expect(resolveEnvironment('bz_live_sk_x', 'live')).toBe('live');
+  });
+
+  it('throws on live environment with a sandbox key', () => {
+    expect(() => resolveEnvironment('bz_test_sk_x', 'live')).toThrow(BanzamiConfigError);
+    expect(() => resolveEnvironment('bz_test_sk_x', 'live')).toThrow(/environment\/key mismatch/);
+  });
+
+  it('throws on sandbox environment with a live key', () => {
+    expect(() => resolveEnvironment('bz_live_sk_x', 'sandbox')).toThrow(BanzamiConfigError);
+  });
+
+  it('falls back to the base URL when the key has no recognised prefix', () => {
+    expect(resolveEnvironment('placeholder', undefined, 'https://sandbox-api.banzami.com')).toBe('sandbox');
+  });
+
+  it('defaults to live for an unrecognised key and no hints', () => {
+    expect(resolveEnvironment('placeholder')).toBe('live');
+  });
+});
+
+describe('client environment wiring', () => {
+  it('exposes isSandbox inferred from a test key', () => {
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
+    expect(c.environment).toBe('sandbox');
+    expect(c.isSandbox).toBe(true);
+  });
+
+  it('exposes isProduction inferred from a live key', () => {
+    const c = new BanzamiClient({ apiKey: 'bz_live_sk_x' });
+    expect(c.environment).toBe('live');
+    expect(c.isProduction).toBe(true);
+  });
+
+  it('throws at construction on an environment/key mismatch', () => {
+    expect(() => new BanzamiClient({ apiKey: 'bz_test_sk_x', environment: 'live' }))
+      .toThrow(BanzamiConfigError);
+  });
+
+  it('picks the sandbox base URL by default for a sandbox key', async () => {
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ id: '1' }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
+    ));
+    await c.getTransaction('1');
+    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain('https://sandbox-api.banzami.com');
+  });
 });
 
 // ---------------------------------------------------------------------------
