@@ -1,23 +1,51 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { BanzamiClient, environmentFromKey, resolveEnvironment } from './client.js';
-import { BanzamiApiError, BanzamiConfigError } from './errors.js';
+import { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.js';
 
 // ---------------------------------------------------------------------------
 // Helpers
+//
+// The gateway is JWT-authenticated: the client exchanges the API key at
+// POST /v1/auth/token before any protected request. The fetch stub
+// auto-answers that exchange and delegates the rest to the handler, so
+// tests only describe the protected-request behaviour.
 // ---------------------------------------------------------------------------
 
-function mockFetch(status: number, body: unknown): void {
-  const response = new Response(JSON.stringify(body), {
-    status,
-    headers: { 'Content-Type': 'application/json' },
-  });
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
+const AUTH = '/v1/auth/token';
+const isAuth = (url: unknown): boolean => String(url).includes(AUTH);
+
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+function tokenBody(expiresInMs = 3_600_000): unknown {
+  return {
+    token:       'jwt-test-token',
+    expires_at:  new Date(Date.now() + expiresInMs).toISOString(),
+    token_type:  'Bearer',
+    environment: 'sandbox',
+  };
 }
 
+/** Stub fetch: auto-answers the token exchange, delegates everything else. */
+function stubFetch(handler: (url: string, init: RequestInit) => Response): void {
+  vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string, init: RequestInit = {}) =>
+    Promise.resolve(isAuth(url) ? jsonResponse(200, tokenBody()) : handler(String(url), init)),
+  ));
+}
+/** Token exchange + a single fixed response for the real request. */
+function mockFetch(status: number, body: unknown): void {
+  stubFetch(() => jsonResponse(status, body));
+}
+
+const allCalls    = () => (fetch as ReturnType<typeof vi.fn>).mock.calls as unknown[][];
+const nonAuthCalls = () => allCalls().filter((c) => !isAuth(c[0]));
+const authCalls    = () => allCalls().filter((c) =>  isAuth(c[0]));
+
+/** The last real (non-auth) request. */
 function lastFetchCall(): { url: string; init: RequestInit } {
-  const calls = (fetch as ReturnType<typeof vi.fn>).mock.calls;
-  const [url, init] = calls[calls.length - 1];
-  return { url, init };
+  const c = nonAuthCalls();
+  const [url, init] = c[c.length - 1];
+  return { url: url as string, init: init as RequestInit };
 }
 
 let client: BanzamiClient;
@@ -98,11 +126,10 @@ describe('client environment wiring', () => {
 
   it('picks the sandbox base URL by default for a sandbox key', async () => {
     const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      new Response(JSON.stringify({ id: '1' }), { status: 200, headers: { 'Content-Type': 'application/json' } }),
-    ));
+    mockFetch(200, { id: '1' });
     await c.getTransaction('1');
-    expect((fetch as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain('https://sandbox-api.banzami.com');
+    expect(lastFetchCall().url).toContain('https://sandbox-api.banzami.com');
+    expect(authCalls()[0][0]).toContain('https://sandbox-api.banzami.com/v1/auth/token');
   });
 });
 
@@ -111,11 +138,11 @@ describe('client environment wiring', () => {
 // ---------------------------------------------------------------------------
 
 describe('authorization', () => {
-  it('sends Bearer token on every request', async () => {
+  it('sends the exchanged JWT (not the raw API key) as Bearer on requests', async () => {
     mockFetch(200, { id: '1' });
     await client.getTransaction('1');
     const { init } = lastFetchCall();
-    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer bz_live_testkey');
+    expect((init.headers as Record<string, string>)['Authorization']).toBe('Bearer jwt-test-token');
   });
 
   it('throws BanzamiApiError on 4xx', async () => {
@@ -276,52 +303,120 @@ describe('getPaymentLinkStatus', () => {
 // ---------------------------------------------------------------------------
 
 describe('retry', () => {
-  it('retries on 503 and succeeds on third attempt', async () => {
-    const tx = { id: 'tx-1', merchant_id: 'm-1', amount_minor: 5000, currency: 'AOA', status: 'PENDING', created_at: '', updated_at: '' };
-    let callCount = 0;
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
-      callCount++;
-      if (callCount <= 2) {
-        return Promise.resolve(new Response(JSON.stringify({ code: 'OVERLOAD', message: 'overload' }), { status: 503, headers: { 'Content-Type': 'application/json' } }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-    }));
+  const tx = { id: 'tx-1', merchant_id: 'm-1', amount_minor: 5000, currency: 'AOA', status: 'PENDING', created_at: '', updated_at: '' };
 
+  it('retries on 503 and succeeds on third attempt', async () => {
+    let n = 0;
+    stubFetch(() => {
+      n++;
+      return n <= 2 ? jsonResponse(503, { code: 'OVERLOAD', message: 'overload' }) : jsonResponse(200, tx);
+    });
     const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
     const result = await retryClient.createTransaction({ idempotencyKey: 'ik-retry', amountMinor: 5000 });
     expect(result.id).toBe('tx-1');
-    expect(callCount).toBe(3);
+    expect(n).toBe(3); // protected request attempts (auth exchange excluded)
   });
 
   it('does not retry on 422', async () => {
-    let callCount = 0;
-    vi.stubGlobal('fetch', vi.fn().mockImplementation(() => {
-      callCount++;
-      return Promise.resolve(new Response(JSON.stringify({ code: 'INVALID_AMOUNT', message: 'bad amount' }), { status: 422, headers: { 'Content-Type': 'application/json' } }));
-    }));
-
+    let n = 0;
+    stubFetch(() => { n++; return jsonResponse(422, { code: 'INVALID_AMOUNT', message: 'bad amount' }); });
     const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
     await expect(retryClient.createTransaction({ idempotencyKey: 'ik-no-retry', amountMinor: -1 })).rejects.toBeInstanceOf(BanzamiApiError);
-    expect(callCount).toBe(1);
+    expect(n).toBe(1);
   });
 
   it('uses the same idempotency key on all retries', async () => {
-    const tx = { id: 'tx-2', merchant_id: 'm-1', amount_minor: 1000, currency: 'AOA', status: 'PENDING', created_at: '', updated_at: '' };
+    const tx2 = { ...tx, id: 'tx-2', amount_minor: 1000 };
     const capturedKeys: string[] = [];
-    let callCount = 0;
-    vi.stubGlobal('fetch', vi.fn().mockImplementation((_url: string, init: RequestInit) => {
-      callCount++;
+    let n = 0;
+    stubFetch((_url, init) => {
+      n++;
       const headers = init.headers as Record<string, string>;
       if (headers['Idempotency-Key']) capturedKeys.push(headers['Idempotency-Key']);
-      if (callCount <= 2) {
-        return Promise.resolve(new Response(JSON.stringify({ code: 'OVERLOAD', message: 'overload' }), { status: 503, headers: { 'Content-Type': 'application/json' } }));
-      }
-      return Promise.resolve(new Response(JSON.stringify(tx), { status: 200, headers: { 'Content-Type': 'application/json' } }));
-    }));
-
+      return n <= 2 ? jsonResponse(503, { code: 'OVERLOAD', message: 'overload' }) : jsonResponse(200, tx2);
+    });
     const retryClient = new BanzamiClient({ baseUrl: 'https://api.test.ao', apiKey: 'bz_live_testkey', maxRetries: 3, retryDelay: 0 });
     await retryClient.createTransaction({ idempotencyKey: 'ik-idempotent', amountMinor: 1000 });
     expect(capturedKeys.length).toBe(3);
     expect(capturedKeys.every(k => k === capturedKeys[0])).toBe(true);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Auth token exchange (API key → JWT)
+// ---------------------------------------------------------------------------
+
+describe('auth token exchange', () => {
+  it('exchanges the API key at /v1/auth/token before the first request', async () => {
+    mockFetch(200, { id: '1' });
+    await client.getTransaction('1');
+    const ac = authCalls();
+    expect(ac.length).toBe(1);
+    expect(ac[0][0]).toBe('https://api.test.ao/v1/auth/token');
+    const body = JSON.parse((ac[0][1] as RequestInit).body as string);
+    expect(body.api_key).toBe('bz_live_testkey');
+  });
+
+  it('never sends the raw API key to a protected endpoint', async () => {
+    mockFetch(200, { id: '1' });
+    await client.getTransaction('1');
+    // the only place the raw key appears is the auth body — never a Bearer header
+    for (const [url, init] of nonAuthCalls()) {
+      const auth = ((init as RequestInit).headers as Record<string, string>)['Authorization'];
+      expect(auth).toBe('Bearer jwt-test-token');
+      expect(auth).not.toContain('bz_live_testkey');
+      expect(String(url)).not.toContain('bz_live_testkey');
+    }
+  });
+
+  it('caches the JWT and reuses it across requests', async () => {
+    mockFetch(200, { id: '1' });
+    await client.getTransaction('1');
+    await client.getTransaction('2');
+    await client.getTransaction('3');
+    expect(authCalls().length).toBe(1);     // exchanged once
+    expect(nonAuthCalls().length).toBe(3);  // three protected requests
+  });
+
+  it('re-exchanges when the cached token has expired', async () => {
+    // token that is already past the refresh skew
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(isAuth(url)
+        ? jsonResponse(200, { token: 'jwt-test-token', expires_at: new Date(Date.now() - 1000).toISOString(), token_type: 'Bearer', environment: 'sandbox' })
+        : jsonResponse(200, { id: '1' })),
+    ));
+    await client.getTransaction('1');
+    await client.getTransaction('2');
+    expect(authCalls().length).toBe(2);     // re-exchanged because expired
+  });
+
+  it('re-exchanges once and retries after a 401 INVALID_TOKEN', async () => {
+    let protectedHits = 0;
+    stubFetch(() => {
+      protectedHits++;
+      return protectedHits === 1
+        ? jsonResponse(401, { code: 'INVALID_TOKEN', message: 'token is invalid or expired' })
+        : jsonResponse(200, { id: 'ok' });
+    });
+    const r = await client.getTransaction('1') as { id: string };
+    expect(r.id).toBe('ok');
+    expect(protectedHits).toBe(2);        // first 401, retried after re-auth
+    expect(authCalls().length).toBe(2);   // initial + re-exchange
+  });
+
+  it('throws BanzamiAuthError when the API key is rejected at exchange', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) =>
+      Promise.resolve(isAuth(url)
+        ? jsonResponse(401, { code: 'UNAUTHORIZED', message: 'invalid API key' })
+        : jsonResponse(200, { id: '1' })),
+    ));
+    await expect(client.getTransaction('1')).rejects.toBeInstanceOf(BanzamiAuthError);
+  });
+
+  it('throws BanzamiAuthError when the auth endpoint is unreachable', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockImplementation((url: string) =>
+      isAuth(url) ? Promise.reject(new Error('network down')) : Promise.resolve(jsonResponse(200, { id: '1' })),
+    ));
+    await expect(client.getTransaction('1')).rejects.toBeInstanceOf(BanzamiAuthError);
   });
 });
