@@ -21,10 +21,10 @@ const COLS: { title: string; links: FooterLink[] }[] = [
   {
     title: 'Developers',
     links: [
-      { label: 'Documentação', href: '/developers' },
-      { label: 'API', soon: true },
-      { label: 'SDKs', soon: true },
-      { label: 'Webhooks', soon: true },
+      { label: 'Documentação', href: '/developers#docs' },
+      { label: 'API Reference', href: '/developers#api' },
+      { label: 'SDKs', href: '/developers#sdks' },
+      { label: 'Webhooks', href: '/developers#webhooks' },
     ],
   },
   {

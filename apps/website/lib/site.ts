@@ -76,16 +76,17 @@ export const NAV_MENUS: NavMenu[] = [
     key: 'developers',
     label: 'Developers',
     href: '/developers',
-    width: 300,
+    width: 320,
     active: ['/developers'],
     columns: [
       {
         items: [
-          { label: 'Documentação', sub: 'Guias técnicos para integrar Banzami.', href: '/developers' },
-          { label: 'API', sub: 'Integre pagamentos Banzami no seu produto.', soon: true },
-          { label: 'SDKs', sub: 'iOS, Android e Web.', soon: true },
-          { label: 'Sandbox', sub: 'Teste integrações com segurança.', soon: true },
-          { label: 'Webhooks', sub: 'Eventos de pagamento em tempo real.', soon: true },
+          { label: 'Documentação', sub: 'Comece aqui — guia de início.', href: '/developers#docs' },
+          { label: 'API Reference', sub: 'Endpoints, requests e respostas.', href: '/developers#api' },
+          { label: 'SDKs', sub: 'JavaScript, iOS, Android e REST.', href: '/developers#sdks' },
+          { label: 'Sandbox', sub: 'Teste pagamentos, webhooks e falhas.', href: '/developers#sandbox' },
+          { label: 'Webhooks', sub: 'Eventos de pagamento em tempo real.', href: '/developers#webhooks' },
+          { label: 'Exemplos', sub: 'Checkout, QR e transferências.', href: '/developers#examples' },
         ],
       },
     ],

@@ -100,13 +100,15 @@ const CATEGORIES: Category[] = [
       },
       {
         q: 'Existe API?',
-        a: 'Uma API para integrar pagamentos Banzami em qualquer produto.',
-        soon: true,
+        a: 'Sim — uma API REST para criar pagamentos, confirmar transações e receber eventos. Disponível para integração técnica e testes em sandbox.',
       },
       {
         q: 'Existem SDKs?',
-        a: 'SDKs nativos para iOS, Android e Web.',
-        soon: true,
+        a: 'SDKs oficiais para JavaScript/TypeScript, iOS, Android e REST. Disponível para integração técnica e testes em sandbox.',
+      },
+      {
+        q: 'Posso testar antes de ir para produção?',
+        a: 'Sim. O sandbox permite simular pagamentos, confirmações, falhas, reembolsos e webhooks. A produção depende da ativação dos rails externos aprovados.',
       },
     ],
   },
