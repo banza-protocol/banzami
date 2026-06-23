@@ -31,7 +31,7 @@ const C = ({ children }: { children: ReactNode }) => (
 
 /* ---------- Quickstart steps ---------- */
 const QUICKSTART_STEPS = [
-  { n: '1', title: 'Criar chave sandbox', desc: 'Gere uma chave bz_sandbox_… para o ambiente de teste.' },
+  { n: '1', title: 'Criar chave sandbox', desc: 'Gere uma chave bz_test_sk_… para o ambiente de teste.' },
   { n: '2', title: 'Instalar SDK', desc: 'Adicione o SDK oficial @banzami/sdk ao seu projeto.' },
   { n: '3', title: 'Criar pagamento', desc: 'Inicie um pagamento com idempotência por defeito.' },
   { n: '4', title: 'Receber eventos', desc: 'Receba webhooks assinados quando o estado muda.' },
@@ -347,7 +347,7 @@ const SDKS: { name: string; install: string; desc: string; snippet: ReactNode }[
       <>
         <K>POST</K> /v1/payments
         {'\n'}
-        Authorization: Bearer <S>bz_sandbox_xxx</S>
+        Authorization: Bearer <S>bz_test_sk_xxx</S>
       </>
     ),
   },
@@ -381,7 +381,7 @@ const SECURITY: { title: string; desc: ReactNode }[] = [
     title: 'Sandbox keys',
     desc: (
       <>
-        Chaves <span className="bz-mono text-[12px]">bz_sandbox_…</span> isoladas do ambiente real.
+        Chaves <span className="bz-mono text-[12px]">bz_test_sk_…</span> isoladas do ambiente real.
       </>
     ),
   },
