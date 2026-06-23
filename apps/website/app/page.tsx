@@ -4,6 +4,17 @@ import { BrandMark, Logo } from '@/components/site/BrandMark';
 import { AppDemo } from '@/components/app/AppDemo';
 import { SITE, mailto } from '@/lib/site';
 
+// "Live" status dot used in the hero badge pills: the core dot gently pulses
+// while a ring pings outward. Both stop under prefers-reduced-motion.
+function LiveDot({ size = 8 }: { size?: number }) {
+  return (
+    <span className="relative inline-flex flex-none items-center justify-center" style={{ width: size, height: size }}>
+      <span className="anim-bzping absolute inset-0 rounded-full bg-cherry" />
+      <span className="anim-bzdotpulse relative rounded-full bg-cherry" style={{ width: size, height: size }} />
+    </span>
+  );
+}
+
 // Merchant handles for the hero marquee (duplicated so the -50% loop is seamless).
 const MERCHANTS = [
   { initial: 'C', handle: '@cantina-alex', bg: '#FBD2D0', fg: '#B5101F' },
@@ -117,7 +128,7 @@ export default function HomePage() {
         <div className="bz-herogrid relative mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
           <div>
             <span className="mb-6 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-2 text-[13px] font-extrabold text-cherry shadow-[0_6px_18px_-8px_rgba(181,16,31,.3)]">
-              <span className="block h-2 w-2 rounded-full bg-cherry" />A carteira Kwanza de Angola
+              <LiveDot size={8} />A carteira Kwanza de Angola
             </span>
             <h1 className="m-0 text-[clamp(32px,5.4vw,56px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
               O novo caminho do Kwanza.
@@ -162,7 +173,7 @@ export default function HomePage() {
             <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
             <AppDemo />
             <span className="mt-5 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-[9px] text-[12.5px] font-extrabold text-cherry-dark shadow-[0_10px_24px_-12px_rgba(181,16,31,.35)]">
-              <span className="block h-[7px] w-[7px] rounded-full bg-cherry" />Toca para navegar na app
+              <LiveDot size={7} />Toca para navegar na app
             </span>
           </div>
         </div>
