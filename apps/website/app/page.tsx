@@ -122,7 +122,7 @@ export default function HomePage() {
       <SiteHeader />
 
       {/* ===================== HERO ===================== */}
-      <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[78px]">
+      <section id="inicio" className="relative overflow-hidden px-6 pb-2 pt-[68px]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
         <div className="bz-herogrid relative mx-auto grid max-w-container grid-cols-1 items-center gap-12 md:grid-cols-[1.05fr_0.95fr]">
@@ -133,12 +133,12 @@ export default function HomePage() {
             <h1 className="m-0 text-[clamp(32px,5.4vw,56px)] font-black leading-[1.02] tracking-[-0.03em] text-ink">
               O novo caminho do Kwanza.
             </h1>
-            <p className="m-0 mt-[22px] max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
+            <p className="m-0 mt-3 max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
               Cada conta é uma carteira em Kwanza. Paga por QR, envia para um{' '}
               <span className="bz-mono font-semibold text-cherry">@banza</span> e recebe em segundos
               — sem dinheiro físico, sem comprovativos.
             </p>
-            <div className="mt-[18px] flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <Link href="/produto#contacto" className="inline-flex items-center gap-[11px] rounded-[16px] bg-gradient-to-b from-cherry to-cherry-deeper px-5 py-[11px] no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
                 <svg width="21" height="23" viewBox="0 0 24 24" fill="#fff" aria-hidden="true"><path d="M17.05 12.04c-.03-2.6 2.12-3.85 2.22-3.91-1.21-1.77-3.09-2.01-3.76-2.04-1.6-.16-3.12.94-3.93.94-.81 0-2.06-.92-3.39-.89-1.74.03-3.35 1.01-4.25 2.57-1.81 3.14-.46 7.79 1.3 10.34.86 1.25 1.88 2.65 3.22 2.6 1.29-.05 1.78-.83 3.34-.83 1.55 0 2 .83 3.37.81 1.39-.03 2.27-1.27 3.12-2.53.98-1.45 1.39-2.85 1.41-2.92-.03-.01-2.7-1.04-2.73-4.11z" /><path d="M14.69 4.86c.71-.86 1.19-2.06 1.06-3.25-1.02.04-2.26.68-2.99 1.54-.66.76-1.23 1.98-1.08 3.15 1.14.09 2.3-.58 3.01-1.44z" /></svg>
                 <span className="flex flex-col leading-[1.12]">
@@ -154,7 +154,7 @@ export default function HomePage() {
                 </span>
               </Link>
             </div>
-            <div className="mt-[30px] max-w-[540px]">
+            <div className="mt-4 max-w-[540px]">
               <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">COMERCIANTES &amp; EMPRESAS</p>
               <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
                 <div className="anim-marquee flex w-max gap-[10px]">
@@ -167,11 +167,17 @@ export default function HomePage() {
           </div>
 
           {/* interactive app demo */}
-          <div className="relative flex min-h-[680px] flex-col items-center justify-center">
+          <div className="relative flex min-h-0 flex-col items-center justify-center">
             <div className="absolute h-[340px] w-[340px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.1),rgba(232,67,75,0)_70%)]" />
             <div className="anim-floatyB absolute left-[14px] top-10 h-[60px] w-[60px] rounded-[20px] bg-pink-200" />
             <div className="anim-floaty-5 absolute bottom-24 right-1 h-11 w-11 rounded-[13px] bg-cherry-coral opacity-[0.85]" />
-            <AppDemo />
+            {/* Demo phone trimmed slightly (PhoneFrame stays 300×664 for the
+                gallery) so the metrics strip sits a touch higher in view. */}
+            <div className="relative" style={{ width: 255, height: 564 }}>
+              <div style={{ transform: 'scale(0.85)', transformOrigin: 'top left' }}>
+                <AppDemo />
+              </div>
+            </div>
             <span className="mt-5 inline-flex items-center gap-2 rounded-pill bg-white px-4 py-[9px] text-[12.5px] font-extrabold text-cherry-dark shadow-[0_10px_24px_-12px_rgba(181,16,31,.35)]">
               <LiveDot size={7} />Toca para navegar na app
             </span>
