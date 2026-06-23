@@ -1,9 +1,8 @@
 import type { Metadata } from 'next';
 import { SiteHeader } from '@/components/site/SiteHeader';
-import { CTASection } from '@/components/site/CTASection';
+import { DeveloperCTA } from '@/components/site/DeveloperCTA';
 import { Footer } from '@/components/site/Footer';
 import { Reveal } from '@/components/Reveal';
-import { mailto } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Developers',
@@ -73,19 +72,22 @@ export default function DevelopersPage() {
               Uma API REST e SDKs oficiais para integrar pagamentos em Kwanza nativamente — do
               install ao primeiro pagamento em minutos, em sandbox.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <a
-                href={mailto('Acesso sandbox Banzami')}
-                className="inline-flex items-center gap-2 rounded-[40px] bg-cherry px-[30px] py-4 text-[16px] font-extrabold text-white no-underline shadow-[0_14px_30px_-10px_rgba(181,16,31,.5)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cherry-dark"
-              >
-                Pedir acesso ao sandbox
-              </a>
+            <div className="mt-7 flex flex-wrap items-center gap-3">
               <a
                 href="#sdks"
-                className="inline-flex items-center gap-2 rounded-[40px] bg-white px-7 py-4 text-[16px] font-extrabold text-cherry no-underline shadow-[0_8px_22px_-10px_rgba(0,0,0,.18)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cream-100"
+                className="inline-flex items-center gap-2 rounded-[40px] bg-cherry px-[30px] py-4 text-[16px] font-extrabold text-white no-underline shadow-[0_14px_30px_-10px_rgba(181,16,31,.5)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cherry-dark"
               >
                 Ver SDKs
               </a>
+              <span
+                aria-disabled="true"
+                className="inline-flex cursor-default items-center gap-2 rounded-[40px] bg-white px-7 py-4 text-[16px] font-extrabold text-[#b8a4a6] shadow-[0_8px_22px_-10px_rgba(0,0,0,.18)]"
+              >
+                Testar em sandbox
+                <span className="rounded-pill bg-pink-200 px-[7px] py-[2px] text-[9.5px] font-extrabold text-cherry-dark">
+                  Em breve
+                </span>
+              </span>
             </div>
             <p className="m-0 mt-[22px] bz-mono text-[12.5px] font-semibold text-[#8a7a7e]">
               Plataforma em desenvolvimento ativo · exemplos em sandbox.
@@ -210,7 +212,7 @@ export default function DevelopersPage() {
         </div>
       </section>
 
-      <CTASection />
+      <DeveloperCTA />
       <Footer />
     </div>
   );

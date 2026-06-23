@@ -13,8 +13,8 @@ export function CTASection({ id }: { id?: string }) {
             Constrói connosco.
           </h2>
           <p className="mx-auto mt-[18px] max-w-[540px] text-[17px] font-semibold leading-[1.55] text-pink-200">
-            O Banzami está em desenvolvimento ativo. Fala connosco para integrar, testar em sandbox
-            ou acompanhar o lançamento.
+            O Banzami está em desenvolvimento ativo. Junta-te à waitlist para acompanhar o
+            lançamento — ou fala connosco se precisares de apoio.
           </p>
           <div className="mt-[30px] flex flex-wrap justify-center gap-3">
             <a
