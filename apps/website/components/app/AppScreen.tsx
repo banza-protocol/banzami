@@ -447,7 +447,7 @@ export function AppScreen({
               </span>
               <div className="text-left">
                 <p style={{ margin: 0, fontSize: 12, fontWeight: 600, color: '#9a8088' }}>Método de pagamento</p>
-                <p style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 800, color: '#2a2024' }}>Saldo Banza</p>
+                <p style={{ margin: '2px 0 0', fontSize: 15, fontWeight: 800, color: '#2a2024' }}>Saldo Banzami</p>
               </div>
             </div>
             <div className="cursor-pointer w-full text-center" style={{ marginTop: 'auto', background: gradBtn, borderRadius: 30, padding: 16, color: '#fff', fontWeight: 800, fontSize: 16, boxShadow: ctaShadow }}>Pagar 1 500 Kz</div>
