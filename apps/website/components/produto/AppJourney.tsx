@@ -40,7 +40,7 @@ export function AppJourney({ children }: { children: ReactNode }) {
       onMouseEnter={() => (paused.current = true)}
       onMouseLeave={() => (paused.current = false)}
       onTouchStart={() => (paused.current = true)}
-      className="flex gap-[26px] overflow-x-auto px-[max(24px,calc((100%-1140px)/2))] pb-7 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="mx-auto flex max-w-container gap-[26px] overflow-x-auto px-6 pb-7 pt-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden [mask-image:linear-gradient(90deg,#000,#000_94%,transparent)] [-webkit-mask-image:linear-gradient(90deg,#000,#000_94%,transparent)]"
     >
       {children}
     </div>
