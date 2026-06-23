@@ -11,6 +11,21 @@ export class BanzamiConfigError extends Error {
   }
 }
 
+/**
+ * Thrown when exchanging the API key for an access token fails — the
+ * gateway is JWT-authenticated, so the SDK first exchanges the raw API
+ * key at `POST /v1/auth/token` for a short-lived JWT. A `BanzamiAuthError`
+ * means that exchange did not yield a usable token (invalid/revoked key,
+ * or the auth endpoint was unreachable). The raw API key is never
+ * included in the message.
+ */
+export class BanzamiAuthError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BanzamiAuthError';
+  }
+}
+
 export class BanzamiApiError extends Error {
   readonly status:  number;
   readonly code:    string;

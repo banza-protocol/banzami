@@ -1,7 +1,7 @@
 export { BanzamiClient, environmentFromKey, resolveEnvironment } from './client.js';
 export type { BanzamiClientOptions, BanzamiHooks }   from './client.js';
 
-export { BanzamiApiError, BanzamiConfigError }       from './errors.js';
+export { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.js';
 
 export {
   WebhooksClient,

@@ -76,6 +76,15 @@ new BanzamiClient({ environment: 'live', apiKey: 'bz_test_sk_...' });
 Legacy keys without the `_sk_` segment (`bz_test_…`, `bz_live_…`) remain fully
 supported — the prefix is all that matters for environment detection.
 
+### Authentication (API key → JWT)
+
+The gateway is JWT-authenticated. The SDK handles this transparently: on the
+first protected request it exchanges the raw API key at `POST /v1/auth/token`
+for a short-lived JWT, caches it in memory, sends it as the `Bearer` token on
+every request, refreshes it before expiry, and re-exchanges once on a `401`.
+**The raw API key only ever hits the auth-exchange endpoint — never a protected
+endpoint, and it is never logged.** A failed exchange throws `BanzamiAuthError`.
+
 ---
 
 ## Consumer flows

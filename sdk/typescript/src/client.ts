@@ -1,4 +1,4 @@
-import { BanzamiApiError, BanzamiConfigError } from './errors.js';
+import { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.js';
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
@@ -32,6 +32,13 @@ const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
   live:    'https://api.banzami.com',
   sandbox: 'https://sandbox-api.banzami.com',
 };
+
+/** Gateway endpoint that exchanges a raw API key for a short-lived JWT. */
+const AUTH_TOKEN_PATH = '/v1/auth/token';
+/** Re-exchange this many ms before the JWT actually expires. */
+const TOKEN_REFRESH_SKEW_MS = 60_000;
+/** Fallback JWT lifetime if the auth response omits `expires_at`. */
+const DEFAULT_TOKEN_TTL_MS = 23 * 60 * 60 * 1000;
 
 /**
  * Classify an API key by its prefix. The Banzami key model is Stripe-like:
@@ -132,6 +139,14 @@ export class BanzamiClient {
   private readonly retryDelay:  number;
   private readonly hooks:       BanzamiHooks;
 
+  // ── Auth: the gateway is JWT-authenticated. The raw API key is
+  // exchanged for a short-lived JWT (cached in memory) and that JWT is
+  // sent as the Bearer token on every protected request. The raw API key
+  // only ever leaves the process to hit AUTH_TOKEN_PATH.
+  private accessToken?:          string;
+  private accessTokenExpiresAt?: number;     // epoch ms
+  private tokenInFlight?:        Promise<string>;
+
   /**
    * Webhook verification and test-helper methods.
    * Requires `webhookSecret` in the constructor options to call `constructEvent()`.
@@ -163,7 +178,75 @@ export class BanzamiClient {
   // Internal helpers
   // ---------------------------------------------------------------------------
 
-  private async executeOnce<T>(path: string, init?: RequestInit, idempotencyKey?: string, attempt = 0): Promise<T> {
+  /**
+   * Return a valid access token, exchanging the API key for a fresh JWT
+   * when the cached one is missing or about to expire. Concurrent callers
+   * share a single in-flight exchange. The raw API key is never logged.
+   */
+  private async getAccessToken(): Promise<string> {
+    const now = Date.now();
+    if (
+      this.accessToken &&
+      this.accessTokenExpiresAt &&
+      now < this.accessTokenExpiresAt - TOKEN_REFRESH_SKEW_MS
+    ) {
+      return this.accessToken;
+    }
+    if (!this.tokenInFlight) {
+      this.tokenInFlight = this.exchangeApiKeyForToken()
+        .finally(() => { this.tokenInFlight = undefined; });
+    }
+    return this.tokenInFlight;
+  }
+
+  /** Invalidate the cached token (forces a fresh exchange next call). */
+  private invalidateToken(): void {
+    this.accessToken = undefined;
+    this.accessTokenExpiresAt = undefined;
+  }
+
+  private async exchangeApiKeyForToken(): Promise<string> {
+    let response: Response;
+    try {
+      response = await fetch(`${this.base}${AUTH_TOKEN_PATH}`, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ api_key: this.apiKey }),
+      });
+    } catch {
+      throw new BanzamiAuthError('Unable to exchange Banzami API key for access token');
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new BanzamiAuthError('Invalid or unauthorized Banzami API key');
+      }
+      throw new BanzamiAuthError('Unable to exchange Banzami API key for access token');
+    }
+
+    const data = await response.json().catch(() => ({})) as {
+      token?: string;
+      expires_at?: string;
+    };
+    if (!data.token) {
+      throw new BanzamiAuthError('Unable to exchange Banzami API key for access token');
+    }
+
+    const expiresAt = data.expires_at ? Date.parse(data.expires_at) : NaN;
+    this.accessToken = data.token;
+    this.accessTokenExpiresAt = Number.isFinite(expiresAt)
+      ? expiresAt
+      : Date.now() + DEFAULT_TOKEN_TTL_MS;
+    return data.token;
+  }
+
+  private async executeOnce<T>(
+    path: string,
+    init?: RequestInit,
+    idempotencyKey?: string,
+    attempt = 0,
+    reauthed = false,
+  ): Promise<T> {
     const extraHeaders: Record<string, string> = {};
     if (idempotencyKey !== undefined) {
       extraHeaders['Idempotency-Key'] = idempotencyKey;
@@ -173,11 +256,12 @@ export class BanzamiClient {
     this.hooks.onRequest?.(method, path, attempt);
     const t0 = Date.now();
 
+    const token = await this.getAccessToken();
     const response = await fetch(`${this.base}/v1${path}`, {
       ...init,
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': `Bearer ${token}`,
         ...(init?.headers ?? {}),
         ...extraHeaders,
       },
@@ -191,6 +275,14 @@ export class BanzamiClient {
         code    = body.code    ?? code;
         message = body.message ?? message;
       } catch { /* non-JSON error body */ }
+
+      // A previously-valid JWT may have expired or been rotated → the
+      // gateway answers 401. Re-exchange once and retry before surfacing.
+      if (response.status === 401 && !reauthed && (code === 'INVALID_TOKEN' || code === 'UNAUTHORIZED')) {
+        this.invalidateToken();
+        return this.executeOnce<T>(path, init, idempotencyKey, attempt, true);
+      }
+
       throw new BanzamiApiError(response.status, code, message);
     }
 
