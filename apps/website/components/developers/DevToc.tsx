@@ -12,15 +12,18 @@ import { useEffect, useRef, useState } from 'react';
 
 const SECTIONS: { id: string; label: string }[] = [
   { id: 'docs', label: 'Quickstart' },
-  { id: 'architecture', label: 'Architecture' },
-  { id: 'payment-flow', label: 'Payment Flow' },
-  { id: 'api', label: 'API Reference' },
+  { id: 'foundation', label: 'Fundamentos' },
+  { id: 'angola-context', label: 'Angola' },
+  { id: 'architecture', label: 'Arquitetura' },
+  { id: 'api', label: 'API' },
+  { id: 'payment-states', label: 'Estados' },
   { id: 'sdks', label: 'SDKs' },
   { id: 'sandbox', label: 'Sandbox' },
   { id: 'webhooks', label: 'Webhooks' },
-  { id: 'security', label: 'Security' },
-  { id: 'errors', label: 'Error Handling' },
-  { id: 'examples', label: 'Examples' },
+  { id: 'use-cases', label: 'Casos de uso' },
+  { id: 'reconciliation', label: 'Reconciliação' },
+  { id: 'security', label: 'Segurança' },
+  { id: 'errors', label: 'Erros' },
   { id: 'going-live', label: 'Going Live' },
 ];
 

@@ -13,6 +13,9 @@ import { SdkEcosystemDiagram } from '@/components/developers/SdkEcosystemDiagram
 import { GoingLiveDiagram } from '@/components/developers/GoingLiveDiagram';
 import { DevToc } from '@/components/developers/DevToc';
 import { MiniFlow } from '@/components/developers/MiniFlow';
+import { TheoryCard } from '@/components/developers/TheoryCard';
+import { DocTable } from '@/components/developers/DocTable';
+import { RetryFlow } from '@/components/developers/RetryFlow';
 
 export const metadata: Metadata = { title: 'Developers' };
 
@@ -35,6 +38,96 @@ const QUICKSTART_STEPS = [
   { n: '4', title: 'Receber eventos', desc: 'Receba webhooks assinados quando o estado muda.' },
 ];
 
+/* ---------- Foundations (theory cards) ---------- */
+const gp = {
+  stroke: '#B5101F',
+  strokeWidth: 1.8,
+  strokeLinecap: 'round' as const,
+  strokeLinejoin: 'round' as const,
+};
+const FOUNDATIONS: { title: string; definition: string; matters: string; glyph: ReactNode }[] = [
+  {
+    title: 'Carteira digital',
+    definition: 'Saldo digital ligado a uma conta de utilizador, comerciante ou sistema.',
+    matters:
+      'Reduz a dependência de dinheiro físico, confirmações informais e fluxos bancários fragmentados.',
+    glyph: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <rect x="3.5" y="6" width="17" height="13" rx="2.5" {...gp} />
+        <path d="M3.5 9h17" {...gp} />
+        <circle cx="16.5" cy="13.5" r="1.3" {...gp} />
+      </svg>
+    ),
+  },
+  {
+    title: 'Ledger de dupla entrada',
+    definition: 'Cada movimento cria registos de débito e crédito iguais.',
+    matters: 'Torna o dinheiro rastreável, auditável e reversível quando necessário.',
+    glyph: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 4v16M5 9l-1.6 5h3.2L5 9zM19 9l-1.6 5h3.2L19 9zM5 9h14" {...gp} />
+        <path d="M9 20h6" {...gp} />
+      </svg>
+    ),
+  },
+  {
+    title: 'Pagamento confirmado',
+    definition:
+      'Um pagamento não é só um pedido; torna-se válido quando o pagador confirma explicitamente.',
+    matters: 'Reduz pagamentos acidentais e cria confiança.',
+    glyph: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="8" {...gp} />
+        <path d="M8.5 12l2.5 2.5 4.5-5" {...gp} />
+      </svg>
+    ),
+  },
+  {
+    title: 'Webhook',
+    definition: 'Evento automático enviado ao sistema do comerciante quando algo muda.',
+    matters: 'O negócio deixa de ter de verificar manualmente se o pagamento chegou.',
+    glyph: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M9 9a3 3 0 1 1 4.2 2.7L16 17" {...gp} />
+        <circle cx="7" cy="17" r="3" {...gp} />
+        <circle cx="17" cy="17" r="3" {...gp} />
+        <path d="M10 17h4" {...gp} />
+      </svg>
+    ),
+  },
+  {
+    title: 'Idempotência',
+    definition: 'Evita operações duplicadas quando o mesmo pedido é repetido.',
+    matters:
+      'Importante em Angola, onde a rede móvel pode ser instável e as apps repetem pedidos.',
+    glyph: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M5 8a8 8 0 0 1 13.5-2.5L20 7M19 16a8 8 0 0 1-13.5 2.5L4 17" {...gp} />
+        <path d="M20 4v3h-3M4 20v-3h3" {...gp} />
+      </svg>
+    ),
+  },
+];
+
+/* ---------- Angola context ---------- */
+const ANGOLA_PAIN = [
+  'Pagamentos dependem de comprovativo manual.',
+  'Comerciantes esperam por screenshots.',
+  'Reconciliação lenta e feita à mão.',
+  'Manuseio de dinheiro físico cria risco.',
+  'Instabilidade de rede causa tentativas duplicadas.',
+  'Pequenos negócios sem infraestrutura digital simples.',
+  'Programadores sem uma camada de pagamentos unificada.',
+];
+const ANGOLA_BANZAMI = [
+  'Confirmação instantânea de pagamento.',
+  'Recibos digitais gerados automaticamente.',
+  'Confirmação por webhook, não por screenshot.',
+  'Menos verificação manual.',
+  'Pagamentos programáveis na própria app.',
+  'Uma API para carteiras, pagamentos e eventos.',
+];
+
 /* ---------- API endpoints ---------- */
 const ENDPOINTS: { method: 'POST' | 'GET'; path: string; desc: string }[] = [
   { method: 'POST', path: '/v1/payments', desc: 'Criar um pagamento.' },
@@ -42,6 +135,140 @@ const ENDPOINTS: { method: 'POST' | 'GET'; path: string; desc: string }[] = [
   { method: 'POST', path: '/v1/refunds', desc: 'Reembolsar um pagamento confirmado.' },
   { method: 'GET', path: '/v1/wallets/{id}/balance', desc: 'Consultar o saldo de uma carteira.' },
   { method: 'POST', path: '/v1/webhooks/endpoints', desc: 'Registar um endpoint de webhook.' },
+];
+
+/* ---------- API endpoint reference table ---------- */
+const ENDPOINT_TABLE: {
+  endpoint: string;
+  purpose: string;
+  user: string;
+  when: string;
+}[] = [
+  { endpoint: 'POST /v1/payments', purpose: 'Criar um pagamento', user: 'Comerciante / app', when: 'Quando se quer pedir um pagamento.' },
+  { endpoint: 'GET /v1/payments/{id}', purpose: 'Consultar estado', user: 'App / backend', when: 'Quando uma app precisa de verificar o estado.' },
+  { endpoint: 'POST /v1/refunds', purpose: 'Reembolsar', user: 'Comerciante', when: 'Quando é preciso devolver dinheiro.' },
+  { endpoint: 'GET /v1/wallets/{id}/balance', purpose: 'Consultar saldo', user: 'Sistema', when: 'Quando é preciso mostrar o saldo disponível.' },
+  { endpoint: 'POST /v1/webhooks/endpoints', purpose: 'Registar endpoint', user: 'Comerciante', when: 'Quando se quer receber eventos automaticamente.' },
+];
+
+/* ---------- Per-endpoint detail accordions ---------- */
+const ENDPOINT_DETAILS: {
+  method: 'POST' | 'GET';
+  path: string;
+  does: string;
+  when: string;
+  fields: string;
+  typical: string;
+  failures: string;
+}[] = [
+  {
+    method: 'POST',
+    path: '/v1/payments',
+    does: 'Cria um objeto de pagamento e devolve um id e o estado inicial.',
+    when: 'Quando o comerciante ou a app querem pedir um pagamento ao cliente.',
+    fields: 'amount, currency, recipient (e idealmente uma Idempotency-Key).',
+    typical: 'Uma cantina cria um pagamento de 2500 AOA para @cantina-alex.',
+    failures: 'insufficient_balance, idempotency_conflict, invalid_api_key.',
+  },
+  {
+    method: 'GET',
+    path: '/v1/payments/{id}',
+    does: 'Devolve o estado atual e os detalhes de um pagamento existente.',
+    when: 'Quando uma app precisa de mostrar ou reconfirmar o estado de um pagamento.',
+    fields: 'O id do pagamento no caminho do URL.',
+    typical: 'O backend consulta o pagamento antes de libertar a encomenda.',
+    failures: 'payment_not_found, invalid_api_key.',
+  },
+  {
+    method: 'POST',
+    path: '/v1/refunds',
+    does: 'Devolve, total ou parcialmente, um pagamento já confirmado.',
+    when: 'Quando é preciso reverter uma venda ou corrigir um valor.',
+    fields: 'payment_id, amount (opcional para reembolso parcial).',
+    typical: 'O comerciante reembolsa um cliente que devolveu o produto.',
+    failures: 'payment_not_found, payment_not_confirmed.',
+  },
+  {
+    method: 'GET',
+    path: '/v1/wallets/{id}/balance',
+    does: 'Devolve o saldo disponível de uma carteira.',
+    when: 'Quando é preciso mostrar quanto saldo existe disponível.',
+    fields: 'O id da carteira no caminho do URL.',
+    typical: 'O dashboard mostra o saldo atual do comerciante.',
+    failures: 'invalid_api_key, rate_limit_exceeded.',
+  },
+  {
+    method: 'POST',
+    path: '/v1/webhooks/endpoints',
+    does: 'Regista um URL que passa a receber eventos assinados.',
+    when: 'Quando se quer ser notificado automaticamente das mudanças de estado.',
+    fields: 'url do endpoint e os tipos de evento a subscrever.',
+    typical: 'O backend regista um endpoint para receber payment.confirmed.',
+    failures: 'invalid_api_key, rate_limit_exceeded.',
+  },
+];
+
+/* ---------- Payment states ---------- */
+const PAYMENT_STATES: { code: string; label: string; tone: 'neutral' | 'pending' | 'ok' | 'bad' }[] = [
+  { code: 'created', label: 'Objeto criado.', tone: 'neutral' },
+  { code: 'pending_confirmation', label: 'Falta o pagador confirmar.', tone: 'pending' },
+  { code: 'confirmed', label: 'O pagador confirmou.', tone: 'ok' },
+  { code: 'failed', label: 'Não foi possível concluir.', tone: 'bad' },
+  { code: 'refunded', label: 'Foi devolvido.', tone: 'neutral' },
+  { code: 'expired', label: 'Não confirmado a tempo.', tone: 'bad' },
+];
+
+/* ---------- SDK integration table ---------- */
+const SDK_TABLE: { type: string; bestFor: string; example: string }[] = [
+  { type: 'JavaScript / TS', bestFor: 'Web apps e backends Node.js', example: 'Dashboards, checkout web, APIs.' },
+  { type: 'iOS', bestFor: 'Apps de consumidor', example: 'Pagamento por QR e @banza.' },
+  { type: 'Android', bestFor: 'Comerciante, estafeta, consumidor', example: 'Checkout e confirmação na app.' },
+  { type: 'REST', bestFor: 'Backend à medida', example: 'ERP, POS e sistemas legados.' },
+];
+
+/* ---------- Use cases ---------- */
+const USE_CASES: { title: string; today: string; flow: string; integration: string }[] = [
+  {
+    title: 'Cantina / restaurante',
+    today: 'Cliente paga em dinheiro ou mostra um comprovativo manual.',
+    flow: 'Cliente paga por QR, comerciante recebe webhook, recibo gerado.',
+    integration: 'createQr → payment.confirmed → recibo.',
+  },
+  {
+    title: 'Loja de bairro',
+    today: 'Venda registada à mão, sem confirmação fiável.',
+    flow: 'Comerciante cria pedido de pagamento, cliente confirma, venda registada.',
+    integration: 'POST /v1/payments → payment.confirmed.',
+  },
+  {
+    title: 'Táxi / moto-táxi',
+    today: 'Pagamento em dinheiro, troco e risco de manuseio.',
+    flow: 'Passageiro paga a um @banza ou QR, condutor vê confirmação instantânea.',
+    integration: 'transfers.create → webhook no app do condutor.',
+  },
+  {
+    title: 'E-commerce local',
+    today: 'Encomenda confirmada por screenshot enviado por WhatsApp.',
+    flow: 'Checkout cria pedido, encomenda marcada paga após webhook.',
+    integration: 'payments.create → payment.confirmed → encomenda paga.',
+  },
+  {
+    title: 'Delivery',
+    today: 'Estafeta cobra à porta, sem garantia de pagamento.',
+    flow: 'Pagamento confirmado antes da recolha/entrega.',
+    integration: 'Esperar payment.confirmed antes de despachar.',
+  },
+];
+
+/* ---------- Integration responsibilities ---------- */
+const RESPONSIBILITIES = [
+  'Guardar os payment IDs de cada operação.',
+  'Usar idempotency keys em operações mutantes.',
+  'Verificar a assinatura de cada webhook.',
+  'Reagir ao estado confirmed antes de entregar bens.',
+  'Tratar os estados failed, expired e refunded.',
+  'Não confiar só na confirmação do lado do cliente.',
+  'Registar os request IDs para diagnóstico.',
 ];
 
 /* ---------- SDK showcase ---------- */
@@ -228,6 +455,75 @@ function MethodPill({ method }: { method: 'POST' | 'GET' }) {
   );
 }
 
+const STATE_TONES: Record<'neutral' | 'pending' | 'ok' | 'bad', string> = {
+  neutral: 'border-border-soft bg-cream-50 text-ink-soft',
+  pending: 'border-pink-200 bg-pink-100 text-cherry-dark',
+  ok: 'border-[#bfe6cf] bg-[#eef9f2] text-received',
+  bad: 'border-pink-200 bg-white text-cherry',
+};
+
+function StatePill({ code, tone }: { code: string; tone: 'neutral' | 'pending' | 'ok' | 'bad' }) {
+  return (
+    <span
+      className={`bz-mono inline-flex flex-none items-center rounded-pill border px-[12px] py-[5px] text-[12px] font-bold ${STATE_TONES[tone]}`}
+    >
+      {code}
+    </span>
+  );
+}
+
+function DetailRow({ term, children }: { term: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-[2px] sm:flex-row sm:gap-[10px]">
+      <span className="bz-mono flex-none text-[10.5px] font-bold uppercase tracking-[0.05em] text-cherry sm:w-[150px]">
+        {term}
+      </span>
+      <span className="text-[13px] font-semibold leading-[1.5] text-ink-soft">{children}</span>
+    </div>
+  );
+}
+
+function EndpointAccordion({ e }: { e: (typeof ENDPOINT_DETAILS)[number] }) {
+  return (
+    <details className="group rounded-card border border-border-soft bg-white shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+      <summary className="flex cursor-pointer list-none items-center gap-[12px] px-[20px] py-[16px] [&::-webkit-details-marker]:hidden">
+        <MethodPill method={e.method} />
+        <span className="bz-mono flex-1 text-[13.5px] font-semibold text-ink">{e.path}</span>
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+          className="flex-none text-ink-muted transition-transform duration-200 group-open:rotate-180"
+        >
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </summary>
+      <div className="flex flex-col gap-[10px] border-t border-border-soft px-[20px] py-[18px]">
+        <DetailRow term="O que faz">{e.does}</DetailRow>
+        <DetailRow term="Quando usar">{e.when}</DetailRow>
+        <DetailRow term="Campos obrigatórios">{e.fields}</DetailRow>
+        <DetailRow term="Caso típico">{e.typical}</DetailRow>
+        <DetailRow term="Falhas possíveis">
+          <span className="bz-mono text-[12.5px] text-cherry">{e.failures}</span>
+        </DetailRow>
+      </div>
+    </details>
+  );
+}
+
+function WebhookTheory({ q, children }: { q: string; children: ReactNode }) {
+  return (
+    <div className="rounded-card border border-border-soft bg-white p-[20px] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+      <p className="m-0 text-[14px] font-black text-ink">{q}</p>
+      <p className="m-0 mt-[6px] text-[13px] font-semibold leading-[1.55] text-ink-soft">
+        {children}
+      </p>
+    </div>
+  );
+}
+
 export default function DevelopersPage() {
   return (
     <main className="overflow-x-hidden bg-white">
@@ -332,6 +628,86 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* ===================== FOUNDATIONS ===================== */}
+      <section id="foundation" className="px-6 py-[clamp(64px,9vw,104px)]">
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="FUNDAMENTOS"
+            title="Fundamentos da plataforma Banzami"
+            lead="Os conceitos essenciais antes de integrar — o que cada um é e porque importa em Angola."
+            className="mb-10 max-w-[680px]"
+          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {FOUNDATIONS.map((f, i) => (
+              <TheoryCard
+                key={f.title}
+                title={f.title}
+                definition={f.definition}
+                matters={f.matters}
+                glyph={f.glyph}
+                delay={(i % 3) * 50}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== ANGOLA CONTEXT ===================== */}
+      <section
+        id="angola-context"
+        className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]"
+      >
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="CONTEXTO ANGOLANO"
+            title="Porque isto importa no contexto angolano"
+            lead="Os pagamentos digitais em Angola enfrentam fricções concretas. O Banzami responde a cada uma."
+            className="mb-10 max-w-[700px]"
+          />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Reveal className="rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,30px)] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                Hoje · dores
+              </span>
+              <ul className="m-0 mt-4 flex list-none flex-col gap-[11px] p-0">
+                {ANGOLA_PAIN.map((p) => (
+                  <li key={p} className="flex items-start gap-[11px]">
+                    <span className="mt-[6px] flex h-[6px] w-[6px] flex-none rounded-full bg-[#cdb8bc]" />
+                    <span className="text-[14px] font-semibold leading-[1.5] text-ink-soft">{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+            <Reveal
+              delay={70}
+              className="rounded-card border-2 border-pink-200 bg-white p-[clamp(22px,3vw,30px)] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]"
+            >
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-cherry">
+                Com o Banzami
+              </span>
+              <ul className="m-0 mt-4 flex list-none flex-col gap-[11px] p-0">
+                {ANGOLA_BANZAMI.map((p) => (
+                  <li key={p} className="flex items-start gap-[11px]">
+                    <span className="mt-[2px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[6px] bg-pink-200">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 13l4 4L19 7" stroke="#9A1B22" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span className="text-[14px] font-semibold leading-[1.5] text-ink-secondary">{p}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+          </div>
+          <Reveal className="mt-6 rounded-card bg-cream-100 px-6 py-[18px]">
+            <p className="m-0 text-[14.5px] font-semibold leading-[1.6] text-ink-secondary">
+              O Banzami acrescenta uma camada de pagamentos programável, desenhada para casos de uso
+              digitais locais. Não substitui bancos nem rails existentes — integra-se com eles.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 3 · ARCHITECTURE ===================== */}
       <section id="architecture" className="px-6 py-[clamp(64px,9vw,104px)]">
         <div className="mx-auto max-w-container">
@@ -413,6 +789,31 @@ export default function DevelopersPage() {
               </div>
             ))}
           </Reveal>
+
+          {/* Reference table: purpose / user / when */}
+          <DocTable
+            className="mb-8"
+            columns={[
+              { key: 'endpoint', header: 'Endpoint', mono: true },
+              { key: 'purpose', header: 'Propósito' },
+              { key: 'user', header: 'Utilizador típico' },
+              { key: 'when', header: 'Quando usar' },
+            ]}
+            rows={ENDPOINT_TABLE.map((r) => ({
+              endpoint: r.endpoint,
+              purpose: r.purpose,
+              user: r.user,
+              when: r.when,
+            }))}
+          />
+
+          {/* Per-endpoint detail accordions */}
+          <Reveal className="mb-8 flex flex-col gap-3">
+            {ENDPOINT_DETAILS.map((e) => (
+              <EndpointAccordion key={e.path} e={e} />
+            ))}
+          </Reveal>
+
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <Reveal>
               <CodeBlock title="request" lang="POST /v1/payments">
@@ -443,8 +844,47 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* ===================== PAYMENT STATES ===================== */}
+      <section
+        id="payment-states"
+        className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]"
+      >
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="ESTADOS DE PAGAMENTO"
+            title="Estados de pagamento"
+            lead="Um pagamento percorre um ciclo de estados. A app deve reagir ao estado, nunca presumir."
+            className="mb-10 max-w-[700px]"
+          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {PAYMENT_STATES.map((s, i) => (
+              <Reveal
+                key={s.code}
+                delay={(i % 3) * 50}
+                className="flex items-center gap-[12px] rounded-card border border-border-soft bg-white p-[18px] shadow-[0_14px_40px_-30px_rgba(181,16,31,.3)]"
+              >
+                <StatePill code={s.code} tone={s.tone} />
+                <span className="text-[13.5px] font-semibold leading-[1.4] text-ink-soft">
+                  {s.label}
+                </span>
+              </Reveal>
+            ))}
+          </div>
+          <Reveal className="mt-6 rounded-card border border-pink-200 bg-pink-100 px-6 py-[18px]">
+            <p className="m-0 text-[14px] font-semibold leading-[1.6] text-ink-secondary">
+              <strong className="text-cherry-dark">Importante.</strong> Os sistemas do comerciante{' '}
+              <strong>não devem entregar bens só porque um pagamento foi criado — devem esperar
+              por <span className="bz-mono">confirmed</span></strong> (ou por um webhook válido).
+              Exemplo: uma cantina ou serviço de entrega só deve libertar o produto após{' '}
+              <span className="bz-mono text-cherry-dark">payment.confirmed</span> ou confirmação por
+              webhook.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
       {/* ===================== 6 · SDKS ===================== */}
-      <section id="sdks" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
+      <section id="sdks" className="px-6 py-[clamp(64px,9vw,104px)]">
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="SDKS OFICIAIS"
@@ -459,6 +899,32 @@ export default function DevelopersPage() {
           <Reveal className="mb-8 rounded-card border border-border-soft bg-white p-[clamp(24px,4vw,40px)] shadow-[0_30px_70px_-44px_rgba(181,16,31,.35)]">
             <SdkEcosystemDiagram />
           </Reveal>
+
+          {/* SDK vs REST definitions */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <TheoryCard
+              title="SDK"
+              definition="Kit oficial que envolve a API e reduz boilerplate."
+              matters="Traz tipos, idempotência, retries e verificação de webhooks já resolvidos."
+            />
+            <TheoryCard
+              title="REST API"
+              definition="Integração HTTP direta, para qualquer backend ou linguagem."
+              matters="Útil quando não existe SDK oficial — a mesma API, idempotente e versionada."
+            />
+          </div>
+
+          {/* Integration type table */}
+          <DocTable
+            className="mb-8"
+            columns={[
+              { key: 'type', header: 'Tipo de integração' },
+              { key: 'bestFor', header: 'Melhor para' },
+              { key: 'example', header: 'Exemplo' },
+            ]}
+            rows={SDK_TABLE.map((r) => ({ type: r.type, bestFor: r.bestFor, example: r.example }))}
+          />
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {SDKS.map((sdk, i) => (
               <Reveal
@@ -481,7 +947,7 @@ export default function DevelopersPage() {
       </section>
 
       {/* ===================== 7 · SANDBOX ===================== */}
-      <section id="sandbox" className="px-6 py-[clamp(64px,9vw,104px)]">
+      <section id="sandbox" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="SANDBOX"
@@ -528,7 +994,7 @@ export default function DevelopersPage() {
       </section>
 
       {/* ===================== 8 · WEBHOOKS ===================== */}
-      <section id="webhooks" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
+      <section id="webhooks" className="px-6 py-[clamp(64px,9vw,104px)]">
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="WEBHOOKS"
@@ -545,6 +1011,41 @@ export default function DevelopersPage() {
                 {e}
               </span>
             ))}
+          </Reveal>
+
+          {/* Theory blocks */}
+          <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <WebhookTheory q="O que é um webhook?">
+              Um evento que o Banzami envia ao backend do comerciante quando algo muda — por exemplo,
+              quando um pagamento é confirmado.
+            </WebhookTheory>
+            <WebhookTheory q="Porquê webhooks em vez de polling?">
+              Em vez de a app perguntar repetidamente «já pagou?», o Banzami avisa assim que o estado
+              muda. Menos pedidos, confirmação mais rápida.
+            </WebhookTheory>
+            <WebhookTheory q="E se o backend estiver offline?">
+              O evento pode ser repetido mais tarde. O comerciante deve processar eventos de forma
+              idempotente para não duplicar a venda.
+            </WebhookTheory>
+            <WebhookTheory q="Porque a assinatura importa?">
+              A verificação da assinatura confirma que o evento veio mesmo do Banzami e não foi
+              forjado por terceiros.
+            </WebhookTheory>
+          </div>
+
+          {/* Delivery + retry explainer */}
+          <Reveal className="mb-10 rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,34px)] shadow-[0_24px_60px_-44px_rgba(181,16,31,.35)]">
+            <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+              Entrega e repetição
+            </span>
+            <div className="mt-5">
+              <RetryFlow />
+            </div>
+            <p className="m-0 mt-6 rounded-card bg-cream-50 px-5 py-[14px] text-[13.5px] font-semibold leading-[1.6] text-ink-secondary">
+              Exemplo prático: o sistema recebe{' '}
+              <span className="bz-mono text-cherry-dark">payment.confirmed</span> e marca
+              automaticamente a encomenda <span className="bz-mono">#123</span> como paga.
+            </p>
           </Reveal>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-start">
@@ -577,8 +1078,113 @@ export default function DevelopersPage() {
         </div>
       </section>
 
+      {/* ===================== USE CASES ===================== */}
+      <section
+        id="use-cases"
+        className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]"
+      >
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="CASOS DE UTILIZAÇÃO"
+            title="Casos de utilização"
+            lead="Onde o Banzami encaixa no dia a dia angolano — do problema atual ao ponto de integração técnico."
+            className="mb-10 max-w-[700px]"
+          />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {USE_CASES.map((u, i) => (
+              <Reveal
+                key={u.title}
+                delay={(i % 3) * 50}
+                className="flex flex-col rounded-card border border-border-soft bg-white p-[24px] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]"
+              >
+                <h3 className="m-0 mb-4 text-[17px] font-black text-ink">{u.title}</h3>
+                <div className="mb-3">
+                  <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                    Problema hoje
+                  </span>
+                  <p className="m-0 mt-[4px] text-[13px] font-semibold leading-[1.5] text-ink-soft">
+                    {u.today}
+                  </p>
+                </div>
+                <div className="mb-3">
+                  <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-cherry">
+                    Fluxo Banzami
+                  </span>
+                  <p className="m-0 mt-[4px] text-[13px] font-semibold leading-[1.5] text-ink-secondary">
+                    {u.flow}
+                  </p>
+                </div>
+                <div className="mt-auto rounded-[12px] bg-cream-50 px-[13px] py-[10px]">
+                  <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-cherry-dark">
+                    Ponto de integração
+                  </span>
+                  <p className="m-0 mt-[3px] bz-mono text-[11.5px] font-semibold leading-[1.5] text-[#3a2a2e]">
+                    {u.integration}
+                  </p>
+                </div>
+              </Reveal>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== RECONCILIATION ===================== */}
+      <section id="reconciliation" className="px-6 py-[clamp(64px,9vw,104px)]">
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="RECONCILIAÇÃO"
+            title="Reconciliação e comprovativos"
+            lead="Muitos negócios perdem tempo a cruzar screenshots, transferências e vendas à mão. O Banzami ajuda a fechar essa lacuna."
+            className="mb-10 max-w-[720px]"
+          />
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
+            <Reveal className="rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,30px)] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+              <p className="m-0 mb-4 text-[14px] font-semibold leading-[1.6] text-ink-secondary">
+                O Banzami melhora a reconciliação ao expor referências consistentes em cada
+                pagamento:
+              </p>
+              <ul className="m-0 flex list-none flex-col gap-[10px] p-0">
+                {[
+                  'Recibos digitais por transação.',
+                  'Referências guardadas e consultáveis.',
+                  'Metadata definida pelo comerciante.',
+                  'IDs de pagamento expostos na API.',
+                  'Webhooks de cada mudança de estado.',
+                  'Registos no ledger de dupla entrada.',
+                ].map((item) => (
+                  <li key={item} className="flex items-start gap-[11px]">
+                    <span className="mt-[2px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[6px] bg-pink-200">
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                        <path d="M5 13l4 4L19 7" stroke="#9A1B22" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                    </span>
+                    <span className="text-[14px] font-semibold leading-[1.5] text-ink-soft">{item}</span>
+                  </li>
+                ))}
+              </ul>
+            </Reveal>
+            <Reveal delay={70}>
+              <CodeBlock title="metadata" lang="POST /v1/payments">
+                {'{\n'}
+                {'  '}<F>&quot;amount&quot;</F>: <F>2500</F>, <F>&quot;currency&quot;</F>: <S>&quot;AOA&quot;</S>,{'\n'}
+                {'  '}<F>&quot;recipient&quot;</F>: <S>&quot;@cantina-alex&quot;</S>,{'\n'}
+                {'  '}<F>&quot;metadata&quot;</F>: {'{\n'}
+                {'    '}<F>&quot;order_id&quot;</F>: <S>&quot;order_123&quot;</S>
+                {'\n  }'}
+                {'\n}'}
+              </CodeBlock>
+              <p className="m-0 mt-5 rounded-card bg-cream-100 px-6 py-[16px] text-[13.5px] font-semibold leading-[1.6] text-ink-secondary">
+                O comerciante envia{' '}
+                <span className="bz-mono text-cherry-dark">metadata.order_id = &quot;order_123&quot;</span>{' '}
+                e depois cruza, num só passo, o pagamento, o recibo e a encomenda interna.
+              </p>
+            </Reveal>
+          </div>
+        </div>
+      </section>
+
       {/* ===================== 9 · SECURITY ===================== */}
-      <section id="security" className="px-6 py-[clamp(64px,9vw,104px)]">
+      <section id="security" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="SEGURANÇA"
@@ -602,7 +1208,7 @@ export default function DevelopersPage() {
       </section>
 
       {/* ===================== 10 · ERROR HANDLING ===================== */}
-      <section id="errors" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
+      <section id="errors" className="px-6 py-[clamp(64px,9vw,104px)]">
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="ERROS"
@@ -634,6 +1240,37 @@ export default function DevelopersPage() {
                 </div>
               ))}
             </Reveal>
+          </div>
+        </div>
+      </section>
+
+      {/* ===================== INTEGRATION RESPONSIBILITIES ===================== */}
+      <section
+        id="responsibilities"
+        className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]"
+      >
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="RESPONSABILIDADES"
+            title="Responsabilidades da integração"
+            lead="O que o lado do comerciante deve garantir para uma integração robusta e segura."
+            className="mb-10 max-w-[700px]"
+          />
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {RESPONSIBILITIES.map((r, i) => (
+              <Reveal
+                key={r}
+                delay={(i % 2) * 40}
+                className="flex items-start gap-[12px] rounded-card border border-border-soft bg-white p-[18px] shadow-[0_14px_40px_-30px_rgba(181,16,31,.3)]"
+              >
+                <span className="mt-[1px] flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] bg-pink-200">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M5 13l4 4L19 7" stroke="#9A1B22" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <span className="text-[14px] font-semibold leading-[1.5] text-[#3a2a2e]">{r}</span>
+              </Reveal>
+            ))}
           </div>
         </div>
       </section>
