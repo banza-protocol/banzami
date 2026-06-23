@@ -25,9 +25,9 @@ enum BanzamiEnvironment {
   String get defaultBaseUrl {
     switch (this) {
       case BanzamiEnvironment.production:
-        return 'https://api.banzami.org';
+        return 'https://api.banzami.com';
       case BanzamiEnvironment.sandbox:
-        return 'https://sandbox-api.banzami.org';
+        return 'https://sandbox-api.banzami.com';
     }
   }
 
