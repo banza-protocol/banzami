@@ -1071,7 +1071,7 @@ export default function DevelopersPage() {
             <Reveal>
               <CodeBlock title="request" lang="POST /v1/payments">
                 <K>POST</K> /v1/payments{'\n'}
-                Authorization: Bearer <S>bz_sandbox_xxx</S>
+                Authorization: Bearer <S>bz_test_sk_xxx</S>
                 {'\n'}
                 Idempotency-Key: <S>order_123</S>
                 {'\n\n'}
@@ -1196,6 +1196,198 @@ export default function DevelopersPage() {
               </Reveal>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* ===================== 6.5 · API KEYS & ENVIRONMENTS ===================== */}
+      <section id="api-keys" className="px-6 py-[clamp(64px,9vw,104px)]">
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="CHAVES & AMBIENTES"
+            title="Chaves de API e ambientes"
+            lead="Dois ambientes, chaves com prefixo por ambiente. Como no modelo Stripe — sandbox para desenvolver, live para produção."
+            className="mb-4 max-w-[700px]"
+          />
+          <p className="m-0 mb-8 max-w-[700px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
+            <strong className="text-cherry-dark">Sandbox</strong> é para desenvolvimento;{' '}
+            <strong className="text-cherry-dark">live</strong> é para produção. O live move dinheiro
+            real e só fica disponível após onboarding e ativação dos rails aprovados — não está
+            ativo por omissão.
+          </p>
+
+          {/* Sandbox vs Live */}
+          <DocTable
+            className="mb-8"
+            columns={[
+              { key: 'env', header: 'Ambiente' },
+              { key: 'use', header: 'Para quê' },
+              { key: 'money', header: 'Dinheiro' },
+              { key: 'sk', header: 'Chave secreta', mono: true },
+              { key: 'whsec', header: 'Webhook secret', mono: true },
+            ]}
+            rows={[
+              {
+                env: <strong className="text-ink">Sandbox</strong>,
+                use: 'Desenvolvimento e testes',
+                money: 'Virtual — confirmações, falhas e reembolsos simulados',
+                sk: 'bz_test_sk_…',
+                whsec: 'whsec_test_…',
+              },
+              {
+                env: <strong className="text-ink">Live</strong>,
+                use: 'Produção',
+                money: 'Kwanza real (requer ativação)',
+                sk: 'bz_live_sk_…',
+                whsec: 'whsec_live_…',
+              },
+            ]}
+          />
+
+          {/* Key prefixes */}
+          <h3 className="mb-3 mt-2 text-[18px] font-black text-ink">Prefixos das chaves</h3>
+          <DocTable
+            className="mb-8"
+            columns={[
+              { key: 'type', header: 'Tipo de chave' },
+              { key: 'sandbox', header: 'Sandbox', mono: true },
+              { key: 'live', header: 'Live', mono: true },
+              { key: 'where', header: 'Onde usar' },
+            ]}
+            rows={[
+              {
+                type: 'Chave secreta (Secret)',
+                sandbox: 'bz_test_sk_…',
+                live: 'bz_live_sk_…',
+                where: 'Apenas backend',
+              },
+              {
+                type: 'Chave publicável (Publishable)',
+                sandbox: 'bz_test_pk_…',
+                live: 'bz_live_pk_…',
+                where: 'Frontend / mobile (planeado)',
+              },
+              {
+                type: 'Webhook signing secret',
+                sandbox: 'whsec_test_…',
+                live: 'whsec_live_…',
+                where: 'Apenas backend',
+              },
+            ]}
+          />
+          <p className="m-0 mb-10 max-w-[760px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
+            Compatibilidade: chaves legadas sem o segmento{' '}
+            <span className="bz-mono text-cherry-dark">_sk_</span> (
+            <span className="bz-mono">bz_test_…</span>, <span className="bz-mono">bz_live_…</span>)
+            continuam a funcionar — o prefixo do ambiente é o que conta. As chaves publicáveis são
+            um tipo planeado para fluxos client-side; até lá, use chaves secretas apenas no backend.
+          </p>
+
+          {/* Key types */}
+          <h3 className="mb-4 mt-2 text-[18px] font-black text-ink">Tipos de chave e identificadores</h3>
+          <div className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <TheoryCard
+              title="Chave secreta"
+              definition="Autentica chamadas que movem dinheiro — criar pagamentos, reembolsos, gerir webhooks."
+              matters="Apenas no backend. Nunca expor em browser ou apps móveis."
+            />
+            <TheoryCard
+              title="Chave publicável"
+              definition="Chave segura para frontend/mobile, para iniciar fluxos client-side (planeado)."
+              matters="Não move dinheiro por si só. Não substitui a chave secreta."
+            />
+            <TheoryCard
+              title="Webhook secret"
+              definition="Verifica a assinatura dos webhooks que o Banzami envia ao seu backend."
+              matters="Diferente por ambiente. Nunca exposto no frontend."
+            />
+            <TheoryCard
+              title="Merchant ID"
+              definition="Identifica o comerciante ou a aplicação."
+              matters="Não é segredo, mas identifica a sua conta."
+            />
+            <TheoryCard
+              title="Wallet ID"
+              definition="Identifica a carteira que recebe os pagamentos."
+              matters="Não é necessariamente segredo, mas não deve ser exposto ao utilizador final."
+            />
+          </div>
+
+          {/* Env var examples */}
+          <h3 className="mb-4 mt-2 text-[18px] font-black text-ink">Variáveis de ambiente</h3>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Reveal>
+              <CodeBlock title=".env.local" lang="sandbox">
+                <F>BANZAMI_ENV</F>=<S>sandbox</S>
+                {'\n'}
+                <F>BANZAMI_GATEWAY_URL</F>=<S>https://sandbox-api.banzami.com</S>
+                {'\n'}
+                <F>BANZAMI_API_KEY</F>=<S>bz_test_sk_xxx</S>
+                {'\n'}
+                <F>BANZAMI_MERCHANT_ID</F>=<S>…</S>
+                {'\n'}
+                <F>BANZAMI_WALLET_ID</F>=<S>…</S>
+                {'\n'}
+                <F>BANZAMI_WEBHOOK_SECRET</F>=<S>whsec_test_xxx</S>
+              </CodeBlock>
+            </Reveal>
+            <Reveal delay={80}>
+              <CodeBlock title=".env.local" lang="live">
+                <F>BANZAMI_ENV</F>=<S>live</S>
+                {'\n'}
+                <F>BANZAMI_GATEWAY_URL</F>=<S>https://api.banzami.com</S>
+                {'\n'}
+                <F>BANZAMI_API_KEY</F>=<S>bz_live_sk_xxx</S>
+                {'\n'}
+                <F>BANZAMI_MERCHANT_ID</F>=<S>…</S>
+                {'\n'}
+                <F>BANZAMI_WALLET_ID</F>=<S>…</S>
+                {'\n'}
+                <F>BANZAMI_WEBHOOK_SECRET</F>=<S>whsec_live_xxx</S>
+              </CodeBlock>
+            </Reveal>
+          </div>
+
+          {/* Mismatch protection */}
+          <h3 className="mb-4 mt-12 text-[18px] font-black text-ink">Proteção contra ambiente errado</h3>
+          <p className="m-0 mb-5 max-w-[760px] text-[14px] font-semibold leading-[1.55] text-ink-soft">
+            O SDK deteta o ambiente a partir do prefixo da chave. Se indicar um ambiente que entra em
+            conflito com a chave, o cliente falha logo na construção — antes de qualquer pedido.
+          </p>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <Reveal>
+              <CodeBlock title="ok.ts" lang="inferido da chave">
+                <K>new</K> <F>BanzamiClient</F>({'{'}
+                {'\n'}
+                {'  '}apiKey: process.env.<F>BANZAMI_API_KEY</F>,{'\n'}
+                {'}'}); <span className="text-ink-muted">{'// bz_test_sk_… → sandbox'}</span>
+              </CodeBlock>
+            </Reveal>
+            <Reveal delay={80}>
+              <CodeBlock title="erro.ts" lang="mismatch">
+                <K>new</K> <F>BanzamiClient</F>({'{'}
+                {'\n'}
+                {'  '}environment: <S>&quot;live&quot;</S>,{'\n'}
+                {'  '}apiKey: <S>&quot;bz_test_sk_…&quot;</S>,{'\n'}
+                {'}'});{'\n\n'}
+                <span className="text-cherry-dark">{'// throws BanzamiConfigError:'}</span>
+                {'\n'}
+                <span className="text-cherry-dark">{'// environment/key mismatch'}</span>
+              </CodeBlock>
+            </Reveal>
+          </div>
+
+          {/* Security warnings */}
+          <Reveal className="mt-8 rounded-card border border-pink-200 bg-pink-100 px-6 py-[20px]">
+            <p className="m-0 mb-3 text-[14px] font-black text-cherry-dark">Regras de segurança</p>
+            <ul className="m-0 grid list-none grid-cols-1 gap-2 p-0 text-[13.5px] font-semibold leading-[1.5] text-ink-secondary sm:grid-cols-2">
+              <li>Nunca expor chaves secretas no browser ou mobile.</li>
+              <li>Nunca commitar chaves nem o ficheiro <span className="bz-mono">.env.local</span>.</li>
+              <li>Usar chaves diferentes por ambiente.</li>
+              <li>Rodar (revogar e recriar) chaves se vazarem.</li>
+              <li>Verificar sempre a assinatura dos webhooks.</li>
+              <li>Usar idempotency keys nas operações que movem dinheiro.</li>
+            </ul>
+          </Reveal>
         </div>
       </section>
 

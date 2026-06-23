@@ -1,4 +1,4 @@
-import { BanzamiApiError } from './errors.js';
+import { BanzamiApiError, BanzamiConfigError } from './errors.js';
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
@@ -33,6 +33,60 @@ const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
   sandbox: 'https://sandbox-api.banzami.com',
 };
 
+/**
+ * Classify an API key by its prefix. The Banzami key model is Stripe-like:
+ * every key carries its environment in the prefix, so a key can never be used
+ * against the wrong universe by accident.
+ *
+ *   bz_test_…  (incl. bz_test_sk_…, bz_test_pk_…) → sandbox
+ *   bz_live_…  (incl. bz_live_sk_…, bz_live_pk_…) → live
+ *
+ * Returns `null` for keys with no recognised prefix (e.g. empty or placeholder
+ * values) so the caller can fall back to an explicit environment.
+ */
+export function environmentFromKey(apiKey: string): BanzamiEnvironment | null {
+  if (apiKey.startsWith('bz_test_')) return 'sandbox';
+  if (apiKey.startsWith('bz_live_')) return 'live';
+  return null;
+}
+
+/**
+ * Resolve the effective environment from the explicit option, the key prefix,
+ * and the base URL — and reject definite mismatches.
+ *
+ * Precedence:
+ *   1. If `environment` is explicit, it wins — but if the key prefix clearly
+ *      disagrees, throw `BanzamiConfigError` (e.g. live env + bz_test_ key).
+ *   2. Otherwise infer from the key prefix.
+ *   3. Otherwise, if the base URL mentions "sandbox", use sandbox.
+ *   4. Otherwise default to `live` (historical default; preserved for
+ *      backward compatibility with keys that carry no recognised prefix).
+ */
+export function resolveEnvironment(
+  apiKey:       string,
+  environment?: BanzamiEnvironment,
+  baseUrl?:     string,
+): BanzamiEnvironment {
+  const keyEnv = environmentFromKey(apiKey);
+
+  if (environment) {
+    if (keyEnv && keyEnv !== environment) {
+      const prefix = keyEnv === 'sandbox' ? 'bz_test_' : 'bz_live_';
+      const expected = environment === 'live' ? 'bz_live_' : 'bz_test_';
+      throw new BanzamiConfigError(
+        `Banzami environment/key mismatch: ${environment} environment cannot use ` +
+        `${keyEnv} key (key starts with "${prefix}"). Use a ${expected} key for the ` +
+        `${environment} environment, or set environment: '${keyEnv}'.`,
+      );
+    }
+    return environment;
+  }
+
+  if (keyEnv) return keyEnv;
+  if (baseUrl && /sandbox/i.test(baseUrl)) return 'sandbox';
+  return 'live';
+}
+
 export interface BanzamiHooks {
   /** Called before every HTTP attempt, including retries. */
   onRequest?:  (method: string, path: string, attempt: number) => void;
@@ -43,11 +97,16 @@ export interface BanzamiHooks {
 }
 
 export interface BanzamiClientOptions {
-  /** API key for this client. Prefix determines environment:
-   *  - `bz_live_…` → live (production money)
-   *  - `bz_test_…` → sandbox (virtual funds) */
+  /** Secret API key for this client (`bz_live_sk_…` or `bz_test_sk_…`). The
+   *  prefix determines the environment; never expose a secret key in browser
+   *  or mobile code. */
   apiKey:         string;
-  /** Which data universe to operate in. Defaults to 'live'. */
+  /**
+   * Which data universe to operate in. If omitted, it is inferred from the key
+   * prefix (`bz_test_…` → sandbox, `bz_live_…` → live), then from the base URL.
+   * If provided explicitly and it conflicts with the key prefix, the
+   * constructor throws `BanzamiConfigError`.
+   */
   environment?:   BanzamiEnvironment;
   /** Override the API base URL. Defaults to the canonical URL for the chosen environment. */
   baseUrl?:       string;
@@ -84,7 +143,7 @@ export class BanzamiClient {
 
   constructor({
     apiKey,
-    environment = 'live',
+    environment,
     baseUrl,
     maxRetries = 3,
     retryDelay = 500,
@@ -92,8 +151,8 @@ export class BanzamiClient {
     webhookSecret,
   }: BanzamiClientOptions) {
     this.apiKey      = apiKey;
-    this.environment = environment;
-    this.base        = (baseUrl ?? DEFAULT_BASE_URLS[environment]).replace(/\/$/, '');
+    this.environment = resolveEnvironment(apiKey, environment, baseUrl);
+    this.base        = (baseUrl ?? DEFAULT_BASE_URLS[this.environment]).replace(/\/$/, '');
     this.maxRetries  = maxRetries;
     this.retryDelay  = retryDelay;
     this.hooks       = hooks;

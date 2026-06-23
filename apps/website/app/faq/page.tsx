@@ -110,6 +110,14 @@ const CATEGORIES: Category[] = [
         q: 'Posso testar antes de ir para produção?',
         a: 'Sim. O sandbox permite simular pagamentos, confirmações, falhas, reembolsos e webhooks. A produção depende da ativação dos rails externos aprovados.',
       },
+      {
+        q: 'Qual é a diferença entre sandbox e live?',
+        a: 'Sandbox permite testar integrações sem dinheiro real. Live é o ambiente de produção e só deve ser usado quando a integração e os rails aprovados estiverem ativados.',
+      },
+      {
+        q: 'Posso usar a chave live no frontend?',
+        a: 'Não. Chaves secretas live devem ficar apenas no backend. Frontend/mobile só deve usar chaves publicáveis quando esse fluxo estiver disponível.',
+      },
     ],
   },
 ];

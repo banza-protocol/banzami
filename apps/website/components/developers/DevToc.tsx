@@ -19,6 +19,7 @@ const SECTIONS: { id: string; label: string }[] = [
   { id: 'api', label: 'API' },
   { id: 'payment-states', label: 'Estados' },
   { id: 'sdks', label: 'SDKs' },
+  { id: 'api-keys', label: 'Chaves' },
   { id: 'sandbox', label: 'Sandbox' },
   { id: 'webhooks', label: 'Webhooks' },
   { id: 'use-cases', label: 'Casos de uso' },
