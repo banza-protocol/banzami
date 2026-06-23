@@ -28,7 +28,18 @@ const SCROLL_OFFSET = 140;
 
 export function DevToc() {
   const [active, setActive] = useState<string>(SECTIONS[0].id);
+  const [shown, setShown] = useState(false);
   const navRef = useRef<HTMLElement>(null);
+
+  // Fixed (not sticky): the page <main> uses overflow-x-hidden, which turns it
+  // into a scroll container and breaks position:sticky. The floating navbar uses
+  // position:fixed for the same reason. Reveal the bar once past the hero.
+  useEffect(() => {
+    const onScroll = () => setShown(window.scrollY > 480);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
   // Scroll-spy via IntersectionObserver.
   useEffect(() => {
@@ -73,8 +84,11 @@ export function DevToc() {
 
   return (
     <div
-      className="sticky top-[88px] z-40 border-b border-border-soft"
-      style={{ background: 'rgba(255,247,246,.92)', backdropFilter: 'blur(10px)' }}
+      className={`fixed inset-x-0 top-[84px] z-40 border-b border-border-soft transition-[opacity,transform] duration-300 ${
+        shown ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0'
+      }`}
+      style={{ background: 'rgba(255,247,246,.92)', backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)' }}
+      aria-hidden={!shown}
     >
       <nav
         ref={navRef}
