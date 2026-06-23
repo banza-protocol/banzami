@@ -299,6 +299,85 @@ describe('getPaymentLinkStatus', () => {
 });
 
 // ---------------------------------------------------------------------------
+// Payment QR (SDK owns the payload)
+// ---------------------------------------------------------------------------
+
+const LINK = {
+  id: 'pl-1', slug: 'abc123', merchant_id: 'm-1', wallet_id: 'w-1',
+  amount_minor: 150000, currency: 'AOA', description: '1 Kg de Arroz',
+  status: 'ACTIVE' as const, created_at: 't', updated_at: 't',
+};
+
+describe('paymentLinkQr (pure)', () => {
+  it('returns the official QR payload as the canonical pay URL — no network call', () => {
+    vi.stubGlobal('fetch', vi.fn()); // must NOT be called
+    const qr = client.paymentLinkQr(LINK);
+    // live test client → default pay base
+    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+    expect(qr.paymentUrl).toBe(qr.qrValue);
+    expect(qr.slug).toBe('abc123');
+    expect(qr.paymentLinkId).toBe('pl-1');
+    expect(qr.amountMinor).toBe(150000);
+    expect(qr.currency).toBe('AOA');
+    expect(qr.description).toBe('1 Kg de Arroz');
+    expect(qr.status).toBe('ACTIVE');
+    expect((fetch as ReturnType<typeof vi.fn>)).not.toHaveBeenCalled();
+  });
+
+  it('enriches with caller-supplied recipient identity', () => {
+    const qr = client.paymentLinkQr(LINK, { recipientHandle: '@fm65', recipientName: 'Fidel Monteiro' });
+    expect(qr.recipientHandle).toBe('@fm65');
+    expect(qr.recipientName).toBe('Fidel Monteiro');
+  });
+
+  it('defaults recipient identity + open amount to null', () => {
+    const qr = client.paymentLinkQr({ ...LINK, amount_minor: undefined, description: undefined });
+    expect(qr.recipientHandle).toBeNull();
+    expect(qr.recipientName).toBeNull();
+    expect(qr.amountMinor).toBeNull();
+    expect(qr.description).toBeNull();
+  });
+
+  it('carries live environment metadata for a live client', () => {
+    const qr = client.paymentLinkQr(LINK);
+    expect(qr.environment).toBe('live');
+    expect(qr.isSandbox).toBe(false);
+  });
+
+  it('carries sandbox metadata + default sandbox pay base for a sandbox client', () => {
+    const sandbox = new BanzamiClient({ apiKey: 'bz_test_x' });
+    const qr = sandbox.paymentLinkQr(LINK);
+    expect(qr.environment).toBe('sandbox');
+    expect(qr.isSandbox).toBe(true);
+    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+  });
+
+  it('honours an explicit payBaseUrl override (trailing slash trimmed)', () => {
+    const custom = new BanzamiClient({ apiKey: 'bz_test_x', payBaseUrl: 'https://pay.sandbox.example/' });
+    expect(custom.paymentLinkQr(LINK).qrValue).toBe('https://pay.sandbox.example/abc123');
+  });
+});
+
+describe('getPaymentLinkQr (fetch + derive)', () => {
+  it('fetches the link over JWT auth and returns the official payload', async () => {
+    mockFetch(200, LINK);
+    const qr = await client.getPaymentLinkQr('pl-1', { recipientHandle: '@fm65' });
+    // the only protected call is the authenticated payment-link fetch
+    const { url, init } = lastFetchCall();
+    expect(url).toBe('https://api.test.ao/v1/payment-links/pl-1');
+    const headers = new Headers(init.headers);
+    expect(headers.get('authorization')).toBe('Bearer jwt-test-token');
+    // the raw API key never travels on the protected endpoint
+    expect(JSON.stringify(init.headers ?? {})).not.toContain('bz_live_testkey');
+    expect(String(url)).not.toContain('bz_live_testkey');
+    // derived payload
+    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+    expect(qr.recipientHandle).toBe('@fm65');
+    expect(authCalls().length).toBe(1); // a single key→JWT exchange happened
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Retry logic
 // ---------------------------------------------------------------------------
 

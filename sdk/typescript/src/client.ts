@@ -16,6 +16,7 @@ import type {
   ApiKey,
   NewApiKey,
   PaymentLink,
+  PaymentQr,
   WebhookEndpoint,
   WebhookEvent,
   Refund,
@@ -31,6 +32,17 @@ import type {
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
   live:    'https://api.banzami.com',
   sandbox: 'https://sandbox-api.banzami.com',
+};
+
+/**
+ * Canonical pay-page host per environment — the base the SDK uses to
+ * build the official payment QR payload (`${payBase}/${slug}`). Override
+ * via the `payBaseUrl` option. Both environments resolve to the same
+ * host today; kept as a map so they can diverge without an API change.
+ */
+const DEFAULT_PAY_BASE_URLS: Record<BanzamiEnvironment, string> = {
+  live:    'https://pay.banzami.com',
+  sandbox: 'https://pay.banzami.com',
 };
 
 /** Gateway endpoint that exchanges a raw API key for a short-lived JWT. */
@@ -117,6 +129,12 @@ export interface BanzamiClientOptions {
   environment?:   BanzamiEnvironment;
   /** Override the API base URL. Defaults to the canonical URL for the chosen environment. */
   baseUrl?:       string;
+  /**
+   * Override the pay-page base used to build the official payment QR
+   * payload (`${payBaseUrl}/${slug}`). Defaults to the canonical pay host
+   * for the chosen environment (https://pay.banzami.com).
+   */
+  payBaseUrl?:    string;
   /** Maximum number of retry attempts after the initial request. Default: 3. */
   maxRetries?:    number;
   /** Base delay in milliseconds for exponential backoff. Default: 500. */
@@ -133,6 +151,7 @@ export interface BanzamiClientOptions {
 
 export class BanzamiClient {
   private readonly base:        string;
+  private readonly payBase:     string;
   private readonly apiKey:      string;
   readonly environment:         BanzamiEnvironment;
   private readonly maxRetries:  number;
@@ -160,6 +179,7 @@ export class BanzamiClient {
     apiKey,
     environment,
     baseUrl,
+    payBaseUrl,
     maxRetries = 3,
     retryDelay = 500,
     hooks = {},
@@ -168,6 +188,7 @@ export class BanzamiClient {
     this.apiKey      = apiKey;
     this.environment = resolveEnvironment(apiKey, environment, baseUrl);
     this.base        = (baseUrl ?? DEFAULT_BASE_URLS[this.environment]).replace(/\/$/, '');
+    this.payBase     = (payBaseUrl ?? DEFAULT_PAY_BASE_URLS[this.environment]).replace(/\/$/, '');
     this.maxRetries  = maxRetries;
     this.retryDelay  = retryDelay;
     this.hooks       = hooks;
@@ -614,6 +635,55 @@ export class BanzamiClient {
 
   getPaymentLinkStatus(slug: string): Promise<{ paid: boolean }> {
     return this.request<{ paid: boolean }>(`/public/pay/${slug}/status`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment QR
+  //
+  // The official, renderable QR payload for a payment link is owned by the
+  // SDK. Integrators encode `qrValue` into a QR image and never construct
+  // that value themselves — so the payload format can evolve here without
+  // every integration changing.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Build the official QR payload for a payment link the caller already
+   * holds — no network call. `qrValue` is the canonical Banzami pay URL;
+   * encode it into a QR image as-is. Optionally enrich with the recipient
+   * identity the caller knows (the gateway does not return it on the link).
+   */
+  paymentLinkQr(
+    link: PaymentLink,
+    opts: { recipientName?: string | null; recipientHandle?: string | null } = {},
+  ): PaymentQr {
+    const paymentUrl = `${this.payBase}/${link.slug}`;
+    return {
+      qrValue:         paymentUrl,
+      paymentUrl,
+      slug:            link.slug,
+      paymentLinkId:   link.id,
+      amountMinor:     link.amount_minor ?? null,
+      currency:        link.currency,
+      description:     link.description ?? null,
+      recipientName:   opts.recipientName ?? null,
+      recipientHandle: opts.recipientHandle ?? null,
+      environment:     this.environment,
+      isSandbox:       this.isSandbox,
+      status:          link.status,
+    };
+  }
+
+  /**
+   * Fetch a payment link by id (JWT-authenticated) and return its official
+   * QR payload + metadata. Prefer {@link paymentLinkQr} when you already
+   * hold the PaymentLink object, to avoid a round-trip.
+   */
+  async getPaymentLinkQr(
+    id: string,
+    opts: { recipientName?: string | null; recipientHandle?: string | null } = {},
+  ): Promise<PaymentQr> {
+    const link = await this.getPaymentLink(id);
+    return this.paymentLinkQr(link, opts);
   }
 
   // ---------------------------------------------------------------------------
