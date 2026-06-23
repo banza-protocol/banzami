@@ -13,7 +13,8 @@ import { useEffect, useRef, useState } from 'react';
 const SECTIONS: { id: string; label: string }[] = [
   { id: 'docs', label: 'Quickstart' },
   { id: 'foundation', label: 'Fundamentos' },
-  { id: 'angola-context', label: 'Angola' },
+  { id: 'angola-context', label: 'Contexto' },
+  { id: 'embedded-payments', label: 'Embutidos' },
   { id: 'architecture', label: 'Arquitetura' },
   { id: 'api', label: 'API' },
   { id: 'payment-states', label: 'Estados' },

@@ -12,7 +12,6 @@ import { WebhookFlowDiagram } from '@/components/developers/WebhookFlowDiagram';
 import { SdkEcosystemDiagram } from '@/components/developers/SdkEcosystemDiagram';
 import { GoingLiveDiagram } from '@/components/developers/GoingLiveDiagram';
 import { DevToc } from '@/components/developers/DevToc';
-import { MiniFlow } from '@/components/developers/MiniFlow';
 import { TheoryCard } from '@/components/developers/TheoryCard';
 import { DocTable } from '@/components/developers/DocTable';
 import { RetryFlow } from '@/components/developers/RetryFlow';
@@ -126,6 +125,30 @@ const ANGOLA_BANZAMI = [
   'Menos verificação manual.',
   'Pagamentos programáveis na própria app.',
   'Uma API para carteiras, pagamentos e eventos.',
+];
+
+/* ---------- Embedded payments — before/after flows ---------- */
+const EMBEDDED_MANUAL: string[] = [
+  'Pedido',
+  'Transferência bancária',
+  'Screenshot',
+  'Verificação manual',
+  'Entrega',
+];
+const EMBEDDED_BANZAMI: string[] = [
+  'Pedido',
+  'Pagar com Banzami',
+  'payment.confirmed',
+  'Libertação automática',
+  'Recibo',
+];
+const EMBEDDED_CHANGE: string[] = [
+  'Menos validação manual',
+  'Menos dependência de screenshots',
+  'Confirmação automática',
+  'Reconciliação mais simples',
+  'Melhor experiência para o cliente',
+  'Base técnica para novos serviços digitais',
 ];
 
 /* ---------- API endpoints ---------- */
@@ -258,6 +281,18 @@ const USE_CASES: { title: string; today: string; flow: string; integration: stri
     flow: 'Pagamento confirmado antes da recolha/entrega.',
     integration: 'Esperar payment.confirmed antes de despachar.',
   },
+  {
+    title: 'Marketplaces e plataformas multi-vendedor',
+    today: 'A plataforma segue manualmente quem pagou, quem recebe e que comissão se aplica.',
+    flow: 'Associar pagamentos a vendedores, guardar referências, gerar recibos e reconciliar. Esta arquitetura prepara o caminho para divisão de pagamentos e liquidação entre participantes quando os módulos correspondentes forem ativados.',
+    integration: 'metadata.seller_id, metadata.marketplace_order_id, payment.confirmed (split futuro).',
+  },
+  {
+    title: 'Serviços, reservas e marcações',
+    today: 'Reservas confirmadas à mão após o cliente enviar comprovativo.',
+    flow: 'Cliente reserva → app cria pagamento → cliente confirma → webhook confirma → reserva fica confirmada automaticamente.',
+    integration: 'metadata.booking_id → payment.confirmed → booking status = confirmed.',
+  },
 ];
 
 /* ---------- Integration responsibilities ---------- */
@@ -385,27 +420,103 @@ const ERROR_CODES: { code: string; desc: string }[] = [
 /* ---------- Examples ---------- */
 const EXAMPLES: {
   title: string;
-  desc: string;
-  flow: [string, string, string];
+  problem: string;
+  point: ReactNode;
+  event: string;
+  sees: string;
   snippet: ReactNode;
 }[] = [
   {
-    title: 'Online Checkout',
-    desc: 'Crie um pagamento no checkout e confirme pelo webhook payment.confirmed.',
-    flow: ['Criar pagamento', 'Mostrar QR', 'Confirmar'],
+    title: 'E-commerce checkout',
+    problem: 'Encomenda confirmada por screenshot enviado por WhatsApp.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">payments.create</span> com{' '}
+        <span className="bz-mono text-cherry-dark">metadata.order_id</span>.
+      </>
+    ),
+    event: 'payment.confirmed',
+    sees: 'A encomenda só é despachada depois de confirmada — sem comprovativos manuais.',
     snippet: (
       <>
         <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
-        {'  '}amount: <F>2500</F>, currency: <S>&quot;AOA&quot;</S>,{'\n'}
-        {'  '}recipient: <S>&quot;@cantina-alex&quot;</S>,{'\n'}
-        {'}, { idempotencyKey: order.id });'}
+        {'  '}amount: cart.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
+        {'  '}recipient: <S>&quot;@loja-kilamba&quot;</S>,{'\n'}
+        {'  '}description: <S>&quot;Compra online&quot;</S>,{'\n'}
+        {'  '}metadata: {'{'} order_id: order.id {'}'},{'\n'}
+        {'}, { idempotencyKey: `order_${order.id}` });'}
+        {'\n\n'}
+        <C>{'// NÃO enviar enquanto created / pending_confirmation —'}</C>
+        {'\n'}
+        <C>{'// esperar pelo estado confirmed.'}</C>
+      </>
+    ),
+  },
+  {
+    title: 'Táxi / moto-táxi',
+    problem: 'Pagamento em dinheiro, troco e risco de manuseio no fim da corrida.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">payments.create</span> +{' '}
+        <span className="bz-mono text-cherry-dark">metadata.trip_id</span> e handler de webhook.
+      </>
+    ),
+    event: 'payment.confirmed',
+    sees: 'O condutor vê a corrida marcada como paga assim que o passageiro confirma.',
+    snippet: (
+      <>
+        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
+        {'  '}amount: trip.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
+        {'  '}recipient: driver.banza,{'\n'}
+        {'  '}description: `Corrida ${'{'}trip.id{'}'}`,{'\n'}
+        {'  '}metadata: {'{'} trip_id: trip.id, passenger_id: trip.passengerId {'}'},{'\n'}
+        {'}, { idempotencyKey: `trip_${trip.id}` });'}
+        {'\n\n'}
+        <C>{'// no handler de webhook:'}</C>
+        {'\n'}
+        <K>if</K> (event.type === <S>&quot;payment.confirmed&quot;</S>) {'{\n'}
+        {'  '}<K>await</K> trips.<F>markPaid</F>(event.data.metadata.trip_id);{'\n'}
+        {'}'}
+      </>
+    ),
+  },
+  {
+    title: 'Delivery',
+    problem: 'Estafeta cobra à porta, sem garantia de pagamento antes da recolha.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">payments.create</span> com{' '}
+        <span className="bz-mono text-cherry-dark">metadata.delivery_id</span>; reembolso opcional.
+      </>
+    ),
+    event: 'payment.confirmed',
+    sees: 'A recolha só avança depois de confirmado; se for cancelado, faz-se o reembolso.',
+    snippet: (
+      <>
+        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
+        {'  '}amount: delivery.amount, currency: <S>&quot;AOA&quot;</S>,{'\n'}
+        {'  '}recipient: restaurant.banza,{'\n'}
+        {'  '}description: `Delivery ${'{'}delivery.id{'}'}`,{'\n'}
+        {'  '}metadata: {'{'} delivery_id: delivery.id {'}'},{'\n'}
+        {'}, { idempotencyKey: `delivery_${delivery.id}` });'}
+        {'\n\n'}
+        <C>{'// se a entrega for cancelada:'}</C>
+        {'\n'}
+        <K>await</K> client.refunds.<F>create</F>({'{'} payment_id: payment.id {'}'});
       </>
     ),
   },
   {
     title: 'Merchant QR',
-    desc: 'Gere um QR de pagamento para o cliente ler e confirmar na app.',
-    flow: ['Gerar QR', 'Cliente lê', 'Webhook'],
+    problem: 'Cliente paga em dinheiro ou mostra um comprovativo manual no balcão.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">payments.createQr</span> — o cliente lê e confirma
+        na app.
+      </>
+    ),
+    event: 'payment.confirmed',
+    sees: 'O comerciante imprime um QR e recebe a confirmação sem terminal dedicado.',
     snippet: (
       <>
         <K>const</K> qr = <K>await</K> client.payments.<F>createQr</F>({'{\n'}
@@ -416,14 +527,49 @@ const EXAMPLES: {
     ),
   },
   {
-    title: 'Wallet Transfer',
-    desc: 'Transfira entre carteiras usando um @banza como destinatário.',
-    flow: ['@banza', 'Confirmar', 'Recibo'],
+    title: 'Wallet transfer',
+    problem: 'Transferência entre pessoas depende de IBAN, screenshot e confirmação manual.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">transfers.create</span> para um{' '}
+        <span className="bz-mono text-cherry-dark">@banza</span>.
+      </>
+    ),
+    event: 'wallet.credit',
+    sees: 'O destinatário recebe o valor e o recibo na carteira, em tempo real.',
     snippet: (
       <>
         <K>const</K> transfer = <K>await</K> client.transfers.<F>create</F>({'{\n'}
         {'  '}to: <S>&quot;@maria&quot;</S>, amount: <F>5000</F>, currency: <S>&quot;AOA&quot;</S>,{'\n'}
         {'}, { idempotencyKey: ref });'}
+      </>
+    ),
+  },
+  {
+    title: 'Marketplace readiness',
+    problem: 'A plataforma segue à mão quem pagou, quem recebe e que comissão se aplica.',
+    point: (
+      <>
+        <span className="bz-mono text-cherry-dark">metadata.seller_id</span> +{' '}
+        <span className="bz-mono text-cherry-dark">metadata.marketplace_order_id</span>.
+      </>
+    ),
+    event: 'payment.confirmed',
+    sees: 'Cada pagamento fica associado ao vendedor e à encomenda, pronto a reconciliar.',
+    snippet: (
+      <>
+        <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
+        {'  '}amount: order.total, currency: <S>&quot;AOA&quot;</S>,{'\n'}
+        {'  '}recipient: <S>&quot;@marketplace&quot;</S>,{'\n'}
+        {'  '}metadata: {'{\n'}
+        {'    '}seller_id: seller.id,{'\n'}
+        {'    '}marketplace_order_id: order.id,{'\n'}
+        {'  }'},{'\n'}
+        {'}, { idempotencyKey: `mkt_${order.id}` });'}
+        {'\n\n'}
+        <C>{'// A divisão de pagamentos e a liquidação entre'}</C>
+        {'\n'}
+        <C>{'// participantes serão ativadas num módulo futuro.'}</C>
       </>
     ),
   },
@@ -520,6 +666,35 @@ function WebhookTheory({ q, children }: { q: string; children: ReactNode }) {
       <p className="m-0 mt-[6px] text-[13px] font-semibold leading-[1.55] text-ink-soft">
         {children}
       </p>
+    </div>
+  );
+}
+
+function FlowRow({ steps, tone }: { steps: string[]; tone: 'muted' | 'cherry' }) {
+  const node =
+    tone === 'cherry'
+      ? 'border-pink-200 bg-white text-cherry-dark'
+      : 'border-border-soft bg-cream-50 text-ink-muted';
+  const arrow = tone === 'cherry' ? '#B5101F' : '#cdb8bc';
+  return (
+    <div className="flex flex-wrap items-center gap-y-2">
+      {steps.map((step, i) => (
+        <div key={step} className="contents">
+          <span
+            className={`bz-mono inline-flex flex-none items-center rounded-pill border px-[12px] py-[7px] text-[11.5px] font-semibold ${node}`}
+          >
+            {step}
+          </span>
+          {i < steps.length - 1 && (
+            <span className="flex-none px-[6px]" aria-hidden="true">
+              <svg width="18" height="10" viewBox="0 0 18 10" fill="none">
+                <path d="M0 5h13" stroke={arrow} strokeWidth="1.8" strokeLinecap="round" strokeDasharray="2 3" />
+                <path d="M11 1.5L15 5l-4 3.5" stroke={arrow} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </span>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
@@ -703,6 +878,84 @@ export default function DevelopersPage() {
             <p className="m-0 text-[14.5px] font-semibold leading-[1.6] text-ink-secondary">
               O Banzami acrescenta uma camada de pagamentos programável, desenhada para casos de uso
               digitais locais. Não substitui bancos nem rails existentes — integra-se com eles.
+            </p>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* ===================== EMBEDDED PAYMENTS ===================== */}
+      <section id="embedded-payments" className="px-6 py-[clamp(64px,9vw,104px)] bg-cream-100">
+        <div className="mx-auto max-w-container">
+          <SectionHeading
+            eyebrow="PAGAMENTOS EMBUTIDOS"
+            title="Pagamentos embutidos em aplicações angolanas"
+            lead="Permita que clientes paguem em Kwanza diretamente dentro da sua app, sem screenshots, transferências manuais ou confirmação por WhatsApp."
+            className="mb-10 max-w-[760px]"
+          />
+
+          <Reveal className="mb-8 max-w-[760px]">
+            <p className="m-0 text-[15px] font-semibold leading-[1.6] text-ink-secondary">
+              Hoje, muitos serviços digitais ainda dependem de um fluxo manual: o cliente transfere,
+              envia um comprovativo e alguém verifica à mão. Embutir o pagamento na própria app
+              remove esses passos.
+            </p>
+          </Reveal>
+
+          {/* Before / after comparison */}
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+            <Reveal className="rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,30px)] shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                Fluxo manual
+              </span>
+              <div className="mt-5">
+                <FlowRow steps={EMBEDDED_MANUAL} tone="muted" />
+              </div>
+              <p className="m-0 mt-5 text-[13px] font-semibold leading-[1.55] text-ink-soft">
+                Atrasos, risco de fraude, trabalho manual, má experiência e reconciliação lenta.
+              </p>
+            </Reveal>
+            <Reveal
+              delay={70}
+              className="rounded-card border-2 border-pink-200 bg-white p-[clamp(22px,3vw,30px)] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]"
+            >
+              <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-cherry">
+                Fluxo Banzami
+              </span>
+              <div className="mt-5">
+                <FlowRow steps={EMBEDDED_BANZAMI} tone="cherry" />
+              </div>
+              <p className="m-0 mt-5 text-[13px] font-semibold leading-[1.55] text-ink-secondary">
+                O pagamento entra na app, confirma-se sozinho e liberta a entrega em tempo real.
+              </p>
+            </Reveal>
+          </div>
+
+          {/* Market-change callout */}
+          <Reveal className="mt-6 rounded-card border border-border-soft bg-white p-[clamp(24px,3vw,34px)] shadow-[0_24px_60px_-44px_rgba(181,16,31,.35)]">
+            <span className="bz-mono text-[11px] font-bold uppercase tracking-[0.06em] text-cherry">
+              O que muda para o mercado angolano
+            </span>
+            <p className="m-0 mt-4 max-w-[760px] text-[15px] font-semibold leading-[1.65] text-ink-secondary">
+              Quando pagamentos entram diretamente nas aplicações, negócios deixam de depender de
+              screenshots, mensagens manuais e reconciliação lenta. Apps locais podem vender,
+              confirmar, entregar e reconciliar em tempo real, usando Kwanza como moeda nativa da
+              experiência digital.
+            </p>
+            <ul className="m-0 mt-6 grid list-none grid-cols-1 gap-[11px] p-0 sm:grid-cols-2">
+              {EMBEDDED_CHANGE.map((item) => (
+                <li key={item} className="flex items-start gap-[11px]">
+                  <span className="mt-[2px] flex h-[18px] w-[18px] flex-none items-center justify-center rounded-[6px] bg-pink-200">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M5 13l4 4L19 7" stroke="#9A1B22" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <span className="text-[14px] font-semibold leading-[1.5] text-ink-soft">{item}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="m-0 mt-6 rounded-card bg-cream-50 px-5 py-[16px] text-[13.5px] font-semibold leading-[1.6] text-ink-secondary">
+              O Banzami é uma camada de pagamentos programável para serviços digitais locais. Não
+              substitui bancos nem rails existentes — integra-se com eles.
             </p>
           </Reveal>
         </div>
@@ -1280,27 +1533,55 @@ export default function DevelopersPage() {
         <div className="mx-auto max-w-container">
           <SectionHeading
             eyebrow="EXEMPLOS"
-            title="Integrações completas, ponta a ponta"
-            lead="Três casos reais — checkout, QR de comerciante e transferência entre carteiras."
-            className="mb-10 max-w-[680px]"
+            title="Exemplos práticos de integração"
+            lead="Seis casos reais — do checkout ao marketplace — cada um com problema, ponto de integração e código em sandbox."
+            className="mb-10 max-w-[700px]"
           />
           <div className="flex flex-col gap-6">
             {EXAMPLES.map((ex, i) => (
               <Reveal
                 key={ex.title}
                 delay={(i % 2) * 50}
-                className="grid grid-cols-1 gap-6 rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,34px)] shadow-[0_20px_50px_-38px_rgba(181,16,31,.32)] lg:grid-cols-[0.85fr_1.15fr] lg:items-center"
+                className="grid grid-cols-1 gap-6 rounded-card border border-border-soft bg-white p-[clamp(22px,3vw,34px)] shadow-[0_20px_50px_-38px_rgba(181,16,31,.32)] lg:grid-cols-[0.85fr_1.15fr] lg:items-start"
               >
                 <div>
                   <h3 className="m-0 text-[20px] font-black text-ink">{ex.title}</h3>
-                  <p className="m-0 mt-3 text-[14.5px] font-semibold leading-[1.55] text-ink-secondary">
-                    {ex.desc}
-                  </p>
-                  <div className="mt-5">
-                    <MiniFlow steps={ex.flow} />
+                  <div className="mt-5 flex flex-col gap-[14px]">
+                    <div>
+                      <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                        Problema resolvido
+                      </span>
+                      <p className="m-0 mt-[4px] text-[13.5px] font-semibold leading-[1.5] text-ink-soft">
+                        {ex.problem}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-cherry">
+                        Ponto de integração
+                      </span>
+                      <p className="m-0 mt-[4px] text-[13.5px] font-semibold leading-[1.5] text-ink-secondary">
+                        {ex.point}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-[8px]">
+                      <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-cherry-dark">
+                        Evento-chave
+                      </span>
+                      <span className="bz-mono rounded-pill border border-pink-200 bg-white px-[12px] py-[5px] text-[11.5px] font-semibold text-cherry-dark">
+                        {ex.event}
+                      </span>
+                    </div>
+                    <div className="rounded-[12px] bg-cream-50 px-[13px] py-[10px]">
+                      <span className="bz-mono text-[10px] font-bold uppercase tracking-[0.06em] text-ink-muted">
+                        O que o utilizador / comerciante vê
+                      </span>
+                      <p className="m-0 mt-[3px] text-[13px] font-semibold leading-[1.5] text-ink-secondary">
+                        {ex.sees}
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <CodeBlock title={`${ex.title.toLowerCase().replace(/ /g, '-')}.ts`} lang="sandbox">
+                <CodeBlock title={`${ex.title.toLowerCase().replace(/[ /]+/g, '-')}.ts`} lang="sandbox">
                   {ex.snippet}
                 </CodeBlock>
               </Reveal>
