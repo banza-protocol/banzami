@@ -11,6 +11,8 @@ import { PaymentFlowDiagram } from '@/components/developers/PaymentFlowDiagram';
 import { WebhookFlowDiagram } from '@/components/developers/WebhookFlowDiagram';
 import { SdkEcosystemDiagram } from '@/components/developers/SdkEcosystemDiagram';
 import { GoingLiveDiagram } from '@/components/developers/GoingLiveDiagram';
+import { DevToc } from '@/components/developers/DevToc';
+import { MiniFlow } from '@/components/developers/MiniFlow';
 
 export const metadata: Metadata = { title: 'Developers' };
 
@@ -154,10 +156,16 @@ const ERROR_CODES: { code: string; desc: string }[] = [
 ];
 
 /* ---------- Examples ---------- */
-const EXAMPLES: { title: string; desc: string; snippet: ReactNode }[] = [
+const EXAMPLES: {
+  title: string;
+  desc: string;
+  flow: [string, string, string];
+  snippet: ReactNode;
+}[] = [
   {
     title: 'Online Checkout',
     desc: 'Crie um pagamento no checkout e confirme pelo webhook payment.confirmed.',
+    flow: ['Criar pagamento', 'Mostrar QR', 'Confirmar'],
     snippet: (
       <>
         <K>const</K> payment = <K>await</K> client.payments.<F>create</F>({'{\n'}
@@ -170,6 +178,7 @@ const EXAMPLES: { title: string; desc: string; snippet: ReactNode }[] = [
   {
     title: 'Merchant QR',
     desc: 'Gere um QR de pagamento para o cliente ler e confirmar na app.',
+    flow: ['Gerar QR', 'Cliente lê', 'Webhook'],
     snippet: (
       <>
         <K>const</K> qr = <K>await</K> client.payments.<F>createQr</F>({'{\n'}
@@ -182,6 +191,7 @@ const EXAMPLES: { title: string; desc: string; snippet: ReactNode }[] = [
   {
     title: 'Wallet Transfer',
     desc: 'Transfira entre carteiras usando um @banza como destinatário.',
+    flow: ['@banza', 'Confirmar', 'Recibo'],
     snippet: (
       <>
         <K>const</K> transfer = <K>await</K> client.transfers.<F>create</F>({'{\n'}
@@ -275,6 +285,9 @@ export default function DevelopersPage() {
           </div>
         </div>
       </section>
+
+      {/* ===================== STICKY IN-PAGE NAV ===================== */}
+      <DevToc />
 
       {/* ===================== 2 · QUICKSTART ===================== */}
       <section id="docs" className="px-6 py-[clamp(64px,9vw,104px)] bg-[linear-gradient(180deg,#fff,#FFF7F6)]">
@@ -380,8 +393,12 @@ export default function DevelopersPage() {
             eyebrow="API REFERENCE"
             title="Referência da API"
             lead="REST, versionada, idempotente e com erros estruturados."
-            className="mb-10 max-w-[680px]"
+            className="mb-4 max-w-[680px]"
           />
+          <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
+            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
+            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+          </p>
           <Reveal className="mb-8 overflow-hidden rounded-card border border-border-soft bg-white shadow-[0_16px_40px_-32px_rgba(181,16,31,.3)]">
             {ENDPOINTS.map((e, i) => (
               <div
@@ -433,8 +450,12 @@ export default function DevelopersPage() {
             eyebrow="SDKS OFICIAIS"
             title="SDKs oficiais"
             lead="O caminho recomendado — clientes tipados sobre o mesmo contrato."
-            className="mb-10 max-w-[680px]"
+            className="mb-4 max-w-[680px]"
           />
+          <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
+            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
+            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+          </p>
           <Reveal className="mb-8 rounded-card border border-border-soft bg-white p-[clamp(24px,4vw,40px)] shadow-[0_30px_70px_-44px_rgba(181,16,31,.35)]">
             <SdkEcosystemDiagram />
           </Reveal>
@@ -466,8 +487,12 @@ export default function DevelopersPage() {
             eyebrow="SANDBOX"
             title="Teste tudo em sandbox"
             lead="Um ambiente simulado e isolado da produção, para integrar sem risco."
-            className="mb-10 max-w-[680px]"
+            className="mb-4 max-w-[680px]"
           />
+          <p className="m-0 mb-8 max-w-[680px] text-[13px] font-semibold leading-[1.55] text-ink-muted">
+            Os exemplos usam nomes e endpoints previstos para integração técnica. A disponibilidade
+            pública dos pacotes e chaves de produção acompanha a ativação da plataforma.
+          </p>
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {SANDBOX_CAPS.map((cap, i) => (
@@ -635,7 +660,7 @@ export default function DevelopersPage() {
                     {ex.desc}
                   </p>
                   <div className="mt-5">
-                    <PaymentFlowDiagram />
+                    <MiniFlow steps={ex.flow} />
                   </div>
                 </div>
                 <CodeBlock title={`${ex.title.toLowerCase().replace(/ /g, '-')}.ts`} lang="sandbox">

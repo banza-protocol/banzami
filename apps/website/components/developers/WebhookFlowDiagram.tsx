@@ -1,11 +1,23 @@
-// Banzami emits events that branch down into → Merchant Backend.
-// Presentational, responsive (events wrap, then a single arrow to the backend).
+// Banzami emits events that fan out into a symmetric 2×2 grid of the four
+// events, then converge down into → Merchant Backend.
+// Presentational, responsive (the 2×2 grid stacks to a single column on mobile).
 
 const EVENTS = ['payment.created', 'payment.confirmed', 'payment.failed', 'payment.refunded'];
 
+function VConnector() {
+  return (
+    <div className="flex h-[26px] items-center justify-center">
+      <svg width="16" height="26" viewBox="0 0 16 26" fill="none" aria-hidden="true">
+        <path d="M8 0v20" stroke="#E8434B" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 4" />
+        <path d="M3.5 15L8 21l4.5-6" stroke="#B5101F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
+
 export function WebhookFlowDiagram() {
   return (
-    <div className="mx-auto flex max-w-[640px] flex-col items-center">
+    <div className="mx-auto flex max-w-[420px] flex-col items-center">
       {/* Source */}
       <div
         className="flex items-center gap-[10px] rounded-card px-[20px] py-[14px] text-white shadow-[0_22px_44px_-26px_rgba(122,16,22,.6)]"
@@ -16,33 +28,21 @@ export function WebhookFlowDiagram() {
         <span className="text-[13px] font-semibold text-pink-200">emite eventos</span>
       </div>
 
-      {/* Branch connectors */}
-      <div className="flex h-[28px] items-center justify-center">
-        <svg width="16" height="28" viewBox="0 0 16 28" fill="none" aria-hidden="true">
-          <path d="M8 0v22" stroke="#E8434B" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 4" />
-          <path d="M3.5 17L8 23l4.5-6" stroke="#B5101F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      <VConnector />
 
-      {/* Event pills */}
-      <div className="flex flex-wrap items-center justify-center gap-2">
+      {/* Symmetric 2×2 grid of events */}
+      <div className="grid w-full grid-cols-1 gap-2 sm:grid-cols-2">
         {EVENTS.map((e) => (
           <span
             key={e}
-            className="bz-mono rounded-pill border border-pink-200 bg-cream-50 px-[13px] py-[8px] text-[12px] font-semibold text-cherry-dark"
+            className="bz-mono flex items-center justify-center rounded-pill border border-pink-200 bg-cream-50 px-[13px] py-[8px] text-center text-[12px] font-semibold text-cherry-dark"
           >
             {e}
           </span>
         ))}
       </div>
 
-      {/* Down to backend */}
-      <div className="flex h-[28px] items-center justify-center">
-        <svg width="16" height="28" viewBox="0 0 16 28" fill="none" aria-hidden="true">
-          <path d="M8 0v22" stroke="#E8434B" strokeWidth="2" strokeLinecap="round" strokeDasharray="2 4" />
-          <path d="M3.5 17L8 23l4.5-6" stroke="#B5101F" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      <VConnector />
 
       {/* Target */}
       <div className="flex items-center gap-[10px] rounded-card border border-border-soft bg-white px-[20px] py-[14px] shadow-[0_16px_40px_-30px_rgba(181,16,31,.3)]">
