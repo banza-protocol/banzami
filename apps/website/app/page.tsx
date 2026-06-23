@@ -122,6 +122,9 @@ export default function HomePage() {
       <SiteHeader />
 
       {/* ===================== HERO ===================== */}
+      {/* Hero + metrics = exactly one viewport (svh). The three Zona Final
+          cards always start below the fold, regardless of screen height. */}
+      <div className="flex min-h-[100svh] flex-col">
       <section id="inicio" className="relative overflow-hidden px-6 pb-0 pt-[72px]">
         <div className="pointer-events-none absolute -right-[120px] -top-[120px] h-[560px] w-[560px] rounded-full bg-[radial-gradient(circle,rgba(251,210,208,.7),rgba(251,210,208,0)_66%)]" />
         <div className="pointer-events-none absolute -left-[160px] top-[240px] h-[420px] w-[420px] rounded-full bg-[radial-gradient(circle,rgba(232,67,75,.12),rgba(232,67,75,0)_66%)]" />
@@ -173,8 +176,8 @@ export default function HomePage() {
             <div className="anim-floaty-5 absolute bottom-14 right-0 h-9 w-9 rounded-[11px] bg-cherry-coral opacity-[0.85]" />
             {/* Demo scaled down so nav + hero + stats fit the first screen.
                 PhoneFrame stays 300×664 (the gallery needs full size). */}
-            <div className="relative" style={{ width: 210, height: 465 }}>
-              <div style={{ transform: 'scale(0.7)', transformOrigin: 'top left' }}>
+            <div className="relative" style={{ width: 228, height: 505 }}>
+              <div style={{ transform: 'scale(0.76)', transformOrigin: 'top left' }}>
                 <AppDemo />
               </div>
             </div>
@@ -203,6 +206,7 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+      </div>
 
       {/* ===================== ZONA FINAL ===================== */}
       <section className="px-6 pb-[18px] pt-2">
