@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { LiveClock } from './LiveClock';
 
 export type FrameName =
   | 'intro'
@@ -593,7 +594,7 @@ export function AppScreen({
             </div>
             <p className="bz-mono flex items-center justify-center" style={{ margin: '9px 0 0', gap: 6, fontSize: 9.5, color: 'rgba(255,255,255,.78)' }}>
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="rgba(255,255,255,.8)" strokeWidth="1.8" strokeLinejoin="round" /></svg>
-              Comprovativo Banzami • 14:30:10
+              Comprovativo Banzami • <LiveClock />
             </p>
           </div>
         </div>
