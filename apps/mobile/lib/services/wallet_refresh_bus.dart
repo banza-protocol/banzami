@@ -6,9 +6,10 @@ import 'package:flutter/foundation.dart';
 /// The ledger is the single source of truth (CLAUDE.md §2.1). We NEVER mutate
 /// the displayed balance locally — a [signal] forces a fresh `getBalance()` /
 /// activity reload, instead of subtracting the paid amount in the UI. This is
-/// what fixes the "stale balance after a successful payment" bug: the payment
-/// screen ([LinkPayScreen]) signals on success, and the home shell ([MainScreen])
-/// listens and recreates the home screen so it re-fetches from the backend.
+/// what fixes the "stale balance after a successful payment" bug: the app
+/// signals on success (e.g. the `BanzamiPaymentLinkScreen.onSuccess` callback),
+/// and the home shell (MainScreen) listens and recreates the home screen so it
+/// re-fetches from the backend.
 class WalletRefreshBus extends ChangeNotifier {
   WalletRefreshBus._();
 

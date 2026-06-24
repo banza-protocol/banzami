@@ -1,22 +1,19 @@
 import 'dart:convert';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
-import 'package:banzami_mobile/screens/link_pay_screen.dart';
-import 'package:banzami_mobile/services/session_service.dart';
 import 'package:banzami_mobile/services/wallet_refresh_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:provider/provider.dart';
 
-// Locks the unified Doa/link payment:
-//   - an active link hands off to the SAME native BanzamiPaymentRequestScreen
-//     (merchant payee + Doa reference instead of a @handle),
-//   - completing the payment and closing the receipt signals a balance refresh
-//     (WalletRefreshBus) — exactly once,
+// Locks the unified payment-link flow (now owned by the SDK):
+//   - BanzamiPaymentLinkScreen resolves the link and hands off to the SAME
+//     native BanzamiPaymentRequestScreen (merchant payee + reference, no @handle),
+//   - completing the payment and closing the receipt fires onSuccess exactly once
+//     (the app wires this to WalletRefreshBus to reload the home balance),
 //   - and the bus → keyed-reload mechanism the home shell relies on still works.
-// We never adjust the displayed balance locally; the home reloads from the API.
+// The app never resolves the link or builds the confirm/receipt itself.
 
 // ---------------------------------------------------------------------------
 // PaymentLink fixtures
@@ -44,33 +41,28 @@ Map<String, dynamic> _usedLink() => <String, dynamic>{
     };
 
 // ---------------------------------------------------------------------------
-// Client / session / wrappers
+// Client / wrappers
 // ---------------------------------------------------------------------------
 
 ConsumerPublicClient _client(http.Client h) =>
     ConsumerPublicClient(baseUrl: 'http://test', httpClient: h)..setToken('tok');
 
-class _FakeSession extends SessionService {
-  @override
-  Session? get session => const Session(
-        consumerId: 'c-1',
-        walletId:   'w-own',
-        handle:     'fm65',
-        token:      'tok',
-      );
-}
-
-Widget _wrapLinkPay(ConsumerPublicClient client, {String slug = 'abc123'}) =>
-    MultiProvider(
-      providers: [
-        Provider<ConsumerPublicClient>.value(value: client),
-        ChangeNotifierProvider<SessionService>(create: (_) => _FakeSession()),
-      ],
-      child: MaterialApp(home: LinkPayScreen(slug: slug)),
+Widget _wrapPaymentLink(
+  ConsumerPublicClient client, {
+  String slug = 'abc123',
+  void Function(Transfer)? onSuccess,
+}) =>
+    MaterialApp(
+      home: BanzamiPaymentLinkScreen(
+        client:    client,
+        slug:      slug,
+        ownHandle: 'fm65',
+        onSuccess: onSuccess ?? (_) {},
+      ),
     );
 
-/// Drives LinkPayScreen → native confirm → tap Pagar (callback invoked directly
-/// to bypass the press-scale) → receipt.
+/// Drives BanzamiPaymentLinkScreen → native confirm → tap Pagar (callback
+/// invoked directly to bypass the press-scale) → receipt.
 Future<void> _loadAndPay(WidgetTester tester) async {
   await tester.pumpAndSettle(); // GET getPaymentLinkBySlug → native confirm
   final pagar = find.byWidgetPredicate((w) =>
@@ -100,20 +92,20 @@ void main() {
     });
   });
 
-  // ── LinkPayScreen unification ────────────────────────────────────────────
-  group('LinkPayScreen (Doa/link payment)', () {
+  // ── BanzamiPaymentLinkScreen (SDK resolver) ──────────────────────────────
+  group('BanzamiPaymentLinkScreen', () {
     testWidgets('B. an active link hands off to the native payment screen',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      await tester.pumpWidget(_wrapLinkPay(_client(
+      await tester.pumpWidget(_wrapPaymentLink(_client(
           _RouteHttpClient(getBody: _activeLink(), postBody: _usedLink()))));
       await tester.pumpAndSettle();
 
       // Same native confirm screen as app-to-app payments…
       expect(find.byType(BanzamiPaymentRequestScreen), findsOneWidget);
-      // …with merchant payee + Doa reference (not a @handle) + Pagar button.
+      // …with merchant payee + reference (not a @handle) + Pagar button.
       expect(find.text('Doa Sandbox'), findsOneWidget);
       expect(find.text('DOA-TEST'), findsOneWidget);
       expect(
@@ -123,30 +115,28 @@ void main() {
       );
     });
 
-    testWidgets('C. completing the payment and closing the receipt signals one refresh',
+    testWidgets('C. completing the payment and closing the receipt fires onSuccess once',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      var signals = 0;
-      void l() => signals++;
-      WalletRefreshBus.instance.addListener(l);
-      addTearDown(() => WalletRefreshBus.instance.removeListener(l));
-
-      await tester.pumpWidget(_wrapLinkPay(_client(
-          _RouteHttpClient(getBody: _activeLink(), postBody: _usedLink()))));
+      var paid = 0;
+      await tester.pumpWidget(_wrapPaymentLink(
+        _client(_RouteHttpClient(getBody: _activeLink(), postBody: _usedLink())),
+        onSuccess: (_) => paid++,
+      ));
       await _loadAndPay(tester);
 
-      // Native receipt is shown for the Doa payment.
+      // Native receipt is shown for the link payment.
       expect(find.text('Enviado com sucesso'), findsOneWidget);
       expect(find.textContaining('para Doa Sandbox'), findsOneWidget);
-      expect(signals, 0, reason: 'refresh fires on receipt close, not on commit');
+      expect(paid, 0, reason: 'onSuccess fires on receipt close, not on commit');
 
-      // Close the receipt → onSuccess → WalletRefreshBus.signal().
+      // Close the receipt → onSuccess (the app wires this to WalletRefreshBus).
       tester.widget<BanzamiPrimaryButton>(
         find.widgetWithText(BanzamiPrimaryButton, 'Concluído')).onPressed!();
       await tester.pump();
-      expect(signals, 1);
+      expect(paid, 1);
     });
   });
 

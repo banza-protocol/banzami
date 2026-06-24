@@ -1,31 +1,55 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../branding_assets.dart';
-import '../config.dart';
-import '../services/session_service.dart';
-import '../services/wallet_refresh_bus.dart';
+import '../client/consumer_public_client.dart';
+import '../models/payment_link.dart';
+import '../models/transfer.dart';
+import '../theme/banzami_theme.dart';
+import '../widgets/banzami_components.dart';
+import 'payment_request_screen.dart';
 
-/// Opened when the app receives a deep link: banzami://pay/link/{slug} or the
-/// Universal Link https://pay.banzami.com/pay/{slug} (a Doa / merchant payment
-/// link).
+/// Resolves a payment link (e.g. a Doa / merchant `pay.banzami.com/pay/<slug>`)
+/// and hands off to the shared payment flow.
 ///
-/// This is a thin resolver: it loads the payment link, then hands off to the
-/// SAME native screens used by app-to-app payments — [BanzamiPaymentRequestScreen]
-/// for confirmation and [BanzamiReceiptScreen] for the comprovativo — so a Doa
-/// payment is visually identical to a native Banzami payment. Only the data
-/// differs (merchant payee + Doa reference instead of a @handle).
-class LinkPayScreen extends StatefulWidget {
+/// This is the SINGLE entry point for paying a payment link from any app. The
+/// host app only opens this screen with a [client] + [ownHandle] and receives
+/// the result through [onSuccess] — it must NOT resolve the link or build the
+/// confirmation/receipt itself. The screen:
+///   1. loads the [PaymentLink] for [slug],
+///   2. shows loading / not-found / used-expired-cancelled states,
+///   3. for an active link, delegates to [BanzamiPaymentRequestScreen]
+///      (confirmation) → [BanzamiReceiptScreen] (comprovativo).
+///
+/// Only the data differs from an app-to-app payment: the payee is a merchant
+/// (no @handle) and the link reference is shown as the subtitle / receipt note.
+class BanzamiPaymentLinkScreen extends StatefulWidget {
+  final ConsumerPublicClient client;
   final String slug;
 
-  const LinkPayScreen({super.key, required this.slug});
+  /// The paying consumer's @handle — shown on the receipt ("De: @…").
+  final String? ownHandle;
+
+  /// Called when the receipt is dismissed after a successful payment. The host
+  /// app uses this to refresh its wallet/home (e.g. signal a balance reload).
+  final void Function(Transfer) onSuccess;
+
+  final bool    isSandbox;
+  final String? logoAssetPath;
+
+  const BanzamiPaymentLinkScreen({
+    super.key,
+    required this.client,
+    required this.slug,
+    this.ownHandle,
+    required this.onSuccess,
+    this.isSandbox = false,
+    this.logoAssetPath,
+  });
 
   @override
-  State<LinkPayScreen> createState() => _LinkPayScreenState();
+  State<BanzamiPaymentLinkScreen> createState() => _BanzamiPaymentLinkScreenState();
 }
 
-class _LinkPayScreenState extends State<LinkPayScreen> {
+class _BanzamiPaymentLinkScreenState extends State<BanzamiPaymentLinkScreen> {
   PaymentLink? _link;
   bool    _loading = true;
   String? _error;
@@ -38,11 +62,12 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 
   Future<void> _load() async {
     try {
-      final client = context.read<ConsumerPublicClient>();
-      final link   = await client.getPaymentLinkBySlug(widget.slug);
+      final link = await widget.client.getPaymentLinkBySlug(widget.slug);
       if (mounted) setState(() { _link = link; _loading = false; });
     } catch (_) {
-      if (mounted) setState(() { _error = 'Link de pagamento não encontrado.'; _loading = false; });
+      if (mounted) {
+        setState(() { _error = 'Link de pagamento não encontrado.'; _loading = false; });
+      }
     }
   }
 
@@ -89,28 +114,22 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
       );
     }
 
-    // Active link → hand off to the native payment screen. The merchant is the
-    // payee (no @handle), and the Doa reference is shown as the subtitle / note.
-    final session = context.read<SessionService>().session;
+    // Active link → shared payment screen. The merchant is the payee (no
+    // @handle); the link reference is the subtitle and the receipt note.
     return BanzamiPaymentRequestScreen(
-      client:               context.read<ConsumerPublicClient>(),
+      client:               widget.client,
       recipientHandle:      link.merchantName ?? link.slug,
       recipientDisplayName: link.merchantName ?? 'Pagamento Banzami',
       recipientSubtitle:    link.description,
       amountMinor:          link.amountMinor,
       currency:             link.currency,
-      // The reference shows once as the subtitle; the receipt still gets it as
-      // its "Nota" from the paid PaymentLink.description, so no note line here.
       locked:               link.amountMinor != null,
-      ownHandle:            session?.handle,
-      // Fired when the receipt is dismissed — reload the home wallet balance
-      // from the backend (never subtract locally). Same WalletRefreshBus the
-      // home shell listens to.
-      onSuccess:            (_) => WalletRefreshBus.instance.signal(),
-      isSandbox:            AppConfig.isSandbox,
+      ownHandle:            widget.ownHandle,
+      onSuccess:            widget.onSuccess,
+      isSandbox:            widget.isSandbox,
       paymentLinkSlug:      link.slug,
       recipientIsHandle:    false,
-      logoAssetPath:        BrandingAssets.icon,
+      logoAssetPath:        widget.logoAssetPath,
     );
   }
 }

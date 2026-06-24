@@ -12,8 +12,9 @@ import 'guards/secure_app_lifecycle_guard.dart';
 import 'services/notification_router.dart';
 import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
+import 'services/wallet_refresh_bus.dart';
+import 'branding_assets.dart';
 import 'screens/splash_screen.dart';
-import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
@@ -224,12 +225,28 @@ class _BanzamiAppState extends State<BanzamiApp> {
       case 'pay':
         // Payment link — https://pay.banzami.com/pay/{slug}; same target as
         // the custom scheme banzami://pay/link/{slug}.
-        if (segs.length >= 2) {
-          _navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => LinkPayScreen(slug: segs[1]),
-          ));
-        }
+        if (segs.length >= 2) _openPaymentLink(segs[1]);
     }
+  }
+
+  /// Open a payment link via the SDK's single resolver. The app only supplies
+  /// the client + session + a balance-refresh callback; the SDK resolves the
+  /// link and owns the confirmation + receipt.
+  void _openPaymentLink(String slug) {
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    final session = ctx.read<SessionService>().session;
+    final client  = ctx.read<ConsumerPublicClient>();
+    _navigatorKey.currentState?.push(MaterialPageRoute(
+      builder: (_) => BanzamiPaymentLinkScreen(
+        client:        client,
+        slug:          slug,
+        ownHandle:     session?.handle,
+        onSuccess:     (_) => WalletRefreshBus.instance.signal(),
+        isSandbox:     AppConfig.isSandbox,
+        logoAssetPath: BrandingAssets.icon,
+      ),
+    ));
   }
 
   void _handleBanzamiScheme(Uri uri) {
@@ -237,9 +254,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // banzami://pay/link/{slug}
     if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
-      _navigatorKey.currentState?.push(MaterialPageRoute(
-        builder: (_) => LinkPayScreen(slug: segs[1]),
-      ));
+      _openPaymentLink(segs[1]);
       return;
     }
 
