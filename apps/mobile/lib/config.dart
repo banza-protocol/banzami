@@ -5,15 +5,16 @@
 ///
 /// Sandbox / TestFlight build:
 ///   flutter build ipa \
-///     --dart-define=PUBLIC_API_URL=https://sandbox-api.banzami.com \
+///     --dart-define=PUBLIC_API_URL=https://sandbox-api.banzami.com/consumer \
 ///     --dart-define=ENVIRONMENT=sandbox
 abstract class AppConfig {
-  /// Public API base URL. Canonical Banzami API host — no dedicated
-  /// `consumer.*` subdomain (the public/consumer API is served under
-  /// api.banzami.com; sandbox is sandbox-api.banzami.com).
+  /// Consumer public API base URL. Served on the single API host under the
+  /// `/consumer` path (no dedicated consumer subdomain): nginx routes
+  /// api.banzami.com/consumer/* → public-api, avoiding /v1/* path collisions
+  /// with the gateway. Sandbox: https://sandbox-api.banzami.com/consumer.
   static const String publicApiUrl = String.fromEnvironment(
     'PUBLIC_API_URL',
-    defaultValue: 'https://api.banzami.com',
+    defaultValue: 'https://api.banzami.com/consumer',
   );
 
   /// Build environment: "sandbox" (TestFlight) or "production" (default).

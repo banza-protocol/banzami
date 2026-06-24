@@ -30,6 +30,11 @@ void main() {
       expect(AppConfig.apiHostIsSandbox('https://api.banzami.com/v1/x'), isFalse);
     });
 
+    test('the /consumer namespace path does not change host classification', () {
+      expect(AppConfig.apiHostIsSandbox('https://sandbox-api.banzami.com/consumer'), isTrue);
+      expect(AppConfig.apiHostIsSandbox('https://api.banzami.com/consumer'), isFalse);
+    });
+
     test('legacy .org host is NOT recognised (no longer a payment/runtime host)', () {
       expect(AppConfig.apiHostIsSandbox('https://sandbox-api.banzami.org'), isNull);
       expect(AppConfig.apiHostIsSandbox('https://staging.banzami.org'), isNull);
