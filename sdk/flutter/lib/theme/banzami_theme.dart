@@ -37,6 +37,13 @@ abstract class BanzamiColors {
   static const Color successBg = Color(0xFFF0FDF4);
   static const Color warning   = Color(0xFF92400E);
   static const Color warningBg = Color(0xFFFFFBEB);
+
+  // Sandbox — amber "test money" surfaces (badges, banners). Centralised here
+  // so the sandbox look is identical across receipt, link-pay and home.
+  static const Color sandboxBg     = Color(0xFFFEF3C7);
+  static const Color sandboxBorder = Color(0xFFF6C453);
+  static const Color sandboxText   = Color(0xFF92400E);
+
   static const Color error     = Color(0xFFDC2626); // clearly distinct from cherry
   static const Color errorBg   = Color(0xFFFEF2F2);
   static const Color info      = Color(0xFF1E3A8A);
@@ -300,6 +307,8 @@ abstract class BanzamiMotion {
   static const Duration slow     = Duration(milliseconds: 380);
   static const Duration enter    = Duration(milliseconds: 300);
   static const Duration exit     = Duration(milliseconds: 220);
+  // Ambient pulse — slow breathing loop for in-progress payment indicators.
+  static const Duration pulse    = Duration(milliseconds: 1500);
 
   // Curves
   static const Curve standard    = Curves.easeInOut;

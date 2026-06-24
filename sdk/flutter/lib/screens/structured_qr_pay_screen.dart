@@ -7,16 +7,7 @@ import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
-
-// ── Design tokens (shared with BanzamiPaymentRequestScreen) ──────────────────
-const _kBgTop = Color(0xFFB5101F);
-const _kBgMid = Color(0xFF9A1B22);
-const _kBgBottom = Color(0xFF2A0005);
-const _kOrbCenter = Color(0x40FFFFFF);
-const _kOrbMid = Color(0x99C21A2C);
-const _kOrbEdge = Color(0xCC5E000A);
-const _kGlowInner = Color(0x73C21A2C);
-const _kGlowOuter = Color(0x33C21A2C);
+import '../widgets/banzami_verified_mark.dart';
 
 /// Premium confirm-and-pay screen for a scanned structured Banzami QR (merchant
 /// static or dynamic). Dynamic QR shows the fixed amount read from the record;
@@ -80,10 +71,10 @@ class _BanzamiStructuredQrPayScreenState
     super.initState();
     _pulseCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: BanzamiMotion.pulse,
     );
     _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _pulseCtrl, curve: BanzamiMotion.standard),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _entered = true);
@@ -206,7 +197,10 @@ class _BanzamiStructuredQrPayScreenState
 
   Widget _buildAmountChip(String amount) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.xl,
+        vertical:   BanzamiSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: BanzamiColors.primary,
         borderRadius: BorderRadius.circular(BanzamiRadius.full),
@@ -365,61 +359,31 @@ class _BanzamiStructuredQrPayScreenState
       width: 118,
       height: 118,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(0, -0.30),
-          colors: [_kOrbCenter, _kOrbMid, _kOrbEdge],
-          stops: [0.0, 0.50, 1.0],
-        ),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.18), width: 1.0),
+        shape:    BoxShape.circle,
+        gradient: BanzamiGradients.primary,
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE8434B).withValues(alpha: 0.48),
+            color: BanzamiColors.primary.withValues(alpha: 0.38),
             blurRadius: 52,
-            spreadRadius: 10,
+            spreadRadius: 6,
           ),
           BoxShadow(
-            color: const Color(0xFFE8434B).withValues(alpha: 0.20),
+            color: BanzamiColors.primaryLight.withValues(alpha: 0.20),
             blurRadius: 88,
-            spreadRadius: 24,
+            spreadRadius: 18,
           ),
         ],
       ),
-      child: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 46),
+      child: const Icon(Icons.arrow_upward_rounded, color: BanzamiColors.white, size: 46),
     );
   }
 
   Widget _buildProgressOverlay() {
     final amount = formatMinor(_amountMinor ?? 0, widget.currency);
-    return Stack(
-      children: [
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [_kBgTop, _kBgMid, _kBgBottom],
-              stops: [0.0, 0.60, 1.0],
-            ),
-          ),
-        ),
-        Positioned(
-          top: -120, left: -60, right: -60,
-          child: Center(
-            child: Container(
-              width: 520,
-              height: 520,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [_kGlowInner, _kGlowOuter, Colors.transparent],
-                  stops: [0.0, 0.45, 1.0],
-                ),
-              ),
-            ),
-          ),
-        ),
-        SafeArea(
+    return Positioned.fill(
+      child: ColoredBox(
+        color: BanzamiColors.offWhite,
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
             child: Column(
@@ -427,29 +391,28 @@ class _BanzamiStructuredQrPayScreenState
               children: [
                 const Spacer(),
                 ScaleTransition(scale: _pulseScale, child: _buildOrb()),
-                const SizedBox(height: 44),
+                const SizedBox(height: BanzamiSpacing.xxl + BanzamiSpacing.md),
                 Text(
                   'A pagar...',
                   style: BanzamiTextStyles.bodyLg.copyWith(
-                    color: Colors.white.withValues(alpha: 0.72),
+                    color: BanzamiColors.gray600,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: BanzamiSpacing.xl),
                 Text(
                   amount,
                   style: BanzamiTextStyles.monoLg.copyWith(
-                    color: Colors.white,
+                    color: BanzamiColors.gray900,
                     fontSize: 38,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: BanzamiSpacing.sm),
                 Text(
                   _ownerLabel,
                   style: BanzamiTextStyles.bodyMd.copyWith(
-                    color: Colors.white.withValues(alpha: 0.58),
-                    fontSize: 15,
+                    color: BanzamiColors.gray400,
                   ),
                 ),
                 const Spacer(),
@@ -458,7 +421,7 @@ class _BanzamiStructuredQrPayScreenState
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
@@ -472,16 +435,7 @@ class _BanzamiStructuredQrPayScreenState
         child: Column(
           children: [
             const Spacer(),
-            Container(
-              width: 96,
-              height: 96,
-              decoration: const BoxDecoration(
-                gradient: BanzamiGradients.primary,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.check_rounded,
-                  color: BanzamiColors.white, size: 52),
-            ),
+            const BanzamiVerifiedMark(size: 96, onLight: true),
             const SizedBox(height: BanzamiSpacing.xl),
             Text('Pagamento concluído',
                 style: BanzamiTextStyles.headingSm.copyWith(

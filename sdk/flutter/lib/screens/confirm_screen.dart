@@ -9,24 +9,6 @@ import '../utils/money_format.dart';
 import '../widgets/banzami_components.dart';
 import 'receipt_screen.dart';
 
-// ── Local design tokens ───────────────────────────────────────────────────────
-
-const _kCardRadius = 28.0;
-const _kCardBR     = BorderRadius.all(Radius.circular(_kCardRadius));
-const _kBadgeBg    = Color(0x14990011); // primary 8 %
-const _kDotColor   = BanzamiColors.primary;
-
-// ── Transfer-progress overlay colours ─────────────────────────────────────────
-
-const _kOrbCenter  = Color(0x40FFFFFF); // white 25 %
-const _kOrbMid     = Color(0x99C21A2C); // cherry 60 %
-const _kOrbEdge    = Color(0xCC5E000A); // deep-shadow 80 %
-const _kGlowInner  = Color(0x73C21A2C); // cherry glow inner 45 %
-const _kGlowOuter  = Color(0x33C21A2C); // cherry glow outer 20 %
-const _kBgTop      = Color(0xFFB5101F);
-const _kBgMid      = Color(0xFF9A1B22);
-const _kBgBottom   = Color(0xFF2A0005);
-
 // ---------------------------------------------------------------------------
 // BanzamiConfirmScreen
 // ---------------------------------------------------------------------------
@@ -83,10 +65,10 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
     super.initState();
     _pulseCtrl = AnimationController(
       vsync:    this,
-      duration: const Duration(milliseconds: 1500),
+      duration: BanzamiMotion.pulse,
     );
     _pulseScale = Tween<double>(begin: 0.96, end: 1.04).animate(
-      CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _pulseCtrl, curve: BanzamiMotion.standard),
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() => _entered = true);
@@ -159,7 +141,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
   Widget _recipientCard(String initial, String? displayName, String handle) {
     return BanzamiCard(
-      borderRadius: _kCardBR,
       shadow:       BanzamiShadows.cardElevated,
       padding:      const EdgeInsets.all(BanzamiSpacing.xl),
       child: Row(
@@ -218,7 +199,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                 const SizedBox(height: 10),
                 DecoratedBox(
                   decoration: BoxDecoration(
-                    color:        _kBadgeBg,
+                    color:        BanzamiColors.primary.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(BanzamiRadius.full),
                   ),
                   child: Padding(
@@ -230,7 +211,7 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                           width:  5,
                           height: 5,
                           decoration: const BoxDecoration(
-                            color: _kDotColor,
+                            color: BanzamiColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -258,7 +239,6 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
   Widget _amountCard(String amount, String? note) {
     final hasNote = note != null && note.isNotEmpty;
     return BanzamiCard(
-      borderRadius: _kCardBR,
       shadow:       BanzamiShadows.cardElevated,
       padding: const EdgeInsets.symmetric(
         horizontal: BanzamiSpacing.xl,
@@ -300,43 +280,13 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
   // ── Transfer-progress overlay ──────────────────────────────────────────────
 
+  // Light/premium in-progress state — same offWhite surface as the rest of the
+  // app. The cherry orb pulses while the transfer posts; no dark immersive theme.
   Widget _buildProgressOverlay(String amount, String handle) {
-    return Stack(
-      children: [
-        // Deep cherry gradient — fills entire screen when AppBar is null.
-        Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin:  Alignment.topCenter,
-              end:    Alignment.bottomCenter,
-              colors: [_kBgTop, _kBgMid, _kBgBottom],
-              stops:  [0.0, 0.60, 1.0],
-            ),
-          ),
-        ),
-
-        // Radial ambient glow (top-centre, large, static — cheap).
-        Positioned(
-          top:   -120,
-          left:  -60,
-          right: -60,
-          child: Center(
-            child: Container(
-              width:  520,
-              height: 520,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [_kGlowInner, _kGlowOuter, Colors.transparent],
-                  stops:  [0.0,         0.45,         1.0],
-                ),
-              ),
-            ),
-          ),
-        ),
-
-        // Content — full-screen column with safe area.
-        SafeArea(
+    return Positioned.fill(
+      child: ColoredBox(
+        color: BanzamiColors.offWhite,
+        child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
             child: Column(
@@ -350,116 +300,77 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
                   scale: _pulseScale,
                   child: _buildOrb(),
                 ),
-                const SizedBox(height: 44),
+                const SizedBox(height: BanzamiSpacing.xxl + BanzamiSpacing.md),
 
                 // ── Status text ──────────────────────────────────────────────
                 Text(
                   'A enviar dinheiro...',
                   style: BanzamiTextStyles.bodyLg.copyWith(
-                    color:      Colors.white.withValues(alpha: 0.72),
+                    color:      BanzamiColors.gray600,
                     fontWeight: FontWeight.w500,
                     height:     1.5,
                   ),
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: BanzamiSpacing.xl),
 
                 // ── Amount ───────────────────────────────────────────────────
                 Text(
                   amount,
                   style: BanzamiTextStyles.monoLg.copyWith(
-                    color:      Colors.white,
+                    color:      BanzamiColors.gray900,
                     fontSize:   38,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: BanzamiSpacing.sm),
 
                 // ── Recipient ────────────────────────────────────────────────
                 Text(
                   'para @$handle',
                   style: BanzamiTextStyles.bodyMd.copyWith(
-                    color:      Colors.white.withValues(alpha: 0.58),
+                    color:      BanzamiColors.gray400,
                     fontWeight: FontWeight.w400,
-                    fontSize:   15,
                   ),
                 ),
                 const Spacer(),
 
                 // ── Cancel button (disabled — request already dispatched) ────
-                _buildCancelButton(),
+                const BanzamiSecondaryButton(label: 'Cancelar', onPressed: null),
                 const SizedBox(height: BanzamiSpacing.xl),
               ],
             ),
           ),
         ),
-      ],
+      ),
     );
   }
 
+  // Cherry orb on the light surface — same primary gradient as the home
+  // balance card / avatars, with a soft cherry glow.
   Widget _buildOrb() {
     return Container(
       width:  118,
       height: 118,
       decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        gradient: const RadialGradient(
-          center: Alignment(0, -0.30),
-          colors: [_kOrbCenter, _kOrbMid, _kOrbEdge],
-          stops:  [0.0,          0.50,     1.0],
-        ),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.18),
-          width: 1.0,
-        ),
+        shape:    BoxShape.circle,
+        gradient: BanzamiGradients.primary,
         boxShadow: [
           BoxShadow(
-            color:        const Color(0xFFE8434B).withValues(alpha: 0.48),
+            color:        BanzamiColors.primary.withValues(alpha: 0.38),
             blurRadius:   52,
-            spreadRadius: 10,
+            spreadRadius: 6,
           ),
           BoxShadow(
-            color:        const Color(0xFFE8434B).withValues(alpha: 0.20),
+            color:        BanzamiColors.primaryLight.withValues(alpha: 0.20),
             blurRadius:   88,
-            spreadRadius: 24,
+            spreadRadius: 18,
           ),
         ],
       ),
       child: const Icon(
         Icons.arrow_upward_rounded,
-        color: Colors.white,
+        color: BanzamiColors.white,
         size:  46,
-      ),
-    );
-  }
-
-  Widget _buildCancelButton() {
-    return Container(
-      width:  double.infinity,
-      height: 52,
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.20),
-          width: 1.0,
-        ),
-        borderRadius: BorderRadius.circular(BanzamiRadius.field),
-      ),
-      child: TextButton(
-        // Always disabled: by the time this overlay is visible, the
-        // HTTP request is already in-flight. Cancellation is not possible.
-        onPressed: null,
-        style: TextButton.styleFrom(
-          disabledForegroundColor: Colors.white.withValues(alpha: 0.42),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(BanzamiRadius.field),
-          ),
-        ),
-        child: Text(
-          'Cancelar',
-          style: BanzamiTextStyles.bodyMd.copyWith(
-            fontSize:   15,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
       ),
     );
   }
