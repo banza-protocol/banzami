@@ -885,6 +885,9 @@ class _SandboxFundPanel extends StatefulWidget {
 
 class _SandboxFundPanelState extends State<_SandboxFundPanel> {
   bool _loading  = false;
+  // Sandbox funding is a test convenience, not a primary wallet action — so the
+  // panel starts collapsed as a discreet bar and expands on tap.
+  bool _expanded = false;
   int  _amountKz = 10000;
 
   static const int _step  = 1000;
@@ -905,6 +908,9 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
       final result = await widget.client.sandboxFund(amountMinor: _amountKz * 100);
       if (!mounted) return;
       widget.onFunded();
+      // Collapse back to the discreet bar after a successful top-up; the toast
+      // is the brief feedback and the balance refreshes via onFunded → _load.
+      setState(() => _expanded = false);
       BanzamiToast.showSuccess(
         context,
         '${_fmtKz(result.creditedMinor ~/ 100)} adicionados à carteira sandbox',
@@ -944,50 +950,76 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
 
-            // ── Header ──────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-              child: Row(
-                children: [
-                  Container(
-                    width: 30, height: 30,
-                    decoration: const BoxDecoration(
-                      color:        Color(0xFFFDE68A),
-                      borderRadius: BorderRadius.all(Radius.circular(8)),
-                    ),
-                    child: const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
-                  ),
-                  const SizedBox(width: 10),
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Adicionar dinheiro de teste',
-                          style: TextStyle(
-                            fontSize:   12,
-                            fontWeight: FontWeight.w700,
-                            color:      Color(0xFF78350F),
-                            height:     1.2,
-                          ),
+            // ── Header (tappable toggle) ────────────────────────────────
+            Material(
+              type: MaterialType.transparency,
+              child: InkWell(
+                onTap: () => setState(() => _expanded = !_expanded),
+                borderRadius: const BorderRadius.all(Radius.circular(22)),
+                child: Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, _expanded ? 0 : 14),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 30, height: 30,
+                        decoration: const BoxDecoration(
+                          color:        Color(0xFFFDE68A),
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
                         ),
-                        SizedBox(height: 1),
-                        Text(
-                          'Crédito instantâneo sandbox',
-                          style: TextStyle(
-                            fontSize:   10,
-                            fontWeight: FontWeight.w400,
-                            color:      Color(0xFFB45309),
-                            height:     1.3,
-                          ),
+                        child: const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Adicionar dinheiro de teste',
+                              style: TextStyle(
+                                fontSize:   12,
+                                fontWeight: FontWeight.w700,
+                                color:      Color(0xFF78350F),
+                                height:     1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 1),
+                            Text(
+                              _expanded
+                                  ? 'Crédito instantâneo sandbox'
+                                  : 'Toque para adicionar dinheiro de teste',
+                              style: const TextStyle(
+                                fontSize:   10,
+                                fontWeight: FontWeight.w400,
+                                color:      Color(0xFFB45309),
+                                height:     1.3,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      AnimatedRotation(
+                        turns:    _expanded ? 0.5 : 0.0,
+                        duration: BanzamiMotion.normal,
+                        curve:    BanzamiMotion.standard,
+                        child: const Icon(Icons.expand_more_rounded,
+                            size: 20, color: Color(0xFFD97706)),
+                      ),
+                    ],
                   ),
-                  const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFFD97706)),
-                ],
+                ),
               ),
             ),
+
+            // ── Collapsible body ────────────────────────────────────────
+            AnimatedSize(
+              duration:  BanzamiMotion.normal,
+              curve:     BanzamiMotion.standard,
+              alignment: Alignment.topCenter,
+              child: !_expanded
+                  ? const SizedBox(width: double.infinity)
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
 
             // ── Amount selector ──────────────────────────────────────────
             Padding(
@@ -1083,6 +1115,9 @@ class _SandboxFundPanelState extends State<_SandboxFundPanel> {
                       ),
                     )
                   : _SandboxFundButton(onTap: _fund),
+            ),
+                      ],
+                    ),
             ),
           ],
         ),
