@@ -356,6 +356,29 @@ describe('paymentLinkQr (pure)', () => {
     const custom = new BanzamiClient({ apiKey: 'bz_test_x', payBaseUrl: 'https://pay.sandbox.example/' });
     expect(custom.paymentLinkQr(LINK).qrValue).toBe('https://pay.sandbox.example/pay/abc123');
   });
+
+  // Domain canonicalization guards: payment URLs MUST use pay.banzami.com and
+  // the canonical /pay/<slug> path, and MUST NEVER use banzami.org (reserved
+  // for the BANZA protocol).
+  it('emits the canonical /pay/<slug> path', () => {
+    const qr = client.paymentLinkQr(LINK);
+    expect(qr.qrValue).toBe('https://pay.banzami.com/pay/abc123');
+    expect(qr.qrValue).toContain('/pay/');
+    expect(qr.paymentUrl).toBe(qr.qrValue);
+  });
+
+  it('never emits a banzami.org payment URL (live or sandbox)', () => {
+    expect(client.paymentLinkQr(LINK).qrValue).not.toContain('banzami.org');
+    const sandbox = new BanzamiClient({ apiKey: 'bz_test_x' });
+    expect(sandbox.paymentLinkQr(LINK).qrValue).not.toContain('banzami.org');
+  });
+
+  it('defaults to the pay.banzami.com host in both environments', () => {
+    expect(new BanzamiClient({ apiKey: 'bz_live_x' }).paymentLinkQr(LINK).qrValue)
+      .toContain('https://pay.banzami.com/');
+    expect(new BanzamiClient({ apiKey: 'bz_test_x' }).paymentLinkQr(LINK).qrValue)
+      .toContain('https://pay.banzami.com/');
+  });
 });
 
 describe('getPaymentLinkQr (fetch + derive)', () => {
