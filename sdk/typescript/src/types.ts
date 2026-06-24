@@ -202,6 +202,39 @@ export interface PaymentLink {
   updated_at:   string;
 }
 
+/**
+ * The official, renderable QR payload for a payment link — derived by the
+ * SDK so the payload format stays owned by Banzami. `qrValue` is the
+ * canonical, scannable value: encode it into a QR image as-is. Consumers
+ * must NOT construct this value themselves; always obtain it from the SDK.
+ */
+export interface PaymentQr {
+  /** Official QR payload — encode this exact string into the QR image. */
+  qrValue:          string;
+  /** Canonical Banzami pay URL the QR resolves to (same as `qrValue`). */
+  paymentUrl:       string;
+  /** Payment link slug. */
+  slug:             string;
+  /** Payment link id. */
+  paymentLinkId:    string;
+  /** Amount in minor units, or null for open-amount links. */
+  amountMinor:      number | null;
+  /** ISO currency code (e.g. 'AOA'). */
+  currency:         string;
+  /** Link description, if any. */
+  description:      string | null;
+  /** Recipient display name, when known to the caller. */
+  recipientName:    string | null;
+  /** Recipient @banza handle, when known to the caller. */
+  recipientHandle:  string | null;
+  /** Environment the link belongs to. */
+  environment:      BanzamiEnvironment;
+  /** Convenience flag — true in sandbox. */
+  isSandbox:        boolean;
+  /** Current payment link status. */
+  status:           PaymentLinkStatus;
+}
+
 // ---------------------------------------------------------------------------
 // Refunds
 // ---------------------------------------------------------------------------

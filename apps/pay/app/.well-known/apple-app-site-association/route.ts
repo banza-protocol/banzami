@@ -6,22 +6,23 @@ import { NextResponse } from 'next/server';
 // Requirements: no redirect, Content-Type: application/json, served over HTTPS.
 //
 // Format: v2 (iOS 13+, macOS 10.15+).
-// appIDs: <TEAM_ID>.<BUNDLE_ID>
-//   Live:    W22UFWBATJ.com.banza.consumer
-//   Sandbox: W22UFWBATJ.com.banza.consumer.sandbox
+// appIDs: <TEAM_ID>.<BUNDLE_ID> — MUST match the app's PRODUCT_BUNDLE_IDENTIFIER
+// (apps/mobile/ios/Runner.xcodeproj → com.banzami.consumer). There is no
+// separate sandbox bundle id: sandbox is a runtime --dart-define on the same
+// bundle, so no `.sandbox` appID is listed.
+//   App ID: W22UFWBATJ.com.banzami.consumer
 
 const AASA = {
   applinks: {
     details: [
       {
         appIDs: [
-          'W22UFWBATJ.com.banza.consumer',
-          'W22UFWBATJ.com.banza.consumer.sandbox',
+          'W22UFWBATJ.com.banzami.consumer',
         ],
         components: [
-          { '/': '/r/*',   comment: 'Consumer pay-request links' },
-          { '/': '/pay/*', comment: 'Payment confirmation paths' },
-          { '/': '/u/*',   comment: 'Handle-based pay links' },
+          { '/': '/pay/*', comment: 'Payment links (canonical) — /pay/<slug>' },
+          { '/': '/r/*',   comment: 'Consumer pay-request links — /r/<code>' },
+          { '/': '/u/*',   comment: 'Handle-based pay links — /u/<handle>' },
         ],
       },
     ],

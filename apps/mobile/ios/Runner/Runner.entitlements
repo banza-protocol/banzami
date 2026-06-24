@@ -6,7 +6,7 @@
 	<string>production</string>
 	<key>com.apple.developer.associated-domains</key>
 	<array>
-		<string>applinks:pay.banzami.org</string>
+		<string>applinks:pay.banzami.com</string>
 	</array>
 </dict>
 </plist>

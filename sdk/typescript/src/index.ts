@@ -44,6 +44,7 @@ export type {
   NewApiKey,
   PaymentLink,
   PaymentLinkStatus,
+  PaymentQr,
   WebhookEndpoint,
   WebhookEndpointStatus,
   WebhookEvent,

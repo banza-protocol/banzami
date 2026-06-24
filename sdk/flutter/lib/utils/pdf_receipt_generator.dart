@@ -58,7 +58,7 @@ class BanzamiPdfReceiptGenerator {
     final doc = pw.Document(
       author:  'Banzami',
       title:   'Comprovativo Banzami · Ref $ref8',
-      creator: 'Banzami — banzami.org',
+      creator: 'Banzami — banzami.com',
       theme:   pw.ThemeData.withFont(base: fontReg, bold: fontBold),
     );
 
@@ -458,7 +458,7 @@ class BanzamiPdfReceiptGenerator {
         pw.SizedBox(height: 2),
         pw.Center(
           child: pw.Text(
-            'Ref $ref8  •  banzami.org',
+            'Ref $ref8  •  banzami.com',
             style: reg.copyWith(color: _kGray400, fontSize: 8),
           ),
         ),

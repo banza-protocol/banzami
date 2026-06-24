@@ -258,7 +258,7 @@ const link = await client.createPaymentLink({
 
 console.log(link.slug);    // e.g. "abc123"
 console.log(link.status);  // "ACTIVE"
-// Share: https://pay.banzami.com/abc123
+// Share: https://pay.banzami.com/pay/abc123
 ```
 
 ### Open link (consumer sets amount)
@@ -292,6 +292,40 @@ if (link.status !== 'ACTIVE') throw new Error('Link is no longer active');
 // Poll for payment confirmation
 const { paid } = await client.getPaymentLinkStatus('abc123');
 ```
+
+---
+
+## Payment QR
+
+The **official, renderable QR payload** for a payment link is owned by the SDK —
+never build it yourself. `qrValue` is the canonical, scannable value (the Banzami
+pay URL); encode it into a QR image as-is. Because the payload is produced here,
+its format can evolve without every integration changing.
+
+```typescript
+// You already hold the PaymentLink (e.g. from createPaymentLink) — derive
+// the QR payload with no extra network call:
+const link = await client.createPaymentLink({ merchantId, walletId, amountMinor: 150_000 });
+
+const qr = client.paymentLinkQr(link, {
+  recipientHandle: '@fm65',         // optional — the gateway doesn't return it
+  recipientName:   'Fidel Monteiro',
+});
+
+qr.qrValue;          // "https://pay.banzami.com/pay/abc123"  ← encode this into the QR
+qr.paymentUrl;       // same canonical pay URL
+qr.amountMinor;      // 150000
+qr.currency;         // "AOA"
+qr.isSandbox;        // true in sandbox
+qr.status;           // "ACTIVE"
+
+// Or fetch by id (JWT-authenticated) and derive in one call:
+const qr2 = await client.getPaymentLinkQr('plink_123', { recipientHandle: '@fm65' });
+```
+
+The pay-page host defaults to `https://pay.banzami.com`; override with the
+`payBaseUrl` client option if needed. **Encoding the returned `qrValue` is the
+only step that belongs to your app — the payload itself comes from the SDK.**
 
 ---
 

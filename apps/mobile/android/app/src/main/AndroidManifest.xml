@@ -49,16 +49,18 @@
                 <category android:name="android.intent.category.BROWSABLE"/>
                 <data android:scheme="banzami" android:host="pay"/>
             </intent-filter>
-            <!-- Android App Links: https://pay.banzami.org/r/* /pay/* /u/*
+            <!-- Android App Links: https://pay.banzami.com/pay/* /r/* /u/*
+                 (.com is the canonical Banzami payment host; .org is reserved
+                 for the BANZA protocol and is NOT a payment host).
                  autoVerify triggers verification against /.well-known/assetlinks.json
                  at install time. Verified links open directly without a chooser. -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW"/>
                 <category android:name="android.intent.category.DEFAULT"/>
                 <category android:name="android.intent.category.BROWSABLE"/>
-                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/r/"/>
-                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/pay/"/>
-                <data android:scheme="https" android:host="pay.banzami.org" android:pathPrefix="/u/"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/pay/"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/r/"/>
+                <data android:scheme="https" android:host="pay.banzami.com" android:pathPrefix="/u/"/>
             </intent-filter>
         </activity>
         <!-- Firebase Cloud Messaging — notification icon and brand colour -->
