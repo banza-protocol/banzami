@@ -24,11 +24,11 @@ flutter run --flavor consumer -t lib/main_consumer.dart \
 
 # Produção
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com --debug
+  --dart-define=PUBLIC_API_URL=https://api.banzami.com/consumer --debug
 
 # Staging (sandbox)
 flutter run --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
+  --dart-define=PUBLIC_API_URL=https://sandbox-api.banzami.com/consumer \
   --dart-define=ENVIRONMENT=sandbox --debug
 ```
 
@@ -52,7 +52,7 @@ cd ios && pod install && cd ..
 
 # Consumer app
 flutter build ipa --flavor consumer -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://consumer.banzami.com \
+  --dart-define=PUBLIC_API_URL=https://api.banzami.com/consumer \
   --dart-define=PAY_BASE_URL=https://pay.banzami.com \
   --export-options-plist=ios/ExportOptions.plist
 
@@ -75,7 +75,7 @@ Constrói o IPA sandbox (sem mutação de ícones — flavor `consumer_sandbox` 
 
 ```bash
 flutter build ipa --flavor consumer_sandbox -t lib/main_consumer.dart \
-  --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
+  --dart-define=PUBLIC_API_URL=https://sandbox-api.banzami.com/consumer \
   --dart-define=ENVIRONMENT=sandbox \
   --export-options-plist=ios/ExportOptions.plist
 ```
