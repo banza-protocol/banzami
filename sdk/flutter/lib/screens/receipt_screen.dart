@@ -317,178 +317,199 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     final note = (t.note?.isNotEmpty == true) ? t.note! : 'Sem descrição';
     final timeStr = DateFormat('HH:mm:ss').format(_liveTime);
 
-    return BanzamiScaffold(
+    return Scaffold(
+      backgroundColor:          BanzamiColors.primaryDark,
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // ── Light premium content ──────────────────────────────────────
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fade,
-              child: Column(
-                children: [
-                  // ── Top bar ────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: BanzamiSpacing.lg,
-                      vertical:   4,
-                    ),
-                    child: Row(children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: BanzamiColors.gray400,
-                          size:  24,
-                        ),
-                        onPressed: _done,
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Comprovativo',
-                        style: BanzamiTextStyles.headingSm.copyWith(
-                          color: BanzamiColors.gray700,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 48),
-                    ]),
-                  ),
-
-                  // ── Scrollable content ─────────────────────────────────
-                  Expanded(
-                    child: SingleChildScrollView(
+          // ── Immersive cherry "success moment" — the receipt is a reward ──
+          Container(
+            width:  double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin:  Alignment.topCenter,
+                end:    Alignment.bottomCenter,
+                colors: [
+                  BanzamiColors.primaryLight,
+                  BanzamiColors.primary,
+                  BanzamiColors.primaryMid,
+                  BanzamiColors.primaryDark,
+                ],
+                stops:  [0.0, 0.35, 0.65, 1.0],
+              ),
+            ),
+            child: SafeArea(
+              child: FadeTransition(
+                opacity: _fade,
+                child: Column(
+                  children: [
+                    // ── Top bar ────────────────────────────────────────────
+                    Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: BanzamiSpacing.xl,
+                        horizontal: BanzamiSpacing.lg,
+                        vertical:   4,
                       ),
-                      child: Column(children: [
-                        const SizedBox(height: BanzamiSpacing.sm),
-
-                        // Verified mark with rotating dashed ring (on light bg)
-                        ScaleTransition(
-                          scale: _markScale,
-                          child: const BanzamiVerifiedMark(size: 96, onLight: true),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        Text(
-                          'Enviado com sucesso',
-                          style: BanzamiTextStyles.headingSm.copyWith(
-                            color:      BanzamiColors.gray900,
-                            fontWeight: FontWeight.w700,
+                      child: Row(children: [
+                        IconButton(
+                          icon: Icon(
+                            Icons.close_rounded,
+                            color: BanzamiColors.white.withValues(alpha: 0.55),
+                            size:  24,
                           ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
-
-                        Text(
-                          _amount,
-                          style: BanzamiTextStyles.monoLg.copyWith(
-                            color: BanzamiColors.gray900,
-                          ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
-
-                        Text(
-                          'para $_recipientLabel',
-                          style: BanzamiTextStyles.bodyMd.copyWith(
-                            color: BanzamiColors.gray400,
-                          ),
-                        ),
-
-                        if (widget.isSandbox) ...[
-                          const SizedBox(height: BanzamiSpacing.md),
-                          const BanzamiSandboxBadge(
-                            label: 'SANDBOX  •  Dinheiro de teste',
-                          ),
-                        ],
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Detail card ────────────────────────────────
-                        BanzamiCard(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: BanzamiSpacing.lg,
-                            vertical:   BanzamiSpacing.sm,
-                          ),
-                          child: Column(children: [
-                            _DetailRow(label: 'De',     value: '@$_from'),
-                            _DetailRow(label: 'Para',   value: _recipientLabel),
-                            _DetailRow(label: 'Nota',   value: note),
-                            _DetailRow(label: 'Data',   value: _dateLong),
-                            _DetailRow(label: 'Ref',    value: _ref),
-                            const _DetailRow(
-                              label:  'Método',
-                              value:  'Saldo Banzami',
-                              isLast: true,
-                            ),
-                          ]),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Concluído ──────────────────────────────────
-                        BanzamiPrimaryButton(
-                          label:    'Concluído',
-                          icon:     Icons.check_rounded,
                           onPressed: _done,
                         ),
-
-                        const SizedBox(height: BanzamiSpacing.sm),
-
-                        // ── Partilhar comprovativo ─────────────────────
-                        SizedBox(
-                          key: _shareKey,
-                          child: BanzamiSecondaryButton(
-                            label:     'Partilhar comprovativo',
-                            onPressed: _share,
-                          ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Footer — live timestamp + security notice ──
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.shield_outlined,
-                              size:  13,
-                              color: BanzamiColors.gray400,
-                            ),
-                            const SizedBox(width: 5),
-                            Flexible(
-                              child: Text(
-                                'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
-                                style: BanzamiTextStyles.bodySm.copyWith(
-                                  color:    BanzamiColors.gray400,
-                                  fontSize: 11.5,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
+                        const Spacer(),
                         Text(
-                          widget.isSandbox
-                              ? 'Comprovativo sandbox  •  sem valor financeiro real'
-                              : 'Comprovativo válido apenas no ecrã vivo da app',
-                          style: BanzamiTextStyles.bodySm.copyWith(
-                            color: widget.isSandbox
-                                ? BanzamiColors.sandboxText.withValues(alpha: 0.85)
-                                : BanzamiColors.gray400,
-                            fontSize: 11,
+                          'Comprovativo',
+                          style: BanzamiTextStyles.headingSm.copyWith(
+                            color: BanzamiColors.white.withValues(alpha: 0.75),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
+                        const Spacer(),
+                        const SizedBox(width: 48),
                       ]),
                     ),
-                  ),
-                ],
+
+                    // ── Scrollable content ─────────────────────────────────
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: BanzamiSpacing.xl,
+                        ),
+                        child: Column(children: [
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // Premium verified mark (white ring/label on cherry)
+                          ScaleTransition(
+                            scale: _markScale,
+                            child: const BanzamiVerifiedMark(size: 96),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.md),
+
+                          Text(
+                            'Enviado com sucesso',
+                            style: BanzamiTextStyles.headingSm.copyWith(
+                              color: BanzamiColors.white.withValues(alpha: 0.80),
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+
+                          Text(
+                            _amount,
+                            style: BanzamiTextStyles.monoLg.copyWith(
+                              color: BanzamiColors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+
+                          Text(
+                            'para $_recipientLabel',
+                            style: BanzamiTextStyles.bodyMd.copyWith(
+                              color: BanzamiColors.white.withValues(alpha: 0.60),
+                            ),
+                          ),
+
+                          if (widget.isSandbox) ...[
+                            const SizedBox(height: BanzamiSpacing.sm),
+                            const BanzamiSandboxBadge(
+                              label: 'SANDBOX  •  Dinheiro de teste',
+                            ),
+                          ],
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Translucent detail card ────────────────────
+                          BanzamiGlassCard(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: BanzamiSpacing.lg,
+                              vertical:   BanzamiSpacing.sm,
+                            ),
+                            child: Column(children: [
+                              _DetailRow(label: 'De',     value: '@$_from'),
+                              _DetailRow(label: 'Para',   value: _recipientLabel),
+                              _DetailRow(label: 'Nota',   value: note),
+                              _DetailRow(label: 'Data',   value: _dateLong),
+                              _DetailRow(label: 'Ref',    value: _ref),
+                              const _DetailRow(
+                                label:  'Método',
+                                value:  'Saldo Banzami',
+                                isLast: true,
+                              ),
+                            ]),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.md),
+
+                          // ── Concluído (white on cherry) ────────────────
+                          BanzamiPrimaryButton(
+                            label:           'Concluído',
+                            icon:            Icons.check_rounded,
+                            backgroundColor: BanzamiColors.white,
+                            foregroundColor: BanzamiColors.primary,
+                            onPressed:       _done,
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Partilhar comprovativo (white outline) ─────
+                          SizedBox(
+                            key: _shareKey,
+                            child: BanzamiSecondaryButton(
+                              label:           'Partilhar comprovativo',
+                              foregroundColor: BanzamiColors.white,
+                              borderColor:     BanzamiColors.white.withValues(alpha: 0.40),
+                              onPressed:       _share,
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Footer — live timestamp + security notice ──
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size:  13,
+                                color: BanzamiColors.white.withValues(alpha: 0.48),
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
+                                  style: BanzamiTextStyles.bodySm.copyWith(
+                                    color:    BanzamiColors.white.withValues(alpha: 0.55),
+                                    fontSize: 11.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.isSandbox
+                                ? 'Comprovativo sandbox  •  sem valor financeiro real'
+                                : 'Comprovativo válido apenas no ecrã vivo da app',
+                            style: BanzamiTextStyles.bodySm.copyWith(
+                              color: widget.isSandbox
+                                  ? BanzamiColors.sandboxBorder
+                                  : BanzamiColors.white.withValues(alpha: 0.38),
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -529,7 +550,7 @@ class _DetailRow extends StatelessWidget {
             Text(
               label,
               style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.gray400,
+                color: BanzamiColors.white.withValues(alpha: 0.55),
               ),
             ),
             const SizedBox(width: BanzamiSpacing.md),
@@ -538,7 +559,7 @@ class _DetailRow extends StatelessWidget {
                 value,
                 style: BanzamiTextStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
-                  color:      BanzamiColors.gray900,
+                  color:      BanzamiColors.white,
                 ),
                 textAlign: TextAlign.end,
               ),
@@ -547,7 +568,7 @@ class _DetailRow extends StatelessWidget {
         ),
       ),
       if (!isLast)
-        const Divider(height: 1, color: BanzamiColors.gray200),
+        Divider(height: 1, color: BanzamiColors.white.withValues(alpha: 0.12)),
     ]);
   }
 }
