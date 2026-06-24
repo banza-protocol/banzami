@@ -16,12 +16,13 @@ abstract class AppConfig {
     defaultValue: 'https://api.banzami.com',
   );
 
-  /// Build environment: "sandbox" (staging / TestFlight) or "production" (default).
+  /// Build environment: "sandbox" (TestFlight) or "production" (default).
+  /// Sandbox points at sandbox-api.banzami.com — there is no "staging" host.
   static const String _environment = String.fromEnvironment(
     'ENVIRONMENT',
     defaultValue: 'production',
   );
 
-  /// True for staging / TestFlight builds. Enables sandbox badge, sandbox fund, etc.
+  /// True for sandbox / TestFlight builds. Enables sandbox badge, sandbox fund, etc.
   static bool get isSandbox => _environment == 'sandbox';
 }
