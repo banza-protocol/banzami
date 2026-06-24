@@ -313,7 +313,7 @@ describe('paymentLinkQr (pure)', () => {
     vi.stubGlobal('fetch', vi.fn()); // must NOT be called
     const qr = client.paymentLinkQr(LINK);
     // live test client → default pay base
-    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+    expect(qr.qrValue).toBe('https://pay.banzami.com/pay/abc123');
     expect(qr.paymentUrl).toBe(qr.qrValue);
     expect(qr.slug).toBe('abc123');
     expect(qr.paymentLinkId).toBe('pl-1');
@@ -349,12 +349,12 @@ describe('paymentLinkQr (pure)', () => {
     const qr = sandbox.paymentLinkQr(LINK);
     expect(qr.environment).toBe('sandbox');
     expect(qr.isSandbox).toBe(true);
-    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+    expect(qr.qrValue).toBe('https://pay.banzami.com/pay/abc123');
   });
 
   it('honours an explicit payBaseUrl override (trailing slash trimmed)', () => {
     const custom = new BanzamiClient({ apiKey: 'bz_test_x', payBaseUrl: 'https://pay.sandbox.example/' });
-    expect(custom.paymentLinkQr(LINK).qrValue).toBe('https://pay.sandbox.example/abc123');
+    expect(custom.paymentLinkQr(LINK).qrValue).toBe('https://pay.sandbox.example/pay/abc123');
   });
 });
 
@@ -371,7 +371,7 @@ describe('getPaymentLinkQr (fetch + derive)', () => {
     expect(JSON.stringify(init.headers ?? {})).not.toContain('bz_live_testkey');
     expect(String(url)).not.toContain('bz_live_testkey');
     // derived payload
-    expect(qr.qrValue).toBe('https://pay.banzami.com/abc123');
+    expect(qr.qrValue).toBe('https://pay.banzami.com/pay/abc123');
     expect(qr.recipientHandle).toBe('@fm65');
     expect(authCalls().length).toBe(1); // a single key→JWT exchange happened
   });

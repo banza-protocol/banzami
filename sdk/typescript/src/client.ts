@@ -36,7 +36,7 @@ const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
 
 /**
  * Canonical pay-page host per environment — the base the SDK uses to
- * build the official payment QR payload (`${payBase}/${slug}`). Override
+ * build the official payment QR payload (`${payBase}/pay/${slug}`). Override
  * via the `payBaseUrl` option. Both environments resolve to the same
  * host today; kept as a map so they can diverge without an API change.
  */
@@ -131,7 +131,7 @@ export interface BanzamiClientOptions {
   baseUrl?:       string;
   /**
    * Override the pay-page base used to build the official payment QR
-   * payload (`${payBaseUrl}/${slug}`). Defaults to the canonical pay host
+   * payload (`${payBaseUrl}/pay/${slug}`). Defaults to the canonical pay host
    * for the chosen environment (https://pay.banzami.com).
    */
   payBaseUrl?:    string;
@@ -656,7 +656,7 @@ export class BanzamiClient {
     link: PaymentLink,
     opts: { recipientName?: string | null; recipientHandle?: string | null } = {},
   ): PaymentQr {
-    const paymentUrl = `${this.payBase}/${link.slug}`;
+    const paymentUrl = `${this.payBase}/pay/${link.slug}`;
     return {
       qrValue:         paymentUrl,
       paymentUrl,

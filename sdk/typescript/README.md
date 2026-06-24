@@ -258,7 +258,7 @@ const link = await client.createPaymentLink({
 
 console.log(link.slug);    // e.g. "abc123"
 console.log(link.status);  // "ACTIVE"
-// Share: https://pay.banzami.com/abc123
+// Share: https://pay.banzami.com/pay/abc123
 ```
 
 ### Open link (consumer sets amount)
@@ -312,7 +312,7 @@ const qr = client.paymentLinkQr(link, {
   recipientName:   'Fidel Monteiro',
 });
 
-qr.qrValue;          // "https://pay.banzami.com/abc123"  ← encode this into the QR
+qr.qrValue;          // "https://pay.banzami.com/pay/abc123"  ← encode this into the QR
 qr.paymentUrl;       // same canonical pay URL
 qr.amountMinor;      // 150000
 qr.currency;         // "AOA"
