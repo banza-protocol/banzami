@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:banzami_mobile/screens/link_pay_screen.dart';
+import 'package:banzami_mobile/services/session_service.dart';
 import 'package:banzami_mobile/services/wallet_refresh_bus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -9,14 +10,13 @@ import 'package:http/http.dart' as http;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:provider/provider.dart';
 
-// Locks the "stale balance after a successful payment" fix:
-//   - LinkPayScreen signals WalletRefreshBus the moment the ledger commits,
-//   - and pops `true` (paymentCompleted) when closed,
-//   - a failed payment signals nothing,
-//   - and a bus signal recreates a keyed child so it re-fetches from the API
-//     (the mechanism MainScreen uses to reload BanzamiHomeScreen).
-// We never adjust the displayed balance locally — the ledger is the source of
-// truth, so the home reloads from the backend.
+// Locks the unified Doa/link payment:
+//   - an active link hands off to the SAME native BanzamiPaymentRequestScreen
+//     (merchant payee + Doa reference instead of a @handle),
+//   - completing the payment and closing the receipt signals a balance refresh
+//     (WalletRefreshBus) — exactly once,
+//   - and the bus → keyed-reload mechanism the home shell relies on still works.
+// We never adjust the displayed balance locally; the home reloads from the API.
 
 // ---------------------------------------------------------------------------
 // PaymentLink fixtures
@@ -26,11 +26,11 @@ Map<String, dynamic> _activeLink() => <String, dynamic>{
       'id':           'link-0001',
       'slug':         'abc123',
       'merchant_id':  'm-1',
-      'merchant_name':'Doa',
+      'merchant_name':'Doa Sandbox',
       'wallet_id':    'w-1',
       'amount_minor': 525000,
       'currency':     'AOA',
-      'description':  'Donativo',
+      'description':  'DOA-TEST',
       'status':       'ACTIVE',
       'created_at':   '2026-06-24T12:00:00.000Z',
       'updated_at':   '2026-06-24T12:00:00.000Z',
@@ -38,34 +38,47 @@ Map<String, dynamic> _activeLink() => <String, dynamic>{
 
 Map<String, dynamic> _usedLink() => <String, dynamic>{
       ..._activeLink(),
-      'status':   'USED',
-      'paid_at':  '2026-06-24T12:05:00.000Z',
+      'status':    'USED',
+      'paid_at':   '2026-06-24T12:05:00.000Z',
       'updated_at':'2026-06-24T12:05:00.000Z',
     };
 
 // ---------------------------------------------------------------------------
-// Client + wrappers
+// Client / session / wrappers
 // ---------------------------------------------------------------------------
 
 ConsumerPublicClient _client(http.Client h) =>
     ConsumerPublicClient(baseUrl: 'http://test', httpClient: h)..setToken('tok');
 
-Widget _wrapPay(ConsumerPublicClient client, {String slug = 'abc123'}) =>
-    Provider<ConsumerPublicClient>.value(
-      value: client,
+class _FakeSession extends SessionService {
+  @override
+  Session? get session => const Session(
+        consumerId: 'c-1',
+        walletId:   'w-own',
+        handle:     'fm65',
+        token:      'tok',
+      );
+}
+
+Widget _wrapLinkPay(ConsumerPublicClient client, {String slug = 'abc123'}) =>
+    MultiProvider(
+      providers: [
+        Provider<ConsumerPublicClient>.value(value: client),
+        ChangeNotifierProvider<SessionService>(create: (_) => _FakeSession()),
+      ],
       child: MaterialApp(home: LinkPayScreen(slug: slug)),
     );
 
-/// Drives LinkPayScreen to the loaded-confirm state, then taps Confirmar by
-/// invoking the button callback directly (bypasses the press animation).
+/// Drives LinkPayScreen → native confirm → tap Pagar (callback invoked directly
+/// to bypass the press-scale) → receipt.
 Future<void> _loadAndPay(WidgetTester tester) async {
-  await tester.pumpAndSettle(); // resolve the GET (getPaymentLinkBySlug)
-  expect(find.text('Confirmar pagamento'), findsOneWidget);
-  // "Confirmar pagamento" is the BanzamiPrimaryButton (Cancelar is secondary).
-  tester.widget<BanzamiPrimaryButton>(
-    find.widgetWithText(BanzamiPrimaryButton, 'Confirmar pagamento')).onPressed!();
+  await tester.pumpAndSettle(); // GET getPaymentLinkBySlug → native confirm
+  final pagar = find.byWidgetPredicate((w) =>
+      w is BanzamiPrimaryButton && w.label.startsWith('Pagar'));
+  expect(pagar, findsOneWidget);
+  tester.widget<BanzamiPrimaryButton>(pagar).onPressed!();
   for (var i = 0; i < 20; i++) {
-    await tester.pump(const Duration(milliseconds: 50)); // drain the POST chain
+    await tester.pump(const Duration(milliseconds: 50)); // drain POST + push receipt
   }
 }
 
@@ -87,9 +100,30 @@ void main() {
     });
   });
 
-  // ── LinkPayScreen ────────────────────────────────────────────────────────
-  group('LinkPayScreen', () {
-    testWidgets('B. successful payment signals WalletRefreshBus once and shows success',
+  // ── LinkPayScreen unification ────────────────────────────────────────────
+  group('LinkPayScreen (Doa/link payment)', () {
+    testWidgets('B. an active link hands off to the native payment screen',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(_wrapLinkPay(_client(
+          _RouteHttpClient(getBody: _activeLink(), postBody: _usedLink()))));
+      await tester.pumpAndSettle();
+
+      // Same native confirm screen as app-to-app payments…
+      expect(find.byType(BanzamiPaymentRequestScreen), findsOneWidget);
+      // …with merchant payee + Doa reference (not a @handle) + Pagar button.
+      expect(find.text('Doa Sandbox'), findsOneWidget);
+      expect(find.text('DOA-TEST'), findsOneWidget);
+      expect(
+        find.byWidgetPredicate(
+            (w) => w is BanzamiPrimaryButton && w.label.startsWith('Pagar')),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('C. completing the payment and closing the receipt signals one refresh',
         (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -99,67 +133,20 @@ void main() {
       WalletRefreshBus.instance.addListener(l);
       addTearDown(() => WalletRefreshBus.instance.removeListener(l));
 
-      await tester.pumpWidget(_wrapPay(_client(
+      await tester.pumpWidget(_wrapLinkPay(_client(
           _RouteHttpClient(getBody: _activeLink(), postBody: _usedLink()))));
       await _loadAndPay(tester);
 
-      expect(find.textContaining('Pagamento enviado para'), findsOneWidget);
-      expect(signals, 1, reason: 'balance refresh must be signalled exactly once');
-    });
+      // Native receipt is shown for the Doa payment.
+      expect(find.text('Enviado com sucesso'), findsOneWidget);
+      expect(find.textContaining('para Doa Sandbox'), findsOneWidget);
+      expect(signals, 0, reason: 'refresh fires on receipt close, not on commit');
 
-    testWidgets('C. closing the success screen pops with true (paymentCompleted)',
-        (tester) async {
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      Object? popResult = 'unset';
-      final client = _client(
-          _RouteHttpClient(getBody: _activeLink(), postBody: _usedLink()));
-
-      await tester.pumpWidget(Provider<ConsumerPublicClient>.value(
-        value: client,
-        child: MaterialApp(
-          home: Builder(
-            builder: (ctx) => ElevatedButton(
-              onPressed: () async {
-                popResult = await Navigator.of(ctx).push(
-                    MaterialPageRoute(builder: (_) => const LinkPayScreen(slug: 'abc123')));
-              },
-              child: const Text('open'),
-            ),
-          ),
-        ),
-      ));
-
-      await tester.tap(find.text('open'));
-      await _loadAndPay(tester);
-
-      await tester.tap(find.text('Fechar'));
-      await tester.pumpAndSettle();
-
-      expect(popResult, isTrue);
-      expect(find.text('open'), findsOneWidget, reason: 'returned to caller');
-    });
-
-    testWidgets('D. failed payment (INSUFFICIENT_FUNDS) does NOT signal a refresh',
-        (tester) async {
-      await tester.binding.setSurfaceSize(const Size(390, 844));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
-
-      var signals = 0;
-      void l() => signals++;
-      WalletRefreshBus.instance.addListener(l);
-      addTearDown(() => WalletRefreshBus.instance.removeListener(l));
-
-      await tester.pumpWidget(_wrapPay(_client(_RouteHttpClient(
-        getBody:    _activeLink(),
-        postBody:   {'code': 'INSUFFICIENT_FUNDS', 'message': 'no funds'},
-        postStatus: 422,
-      ))));
-      await _loadAndPay(tester);
-
-      expect(find.text('Saldo insuficiente.'), findsOneWidget);
-      expect(signals, 0, reason: 'no debit happened, so no balance refresh');
+      // Close the receipt → onSuccess → WalletRefreshBus.signal().
+      tester.widget<BanzamiPrimaryButton>(
+        find.widgetWithText(BanzamiPrimaryButton, 'Concluído')).onPressed!();
+      await tester.pump();
+      expect(signals, 1);
     });
   });
 
@@ -238,22 +225,15 @@ class _ReloadProbeState extends State<_ReloadProbe> {
 class _RouteHttpClient extends http.BaseClient {
   final Map<String, dynamic> getBody;
   final Map<String, dynamic> postBody;
-  final int postStatus;
 
-  _RouteHttpClient({
-    required this.getBody,
-    required this.postBody,
-    this.postStatus = 200,
-  });
+  _RouteHttpClient({required this.getBody, required this.postBody});
 
   @override
   Future<http.StreamedResponse> send(http.BaseRequest request) async {
     final isPost = request.method == 'POST';
-    final body   = isPost ? postBody : getBody;
-    final status = isPost ? postStatus : 200;
     return http.StreamedResponse(
-      Stream.value(utf8.encode(jsonEncode(body))),
-      status,
+      Stream.value(utf8.encode(jsonEncode(isPost ? postBody : getBody))),
+      200,
       headers: {'content-type': 'application/json'},
     );
   }

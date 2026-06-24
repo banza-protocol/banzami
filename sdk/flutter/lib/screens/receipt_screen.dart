@@ -38,13 +38,19 @@ class BanzamiReceiptScreen extends StatefulWidget {
   final bool    isSandbox;
   final String? logoAssetPath;
 
+  /// Whether [transfer.recipient] is a @handle (P2P) or a plain display name
+  /// (e.g. a merchant / payment-link payee like "Doa Sandbox"). When false the
+  /// "@" prefix is dropped so merchant payments read "para Doa Sandbox".
+  final bool recipientIsHandle;
+
   const BanzamiReceiptScreen({
     super.key,
     required this.transfer,
     this.ownHandle,
     required this.onDone,
-    this.isSandbox    = false,
+    this.isSandbox         = false,
     this.logoAssetPath,
+    this.recipientIsHandle = true,
   });
 
   @override
@@ -149,6 +155,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   }
 
   String get _from => widget.ownHandle ?? widget.transfer.sender;
+
+  /// Recipient as shown to the user — "@handle" for P2P, plain name for a
+  /// merchant / payment-link payee.
+  String get _recipientLabel =>
+      '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
@@ -380,7 +391,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         const SizedBox(height: BanzamiSpacing.xs),
 
                         Text(
-                          'para @${t.recipient}',
+                          'para $_recipientLabel',
                           style: BanzamiTextStyles.bodyMd.copyWith(
                             color: BanzamiColors.gray400,
                           ),
@@ -403,7 +414,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           ),
                           child: Column(children: [
                             _DetailRow(label: 'De',     value: '@$_from'),
-                            _DetailRow(label: 'Para',   value: '@${t.recipient}'),
+                            _DetailRow(label: 'Para',   value: _recipientLabel),
                             _DetailRow(label: 'Nota',   value: note),
                             _DetailRow(label: 'Data',   value: _dateLong),
                             _DetailRow(label: 'Ref',    value: _ref),
