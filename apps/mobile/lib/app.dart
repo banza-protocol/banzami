@@ -229,6 +229,14 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }
   }
 
+  /// Tell the home to reload its balance from the backend after a payment that
+  /// completed on a deep-link / QR / request screen the home didn't push.
+  /// Never a local mutation — the home re-fetches via getBalance().
+  void _signalBalanceRefresh() {
+    debugPrint('[refresh] payment success → signal balance refresh');
+    WalletRefreshBus.instance.signal();
+  }
+
   /// Open a payment link via the SDK's single resolver. The app only supplies
   /// the client + session + a balance-refresh callback; the SDK resolves the
   /// link and owns the confirmation + receipt.
@@ -242,7 +250,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
         client:        client,
         slug:          slug,
         ownHandle:     session?.handle,
-        onSuccess:     (_) => WalletRefreshBus.instance.signal(),
+        onSuccess:     (_) => _signalBalanceRefresh(),
         isSandbox:     AppConfig.isSandbox,
         logoAssetPath: BrandingAssets.icon,
       ),
@@ -324,7 +332,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
           locked:               link.locked,
           ownHandle:            session.handle,
           linkCode:             link.linkCode,
-          onSuccess:            (_) {},
+          onSuccess:            (_) => _signalBalanceRefresh(),
           isSandbox:            AppConfig.isSandbox,
         ),
       )).then((_) {
@@ -348,7 +356,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
         splitId:     splitId,
         payerHandle: session.handle,
         isSandbox:   AppConfig.isSandbox,
-        onSuccess:   (_) {},
+        onSuccess:   (_) => _signalBalanceRefresh(),
       ),
     ));
   }
@@ -370,7 +378,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
           amountMinor:     amount,
           locked:          true,
           ownHandle:       session.handle,
-          onSuccess:       (_) {},
+          onSuccess:       (_) => _signalBalanceRefresh(),
           isSandbox:       AppConfig.isSandbox,
         ),
       ));
@@ -379,7 +387,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
         builder: (_) => BanzamiSendScreen(
           client:        client,
           ownHandle:     session.handle,
-          onSuccess:     (_) {},
+          onSuccess:     (_) => _signalBalanceRefresh(),
           isSandbox:     AppConfig.isSandbox,
           initialHandle: handle,
         ),

@@ -140,72 +140,9 @@ void main() {
     });
   });
 
-  // ── E. Keyed-reload mechanism (what MainScreen relies on) ─────────────────
-  group('Bus-driven keyed reload', () {
-    testWidgets('E. a bus signal recreates the keyed child so it re-initialises',
-        (tester) async {
-      _ReloadProbe.initCount = 0;
-      await tester.pumpWidget(const MaterialApp(home: _RefreshHost()));
-      expect(_ReloadProbe.initCount, 1);
-
-      WalletRefreshBus.instance.signal();
-      await tester.pump();
-
-      expect(_ReloadProbe.initCount, 2,
-          reason: 'signal must recreate the keyed child → fresh initState → API reload');
-    });
-  });
-}
-
-// ---------------------------------------------------------------------------
-// Test harness mirroring MainScreen's listen + keyed-rebuild pattern
-// ---------------------------------------------------------------------------
-
-class _RefreshHost extends StatefulWidget {
-  const _RefreshHost();
-  @override
-  State<_RefreshHost> createState() => _RefreshHostState();
-}
-
-class _RefreshHostState extends State<_RefreshHost> {
-  int _tick = 0;
-  void _onRefresh() => setState(() => _tick++);
-
-  @override
-  void initState() {
-    super.initState();
-    WalletRefreshBus.instance.addListener(_onRefresh);
-  }
-
-  @override
-  void dispose() {
-    WalletRefreshBus.instance.removeListener(_onRefresh);
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) =>
-      _ReloadProbe(key: ValueKey('probe-$_tick'));
-}
-
-/// Stands in for BanzamiHomeScreen: counts how many times it is initialised,
-/// which is what re-fetches the balance from the backend in the real screen.
-class _ReloadProbe extends StatefulWidget {
-  const _ReloadProbe({super.key});
-  static int initCount = 0;
-  @override
-  State<_ReloadProbe> createState() => _ReloadProbeState();
-}
-
-class _ReloadProbeState extends State<_ReloadProbe> {
-  @override
-  void initState() {
-    super.initState();
-    _ReloadProbe.initCount++;
-  }
-
-  @override
-  Widget build(BuildContext context) => const SizedBox.shrink();
+  // The home's reaction to a bus signal (reload balance from the backend) is
+  // covered by home_refresh_on_signal_test.dart — BanzamiHomeScreen now listens
+  // to the refresh signal directly instead of being recreated by a ValueKey.
 }
 
 // ---------------------------------------------------------------------------

@@ -27,6 +27,13 @@ class BanzamiHomeScreen extends StatefulWidget {
   final VoidCallback?        onReceive;
   final BanzamiEnvironment     environment;
 
+  /// Optional external signal (a [Listenable], e.g. the host app's payment
+  /// refresh bus). Whenever it notifies, the home reloads its balance and
+  /// activity from the backend via `getBalance()` — never a local mutation.
+  /// This is how a payment made on a screen the home didn't push (deep link /
+  /// QR / notification) refreshes the displayed balance with no pull-to-refresh.
+  final Listenable? refreshSignal;
+
   const BanzamiHomeScreen({
     super.key,
     required this.client,
@@ -37,6 +44,7 @@ class BanzamiHomeScreen extends StatefulWidget {
     this.onNotifications,
     this.onReceive,
     this.environment = BanzamiEnvironment.production,
+    this.refreshSignal,
   });
 
   @override
@@ -71,12 +79,33 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
 
     _load();
     _entryCtrl.forward();
+
+    // Reload from the backend whenever the host app signals a payment completed
+    // (deep-link / QR / notification flow the home didn't push itself).
+    widget.refreshSignal?.addListener(_onExternalRefresh);
+  }
+
+  @override
+  void didUpdateWidget(covariant BanzamiHomeScreen old) {
+    super.didUpdateWidget(old);
+    if (old.refreshSignal != widget.refreshSignal) {
+      old.refreshSignal?.removeListener(_onExternalRefresh);
+      widget.refreshSignal?.addListener(_onExternalRefresh);
+    }
   }
 
   @override
   void dispose() {
+    widget.refreshSignal?.removeListener(_onExternalRefresh);
     _entryCtrl.dispose();
     super.dispose();
+  }
+
+  // External refresh signal (e.g. a payment completed elsewhere). Reload from
+  // the backend — no spinner reset, no local balance mutation.
+  void _onExternalRefresh() {
+    debugPrint('[refresh] Home received signal → getBalance');
+    _load();
   }
 
   Future<void> _load() async {
@@ -86,6 +115,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
   Future<void> _loadBalance() async {
     try {
       final bal = await widget.client.getBalance();
+      debugPrint('[refresh] Home balance updated: ${bal.availableMinor} ${bal.currency}');
       if (mounted) setState(() { _balance = bal; _loadingBalance = false; });
     } catch (_) {
       if (mounted) setState(() { _error = 'Não foi possível carregar o saldo'; _loadingBalance = false; });
