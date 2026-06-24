@@ -1,8 +1,8 @@
 /// Parses a raw QR code string into a typed Banzami payment result.
 ///
 /// Supported formats:
-///  • https://pay.banzami.org/r/{code}[?sandbox=1]
-///  • https://pay.banzami.org/u/{handle}[?amount=N&note=...&sandbox=1]
+///  • https://pay.banzami.com/r/{code}[?sandbox=1]
+///  • https://pay.banzami.com/u/{handle}[?amount=N&note=...&sandbox=1]
 ///  • banzami://pay?request={code}
 ///  • banzami-sandbox://pay?request={code}
 ///  • banzami://pay/u/{handle}[?amount=N&note=...]
@@ -86,8 +86,8 @@ class BanzamiQrParser {
       return const BanzamiQrInvalid('QR inválido');
     }
 
-    // ── Web URLs: https://pay.banzami.org/... ─────────────────────────────────
-    if (raw.startsWith('https://pay.banzami.org/')) {
+    // ── Web URLs: https://pay.banzami.com/... ─────────────────────────────────
+    if (raw.startsWith('https://pay.banzami.com/')) {
       final uri = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('URL inválido');
       final segs      = uri.pathSegments.where((s) => s.isNotEmpty).toList();

@@ -60,7 +60,7 @@ void main() {
     });
 
     test('pay-link URL still resolves to a payment request', () {
-      final result = BanzamiQrParser.parse('https://pay.banzami.org/r/abc123');
+      final result = BanzamiQrParser.parse('https://pay.banzami.com/r/abc123');
       expect(result, isA<BanzamiQrPaymentRequest>());
       expect((result as BanzamiQrPaymentRequest).code, 'abc123');
     });

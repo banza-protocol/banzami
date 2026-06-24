@@ -44,7 +44,7 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
   // pathologically large QR data. BanzamiQrParser does the detailed validation.
   static bool _isValidPayload(String value) {
     if (value.length > 512) return false;
-    return value.startsWith('https://pay.banzami.org/') ||
+    return value.startsWith('https://pay.banzami.com/') ||
            value.startsWith('banzami://') ||
            value.startsWith('banza-sandbox://') ||
            value.startsWith('banza:@') ||

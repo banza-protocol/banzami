@@ -10,7 +10,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const _baseUrl = 'https://api.banzami.org';
+const _baseUrl = 'https://api.banzami.com';
 const _apiKey  = 'bz_test_key';
 
 /// JWT response the mock returns when /v1/auth/token is called.

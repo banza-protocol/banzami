@@ -134,8 +134,8 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   }
 
   String get _shareUrl {
-    if (_activeLink != null) return 'https://pay.banzami.org/r/${_activeLink!.linkCode}';
-    return 'https://pay.banzami.org/u/${widget.handle}';
+    if (_activeLink != null) return 'https://pay.banzami.com/r/${_activeLink!.linkCode}';
+    return 'https://pay.banzami.com/u/${widget.handle}';
   }
 
   @override
