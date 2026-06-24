@@ -4,6 +4,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 import '../config.dart';
+import '../services/wallet_refresh_bus.dart';
 
 /// Opened when the app receives a deep link: banzami://pay/link/{slug}
 ///
@@ -56,6 +57,13 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
         amountMinor:     amount,
         idempotencyKey:  _idempotencyKey,
       );
+      // Ledger committed. Tell the home shell to reload the wallet balance from
+      // the backend — the payer was just debited, so a cached balance is now
+      // stale. We signal here (not on pop) so the home, still mounted under the
+      // IndexedStack, refreshes behind the success screen and is already fresh
+      // when the user closes. We never subtract the amount locally; the ledger
+      // is the source of truth (CLAUDE.md §2.1).
+      WalletRefreshBus.instance.signal();
       // Merge merchant_name from the pre-loaded link since payPaymentLink
       // returns the updated status but may drop enriched fields on older servers.
       if (mounted) {
@@ -118,7 +126,10 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
       ));
     }
 
-    if (_paid) return _SuccessView(link: _link!, onClose: () => Navigator.of(context).pop());
+    // Pop with `true` (paymentCompleted) so any awaiting caller knows a payment
+    // happened. The actual balance refresh is driven by WalletRefreshBus, fired
+    // at commit time in _pay(), so it works regardless of how the screen closes.
+    if (_paid) return _SuccessView(link: _link!, onClose: () => Navigator.of(context).pop(true));
 
     final link = _link!;
 
