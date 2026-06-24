@@ -178,8 +178,10 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // ── Universal links: https://pay.banzami.org/* ──────────────────────────
-    if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
+    // ── Universal links: https://pay.banzami.com/* ──────────────────────────
+    // .com is the canonical Banzami payment host. .org is reserved for the
+    // BANZA protocol and is NOT accepted as a payment host.
+    if (uri.scheme == 'https' && uri.host == 'pay.banzami.com') {
       _handleUniversalLink(uri);
       return;
     }
@@ -196,15 +198,16 @@ class _BanzamiAppState extends State<BanzamiApp> {
     if (uri == null) return;
     debugPrint('[deep-link] unlocked → processing pending uri=$uri');
 
-    if (uri.scheme == 'https' && uri.host == 'pay.banzami.org') {
+    if (uri.scheme == 'https' && uri.host == 'pay.banzami.com') {
       _handleUniversalLink(uri);
     } else if (uri.scheme == 'banzami' && uri.host == 'pay') {
       _handleBanzamiScheme(uri);
     }
   }
 
-  // https://pay.banzami.org/r/{code}[?sandbox=1]
-  // https://pay.banzami.org/u/{handle}[?amount=&currency=]
+  // https://pay.banzami.com/pay/{slug}                  ← payment link (canonical)
+  // https://pay.banzami.com/r/{code}[?sandbox=1]        ← payment request
+  // https://pay.banzami.com/u/{handle}[?amount=&currency=]  ← handle pay
   void _handleUniversalLink(Uri uri) {
     final segs = uri.pathSegments;
     if (segs.isEmpty) return;
@@ -217,6 +220,15 @@ class _BanzamiAppState extends State<BanzamiApp> {
       case 'u':
         // Handle-based pay link — maps to banzami://pay/u/{handle}
         if (segs.length >= 2) _openHandlePay(uri, segs[1]);
+
+      case 'pay':
+        // Payment link — https://pay.banzami.com/pay/{slug}; same target as
+        // the custom scheme banzami://pay/link/{slug}.
+        if (segs.length >= 2) {
+          _navigatorKey.currentState?.push(MaterialPageRoute(
+            builder: (_) => LinkPayScreen(slug: segs[1]),
+          ));
+        }
     }
   }
 

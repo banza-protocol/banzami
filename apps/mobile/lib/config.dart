@@ -5,13 +5,13 @@
 ///
 /// Staging / TestFlight build:
 ///   flutter build ipa \
-///     --dart-define=PUBLIC_API_URL=https://staging.banzami.org \
+///     --dart-define=PUBLIC_API_URL=https://staging.banzami.com \
 ///     --dart-define=ENVIRONMENT=sandbox
 abstract class AppConfig {
   /// Public API base URL (consumer-facing service, port 8083).
   static const String publicApiUrl = String.fromEnvironment(
     'PUBLIC_API_URL',
-    defaultValue: 'https://consumer.banzami.org',
+    defaultValue: 'https://consumer.banzami.com',
   );
 
   /// Build environment: "sandbox" (staging / TestFlight) or "production" (default).

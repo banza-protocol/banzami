@@ -146,10 +146,10 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
   String _shareUrl(String handle) {
     if (_activeLink != null) {
-      final base = 'https://pay.banzami.org/r/${_activeLink!.linkCode}';
+      final base = 'https://pay.banzami.com/r/${_activeLink!.linkCode}';
       return AppConfig.isSandbox ? '$base?sandbox=1' : base;
     }
-    final base = 'https://pay.banzami.org/u/$handle';
+    final base = 'https://pay.banzami.com/u/$handle';
     return AppConfig.isSandbox ? '$base?sandbox=1' : base;
   }
 
