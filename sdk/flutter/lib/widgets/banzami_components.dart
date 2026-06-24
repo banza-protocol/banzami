@@ -873,6 +873,56 @@ class BanzamiWarningBanner extends StatelessWidget {
 }
 
 // =============================================================================
+// BanzamiSandboxBadge — amber "test money" pill
+// =============================================================================
+
+/// The canonical sandbox marker pill. Centralises the amber sandbox look so
+/// receipt, link-pay success and any test-money surface stay identical.
+class BanzamiSandboxBadge extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+
+  const BanzamiSandboxBadge({
+    super.key,
+    this.label = 'SANDBOX · Dinheiro de teste',
+    this.icon  = Icons.science_rounded,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.md,
+        vertical:   BanzamiSpacing.xs + 1,
+      ),
+      decoration: BoxDecoration(
+        color:        BanzamiColors.sandboxBg,
+        borderRadius: BanzamiRadius.fullAll,
+        border:       Border.all(color: BanzamiColors.sandboxBorder, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (icon != null) ...[
+            Icon(icon, size: 14, color: BanzamiColors.sandboxText),
+            const SizedBox(width: BanzamiSpacing.xs + 2),
+          ],
+          Text(
+            label,
+            style: BanzamiTextStyles.label.copyWith(
+              color:         BanzamiColors.sandboxText,
+              fontSize:      11.5,
+              fontWeight:    FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
 // BanzamiPageRoute — smooth page transition
 // =============================================================================
 
