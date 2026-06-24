@@ -84,14 +84,13 @@ class _SplashScreenState extends State<SplashScreen>
 
     if (!mounted) return;
 
-    // Environment mismatch guard: a sandbox build must point at the sandbox
-    // API (sandbox-api.banzami.com) and a production build at the production
-    // API (api.banzami.com). A mismatch means the binary was misconfigured at
-    // build time. The canonical sandbox host contains "sandbox"; production
-    // (api.banzami.com) does not.
-    const apiUrl      = AppConfig.publicApiUrl;
-    final urlIsSandbox = apiUrl.contains('sandbox');
-    if (AppConfig.isSandbox != urlIsSandbox) {
+    // Environment mismatch guard — classified by exact API host (see
+    // AppConfig.apiHostIsSandbox): a sandbox build must point at
+    // sandbox-api.banzami.com and a live build at api.banzami.com. The ".com"
+    // suffix alone never implies production. A mismatch means the binary was
+    // misconfigured at build time.
+    const apiUrl = AppConfig.publicApiUrl;
+    if (AppConfig.apiEnvMismatch) {
       await showDialog<void>(
         context: context,
         barrierDismissible: false,
