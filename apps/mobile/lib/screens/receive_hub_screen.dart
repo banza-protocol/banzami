@@ -194,17 +194,6 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
     }
   }
 
-  void _openSplitCreate(Session session) {
-    final client = context.read<ConsumerPublicClient>();
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => BanzamiSplitCreateScreen(
-        client:    client,
-        ownerId:   session.consumerId,
-        isSandbox: AppConfig.isSandbox,
-      ),
-    ));
-  }
-
   Future<void> _openShareModal(Session session) async {
     final handle = session.handle;
     await showP2PShareModal(
@@ -386,11 +375,6 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                                       ),
                               ),
                             ]),
-                            const SizedBox(height: BanzamiSpacing.sm),
-                            BanzamiSecondaryButton(
-                              label:     'Dividir conta',
-                              onPressed: () => _openSplitCreate(session),
-                            ),
                           ],
                         ),
                       ),
