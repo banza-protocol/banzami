@@ -92,15 +92,9 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title: const Text('Pagar', style: BanzamiTextStyles.headingSm),
-      ),
-      body: _buildBody(),
+    return BanzamiScaffold(
+      appBar: const BanzamiAppBar(title: 'Pagar', showBack: true),
+      body:   _buildBody(),
     );
   }
 
@@ -118,9 +112,9 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
           Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
               textAlign: TextAlign.center),
           const SizedBox(height: BanzamiSpacing.xl),
-          TextButton(
+          BanzamiGhostButton(
+            label:     'Voltar',
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Voltar'),
           ),
         ]),
       ));
@@ -180,35 +174,21 @@ class _LinkPayScreenState extends State<LinkPayScreen> {
           const SizedBox(height: BanzamiSpacing.xl),
         ],
 
-        if (_error != null)
-          Container(
-            width:   double.infinity,
-            padding: const EdgeInsets.all(BanzamiSpacing.md),
-            margin:  const EdgeInsets.only(bottom: BanzamiSpacing.lg),
-            decoration: const BoxDecoration(
-              color:        BanzamiColors.errorBg,
-              borderRadius: BanzamiRadius.mdAll,
-            ),
-            child: Text(_error!,
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
-          ),
+        if (_error != null) ...[
+          BanzamiErrorBanner(message: _error!),
+          const SizedBox(height: BanzamiSpacing.lg),
+        ],
 
         // Confirm button
-        SizedBox(
-          width: double.infinity,
-          child: BanzamiButton(
-            label:     'Confirmar pagamento',
-            isLoading: _processing,
-            onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
-          ),
+        BanzamiPrimaryButton(
+          label:     'Confirmar pagamento',
+          isLoading: _processing,
+          onPressed: (needsAmount && _enteredAmount <= 0) ? null : _pay,
         ),
         const SizedBox(height: BanzamiSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: BanzamiButton.secondary(
-            label:     'Cancelar',
-            onPressed: _processing ? null : () => Navigator.of(context).pop(),
-          ),
+        BanzamiSecondaryButton(
+          label:     'Cancelar',
+          onPressed: _processing ? null : () => Navigator.of(context).pop(),
         ),
       ]),
     );
@@ -229,35 +209,13 @@ class _SuccessView extends StatelessWidget {
     return Center(child: Padding(
       padding: const EdgeInsets.all(BanzamiSpacing.xl),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 80, height: 80,
-          decoration: BoxDecoration(
-            color:        isSandbox ? const Color(0xFFFEF3C7) : BanzamiColors.successBg,
-            borderRadius: BanzamiRadius.fullAll,
-          ),
-          child: Icon(
-            isSandbox ? Icons.science_rounded : Icons.check_rounded,
-            color: isSandbox ? const Color(0xFF92400E) : BanzamiColors.success,
-            size:  40,
-          ),
-        ),
+        // Same premium success mark as the P2P receipt — one success language.
+        const BanzamiVerifiedMark(size: 88, onLight: true),
         const SizedBox(height: BanzamiSpacing.xl),
-        if (isSandbox)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.md, vertical: 4),
-            margin:  const EdgeInsets.only(bottom: BanzamiSpacing.sm),
-            decoration: BoxDecoration(
-              color:        const Color(0xFFFEF3C7),
-              borderRadius: BanzamiRadius.fullAll,
-              border:       Border.all(color: const Color(0xFFFCD34D)),
-            ),
-            child: Text(
-              'COMPROVATIVO DE TESTE',
-              style: BanzamiTextStyles.label.copyWith(
-                color: const Color(0xFF92400E), fontSize: 10, letterSpacing: 0.8,
-              ),
-            ),
-          ),
+        if (isSandbox) ...[
+          const BanzamiSandboxBadge(label: 'COMPROVATIVO DE TESTE'),
+          const SizedBox(height: BanzamiSpacing.md),
+        ],
         Text(amountLabel,
             style: BanzamiTextStyles.displayMd.copyWith(color: BanzamiColors.gray900)),
         const SizedBox(height: BanzamiSpacing.xs),
@@ -265,10 +223,7 @@ class _SuccessView extends StatelessWidget {
             style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             textAlign: TextAlign.center),
         const SizedBox(height: BanzamiSpacing.xxl),
-        SizedBox(
-          width: double.infinity,
-          child: BanzamiButton(label: 'Fechar', onPressed: onClose),
-        ),
+        BanzamiPrimaryButton(label: 'Fechar', onPressed: onClose),
         if (isSandbox) ...[
           const SizedBox(height: BanzamiSpacing.lg),
           Text(
@@ -314,10 +269,7 @@ class _InvalidView extends StatelessWidget {
         Text(msg, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
             textAlign: TextAlign.center),
         const SizedBox(height: BanzamiSpacing.xxl),
-        SizedBox(
-          width: double.infinity,
-          child: BanzamiButton(label: 'Fechar', onPressed: onClose),
-        ),
+        BanzamiPrimaryButton(label: 'Fechar', onPressed: onClose),
       ]),
     ));
   }

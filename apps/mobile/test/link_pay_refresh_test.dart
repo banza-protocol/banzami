@@ -61,8 +61,9 @@ Widget _wrapPay(ConsumerPublicClient client, {String slug = 'abc123'}) =>
 Future<void> _loadAndPay(WidgetTester tester) async {
   await tester.pumpAndSettle(); // resolve the GET (getPaymentLinkBySlug)
   expect(find.text('Confirmar pagamento'), findsOneWidget);
-  // First BanzamiButton is "Confirmar pagamento" (second is the Cancelar secondary).
-  tester.widget<BanzamiButton>(find.byType(BanzamiButton).first).onPressed!();
+  // "Confirmar pagamento" is the BanzamiPrimaryButton (Cancelar is secondary).
+  tester.widget<BanzamiPrimaryButton>(
+    find.widgetWithText(BanzamiPrimaryButton, 'Confirmar pagamento')).onPressed!();
   for (var i = 0; i < 20; i++) {
     await tester.pump(const Duration(milliseconds: 50)); // drain the POST chain
   }
