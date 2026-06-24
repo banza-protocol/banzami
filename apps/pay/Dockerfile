@@ -10,7 +10,7 @@ COPY . .
 
 ENV NEXT_TELEMETRY_DISABLED=1
 # Baked into client bundles at build time
-ARG NEXT_PUBLIC_GATEWAY_URL=https://api.banzami.org
+ARG NEXT_PUBLIC_GATEWAY_URL=https://api.banzami.com
 ENV NEXT_PUBLIC_GATEWAY_URL=$NEXT_PUBLIC_GATEWAY_URL
 RUN npm run build
 
@@ -24,7 +24,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3002
 ENV HOSTNAME=0.0.0.0
 # Runtime env for server-component reads (same value as the baked build arg)
-ENV NEXT_PUBLIC_GATEWAY_URL=https://api.banzami.org
+ENV NEXT_PUBLIC_GATEWAY_URL=https://api.banzami.com
 
 RUN addgroup -S banzami && adduser -S banzami -G banzami
 

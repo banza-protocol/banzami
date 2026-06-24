@@ -19,9 +19,9 @@ const AASA = {
           'W22UFWBATJ.com.banza.consumer.sandbox',
         ],
         components: [
-          { '/': '/r/*',   comment: 'Consumer pay-request links' },
-          { '/': '/pay/*', comment: 'Payment confirmation paths' },
-          { '/': '/u/*',   comment: 'Handle-based pay links' },
+          { '/': '/pay/*', comment: 'Payment links (canonical) — /pay/<slug>' },
+          { '/': '/r/*',   comment: 'Consumer pay-request links — /r/<code>' },
+          { '/': '/u/*',   comment: 'Handle-based pay links — /u/<handle>' },
         ],
       },
     ],
