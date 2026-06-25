@@ -20,30 +20,31 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis              *redis.Client
-	TransactionSvc     service.TransactionService
-	WebhookSvc         service.WebhookService
-	MerchantSvc        service.MerchantService
-	WalletSvc          service.WalletService
-	PayoutSvc          service.PayoutService
-	ConsumerSvc        service.ConsumerService
-	ConsumerWalletSvc  service.ConsumerWalletService
-	TransferSvc        service.TransferService
-	QrSvc              service.QrService
-	PaymentLinkSvc     service.PaymentLinkService
-	AcquiringSvc       service.AcquiringService
-	RefundSvc          service.RefundService
-	DisputeSvc         service.DisputeService
-	PaymentRequestSvc  service.PaymentRequestService
-	MerchantProfileSvc service.MerchantProfileService
-	ConsumerPayLinkSvc service.ConsumerPayLinkService
-	FCMSvc             *notify.FCMService
-	TeamSvc            service.TeamService
-	MerchantCredSvc    service.MerchantCredentialService
-	MerchantAppSvc     service.MerchantApplicationService
-	ActivationSvc      service.ActivationService
-	ComplianceSvc      service.ComplianceService
-	SplitSvc           service.SplitService
+	Redis               *redis.Client
+	TransactionSvc      service.TransactionService
+	WebhookSvc          service.WebhookService
+	MerchantSvc         service.MerchantService
+	WalletSvc           service.WalletService
+	PayoutSvc           service.PayoutService
+	ConsumerSvc         service.ConsumerService
+	ConsumerWalletSvc   service.ConsumerWalletService
+	TransferSvc         service.TransferService
+	QrSvc               service.QrService
+	PaymentLinkSvc      service.PaymentLinkService
+	AcquiringSvc        service.AcquiringService
+	RefundSvc           service.RefundService
+	DisputeSvc          service.DisputeService
+	PaymentRequestSvc   service.PaymentRequestService
+	MerchantProfileSvc  service.MerchantProfileService
+	ConsumerPayLinkSvc  service.ConsumerPayLinkService
+	FCMSvc              *notify.FCMService
+	TeamSvc             service.TeamService
+	MerchantCredSvc     service.MerchantCredentialService
+	MerchantAppSvc      service.MerchantApplicationService
+	MerchantAppAdminSvc service.MerchantApplicationAdminService
+	ActivationSvc       service.ActivationService
+	ComplianceSvc       service.ComplianceService
+	SplitSvc            service.SplitService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -77,6 +78,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
 	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc)
+	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -111,6 +113,17 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
 	r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
 	r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
+
+	// Internal service-to-service endpoints — admin-api only (shared secret).
+	r.Group(func(r chi.Router) {
+		r.Use(middleware.InternalAuth(cfg.InternalAPIKey))
+		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
+			r.Get("/", merchantAppAdminHandler.List)
+			r.Get("/{id}", merchantAppAdminHandler.Get)
+			r.Post("/{id}/approve", merchantAppAdminHandler.Approve)
+			r.Post("/{id}/reject", merchantAppAdminHandler.Reject)
+		})
+	})
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))

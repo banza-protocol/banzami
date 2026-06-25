@@ -26,6 +26,10 @@ type Config struct {
 	// WebhookEncryptionKey is a base64-encoded 32-byte key used to encrypt
 	// webhook signing secrets at rest (SEC-002). Empty → plaintext (dev only).
 	WebhookEncryptionKey string
+
+	// InternalAPIKey guards the service-to-service /internal endpoints (called
+	// only by admin-api). Empty → /internal endpoints are disabled (fail closed).
+	InternalAPIKey string
 }
 
 func Load() (*Config, error) {
@@ -67,6 +71,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("CORE_API_URL"); v != "" {
 		cfg.CoreAPIURL = v
+	}
+	if v := os.Getenv("INTERNAL_API_KEY"); v != "" {
+		cfg.InternalAPIKey = v
 	}
 	if cfg.CoreAPIURL == "" {
 		cfg.CoreAPIURL = "http://127.0.0.1:8081"

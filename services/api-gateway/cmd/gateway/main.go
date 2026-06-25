@@ -64,6 +64,7 @@ func main() {
 	var teamSvc service.TeamService
 	var merchantCredSvc service.MerchantCredentialService
 	var merchantAppSvc service.MerchantApplicationService
+	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var activationSvc service.ActivationService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
@@ -85,6 +86,7 @@ func main() {
 		teamSvc = service.NewPostgresTeamService(dbPool)
 		merchantCredSvc = service.NewPostgresMerchantCredentialService(dbPool)
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
+		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		activationSvc = service.NewPostgresActivationService(dbPool)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
@@ -94,30 +96,31 @@ func main() {
 	}
 
 	deps := server.Dependencies{
-		Redis:              rdb,
-		TransactionSvc:     service.NewCoreApiTransactionService(coreClient),
-		WebhookSvc:         webhookSvc,
-		MerchantSvc:        service.NewCoreApiMerchantService(coreClient),
-		WalletSvc:          service.NewCoreApiWalletService(coreClient),
-		PayoutSvc:          service.NewCoreApiPayoutService(coreClient),
-		ConsumerSvc:        service.NewCoreApiConsumerService(coreClient),
-		ConsumerWalletSvc:  service.NewCoreApiConsumerWalletService(coreClient),
-		TransferSvc:        service.NewCoreApiTransferService(coreClient),
-		QrSvc:              service.NewCoreApiQrService(coreClient),
-		PaymentLinkSvc:     service.NewCoreApiPaymentLinkService(coreClient),
-		AcquiringSvc:       service.NewCoreApiAcquiringService(coreClient),
-		RefundSvc:          service.NewCoreApiRefundService(coreClient),
-		DisputeSvc:         service.NewCoreApiDisputeService(coreClient),
-		PaymentRequestSvc:  service.NewCoreApiPaymentRequestService(coreClient),
-		MerchantProfileSvc: service.NewCoreApiMerchantProfileService(coreClient),
-		ConsumerPayLinkSvc: service.NewCoreApiConsumerPayLinkService(coreClient),
-		FCMSvc:             fcmSvc,
-		TeamSvc:            teamSvc,
-		MerchantCredSvc:    merchantCredSvc,
-		MerchantAppSvc:     merchantAppSvc,
-		ActivationSvc:      activationSvc,
-		ComplianceSvc:      service.NewCoreApiComplianceService(coreClient),
-		SplitSvc:           service.NewCoreApiSplitService(coreClient),
+		Redis:               rdb,
+		TransactionSvc:      service.NewCoreApiTransactionService(coreClient),
+		WebhookSvc:          webhookSvc,
+		MerchantSvc:         service.NewCoreApiMerchantService(coreClient),
+		WalletSvc:           service.NewCoreApiWalletService(coreClient),
+		PayoutSvc:           service.NewCoreApiPayoutService(coreClient),
+		ConsumerSvc:         service.NewCoreApiConsumerService(coreClient),
+		ConsumerWalletSvc:   service.NewCoreApiConsumerWalletService(coreClient),
+		TransferSvc:         service.NewCoreApiTransferService(coreClient),
+		QrSvc:               service.NewCoreApiQrService(coreClient),
+		PaymentLinkSvc:      service.NewCoreApiPaymentLinkService(coreClient),
+		AcquiringSvc:        service.NewCoreApiAcquiringService(coreClient),
+		RefundSvc:           service.NewCoreApiRefundService(coreClient),
+		DisputeSvc:          service.NewCoreApiDisputeService(coreClient),
+		PaymentRequestSvc:   service.NewCoreApiPaymentRequestService(coreClient),
+		MerchantProfileSvc:  service.NewCoreApiMerchantProfileService(coreClient),
+		ConsumerPayLinkSvc:  service.NewCoreApiConsumerPayLinkService(coreClient),
+		FCMSvc:              fcmSvc,
+		TeamSvc:             teamSvc,
+		MerchantCredSvc:     merchantCredSvc,
+		MerchantAppSvc:      merchantAppSvc,
+		MerchantAppAdminSvc: merchantAppAdminSvc,
+		ActivationSvc:       activationSvc,
+		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
+		SplitSvc:            service.NewCoreApiSplitService(coreClient),
 	}
 
 	srv := server.New(cfg, deps)
