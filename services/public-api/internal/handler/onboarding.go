@@ -345,6 +345,6 @@ func (h *OnboardingHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		"banza_handle": wallet.BanzaHandle,
 		"currency":     wallet.Currency,
 		"status":       wallet.Status,
-		"message":      "Wallet activated — welcome to Banza",
+		"message":      "Wallet activated — welcome to Banzami",
 	})
 }

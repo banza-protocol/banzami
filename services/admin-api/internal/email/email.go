@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/smtp"
 	"strings"
+	"time"
 )
 
 // Sender sends transactional emails via SMTP.
@@ -178,7 +179,7 @@ var welcomeTmpl = template.Must(template.New("merchant_welcome").Parse(`<!DOCTYP
       <p>Se tiver alguma dúvida, contacte-nos em <a href="mailto:contact@banzami.com">contact@banzami.com</a>.</p>
     </div>
     <div class="footer">
-      <p>Este email foi enviado automaticamente pela Banzami.<br>© 2025 Banzami — Todos os direitos reservados.</p>
+      <p>Este email foi enviado automaticamente pela Banzami.<br>© {{.Year}} Banzami — Todos os direitos reservados.</p>
     </div>
   </div>
 </body>
@@ -188,6 +189,7 @@ type welcomeData struct {
 	MerchantName string
 	MerchantID   string
 	APIKey       string
+	Year         int
 }
 
 func renderMerchantWelcome(name, merchantID, apiKey string) (string, error) {
@@ -196,6 +198,7 @@ func renderMerchantWelcome(name, merchantID, apiKey string) (string, error) {
 		MerchantName: name,
 		MerchantID:   merchantID,
 		APIKey:       apiKey,
+		Year:         time.Now().Year(),
 	}); err != nil {
 		return "", err
 	}
