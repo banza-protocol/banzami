@@ -60,6 +60,7 @@ type MerchantLookup struct {
 	Status      string // ACTIVE | SUSPENDED | CLOSED (merchant status)
 	DisplayName string
 	Verified    bool
+	Activated   bool // false until the merchant sets a PIN via the activation link
 }
 
 // MerchantCredentialService authenticates a merchant by @handle + PIN, lets an
@@ -92,14 +93,15 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 	var (
 		merchantID  string
 		environment string
-		pinHash     string
+		pinHash     *string // NULL until the merchant activates and sets a PIN
+		activatedAt *time.Time
 		locked      *time.Time
 	)
 	err := s.pool.QueryRow(ctx,
-		`SELECT merchant_id::text, environment, pin_hash, locked_until
+		`SELECT merchant_id::text, environment, pin_hash, activated_at, locked_until
 		   FROM merchant_app_credentials
 		  WHERE handle = $1`, handle).
-		Scan(&merchantID, &environment, &pinHash, &locked)
+		Scan(&merchantID, &environment, &pinHash, &activatedAt, &locked)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return "", "", ErrMerchantCredsInvalid
@@ -107,11 +109,16 @@ func (s *PostgresMerchantCredentialService) VerifyHandlePin(ctx context.Context,
 		return "", "", err
 	}
 
+	// Not yet activated (no PIN set) → cannot log in (non-enumerating).
+	if pinHash == nil || activatedAt == nil {
+		return "", "", ErrMerchantCredsInvalid
+	}
+
 	if locked != nil && locked.After(time.Now()) {
 		return "", "", ErrMerchantLocked
 	}
 
-	if bcrypt.CompareHashAndPassword([]byte(pinHash), []byte(pin)) != nil {
+	if bcrypt.CompareHashAndPassword([]byte(*pinHash), []byte(pin)) != nil {
 		// Increment failures; lock once the threshold is reached.
 		_, _ = s.pool.Exec(ctx,
 			`UPDATE merchant_app_credentials
@@ -209,14 +216,16 @@ func (s *PostgresMerchantCredentialService) LookupHandle(ctx context.Context, ha
 		status      string
 		verified    bool
 		displayName string
+		activated   bool
 	)
 	err := s.pool.QueryRow(ctx,
-		`SELECT m.status, m.verified, COALESCE(p.display_name, m.name)
+		`SELECT m.status, m.verified, COALESCE(p.display_name, m.name),
+		        (c.activated_at IS NOT NULL) AS activated
 		   FROM merchant_app_credentials c
 		   JOIN merchants m          ON m.id = c.merchant_id
 		   LEFT JOIN merchant_profiles p ON p.merchant_id = c.merchant_id
 		  WHERE c.handle = $1`, handle).
-		Scan(&status, &verified, &displayName)
+		Scan(&status, &verified, &displayName, &activated)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return MerchantLookup{Exists: false, CanLogin: false}, nil
@@ -226,10 +235,11 @@ func (s *PostgresMerchantCredentialService) LookupHandle(ctx context.Context, ha
 
 	return MerchantLookup{
 		Exists:      true,
-		CanLogin:    status == "ACTIVE",
+		CanLogin:    status == "ACTIVE" && activated,
 		Status:      status,
 		DisplayName: displayName,
 		Verified:    verified,
+		Activated:   activated,
 	}, nil
 }
 

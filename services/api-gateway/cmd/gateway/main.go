@@ -63,6 +63,8 @@ func main() {
 	var webhookSvc service.WebhookService
 	var teamSvc service.TeamService
 	var merchantCredSvc service.MerchantCredentialService
+	var merchantAppSvc service.MerchantApplicationService
+	var activationSvc service.ActivationService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -82,6 +84,8 @@ func main() {
 		webhookSvc = pgWebhook
 		teamSvc = service.NewPostgresTeamService(dbPool)
 		merchantCredSvc = service.NewPostgresMerchantCredentialService(dbPool)
+		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
+		activationSvc = service.NewPostgresActivationService(dbPool)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -110,6 +114,8 @@ func main() {
 		FCMSvc:             fcmSvc,
 		TeamSvc:            teamSvc,
 		MerchantCredSvc:    merchantCredSvc,
+		MerchantAppSvc:     merchantAppSvc,
+		ActivationSvc:      activationSvc,
 		ComplianceSvc:      service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:           service.NewCoreApiSplitService(coreClient),
 	}

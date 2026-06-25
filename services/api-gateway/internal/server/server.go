@@ -40,6 +40,8 @@ type Dependencies struct {
 	FCMSvc             *notify.FCMService
 	TeamSvc            service.TeamService
 	MerchantCredSvc    service.MerchantCredentialService
+	MerchantAppSvc     service.MerchantApplicationService
+	ActivationSvc      service.ActivationService
 	ComplianceSvc      service.ComplianceService
 	SplitSvc           service.SplitService
 }
@@ -74,6 +76,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
 	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
+	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -103,6 +106,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Non-secret handle lookup — the app prompts for a PIN only when the account
 	// exists and can sign in.
 	r.Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
+	// Public Business onboarding — no JWT required.
+	r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
+	r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
+	r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
+	r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
