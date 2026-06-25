@@ -127,8 +127,9 @@ void main() {
       ));
       await _loadAndPay(tester);
 
-      // Native receipt is shown for the link payment.
-      expect(find.text('Enviado com sucesso'), findsOneWidget);
+      // Native receipt is shown for the link payment — a merchant payment, so
+      // the title is "Pagamento concluído" (not the P2P "Enviado com sucesso").
+      expect(find.text('Pagamento concluído'), findsOneWidget);
       expect(find.textContaining('para Doa Sandbox'), findsOneWidget);
       expect(paid, 0, reason: 'onSuccess fires on receipt close, not on commit');
 

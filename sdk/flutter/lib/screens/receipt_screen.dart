@@ -186,10 +186,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         : box.localToGlobal(Offset.zero) & box.size;
     try {
       final file = await BanzamiPdfReceiptGenerator.generate(
-        transfer:      widget.transfer,
-        ownHandle:     _from,
-        isSandbox:     widget.isSandbox,
-        logoAssetPath: widget.logoAssetPath,
+        transfer:          widget.transfer,
+        ownHandle:         _from,
+        isSandbox:         widget.isSandbox,
+        logoAssetPath:     widget.logoAssetPath,
+        recipientIsHandle: widget.recipientIsHandle,
       );
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
@@ -410,7 +411,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           const SizedBox(height: 4),
 
                           Text(
-                            'Enviado com sucesso',
+                            // P2P keeps the established "Enviado com sucesso";
+                            // a merchant / payment-link payment reads "Pagamento
+                            // concluído" — consistent with the PDF title rule.
+                            widget.recipientIsHandle
+                                ? 'Enviado com sucesso'
+                                : 'Pagamento concluído',
                             style: BanzamiTextStyles.headingSm.copyWith(
                               color: Colors.white.withValues(alpha: 0.80),
                             ),

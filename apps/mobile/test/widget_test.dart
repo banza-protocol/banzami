@@ -341,6 +341,9 @@ void main() {
       expect(find.text('para Doa Sandbox'), findsOneWidget);
       expect(find.text('Doa Sandbox'),      findsWidgets);
       expect(find.textContaining('@Doa'),   findsNothing);
+      // Merchant title (not the P2P "Enviado com sucesso").
+      expect(find.text('Pagamento concluído'), findsOneWidget);
+      expect(find.text('Enviado com sucesso'), findsNothing);
     });
   });
 }
