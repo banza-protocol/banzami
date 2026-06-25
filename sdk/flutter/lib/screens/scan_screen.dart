@@ -5,9 +5,9 @@ import '../client/api_exception.dart';
 import '../client/consumer_public_client.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/qr_parser.dart';
-import '../widgets/banzami_button.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_qr_scanner.dart';
+import 'payment_link_screen.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
 import 'split_pay_screen.dart';
@@ -131,7 +131,25 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         debugPrint('[QR-SCAN] route=SplitPay split=$splitId');
         if (_sandboxMismatch(isSandbox)) return;
         await _openSplitPayment(splitId);
+
+      case BanzamiQrPaymentLink(:final slug):
+        debugPrint('[QR-SCAN] route=PaymentLink slug=$slug');
+        await _openPaymentLink(slug);
     }
+  }
+
+  Future<void> _openPaymentLink(String slug) async {
+    if (!mounted) return;
+    await Navigator.of(context).push(BanzamiPageRoute(
+      page: BanzamiPaymentLinkScreen(
+        client:    widget.client,
+        slug:      slug,
+        ownHandle: widget.ownHandle,
+        isSandbox: widget.isSandbox,
+        onSuccess: (transfer) => widget.onSuccess(transfer),
+      ),
+    ));
+    if (mounted) _rescan();
   }
 
   Future<void> _openSplitPayment(String splitId) async {
@@ -368,7 +386,7 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: BanzamiSpacing.xxl),
-              BanzamiButton(
+              BanzamiPrimaryButton(
                 label:     'Tentar novamente',
                 onPressed: _rescan,
               ),

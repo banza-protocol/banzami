@@ -71,5 +71,22 @@ void main() {
       expect(result, isA<BanzamiQrSplitPayment>());
       expect((result as BanzamiQrSplitPayment).splitId, 'abc-split-123');
     });
+
+    test('bare merchant payment-link slug resolves to a payment link', () {
+      final result = BanzamiQrParser.parse('https://pay.banzami.com/bb48c6534c86');
+      expect(result, isA<BanzamiQrPaymentLink>());
+      expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
+    });
+
+    test('/pay/{slug} merchant payment-link resolves to a payment link', () {
+      final result = BanzamiQrParser.parse('https://pay.banzami.com/pay/bb48c6534c86');
+      expect(result, isA<BanzamiQrPaymentLink>());
+      expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
+    });
+
+    test('multi-segment unknown pay path is still rejected', () {
+      expect(BanzamiQrParser.parse('https://pay.banzami.com/foo/bar/baz'),
+          isA<BanzamiQrInvalid>());
+    });
   });
 }

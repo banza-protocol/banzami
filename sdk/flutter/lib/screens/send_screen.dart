@@ -224,6 +224,10 @@ class _BanzamiSendScreenState extends State<BanzamiSendScreen> {
       case BanzamiQrSplitPayment():
         BanzamiToast.showWarning(
             context, 'Este é um QR de divisão de conta. Use o ecrã Pagar.');
+
+      case BanzamiQrPaymentLink():
+        BanzamiToast.showWarning(
+            context, 'Este é um QR de pagamento. Use o ecrã Pagar.');
     }
   }
 

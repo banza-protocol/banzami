@@ -1,6 +1,8 @@
 /// Parses a raw QR code string into a typed Banzami payment result.
 ///
 /// Supported formats:
+///  • https://pay.banzami.com/{slug}            (merchant payment link)
+///  • https://pay.banzami.com/pay/{slug}        (merchant payment link)
 ///  • https://pay.banzami.com/r/{code}[?sandbox=1]
 ///  • https://pay.banzami.com/u/{handle}[?amount=N&note=...&sandbox=1]
 ///  • banzami://pay?request={code}
@@ -65,6 +67,15 @@ class BanzamiQrSplitPayment extends BanzamiQrResult {
   const BanzamiQrSplitPayment({required this.splitId, required this.isSandbox});
 }
 
+/// A merchant payment link — `pay.banzami.com/{slug}` (or `/pay/{slug}`). The
+/// payer resolves it via `ConsumerPublicClient.getPaymentLinkBySlug` and pays
+/// in-app (BanzamiPaymentLinkScreen). The environment is implicit in the
+/// resolving gateway, so the URL carries no sandbox marker.
+class BanzamiQrPaymentLink extends BanzamiQrResult {
+  final String slug;
+  const BanzamiQrPaymentLink({required this.slug});
+}
+
 /// Not a recognised Banzami QR payload.
 class BanzamiQrInvalid extends BanzamiQrResult {
   final String reason;
@@ -115,7 +126,18 @@ class BanzamiQrParser {
             isSandbox:   sandbox,
           );
 
+        case 'pay':
+          // /pay/{slug} — merchant payment link
+          if (segs.length < 2 || segs[1].isEmpty) {
+            return const BanzamiQrInvalid('Link de pagamento ausente');
+          }
+          return BanzamiQrPaymentLink(slug: segs[1]);
+
         default:
+          // /{slug} — a bare single-segment path is a merchant payment link.
+          if (segs.length == 1) {
+            return BanzamiQrPaymentLink(slug: segs[0]);
+          }
           return const BanzamiQrInvalid('Formato de QR não reconhecido');
       }
     }
