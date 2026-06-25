@@ -25,8 +25,12 @@ var allowedOrigins = map[string]bool{
 	"http://localhost:3002": true,
 	"http://localhost:3003": true,
 	"http://localhost:3004": true,
-	// Production — nginx handles admin/business; only pay needs app-level CORS.
+	"http://localhost:3005": true, // website (banzami.com) dev server
+	// Production — nginx handles admin/business; pay + the public website
+	// (Business onboarding form) need app-level CORS.
 	"https://pay.banzami.com": true,
+	"https://banzami.com":     true,
+	"https://www.banzami.com": true,
 }
 
 func isAllowedOrigin(origin string) bool {
