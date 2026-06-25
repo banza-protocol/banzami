@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
@@ -95,17 +96,26 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       if (byteData == null) throw Exception('QR render retornou imagem vazia');
       final bytes = byteData.buffer.asUint8List();
 
-      final file = File('${Directory.systemTemp.path}/qr_${session.merchantId}.png');
+      // App-private cache directory — never a world-readable location for a
+      // merchant payment QR. The file is removed again after sharing.
+      final dir  = await getTemporaryDirectory();
+      final file = File('${dir.path}/qr_${session.merchantId}.png');
       await file.writeAsBytes(bytes);
 
       final box    = _shareButtonKey.currentContext?.findRenderObject() as RenderBox?;
       final origin = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
 
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'image/png')],
-        subject:             'QR de pagamento — ${session.merchantName}',
-        sharePositionOrigin: origin,
-      );
+      try {
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'image/png')],
+          subject:             'QR de pagamento — ${session.merchantName}',
+          sharePositionOrigin: origin,
+        );
+      } finally {
+        if (await file.exists()) {
+          try { await file.delete(); } catch (_) {/* best-effort cleanup */}
+        }
+      }
     } catch (e) {
       if (mounted) {
         BanzamiToast.showError(context, 'Erro ao partilhar: $e');

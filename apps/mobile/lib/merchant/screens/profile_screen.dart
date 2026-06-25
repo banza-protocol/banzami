@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
+import '../widgets/merchant_status_badge.dart';
 import 'kyb_screen.dart';
 import 'payout_screen.dart';
 
@@ -150,12 +152,7 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             const SizedBox(height: BanzamiSpacing.xxl),
 
-            Center(
-              child: Text(
-                'Banzami Business v1.0',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-              ),
-            ),
+            const Center(child: _AppVersionLabel()),
 
             const SizedBox(height: BanzamiSpacing.xl),
           ],
@@ -354,30 +351,46 @@ class _VerifiedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: BanzamiSpacing.md,
-        vertical:   5,
-      ),
-      decoration: BoxDecoration(
-        color:        const Color(0xFF1D4ED8).withValues(alpha: 0.15),
-        borderRadius: BanzamiRadius.fullAll,
-        border:       Border.all(color: const Color(0xFF1D4ED8).withValues(alpha: 0.35)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.verified_rounded, size: 12, color: Color(0xFFBFDBFE)),
-          const SizedBox(width: 4),
-          Text(
-            'Verificado',
-            style: BanzamiTextStyles.label.copyWith(
-              color:    const Color(0xFFBFDBFE),
-              fontSize: 11,
-            ),
-          ),
-        ],
-      ),
+    return const MerchantStatusBadge(
+      label: 'Verificado',
+      icon: Icons.verified_rounded,
+      tone: MerchantBadgeTone.success,
+    );
+  }
+}
+
+/// App version label, read at runtime from the bundle (never hardcoded).
+/// Falls back to the product name alone if the platform lookup is unavailable.
+class _AppVersionLabel extends StatefulWidget {
+  const _AppVersionLabel();
+
+  @override
+  State<_AppVersionLabel> createState() => _AppVersionLabelState();
+}
+
+class _AppVersionLabelState extends State<_AppVersionLabel> {
+  String _text = 'Banzami Business';
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() => _text = 'Banzami Business v${info.version} (${info.buildNumber})');
+      }
+    } catch (_) {/* keep the product-name fallback */}
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      _text,
+      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
     );
   }
 }

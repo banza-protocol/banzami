@@ -66,7 +66,6 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
     if (state == AppLifecycleState.paused) {
       _notifSvc?.stopPolling();
       _pausedAt = DateTime.now();
-      debugPrint('[APP-LOCK] merchant pausedAt=${_pausedAt?.toIso8601String()}');
       // Lock decision is deferred to resumed to allow a grace period.
     } else if (state == AppLifecycleState.resumed) {
       _notifSvc?.startPolling();
@@ -74,7 +73,6 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
           ? DateTime.now().difference(_pausedAt!).inSeconds
           : _kGraceSeconds + 1;
       _pausedAt = null;
-      debugPrint('[APP-LOCK] merchant resumedAfterSeconds=$elapsed requireUnlock=${elapsed >= _kGraceSeconds}');
       if (elapsed >= _kGraceSeconds) {
         context.read<MerchantSessionService>().lock();
       }
@@ -83,11 +81,11 @@ class _MerchantMainScreenState extends State<MerchantMainScreen>
 
   @override
   Widget build(BuildContext context) {
-    const tabs = [
-      DashboardScreen(),
-      MerchantHistoryScreen(),
-      MerchantQrScreen(),
-      MerchantProfileScreen(),
+    final tabs = [
+      DashboardScreen(onSwitchTab: (i) => setState(() => _tab = i)),
+      const MerchantHistoryScreen(),
+      const MerchantQrScreen(),
+      const MerchantProfileScreen(),
     ];
 
     return Scaffold(
