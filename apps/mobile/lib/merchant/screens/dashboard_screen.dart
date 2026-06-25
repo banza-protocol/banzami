@@ -134,7 +134,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildContent(MerchantSession session) {
     final currency = _balance?.currency ?? 'AOA';
-    final isSandbox = session.apiKey.startsWith('bz_test');
+    final isSandbox = session.isSandbox;
     final stats = _stats;
 
     return CustomScrollView(

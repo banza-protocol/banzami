@@ -59,7 +59,7 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
       merchantName:  widget.merchantName  ?? svc.session!.merchantName,
       merchantEmail: widget.merchantEmail ?? svc.session!.merchantEmail,
       walletId:      widget.walletId      ?? svc.session!.walletId,
-      apiKey:        widget.apiKey        ?? svc.session!.apiKey,
+      apiKey:        widget.apiKey        ?? svc.session!.apiKey ?? '',
       verified:      widget.verified,
       pin:           _pin,
     );

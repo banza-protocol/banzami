@@ -55,11 +55,20 @@ class BanzamiClient {
   /// When the current session token expires. Null until the first API call.
   DateTime? get sessionExpiresAt => _jwtExpiry;
 
+  /// Identity used to decide whether a cached client can be reused — the API key
+  /// (legacy mode) or the JWT (handle login). Not for display.
+  String get authIdentity => apiKey.isNotEmpty ? apiKey : (_jwt ?? '');
+
   bool get isSandbox    => environment.isSandbox;
   bool get isProduction => environment.isLive;
 
+  /// Construct with an API key (legacy: exchanged for a JWT on demand) and/or a
+  /// pre-issued [jwt] (e.g. from @handle + PIN login). When a fresh JWT is
+  /// present it is used directly; otherwise the API key is exchanged. A
+  /// JWT-only client cannot self-refresh — on expiry it surfaces a 401 so the
+  /// app re-authenticates.
   BanzamiClient({
-    required this.apiKey,
+    this.apiKey = '',
     this.environment = BanzamiEnvironment.production,
     String? baseUrl,
     http.Client? httpClient,
@@ -68,9 +77,48 @@ class BanzamiClient {
     this.onRequest,
     this.onResponse,
     this.onError,
+    String? jwt,
+    DateTime? jwtExpiresAt,
   })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl).replaceAll(RegExp(r'/$'), ''),
         _http = httpClient ?? http.Client(),
-        _uuid = const Uuid();
+        _uuid = const Uuid(),
+        _jwt = jwt,
+        _jwtExpiry = jwtExpiresAt;
+
+  /// Install a pre-issued merchant JWT (handle + PIN login). When set and fresh
+  /// it is used directly, without exchanging an API key.
+  void setJwt(String token, {DateTime? expiresAt}) {
+    _jwt = token;
+    _jwtExpiry = expiresAt;
+  }
+
+  /// Log a merchant in by @handle + PIN (unauthenticated endpoint). Returns the
+  /// issued JWT, its expiry and the environment. Does NOT mutate this client —
+  /// the caller decides how to build the session.
+  Future<({String token, DateTime expiresAt, String environment})> loginMerchantHandlePin({
+    required String handle,
+    required String pin,
+  }) async {
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl/v1/merchant/auth/token'),
+        headers: {'Content-Type': 'application/json'},
+        body:    jsonEncode({'handle': handle, 'pin': pin}),
+      );
+    } catch (e) {
+      if (e is BanzamiApiException) rethrow;
+      throw BanzamiNetworkException(e.toString());
+    }
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    final exp = body['expires_at'] as String?;
+    return (
+      token:       body['token'] as String,
+      expiresAt:   exp != null ? DateTime.parse(exp) : DateTime.now().add(const Duration(hours: 24)),
+      environment: (body['environment'] as String?) ?? 'LIVE',
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Consumers
@@ -431,6 +479,7 @@ class BanzamiClient {
     try {
       resp = await _http.get(Uri.parse('$baseUrl/public/pay/$slug'));
     } catch (e) {
+      if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -465,6 +514,14 @@ class BanzamiClient {
         DateTime.now().isBefore(_jwtExpiry!.subtract(buffer))) {
       return;
     }
+    if (apiKey.isEmpty) {
+      // JWT-only client (handle login) with a missing/expired token — it cannot
+      // self-refresh, so surface a 401 and let the app re-authenticate (PIN).
+      throw BanzamiApiException.fromJson(401, const {
+        'code':    'TOKEN_EXPIRED',
+        'message': 'session expired, please sign in again',
+      });
+    }
     late http.Response resp;
     try {
       resp = await _http.post(
@@ -473,6 +530,7 @@ class BanzamiClient {
         body:    jsonEncode({'api_key': apiKey}),
       );
     } catch (e) {
+      if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
@@ -504,6 +562,7 @@ class BanzamiClient {
       );
     } catch (e) {
       onError?.call('GET', path, e, 1);
+      if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
@@ -522,6 +581,7 @@ class BanzamiClient {
       );
     } catch (e) {
       onError?.call('DELETE', path, e, 1);
+      if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);
@@ -549,6 +609,7 @@ class BanzamiClient {
       );
     } catch (e) {
       onError?.call('POST', path, e, 1);
+      if (e is BanzamiApiException) rethrow;
       throw BanzamiNetworkException(e.toString());
     }
     final result = _decode(resp);

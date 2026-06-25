@@ -24,12 +24,18 @@ class BanzamiMerchantApp extends StatelessWidget {
         ),
         ProxyProvider<MerchantSessionService, BanzamiClient>(
           update: (_, session, prev) {
-            final apiKey = session.session?.apiKey ?? '';
-            if (prev != null && apiKey == prev.apiKey) return prev;
+            final s = session.session;
+            final auth = s?.authIdentity ?? '';
+            // Rebuild only when the auth credential changes — not on every
+            // session notify (e.g. a biometric toggle). Works for both an API
+            // key (exchanged for a JWT) and a pre-issued handle-login JWT.
+            if (prev != null && auth == prev.authIdentity) return prev;
             return BanzamiClient(
-              baseUrl:    AppConfig.gatewayUrl,
-              apiKey:     apiKey,
-              httpClient: pinnedClient,
+              baseUrl:      AppConfig.gatewayUrl,
+              apiKey:       s?.apiKey ?? '',
+              jwt:          s?.jwt,
+              jwtExpiresAt: s?.jwtExpiresAt,
+              httpClient:   pinnedClient,
             );
           },
         ),
