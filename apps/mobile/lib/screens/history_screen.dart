@@ -743,15 +743,10 @@ class _HistoryRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCredit  = item.isIncoming;
     final amount    = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
-    final title     = item.counterpartyDisplayName ??
-                      (item.counterpartyHandle != null
-                          ? item.counterpartyHandle!
-                          : _typeLabel(item.itemType));
-    final subtitle  = _subtitle(item.itemType);
+    final title     = item.displayTitle;
+    final subtitle  = item.typeLabel;
     final time      = _formatTime(item.createdAt);
-    final initial   = (item.counterpartyDisplayName
-                       ?? item.counterpartyHandle
-                       ?? item.itemType)[0];
+    final initial   = item.displayTitle[0];
 
     return Padding(
       padding: const EdgeInsets.symmetric(
@@ -809,18 +804,6 @@ class _HistoryRow extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  String _subtitle(String type) {
-    if (type == 'P2P_SENT')      return 'Enviado';
-    if (type == 'P2P_RECEIVED')  return 'Recebido';
-    if (type == 'WALLET_FUNDED') return 'Carregamento';
-    return type;
-  }
-
-  String _typeLabel(String type) {
-    if (type == 'WALLET_FUNDED') return 'Multicaixa';
-    return type;
   }
 
   String _formatTime(DateTime? dt) {

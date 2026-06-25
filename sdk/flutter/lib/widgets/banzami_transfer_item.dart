@@ -27,11 +27,13 @@ class BanzamiTransferItem extends StatelessWidget {
     final iconColor   = isOut ? BanzamiColors.primary : BanzamiColors.success;
 
     final (icon, label) = switch (item.itemType) {
-      'P2P_SENT'       => (Icons.arrow_upward_rounded,   'Enviado'),
-      'P2P_RECEIVED'   => (Icons.arrow_downward_rounded, 'Recebido'),
-      'WALLET_FUNDED'  => (Icons.add_rounded,            'Carregamento'),
-      'WALLET_REVERSED'=> (Icons.remove_rounded,         'Estorno'),
-      _                => (Icons.swap_horiz_rounded,     'Transacção'),
+      'P2P_SENT'             => (Icons.arrow_upward_rounded,   'Enviado'),
+      'P2P_RECEIVED'         => (Icons.arrow_downward_rounded, 'Recebido'),
+      'MERCHANT_PAYMENT_SENT'=> (Icons.storefront_rounded,     'Pagamento'),
+      'WALLET_FUNDED'        => (Icons.add_rounded,            'Carregamento'),
+      'WALLET_REVERSED'      => (Icons.remove_rounded,         'Estorno'),
+      // Never surface a raw technical code — fall back to the shared label.
+      _                      => (Icons.swap_horiz_rounded,     item.typeLabel),
     };
 
     final subtitle = item.counterpartyHandle != null

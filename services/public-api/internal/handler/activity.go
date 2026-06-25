@@ -46,7 +46,8 @@ func newActivityHandlerWithFakes(core activityFetcher) *ActivityHandler {
 // Query params:
 //   - cursor  — opaque pagination token from previous response
 //   - limit   — page size (1–100, default 20)
-//   - type    — filter: P2P_SENT | P2P_RECEIVED | WALLET_FUNDED | WALLET_REVERSED
+//   - type    — filter: P2P_SENT | P2P_RECEIVED | MERCHANT_PAYMENT_SENT |
+//               WALLET_FUNDED | WALLET_REVERSED
 //   - direction — filter: OUTGOING | INCOMING
 func (h *ActivityHandler) Activity(w http.ResponseWriter, r *http.Request) {
 	consumer, ok := middleware.GetConsumer(r.Context())

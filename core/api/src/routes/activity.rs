@@ -22,7 +22,8 @@ pub struct ActivityQuery {
     pub consumer_id: String,
     pub limit: Option<i64>,
     pub cursor: Option<String>,
-    /// Optional filter: P2P_SENT | P2P_RECEIVED | WALLET_FUNDED | WALLET_REVERSED
+    /// Optional filter: P2P_SENT | P2P_RECEIVED | MERCHANT_PAYMENT_SENT |
+    /// WALLET_FUNDED | WALLET_REVERSED
     pub r#type: Option<String>,
     /// Optional filter: OUTGOING | INCOMING | SYSTEM
     pub direction: Option<String>,
@@ -86,10 +87,17 @@ fn encode_cursor(created_at: DateTime<Utc>, activity_id: &str) -> String {
 
 const ACTIVITY_UNION_SQL: &str = r#"
 WITH activity AS (
-    -- P2P_SENT: this consumer is the sender
+    -- Outgoing transfer (this consumer is the sender).
+    -- recipient_id holds EITHER a consumer id (true P2P) OR a merchant wallet
+    -- id (payment-link / merchant payments — e.g. donations to a merchant such
+    -- as Doa). Classify by which one the recipient_id resolves to, so a merchant
+    -- payment is never mislabelled as P2P. The merchant name is surfaced as the
+    -- counterparty so clients can render "Pagamento <Merchant>".
     SELECT
         t.id::text               AS activity_id,
-        'P2P_SENT'::text         AS item_type,
+        (CASE WHEN w_r.id IS NOT NULL
+              THEN 'MERCHANT_PAYMENT_SENT'
+              ELSE 'P2P_SENT' END)::text  AS item_type,
         'OUTGOING'::text         AS direction,
         t.amount_minor,
         t.currency,
@@ -97,12 +105,14 @@ WITH activity AS (
         t.created_at,
         t.created_at             AS completed_at,
         c_r.handle               AS counterparty_handle,
-        c_r.display_name         AS counterparty_display_name,
+        COALESCE(c_r.display_name, m_r.name) AS counterparty_display_name,
         t.description            AS note,
         t.id::text               AS transfer_id,
         NULL::text               AS funding_id
     FROM transfers t
     LEFT JOIN consumers c_r ON c_r.id = t.recipient_id
+    LEFT JOIN wallets   w_r ON w_r.id = t.recipient_id
+    LEFT JOIN merchants m_r ON m_r.id = w_r.merchant_id
     WHERE t.sender_id = $1 AND t.status = 'COMPLETED'
 
     UNION ALL

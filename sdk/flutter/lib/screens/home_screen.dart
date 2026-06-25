@@ -596,30 +596,16 @@ class _ActivityRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCredit = item.isIncoming;
     final amountFormatted = '${isCredit ? "+" : "−"}${formatMinor(item.amountMinor, item.currency)}';
-    final subtitle = _subtitle(item);
-    final initial = (item.counterpartyDisplayName ?? item.counterpartyHandle ?? item.itemType)[0];
+    final initial = item.displayTitle[0];
 
     return BanzamiActivityRow(
-      title:    item.counterpartyDisplayName ??
-                (item.counterpartyHandle != null ? '@${item.counterpartyHandle}' : _typeLabel(item.itemType)),
-      subtitle: subtitle,
+      title:    item.displayTitle,
+      subtitle: item.typeLabel,
       amount:   amountFormatted,
       time:     _formatTime(item.createdAt),
       isCredit: isCredit,
       leading:  _ActivityIcon(type: item.itemType, initial: initial, isCredit: isCredit),
     );
-  }
-
-  String _subtitle(ActivityItem item) {
-    if (item.itemType == 'P2P_SENT')      return 'Enviado';
-    if (item.itemType == 'P2P_RECEIVED')  return 'Recebido';
-    if (item.itemType == 'WALLET_FUNDED') return 'Carregamento';
-    return item.itemType;
-  }
-
-  String _typeLabel(String type) {
-    if (type == 'WALLET_FUNDED') return 'Multicaixa';
-    return type;
   }
 
   String _formatTime(DateTime? dt) {
