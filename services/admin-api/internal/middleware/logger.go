@@ -17,12 +17,12 @@ func Logger(next http.Handler) http.Handler {
 		next.ServeHTTP(ww, r)
 
 		slog.InfoContext(r.Context(), "request",
-			"method",      r.Method,
-			"path",        r.URL.Path,
-			"status",      ww.Status(),
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", ww.Status(),
 			"duration_ms", time.Since(start).Milliseconds(),
-			"request_id",  middleware.GetReqID(r.Context()),
-			"remote_ip",   r.RemoteAddr,
+			"request_id", middleware.GetReqID(r.Context()),
+			"remote_ip", r.RemoteAddr,
 		)
 	})
 }

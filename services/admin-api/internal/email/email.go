@@ -20,6 +20,7 @@ type Sender struct {
 	password string
 	from     string
 	fromName string
+	dryRun   bool
 }
 
 // Config holds SMTP connection parameters.
@@ -30,6 +31,9 @@ type Config struct {
 	Password string
 	From     string
 	FromName string
+	// DryRun logs emails instead of sending them (default in sandbox). It never
+	// logs the body, so tokens/links/secrets stay out of the logs.
+	DryRun bool
 }
 
 func NewSender(cfg Config) *Sender {
@@ -40,6 +44,7 @@ func NewSender(cfg Config) *Sender {
 		password: cfg.Password,
 		from:     cfg.From,
 		fromName: cfg.FromName,
+		dryRun:   cfg.DryRun,
 	}
 }
 
@@ -70,6 +75,13 @@ func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
 }
 
 func (s *Sender) send(to, subject, htmlBody string) error {
+	// Dry-run (default in sandbox): log the envelope only — never the body, so
+	// activation links / tokens / API keys stay out of the logs.
+	if s.dryRun {
+		slog.Info("email dry-run — not sending", "to", to, "subject", subject)
+		return nil
+	}
+
 	fromHeader := fmt.Sprintf("%s <%s>", s.fromName, s.from)
 	msg := strings.Join([]string{
 		fmt.Sprintf("From: %s", fromHeader),

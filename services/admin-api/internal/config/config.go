@@ -22,6 +22,16 @@ type Config struct {
 	SMTPPassword string
 	SMTPFrom     string
 	SMTPFromName string
+
+	// EmailDryRun logs emails instead of sending them. Defaults to TRUE (safe):
+	// real emails are sent only when EMAIL_DRY_RUN=false is set explicitly.
+	EmailDryRun bool
+
+	// Gateway internal API — for the merchant-application orchestration.
+	GatewayInternalURL string // e.g. http://api-gateway:8080
+	InternalAPIKey     string // shared secret sent as X-Internal-Key
+	// WebsiteBaseURL builds the activation link (e.g. https://banzami.com).
+	WebsiteBaseURL string
 }
 
 // Load reads config from environment variables.
@@ -81,5 +91,18 @@ func Load() (*Config, error) {
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
 		SMTPFrom:     os.Getenv("SMTP_FROM"),
 		SMTPFromName: smtpFromName,
+
+		// Dry-run is the safe default; only EMAIL_DRY_RUN=false enables real sends.
+		EmailDryRun:        os.Getenv("EMAIL_DRY_RUN") != "false",
+		GatewayInternalURL: getenvDefault("GATEWAY_INTERNAL_URL", "http://api-gateway:8080"),
+		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
+		WebsiteBaseURL:     getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),
 	}, nil
+}
+
+func getenvDefault(key, def string) string {
+	if v := os.Getenv(key); v != "" {
+		return v
+	}
+	return def
 }

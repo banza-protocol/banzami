@@ -22,7 +22,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -46,6 +46,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		payoutH := handler.NewPayoutHandler(core)
 		merchantH := handler.NewMerchantHandler(core)
 		merchantSetupH := handler.NewMerchantSetupHandler(core, mailer)
+		applicationsH := handler.NewMerchantApplicationHandler(gw, mailer, cfg.WebsiteBaseURL)
 		reconciliationH := handler.NewReconciliationHandler(core)
 		consumerH := handler.NewConsumerHandler(core)
 		walletH := handler.NewWalletHandler(core)
@@ -61,6 +62,12 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/merchants/{id}/api-keys", merchantSetupH.CreateApiKey)
 		r.Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
 		r.Post("/admin/v1/merchants/{id}/wallets", merchantSetupH.CreateWallet)
+
+		// Business onboarding applications (Merchant Lifecycle)
+		r.Get("/admin/v1/merchant-applications", applicationsH.List)
+		r.Get("/admin/v1/merchant-applications/{id}", applicationsH.Get)
+		r.Post("/admin/v1/merchant-applications/{id}/approve", applicationsH.Approve)
+		r.Post("/admin/v1/merchant-applications/{id}/reject", applicationsH.Reject)
 
 		// Wallets
 		r.Get("/admin/v1/wallets", walletH.GetForMerchant)

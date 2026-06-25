@@ -35,7 +35,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	core   := service.NewCoreAdminClient(cfg.CoreAPIURL)
+	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
+	gw := service.NewGatewayClient(cfg.GatewayInternalURL, cfg.InternalAPIKey)
 	mailer := email.NewSender(email.Config{
 		Host:     cfg.SMTPHost,
 		Port:     cfg.SMTPPort,
@@ -43,19 +44,22 @@ func main() {
 		Password: cfg.SMTPPassword,
 		From:     cfg.SMTPFrom,
 		FromName: cfg.SMTPFromName,
+		DryRun:   cfg.EmailDryRun,
 	})
-	if !mailer.Enabled() {
-		slog.Warn("SMTP not configured — merchant welcome emails will be skipped")
+	if cfg.EmailDryRun {
+		slog.Warn("EMAIL_DRY_RUN enabled — emails are logged, not sent")
+	} else if !mailer.Enabled() {
+		slog.Warn("SMTP not configured — emails will be skipped")
 	}
-	srv := server.New(cfg, core, mailer)
+	srv := server.New(cfg, core, mailer, gw)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 
 	go func() {
 		slog.Info("admin-api starting",
-			"port",         cfg.Port,
-			"log_level",    cfg.LogLevel,
+			"port", cfg.Port,
+			"log_level", cfg.LogLevel,
 			"otlp_enabled", cfg.OTLPEndpoint != "",
 		)
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {

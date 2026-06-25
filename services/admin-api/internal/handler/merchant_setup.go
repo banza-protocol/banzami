@@ -115,8 +115,8 @@ func (h *MerchantSetupHandler) ResendCredentials(w http.ResponseWriter, r *http.
 		wallet = map[string]any{}
 	}
 
-	name, _   := merchant["name"].(string)
-	email, _  := merchant["email"].(string)
+	name, _ := merchant["name"].(string)
+	email, _ := merchant["email"].(string)
 	rawKey, _ := apiKey["secret"].(string)
 
 	go func() {

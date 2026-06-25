@@ -21,7 +21,7 @@ func NewWalletHandler(core *service.CoreAdminClient) *WalletHandler {
 // GET /admin/v1/wallets?merchant_id=&currency=
 func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
 	merchantID := r.URL.Query().Get("merchant_id")
-	currency   := r.URL.Query().Get("currency")
+	currency := r.URL.Query().Get("currency")
 	if merchantID == "" || currency == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]any{
 			"error": map[string]any{"code": "MISSING_FIELD", "message": "merchant_id and currency are required"},
