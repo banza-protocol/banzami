@@ -62,6 +62,7 @@ func main() {
 	// set; fall back to the in-memory stub for local dev without a full stack.
 	var webhookSvc service.WebhookService
 	var teamSvc service.TeamService
+	var merchantCredSvc service.MerchantCredentialService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -80,6 +81,7 @@ func main() {
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
 		webhookSvc = pgWebhook
 		teamSvc = service.NewPostgresTeamService(dbPool)
+		merchantCredSvc = service.NewPostgresMerchantCredentialService(dbPool)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -107,6 +109,7 @@ func main() {
 		ConsumerPayLinkSvc: service.NewCoreApiConsumerPayLinkService(coreClient),
 		FCMSvc:             fcmSvc,
 		TeamSvc:            teamSvc,
+		MerchantCredSvc:    merchantCredSvc,
 		ComplianceSvc:      service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:           service.NewCoreApiSplitService(coreClient),
 	}

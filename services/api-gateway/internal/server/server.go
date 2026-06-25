@@ -39,6 +39,7 @@ type Dependencies struct {
 	ConsumerPayLinkSvc service.ConsumerPayLinkService
 	FCMSvc             *notify.FCMService
 	TeamSvc            service.TeamService
+	MerchantCredSvc    service.MerchantCredentialService
 	ComplianceSvc      service.ComplianceService
 	SplitSvc           service.SplitService
 }
@@ -72,6 +73,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Handlers
 	// ---------------------------------------------------------------------------
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
+	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -95,6 +97,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 
 	// Auth — no JWT required; the API key is the credential
 	r.Post("/v1/auth/token", authHandler.Token)
+	// Merchant app login by @handle + PIN — no JWT required; handle+PIN is the
+	// credential. Issues the same merchant JWT as the API-key flow.
+	r.Post("/v1/merchant/auth/token", merchantAuthHandler.Token)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))
@@ -102,6 +107,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Use(middleware.Idempotency(deps.Redis))
 
 		r.Route("/v1", func(r chi.Router) {
+			// Claim/update the merchant @handle + PIN (already authenticated).
+			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
+
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)
 			r.Get("/transactions/{id}", txHandler.Get)
