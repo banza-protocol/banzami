@@ -306,11 +306,9 @@ void main() {
         (tester) async {
       Transfer? received;
       await pumpReceipt(tester, onDone: (t) => received = t);
-      // Invoke the button callback directly — BanzamiPrimaryButton plays a
-      // 2×150ms press-scale before firing onPressed; we test _done(), not the
-      // animation. onDone runs synchronously inside _done().
-      tester.widget<BanzamiPrimaryButton>(
-        find.widgetWithText(BanzamiPrimaryButton, 'Concluído')).onPressed!();
+      // The historical Concluído is a plain white ElevatedButton — onPressed
+      // (=_done) fires immediately on tap; onDone runs synchronously inside it.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Concluído'));
       // Do not use pumpAndSettle(): the repeating rotation animation never settles.
       await tester.pump();
       expect(received?.transferId, equals(transfer.transferId));

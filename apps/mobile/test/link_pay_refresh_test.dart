@@ -133,8 +133,7 @@ void main() {
       expect(paid, 0, reason: 'onSuccess fires on receipt close, not on commit');
 
       // Close the receipt → onSuccess (the app wires this to WalletRefreshBus).
-      tester.widget<BanzamiPrimaryButton>(
-        find.widgetWithText(BanzamiPrimaryButton, 'Concluído')).onPressed!();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Concluído'));
       await tester.pump();
       expect(paid, 1);
     });

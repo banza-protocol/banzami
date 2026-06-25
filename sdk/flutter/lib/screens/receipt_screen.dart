@@ -322,7 +322,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // ── Immersive cherry "success moment" — the receipt is a reward ──
+          // ── Full-screen cherry gradient + content ──────────────────────
           Container(
             width:  double.infinity,
             height: double.infinity,
@@ -352,10 +352,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                       ),
                       child: Row(children: [
                         IconButton(
-                          icon: Icon(
+                          icon: const Icon(
                             Icons.close_rounded,
-                            color: BanzamiColors.white.withValues(alpha: 0.55),
-                            size:  24,
+                            color: Colors.white54,
+                            size:  22,
                           ),
                           onPressed: _done,
                         ),
@@ -363,7 +363,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         Text(
                           'Comprovativo',
                           style: BanzamiTextStyles.headingSm.copyWith(
-                            color: BanzamiColors.white.withValues(alpha: 0.75),
+                            color: Colors.white.withValues(alpha: 0.75),
                           ),
                         ),
                         const Spacer(),
@@ -378,20 +378,20 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           horizontal: BanzamiSpacing.xl,
                         ),
                         child: Column(children: [
-                          const SizedBox(height: BanzamiSpacing.sm),
+                          const SizedBox(height: 6),
 
-                          // Premium verified mark (white ring/label on cherry)
+                          // Verified mark with rotating dashed ring
                           ScaleTransition(
                             scale: _markScale,
                             child: const BanzamiVerifiedMark(size: 96),
                           ),
 
-                          const SizedBox(height: BanzamiSpacing.md),
+                          const SizedBox(height: 4),
 
                           Text(
                             'Enviado com sucesso',
                             style: BanzamiTextStyles.headingSm.copyWith(
-                              color: BanzamiColors.white.withValues(alpha: 0.80),
+                              color: Colors.white.withValues(alpha: 0.80),
                             ),
                           ),
 
@@ -400,7 +400,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           Text(
                             _amount,
                             style: BanzamiTextStyles.monoLg.copyWith(
-                              color: BanzamiColors.white,
+                              color: Colors.white,
                             ),
                           ),
 
@@ -409,12 +409,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                           Text(
                             'para $_recipientLabel',
                             style: BanzamiTextStyles.bodyMd.copyWith(
-                              color: BanzamiColors.white.withValues(alpha: 0.60),
+                              color: Colors.white.withValues(alpha: 0.60),
                             ),
                           ),
 
                           if (widget.isSandbox) ...[
-                            const SizedBox(height: BanzamiSpacing.sm),
+                            const SizedBox(height: 8),
                             const BanzamiSandboxBadge(
                               label: 'SANDBOX  •  Dinheiro de teste',
                             ),
@@ -422,11 +422,20 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
                           const SizedBox(height: BanzamiSpacing.sm),
 
-                          // ── Translucent detail card ────────────────────
-                          BanzamiGlassCard(
+                          // ── Glass detail card ──────────────────────────
+                          Container(
+                            width:   double.infinity,
                             padding: const EdgeInsets.symmetric(
                               horizontal: BanzamiSpacing.lg,
                               vertical:   BanzamiSpacing.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color:        Colors.white.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 1,
+                              ),
                             ),
                             child: Column(children: [
                               _DetailRow(label: 'De',     value: '@$_from'),
@@ -444,25 +453,78 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
                           const SizedBox(height: BanzamiSpacing.md),
 
-                          // ── Concluído (white on cherry) ────────────────
-                          BanzamiPrimaryButton(
-                            label:           'Concluído',
-                            icon:            Icons.check_rounded,
-                            backgroundColor: BanzamiColors.white,
-                            foregroundColor: BanzamiColors.primary,
-                            onPressed:       _done,
+                          // ── Concluído ──────────────────────────────────
+                          SizedBox(
+                            width:  double.infinity,
+                            height: 58,
+                            child: ElevatedButton(
+                              onPressed: _done,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: BanzamiColors.primary,
+                                elevation:       0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width:  22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      shape:  BoxShape.circle,
+                                      border: Border.all(
+                                        color: BanzamiColors.primary,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: BanzamiSpacing.sm),
+                                  Text(
+                                    'Concluído',
+                                    style: BanzamiTextStyles.bodyMd.copyWith(
+                                      color:      BanzamiColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
 
                           const SizedBox(height: BanzamiSpacing.sm),
 
-                          // ── Partilhar comprovativo (white outline) ─────
+                          // ── Partilhar comprovativo ─────────────────────
                           SizedBox(
-                            key: _shareKey,
-                            child: BanzamiSecondaryButton(
-                              label:           'Partilhar comprovativo',
-                              foregroundColor: BanzamiColors.white,
-                              borderColor:     BanzamiColors.white.withValues(alpha: 0.40),
-                              onPressed:       _share,
+                            key:    _shareKey,
+                            width:  double.infinity,
+                            height: 58,
+                            child: OutlinedButton(
+                              onPressed: _share,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.14),
+                                  width: 1,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                              ),
+                              child: Text(
+                                'Partilhar comprovativo',
+                                style: BanzamiTextStyles.bodyMd.copyWith(
+                                  color:      Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                             ),
                           ),
 
@@ -475,14 +537,14 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                               Icon(
                                 Icons.shield_outlined,
                                 size:  13,
-                                color: BanzamiColors.white.withValues(alpha: 0.48),
+                                color: Colors.white.withValues(alpha: 0.48),
                               ),
                               const SizedBox(width: 5),
                               Flexible(
                                 child: Text(
                                   'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
                                   style: BanzamiTextStyles.bodySm.copyWith(
-                                    color:    BanzamiColors.white.withValues(alpha: 0.55),
+                                    color:    Colors.white.withValues(alpha: 0.55),
                                     fontSize: 11.5,
                                   ),
                                   textAlign: TextAlign.center,
@@ -497,8 +559,8 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                 : 'Comprovativo válido apenas no ecrã vivo da app',
                             style: BanzamiTextStyles.bodySm.copyWith(
                               color: widget.isSandbox
-                                  ? BanzamiColors.sandboxBorder
-                                  : BanzamiColors.white.withValues(alpha: 0.38),
+                                  ? const Color(0xFFD97706).withValues(alpha: 0.65)
+                                  : Colors.white.withValues(alpha: 0.38),
                               fontSize: 11,
                             ),
                             textAlign: TextAlign.center,
@@ -543,14 +605,14 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               label,
               style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.55),
+                color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
             const SizedBox(width: BanzamiSpacing.md),
@@ -559,7 +621,7 @@ class _DetailRow extends StatelessWidget {
                 value,
                 style: BanzamiTextStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
-                  color:      BanzamiColors.white,
+                  color:      Colors.white,
                 ),
                 textAlign: TextAlign.end,
               ),
@@ -568,7 +630,7 @@ class _DetailRow extends StatelessWidget {
         ),
       ),
       if (!isLast)
-        Divider(height: 1, color: BanzamiColors.white.withValues(alpha: 0.12)),
+        Divider(height: 1, color: Colors.white.withValues(alpha: 0.12)),
     ]);
   }
 }
