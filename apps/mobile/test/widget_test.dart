@@ -306,14 +306,44 @@ void main() {
         (tester) async {
       Transfer? received;
       await pumpReceipt(tester, onDone: (t) => received = t);
-      // Invoke the button callback directly — BanzamiPrimaryButton plays a
-      // 2×150ms press-scale before firing onPressed; we test _done(), not the
-      // animation. onDone runs synchronously inside _done().
-      tester.widget<BanzamiPrimaryButton>(
-        find.widgetWithText(BanzamiPrimaryButton, 'Concluído')).onPressed!();
+      // The historical Concluído is a plain white ElevatedButton — onPressed
+      // (=_done) fires immediately on tap; onDone runs synchronously inside it.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'Concluído'));
       // Do not use pumpAndSettle(): the repeating rotation animation never settles.
       await tester.pump();
       expect(received?.transferId, equals(transfer.transferId));
+    });
+
+    testWidgets('merchant receipt (recipientIsHandle: false) drops the @ prefix',
+        (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final merchant = Transfer(
+        transferId:  'link0001deadbeef0000',
+        sender:      'fm65',
+        recipient:   'Doa Sandbox',
+        amountMinor: 10000,
+        currency:    'AOA',
+        status:      'COMPLETED',
+        note:        'DOA-A8F24AF4',
+        createdAt:   DateTime.parse('2026-06-25T00:36:00.000Z'),
+        completedAt: DateTime.parse('2026-06-25T00:36:00.000Z'),
+      );
+      await tester.pumpWidget(_wrap(BanzamiReceiptScreen(
+        transfer:          merchant,
+        ownHandle:         'fm65',
+        onDone:            (_) {},
+        recipientIsHandle: false,
+      )));
+
+      // Merchant payee shown as a plain name in subtitle + Para row — no "@".
+      expect(find.text('para Doa Sandbox'), findsOneWidget);
+      expect(find.text('Doa Sandbox'),      findsWidgets);
+      expect(find.textContaining('@Doa'),   findsNothing);
+      // Merchant title (not the P2P "Enviado com sucesso").
+      expect(find.text('Pagamento concluído'), findsOneWidget);
+      expect(find.text('Enviado com sucesso'), findsNothing);
     });
   });
 }

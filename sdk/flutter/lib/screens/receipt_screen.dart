@@ -15,6 +15,17 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_verified_mark.dart';
 
 // ---------------------------------------------------------------------------
+// Historical receipt reds — a DELIBERATE, receipt-only exception to the official
+// Banzami palette (#B5101F…). The immersive "comprovativo moment" keeps the
+// deeper, higher-contrast cherry→near-black gradient of the original receipt
+// (restored from 6683edb^). No other screen uses these.
+// ---------------------------------------------------------------------------
+
+const _kReceiptCherry = Color(0xFFC21A2C); // top of the gradient + bloom/core
+const _kReceiptWine   = Color(0xFF7A000D); // mid-low gradient + core mid
+const _kReceiptDeep   = Color(0xFF5E000A); // page background + gradient base + core edge
+
+// ---------------------------------------------------------------------------
 // BanzamiReceiptScreen
 // ---------------------------------------------------------------------------
 
@@ -38,13 +49,19 @@ class BanzamiReceiptScreen extends StatefulWidget {
   final bool    isSandbox;
   final String? logoAssetPath;
 
+  /// Whether [transfer.recipient] is a @handle (P2P) or a plain display name
+  /// (e.g. a merchant / payment-link payee like "Doa Sandbox"). When false the
+  /// "@" prefix is dropped so merchant payments read "para Doa Sandbox".
+  final bool recipientIsHandle;
+
   const BanzamiReceiptScreen({
     super.key,
     required this.transfer,
     this.ownHandle,
     required this.onDone,
-    this.isSandbox    = false,
+    this.isSandbox         = false,
     this.logoAssetPath,
+    this.recipientIsHandle = true,
   });
 
   @override
@@ -150,6 +167,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
 
   String get _from => widget.ownHandle ?? widget.transfer.sender;
 
+  /// Recipient as shown to the user — "@handle" for P2P, plain name for a
+  /// merchant / payment-link payee.
+  String get _recipientLabel =>
+      '${widget.recipientIsHandle ? '@' : ''}${widget.transfer.recipient}';
+
   // ── Actions ────────────────────────────────────────────────────────────────
 
   void _done() {
@@ -164,10 +186,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         : box.localToGlobal(Offset.zero) & box.size;
     try {
       final file = await BanzamiPdfReceiptGenerator.generate(
-        transfer:      widget.transfer,
-        ownHandle:     _from,
-        isSandbox:     widget.isSandbox,
-        logoAssetPath: widget.logoAssetPath,
+        transfer:          widget.transfer,
+        ownHandle:         _from,
+        isSandbox:         widget.isSandbox,
+        logoAssetPath:     widget.logoAssetPath,
+        recipientIsHandle: widget.recipientIsHandle,
       );
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
@@ -306,178 +329,276 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     final note = (t.note?.isNotEmpty == true) ? t.note! : 'Sem descrição';
     final timeStr = DateFormat('HH:mm:ss').format(_liveTime);
 
-    return BanzamiScaffold(
+    return Scaffold(
+      // Deliberate exception to the official Banzami palette, for the immersive
+      // "comprovativo moment" ONLY (this screen). The historical receipt used a
+      // deeper, higher-contrast cherry→near-black gradient; no other screen is
+      // affected. Cherry #C21A2C, #990011, wine #7A000D, deep #5E000A.
+      backgroundColor:          _kReceiptDeep,
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          // ── Light premium content ──────────────────────────────────────
-          SafeArea(
-            child: FadeTransition(
-              opacity: _fade,
-              child: Column(
-                children: [
-                  // ── Top bar ────────────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: BanzamiSpacing.lg,
-                      vertical:   4,
-                    ),
-                    child: Row(children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: BanzamiColors.gray400,
-                          size:  24,
-                        ),
-                        onPressed: _done,
-                      ),
-                      const Spacer(),
-                      Text(
-                        'Comprovativo',
-                        style: BanzamiTextStyles.headingSm.copyWith(
-                          color: BanzamiColors.gray700,
-                        ),
-                      ),
-                      const Spacer(),
-                      const SizedBox(width: 48),
-                    ]),
-                  ),
-
-                  // ── Scrollable content ─────────────────────────────────
-                  Expanded(
-                    child: SingleChildScrollView(
+          // ── Full-screen cherry gradient + content ──────────────────────
+          Container(
+            width:  double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin:  Alignment.topCenter,
+                end:    Alignment.bottomCenter,
+                colors: [
+                  _kReceiptCherry,
+                  Color(0xFF990011),
+                  _kReceiptWine,
+                  _kReceiptDeep,
+                ],
+                stops:  [0.0, 0.35, 0.65, 1.0],
+              ),
+            ),
+            child: SafeArea(
+              child: FadeTransition(
+                opacity: _fade,
+                child: Column(
+                  children: [
+                    // ── Top bar ────────────────────────────────────────────
+                    Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: BanzamiSpacing.xl,
+                        horizontal: BanzamiSpacing.lg,
+                        vertical:   4,
                       ),
-                      child: Column(children: [
-                        const SizedBox(height: BanzamiSpacing.sm),
-
-                        // Verified mark with rotating dashed ring (on light bg)
-                        ScaleTransition(
-                          scale: _markScale,
-                          child: const BanzamiVerifiedMark(size: 96, onLight: true),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        Text(
-                          'Enviado com sucesso',
-                          style: BanzamiTextStyles.headingSm.copyWith(
-                            color:      BanzamiColors.gray900,
-                            fontWeight: FontWeight.w700,
+                      child: Row(children: [
+                        IconButton(
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white54,
+                            size:  22,
                           ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
-
-                        Text(
-                          _amount,
-                          style: BanzamiTextStyles.monoLg.copyWith(
-                            color: BanzamiColors.gray900,
-                          ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
-
-                        Text(
-                          'para @${t.recipient}',
-                          style: BanzamiTextStyles.bodyMd.copyWith(
-                            color: BanzamiColors.gray400,
-                          ),
-                        ),
-
-                        if (widget.isSandbox) ...[
-                          const SizedBox(height: BanzamiSpacing.md),
-                          const BanzamiSandboxBadge(
-                            label: 'SANDBOX  •  Dinheiro de teste',
-                          ),
-                        ],
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Detail card ────────────────────────────────
-                        BanzamiCard(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: BanzamiSpacing.lg,
-                            vertical:   BanzamiSpacing.sm,
-                          ),
-                          child: Column(children: [
-                            _DetailRow(label: 'De',     value: '@$_from'),
-                            _DetailRow(label: 'Para',   value: '@${t.recipient}'),
-                            _DetailRow(label: 'Nota',   value: note),
-                            _DetailRow(label: 'Data',   value: _dateLong),
-                            _DetailRow(label: 'Ref',    value: _ref),
-                            const _DetailRow(
-                              label:  'Método',
-                              value:  'Saldo Banzami',
-                              isLast: true,
-                            ),
-                          ]),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Concluído ──────────────────────────────────
-                        BanzamiPrimaryButton(
-                          label:    'Concluído',
-                          icon:     Icons.check_rounded,
                           onPressed: _done,
                         ),
-
-                        const SizedBox(height: BanzamiSpacing.sm),
-
-                        // ── Partilhar comprovativo ─────────────────────
-                        SizedBox(
-                          key: _shareKey,
-                          child: BanzamiSecondaryButton(
-                            label:     'Partilhar comprovativo',
-                            onPressed: _share,
-                          ),
-                        ),
-
-                        const SizedBox(height: BanzamiSpacing.lg),
-
-                        // ── Footer — live timestamp + security notice ──
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.shield_outlined,
-                              size:  13,
-                              color: BanzamiColors.gray400,
-                            ),
-                            const SizedBox(width: 5),
-                            Flexible(
-                              child: Text(
-                                'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
-                                style: BanzamiTextStyles.bodySm.copyWith(
-                                  color:    BanzamiColors.gray400,
-                                  fontSize: 11.5,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
+                        const Spacer(),
                         Text(
-                          widget.isSandbox
-                              ? 'Comprovativo sandbox  •  sem valor financeiro real'
-                              : 'Comprovativo válido apenas no ecrã vivo da app',
-                          style: BanzamiTextStyles.bodySm.copyWith(
-                            color: widget.isSandbox
-                                ? BanzamiColors.sandboxText.withValues(alpha: 0.85)
-                                : BanzamiColors.gray400,
-                            fontSize: 11,
+                          'Comprovativo',
+                          style: BanzamiTextStyles.headingSm.copyWith(
+                            color: Colors.white.withValues(alpha: 0.75),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-
-                        const SizedBox(height: BanzamiSpacing.xs),
+                        const Spacer(),
+                        const SizedBox(width: 48),
                       ]),
                     ),
-                  ),
-                ],
+
+                    // ── Scrollable content ─────────────────────────────────
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: BanzamiSpacing.xl,
+                        ),
+                        child: Column(children: [
+                          const SizedBox(height: 6),
+
+                          // Verified mark with rotating dashed ring — historical
+                          // deep-cherry reds (this screen only; defaults elsewhere).
+                          ScaleTransition(
+                            scale: _markScale,
+                            child: const BanzamiVerifiedMark(
+                              size:     96,
+                              bloom:    _kReceiptCherry,
+                              coreMid:  _kReceiptWine,
+                              coreEdge: _kReceiptDeep,
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          Text(
+                            // P2P keeps the established "Enviado com sucesso";
+                            // a merchant / payment-link payment reads "Pagamento
+                            // concluído" — consistent with the PDF title rule.
+                            widget.recipientIsHandle
+                                ? 'Enviado com sucesso'
+                                : 'Pagamento concluído',
+                            style: BanzamiTextStyles.headingSm.copyWith(
+                              color: Colors.white.withValues(alpha: 0.80),
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+
+                          Text(
+                            _amount,
+                            style: BanzamiTextStyles.monoLg.copyWith(
+                              color: Colors.white,
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+
+                          Text(
+                            'para $_recipientLabel',
+                            style: BanzamiTextStyles.bodyMd.copyWith(
+                              color: Colors.white.withValues(alpha: 0.60),
+                            ),
+                          ),
+
+                          if (widget.isSandbox) ...[
+                            const SizedBox(height: 8),
+                            const BanzamiSandboxBadge(
+                              label: 'SANDBOX  •  Dinheiro de teste',
+                            ),
+                          ],
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Glass detail card ──────────────────────────
+                          Container(
+                            width:   double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: BanzamiSpacing.lg,
+                              vertical:   BanzamiSpacing.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color:        Colors.white.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(children: [
+                              _DetailRow(label: 'De',     value: '@$_from'),
+                              _DetailRow(label: 'Para',   value: _recipientLabel),
+                              _DetailRow(label: 'Nota',   value: note),
+                              _DetailRow(label: 'Data',   value: _dateLong),
+                              _DetailRow(label: 'Ref',    value: _ref),
+                              const _DetailRow(
+                                label:  'Método',
+                                value:  'Saldo Banzami',
+                                isLast: true,
+                              ),
+                            ]),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.md),
+
+                          // ── Concluído ──────────────────────────────────
+                          SizedBox(
+                            width:  double.infinity,
+                            height: 58,
+                            child: ElevatedButton(
+                              onPressed: _done,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: BanzamiColors.primary,
+                                elevation:       0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width:  22,
+                                    height: 22,
+                                    decoration: BoxDecoration(
+                                      shape:  BoxShape.circle,
+                                      border: Border.all(
+                                        color: BanzamiColors.primary,
+                                        width: 1.5,
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                      Icons.check_rounded,
+                                      size: 14,
+                                    ),
+                                  ),
+                                  const SizedBox(width: BanzamiSpacing.sm),
+                                  Text(
+                                    'Concluído',
+                                    style: BanzamiTextStyles.bodyMd.copyWith(
+                                      color:      BanzamiColors.primary,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Partilhar comprovativo ─────────────────────
+                          SizedBox(
+                            key:    _shareKey,
+                            width:  double.infinity,
+                            height: 58,
+                            child: OutlinedButton(
+                              onPressed: _share,
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                backgroundColor: Colors.white.withValues(alpha: 0.08),
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: 0.14),
+                                  width: 1,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(22),
+                                ),
+                              ),
+                              child: Text(
+                                'Partilhar comprovativo',
+                                style: BanzamiTextStyles.bodyMd.copyWith(
+                                  color:      Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.sm),
+
+                          // ── Footer — live timestamp + security notice ──
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.shield_outlined,
+                                size:  13,
+                                color: Colors.white.withValues(alpha: 0.48),
+                              ),
+                              const SizedBox(width: 5),
+                              Flexible(
+                                child: Text(
+                                  'Comprovativo Banzami  •  Ref $_ref  •  $timeStr',
+                                  style: BanzamiTextStyles.bodySm.copyWith(
+                                    color:    Colors.white.withValues(alpha: 0.55),
+                                    fontSize: 11.5,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            widget.isSandbox
+                                ? 'Comprovativo sandbox  •  sem valor financeiro real'
+                                : 'Comprovativo válido apenas no ecrã vivo da app',
+                            style: BanzamiTextStyles.bodySm.copyWith(
+                              color: widget.isSandbox
+                                  ? const Color(0xFFD97706).withValues(alpha: 0.65)
+                                  : Colors.white.withValues(alpha: 0.38),
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+                        ]),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -511,14 +632,14 @@ class _DetailRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(children: [
       Padding(
-        padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.sm),
+        padding: const EdgeInsets.symmetric(vertical: 7),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
               label,
               style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.gray400,
+                color: Colors.white.withValues(alpha: 0.55),
               ),
             ),
             const SizedBox(width: BanzamiSpacing.md),
@@ -527,7 +648,7 @@ class _DetailRow extends StatelessWidget {
                 value,
                 style: BanzamiTextStyles.bodyMd.copyWith(
                   fontWeight: FontWeight.w600,
-                  color:      BanzamiColors.gray900,
+                  color:      Colors.white,
                 ),
                 textAlign: TextAlign.end,
               ),
@@ -536,7 +657,7 @@ class _DetailRow extends StatelessWidget {
         ),
       ),
       if (!isLast)
-        const Divider(height: 1, color: BanzamiColors.gray200),
+        Divider(height: 1, color: Colors.white.withValues(alpha: 0.12)),
     ]);
   }
 }

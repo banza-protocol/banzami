@@ -24,16 +24,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   int _tab = 0;
   TransferNotificationService? _notifSvc;
 
-  // Bumped whenever WalletRefreshBus signals (e.g. after a payment commits).
-  // Used as part of the home screen's ValueKey so a new value recreates the
-  // home screen, forcing it to re-fetch the balance/activity from the backend.
-  int _homeRefreshTick = 0;
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    WalletRefreshBus.instance.addListener(_onWalletRefresh);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startNotifications();
       _refreshProfile();
@@ -72,13 +66,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint('[FCM] token registered consumerId=${session.consumerId} hasToken=${token != null}');
   }
 
-  // A payment (or other wallet-changing event) committed on the backend.
-  // Bump the tick so the home screen is recreated and re-fetches fresh data.
-  // We reload from the API — never adjust the displayed balance locally.
-  void _onWalletRefresh() {
-    if (mounted) setState(() => _homeRefreshTick++);
-  }
-
   Future<void> _refreshProfile() async {
     try {
       final client  = context.read<ConsumerPublicClient>();
@@ -96,7 +83,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    WalletRefreshBus.instance.removeListener(_onWalletRefresh);
     _notifSvc?.stopPolling();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
@@ -120,9 +106,10 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
     final tabs = [
       BanzamiHomeScreen(
-        // A changing key recreates the home screen so it re-fetches balance and
-        // activity from the backend after a payment (see WalletRefreshBus).
-        key:           ValueKey('home-$_homeRefreshTick'),
+        // The home listens to WalletRefreshBus and reloads its balance/activity
+        // from the backend whenever a payment completes on a screen it didn't
+        // push (deep link / QR / notification). No local mutation, no key churn.
+        refreshSignal: WalletRefreshBus.instance,
         client:        client,
         consumerId:    session.consumerId,
         handle:        session.handle,

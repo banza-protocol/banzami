@@ -12,8 +12,9 @@ import 'guards/secure_app_lifecycle_guard.dart';
 import 'services/notification_router.dart';
 import 'services/push_notification_service.dart';
 import 'services/session_service.dart';
+import 'services/wallet_refresh_bus.dart';
+import 'branding_assets.dart';
 import 'screens/splash_screen.dart';
-import 'screens/link_pay_screen.dart';
 import 'screens/onboarding/welcome_screen.dart';
 
 final _navigatorKey = GlobalKey<NavigatorState>();
@@ -224,12 +225,36 @@ class _BanzamiAppState extends State<BanzamiApp> {
       case 'pay':
         // Payment link — https://pay.banzami.com/pay/{slug}; same target as
         // the custom scheme banzami://pay/link/{slug}.
-        if (segs.length >= 2) {
-          _navigatorKey.currentState?.push(MaterialPageRoute(
-            builder: (_) => LinkPayScreen(slug: segs[1]),
-          ));
-        }
+        if (segs.length >= 2) _openPaymentLink(segs[1]);
     }
+  }
+
+  /// Tell the home to reload its balance from the backend after a payment that
+  /// completed on a deep-link / QR / request screen the home didn't push.
+  /// Never a local mutation — the home re-fetches via getBalance().
+  void _signalBalanceRefresh() {
+    debugPrint('[refresh] payment success → signal balance refresh');
+    WalletRefreshBus.instance.signal();
+  }
+
+  /// Open a payment link via the SDK's single resolver. The app only supplies
+  /// the client + session + a balance-refresh callback; the SDK resolves the
+  /// link and owns the confirmation + receipt.
+  void _openPaymentLink(String slug) {
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    final session = ctx.read<SessionService>().session;
+    final client  = ctx.read<ConsumerPublicClient>();
+    _navigatorKey.currentState?.push(MaterialPageRoute(
+      builder: (_) => BanzamiPaymentLinkScreen(
+        client:        client,
+        slug:          slug,
+        ownHandle:     session?.handle,
+        onSuccess:     (_) => _signalBalanceRefresh(),
+        isSandbox:     AppConfig.isSandbox,
+        logoAssetPath: BrandingAssets.icon,
+      ),
+    ));
   }
 
   void _handleBanzamiScheme(Uri uri) {
@@ -237,9 +262,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
     // banzami://pay/link/{slug}
     if (segs.isNotEmpty && segs[0] == 'link' && segs.length >= 2) {
-      _navigatorKey.currentState?.push(MaterialPageRoute(
-        builder: (_) => LinkPayScreen(slug: segs[1]),
-      ));
+      _openPaymentLink(segs[1]);
       return;
     }
 
@@ -309,7 +332,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
           locked:               link.locked,
           ownHandle:            session.handle,
           linkCode:             link.linkCode,
-          onSuccess:            (_) {},
+          onSuccess:            (_) => _signalBalanceRefresh(),
           isSandbox:            AppConfig.isSandbox,
         ),
       )).then((_) {
@@ -333,7 +356,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
         splitId:     splitId,
         payerHandle: session.handle,
         isSandbox:   AppConfig.isSandbox,
-        onSuccess:   (_) {},
+        onSuccess:   (_) => _signalBalanceRefresh(),
       ),
     ));
   }
@@ -355,7 +378,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
           amountMinor:     amount,
           locked:          true,
           ownHandle:       session.handle,
-          onSuccess:       (_) {},
+          onSuccess:       (_) => _signalBalanceRefresh(),
           isSandbox:       AppConfig.isSandbox,
         ),
       ));
@@ -364,7 +387,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
         builder: (_) => BanzamiSendScreen(
           client:        client,
           ownHandle:     session.handle,
-          onSuccess:     (_) {},
+          onSuccess:     (_) => _signalBalanceRefresh(),
           isSandbox:     AppConfig.isSandbox,
           initialHandle: handle,
         ),

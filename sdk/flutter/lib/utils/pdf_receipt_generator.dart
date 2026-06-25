@@ -31,6 +31,10 @@ class BanzamiPdfReceiptGenerator {
     required String   ownHandle,
     String?           logoAssetPath,
     bool              isSandbox = false,
+    // Same rule as BanzamiReceiptScreen: a @handle (P2P) vs a plain merchant /
+    // payment-link payee. Drives the "@" prefix and the transaction title so the
+    // PDF and the on-screen receipt are identical.
+    bool              recipientIsHandle = true,
   }) async {
     final regData  = await rootBundle.load(
         'packages/banzami_flutter/assets/fonts/Inter-Regular.ttf');
@@ -67,15 +71,16 @@ class BanzamiPdfReceiptGenerator {
       margin:     pw.EdgeInsets.zero,
       build: (ctx) => _buildPage(
         ctx,
-        transfer:  transfer,
-        ownHandle: ownHandle,
-        ref8:      ref8,
-        amount:    amount,
-        dateStr:   dateStr,
-        logoImage: logoImage,
-        isSandbox: isSandbox,
-        reg:       reg,
-        bold:      bold,
+        transfer:          transfer,
+        ownHandle:         ownHandle,
+        ref8:              ref8,
+        amount:            amount,
+        dateStr:           dateStr,
+        logoImage:         logoImage,
+        isSandbox:         isSandbox,
+        recipientIsHandle: recipientIsHandle,
+        reg:               reg,
+        bold:              bold,
       ),
     ));
 
@@ -103,6 +108,7 @@ class BanzamiPdfReceiptGenerator {
     required String          dateStr,
     required pw.MemoryImage? logoImage,
     required bool            isSandbox,
+    required bool            recipientIsHandle,
     required pw.TextStyle    reg,
     required pw.TextStyle    bold,
   }) {
@@ -117,16 +123,23 @@ class BanzamiPdfReceiptGenerator {
             children: [
               _buildHeader(logoImage: logoImage, isSandbox: isSandbox, reg: reg, bold: bold),
               pw.SizedBox(height: 32),
-              _buildHero(amount: amount, recipient: transfer.recipient, reg: reg, bold: bold),
+              _buildHero(
+                amount:            amount,
+                recipient:         transfer.recipient,
+                recipientIsHandle: recipientIsHandle,
+                reg:               reg,
+                bold:              bold,
+              ),
               pw.SizedBox(height: 32),
               _buildDetailsCard(
-                ownHandle: ownHandle,
-                recipient: transfer.recipient,
-                note:      transfer.note,
-                dateStr:   dateStr,
-                ref8:      ref8,
-                reg:       reg,
-                bold:      bold,
+                ownHandle:         ownHandle,
+                recipient:         transfer.recipient,
+                recipientIsHandle: recipientIsHandle,
+                note:              transfer.note,
+                dateStr:           dateStr,
+                ref8:              ref8,
+                reg:               reg,
+                bold:              bold,
               ),
               if (isSandbox) ...[
                 pw.SizedBox(height: 32),
@@ -257,9 +270,14 @@ class BanzamiPdfReceiptGenerator {
   static pw.Widget _buildHero({
     required String       amount,
     required String       recipient,
+    required bool         recipientIsHandle,
     required pw.TextStyle reg,
     required pw.TextStyle bold,
   }) {
+    // P2P → "Transferência concluída"; merchant / payment-link / QR / request →
+    // "Pagamento concluído". Same business rule as BanzamiReceiptScreen.
+    final title = recipientIsHandle ? 'Transferência concluída' : 'Pagamento concluído';
+    final payee = recipientIsHandle ? '@$recipient' : recipient;
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.center,
       children: [
@@ -267,7 +285,7 @@ class BanzamiPdfReceiptGenerator {
         pw.SizedBox(height: 16),
         pw.Center(
           child: pw.Text(
-            'Transferência concluída',
+            title,
             style: reg.copyWith(color: _kGray400, fontSize: 11),
           ),
         ),
@@ -281,7 +299,7 @@ class BanzamiPdfReceiptGenerator {
         pw.SizedBox(height: 5),
         pw.Center(
           child: pw.Text(
-            'para @$recipient',
+            'para $payee',
             style: reg.copyWith(color: _kGray600, fontSize: 12),
           ),
         ),
@@ -328,6 +346,7 @@ class BanzamiPdfReceiptGenerator {
   static pw.Widget _buildDetailsCard({
     required String       ownHandle,
     required String       recipient,
+    required bool         recipientIsHandle,
     required String?      note,
     required String       dateStr,
     required String       ref8,
@@ -345,7 +364,7 @@ class BanzamiPdfReceiptGenerator {
         children: [
           _detailRow('De',     '@$ownHandle',   reg: reg, bold: bold),
           _divider(),
-          _detailRow('Para',   '@$recipient',                               reg: reg, bold: bold),
+          _detailRow('Para',   recipientIsHandle ? '@$recipient' : recipient, reg: reg, bold: bold),
           _divider(),
           _detailRow('Nota',  (note != null && note.isNotEmpty) ? note : 'Sem descrição',
                                                                              reg: reg, bold: bold),

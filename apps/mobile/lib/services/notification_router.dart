@@ -4,6 +4,7 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../config.dart';
 import '../branding_assets.dart';
 import '../screens/history_screen.dart';
+import 'wallet_refresh_bus.dart';
 
 /// Routes push notification taps to the correct screen.
 ///
@@ -143,7 +144,8 @@ class BanzamiNotificationRouter {
       builder: (_) => BanzamiReceiptScreen(
         transfer:      transfer,
         ownHandle:     ownHandle,
-        onDone:        (_) {},
+        // Received money — refresh the home balance when the receipt is closed.
+        onDone:        (_) => WalletRefreshBus.instance.signal(),
         isSandbox:     AppConfig.isSandbox,
         logoAssetPath: BrandingAssets.icon,
       ),
@@ -189,7 +191,7 @@ class BanzamiNotificationRouter {
           locked:               link.locked,
           ownHandle:            ownHandle,
           linkCode:             link.linkCode,
-          onSuccess:            (_) {},
+          onSuccess:            (_) => WalletRefreshBus.instance.signal(),
           isSandbox:            AppConfig.isSandbox,
           logoAssetPath:        BrandingAssets.logo,
         ),

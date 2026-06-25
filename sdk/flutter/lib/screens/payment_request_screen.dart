@@ -36,6 +36,19 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
   /// (POST /v1/consumer-pay-links/:code/pay) instead of sendByHandle.
   final String? linkCode;
 
+  /// When set, payment is executed via the payment-link API
+  /// (POST /v1/payment-links/:slug/pay) — e.g. a Doa / merchant payment link.
+  /// The recipient is then a merchant, not a @handle.
+  final String? paymentLinkSlug;
+
+  /// Optional secondary line under the name (e.g. a merchant reference
+  /// "DOA-A8F24AF4"). Replaces the "@handle" line when provided.
+  final String? recipientSubtitle;
+
+  /// Whether [recipientHandle] is a real @handle (P2P) or a merchant display
+  /// name. Forwarded to the receipt so it drops the "@" for merchants.
+  final bool recipientIsHandle;
+
   const BanzamiPaymentRequestScreen({
     super.key,
     required this.client,
@@ -50,6 +63,9 @@ class BanzamiPaymentRequestScreen extends StatefulWidget {
     this.isSandbox     = false,
     this.logoAssetPath,
     this.linkCode,
+    this.paymentLinkSlug,
+    this.recipientSubtitle,
+    this.recipientIsHandle = true,
   });
 
   @override
@@ -66,6 +82,9 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
   late final AnimationController _pulseCtrl;
   late final Animation<double>   _pulseScale;
+
+  // Generated once so payment-link retries reuse the same idempotency key.
+  final String _idem = const Uuid().v4();
 
   @override
   void initState() {
@@ -112,7 +131,27 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
     try {
       Transfer transfer;
 
-      if (widget.linkCode != null) {
+      if (widget.paymentLinkSlug != null) {
+        // Pay via the payment-link API (Doa / merchant link). Build a Transfer
+        // from the resulting PaymentLink so the shared receipt can display it —
+        // this is UI orchestration only; the client/payload/API are unchanged.
+        final paid = await widget.client.payPaymentLink(
+          widget.paymentLinkSlug!,
+          amountMinor:    amount,
+          idempotencyKey: _idem,
+        );
+        transfer = Transfer(
+          transferId:  paid.id,
+          sender:      widget.ownHandle ?? '',
+          recipient:   paid.merchantName ?? widget.recipientDisplayName ?? paid.slug,
+          amountMinor: paid.amountMinor ?? amount,
+          currency:    paid.currency,
+          status:      'COMPLETED',
+          note:        paid.description,
+          createdAt:   paid.paidAt ?? paid.createdAt,
+          completedAt: paid.paidAt,
+        );
+      } else if (widget.linkCode != null) {
         // Pay via the dedicated consumer pay-link API.
         // The server ignores client amount on locked links — tamper-proof.
         final link = await widget.client.payConsumerPayLink(
@@ -137,11 +176,12 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
 
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiReceiptScreen(
-          transfer:      transfer,
-          ownHandle:     widget.ownHandle,
-          onDone:        widget.onSuccess,
-          isSandbox:     widget.isSandbox,
-          logoAssetPath: widget.logoAssetPath,
+          transfer:          transfer,
+          ownHandle:         widget.ownHandle,
+          onDone:            widget.onSuccess,
+          isSandbox:         widget.isSandbox,
+          logoAssetPath:     widget.logoAssetPath,
+          recipientIsHandle: widget.recipientIsHandle,
         ),
       ));
     } on BanzamiApiException catch (e) {
@@ -159,6 +199,8 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
           'RECIPIENT_NOT_FOUND'         => '@${widget.recipientHandle} não encontrado.',
           'RECIPIENT_NO_WALLET'         => 'Destinatário sem carteira activa.',
           'SELF_TRANSFER'               => 'Não pode enviar para si mesmo.',
+          'WALLET_NOT_FOUND'            => 'Carteira de destino não encontrada.',
+          'NO_WALLET'                   => 'Não tem carteira activa para esta moeda.',
           _                             => e.message.isNotEmpty ? e.message : 'Erro de envio. Tente novamente.',
         };
       });
@@ -293,7 +335,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
                             fontWeight: FontWeight.w700,
                           )),
                       const SizedBox(height: 2),
-                      Text('@$handle',
+                      Text(widget.recipientSubtitle ?? '@$handle',
                           style: BanzamiTextStyles.bodySm.copyWith(
                               color: BanzamiColors.gray400)),
                     ] else
