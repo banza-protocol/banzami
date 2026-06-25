@@ -80,14 +80,8 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzamiColors.white,
-      appBar: AppBar(
-        backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title: const Text('Configurar conta', style: BanzamiTextStyles.headingSm),
-      ),
+    return BanzamiScaffold(
+      appBar: const BanzamiAppBar(title: 'Configurar conta'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(BanzamiSpacing.xl),
         child: Form(
@@ -95,11 +89,12 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Credenciais da sua conta', style: BanzamiTextStyles.headingSm),
-              const SizedBox(height: 8),
+              const SizedBox(height: BanzamiSpacing.sm),
+              const Text('Credenciais da sua conta', style: BanzamiTextStyles.displayMd),
+              const SizedBox(height: BanzamiSpacing.sm),
               Text(
-                'Estas credenciais foram fornecidas pelo Banzami quando a sua conta foi criada. Contacte o suporte se não as tiver recebido.',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                'Conecte a sua conta de negócio Banzami para começar a receber pagamentos.',
+                style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
               ),
               const SizedBox(height: BanzamiSpacing.xl),
 
@@ -139,34 +134,33 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
                     : null,
               ),
 
+              const SizedBox(height: BanzamiSpacing.lg),
+              BanzamiCard(
+                color:   BanzamiColors.gray100,
+                shadow:  const [],
+                padding: const EdgeInsets.all(BanzamiSpacing.lg),
+                child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Icon(Icons.info_outline_rounded, size: 18, color: BanzamiColors.gray400),
+                  const SizedBox(width: BanzamiSpacing.sm),
+                  Expanded(child: Text(
+                    'Encontra estas credenciais no painel web do Banzami (banzami.com), '
+                    'em Definições → API Keys.',
+                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray600),
+                  )),
+                ]),
+              ),
+
               if (_error != null) ...[
                 const SizedBox(height: BanzamiSpacing.lg),
-                Container(
-                  padding: const EdgeInsets.all(BanzamiSpacing.md),
-                  decoration: BoxDecoration(
-                    color:        BanzamiColors.error.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline_rounded,
-                        color: BanzamiColors.error, size: 20),
-                    const SizedBox(width: 10),
-                    Expanded(child: Text(_error!,
-                        style: BanzamiTextStyles.bodySm
-                            .copyWith(color: BanzamiColors.error))),
-                  ]),
-                ),
+                BanzamiErrorBanner(message: _error!),
               ],
 
               const SizedBox(height: BanzamiSpacing.xxl),
 
-              SizedBox(
-                width: double.infinity,
-                child: BanzamiButton(
-                  label:     'Verificar e continuar',
-                  onPressed: _loading ? null : _verify,
-                  isLoading: _loading,
-                ),
+              BanzamiPrimaryButton(
+                label:     'Verificar e continuar',
+                isLoading: _loading,
+                onPressed: _loading ? null : _verify,
               ),
             ],
           ),

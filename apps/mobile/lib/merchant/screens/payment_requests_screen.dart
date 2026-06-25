@@ -61,8 +61,8 @@ class _PaymentRequestsScreenState extends State<PaymentRequestsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        title: const Text('Pedidos de pagamento'),
+      appBar: BanzamiAppBar(
+        title: 'Pedidos de pagamento',
         actions: [
           IconButton(onPressed: _loading ? null : _load, icon: const Icon(Icons.refresh_rounded)),
         ],
@@ -120,9 +120,9 @@ class _RequestTile extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.md),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: BanzamiColors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BanzamiRadius.lgAll,
       ),
       child: Row(children: [
         Expanded(
@@ -140,7 +140,7 @@ class _RequestTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
             color: color.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BanzamiRadius.fieldAll,
           ),
           child: Text(label, style: BanzamiTextStyles.label.copyWith(color: color)),
         ),
@@ -209,7 +209,7 @@ class _NewRequestScreenState extends State<_NewRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(title: const Text('Novo pedido')),
+      appBar: const BanzamiAppBar(title: 'Novo pedido'),
       body: Form(
         key: _formKey,
         child: ListView(

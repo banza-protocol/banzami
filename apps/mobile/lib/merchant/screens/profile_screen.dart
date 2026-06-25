@@ -91,13 +91,13 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             // Configurable confirmation sound for payment notifications.
             Container(
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color:        BanzamiColors.white,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BanzamiRadius.lgAll,
               ),
               child: SwitchListTile(
                 value: _soundOn ?? true,
-                activeColor: BanzamiColors.primary,
+                activeThumbColor: BanzamiColors.primary,
                 secondary: const Icon(Icons.volume_up_outlined, color: BanzamiColors.primary),
                 title:    const Text('Som de notificação'),
                 subtitle: const Text('Tocar som ao receber um pagamento'),

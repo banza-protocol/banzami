@@ -129,14 +129,10 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   Widget build(BuildContext context) {
     final session = context.read<MerchantSessionService>().session!;
 
-    return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        backgroundColor:        BanzamiColors.offWhite,
-        foregroundColor:        BanzamiColors.gray900,
-        elevation:              0,
-        scrolledUnderElevation: 0,
-        title: const Text('Receber', style: BanzamiTextStyles.headingSm),
+    return BanzamiScaffold(
+      appBar: BanzamiAppBar(
+        title:    'Receber',
+        showBack: false,
         actions: [
           IconButton(
             icon:      const Icon(Icons.refresh_rounded, color: BanzamiColors.gray400),

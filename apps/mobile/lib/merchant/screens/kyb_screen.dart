@@ -53,9 +53,8 @@ class _KybScreenState extends State<KybScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(title: const Text('Verificar negócio')),
+    return BanzamiScaffold(
+      appBar: const BanzamiAppBar(title: 'Verificar negócio'),
       body: Form(
         key: _formKey,
         child: ListView(
@@ -123,7 +122,7 @@ class _KybResultCard extends StatelessWidget {
       padding: const EdgeInsets.all(BanzamiSpacing.md),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BanzamiRadius.lgAll,
       ),
       child: Row(children: [
         Icon(Icons.verified_outlined, color: color, size: 20),

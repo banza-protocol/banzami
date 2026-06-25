@@ -110,13 +110,11 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: AppBar(
+      appBar: const BanzamiAppBar(
+        title:           'Pedir levantamento',
         backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title: const Text('Pedir levantamento', style: BanzamiTextStyles.headingSm),
       ),
       body: _success ? _buildSuccess() : _buildForm(),
     );
@@ -153,7 +151,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
                 backgroundColor: BanzamiColors.primary,
                 foregroundColor: BanzamiColors.white,
                 padding:   const EdgeInsets.symmetric(vertical: 14),
-                shape:     RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape:     const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
                 textStyle: BanzamiTextStyles.headingSm,
               ),
               child: const Text('Voltar'),
@@ -176,7 +174,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
             padding: const EdgeInsets.all(BanzamiSpacing.md),
             decoration: BoxDecoration(
               color:        BanzamiColors.primary.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BanzamiRadius.lgAll,
               border:       Border.all(color: BanzamiColors.primary.withValues(alpha: 0.2)),
             ),
             child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -260,7 +258,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
               padding: const EdgeInsets.all(BanzamiSpacing.md),
               decoration: BoxDecoration(
                 color:        BanzamiColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BanzamiRadius.lgAll,
               ),
               child: Row(children: [
                 const Icon(Icons.error_outline_rounded,

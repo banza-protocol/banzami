@@ -69,13 +69,11 @@ class _PinCreateScreenState extends State<PinCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: AppBar(
+      appBar: BanzamiAppBar(
+        showBack:        !widget.isSetup,
         backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        automaticallyImplyLeading: !widget.isSetup,
       ),
       body: SafeArea(
         child: LayoutBuilder(

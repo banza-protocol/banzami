@@ -127,13 +127,11 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return BanzamiScaffold(
       backgroundColor: BanzamiColors.white,
-      appBar: AppBar(
+      appBar: const BanzamiAppBar(
+        title:           'Nova cobrança',
         backgroundColor: BanzamiColors.white,
-        foregroundColor: BanzamiColors.gray900,
-        elevation:       0,
-        title: const Text('Nova cobrança', style: BanzamiTextStyles.headingSm),
       ),
       body: _link != null ? _buildResult() : _buildForm(),
     );
@@ -188,7 +186,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               padding: const EdgeInsets.all(BanzamiSpacing.md),
               decoration: BoxDecoration(
                 color:        BanzamiColors.error.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BanzamiRadius.lgAll,
               ),
               child: Row(children: [
                 const Icon(Icons.error_outline_rounded, color: BanzamiColors.error, size: 20),
@@ -256,7 +254,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
           padding:     const EdgeInsets.all(BanzamiSpacing.lg),
           decoration:  BoxDecoration(
             color:        BanzamiColors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BanzamiRadius.fieldAll,
             boxShadow: [
               BoxShadow(
                 color:       BanzamiColors.gray400.withValues(alpha: 0.2),
@@ -299,9 +297,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
           child: Container(
             padding: const EdgeInsets.symmetric(
                 horizontal: BanzamiSpacing.lg, vertical: BanzamiSpacing.md),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color:        BanzamiColors.gray100,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BanzamiRadius.lgAll,
             ),
             child: Row(children: [
               Expanded(child: Text(_payUrl,
@@ -336,7 +334,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               foregroundColor: BanzamiColors.primary,
               side:            const BorderSide(color: BanzamiColors.primary),
               padding:         const EdgeInsets.symmetric(vertical: 14),
-              shape:           RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
             ),
             child: const Text('Nova cobrança'),
           ),
