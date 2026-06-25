@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../config.dart';
-import '../../widgets/merchant_status_badge.dart';
 import '../pin_create_screen.dart';
 
 /// Ecrã de configuração inicial — o comerciante introduz o seu Merchant ID
@@ -82,7 +81,7 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
   @override
   Widget build(BuildContext context) {
     return BanzamiScaffold(
-      appBar: const BanzamiAppBar(title: 'Configurar conta'),
+      appBar: const BanzamiAppBar(title: 'Credenciais de integração'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(BanzamiSpacing.xl),
         child: Form(
@@ -91,10 +90,10 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: BanzamiSpacing.sm),
-              const Text('Conectar a sua conta Business', style: BanzamiTextStyles.displayMd),
+              const Text('Credenciais de integração', style: BanzamiTextStyles.displayMd),
               const SizedBox(height: BanzamiSpacing.sm),
               Text(
-                'Use as credenciais fornecidas pela Banzami para aceder ao painel do seu negócio.',
+                'Use este método se recebeu um Merchant ID e uma API Key da Banzami.',
                 style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
               ),
               const SizedBox(height: BanzamiSpacing.xl),
@@ -164,60 +163,9 @@ class _MerchantSetupScreenState extends State<MerchantSetupScreen> {
                 onPressed: _loading ? null : _verify,
               ),
 
-              const SizedBox(height: BanzamiSpacing.xl),
-              const _HandleLoginTeaser(),
             ],
           ),
         ),
-      ),
-    );
-  }
-}
-
-/// Disabled "coming soon" teaser for handle-based business login.
-///
-/// Purely informational and NON-interactive — there is no backend for @handle
-/// merchant auth yet (merchant_profiles is empty and the handle endpoint is
-/// public-display only). The active credential flow above (Merchant ID + API
-/// Key) is unchanged; this only signals the product direction.
-class _HandleLoginTeaser extends StatelessWidget {
-  const _HandleLoginTeaser();
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.6,
-      child: BanzamiCard(
-        color:   BanzamiColors.gray100,
-        shadow:  const [],
-        padding: const EdgeInsets.all(BanzamiSpacing.lg),
-        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            width:  40,
-            height: 40,
-            decoration: const BoxDecoration(color: BanzamiColors.white, shape: BoxShape.circle),
-            child: const Icon(Icons.alternate_email_rounded, color: BanzamiColors.gray400, size: 20),
-          ),
-          const SizedBox(width: BanzamiSpacing.md),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Row(children: [
-                Flexible(
-                  child: Text('Login por @negócio',
-                      style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-                ),
-                const SizedBox(width: BanzamiSpacing.sm),
-                const MerchantStatusBadge(label: 'Em breve', tone: MerchantBadgeTone.neutral),
-              ]),
-              const SizedBox(height: 2),
-              Text(
-                'Em breve, poderá entrar com o identificador do seu negócio, '
-                'como @cantina-alex ou @farmacia-luanda.',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-              ),
-            ]),
-          ),
-        ]),
       ),
     );
   }

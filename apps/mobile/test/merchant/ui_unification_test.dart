@@ -104,37 +104,26 @@ void main() {
     });
   });
 
-  group('Phase 1 login reframe (no backend change)', () {
-    testWidgets('shows the product reframe + disabled @negócio "Em breve" teaser', (t) async {
+  group('API Key advanced mode (Credenciais de integração)', () {
+    testWidgets('setup is now the integration-credentials advanced screen', (t) async {
       await t.pumpWidget(MaterialApp(
         theme: BanzamiTheme.light,
         home: const MerchantSetupScreen(),
       ));
       await t.pump();
-
-      // Product-oriented heading
-      expect(find.text('Conectar a sua conta Business'), findsOneWidget);
-      // "Coming soon" handle-login teaser, clearly marked Em breve
-      expect(find.text('Login por @negócio'), findsOneWidget);
-      expect(find.text('Em breve'), findsOneWidget);
-
-      // The active auth is unchanged: exactly two fields (Merchant ID + API Key),
-      // NO active @handle input field was added.
+      expect(find.text('Credenciais de integração'), findsWidgets); // appbar + heading
+      // Still exactly Merchant ID + API Key (no @handle field on this screen).
       expect(find.byType(TextFormField), findsNWidgets(2));
       expect(t.takeException(), isNull);
     });
 
-    test('setup keeps the existing auth + teaser is non-interactive', () {
-      // Active credential flow untouched.
+    test('API-key flow intact; the old "em breve" teaser is gone', () {
       expect(setup.contains("labelText:  'Merchant ID'"), isTrue);
       expect(setup.contains("labelText:  'API Key'"), isTrue);
       expect(setup.contains('_verify'), isTrue);
-      // Teaser is disabled / non-interactive (Opacity, no onTap/GestureDetector/InkWell on it).
-      expect(setup.contains('_HandleLoginTeaser'), isTrue);
-      expect(setup.contains('Opacity'), isTrue);
-      // No real handle credential/controller was introduced.
-      expect(setup.contains('handleController'), isFalse);
-      expect(setup.contains('_handleCtrl'), isFalse);
+      // The placeholder teaser was replaced by the real handle login.
+      expect(setup.contains('_HandleLoginTeaser'), isFalse);
+      expect(setup.contains('Em breve'), isFalse);
     });
   });
 }

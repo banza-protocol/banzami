@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../../branding_assets.dart';
-import 'setup_screen.dart';
+import 'login_screen.dart';
 
 /// Banzami Business welcome — mirrors the consumer WelcomeScreen (gradient hero,
 /// fade/slide entry, circular feature icons, BanzamiPrimaryButton) with a
@@ -111,7 +111,7 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
                       backgroundColor: BanzamiColors.white,
                       foregroundColor: BanzamiColors.primary,
                       onPressed: () => Navigator.of(context).push(
-                        BanzamiPageRoute(page: const MerchantSetupScreen()),
+                        BanzamiPageRoute(page: const MerchantLoginScreen()),
                       ),
                     ),
                     const SizedBox(height: BanzamiSpacing.xxl),
