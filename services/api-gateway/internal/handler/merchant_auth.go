@@ -75,6 +75,46 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// POST /v1/merchant/auth/lookup   {handle}
+// Non-secret handle lookup so the app only prompts for a PIN when the business
+// account exists and can sign in. No auth required. Never returns a PIN/key.
+func (h *MerchantAuthHandler) Lookup(w http.ResponseWriter, r *http.Request) {
+	if h.creds == nil {
+		apierror.Respond(w, r, http.StatusServiceUnavailable, "UNAVAILABLE", "handle login is not available")
+		return
+	}
+
+	var body struct {
+		Handle string `json:"handle"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Handle == "" {
+		apierror.Respond(w, r, http.StatusBadRequest, "VALIDATION_ERROR", "handle is required")
+		return
+	}
+
+	// Reject malformed handles up front (the app validates format too). A
+	// well-formed handle that simply doesn't exist returns 200 {exists:false}.
+	handle := service.NormaliseHandle(body.Handle)
+	if service.ValidateHandle(handle) != nil {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_HANDLE", "handle must be 3-30 lowercase letters, digits or underscore")
+		return
+	}
+
+	res, err := h.creds.LookupHandle(r.Context(), handle)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not look up handle")
+		return
+	}
+
+	out := map[string]any{"exists": res.Exists, "can_login": res.CanLogin}
+	if res.Exists {
+		out["status"] = res.Status
+		out["display_name"] = res.DisplayName
+		out["verified"] = res.Verified
+	}
+	writeJSON(w, http.StatusOK, out)
+}
+
 // POST /v1/merchant/auth/claim   {handle, pin}
 // JWT-protected: an already-authenticated merchant (API-key or handle login)
 // claims/updates its @handle + PIN for future app logins.

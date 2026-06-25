@@ -23,6 +23,7 @@ type fakeCreds struct {
 	verifyErr error
 	claimErr  error
 	claimed   bool
+	lookup    service.MerchantLookup
 }
 
 func (f *fakeCreds) VerifyHandlePin(_ context.Context, _, _ string) (string, string, error) {
@@ -31,6 +32,9 @@ func (f *fakeCreds) VerifyHandlePin(_ context.Context, _, _ string) (string, str
 func (f *fakeCreds) Claim(_ context.Context, _, _, _, _ string) error {
 	f.claimed = true
 	return f.claimErr
+}
+func (f *fakeCreds) LookupHandle(_ context.Context, _ string) (service.MerchantLookup, error) {
+	return f.lookup, nil
 }
 
 func postJSON(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
@@ -87,6 +91,75 @@ func TestMerchantAuthToken(t *testing.T) {
 		h := NewMerchantAuthHandler(cfg, nil)
 		rec := postJSON(h.Token, `{"handle":"doa_sandbox","pin":"1234"}`)
 		if rec.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503", rec.Code)
+		}
+	})
+}
+
+func TestMerchantAuthLookup(t *testing.T) {
+	cfg := &config.Config{JWTSecret: testSecret}
+
+	decode := func(rec *httptest.ResponseRecorder) map[string]any {
+		var m map[string]any
+		_ = json.Unmarshal(rec.Body.Bytes(), &m)
+		return m
+	}
+
+	t.Run("active account → exists + can_login", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{lookup: service.MerchantLookup{
+			Exists: true, CanLogin: true, Status: "ACTIVE", DisplayName: "Doa Sandbox",
+		}})
+		rec := postJSON(h.Lookup, `{"handle":"doa_sandbox"}`)
+		if rec.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", rec.Code)
+		}
+		out := decode(rec)
+		if out["exists"] != true || out["can_login"] != true {
+			t.Errorf("expected exists+can_login true, got %v", out)
+		}
+		if out["display_name"] != "Doa Sandbox" {
+			t.Errorf("display_name = %v", out["display_name"])
+		}
+	})
+
+	t.Run("unknown handle → exists false (no leak)", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{lookup: service.MerchantLookup{Exists: false}})
+		out := decode(postJSON(h.Lookup, `{"handle":"nao_existe"}`))
+		if out["exists"] != false || out["can_login"] != false {
+			t.Errorf("expected exists+can_login false, got %v", out)
+		}
+		if _, ok := out["display_name"]; ok {
+			t.Errorf("must not leak display_name for unknown handle")
+		}
+	})
+
+	t.Run("suspended → exists true, can_login false", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{lookup: service.MerchantLookup{
+			Exists: true, CanLogin: false, Status: "SUSPENDED", DisplayName: "X",
+		}})
+		out := decode(postJSON(h.Lookup, `{"handle":"x_business"}`))
+		if out["exists"] != true || out["can_login"] != false || out["status"] != "SUSPENDED" {
+			t.Errorf("expected suspended/can_login false, got %v", out)
+		}
+	})
+
+	t.Run("missing handle → 400", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{})
+		if rec := postJSON(h.Lookup, `{}`); rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("malformed handle → 400", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{})
+		if rec := postJSON(h.Lookup, `{"handle":"ab"}`); rec.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", rec.Code)
+		}
+	})
+
+	t.Run("service unavailable → 503", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, nil)
+		if rec := postJSON(h.Lookup, `{"handle":"x"}`); rec.Code != http.StatusServiceUnavailable {
 			t.Fatalf("status = %d, want 503", rec.Code)
 		}
 	})

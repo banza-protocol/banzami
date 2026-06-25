@@ -100,6 +100,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Merchant app login by @handle + PIN — no JWT required; handle+PIN is the
 	// credential. Issues the same merchant JWT as the API-key flow.
 	r.Post("/v1/merchant/auth/token", merchantAuthHandler.Token)
+	// Non-secret handle lookup — the app prompts for a PIN only when the account
+	// exists and can sign in.
+	r.Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
 
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.Auth(cfg))

@@ -120,6 +120,32 @@ class BanzamiClient {
     );
   }
 
+  /// Non-secret lookup of a business @handle (unauthenticated) — used so the app
+  /// only prompts for a PIN when the account exists and can sign in. Never
+  /// returns a PIN/hash/key.
+  Future<({bool exists, bool canLogin, String status, String? displayName})> lookupMerchantHandle(
+    String handle,
+  ) async {
+    late http.Response resp;
+    try {
+      resp = await _http.post(
+        Uri.parse('$baseUrl/v1/merchant/auth/lookup'),
+        headers: {'Content-Type': 'application/json'},
+        body:    jsonEncode({'handle': handle}),
+      );
+    } catch (e) {
+      throw BanzamiNetworkException(e.toString());
+    }
+    final body = jsonDecode(resp.body) as Map<String, dynamic>;
+    if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
+    return (
+      exists:      body['exists'] as bool? ?? false,
+      canLogin:    body['can_login'] as bool? ?? false,
+      status:      body['status'] as String? ?? '',
+      displayName: body['display_name'] as String?,
+    );
+  }
+
   // ---------------------------------------------------------------------------
   // Consumers
   // ---------------------------------------------------------------------------

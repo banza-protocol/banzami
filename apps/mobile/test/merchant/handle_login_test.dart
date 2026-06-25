@@ -49,6 +49,48 @@ void main() {
     );
   });
 
+  /// Mock backend with a configurable lookup response plus a working
+  /// token/merchant/wallet path for the full login flow.
+  MockClient backend({Map<String, dynamic>? lookup}) {
+    final jwt = _fakeJwt({'merchant_id': 'm1', 'environment': 'SANDBOX'});
+    return MockClient((req) async {
+      if (req.url.path == '/v1/merchant/auth/lookup') {
+        return http.Response(jsonEncode(lookup ?? {
+          'exists': true, 'can_login': true, 'status': 'ACTIVE',
+          'display_name': 'Doa Sandbox', 'verified': true,
+        }), 200);
+      }
+      if (req.url.path == '/v1/merchant/auth/token') {
+        return http.Response(jsonEncode({
+          'token': jwt, 'expires_at': '2026-06-26T00:00:00Z', 'environment': 'SANDBOX',
+        }), 200);
+      }
+      if (req.url.path.startsWith('/v1/merchants/')) {
+        return http.Response(jsonEncode({
+          'id': 'm1', 'name': 'Doa Sandbox', 'email': 'e@x', 'status': 'ACTIVE', 'verified': true,
+          'created_at': '2026-01-01T00:00:00Z', 'updated_at': '2026-01-01T00:00:00Z',
+        }), 200);
+      }
+      if (req.url.path == '/v1/wallets') {
+        return http.Response(jsonEncode({
+          'id': 'w1', 'merchant_id': 'm1', 'currency': 'AOA', 'status': 'ACTIVE',
+          'created_at': '2026-01-01T00:00:00Z',
+        }), 200);
+      }
+      return http.Response('{}', 200);
+    });
+  }
+
+  Widget app(MockClient mock, MerchantSessionService svc) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider<MerchantSessionService>.value(value: svc),
+          Provider<BanzamiClient>.value(
+            value: BanzamiClient(baseUrl: 'https://x', httpClient: mock),
+          ),
+        ],
+        child: const MaterialApp(home: MerchantLoginScreen()),
+      );
+
   Widget plain() => const MaterialApp(home: MerchantLoginScreen());
 
   group('Login screen — handle step', () {
@@ -61,9 +103,9 @@ void main() {
       expect(find.text('Entrar com credenciais de integração'), findsOneWidget);
     });
 
-    testWidgets('invalid handle shows a clean error', (t) async {
+    testWidgets('invalid handle shows a clean error (no lookup, no PIN)', (t) async {
       _tall(t);
-      await t.pumpWidget(plain());
+      await t.pumpWidget(plain()); // format check fails before any network call
       await t.pump();
       await t.enterText(find.byType(TextFormField), 'ab'); // too short
       await t.tap(find.text('Continuar'));
@@ -72,9 +114,9 @@ void main() {
       expect(find.text('Digite o PIN Business'), findsNothing); // stayed on handle step
     });
 
-    testWidgets('@ is optional and the handle is normalised to lowercase', (t) async {
+    testWidgets('existing active @negócio advances to PIN (normalised lowercase)', (t) async {
       _tall(t);
-      await t.pumpWidget(plain());
+      await t.pumpWidget(app(backend(), MerchantSessionService()));
       await t.pump();
       await t.enterText(find.byType(TextFormField), '@Cantina_Alex');
       await t.tap(find.text('Continuar'));
@@ -94,53 +136,65 @@ void main() {
     });
   });
 
+  group('Login screen — lookup gates the PIN step', () {
+    Future<void> expectMessage(
+      WidgetTester t, {
+      required Map<String, dynamic> lookup,
+      required String message,
+    }) async {
+      _tall(t);
+      await t.pumpWidget(app(backend(lookup: lookup), MerchantSessionService()));
+      await t.pump();
+      await t.enterText(find.byType(TextFormField), 'farmacia_luanda');
+      await t.tap(find.text('Continuar'));
+      await t.pumpAndSettle();
+      expect(find.text(message), findsOneWidget);
+      expect(find.text('Digite o PIN Business'), findsNothing); // never reached PIN
+    }
+
+    testWidgets('unknown @negócio → not found', (t) async {
+      await expectMessage(t,
+          lookup: {'exists': false, 'can_login': false},
+          message: 'Conta Business não encontrada.');
+    });
+
+    testWidgets('pending account → under review', (t) async {
+      await expectMessage(t,
+          lookup: {'exists': true, 'can_login': false, 'status': 'PENDING'},
+          message: 'A sua conta Business ainda está em análise.');
+    });
+
+    testWidgets('rejected account → not approved', (t) async {
+      await expectMessage(t,
+          lookup: {'exists': true, 'can_login': false, 'status': 'REJECTED'},
+          message: 'Esta conta Business não foi aprovada.');
+    });
+
+    testWidgets('suspended account → suspended', (t) async {
+      await expectMessage(t,
+          lookup: {'exists': true, 'can_login': false, 'status': 'SUSPENDED'},
+          message: 'Esta conta Business está suspensa.');
+    });
+  });
+
   group('Login screen — handle+PIN success', () {
     testWidgets('creates a handlePin session and stores NO API key', (t) async {
       _tall(t);
-      final jwt = _fakeJwt({'merchant_id': 'm1', 'environment': 'SANDBOX'});
-      final mock = MockClient((req) async {
-        if (req.url.path == '/v1/merchant/auth/token') {
-          return http.Response(jsonEncode({
-            'token': jwt, 'expires_at': '2026-06-26T00:00:00Z', 'environment': 'SANDBOX',
-          }), 200);
-        }
-        if (req.url.path.startsWith('/v1/merchants/')) {
-          return http.Response(jsonEncode({
-            'id': 'm1', 'name': 'Doa Sandbox', 'email': 'e@x', 'status': 'ACTIVE', 'verified': true,
-            'created_at': '2026-01-01T00:00:00Z', 'updated_at': '2026-01-01T00:00:00Z',
-          }), 200);
-        }
-        if (req.url.path == '/v1/wallets') {
-          return http.Response(jsonEncode({
-            'id': 'w1', 'merchant_id': 'm1', 'currency': 'AOA', 'status': 'ACTIVE',
-            'created_at': '2026-01-01T00:00:00Z',
-          }), 200);
-        }
-        return http.Response('{}', 200);
-      });
       final svc = MerchantSessionService();
-
-      await t.pumpWidget(MultiProvider(
-        providers: [
-          ChangeNotifierProvider<MerchantSessionService>.value(value: svc),
-          Provider<BanzamiClient>.value(
-            value: BanzamiClient(baseUrl: 'https://x', httpClient: mock),
-          ),
-        ],
-        child: const MaterialApp(home: MerchantLoginScreen()),
-      ));
+      await t.pumpWidget(app(backend(), svc));
       await t.pump();
 
       await t.enterText(find.byType(TextFormField), 'doa_sandbox');
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
+      expect(find.text('Digite o PIN Business'), findsOneWidget);
 
       for (final d in ['1', '2', '3', '4', '5', '6']) {
         await t.tap(find.text(d));
         await t.pump();
       }
-      // _login is async and shows a spinner; settle with bounded pumps
-      // (pumpAndSettle would hang on the loading indicator).
+      // _login is async and ends on a spinner (popUntil is a no-op in tests);
+      // settle with bounded pumps — pumpAndSettle would hang on the indicator.
       for (var i = 0; i < 20; i++) {
         await t.pump(const Duration(milliseconds: 50));
         if (svc.hasSession) break;
@@ -150,7 +204,7 @@ void main() {
       expect(svc.session!.loginMethod, MerchantLoginMethod.handlePin);
       expect(svc.session!.handle, 'doa_sandbox');
       expect(svc.session!.apiKey, isNull);             // never store an API key
-      expect(svc.session!.jwt, jwt);
+      expect(svc.session!.jwt, _fakeJwt({'merchant_id': 'm1', 'environment': 'SANDBOX'}));
       expect(store.containsKey('merchant_api_key'), isFalse);
       expect(store['merchant_login_method'], 'handle_pin');
     });
@@ -159,6 +213,14 @@ void main() {
   group('Login wiring guards', () {
     final login = File('lib/merchant/screens/onboarding/login_screen.dart').readAsStringSync();
     final welcome = File('lib/merchant/screens/onboarding/welcome_screen.dart').readAsStringSync();
+
+    test('login looks the handle up before prompting for a PIN', () {
+      expect(login.contains('lookupMerchantHandle'), isTrue);
+      expect(login.contains('Conta Business não encontrada.'), isTrue);
+      expect(login.contains('ainda está em análise'), isTrue);
+      expect(login.contains('não foi aprovada'), isTrue);
+      expect(login.contains('está suspensa'), isTrue);
+    });
 
     test('login drives loginMerchantHandlePin → setJwt → createHandleSession', () {
       expect(login.contains('loginMerchantHandlePin'), isTrue);

@@ -52,11 +52,23 @@ func ValidatePin(pin string) error {
 	return nil
 }
 
-// MerchantCredentialService authenticates a merchant by @handle + PIN and lets
-// an already-authenticated merchant claim/update its handle + PIN.
+// MerchantLookup is the non-secret result of a handle lookup used to decide
+// whether the app should prompt for a PIN. It NEVER contains a PIN/hash/API key.
+type MerchantLookup struct {
+	Exists      bool
+	CanLogin    bool
+	Status      string // ACTIVE | SUSPENDED | CLOSED (merchant status)
+	DisplayName string
+	Verified    bool
+}
+
+// MerchantCredentialService authenticates a merchant by @handle + PIN, lets an
+// already-authenticated merchant claim/update its handle + PIN, and exposes a
+// non-secret handle lookup for the login UX.
 type MerchantCredentialService interface {
 	VerifyHandlePin(ctx context.Context, handle, pin string) (merchantID, environment string, err error)
 	Claim(ctx context.Context, merchantID, environment, handle, pin string) error
+	LookupHandle(ctx context.Context, handle string) (MerchantLookup, error)
 }
 
 type PostgresMerchantCredentialService struct {
@@ -182,6 +194,43 @@ func (s *PostgresMerchantCredentialService) Claim(ctx context.Context, merchantI
 	}
 
 	return tx.Commit(ctx)
+}
+
+// LookupHandle reports whether a login handle exists and may sign in. It returns
+// only non-secret data (status, display name, verified) — never a PIN/hash/key.
+// A missing or malformed handle yields Exists=false (no enumeration of details).
+func (s *PostgresMerchantCredentialService) LookupHandle(ctx context.Context, handle string) (MerchantLookup, error) {
+	handle = NormaliseHandle(handle)
+	if ValidateHandle(handle) != nil {
+		return MerchantLookup{Exists: false, CanLogin: false}, nil
+	}
+
+	var (
+		status      string
+		verified    bool
+		displayName string
+	)
+	err := s.pool.QueryRow(ctx,
+		`SELECT m.status, m.verified, COALESCE(p.display_name, m.name)
+		   FROM merchant_app_credentials c
+		   JOIN merchants m          ON m.id = c.merchant_id
+		   LEFT JOIN merchant_profiles p ON p.merchant_id = c.merchant_id
+		  WHERE c.handle = $1`, handle).
+		Scan(&status, &verified, &displayName)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return MerchantLookup{Exists: false, CanLogin: false}, nil
+		}
+		return MerchantLookup{}, err
+	}
+
+	return MerchantLookup{
+		Exists:      true,
+		CanLogin:    status == "ACTIVE",
+		Status:      status,
+		DisplayName: displayName,
+		Verified:    verified,
+	}, nil
 }
 
 func NormaliseHandle(handle string) string {

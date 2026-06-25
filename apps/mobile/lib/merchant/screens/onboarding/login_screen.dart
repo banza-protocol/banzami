@@ -48,9 +48,39 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
   String get _handle =>
       _handleCtrl.text.trim().toLowerCase().replaceFirst(RegExp(r'^@'), '');
 
-  void _continueToPin() {
+  Future<void> _continueToPin() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _step = _Step.pin; _error = null; _pin = ''; });
+    setState(() { _loading = true; _error = null; });
+
+    final handle = _handle;
+    try {
+      // Only prompt for a PIN if the business account exists and can sign in.
+      final r = await context.read<BanzamiClient>().lookupMerchantHandle(handle);
+      if (!mounted) return;
+      if (!r.exists) {
+        setState(() { _error = 'Conta Business não encontrada.'; _loading = false; });
+        return;
+      }
+      if (!r.canLogin) {
+        setState(() { _error = _statusMessage(r.status); _loading = false; });
+        return;
+      }
+      setState(() { _step = _Step.pin; _loading = false; _pin = ''; });
+    } on BanzamiNetworkException {
+      if (mounted) setState(() { _error = 'Não foi possível conectar. Tente novamente.'; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() { _error = 'Não foi possível conectar. Tente novamente.'; _loading = false; });
+    }
+  }
+
+  static String _statusMessage(String status) {
+    switch (status) {
+      case 'PENDING':  return 'A sua conta Business ainda está em análise.';
+      case 'REJECTED': return 'Esta conta Business não foi aprovada.';
+      case 'SUSPENDED':
+      case 'CLOSED':   return 'Esta conta Business está suspensa.';
+      default:         return 'Não é possível entrar nesta conta Business.';
+    }
   }
 
   Future<void> _login() async {
@@ -184,7 +214,8 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
             const SizedBox(height: BanzamiSpacing.xl),
             BanzamiPrimaryButton(
               label:     'Continuar',
-              onPressed: _continueToPin,
+              isLoading: _loading,
+              onPressed: _loading ? null : _continueToPin,
             ),
 
             const SizedBox(height: BanzamiSpacing.md),
