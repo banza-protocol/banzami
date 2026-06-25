@@ -20,7 +20,22 @@ class BanzamiVerifiedMark extends StatefulWidget {
   final double size;
   final bool   onLight;
 
-  const BanzamiVerifiedMark({super.key, this.size = 96, this.onLight = false});
+  /// Optional accent overrides for the bloom/ring and the core seal. Default to
+  /// the official Banzami palette (so every other usage is unchanged). The
+  /// immersive receipt passes its historical deep-cherry reds here without
+  /// affecting any other screen.
+  final Color? bloom;    // ambient bloom + outer ring (default primaryLight)
+  final Color? coreMid;  // core radial mid stop       (default primaryMid)
+  final Color? coreEdge; // core radial edge stop      (default primaryDark)
+
+  const BanzamiVerifiedMark({
+    super.key,
+    this.size    = 96,
+    this.onLight = false,
+    this.bloom,
+    this.coreMid,
+    this.coreEdge,
+  });
 
   @override
   State<BanzamiVerifiedMark> createState() => _BanzamiVerifiedMarkState();
@@ -71,6 +86,12 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
         ? BanzamiColors.white.withValues(alpha: 0.22)
         : BanzamiColors.white.withValues(alpha: 0.14);
 
+    // Accent colours — official palette by default; the receipt overrides them
+    // with its historical deep-cherry reds.
+    final bloom    = widget.bloom    ?? BanzamiColors.primaryLight;
+    final coreMid  = widget.coreMid  ?? BanzamiColors.primaryMid;
+    final coreEdge = widget.coreEdge ?? BanzamiColors.primaryDark;
+
     return SizedBox(
       width:  size,
       height: size,
@@ -85,12 +106,12 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
               shape:     BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color:        BanzamiColors.primaryLight.withValues(alpha: 0.55),
+                  color:        bloom.withValues(alpha: 0.55),
                   blurRadius:   22,
                   spreadRadius: 4,
                 ),
                 BoxShadow(
-                  color:        BanzamiColors.primaryLight.withValues(alpha: 0.25),
+                  color:        bloom.withValues(alpha: 0.25),
                   blurRadius:   48,
                   spreadRadius: 12,
                 ),
@@ -105,17 +126,17 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               border: Border.all(
-                color: BanzamiColors.primaryLight.withValues(alpha: 0.85),
+                color: bloom.withValues(alpha: 0.85),
                 width: 2.0,
               ),
               boxShadow: [
-                const BoxShadow(
-                  color:        BanzamiColors.primaryLight,
+                BoxShadow(
+                  color:        bloom,
                   blurRadius:   6,
                   spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color:        BanzamiColors.primaryLight.withValues(alpha: 0.55),
+                  color:        bloom.withValues(alpha: 0.55),
                   blurRadius:   18,
                   spreadRadius: 4,
                 ),
@@ -183,14 +204,14 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
             height: size * 0.60,
             decoration: BoxDecoration(
               shape:    BoxShape.circle,
-              gradient: const RadialGradient(
-                center: Alignment(0, -0.28),
+              gradient: RadialGradient(
+                center: const Alignment(0, -0.28),
                 colors: [
-                  BanzamiColors.primaryLight,
-                  BanzamiColors.primaryMid,
-                  BanzamiColors.primaryDark,
+                  bloom,
+                  coreMid,
+                  coreEdge,
                 ],
-                stops:  [0.0, 0.52, 1.0],
+                stops:  const [0.0, 0.52, 1.0],
               ),
               border: Border.all(
                 color: BanzamiColors.white.withValues(alpha: 0.18),

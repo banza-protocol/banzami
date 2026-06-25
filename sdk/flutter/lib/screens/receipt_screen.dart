@@ -15,6 +15,17 @@ import '../widgets/banzami_components.dart';
 import '../widgets/banzami_verified_mark.dart';
 
 // ---------------------------------------------------------------------------
+// Historical receipt reds — a DELIBERATE, receipt-only exception to the official
+// Banzami palette (#B5101F…). The immersive "comprovativo moment" keeps the
+// deeper, higher-contrast cherry→near-black gradient of the original receipt
+// (restored from 6683edb^). No other screen uses these.
+// ---------------------------------------------------------------------------
+
+const _kReceiptCherry = Color(0xFFC21A2C); // top of the gradient + bloom/core
+const _kReceiptWine   = Color(0xFF7A000D); // mid-low gradient + core mid
+const _kReceiptDeep   = Color(0xFF5E000A); // page background + gradient base + core edge
+
+// ---------------------------------------------------------------------------
 // BanzamiReceiptScreen
 // ---------------------------------------------------------------------------
 
@@ -318,7 +329,11 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     final timeStr = DateFormat('HH:mm:ss').format(_liveTime);
 
     return Scaffold(
-      backgroundColor:          BanzamiColors.primaryDark,
+      // Deliberate exception to the official Banzami palette, for the immersive
+      // "comprovativo moment" ONLY (this screen). The historical receipt used a
+      // deeper, higher-contrast cherry→near-black gradient; no other screen is
+      // affected. Cherry #C21A2C, #990011, wine #7A000D, deep #5E000A.
+      backgroundColor:          _kReceiptDeep,
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
@@ -331,10 +346,10 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                 begin:  Alignment.topCenter,
                 end:    Alignment.bottomCenter,
                 colors: [
-                  BanzamiColors.primaryLight,
-                  BanzamiColors.primary,
-                  BanzamiColors.primaryMid,
-                  BanzamiColors.primaryDark,
+                  _kReceiptCherry,
+                  Color(0xFF990011),
+                  _kReceiptWine,
+                  _kReceiptDeep,
                 ],
                 stops:  [0.0, 0.35, 0.65, 1.0],
               ),
@@ -380,10 +395,16 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                         child: Column(children: [
                           const SizedBox(height: 6),
 
-                          // Verified mark with rotating dashed ring
+                          // Verified mark with rotating dashed ring — historical
+                          // deep-cherry reds (this screen only; defaults elsewhere).
                           ScaleTransition(
                             scale: _markScale,
-                            child: const BanzamiVerifiedMark(size: 96),
+                            child: const BanzamiVerifiedMark(
+                              size:     96,
+                              bloom:    _kReceiptCherry,
+                              coreMid:  _kReceiptWine,
+                              coreEdge: _kReceiptDeep,
+                            ),
                           ),
 
                           const SizedBox(height: 4),
