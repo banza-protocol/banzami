@@ -219,15 +219,11 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
             ),
 
             const SizedBox(height: BanzamiSpacing.md),
-            Center(
-              child: TextButton(
-                onPressed: () => Navigator.of(context).push(
-                  BanzamiPageRoute(page: const MerchantSetupScreen()),
-                ),
-                child: Text(
-                  'Entrar com credenciais de integração',
-                  style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
-                ),
+            BanzamiGhostButton(
+              label:     'Entrar com credenciais de integração',
+              color:     BanzamiColors.gray600,
+              onPressed: () => Navigator.of(context).push(
+                BanzamiPageRoute(page: const MerchantSetupScreen()),
               ),
             ),
             const SizedBox(height: BanzamiSpacing.xxl),

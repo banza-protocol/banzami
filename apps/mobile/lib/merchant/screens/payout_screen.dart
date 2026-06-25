@@ -136,16 +136,9 @@ class _PayoutScreenState extends State<PayoutScreen> {
           const SizedBox(height: BanzamiSpacing.xxl),
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
+            child: BanzamiPrimaryButton(
+              label:     'Voltar',
               onPressed: () => Navigator.of(context).pop(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: BanzamiColors.primary,
-                foregroundColor: BanzamiColors.white,
-                padding:   const EdgeInsets.symmetric(vertical: 14),
-                shape:     const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-                textStyle: BanzamiTextStyles.headingSm,
-              ),
-              child: const Text('Voltar'),
             ),
           ),
         ]),

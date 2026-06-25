@@ -326,18 +326,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
         const SizedBox(height: BanzamiSpacing.md),
 
         // Nova cobrança
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton(
-            onPressed: () => setState(() { _link = null; _amountCtrl.clear(); _descCtrl.clear(); }),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.primary,
-              side:            const BorderSide(color: BanzamiColors.primary),
-              padding:         const EdgeInsets.symmetric(vertical: 14),
-              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-            ),
-            child: const Text('Nova cobrança'),
-          ),
+        BanzamiSecondaryButton(
+          label:     'Nova cobrança',
+          onPressed: () => setState(() { _link = null; _amountCtrl.clear(); _descCtrl.clear(); }),
         ),
       ]),
     );

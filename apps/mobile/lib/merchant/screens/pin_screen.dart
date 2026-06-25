@@ -109,17 +109,12 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
                   ),
                   const SizedBox(height: 24),
                   if (session?.biometricsEnabled == true)
-                    TextButton.icon(
-                      onPressed: _tryBiometrics,
-                      icon:  const Icon(Icons.fingerprint_rounded, color: BanzamiColors.primary),
-                      label: Text('Usar biometria',
-                          style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.primary)),
-                    ),
+                    BanzamiGhostButton(label: 'Usar biometria', onPressed: _tryBiometrics),
                   const SizedBox(height: 8),
-                  TextButton(
+                  BanzamiGhostButton(
+                    label:     'Usar outra conta',
+                    color:     BanzamiColors.gray400,
                     onPressed: _confirmSwitchAccount,
-                    child: Text('Usar outra conta',
-                        style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
                   ),
                   const SizedBox(height: 24),
                 ],

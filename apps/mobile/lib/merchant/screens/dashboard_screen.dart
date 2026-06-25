@@ -127,7 +127,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
         ),
         const SizedBox(height: BanzamiSpacing.lg),
-        Center(child: TextButton(onPressed: _load, child: const Text('Tentar novamente'))),
+        Center(child: BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load)),
       ],
     );
   }
@@ -193,14 +193,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     )),
 
               const SizedBox(height: BanzamiSpacing.sm),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () => _open(const PaymentRequestsScreen()),
-                  icon: const Icon(Icons.request_quote_outlined, size: 18),
-                  label: const Text('Pedidos de pagamento'),
-                  style: TextButton.styleFrom(foregroundColor: BanzamiColors.primary),
-                ),
+              BanzamiGhostButton(
+                label:     'Pedidos de pagamento',
+                onPressed: () => _open(const PaymentRequestsScreen()),
               ),
 
               const SizedBox(height: BanzamiSpacing.page),
@@ -518,19 +513,9 @@ class _SettlementCard extends StatelessWidget {
         else
           const SizedBox.shrink(),
         const SizedBox(height: BanzamiSpacing.md),
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: verified ? onPayout : onVerify,
-            icon: Icon(verified ? Icons.north_east_rounded : Icons.verified_user_outlined, size: 18),
-            label: Text(verified ? 'Solicitar payout' : 'Verificar negócio'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.primary,
-              side: const BorderSide(color: BanzamiColors.primary),
-              shape: const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
+        BanzamiSecondaryButton(
+          label:     verified ? 'Solicitar payout' : 'Verificar negócio',
+          onPressed: verified ? onPayout : onVerify,
         ),
       ]),
     );

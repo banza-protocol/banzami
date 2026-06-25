@@ -155,7 +155,7 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
       const SizedBox(height: 12),
       Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
       const SizedBox(height: 16),
-      TextButton(onPressed: _loadQr, child: const Text('Tentar novamente')),
+      BanzamiGhostButton(label: 'Tentar novamente', onPressed: _loadQr),
     ]));
   }
 
@@ -217,45 +217,19 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
 
         const SizedBox(height: BanzamiSpacing.xl),
 
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton.icon(
-            key:       _shareButtonKey,
-            onPressed: _sharing ? null : () => _shareQr(session),
-            icon:  _sharing
-                ? const SizedBox(
-                    width: 18, height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: BanzamiColors.white),
-                  )
-                : const Icon(Icons.share_rounded),
-            label: const Text('Partilhar QR'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: BanzamiColors.primary,
-              foregroundColor: BanzamiColors.white,
-              padding:         const EdgeInsets.symmetric(vertical: 16),
-              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-              textStyle:       BanzamiTextStyles.headingSm,
-              elevation:       0,
-            ),
-          ),
+        BanzamiPrimaryButton(
+          key:       _shareButtonKey,
+          label:     'Partilhar QR',
+          icon:      Icons.share_rounded,
+          isLoading: _sharing,
+          onPressed: _sharing ? null : () => _shareQr(session),
         ),
         const SizedBox(height: BanzamiSpacing.md),
 
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ChargeScreen()),
-            ),
-            icon:  const Icon(Icons.add_rounded),
-            label: const Text('Cobrança com valor fixo'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: BanzamiColors.primary,
-              side:            const BorderSide(color: BanzamiColors.primary),
-              padding:         const EdgeInsets.symmetric(vertical: 16),
-              shape:           const RoundedRectangleBorder(borderRadius: BanzamiRadius.lgAll),
-              textStyle:       BanzamiTextStyles.headingSm,
-            ),
+        BanzamiSecondaryButton(
+          label:     'Cobrança com valor fixo',
+          onPressed: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => const ChargeScreen()),
           ),
         ),
 

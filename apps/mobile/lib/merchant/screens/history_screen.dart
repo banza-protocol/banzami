@@ -189,7 +189,7 @@ class _TransactionsTabState extends State<_TransactionsTab>
         const SizedBox(height: BanzamiSpacing.md),
         Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
         const SizedBox(height: BanzamiSpacing.lg),
-        TextButton(onPressed: _load, child: const Text('Tentar novamente')),
+        BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load),
       ]));
     }
     if (_txs.isEmpty) {
@@ -421,7 +421,7 @@ class _PaymentLinksTabState extends State<_PaymentLinksTab>
         const SizedBox(height: BanzamiSpacing.md),
         Text(_error!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
         const SizedBox(height: BanzamiSpacing.lg),
-        TextButton(onPressed: _load, child: const Text('Tentar novamente')),
+        BanzamiGhostButton(label: 'Tentar novamente', onPressed: _load),
       ]));
     }
     if (_links.isEmpty) {
