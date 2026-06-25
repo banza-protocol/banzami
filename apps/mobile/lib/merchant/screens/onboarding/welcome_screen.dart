@@ -19,9 +19,12 @@ class MerchantWelcomeScreen extends StatelessWidget {
             children: [
               const Spacer(flex: 2),
 
-              Image.asset(
-                BrandingAssets.logo,
-                height: 80,
+              ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Image.asset(
+                  BrandingAssets.icon,
+                  height: 56,
+                ),
               ),
               const SizedBox(height: 24),
 
