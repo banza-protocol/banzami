@@ -49,10 +49,10 @@ Security behaviour:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta do Banza!
+Bem-vindo ao beta do Banzami!
 
-O Banza é a infraestrutura programável de pagamentos instantâneos de Angola —
-com carteira Kwanza, QR nativo, transferências P2P e identidade financeira @banza.
+O Banzami é a forma como Angola paga — carteira Kwanza, QR nativo, transferências
+P2P e identidade financeira @banza, construído sobre o protocolo BANZA.
 
 O que testar:
 1. Registo e login com @banza e PIN
@@ -79,7 +79,7 @@ Para reportar problemas: agita o iPhone
 durante a app → aparece o menu de feedback
 do TestFlight → descreve o problema.
 
-Obrigado por fazeres parte do beta Banza!
+Obrigado por fazeres parte do beta Banzami!
 ```
 
 ---
@@ -121,11 +121,11 @@ Important:
 ### TestFlight — What to Test
 
 ```
-Bem-vindo ao beta do Banza Business!
+Bem-vindo ao beta do Banzami Business!
 
-O Banza Business é a camada comerciante da infraestrutura programável de
-pagamentos instantâneos de Angola — QR nativo, liquidação instantânea,
-sem terminal de cartão, sem espera.
+O Banzami Business é a camada comerciante da rede de pagamentos instantâneos de
+Angola — QR nativo, liquidação instantânea, sem terminal de cartão, sem espera,
+construído sobre o protocolo BANZA.
 
 O que testar:
 1. Configurar a conta com Merchant ID e API Key
@@ -146,7 +146,7 @@ Para reportar problemas: agita o iPhone
 durante a app → aparece o menu de feedback
 do TestFlight → descreve o problema.
 
-Obrigado por fazeres parte do beta Banza Business!
+Obrigado por fazeres parte do beta Banzami Business!
 ```
 
 ---
@@ -178,7 +178,7 @@ Quando for submeter para a App Store pública, a Apple faz uma revisão completa
 ### App Store Review Notes
 
 1. Abre https://appstoreconnect.apple.com/
-2. Selecciona a app (`Banza` ou `Banza Business`)
+2. Selecciona a app (`Banzami` ou `Banzami Business`)
 3. **App Information** → **App Review Information**
 4. Cola o bloco correspondente no campo **Notes**
 5. Para o **Demo Account**:
@@ -230,8 +230,14 @@ Para desactivar: revogar a API Key acima em dashboard.banzami.com → Definiçõ
 
 | App | Bundle ID | SKU | Team ID | Estado |
 |-----|-----------|-----|---------|--------|
-| Banzami | `com.banza.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
-| Banzami Business | `com.banza.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
+| Banzami | `com.banzami.consumer` | `banza-consumer` | W22UFWBATJ | Prepare for Submission |
+| Banzami Business | `com.banzami.merchant` | `banza-merchant` | W22UFWBATJ | Prepare for Submission |
+
+> **Bundle ID** = `com.banzami.consumer` / `com.banzami.merchant` (corresponde ao build
+> e à AASA `W22UFWBATJ.com.banzami.consumer`). O **SKU** é um identificador permanente
+> do App Store Connect e não muda. Se o registo da app no App Store Connect ainda usar
+> o bundle antigo `com.banza.*`, é preciso um registo de app com o bundle `com.banzami.*`
+> (o Bundle ID não se altera numa app já criada).
 
 ---
 
@@ -242,16 +248,16 @@ Use these for the App Store listing pages. Mirrors new infrastructure positionin
 ### Banzami (Consumer) — App Store Description
 
 ```
-O Banza é a tua carteira de pagamentos instantâneos em Kwanza.
+O Banzami é a tua carteira de pagamentos instantâneos em Kwanza.
 
-Com o Banza podes:
+Com o Banzami podes:
 • Pagar em qualquer comerciante com QR — sem cash, sem espera
 • Receber e enviar dinheiro para qualquer @banza em segundos
 • Consultar o teu saldo e histórico em tempo real
 • Pagar links de pagamento partilhados no WhatsApp
 
-O Banza é a infraestrutura programável de pagamentos instantâneos de Angola:
-QR-native, wallet-native, construído para o Kwanza.
+O Banzami é a forma como Angola paga: QR-native, wallet-native, construído para o
+Kwanza sobre o protocolo BANZA.
 
 Sem cartão. Sem IBAN. Sem confirmação manual.
 Apenas @banza — e o dinheiro move-se.
@@ -260,9 +266,9 @@ Apenas @banza — e o dinheiro move-se.
 ### Banzami Business (Merchant) — App Store Description
 
 ```
-O Banza Business é o ponto de venda da nova economia angolana.
+O Banzami Business é o ponto de venda da nova economia angolana.
 
-Com o Banza Business podes:
+Com o Banzami Business podes:
 • Receber pagamentos instantâneos via QR — imprime e aceita de imediato
 • Criar e partilhar links de pagamento por WhatsApp ou SMS
 • Ver cada pagamento em tempo real, sem esperar por confirmação
@@ -271,7 +277,8 @@ Com o Banza Business podes:
 Sem terminal de cartão. Sem taxas de POS. Sem espera.
 Apenas QR + liquidação instantânea em Kwanza.
 
-O Banza Business é parte da infraestrutura programável de pagamentos de Angola.
+O Banzami Business é o operador de referência da rede de pagamentos de Angola,
+construído sobre o protocolo BANZA.
 ```
 
 ---
@@ -282,5 +289,6 @@ O Banza Business é parte da infraestrutura programável de pagamentos de Angola
 |------|-------|-----|----------|--------|
 | 2026-05-18 | 1.0.0 (1) | Banzami + Banzami Business (Banza legacy) | — | ✅ Aprovado (TestFlight External) — app antiga |
 | 2026-05-24 | 1.0.0 (1) | Banzami | Sandbox | 🔄 IPA pronto — pendente upload Transporter |
+| 2026-06-25 | 1.0.0 (2) | Banzami | Sandbox | 🔄 Build iOS em preparação (bundle `com.banzami.consumer`, SDK source-of-truth) |
 
 Adicionar uma linha a cada submissão.
