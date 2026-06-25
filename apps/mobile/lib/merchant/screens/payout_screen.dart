@@ -210,6 +210,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
           // Banco
           DropdownButtonFormField<String>(
             initialValue: _selectedBank,
+            isExpanded:   true, // constrain the selected row so long bank names ellipsize instead of overflowing
             decoration: const InputDecoration(
               labelText:  'Banco',
               prefixIcon: Icon(Icons.account_balance_outlined),
