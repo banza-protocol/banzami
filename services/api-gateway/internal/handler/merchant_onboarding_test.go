@@ -72,6 +72,13 @@ func TestCheckHandle(t *testing.T) {
 		}
 	})
 
+	t.Run("malformed handle → 400", func(t *testing.T) {
+		h := NewMerchantOnboardingHandler(&fakeApps{available: false, reason: service.HandleReasonInvalid}, nil)
+		if rec := postJSON(h.CheckHandle, `{"handle":"ab"}`); rec.Code != http.StatusBadRequest {
+			t.Fatalf("status=%d want 400", rec.Code)
+		}
+	})
+
 	t.Run("service unavailable → 503", func(t *testing.T) {
 		h := NewMerchantOnboardingHandler(nil, nil)
 		if rec := postJSON(h.CheckHandle, `{"handle":"x_business"}`); rec.Code != http.StatusServiceUnavailable {

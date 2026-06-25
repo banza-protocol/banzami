@@ -41,6 +41,11 @@ func (h *MerchantOnboardingHandler) CheckHandle(w http.ResponseWriter, r *http.R
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not check handle")
 		return
 	}
+	// A malformed handle is a client error (consistent with the lookup endpoint).
+	if !available && reason == service.HandleReasonInvalid {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_HANDLE", "handle must be 3-30 lowercase letters, digits or underscore")
+		return
+	}
 	out := map[string]any{"available": available}
 	if !available {
 		out["reason"] = reason
