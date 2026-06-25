@@ -120,3 +120,16 @@ describe('comerciantes CTAs point to the application form', () => {
     expect(src).not.toContain('href="#como"');
   });
 });
+
+describe('activation success — Abrir Banzami Business is a real action', () => {
+  const src = readFileSync(join(__dirname, '../app/comerciantes/activar/ActivarFlow.tsx'), 'utf8');
+  it('button is not a # placeholder', () => {
+    expect(src).toContain('Abrir Banzami Business');
+    expect(src).not.toContain('href="#"');
+  });
+  it('attempts the app scheme and shows a fallback instruction', () => {
+    expect(src).toContain("'banzami://'");
+    expect(src).toContain('onClick={openBusinessApp}');
+    expect(src).toMatch(/Se a app não abrir/);
+  });
+});

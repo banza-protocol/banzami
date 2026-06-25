@@ -20,6 +20,16 @@ type Phase =
 
 const cardCls = 'rounded-[20px] border border-[#e5e7eb] bg-white p-8';
 
+// Best-effort open of the installed Banzami Business app via its registered URL
+// scheme. There is no Business-specific deep link or public store URL yet, so
+// this is a progressive enhancement — the on-screen fallback guides the user if
+// it no-ops (app not installed / opened on desktop). No broken https link.
+const BUSINESS_APP_SCHEME = 'banzami://';
+
+function openBusinessApp() {
+  window.location.href = BUSINESS_APP_SCHEME;
+}
+
 export function ActivarFlow() {
   const params = useSearchParams();
   const token = params.get('token') || '';
@@ -90,12 +100,16 @@ export function ActivarFlow() {
         <p className="mx-auto mt-3 max-w-[420px] text-[15px] leading-relaxed text-ink-secondary">
           Já pode entrar na app Banzami Business com o seu @negócio e PIN.
         </p>
-        <a
-          href="#"
-          className="mt-6 inline-flex items-center justify-center rounded-[40px] bg-cherry px-8 py-4 text-[16px] font-extrabold text-white no-underline transition hover:bg-cherry-dark"
+        <button
+          type="button"
+          onClick={openBusinessApp}
+          className="mt-6 inline-flex items-center justify-center rounded-[40px] bg-cherry px-8 py-4 text-[16px] font-extrabold text-white transition hover:bg-cherry-dark"
         >
           Abrir Banzami Business
-        </a>
+        </button>
+        <p className="mx-auto mt-4 max-w-[420px] text-[13px] leading-relaxed text-ink-secondary">
+          Se a app não abrir, abra manualmente a Banzami Business e entre com o seu @negócio.
+        </p>
       </div>
     );
   }
