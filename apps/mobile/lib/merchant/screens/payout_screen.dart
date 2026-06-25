@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../widgets/banzami_premium_dialog.dart';
 import '../services/merchant_session_service.dart';
 
 /// Ecrã para o comerciante pedir um levantamento para a sua conta bancária.
@@ -56,27 +57,17 @@ class _PayoutScreenState extends State<PayoutScreen> {
     final raw = _amountCtrl.text.trim().replaceAll(',', '.');
     final amount = (double.parse(raw) * 100).round();
 
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title:   const Text('Confirmar levantamento'),
-        content: Text(
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.payments_outlined,
+      title:        'Confirmar levantamento',
+      description:
           'Vai pedir um levantamento de ${formatMinor(amount, 'AOA')} '
           'para a conta ${_ibanCtrl.text.trim()} '
-          '(${_holderCtrl.text.trim()}).\n\nConfirma?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Confirmar',
-                style: TextStyle(color: BanzamiColors.primary)),
-          ),
-        ],
-      ),
+          '(${_holderCtrl.text.trim()}).',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Confirmar',
+      variant:      BanzamiDialogVariant.standard,
     );
     if (confirm != true) return;
 

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
+import '../../widgets/banzami_premium_dialog.dart';
 import '../../widgets/pin_pad.dart';
 
 /// Ecrã de desbloqueio — mostrado quando a sessão está bloqueada.
@@ -57,19 +58,14 @@ class _MerchantPinScreenState extends State<MerchantPinScreen>
 
   Future<void> _confirmSwitchAccount() async {
     final svc = context.read<MerchantSessionService>();
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title:   const Text('Usar outra conta?'),
-        content: const Text('A conta actual será removida. Pode reconectar quando quiser.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
-          ),
-        ],
-      ),
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.swap_horiz_rounded,
+      title:        'Usar outra conta?',
+      description:  'A conta actual será removida.\nPode reconectar quando quiser.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Remover',
+      variant:      BanzamiDialogVariant.warning,
     );
     if (confirm == true) await svc.clearAccount();
   }

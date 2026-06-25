@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../widgets/banzami_premium_dialog.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_status_badge.dart';
 import 'kyb_screen.dart';
@@ -190,41 +191,27 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
   }
 
   Future<void> _confirmLogout(MerchantSessionService svc) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:   const RoundedRectangleBorder(borderRadius: BanzamiRadius.xlAll),
-        title:   const Text('Terminar sessão?'),
-        content: const Text('O ecrã vai bloquear. Introduza o PIN para voltar a entrar.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sair', style: TextStyle(color: BanzamiColors.primary)),
-          ),
-        ],
-      ),
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.logout_rounded,
+      title:        'Terminar sessão?',
+      description:  'O ecrã vai bloquear.\nIntroduza o PIN para voltar a entrar.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Sair',
+      variant:      BanzamiDialogVariant.standard,
     );
     if (confirm == true) await svc.logout();
   }
 
   Future<void> _confirmClearAccount(MerchantSessionService svc) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape:   const RoundedRectangleBorder(borderRadius: BanzamiRadius.xlAll),
-        title:   const Text('Remover conta?'),
-        content: const Text(
-          'Todas as credenciais guardadas serão apagadas. Terá de reconfigurar a aplicação para voltar a usar.',
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancelar')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remover', style: TextStyle(color: BanzamiColors.error)),
-          ),
-        ],
-      ),
+    final confirm = await showBanzamiDialog(
+      context:      context,
+      icon:         Icons.delete_forever_rounded,
+      title:        'Remover conta?',
+      description:  'Todas as credenciais guardadas serão apagadas.\nTerá de reconfigurar a aplicação para voltar a usar.',
+      cancelLabel:  'Cancelar',
+      confirmLabel: 'Remover',
+      variant:      BanzamiDialogVariant.danger,
     );
     if (confirm == true) await svc.clearAccount();
   }
