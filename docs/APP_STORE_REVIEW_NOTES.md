@@ -106,6 +106,8 @@ Instructions:
 5. Tap "Continuar"
 
 The review account has full access to:
+* Business dashboard — balance, KPIs (today/month volume & payments, average
+  ticket, success rate), a 7-day volume chart and a settlement/payout summary
 * Merchant wallet balance and transaction history
 * Generating QR codes to receive payments
 * Creating payment links
@@ -129,16 +131,20 @@ construído sobre o protocolo BANZA.
 
 O que testar:
 1. Configurar a conta com Merchant ID e API Key
-2. Gerar QR code para receber pagamento
-3. Receber um pagamento em tempo real
-4. Criar e partilhar um link de pagamento
-5. Consultar histórico de transacções
-6. Criar cobranças manuais
+2. Painel de negócio — saldo, KPIs (volume e nº de pagamentos de hoje e do mês,
+   ticket médio, taxa de sucesso), gráfico de volume dos últimos 7 dias e cartão
+   de liquidações/payouts (estado de verificação KYB)
+3. Gerar QR code para receber pagamento
+4. Receber um pagamento em tempo real
+5. Criar e partilhar um link de pagamento
+6. Consultar histórico de transacções
+7. Criar cobranças manuais
 
 O que reportar:
 - Erros ou crashes
 - Botões que não respondem
 - Valores ou saldos incorrectos no ecrã
+- KPIs ou gráfico do painel com valores incorrectos
 - Pagamentos que não aparecem em tempo real
 - Problemas com QR code ou links de pagamento
 
