@@ -201,7 +201,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
           SizedBox(
             width: double.infinity,
-            child: BanzamiButton(
+            child: BanzamiPrimaryButton(
               label:     'Gerar cobrança',
               onPressed: _creating ? null : _create,
               isLoading: _creating,
@@ -316,7 +316,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
         // Partilhar
         SizedBox(
           width: double.infinity,
-          child: BanzamiButton(
+          child: BanzamiPrimaryButton(
             key:       _shareButtonKey,
             label:     'Partilhar link',
             isLoading: _sharing,

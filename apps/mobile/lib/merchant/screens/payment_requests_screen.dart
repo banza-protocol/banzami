@@ -246,7 +246,7 @@ class _NewRequestScreenState extends State<_NewRequestScreen> {
               Text(_error!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
             ],
             const SizedBox(height: BanzamiSpacing.xl),
-            BanzamiButton(
+            BanzamiPrimaryButton(
               label: _submitting ? 'A enviar…' : 'Enviar pedido',
               onPressed: _submitting ? null : _submit,
             ),

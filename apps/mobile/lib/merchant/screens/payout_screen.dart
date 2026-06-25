@@ -259,7 +259,7 @@ class _PayoutScreenState extends State<PayoutScreen> {
 
           SizedBox(
             width: double.infinity,
-            child: BanzamiButton(
+            child: BanzamiPrimaryButton(
               label:     'Pedir levantamento',
               onPressed: _loading ? null : _submit,
               isLoading: _loading,

@@ -7,11 +7,15 @@ import 'package:flutter_test/flutter_test.dart';
 /// BanzamiGhostButton / BanzamiButton), never a bare Material button. This is a
 /// source-level scan — no widgets, no mocks.
 void main() {
-  // Material button widgets that must not appear in merchant screens. Word
-  // boundary on the left so e.g. `BanzamiTextButton` (none today) wouldn't match.
-  final legacy = RegExp(r'(?<![A-Za-z])(ElevatedButton|OutlinedButton|TextButton|FilledButton)\b');
+  // Buttons that must not appear in merchant screens: bare Material buttons,
+  // and the flat `BanzamiButton` (the premium BanzamiPrimaryButton /
+  // BanzamiSecondaryButton / BanzamiGhostButton must be used instead, matching
+  // the consumer design). The left lookbehind keeps `BanzamiButton` from
+  // matching inside `BanzamiPrimaryButton` etc.
+  final legacy = RegExp(
+      r'(?<![A-Za-z])(ElevatedButton|OutlinedButton|TextButton|FilledButton|BanzamiButton)\b');
 
-  test('no legacy Material buttons remain in lib/merchant', () {
+  test('no legacy / flat buttons remain in lib/merchant', () {
     final dir = Directory('lib/merchant');
     expect(dir.existsSync(), isTrue, reason: 'merchant source dir not found');
 
@@ -30,7 +34,7 @@ void main() {
       offenders,
       isEmpty,
       reason: 'Use BanzamiPrimaryButton/BanzamiSecondaryButton/BanzamiGhostButton '
-          'instead of bare Material buttons:\n${offenders.join('\n')}',
+          'instead of bare Material buttons or the flat BanzamiButton:\n${offenders.join('\n')}',
     );
   });
 }

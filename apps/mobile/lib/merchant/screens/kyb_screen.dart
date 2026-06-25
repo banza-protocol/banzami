@@ -94,7 +94,7 @@ class _KybScreenState extends State<KybScreen> {
             ],
 
             const SizedBox(height: BanzamiSpacing.xl),
-            BanzamiButton(
+            BanzamiPrimaryButton(
               label: _submitting ? 'A verificar…' : 'Verificar negócio',
               onPressed: _submitting ? null : _submit,
             ),
