@@ -6,7 +6,6 @@ import { Reveal } from '@/components/Reveal';
 import { PhoneFrame } from '@/components/app/PhoneFrame';
 import { AppScreen } from '@/components/app/AppScreen';
 import { Mono } from '@/components/primitives';
-import { mailto } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Comerciantes',
@@ -197,16 +196,16 @@ export default function ComerciantesPage() {
             </p>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
-                href={mailto('Quero aceitar pagamentos')}
+                href="/comerciantes/candidatura"
                 className="inline-flex items-center gap-2 rounded-[40px] bg-cherry px-[30px] py-4 text-[16px] font-extrabold text-white no-underline shadow-[0_14px_30px_-10px_rgba(181,16,31,.5)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cherry-dark"
               >
                 Quero aceitar pagamentos
               </a>
               <a
-                href="#como"
+                href="/comerciantes/candidatura"
                 className="inline-flex items-center gap-2 rounded-[40px] bg-white px-7 py-4 text-[16px] font-extrabold text-cherry no-underline shadow-[0_8px_22px_-10px_rgba(0,0,0,.18)] transition-[transform,background] duration-200 hover:-translate-y-0.5 hover:bg-cream-100"
               >
-                Como começar
+                Começar
               </a>
             </div>
           </div>
