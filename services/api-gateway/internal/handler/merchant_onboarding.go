@@ -64,13 +64,20 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		DesiredHandle       string `json:"desired_handle"`
 		BusinessName        string `json:"business_name"`
 		Category            string `json:"category"`
+		Subcategory         string `json:"subcategory"`
 		Email               string `json:"email"`
 		Phone               string `json:"phone"`
 		Nif                 string `json:"nif"`
 		Country             string `json:"country"`
+		Province            string `json:"province"`
+		Municipality        string `json:"municipality"`
 		City                string `json:"city"`
 		Address             string `json:"address"`
+		AddressReference    string `json:"address_reference"`
 		LegalRepresentative string `json:"legal_representative"`
+		RepresentativeRole  string `json:"representative_role"`
+		RepresentativeEmail string `json:"representative_email"`
+		RepresentativePhone string `json:"representative_phone"`
 		BusinessActivity    string `json:"business_activity"`
 		EstimatedVolume     string `json:"estimated_volume"`
 		TermsAccepted       bool   `json:"terms_accepted"`
@@ -85,13 +92,20 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		DesiredHandle:       body.DesiredHandle,
 		BusinessName:        body.BusinessName,
 		Category:            body.Category,
+		Subcategory:         body.Subcategory,
 		Email:               body.Email,
 		Phone:               body.Phone,
 		Nif:                 body.Nif,
 		Country:             body.Country,
+		Province:            body.Province,
+		Municipality:        body.Municipality,
 		City:                body.City,
 		Address:             body.Address,
+		AddressReference:    body.AddressReference,
 		LegalRepresentative: body.LegalRepresentative,
+		RepresentativeRole:  body.RepresentativeRole,
+		RepresentativeEmail: body.RepresentativeEmail,
+		RepresentativePhone: body.RepresentativePhone,
 		BusinessActivity:    body.BusinessActivity,
 		EstimatedVolume:     body.EstimatedVolume,
 		TermsAccepted:       body.TermsAccepted,

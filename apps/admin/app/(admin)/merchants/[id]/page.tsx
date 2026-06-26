@@ -217,16 +217,30 @@ export default function MerchantDetailPage() {
               ['@negócio', withAt(m.desired_handle), true],
               ['NIF', m.nif || '—', true],
               ['Categoria', m.category || '—'],
+              ['Subcategoria', m.subcategory || '—'],
               ['Atividade', m.business_activity || '—'],
+              ['Volume mensal', m.estimated_volume || '—'],
             ]}
           />
           <DataCard
             title="Responsável & contacto"
             rows={[
               ['Responsável', m.legal_representative || '—'],
-              ['Email', m.email || '—'],
-              ['Telefone', m.phone || '—', true],
-              ['Cidade', m.city || '—'],
+              ['Cargo', m.representative_role || '—'],
+              ['Email do negócio', m.email || '—'],
+              ['Telefone do negócio', m.phone || '—', true],
+              ['Email pessoal', m.representative_email || '—'],
+              ['Telefone pessoal', m.representative_phone || '—', true],
+            ]}
+          />
+          <DataCard
+            title="Localização"
+            rows={[
+              ['Província', m.province || '—'],
+              ['Município', m.municipality || '—'],
+              ['Cidade / zona', m.city || '—'],
+              ['Endereço', m.address || '—'],
+              ['Referência', m.address_reference || '—'],
               ['País', m.country || '—'],
             ]}
           />

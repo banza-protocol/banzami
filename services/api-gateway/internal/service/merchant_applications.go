@@ -33,13 +33,20 @@ type MerchantApplicationInput struct {
 	DesiredHandle       string
 	BusinessName        string
 	Category            string
+	Subcategory         string
 	Email               string
 	Phone               string
 	Nif                 string
 	Country             string
+	Province            string
+	Municipality        string
 	City                string
 	Address             string
+	AddressReference    string
 	LegalRepresentative string
+	RepresentativeRole  string
+	RepresentativeEmail string
+	RepresentativePhone string
 	BusinessActivity    string
 	EstimatedVolume     string
 	TermsAccepted       bool
@@ -169,13 +176,16 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 
 	if _, err := tx.Exec(ctx,
 		`INSERT INTO merchant_applications
-		   (id, status, environment, desired_handle, business_name, category, email, phone,
-		    nif, country, city, address, legal_representative, business_activity, estimated_volume,
-		    terms_accepted_at)
-		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now())`,
-		appID, env, handle, in.BusinessName, nullStr(in.Category), in.Email, nullStr(in.Phone),
-		nullStr(in.Nif), nullStr(in.Country), nullStr(in.City), nullStr(in.Address),
-		nullStr(in.LegalRepresentative), nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume),
+		   (id, status, environment, desired_handle, business_name, category, subcategory, email, phone,
+		    nif, country, province, municipality, city, address, address_reference,
+		    legal_representative, representative_role, representative_email, representative_phone,
+		    business_activity, estimated_volume, terms_accepted_at)
+		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21, now())`,
+		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
+		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
+		nullStr(in.Address), nullStr(in.AddressReference),
+		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
+		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume),
 	); err != nil {
 		return "", err
 	}

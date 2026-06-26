@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -17,12 +18,14 @@ type fakeApps struct {
 	appID     string
 	submitErr error
 	checkErr  error
+	got       service.MerchantApplicationInput // captured Submit input
 }
 
 func (f *fakeApps) CheckHandle(_ context.Context, _ string) (bool, string, error) {
 	return f.available, f.reason, f.checkErr
 }
-func (f *fakeApps) Submit(_ context.Context, _ service.MerchantApplicationInput) (string, error) {
+func (f *fakeApps) Submit(_ context.Context, in service.MerchantApplicationInput) (string, error) {
+	f.got = in
 	return f.appID, f.submitErr
 }
 
@@ -120,6 +123,50 @@ func TestSubmitApplication(t *testing.T) {
 		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrHandleReserved}, nil)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusConflict {
 			t.Fatalf("status=%d want 409", rec.Code)
+		}
+	})
+
+	t.Run("structured Business fields map through (no folding)", func(t *testing.T) {
+		apps := &fakeApps{appID: "app-9"}
+		h := NewMerchantOnboardingHandler(apps, nil)
+		body := `{
+		  "environment":"SANDBOX","desired_handle":"cantina_alex","business_name":"Cantina do Alex",
+		  "category":"Alimentação e bebidas","subcategory":"Cantina","email":"geral@cantina.co.ao",
+		  "phone":"+244 923 456 789","nif":"5001234567","country":"Angola",
+		  "province":"Luanda","municipality":"Talatona","city":"Benfica",
+		  "address":"Rua Direita do Kilamba","address_reference":"Próximo ao supermercado X",
+		  "legal_representative":"João da Silva","representative_role":"Proprietário(a)",
+		  "representative_email":"joao@email.com","representative_phone":"+244 924 000 000",
+		  "business_activity":"Refeições e bebidas para levar","estimated_volume":"100.000 – 500.000 Kz",
+		  "terms_accepted":true}`
+		if rec := postJSON(h.SubmitApplication, body); rec.Code != http.StatusCreated {
+			t.Fatalf("status=%d", rec.Code)
+		}
+		g := apps.got
+		for name, val := range map[string]string{
+			"Subcategory": g.Subcategory, "Province": g.Province, "Municipality": g.Municipality,
+			"City": g.City, "AddressReference": g.AddressReference, "RepresentativeRole": g.RepresentativeRole,
+			"RepresentativeEmail": g.RepresentativeEmail, "RepresentativePhone": g.RepresentativePhone,
+			"EstimatedVolume": g.EstimatedVolume, "BusinessActivity": g.BusinessActivity,
+		} {
+			if val == "" {
+				t.Errorf("structured field %s did not map through", name)
+			}
+		}
+		if g.Province != "Luanda" || g.Municipality != "Talatona" {
+			t.Errorf("province/municipality mismatch: %q/%q", g.Province, g.Municipality)
+		}
+	})
+
+	t.Run("proof_of_address is ignored, never folded into address", func(t *testing.T) {
+		apps := &fakeApps{appID: "app-1"}
+		h := NewMerchantOnboardingHandler(apps, nil)
+		body := `{"desired_handle":"loja_x","business_name":"Loja","email":"a@b.co","terms_accepted":true,"proof_of_address":"should-be-ignored"}`
+		if rec := postJSON(h.SubmitApplication, body); rec.Code != http.StatusCreated {
+			t.Fatalf("status=%d", rec.Code)
+		}
+		if strings.Contains(apps.got.Address, "should-be-ignored") || strings.Contains(apps.got.AddressReference, "should-be-ignored") {
+			t.Error("proof_of_address must be ignored, never folded into address fields")
 		}
 	})
 }

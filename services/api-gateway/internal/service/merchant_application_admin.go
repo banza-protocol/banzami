@@ -29,13 +29,20 @@ type MerchantApplication struct {
 	DesiredHandle       string     `json:"desired_handle"`
 	BusinessName        string     `json:"business_name"`
 	Category            string     `json:"category"`
+	Subcategory         string     `json:"subcategory"`
 	Email               string     `json:"email"`
 	Phone               string     `json:"phone"`
 	Nif                 string     `json:"nif"`
 	Country             string     `json:"country"`
+	Province            string     `json:"province"`
+	Municipality        string     `json:"municipality"`
 	City                string     `json:"city"`
 	Address             string     `json:"address"`
+	AddressReference    string     `json:"address_reference"`
 	LegalRepresentative string     `json:"legal_representative"`
+	RepresentativeRole  string     `json:"representative_role"`
+	RepresentativeEmail string     `json:"representative_email"`
+	RepresentativePhone string     `json:"representative_phone"`
 	BusinessActivity    string     `json:"business_activity"`
 	EstimatedVolume     string     `json:"estimated_volume"`
 	AdminNotes          string     `json:"admin_notes"`
@@ -80,16 +87,19 @@ func NewPostgresMerchantApplicationAdminService(pool *pgxpool.Pool, core *CoreAp
 }
 
 const appCols = `id::text, status, environment, desired_handle, business_name,
-	COALESCE(category,''), email, COALESCE(phone,''), COALESCE(nif,''), COALESCE(country,''),
-	COALESCE(city,''), COALESCE(address,''), COALESCE(legal_representative,''),
+	COALESCE(category,''), COALESCE(subcategory,''), email, COALESCE(phone,''), COALESCE(nif,''), COALESCE(country,''),
+	COALESCE(province,''), COALESCE(municipality,''), COALESCE(city,''), COALESCE(address,''), COALESCE(address_reference,''),
+	COALESCE(legal_representative,''), COALESCE(representative_role,''), COALESCE(representative_email,''), COALESCE(representative_phone,''),
 	COALESCE(business_activity,''), COALESCE(estimated_volume,''), COALESCE(admin_notes,''),
 	COALESCE(merchant_message,''), COALESCE(created_merchant_id::text,''), created_at, reviewed_at`
 
 func scanApplication(row pgx.Row) (MerchantApplication, error) {
 	var a MerchantApplication
 	err := row.Scan(&a.ID, &a.Status, &a.Environment, &a.DesiredHandle, &a.BusinessName,
-		&a.Category, &a.Email, &a.Phone, &a.Nif, &a.Country, &a.City, &a.Address,
-		&a.LegalRepresentative, &a.BusinessActivity, &a.EstimatedVolume, &a.AdminNotes,
+		&a.Category, &a.Subcategory, &a.Email, &a.Phone, &a.Nif, &a.Country,
+		&a.Province, &a.Municipality, &a.City, &a.Address, &a.AddressReference,
+		&a.LegalRepresentative, &a.RepresentativeRole, &a.RepresentativeEmail, &a.RepresentativePhone,
+		&a.BusinessActivity, &a.EstimatedVolume, &a.AdminNotes,
 		&a.MerchantMessage, &a.CreatedMerchantID, &a.CreatedAt, &a.ReviewedAt)
 	return a, err
 }
