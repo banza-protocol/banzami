@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, AdminApiError } from '@/lib/admin-api';
@@ -16,6 +17,10 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  // Portal target — the modal must escape the header's backdrop-filter
+  // containing block (otherwise `position: fixed` anchors to the header).
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -52,7 +57,9 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
     }
   }
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <div
       className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4"
       onClick={onClose}
@@ -97,6 +104,7 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
           </button>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
