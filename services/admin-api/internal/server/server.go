@@ -68,6 +68,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Get("/admin/v1/merchant-applications/{id}", applicationsH.Get)
 		r.Post("/admin/v1/merchant-applications/{id}/approve", applicationsH.Approve)
 		r.Post("/admin/v1/merchant-applications/{id}/reject", applicationsH.Reject)
+		// KYB documents (Track 3) — admin review.
+		r.Get("/admin/v1/merchant-applications/{id}/documents", applicationsH.ListDocuments)
+		r.Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/read-url", applicationsH.DocumentReadURL)
+		r.Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/accept", applicationsH.AcceptDocument)
+		r.Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/reject", applicationsH.RejectDocument)
 
 		// Wallets
 		r.Get("/admin/v1/wallets", walletH.GetForMerchant)

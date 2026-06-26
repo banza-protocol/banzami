@@ -16,6 +16,11 @@ type GatewayApplications interface {
 	GetApplicationRaw(ctx context.Context, id string) (json.RawMessage, int, error)
 	ApproveApplication(ctx context.Context, id, reviewedBy string) (service.ApprovalResult, int, error)
 	RejectApplication(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (service.RejectionResult, int, error)
+	// KYB documents (Track 3) — raw passthrough (status + body forwarded).
+	ListApplicationDocumentsRaw(ctx context.Context, id string) (json.RawMessage, int, error)
+	CreateDocumentReadURLRaw(ctx context.Context, id, documentID string) (json.RawMessage, int, error)
+	AcceptDocumentRaw(ctx context.Context, id, documentID, reviewedBy string) (json.RawMessage, int, error)
+	RejectDocumentRaw(ctx context.Context, id, documentID, reviewedBy, reason string) (json.RawMessage, int, error)
 }
 
 // ApplicationMailer is the subset of the email sender the admin handler uses.
@@ -117,6 +122,61 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 		"status":        "REJECTED",
 		"email_sent_to": res.Email,
 	}))
+}
+
+// -------------------------------------------------------------------------
+// KYB documents (Track 3) — admin review. Everything is proxied to the gateway
+// /internal endpoints; the gateway owns DB + storage. Read URLs pass through to
+// the UI and are never logged here.
+// -------------------------------------------------------------------------
+
+func (h *MerchantApplicationHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
+	raw, code, err := h.gw.ListApplicationDocumentsRaw(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not list documents")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+func (h *MerchantApplicationHandler) DocumentReadURL(w http.ResponseWriter, r *http.Request) {
+	raw, code, err := h.gw.CreateDocumentReadURLRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not create read url")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ReviewedBy string `json:"reviewed_by"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	raw, code, err := h.gw.AcceptDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), body.ReviewedBy)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not accept document")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+func (h *MerchantApplicationHandler) RejectDocument(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		ReviewedBy string `json:"reviewed_by"`
+		Reason     string `json:"reason"`
+	}
+	_ = json.NewDecoder(r.Body).Decode(&body)
+	if body.Reason == "" {
+		writeErr(w, http.StatusBadRequest, "reason is required")
+		return
+	}
+	raw, code, err := h.gw.RejectDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), body.ReviewedBy, body.Reason)
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not reject document")
+		return
+	}
+	writeRaw(w, code, raw)
 }
 
 func mustJSON(v any) json.RawMessage {

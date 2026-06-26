@@ -30,14 +30,28 @@ type Config struct {
 	// InternalAPIKey guards the service-to-service /internal endpoints (called
 	// only by admin-api). Empty → /internal endpoints are disabled (fail closed).
 	InternalAPIKey string
+
+	// KYB document storage (Track 3). All empty → storage disabled and the
+	// document endpoints respond 503 STORAGE_NOT_CONFIGURED (no startup panic).
+	KYBStorageProvider     string // "r2" | "s3"
+	KYBStorageBucket       string
+	KYBStorageEndpoint     string
+	KYBStorageRegion       string // "auto" for R2
+	KYBStorageAccessKeyID  string
+	KYBStorageSecretKey    string
+	KYBSignedURLTTLSeconds int
+	KYBMaxFileSizeBytes    int64
 }
 
 func Load() (*Config, error) {
 	cfg := &Config{
-		Port:        8080,
-		Environment: "development",
-		LogLevel:    "info",
-		LogFormat:   "json",
+		Port:                   8080,
+		Environment:            "development",
+		LogLevel:               "info",
+		LogFormat:              "json",
+		KYBStorageRegion:       "auto",
+		KYBSignedURLTTLSeconds: 300,
+		KYBMaxFileSizeBytes:    5 * 1024 * 1024,
 	}
 
 	if v := os.Getenv("PORT"); v != "" {
@@ -83,6 +97,36 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("FIREBASE_CREDENTIALS_JSON"); v != "" {
 		cfg.FirebaseCredentialsJSON = v
+	}
+
+	// KYB document storage (Track 3) — all optional; absence disables storage.
+	if v := os.Getenv("KYB_STORAGE_PROVIDER"); v != "" {
+		cfg.KYBStorageProvider = v
+	}
+	if v := os.Getenv("KYB_STORAGE_BUCKET"); v != "" {
+		cfg.KYBStorageBucket = v
+	}
+	if v := os.Getenv("KYB_STORAGE_ENDPOINT"); v != "" {
+		cfg.KYBStorageEndpoint = v
+	}
+	if v := os.Getenv("KYB_STORAGE_REGION"); v != "" {
+		cfg.KYBStorageRegion = v
+	}
+	if v := os.Getenv("KYB_STORAGE_ACCESS_KEY_ID"); v != "" {
+		cfg.KYBStorageAccessKeyID = v
+	}
+	if v := os.Getenv("KYB_STORAGE_SECRET_ACCESS_KEY"); v != "" {
+		cfg.KYBStorageSecretKey = v
+	}
+	if v := os.Getenv("KYB_SIGNED_URL_TTL_SECONDS"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			cfg.KYBSignedURLTTLSeconds = n
+		}
+	}
+	if v := os.Getenv("KYB_MAX_FILE_SIZE_BYTES"); v != "" {
+		if n, err := strconv.ParseInt(v, 10, 64); err == nil && n > 0 {
+			cfg.KYBMaxFileSizeBytes = n
+		}
 	}
 
 	return cfg, nil

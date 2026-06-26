@@ -109,3 +109,53 @@ func (c *GatewayClient) RejectApplication(ctx context.Context, id, reviewedBy, a
 		map[string]string{"reviewed_by": reviewedBy, "admin_notes": adminNotes, "merchant_message": merchantMessage}, &out)
 	return out, code, err
 }
+
+// -------------------------------------------------------------------------
+// KYB documents (Track 3) — passthrough. doRaw forwards the gateway body AND
+// status verbatim (including 503 STORAGE_NOT_CONFIGURED) so the admin UI can
+// react. Read URLs are forwarded to the UI but never logged here.
+// -------------------------------------------------------------------------
+
+func (c *GatewayClient) doRaw(ctx context.Context, method, path string, body any) (json.RawMessage, int, error) {
+	var r io.Reader
+	if body != nil {
+		b, err := json.Marshal(body)
+		if err != nil {
+			return nil, 0, err
+		}
+		r = bytes.NewReader(b)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, r)
+	if err != nil {
+		return nil, 0, err
+	}
+	req.Header.Set("X-Internal-Key", c.internalKey)
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	return json.RawMessage(raw), resp.StatusCode, nil
+}
+
+func (c *GatewayClient) ListApplicationDocumentsRaw(ctx context.Context, id string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-applications/"+id+"/documents", nil)
+}
+
+func (c *GatewayClient) CreateDocumentReadURLRaw(ctx context.Context, id, documentID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/read-url", nil)
+}
+
+func (c *GatewayClient) AcceptDocumentRaw(ctx context.Context, id, documentID, reviewedBy string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/accept",
+		map[string]string{"reviewed_by": reviewedBy})
+}
+
+func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, reviewedBy, reason string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/reject",
+		map[string]string{"reviewed_by": reviewedBy, "reason": reason})
+}

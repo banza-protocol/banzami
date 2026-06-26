@@ -35,6 +35,19 @@ func (f *fakeGW) RejectApplication(_ context.Context, _, _, _, _ string) (servic
 	return f.rejection, 200, nil
 }
 
+func (f *fakeGW) ListApplicationDocumentsRaw(_ context.Context, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"data":[]}`), 200, nil
+}
+func (f *fakeGW) CreateDocumentReadURLRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"read_url":"https://fake/key?sig=read"}`), 200, nil
+}
+func (f *fakeGW) AcceptDocumentRaw(_ context.Context, _, _, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"status":"ACCEPTED"}`), 200, nil
+}
+func (f *fakeGW) RejectDocumentRaw(_ context.Context, _, _, _, _ string) (json.RawMessage, int, error) {
+	return json.RawMessage(`{"status":"REJECTED"}`), 200, nil
+}
+
 type fakeMailer struct {
 	approvedTo, approvedURL string
 	rejectedTo, rejectedMsg string

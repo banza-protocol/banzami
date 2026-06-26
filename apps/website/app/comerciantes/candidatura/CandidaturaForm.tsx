@@ -5,10 +5,12 @@ import Link from 'next/link';
 import {
   checkHandle,
   submitApplication,
+  uploadKybDocument,
   normalizeHandle,
   isValidHandleFormat,
   handleReasonMessage,
   type ApplicationInput,
+  type KybDocumentType,
 } from '@/lib/api';
 
 // ===========================================================================
@@ -57,12 +59,14 @@ const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
 type DocKey = 'docCertidao' | 'docNif' | 'docBi' | 'docMorada';
-const DOC_DEFS: { key: DocKey; label: string; icon: 'doc' | 'person' | 'home' }[] = [
-  { key: 'docCertidao', label: 'Certidão Comercial', icon: 'doc' },
-  { key: 'docNif', label: 'NIF da Empresa', icon: 'doc' },
-  { key: 'docBi', label: 'BI do Representante', icon: 'person' },
-  { key: 'docMorada', label: 'Comprovativo de Morada', icon: 'home' },
+const DOC_DEFS: { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType }[] = [
+  { key: 'docCertidao', label: 'Certidão Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
+  { key: 'docNif', label: 'NIF da Empresa', icon: 'doc', type: 'TAX_ID' },
+  { key: 'docBi', label: 'BI do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
+  { key: 'docMorada', label: 'Comprovativo de Morada', icon: 'home', type: 'PROOF_OF_ADDRESS' },
 ];
+
+type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
 type DocState = { file: File | null; name: string; error: string | null };
 const emptyDoc: DocState = { file: null, name: '', error: null };
@@ -410,6 +414,16 @@ export function CandidaturaForm() {
   const [handleState, setHandleState] = useState<HandleState>({ status: 'idle' });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // KYB document upload (Track 3) — runs after the application is created.
+  const [applicationId, setApplicationId] = useState<string | null>(null);
+  const [storageNotConfigured, setStorageNotConfigured] = useState(false);
+  const [docUpload, setDocUpload] = useState<Record<DocKey, { status: UploadStatus; message?: string }>>({
+    docCertidao: { status: 'pending' },
+    docNif: { status: 'pending' },
+    docBi: { status: 'pending' },
+    docMorada: { status: 'pending' },
+  });
   // Per-step "validation revealed" flags — errors only show after a failed
   // attempt to advance, then update live as the user fixes them.
   const [tried, setTried] = useState<{ 1?: boolean; 2?: boolean }>({});
@@ -507,11 +521,43 @@ export function CandidaturaForm() {
     if (r.ok) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       setSubmitted(true);
+      if (r.applicationId) {
+        setApplicationId(r.applicationId);
+        void uploadAllDocs(r.applicationId);
+      }
     } else if (r.status === 409) {
       setHandleState({ status: 'unavailable', message: 'Este @negócio já não está disponível.' });
       setSubmitError('O @negócio escolhido já não está disponível. Volte ao passo 1 e escolha outro.');
     } else {
       setSubmitError('Não foi possível enviar a candidatura. Verifique os dados e tente novamente.');
+    }
+  }
+
+  // Upload one document and reflect its status. Returns false to stop the run
+  // (storage not configured — never fakes success).
+  async function uploadOne(appId: string, key: DocKey): Promise<boolean> {
+    const def = DOC_DEFS.find((d) => d.key === key)!;
+    const file = docs[key].file;
+    if (!file) return true;
+    setDocUpload((p) => ({ ...p, [key]: { status: 'uploading' } }));
+    const res = await uploadKybDocument(appId, def.type, file);
+    if (res.ok) {
+      setDocUpload((p) => ({ ...p, [key]: { status: 'done' } }));
+      return true;
+    }
+    if (res.reason === 'NOT_CONFIGURED') {
+      setStorageNotConfigured(true);
+      setDocUpload((p) => ({ ...p, [key]: { status: 'pending' } }));
+      return false;
+    }
+    setDocUpload((p) => ({ ...p, [key]: { status: 'error', message: res.message } }));
+    return true;
+  }
+
+  async function uploadAllDocs(appId: string) {
+    for (const d of DOC_DEFS) {
+      const keepGoing = await uploadOne(appId, d.key);
+      if (!keepGoing) break; // storage not configured — stop, don't fake the rest
     }
   }
 
@@ -944,6 +990,46 @@ export function CandidaturaForm() {
                     <span className="font-mono text-[#B5101F]">@{handleDisplay}</span> está em análise.
                     Receberá uma confirmação no email em até 48 horas.
                   </p>
+
+                  {/* KYB document upload status (Track 3). */}
+                  <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] bg-[#FFF7F6] p-5 text-left">
+                    <div className="mb-3 text-[12px] font-black tracking-[0.05em] text-[#9A1B22]">DOCUMENTOS</div>
+                    {storageNotConfigured ? (
+                      <p className="m-0 text-[13.5px] font-semibold leading-[1.5] text-[#7a6a6e]">
+                        O envio de documentos ainda não está disponível. A nossa equipa irá solicitar os
+                        documentos durante a fase de verificação.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-2">
+                        {DOC_DEFS.map((d) => {
+                          const u = docUpload[d.key];
+                          return (
+                            <div key={d.key} className="flex items-center justify-between gap-3 text-[13.5px] font-bold text-[#5a4a4e]">
+                              <span className="min-w-0 flex-1 overflow-hidden text-ellipsis whitespace-nowrap">{d.label}</span>
+                              {u.status === 'done' ? (
+                                <span className="inline-flex flex-none items-center gap-[5px] text-[12.5px] font-extrabold text-[#1f9d57]">
+                                  {Ic.circleCheck(GREEN, 15)} Recebido
+                                </span>
+                              ) : u.status === 'uploading' ? (
+                                <span className="flex-none text-[12.5px] font-extrabold text-[#9a8a8e]">A enviar…</span>
+                              ) : u.status === 'error' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => applicationId && uploadOne(applicationId, d.key)}
+                                  className="flex-none text-[12.5px] font-extrabold text-[#B5101F] underline"
+                                >
+                                  Tentar novamente
+                                </button>
+                              ) : (
+                                <span className="flex-none text-[12.5px] font-extrabold text-[#9a8a8e]">Pendente</span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
                   <Link
                     href="/comerciantes"
                     className="mt-7 inline-flex items-center gap-2 rounded-[40px] bg-[#B5101F] px-[30px] py-[15px] text-[15px] font-extrabold text-white no-underline shadow-[0_14px_30px_-10px_rgba(181,16,31,0.5)]"

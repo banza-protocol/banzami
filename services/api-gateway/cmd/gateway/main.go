@@ -15,6 +15,7 @@ import (
 
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
+	"github.com/banzami/banzami/services/api-gateway/internal/kybstorage"
 	"github.com/banzami/banzami/services/api-gateway/internal/notify"
 	"github.com/banzami/banzami/services/api-gateway/internal/observability"
 	"github.com/banzami/banzami/services/api-gateway/internal/server"
@@ -65,6 +66,7 @@ func main() {
 	var merchantCredSvc service.MerchantCredentialService
 	var merchantAppSvc service.MerchantApplicationService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
+	var merchantDocumentSvc service.MerchantDocumentService
 	var activationSvc service.ActivationService
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
@@ -88,6 +90,28 @@ func main() {
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
 		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		activationSvc = service.NewPostgresActivationService(dbPool)
+
+		// KYB document storage (Track 3). Absent KYB_STORAGE_* → storage stays
+		// nil and the document endpoints return 503 STORAGE_NOT_CONFIGURED.
+		kybStore, kerr := kybstorage.NewFromConfig(kybstorage.Config{
+			Provider:        cfg.KYBStorageProvider,
+			Bucket:          cfg.KYBStorageBucket,
+			Endpoint:        cfg.KYBStorageEndpoint,
+			Region:          cfg.KYBStorageRegion,
+			AccessKeyID:     cfg.KYBStorageAccessKeyID,
+			SecretAccessKey: cfg.KYBStorageSecretKey,
+			SignedURLTTL:    time.Duration(cfg.KYBSignedURLTTLSeconds) * time.Second,
+		})
+		if errors.Is(kerr, kybstorage.ErrNotConfigured) {
+			slog.Warn("[Track 3] KYB_STORAGE_* not set — document storage disabled (endpoints return 503)")
+			kybStore = nil
+		} else if kerr != nil {
+			slog.Error("[Track 3] KYB storage init error", "error", kerr)
+			os.Exit(1)
+		} else {
+			slog.Info("[Track 3] KYB document storage configured", "bucket", cfg.KYBStorageBucket)
+		}
+		merchantDocumentSvc = service.NewPostgresMerchantDocumentService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -118,6 +142,7 @@ func main() {
 		MerchantCredSvc:     merchantCredSvc,
 		MerchantAppSvc:      merchantAppSvc,
 		MerchantAppAdminSvc: merchantAppAdminSvc,
+		MerchantDocumentSvc: merchantDocumentSvc,
 		ActivationSvc:       activationSvc,
 		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:            service.NewCoreApiSplitService(coreClient),

@@ -389,4 +389,41 @@ export class AdminApi {
   getAcquiringReconciliationRun(runId: string): Promise<AcquiringReconRun> {
     return this.req(`/admin/v1/risk/acquiring-recon/${runId}`);
   }
+
+  // KYB documents (Track 3). On 503 STORAGE_NOT_CONFIGURED the caller should
+  // show the "storage not configured" notice (see isStorageNotConfigured).
+  listApplicationDocuments(id: string): Promise<{ data: KybDocument[] }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/documents`);
+  }
+  createDocumentReadURL(id: string, documentId: string): Promise<{ read_url: string; expires_at: string }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/read-url`, { method: 'POST' });
+  }
+  acceptDocument(id: string, documentId: string, reviewedBy: string): Promise<KybDocument> {
+    return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/accept`, {
+      method: 'POST', body: JSON.stringify({ reviewed_by: reviewedBy }),
+    });
+  }
+  rejectDocument(id: string, documentId: string, reason: string, reviewedBy: string): Promise<KybDocument> {
+    return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/reject`, {
+      method: 'POST', body: JSON.stringify({ reason, reviewed_by: reviewedBy }),
+    });
+  }
+}
+
+export interface KybDocument {
+  document_id:      string;
+  document_type:    string;
+  original_filename: string;
+  mime_type:        string;
+  status:           'PENDING_UPLOAD' | 'UPLOADED' | 'ACCEPTED' | 'REJECTED' | 'DELETED';
+  size_bytes:       number;
+  uploaded_at:      string | null;
+  reviewed_by:      string | null;
+  reviewed_at:      string | null;
+  rejection_reason: string | null;
+}
+
+/** True when an AdminApiError signals that KYB storage isn't provisioned yet. */
+export function isStorageNotConfigured(err: unknown): boolean {
+  return err instanceof AdminApiError && err.status === 503 && err.code === 'STORAGE_NOT_CONFIGURED';
 }

@@ -102,6 +102,88 @@ export async function submitApplication(input: ApplicationInput): Promise<Submit
   return { ok: false, status: res.status, error: j.message || j.code };
 }
 
+// ---------------------------------------------------------------------------
+// KYB documents (Track 3) — direct-to-storage upload via short-lived signed URLs
+// ---------------------------------------------------------------------------
+
+export type KybDocumentType =
+  | 'BUSINESS_REGISTRATION'
+  | 'TAX_ID'
+  | 'REPRESENTATIVE_ID'
+  | 'PROOF_OF_ADDRESS'
+  | 'BANK_PROOF';
+
+type UploadUrlResponse = {
+  document_id: string;
+  upload_url: string;
+  method: string;
+  headers: Record<string, string>;
+  expires_at: string;
+};
+
+/** Outcome of a single document upload. NOT_CONFIGURED ≠ failure of the
+ *  application — storage simply isn't provisioned yet; never fake success. */
+export type DocUploadResult =
+  | { ok: true; documentId: string }
+  | { ok: false; reason: 'NOT_CONFIGURED'; message: string }
+  | { ok: false; reason: 'ERROR'; message: string };
+
+async function requestUploadUrl(
+  applicationId: string,
+  body: { document_type: KybDocumentType; filename: string; mime_type: string; size_bytes: number },
+): Promise<{ ok: true; data: UploadUrlResponse } | { ok: false; status: number; code?: string }> {
+  const res = await fetch(
+    `${API_BASE}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/upload-url`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
+  );
+  if (res.ok) return { ok: true, data: (await res.json()) as UploadUrlResponse };
+  const j = await res.json().catch(() => ({}));
+  return { ok: false, status: res.status, code: j.error?.code || j.code };
+}
+
+async function confirmUpload(applicationId: string, documentId: string): Promise<boolean> {
+  const res = await fetch(
+    `${API_BASE}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentId)}/confirm`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
+  );
+  return res.ok;
+}
+
+/** Full upload of one KYB document: request signed URL → PUT to storage →
+ *  confirm. Returns NOT_CONFIGURED (no fake success) when storage is absent. */
+export async function uploadKybDocument(
+  applicationId: string,
+  documentType: KybDocumentType,
+  file: File,
+): Promise<DocUploadResult> {
+  const mime = file.type || 'application/octet-stream';
+  const reqRes = await requestUploadUrl(applicationId, {
+    document_type: documentType,
+    filename: file.name,
+    mime_type: mime,
+    size_bytes: file.size,
+  });
+  if (!reqRes.ok) {
+    if (reqRes.status === 503 && reqRes.code === 'STORAGE_NOT_CONFIGURED') {
+      return { ok: false, reason: 'NOT_CONFIGURED', message: 'Armazenamento de documentos ainda não está disponível.' };
+    }
+    return { ok: false, reason: 'ERROR', message: 'Não foi possível preparar o envio. Tente novamente.' };
+  }
+
+  const { document_id, upload_url, headers } = reqRes.data;
+  let putRes: Response;
+  try {
+    putRes = await fetch(upload_url, { method: 'PUT', headers, body: file });
+  } catch {
+    return { ok: false, reason: 'ERROR', message: 'Falha de rede ao enviar o ficheiro. Tente novamente.' };
+  }
+  if (!putRes.ok) return { ok: false, reason: 'ERROR', message: 'O envio do ficheiro falhou. Tente novamente.' };
+
+  const confirmed = await confirmUpload(applicationId, document_id);
+  if (!confirmed) return { ok: false, reason: 'ERROR', message: 'Não foi possível confirmar o envio. Tente novamente.' };
+  return { ok: true, documentId: document_id };
+}
+
 export type ActivationStatus = {
   valid: boolean;
   reason: string; // VALID | INVALID | EXPIRED | USED

@@ -42,6 +42,7 @@ type Dependencies struct {
 	MerchantCredSvc     service.MerchantCredentialService
 	MerchantAppSvc      service.MerchantApplicationService
 	MerchantAppAdminSvc service.MerchantApplicationAdminService
+	MerchantDocumentSvc service.MerchantDocumentService
 	ActivationSvc       service.ActivationService
 	ComplianceSvc       service.ComplianceService
 	SplitSvc            service.SplitService
@@ -79,6 +80,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc)
+	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -113,6 +115,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)
 	r.Post("/v1/merchant/activation/validate", merchantOnboardingHandler.ValidateActivation)
 	r.Post("/v1/merchant/activation/complete", merchantOnboardingHandler.CompleteActivation)
+	// KYB documents (Track 3) — public applicant flow. The application id is the
+	// unguessable capability token (same model as activation).
+	r.Post("/v1/merchant/applications/{id}/documents/upload-url", merchantDocumentHandler.RequestUploadURL)
+	r.Post("/v1/merchant/applications/{id}/documents/{document_id}/confirm", merchantDocumentHandler.ConfirmUpload)
+	r.Get("/v1/merchant/applications/{id}/documents", merchantDocumentHandler.ListDocuments)
 
 	// Internal service-to-service endpoints — admin-api only (shared secret).
 	r.Group(func(r chi.Router) {
@@ -122,6 +129,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Get("/{id}", merchantAppAdminHandler.Get)
 			r.Post("/{id}/approve", merchantAppAdminHandler.Approve)
 			r.Post("/{id}/reject", merchantAppAdminHandler.Reject)
+			// KYB documents — admin review flow (read-url / accept / reject).
+			r.Get("/{id}/documents", merchantDocumentHandler.AdminList)
+			r.Post("/{id}/documents/{document_id}/read-url", merchantDocumentHandler.AdminReadURL)
+			r.Post("/{id}/documents/{document_id}/accept", merchantDocumentHandler.AdminAccept)
+			r.Post("/{id}/documents/{document_id}/reject", merchantDocumentHandler.AdminReject)
 		})
 	})
 
