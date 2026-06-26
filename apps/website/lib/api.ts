@@ -63,27 +63,23 @@ export type ApplicationInput = {
   desired_handle: string;
   business_name: string;
   category?: string;
+  subcategory?: string;
   email: string;
   phone?: string;
   nif?: string;
   country?: string;
-  city?: string;
-  address?: string;
-  legal_representative?: string;
-  business_activity?: string;
-  estimated_volume?: string;
-  terms_accepted: boolean;
-  // Extra structured fields collected by the Business onboarding form. The
-  // gateway ignores unknown keys today (no column yet), so these travel
-  // forward-compatibly and are also folded into address/legal_representative
-  // below so the current admin view still surfaces them. See CandidaturaForm.
-  subcategory?: string;
   province?: string;
   municipality?: string;
-  reference?: string;
+  city?: string;
+  address?: string;
+  address_reference?: string;
+  legal_representative?: string;
   representative_role?: string;
   representative_email?: string;
   representative_phone?: string;
+  business_activity?: string;
+  estimated_volume?: string;
+  terms_accepted: boolean;
 };
 
 export type SubmitResult = { ok: boolean; status: number; applicationId?: string; error?: string };

@@ -12,6 +12,8 @@ import {
   type ApplicationInput,
   type KybDocumentType,
 } from '@/lib/api';
+import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
+import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
 
 // ===========================================================================
 // Banzami Business — onboarding (Crie a sua conta Business em minutos).
@@ -29,28 +31,8 @@ const GREEN = '#1f9d57';
 
 // --- Static data -----------------------------------------------------------
 
-const CATEGORIES = [
-  'Restauração & Bebidas',
-  'Retalho & Lojas',
-  'Serviços',
-  'Transporte',
-  'Beleza & Bem-estar',
-  'Saúde',
-  'Tecnologia',
-  'Educação',
-  'Outro',
-];
-
-const SUBCATEGORIES = ['Cantina / Restaurante', 'Mercearia', 'Bar / Café', 'Boutique', 'Outro'];
-
-const PROVINCIAS = [
-  'Luanda', 'Benguela', 'Huíla', 'Huambo', 'Cabinda', 'Bié', 'Cuanza Norte',
-  'Cuanza Sul', 'Cunene', 'Lunda Norte', 'Lunda Sul', 'Malanje', 'Moxico',
-  'Namibe', 'Uíge', 'Zaire', 'Bengo', 'Cuando Cubango',
-];
-
-const MUNICIPIOS = ['Belas', 'Cazenga', 'Cacuaco', 'Icolo e Bengo', 'Luanda', 'Quiçama', 'Talatona', 'Viana'];
-const CIDADES = ['Talatona', 'Kilamba', 'Camama', 'Benfica', 'Maianga', 'Ingombota', 'Rangel'];
+// Categorias, subcategorias (dependentes), províncias/municípios/cidades (Angola)
+// e faixas de volume vêm de lib/business-categories + lib/angola.
 const CARGOS = ['Proprietário(a)', 'Sócio(a)', 'Gerente', 'Administrador(a)', 'Representante legal'];
 
 // Max 5MB, PDF/JPG/PNG — enforced client-side.
@@ -58,12 +40,16 @@ const MAX_DOC_BYTES = 5 * 1024 * 1024;
 const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
-type DocKey = 'docCertidao' | 'docNif' | 'docBi';
-const DOC_DEFS: { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType }[] = [
+type DocKey = 'docCertidao' | 'docNif' | 'docBi' | 'docBanco';
+type DocDef = { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType; optional?: boolean };
+// 3 obrigatórios (registo, NIF, representante) + comprovativo bancário opcional.
+const DOC_DEFS: DocDef[] = [
   { key: 'docCertidao', label: 'Registo Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
   { key: 'docNif', label: 'NIF da Empresa', icon: 'doc', type: 'TAX_ID' },
   { key: 'docBi', label: 'Documento do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
 ];
+const DOC_BANK: DocDef = { key: 'docBanco', label: 'Comprovativo bancário', icon: 'doc', type: 'BANK_PROOF', optional: true };
+const ALL_DOCS: DocDef[] = [...DOC_DEFS, DOC_BANK];
 
 type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
@@ -386,6 +372,7 @@ export function CandidaturaForm() {
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
   const [category, setCategory] = useState('');
+  const [categoryOther, setCategoryOther] = useState(''); // quando categoria = Outros
   const [subcategory, setSubcategory] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
@@ -402,10 +389,14 @@ export function CandidaturaForm() {
   const [emailPessoal, setEmailPessoal] = useState('');
   const [telPessoal, setTelPessoal] = useState('');
 
+  const [descricao, setDescricao] = useState(''); // descrição curta da atividade
+  const [volume, setVolume] = useState(''); // volume mensal estimado
+
   const [docs, setDocs] = useState<Record<DocKey, DocState>>({
     docCertidao: { ...emptyDoc },
     docNif: { ...emptyDoc },
     docBi: { ...emptyDoc },
+    docBanco: { ...emptyDoc },
   });
 
   const [accepted, setAccepted] = useState(false);
@@ -420,7 +411,29 @@ export function CandidaturaForm() {
     docCertidao: { status: 'pending' },
     docNif: { status: 'pending' },
     docBi: { status: 'pending' },
+    docBanco: { status: 'pending' },
   });
+
+  // Dependências Angola/categorias: município depende da província, cidade do
+  // município, subcategoria da categoria. Mudar o pai limpa os filhos.
+  const municipiosDisponiveis = municipiosDe(provincia);
+  const cidadesSugeridas = cidadesDe(municipio);
+  const subcategoriasDisponiveis = subcategoriasDe(category);
+
+  function onChangeProvincia(v: string) {
+    setProvincia(v);
+    setMunicipio('');
+    setCidade('');
+  }
+  function onChangeMunicipio(v: string) {
+    setMunicipio(v);
+    setCidade('');
+  }
+  function onChangeCategoria(v: string) {
+    setCategory(v);
+    setSubcategory('');
+    if (v !== OUTROS) setCategoryOther('');
+  }
   // Per-step "validation revealed" flags — errors only show after a failed
   // attempt to advance, then update live as the user fixes them.
   const [tried, setTried] = useState<{ 1?: boolean; 2?: boolean }>({});
@@ -476,41 +489,31 @@ export function CandidaturaForm() {
     setSubmitting(true);
     setSubmitError(null);
 
-    // Map the design fields onto the onboarding API. Several fields have no
-    // dedicated column yet, so they are (a) folded into address /
-    // legal_representative for the current admin view, and (b) also sent as
-    // structured keys (ignored by the gateway today, forward-compatible).
-    // Document files are validated and collected here but NOT uploaded yet —
-    // object storage (R2) is not provisioned. The team requests documents in
-    // the KYB step after the application is reviewed.
-    const addressParts = [endereco.trim()];
-    if (referencia.trim()) addressParts.push(`Ref: ${referencia.trim()}`);
-    const locality = [municipio, provincia].filter(Boolean).join(', ');
-    if (locality) addressParts.push(locality);
-
-    const legalRep = [repNome.trim(), cargo].filter(Boolean).join(' — ');
+    // Each field maps to its own structured column (no folding into free-text).
+    // "Outros" category sends the typed description as the category.
+    const finalCategory = category === OUTROS ? (categoryOther.trim() || OUTROS) : category;
 
     const input: ApplicationInput = {
       desired_handle: handleClean,
       business_name: name.trim(),
-      category: category || undefined,
+      category: finalCategory || undefined,
+      subcategory: subcategory || undefined,
       email: email.trim(),
       phone: phone.trim() ? `+244 ${phone.trim()}` : undefined,
       nif: nif.trim() || undefined,
       country: 'Angola',
-      city: (cidade || municipio) || undefined,
-      address: addressParts.filter(Boolean).join(' · ') || undefined,
-      legal_representative: legalRep || undefined,
-      business_activity: subcategory || undefined,
-      terms_accepted: accepted,
-      // forward-compatible structured fields
-      subcategory: subcategory || undefined,
       province: provincia || undefined,
       municipality: municipio || undefined,
-      reference: referencia.trim() || undefined,
+      city: cidade.trim() || undefined,
+      address: endereco.trim() || undefined,
+      address_reference: referencia.trim() || undefined,
+      legal_representative: repNome.trim() || undefined,
       representative_role: cargo || undefined,
       representative_email: emailPessoal.trim() || undefined,
       representative_phone: telPessoal.trim() ? `+244 ${telPessoal.trim()}` : undefined,
+      business_activity: descricao.trim() || undefined,
+      estimated_volume: volume || undefined,
+      terms_accepted: accepted,
     };
 
     const r = await submitApplication(input);
@@ -552,7 +555,8 @@ export function CandidaturaForm() {
   }
 
   async function uploadAllDocs(appId: string) {
-    for (const d of DOC_DEFS) {
+    // Required docs first, then the optional bank proof (uploaded only if picked).
+    for (const d of ALL_DOCS) {
       const keepGoing = await uploadOne(appId, d.key);
       if (!keepGoing) break; // storage not configured — stop, don't fake the rest
     }
@@ -578,17 +582,20 @@ export function CandidaturaForm() {
               ? handleState.message
               : 'Este @negócio não está disponível.',
     category: category ? null : 'Selecione a categoria.',
+    categoryOther: category === OUTROS && !categoryOther.trim() ? 'Descreva a categoria do seu negócio.' : null,
     phone: phoneOk(phone) ? null : 'Telefone inválido — 9 dígitos (ex: 923 456 789).',
     email: emailOk(email) ? null : 'Email inválido.',
     provincia: provincia ? null : 'Selecione a província.',
     municipio: municipio ? null : 'Selecione o município.',
-    cidade: cidade ? null : 'Selecione a cidade.',
+    cidade: cidade.trim() ? null : 'Indique a cidade, bairro ou zona.',
     endereco: endereco.trim() ? null : 'Indique o endereço do negócio.',
     repNome: repNome.trim() ? null : 'Indique o nome do responsável.',
     nif: nifOk(nif) ? null : 'NIF inválido — apenas dígitos.',
     cargo: cargo ? null : 'Selecione o cargo.',
     emailPessoal: !emailPessoal.trim() || emailOk(emailPessoal) ? null : 'Email pessoal inválido.',
     telPessoal: !telPessoal.trim() || phoneOk(telPessoal) ? null : 'Telefone pessoal inválido.',
+    descricao: descricao.trim() ? null : 'Descreva brevemente a atividade do negócio.',
+    volume: volume ? null : 'Selecione o volume mensal estimado.',
     docs: docsComplete ? null : 'Envie os 3 documentos obrigatórios.',
     accepted: accepted ? null : 'Tem de aceitar os termos e condições.',
   };
@@ -756,11 +763,22 @@ export function CandidaturaForm() {
                     </div>
                   </Field>
                   <Field label="Categoria do negócio" error={show1 ? errors.category : null}>
-                    <Select value={category} onChange={setCategory} placeholder="Selecione uma categoria" options={CATEGORIES} error={show1 && !!errors.category} />
+                    <Select value={category} onChange={onChangeCategoria} placeholder="Selecione uma categoria" options={CATEGORIES} error={show1 && !!errors.category} />
                   </Field>
-                  <Field label="Subcategoria" optional>
-                    <Select value={subcategory} onChange={setSubcategory} placeholder="Selecione uma subcategoria" options={SUBCATEGORIES} />
-                  </Field>
+                  {category === OUTROS ? (
+                    <Field label="Descreva a categoria" error={show1 ? errors.categoryOther : null}>
+                      <input className={inputClass(show1 && !!errors.categoryOther)} value={categoryOther} onChange={(e) => setCategoryOther(e.target.value)} placeholder="Ex: Aluguer de equipamento de eventos" />
+                    </Field>
+                  ) : (
+                    <Field label="Subcategoria" optional>
+                      <Select
+                        value={subcategory}
+                        onChange={setSubcategory}
+                        placeholder={category ? 'Selecione uma subcategoria' : 'Selecione primeiro a categoria'}
+                        options={subcategoriasDisponiveis}
+                      />
+                    </Field>
+                  )}
                   <Field label="Telefone" error={show1 ? errors.phone : null}>
                     <PhoneField value={phone} onChange={setPhone} error={show1 && !!errors.phone} />
                   </Field>
@@ -774,13 +792,31 @@ export function CandidaturaForm() {
                 <SectionHead icon={Ic.pin} title="Localização" subtitle="Onde o seu negócio está localizado." />
                 <div className="grid grid-cols-3 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
                   <Field label="Província" error={show1 ? errors.provincia : null}>
-                    <Select value={provincia} onChange={setProvincia} placeholder="Selecione" options={PROVINCIAS} error={show1 && !!errors.provincia} />
+                    <Select value={provincia} onChange={onChangeProvincia} placeholder="Selecione" options={PROVINCIAS} error={show1 && !!errors.provincia} />
                   </Field>
                   <Field label="Município" error={show1 ? errors.municipio : null}>
-                    <Select value={municipio} onChange={setMunicipio} placeholder="Selecione" options={MUNICIPIOS} error={show1 && !!errors.municipio} />
+                    <Select
+                      value={municipio}
+                      onChange={onChangeMunicipio}
+                      placeholder={provincia ? 'Selecione' : 'Selecione a província'}
+                      options={municipiosDisponiveis}
+                      error={show1 && !!errors.municipio}
+                    />
                   </Field>
-                  <Field label="Cidade" error={show1 ? errors.cidade : null}>
-                    <Select value={cidade} onChange={setCidade} placeholder="Selecione" options={CIDADES} error={show1 && !!errors.cidade} />
+                  <Field label="Cidade / bairro / zona" error={show1 ? errors.cidade : null}>
+                    <input
+                      className={inputClass(show1 && !!errors.cidade)}
+                      value={cidade}
+                      onChange={(e) => setCidade(e.target.value)}
+                      placeholder="Ex: Talatona"
+                      list="cidade-sugestoes"
+                      autoComplete="off"
+                    />
+                    <datalist id="cidade-sugestoes">
+                      {cidadesSugeridas.map((c) => (
+                        <option key={c} value={c} />
+                      ))}
+                    </datalist>
                   </Field>
                 </div>
                 <div className="mt-[18px]">
@@ -814,6 +850,18 @@ export function CandidaturaForm() {
                   </Field>
                   <Field label="Telefone pessoal" error={show1 ? errors.telPessoal : null}>
                     <PhoneField value={telPessoal} onChange={setTelPessoal} compact flagW={20} flagH={14} error={show1 && !!errors.telPessoal} />
+                  </Field>
+                </div>
+              </section>
+
+              <section className="border-b-[1.5px] border-[#f6eded] py-[28px] pb-[30px]">
+                <SectionHead icon={Ic.card} title="Atividade do negócio" subtitle="Ajuda-nos a conhecer o seu negócio." />
+                <div className="grid grid-cols-1 gap-x-5 gap-y-[18px]">
+                  <Field label="Descrição curta do negócio" error={show1 ? errors.descricao : null}>
+                    <input className={inputClass(show1 && !!errors.descricao)} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Cantina com refeições e bebidas para levar" />
+                  </Field>
+                  <Field label="Volume mensal estimado" error={show1 ? errors.volume : null}>
+                    <Select value={volume} onChange={setVolume} placeholder="Selecione uma faixa (Kz)" options={VOLUME_FAIXAS} error={show1 && !!errors.volume} />
                   </Field>
                 </div>
               </section>
@@ -874,6 +922,30 @@ export function CandidaturaForm() {
                 {show1 && errors.docs && (
                   <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">{errors.docs}</p>
                 )}
+
+                {/* Comprovativo bancário — opcional */}
+                <label
+                  className="mt-[14px] flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-white px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
+                  style={{ borderColor: docs.docBanco.error ? '#e8a3a3' : docs.docBanco.name ? '#bfe6cd' : '#f1e3e3' }}
+                >
+                  <input type="file" accept={DOC_ACCEPT} className="hidden" onChange={(e) => onPickDoc('docBanco', e.target.files?.[0])} />
+                  <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[12px] bg-[#FFF1F0]">{Ic.docSm}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-extrabold">
+                      {DOC_BANK.label} <span className="font-bold text-[#b9a9ab]">(opcional)</span>
+                    </div>
+                    <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
+                      {docs.docBanco.error || (docs.docBanco.name ? docs.docBanco.name : 'Acelera a configuração de pagamentos. PDF, JPG ou PNG.')}
+                    </div>
+                  </div>
+                  {docs.docBanco.name ? (
+                    <span className="inline-flex flex-none items-center gap-[6px] rounded-[30px] bg-[#eafaf0] px-[14px] py-2 text-[13px] font-extrabold text-[#1f9d57]">
+                      {Ic.check(GREEN, 2.6, 15)} Enviado
+                    </span>
+                  ) : (
+                    <span className="flex-none rounded-[30px] bg-[#FFF1F0] px-4 py-2 text-[13px] font-extrabold text-[#B5101F]">Enviar</span>
+                  )}
+                </label>
               </section>
 
               {/* TERMOS */}
@@ -926,14 +998,14 @@ export function CandidaturaForm() {
                   </div>
                 </div>
                 <div className="mt-[22px] flex flex-col gap-3">
-                  {DOC_DEFS.map((d) => {
+                  {ALL_DOCS.map((d) => {
                     const st = docs[d.key];
                     const up = !!st.name;
                     return (
                       <label
                         key={d.key}
                         className="flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-[#FFF7F6] px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 ? '#e8a3a3' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 && !d.optional ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -945,7 +1017,10 @@ export function CandidaturaForm() {
                           {docTileIcon(d.icon)}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[15px] font-extrabold">{d.label}</div>
+                          <div className="text-[15px] font-extrabold">
+                            {d.label}
+                            {d.optional && <span className="font-bold text-[#b9a9ab]"> (opcional)</span>}
+                          </div>
                           <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
                             {st.error || (up ? st.name : 'Toque para enviar (PDF, JPG ou PNG)')}
                           </div>
@@ -981,12 +1056,37 @@ export function CandidaturaForm() {
                   <div className="mx-auto mb-6 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#FFF1F0]">
                     {Ic.check(RED, 2.4, 42)}
                   </div>
-                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada!</h2>
+                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada</h2>
                   <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
-                    A sua conta Banzami Business{' '}
-                    <span className="font-mono text-[#B5101F]">@{handleDisplay}</span> está em análise.
-                    Receberá uma confirmação no email em até 48 horas.
+                    A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for
+                    aprovado, receberá um link de ativação no email indicado para definir o PIN de
+                    acesso à sua Conta Business.
                   </p>
+
+                  <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] border-[1.5px] border-[#f4e6e6] bg-white p-5 text-left">
+                    <div className="flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
+                      <span className="text-[#9a8a8e]">@negócio reservado</span>
+                      <span className="font-mono font-extrabold text-[#B5101F]">@{handleDisplay}</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">
+                      <span className="text-[#9a8a8e]">Email de contacto</span>
+                      <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-extrabold text-[#2a2024]">{email || '—'}</span>
+                    </div>
+                  </div>
+
+                  <div className="mx-auto mt-4 max-w-[400px] rounded-[16px] bg-[#FFF7F6] p-5 text-left">
+                    <div className="mb-3 text-[12px] font-black tracking-[0.05em] text-[#9A1B22]">PRÓXIMOS PASSOS</div>
+                    <ol className="m-0 flex list-none flex-col gap-2.5 p-0">
+                      {['Análise da candidatura e documentos', 'Aprovação pela equipa Banzami', 'Ativação da conta e definição do PIN', 'Começar a receber pagamentos'].map((s, i) => (
+                        <li key={s} className="flex items-center gap-[11px] text-[13.5px] font-bold text-[#5a4a4e]">
+                          <span className="flex h-[24px] w-[24px] flex-none items-center justify-center rounded-full bg-[#FFF1F0] text-[12px] font-black text-[#B5101F]">
+                            {i + 1}
+                          </span>
+                          {s}
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
 
                   {/* KYB document upload status (Track 3). */}
                   <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] bg-[#FFF7F6] p-5 text-left">
@@ -1050,12 +1150,17 @@ export function CandidaturaForm() {
                     <ReviewCard title="NEGÓCIO">
                       <ReviewRow label="Nome" value={dash(name)} />
                       <ReviewRow label="@negócio" mono value={`@${handleDisplay}`} />
-                      <ReviewRow label="Categoria" value={dash(category)} />
+                      <ReviewRow label="Categoria" value={dash(category === OUTROS ? categoryOther : category)} />
+                      <ReviewRow label="Subcategoria" value={dash(subcategory)} />
+                      <ReviewRow label="Atividade" value={dash(descricao)} />
+                      <ReviewRow label="Volume mensal" value={dash(volume)} />
                       <ReviewRow label="Telefone" value={phone ? `+244 ${phone}` : '—'} />
                       <ReviewRow label="Email" value={dash(email)} />
                     </ReviewCard>
                     <ReviewCard title="LOCALIZAÇÃO & RESPONSÁVEL">
                       <ReviewRow label="Província" value={dash(provincia)} />
+                      <ReviewRow label="Município" value={dash(municipio)} />
+                      <ReviewRow label="Cidade / zona" value={dash(cidade)} />
                       <ReviewRow label="Endereço" value={dash(endereco)} />
                       <ReviewRow label="Responsável" value={dash(repNome)} />
                       <ReviewRow label="NIF" value={dash(nif)} />
