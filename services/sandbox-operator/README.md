@@ -2,7 +2,7 @@
 
 Minimal, stateless **BANZA L0 (Protocol Sandbox)** operator runtime for the
 Banzami reference operator. Its only purpose is to satisfy the BANZA L0
-pre-certification checks so that `sandbox.banzami.org` is a valid L0 *candidate*.
+pre-certification checks so that `sandbox-api.banzami.com` is a valid L0 *candidate*.
 
 ## What it is
 

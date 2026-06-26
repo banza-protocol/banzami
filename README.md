@@ -290,7 +290,7 @@ what is external, and what must not yet be claimed. Concretely, it:
 ## BANZA protocol conformance
 
 Banzami runs the **official BANZA conformance suite** against its sandbox
-(`https://sandbox.banzami.org`) as an **operator candidate**. The current result
+(`https://sandbox-api.banzami.com`) as an **operator candidate**. The current result
 is **Level 0, 5/5 passed**, cross-validated on two distribution channels:
 
 - PyPI: `banza-conformance==0.1.0`
@@ -315,14 +315,14 @@ make banza-conformance-l0
 # Official PyPI tool
 pip install banza-conformance==0.1.0
 banza-conformance \
-  --url https://sandbox.banzami.org \
+  --url https://sandbox-api.banzami.com \
   --level 0 \
   --output evidence/banza-conformance/l0/banzami-sandbox-l0-report.json
 
 # Pinned Docker image (GHCR)
 docker run --rm -v "$PWD/reports:/reports" \
   ghcr.io/banza-protocol/banza-conformance:v0.1.0 \
-  --url https://sandbox.banzami.org \
+  --url https://sandbox-api.banzami.com \
   --level 0 \
   --output /reports/banzami-sandbox-l0-report.json
 ```

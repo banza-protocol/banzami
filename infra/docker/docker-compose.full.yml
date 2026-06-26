@@ -266,7 +266,7 @@ services:
 
   # ─── Sandbox operator (BANZA L0) ──────────────────────────────────────────────
   # Minimal, stateless BANZA L0 (Protocol Sandbox) runtime behind
-  # sandbox.banzami.org. No database, no money movement, simulated=true,
+  # sandbox-api.banzami.com. No database, no money movement, simulated=true,
   # production_allowed=false. Internal-only — nginx proxies to sandbox-operator:8085.
   sandbox-operator:
     build:

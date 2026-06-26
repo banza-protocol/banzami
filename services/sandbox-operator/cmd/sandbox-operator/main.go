@@ -29,7 +29,7 @@ const (
 
 	operatorID      = "banzami-sandbox"
 	operatorName    = "Banzami Sandbox Operator"
-	operatorURL     = "https://sandbox.banzami.org"
+	operatorURL     = "https://sandbox-api.banzami.com"
 	protocolVersion = "1.0"
 	environment     = "sandbox"
 )

@@ -11,12 +11,17 @@
 #
 # Usage:
 #   tools/banza-conformance-l0.sh                 # use PyPI tool if present, else Docker
-#   URL=https://sandbox.banzami.org tools/banza-conformance-l0.sh
+#   URL=https://sandbox-api.banzami.com tools/banza-conformance-l0.sh
 #   RUNNER=docker tools/banza-conformance-l0.sh   # force the pinned GHCR image
+#
+# NOTE: the sandbox operator host is sandbox-api.banzami.com (the legacy .org
+# sandbox domain was retired). Conformance needs the operator resource served at
+# <URL>/.well-known/banza/operator.json — wire that route under
+# sandbox-api.banzami.com before running (currently 404).
 #
 set -euo pipefail
 
-URL="${URL:-https://sandbox.banzami.org}"
+URL="${URL:-https://sandbox-api.banzami.com}"
 LEVEL="${LEVEL:-0}"
 VERSION="${VERSION:-0.1.0}"
 IMAGE="${IMAGE:-ghcr.io/banza-protocol/banza-conformance:v0.1.0}"
