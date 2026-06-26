@@ -15,6 +15,14 @@ Everything Banzami payment/product/runtime is `.com`, kept intentionally small.
 > **historical record** only. Any remaining `banzami.org` mention in this repo
 > should appear solely in history/evidence/governance artifacts.
 
+> **Sandbox operator on `sandbox-api.banzami.com` (2026-06-26).** This host is the
+> official Banzami sandbox **operator** host for BANZA L0 conformance. On it,
+> `/.well-known/banza/operator.json` **and** `/health` are served by the
+> `sandbox-operator` service (sandbox-invariant manifest + health, required by L0
+> `MAN-*` and `HEALTH-002`); **all other paths** continue to the sandbox/staging
+> gateway (`api-gateway-staging`). The operator `/health` is a superset of the
+> gateway's (still `status: ok`), so monitoring is unaffected. L0: 5/5 PASS.
+
 ## 1. Final approved domain architecture
 
 The **complete** set of Banzami hosts — nothing else exists:

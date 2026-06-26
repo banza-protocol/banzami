@@ -10,14 +10,24 @@ official BANZA conformance suite against the Banzami **sandbox** operator. Banza
 runs the suite as an **operator candidate** — to demonstrate that the sandbox is
 reference-compatible at Level 0. The result is **evidence, not certification.**
 
-| Field | Value |
+> **Current host: `sandbox-api.banzami.com`** (2026-06-26). The latest run targets
+> the official Banzami sandbox operator host and is stored under
+> [`20260626-2137-sandbox-api-banzami-com/`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json)
+> — **5/5 PASS, Level 0**. On this host `/.well-known/banza/operator.json` and
+> `/health` are served by `sandbox-operator`; all other paths by the sandbox
+> gateway. The root [`banzami-sandbox-l0-report.json`](banzami-sandbox-l0-report.json)
+> below is the **earlier run against the now-retired `sandbox.banzami.org`**, kept
+> as historical record (not modified).
+
+| Field | Value (latest run) |
 |-------|-------|
-| Target | `https://sandbox.banzami.org` (Banzami sandbox operator) |
+| Target | `https://sandbox-api.banzami.com` (Banzami sandbox operator) |
 | Tool | `banza-conformance` `0.1.0` (PyPI) — equivalently `ghcr.io/banza-protocol/banza-conformance:v0.1.0` |
 | Requested level | 0 — Protocol Sandbox |
-| Level achieved | **0 — Reference-compatible** |
+| Level achieved | **0 — Protocol Sandbox** |
 | Result | **5 passed · 0 failed · 0 skipped** |
-| Report | [`banzami-sandbox-l0-report.json`](banzami-sandbox-l0-report.json) |
+| Report | [`20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json) |
+| Prior run (historical) | `https://sandbox.banzami.org` → [`banzami-sandbox-l0-report.json`](banzami-sandbox-l0-report.json) |
 | Statement (from the tool) | *"This report is conformance evidence, not a production certificate."* |
 
 ## What this is — and is not
@@ -49,14 +59,14 @@ which are complete.
 # PyPI tool (used to produce the committed report)
 pip install banza-conformance==0.1.0
 banza-conformance \
-  --url https://sandbox.banzami.org \
+  --url https://sandbox-api.banzami.com \
   --level 0 \
   --output evidence/banza-conformance/l0/banzami-sandbox-l0-report.json
 
 # Equivalent, pinned Docker image (cross-checked — same 5/5 result)
 docker run --rm -v "$PWD/evidence/banza-conformance/l0:/reports" \
   ghcr.io/banza-protocol/banza-conformance:v0.1.0 \
-  --url https://sandbox.banzami.org --level 0 \
+  --url https://sandbox-api.banzami.com --level 0 \
   --output /reports/banzami-sandbox-l0-report.json
 ```
 

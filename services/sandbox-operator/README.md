@@ -40,31 +40,35 @@ python3 tools/banza-conformance/run.py \
 Expected: HEALTH-001/002 and MAN-001/002/003 all PASS · Total 5 · Passed 5 ·
 achieved level `0 — Protocol Sandbox`.
 
-## Public exposure at `sandbox-api.banzami.com` (required before public L0 run)
+## Public exposure at `sandbox-api.banzami.com` (LIVE)
 
 The operator host is **`sandbox-api.banzami.com`** (the legacy `.org` sandbox
-domain was retired). The manifest is served by this service on `:8085`, but the
-public host currently routes to the staging API, so
-`https://sandbox-api.banzami.com/.well-known/banza/operator.json` returns **404**.
+domain was retired). This service runs inside the Banzami stack (`banzami_net`,
+deployable via `./deploy.sh sandbox-operator`) and is exposed publicly by nginx.
 
-To expose it publicly (live nginx change — do under change control), add to the
-`sandbox-api.banzami.com` server block, **before** the catch-all `location /`:
+**Routing decision (live).** On `sandbox-api.banzami.com`, two exact-match
+locations are served by this operator; everything else stays on the sandbox /
+staging gateway:
 
 ```nginx
-# BANZA L0 operator manifest + health → sandbox-operator (read-only, no state).
-location = /.well-known/banza/operator.json {
-    proxy_pass http://sandbox-operator:8085;
-    proxy_set_header Host $host;
-}
-location = /banza/health {                     # optional: operator liveness
-    proxy_pass http://sandbox-operator:8085/health;
-}
+# served by sandbox-operator:8085
+location = /.well-known/banza/operator.json { proxy_pass http://sandbox-operator:8085; ... }
+location = /health                          { proxy_pass http://sandbox-operator:8085/health; ... }
+# everything else → api-gateway-staging (sandbox API)
+location / { proxy_pass http://api-gateway-staging:8080; ... }
 ```
 
-Prerequisites: (1) confirm nginx can reach `sandbox-operator:8085` (same Docker
-network); (2) **redeploy this service** so the manifest advertises
-`operator_url: https://sandbox-api.banzami.com` (the currently-running build still
-advertises the old `.org` URL). Only then run the public L0 conformance.
+**Why `/health` is the operator's (not the gateway's):** `sandbox-api.banzami.com`
+is the official Banzami sandbox **operator** host for BANZA L0 conformance, and
+L0 `HEALTH-002` requires `/health` to declare `simulated=true` /
+`production_allowed=false`. So both `/health` and the manifest must come from
+`sandbox-operator`. The operator `/health` is a strict superset of the gateway's
+(it still returns `status: ok`), so liveness monitoring is unaffected; the sandbox
+gateway continues to serve every other path.
+
+Verified live: `/health` → 200 (with sandbox invariants), `/.well-known/banza/operator.json`
+→ 200 (`operator_url: https://sandbox-api.banzami.com`), other paths → gateway.
+L0 conformance: 5/5 PASS (see `evidence/banza-conformance/l0/`).
 
 ## Configuration
 
