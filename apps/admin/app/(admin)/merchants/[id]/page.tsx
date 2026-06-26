@@ -8,6 +8,7 @@ import { AdminApi, type MerchantApplication } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { KybDocumentsSection } from '@/components/applications/KybDocumentsSection';
 import { formatDate, initials, withAt } from '@/lib/format';
 
@@ -21,6 +22,7 @@ type Tab = 'dados' | 'docs' | 'tx';
 export default function MerchantDetailPage() {
   const router = useRouter();
   const toast = useToast();
+  const dialog = useDialog();
   const params = useParams<{ id: string }>();
   const id = params.id;
 
@@ -67,7 +69,13 @@ export default function MerchantDetailPage() {
 
   async function reject() {
     if (!api || !m) return;
-    const message = window.prompt('Motivo a comunicar ao comerciante (será enviado por email):');
+    const message = await dialog.prompt({
+      title: 'Rejeitar candidatura',
+      label: 'Motivo a comunicar ao comerciante (será enviado por email)',
+      multiline: true,
+      confirmLabel: 'Rejeitar',
+      required: true,
+    });
     if (!message || !message.trim()) return;
     setBusy('reject');
     try {
@@ -83,7 +91,7 @@ export default function MerchantDetailPage() {
 
   async function flagAml() {
     if (!api || !approvedMerchant) return;
-    const notes = window.prompt('Nota AML (interna):') ?? '';
+    const notes = (await dialog.prompt({ title: 'Sinalizar AML', label: 'Nota AML (interna)', multiline: true, confirmLabel: 'Sinalizar' })) ?? '';
     setBusy('aml');
     try {
       await api.flagAML(approvedMerchant, notes);
@@ -97,7 +105,7 @@ export default function MerchantDetailPage() {
 
   async function suspend() {
     if (!api || !approvedMerchant) return;
-    const notes = window.prompt('Motivo da suspensão (interna):') ?? '';
+    const notes = (await dialog.prompt({ title: 'Suspender conta', label: 'Motivo da suspensão (interna)', multiline: true, confirmLabel: 'Suspender' })) ?? '';
     setBusy('suspend');
     try {
       await api.suspendMerchant(approvedMerchant, notes);

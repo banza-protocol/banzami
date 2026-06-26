@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { AdminApi, isStorageNotConfigured, type KybDocument } from '@/lib/admin-api';
+import { useDialog } from '@/components/ui/dialog';
 
 // "Documentos KYB" section for a Business application detail view (Track 3).
 // Self-contained: pass an authenticated AdminApi + the application id. When the
@@ -37,6 +38,7 @@ export function KybDocumentsSection({
   api: AdminApi;
   applicationId: string;
 }) {
+  const dialog = useDialog();
   const [docs, setDocs] = useState<KybDocument[] | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -87,7 +89,13 @@ export function KybDocumentsSection({
   }
 
   async function reject(documentId: string) {
-    const reason = window.prompt('Motivo da rejeição (visível para a equipa):');
+    const reason = await dialog.prompt({
+      title: 'Rejeitar documento',
+      label: 'Motivo da rejeição (visível para a equipa)',
+      multiline: true,
+      confirmLabel: 'Rejeitar',
+      required: true,
+    });
     if (!reason || !reason.trim()) return;
     setBusy(documentId);
     try {

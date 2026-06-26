@@ -6,6 +6,7 @@ import { AdminApi, type Payout } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { formatKz, formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
@@ -20,6 +21,7 @@ const TERMINAL = ['CONFIRMED', 'FAILED', 'RETURNED'];
 
 export default function PaymentsPage() {
   const toast = useToast();
+  const dialog = useDialog();
   const [rows, setRows] = useState<Payout[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -62,7 +64,13 @@ export default function PaymentsPage() {
   async function devolver(p: Payout) {
     const api = getApi();
     if (!api) return;
-    const reason = window.prompt('Motivo da devolução:');
+    const reason = await dialog.prompt({
+      title: 'Devolver pagamento',
+      label: 'Motivo da devolução',
+      multiline: true,
+      confirmLabel: 'Devolver',
+      required: true,
+    });
     if (!reason || !reason.trim()) return;
     setBusy(p.id);
     try {

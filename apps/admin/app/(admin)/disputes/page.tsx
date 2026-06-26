@@ -6,6 +6,7 @@ import { AdminApi, type AdminDispute } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { formatKz } from '@/lib/format';
 
 function getApi(): AdminApi | null {
@@ -17,6 +18,7 @@ const RESOLVED = ['RESOLVED', 'CLOSED'];
 
 export default function DisputesPage() {
   const toast = useToast();
+  const dialog = useDialog();
   const [rows, setRows] = useState<AdminDispute[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -44,9 +46,15 @@ export default function DisputesPage() {
   async function resolve(d: AdminDispute) {
     const api = getApi();
     if (!api) return;
-    const outcome = window.prompt('Resultado (ex.: MERCHANT_FAVOR ou CONSUMER_FAVOR):');
+    const outcome = await dialog.prompt({
+      title: 'Resolver disputa',
+      label: 'Resultado',
+      placeholder: 'Ex.: MERCHANT_FAVOR ou CONSUMER_FAVOR',
+      confirmLabel: 'Continuar',
+      required: true,
+    });
     if (!outcome || !outcome.trim()) return;
-    const notes = window.prompt('Notas de resolução:') ?? '';
+    const notes = (await dialog.prompt({ title: 'Resolver disputa', label: 'Notas de resolução (opcional)', multiline: true, confirmLabel: 'Resolver' })) ?? '';
     setBusy(d.id);
     try {
       await api.resolveDispute(d.id, outcome.trim(), notes);

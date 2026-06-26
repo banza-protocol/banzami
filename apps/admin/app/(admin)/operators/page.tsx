@@ -8,6 +8,7 @@ import { AdminApi, AdminApiError, type Operator, type OperatorRole } from '@/lib
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
+import { useDialog } from '@/components/ui/dialog';
 import { formatDate, initials } from '@/lib/format';
 
 const ROLES: OperatorRole[] = ['SUPER_ADMIN', 'OPERATIONS', 'COMPLIANCE', 'SUPPORT', 'READ_ONLY'];
@@ -23,6 +24,7 @@ function isLocked(o: Operator): boolean {
 
 export default function OperatorsPage() {
   const toast = useToast();
+  const dialog = useDialog();
   const [rows, setRows] = useState<Operator[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -86,8 +88,11 @@ export default function OperatorsPage() {
       const r = invite ? await api.resendOperatorInvite(o.id) : await api.requestOperatorPasswordReset(o.id);
       const url = invite ? (r as { invite_url?: string }).invite_url : (r as { reset_url?: string }).reset_url;
       if (url) {
-        toast('info', invite ? 'Convite gerado — copie o link do ecrã.' : 'Link de redefinição gerado — copie o link do ecrã.');
-        window.prompt(invite ? 'Link de convite (uso único):' : 'Link de redefinição (uso único):', url);
+        await dialog.showLink({
+          title: invite ? 'Convite gerado' : 'Link de redefinição',
+          label: invite ? 'Link de convite (uso único):' : 'Link de redefinição (uso único):',
+          url,
+        });
       } else {
         toast('success', invite ? `Convite enviado a ${r.email_sent_to}.` : `Link de redefinição enviado a ${r.email_sent_to}.`);
       }
@@ -102,7 +107,12 @@ export default function OperatorsPage() {
     const api = getApi();
     if (!api) return;
     const suspend = o.status === 'ACTIVE';
-    if (suspend && !window.confirm(`Suspender o acesso de ${o.full_name}?`)) return;
+    if (suspend && !(await dialog.confirm({
+      title: 'Suspender operador',
+      message: `Suspender o acesso de ${o.full_name}?`,
+      confirmLabel: 'Suspender',
+      danger: true,
+    }))) return;
     setBusy(o.id);
     try {
       if (suspend) await api.suspendOperator(o.id);
@@ -231,6 +241,7 @@ export default function OperatorsPage() {
 
 function CreateOperatorModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
   const toast = useToast();
+  const dialog = useDialog();
   const [email, setEmail] = useState('');
   const [fullName, setFullName] = useState('');
   const [role, setRole] = useState<OperatorRole>('OPERATIONS');
@@ -255,8 +266,11 @@ function CreateOperatorModal({ onClose, onCreated }: { onClose: () => void; onCr
     try {
       const r = await api.createOperator(email.trim(), fullName.trim(), role);
       if (r.invite_url) {
-        toast('info', 'Operador criado — copie o link de convite do ecrã.');
-        window.prompt('Link de convite (uso único, expira em 72h):', r.invite_url);
+        await dialog.showLink({
+          title: 'Operador criado',
+          label: 'Link de convite (uso único, expira em 72h):',
+          url: r.invite_url,
+        });
       } else {
         toast('success', `Convite enviado a ${r.email_sent_to}.`);
       }
