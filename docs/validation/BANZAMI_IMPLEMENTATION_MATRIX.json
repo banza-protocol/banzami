@@ -7845,8 +7845,8 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "https://sandbox.banzami.org",
-        "https://sandbox.banzami.org/health",
+        "https://sandbox-api.banzami.com",
+        "https://sandbox-api.banzami.com/health",
         "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json"
       ],
       "dependencies": [],
@@ -7881,8 +7881,8 @@
           "commit": null,
           "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
           "evidence": [
-            "https://sandbox.banzami.org",
-            "https://sandbox.banzami.org/health"
+            "https://sandbox-api.banzami.com",
+            "https://sandbox-api.banzami.com/health"
           ]
         },
         {
@@ -7894,8 +7894,8 @@
           "commit": null,
           "reason": "Promovido a VALIDATED via §16: evidência BANZA L0 ao vivo (endpoints sandbox), relatório PyPI 5/5, cross-validação GHCR, runner reprodutível e guardrails evidência-não-certificação.",
           "evidence": [
-            "https://sandbox.banzami.org",
-            "https://sandbox.banzami.org/health"
+            "https://sandbox-api.banzami.com",
+            "https://sandbox-api.banzami.com/health"
           ]
         }
       ],
@@ -7925,7 +7925,7 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "https://sandbox.banzami.org/health",
+        "https://sandbox-api.banzami.com/health",
         "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
       ],
       "dependencies": [],
@@ -7960,7 +7960,7 @@
           "commit": null,
           "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
           "evidence": [
-            "https://sandbox.banzami.org/health",
+            "https://sandbox-api.banzami.com/health",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
           ]
         },
@@ -7973,7 +7973,7 @@
           "commit": null,
           "reason": "Promovido a VALIDATED via §16: evidência BANZA L0 ao vivo (endpoints sandbox), relatório PyPI 5/5, cross-validação GHCR, runner reprodutível e guardrails evidência-não-certificação.",
           "evidence": [
-            "https://sandbox.banzami.org/health",
+            "https://sandbox-api.banzami.com/health",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:HEALTH-001,HEALTH-002"
           ]
         }
@@ -8005,7 +8005,7 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "https://sandbox.banzami.org/.well-known/banza/operator.json",
+        "https://sandbox-api.banzami.com/.well-known/banza/operator.json",
         "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
       ],
       "dependencies": [],
@@ -8040,7 +8040,7 @@
           "commit": null,
           "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/operator.json",
+            "https://sandbox-api.banzami.com/.well-known/banza/operator.json",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
           ]
         },
@@ -8053,7 +8053,7 @@
           "commit": null,
           "reason": "Promovido a VALIDATED via §16: evidência BANZA L0 ao vivo (endpoints sandbox), relatório PyPI 5/5, cross-validação GHCR, runner reprodutível e guardrails evidência-não-certificação.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/operator.json",
+            "https://sandbox-api.banzami.com/.well-known/banza/operator.json",
             "evidence/banza-conformance/l0/banzami-sandbox-l0-report.json:MAN-001,MAN-002,MAN-003"
           ]
         }
@@ -8082,7 +8082,7 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)"
+        "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)"
       ],
       "dependencies": [],
       "requires": [],
@@ -8116,7 +8116,7 @@
           "commit": null,
           "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)"
+            "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)"
           ]
         },
         {
@@ -8128,7 +8128,7 @@
           "commit": null,
           "reason": "Promovido a VALIDATED via §16: evidência BANZA L0 ao vivo (endpoints sandbox), relatório PyPI 5/5, cross-validação GHCR, runner reprodutível e guardrails evidência-não-certificação.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)"
+            "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)"
           ]
         }
       ],
@@ -8470,8 +8470,8 @@
       ],
       "testCoverage": false,
       "evidence": [
-        "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)",
-        "https://sandbox.banzami.org/.well-known/banza/operator.json:certification_level=0"
+        "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)",
+        "https://sandbox-api.banzami.com/.well-known/banza/operator.json:certification_level=0"
       ],
       "dependencies": [],
       "requires": [],
@@ -8505,8 +8505,8 @@
           "commit": null,
           "reason": "Evidência BANZA L0 arquivada e reprodutível (operator candidate); aguarda validação §16.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)",
-            "https://sandbox.banzami.org/.well-known/banza/operator.json:certification_level=0"
+            "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)",
+            "https://sandbox-api.banzami.com/.well-known/banza/operator.json:certification_level=0"
           ]
         },
         {
@@ -8518,8 +8518,8 @@
           "commit": null,
           "reason": "Promovido a VALIDATED via §16: evidência BANZA L0 ao vivo (endpoints sandbox), relatório PyPI 5/5, cross-validação GHCR, runner reprodutível e guardrails evidência-não-certificação.",
           "evidence": [
-            "https://sandbox.banzami.org/.well-known/banza/certificate.json (HTTP 404)",
-            "https://sandbox.banzami.org/.well-known/banza/operator.json:certification_level=0"
+            "https://sandbox-api.banzami.com/.well-known/banza/certificate.json (HTTP 404)",
+            "https://sandbox-api.banzami.com/.well-known/banza/operator.json:certification_level=0"
           ]
         }
       ],
