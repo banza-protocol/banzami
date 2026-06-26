@@ -9,7 +9,7 @@ import { formatDate, initials } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
 const TAG_STYLE: Record<string, { bg: string; color: string; stroke: string; tagBg: string }> = {

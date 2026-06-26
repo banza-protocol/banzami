@@ -77,12 +77,8 @@ func (h *MerchantApplicationHandler) Get(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		ReviewedBy string `json:"reviewed_by"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
-
-	res, code, err := h.gw.ApproveApplication(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy)
+	// Attribution comes from the authenticated operator, never the client.
+	res, code, err := h.gw.ApproveApplication(r.Context(), chi.URLParam(r, "id"), actorOf(r))
 	if err != nil {
 		writeErr(w, code, "could not approve application")
 		return
@@ -104,13 +100,12 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 
 func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		ReviewedBy      string `json:"reviewed_by"`
 		AdminNotes      string `json:"admin_notes"`
 		MerchantMessage string `json:"merchant_message"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 
-	res, code, err := h.gw.RejectApplication(r.Context(), chi.URLParam(r, "id"), body.ReviewedBy, body.AdminNotes, body.MerchantMessage)
+	res, code, err := h.gw.RejectApplication(r.Context(), chi.URLParam(r, "id"), actorOf(r), body.AdminNotes, body.MerchantMessage)
 	if err != nil {
 		writeErr(w, code, "could not reject application")
 		return
@@ -149,11 +144,7 @@ func (h *MerchantApplicationHandler) DocumentReadURL(w http.ResponseWriter, r *h
 }
 
 func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		ReviewedBy string `json:"reviewed_by"`
-	}
-	_ = json.NewDecoder(r.Body).Decode(&body)
-	raw, code, err := h.gw.AcceptDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), body.ReviewedBy)
+	raw, code, err := h.gw.AcceptDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), actorOf(r))
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not accept document")
 		return
@@ -163,15 +154,14 @@ func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *ht
 
 func (h *MerchantApplicationHandler) RejectDocument(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		ReviewedBy string `json:"reviewed_by"`
-		Reason     string `json:"reason"`
+		Reason string `json:"reason"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 	if body.Reason == "" {
 		writeErr(w, http.StatusBadRequest, "reason is required")
 		return
 	}
-	raw, code, err := h.gw.RejectDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), body.ReviewedBy, body.Reason)
+	raw, code, err := h.gw.RejectDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), actorOf(r), body.Reason)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not reject document")
 		return

@@ -10,10 +10,9 @@ import { formatKz } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
-const REVIEWER = 'admin-console';
 const RESOLVED = ['RESOLVED', 'CLOSED'];
 
 export default function DisputesPage() {
@@ -50,7 +49,7 @@ export default function DisputesPage() {
     const notes = window.prompt('Notas de resolução:') ?? '';
     setBusy(d.id);
     try {
-      await api.resolveDispute(d.id, outcome.trim(), notes, REVIEWER);
+      await api.resolveDispute(d.id, outcome.trim(), notes);
       toast('success', 'Disputa resolvida.');
       await load();
     } catch {

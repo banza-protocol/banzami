@@ -10,6 +10,8 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
+
 	"github.com/banzami/banzami/services/admin-api/internal/config"
 	"github.com/banzami/banzami/services/admin-api/internal/email"
 	"github.com/banzami/banzami/services/admin-api/internal/observability"
@@ -51,7 +53,28 @@ func main() {
 	} else if !mailer.Enabled() {
 		slog.Warn("SMTP not configured — emails will be skipped")
 	}
-	srv := server.New(cfg, core, mailer, gw)
+
+	// Operator auth (admin_users). Requires DATABASE_URL + ADMIN_JWT_SECRET.
+	// Without them the auth endpoints respond 503; the service still starts.
+	var users *service.AdminUserService
+	if cfg.DatabaseURL != "" {
+		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
+		if perr != nil {
+			slog.Error("admin db connect error", "error", perr)
+			os.Exit(1)
+		}
+		defer pool.Close()
+		users = service.NewAdminUserService(pool)
+		if cfg.AdminJWTSecret == "" {
+			slog.Warn("ADMIN_JWT_SECRET not set — operator login disabled (503)")
+		} else {
+			slog.Info("operator auth enabled (email/password + admin JWT)")
+		}
+	} else {
+		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
+	}
+
+	srv := server.New(cfg, core, mailer, gw, users)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

@@ -11,7 +11,7 @@ import { formatKz, formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
 export default function SettlementsPage() {

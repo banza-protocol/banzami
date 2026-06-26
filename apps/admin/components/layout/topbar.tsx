@@ -2,6 +2,8 @@
 
 import { usePathname } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
+import type { AdminUser } from '@/lib/session';
+import { initials } from '@/lib/format';
 
 // Title + subtitle per route (README §Header).
 const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
@@ -15,7 +17,7 @@ const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
   { match: (p) => p.startsWith('/risk'), title: 'Risco & Audit', sub: 'Sinalizações de risco e registo de auditoria.' },
 ];
 
-export function Topbar() {
+export function Topbar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
   const meta = META.find((m) => m.match(pathname)) ?? { title: 'Admin', sub: '' };
 
@@ -32,9 +34,12 @@ export function Topbar() {
         </span>
         <span className="flex items-center gap-[9px]">
           <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#1a1416] text-[13px] font-extrabold text-white">
-            OS
+            {initials(user.full_name)}
           </span>
-          <span className="text-[13.5px] font-extrabold text-[#2a2024] max-[860px]:hidden">op.silva</span>
+          <span className="leading-[1.2] max-[860px]:hidden">
+            <span className="block text-[13.5px] font-extrabold text-[#2a2024]">{user.full_name}</span>
+            <span className="block text-[11.5px] font-semibold text-[#9a8a8e]">{user.role}</span>
+          </span>
         </span>
       </div>
     </header>

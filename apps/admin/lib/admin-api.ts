@@ -163,13 +163,50 @@ export interface AdminDispute {
 // Client
 // ---------------------------------------------------------------------------
 
-export class AdminApi {
-  private readonly base:   string;
-  private readonly apiKey: string;
+// Fixed Admin API base — never user input. Default = production admin host.
+export const ADMIN_API_BASE = (
+  process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://admin.banzami.com/api'
+).replace(/\/+$/, '');
 
-  constructor(apiUrl: string, apiKey: string) {
-    this.base   = apiUrl.replace(/\/$/, '');
-    this.apiKey = apiKey;
+export interface AuthedUser {
+  id:        string;
+  email:     string;
+  full_name: string;
+  role:      string;
+}
+
+/** Operator login (unauthenticated). Throws AdminApiError on bad credentials. */
+export async function adminLogin(
+  email: string,
+  password: string,
+): Promise<{ token: string; expires_at: string; user: AuthedUser }> {
+  const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const b = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    throw new AdminApiError(res.status, b.error?.code ?? 'UNAUTHORIZED', b.error?.message ?? 'invalid credentials');
+  }
+  return res.json();
+}
+
+export class AdminApi {
+  private readonly base: string;
+  private readonly token: string;
+
+  constructor(token: string) {
+    this.base = ADMIN_API_BASE;
+    this.token = token;
+  }
+
+  // Operator session
+  me(): Promise<{ user: AuthedUser }> {
+    return this.req('/admin/v1/auth/me');
+  }
+  logout(): Promise<void> {
+    return this.req('/admin/v1/auth/logout', { method: 'POST' });
   }
 
   private async req<T>(path: string, init?: RequestInit): Promise<T> {
@@ -177,11 +214,16 @@ export class AdminApi {
       ...init,
       headers: {
         'Content-Type':  'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
+        'Authorization': `Bearer ${this.token}`,
         ...(init?.headers ?? {}),
       },
     });
     if (!res.ok) {
+      // Expired/invalid operator token → clear session and bounce to login.
+      if (res.status === 401 && typeof window !== 'undefined') {
+        try { localStorage.removeItem('banzami_admin_session'); } catch { /* ignore */ }
+        if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
+      }
       let code = 'UNKNOWN', message = res.statusText;
       try {
         const b = await res.json() as { error?: { code?: string; message?: string } };
@@ -346,10 +388,11 @@ export class AdminApi {
     return this.req(`/admin/v1/risk/flags?resolved=${resolved}`);
   }
 
-  resolveRiskFlag(id: string, resolution: 'APPROVED' | 'REJECTED', resolvedBy: string): Promise<Record<string, unknown>> {
+  // resolved_by is set server-side from the operator JWT.
+  resolveRiskFlag(id: string, resolution: 'APPROVED' | 'REJECTED'): Promise<Record<string, unknown>> {
     return this.req(`/admin/v1/risk/flags/${id}/resolve`, {
       method: 'POST',
-      body:   JSON.stringify({ resolution, resolved_by: resolvedBy }),
+      body:   JSON.stringify({ resolution }),
     });
   }
   queryAuditLog(params?: { subject?: string; actor?: string; action?: string; limit?: number }): Promise<{ data: AuditEntry[] }> {
@@ -371,10 +414,10 @@ export class AdminApi {
     return this.req(`/admin/v1/disputes?${q.toString()}`);
   }
   getDispute(id: string): Promise<AdminDispute> { return this.req(`/admin/v1/disputes/${id}`); }
-  resolveDispute(id: string, outcome: string, notes: string, resolvedBy: string): Promise<AdminDispute> {
+  resolveDispute(id: string, outcome: string, notes: string): Promise<AdminDispute> {
     return this.req(`/admin/v1/disputes/${id}/resolve`, {
       method: 'POST',
-      body:   JSON.stringify({ outcome, resolution_notes: notes, resolved_by: resolvedBy }),
+      body:   JSON.stringify({ outcome, resolution_notes: notes }),
     });
   }
 
@@ -402,15 +445,14 @@ export class AdminApi {
   getApplication(id: string): Promise<MerchantApplication> {
     return this.req(`/admin/v1/merchant-applications/${id}`);
   }
-  approveApplication(id: string, reviewedBy: string): Promise<{ status: string; handle: string; email_sent_to: string }> {
-    return this.req(`/admin/v1/merchant-applications/${id}/approve`, {
-      method: 'POST', body: JSON.stringify({ reviewed_by: reviewedBy }),
-    });
+  // Attribution (reviewed_by) is set server-side from the operator JWT.
+  approveApplication(id: string): Promise<{ status: string; handle: string; email_sent_to: string }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/approve`, { method: 'POST' });
   }
-  rejectApplication(id: string, reviewedBy: string, adminNotes: string, merchantMessage: string): Promise<{ status: string; email_sent_to: string }> {
+  rejectApplication(id: string, adminNotes: string, merchantMessage: string): Promise<{ status: string; email_sent_to: string }> {
     return this.req(`/admin/v1/merchant-applications/${id}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ reviewed_by: reviewedBy, admin_notes: adminNotes, merchant_message: merchantMessage }),
+      body: JSON.stringify({ admin_notes: adminNotes, merchant_message: merchantMessage }),
     });
   }
 
@@ -422,14 +464,12 @@ export class AdminApi {
   createDocumentReadURL(id: string, documentId: string): Promise<{ read_url: string; expires_at: string }> {
     return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/read-url`, { method: 'POST' });
   }
-  acceptDocument(id: string, documentId: string, reviewedBy: string): Promise<KybDocument> {
-    return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/accept`, {
-      method: 'POST', body: JSON.stringify({ reviewed_by: reviewedBy }),
-    });
+  acceptDocument(id: string, documentId: string): Promise<KybDocument> {
+    return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/accept`, { method: 'POST' });
   }
-  rejectDocument(id: string, documentId: string, reason: string, reviewedBy: string): Promise<KybDocument> {
+  rejectDocument(id: string, documentId: string, reason: string): Promise<KybDocument> {
     return this.req(`/admin/v1/merchant-applications/${id}/documents/${documentId}/reject`, {
-      method: 'POST', body: JSON.stringify({ reason, reviewed_by: reviewedBy }),
+      method: 'POST', body: JSON.stringify({ reason }),
     });
   }
 }

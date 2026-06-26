@@ -1,6 +1,17 @@
+// Operator session for the Banzami Admin portal. Stores the admin JWT + the
+// operator profile. The Admin API URL is a fixed env value (never user input),
+// and the legacy Admin Key is gone.
+
+export interface AdminUser {
+  id:        string;
+  email:     string;
+  full_name: string;
+  role:      string;
+}
+
 export interface AdminSession {
-  adminKey: string;
-  apiUrl:   string;
+  token: string;
+  user:  AdminUser;
 }
 
 const KEY = 'banzami_admin_session';
@@ -10,7 +21,9 @@ export function getSession(): AdminSession | null {
   try {
     const raw = localStorage.getItem(KEY);
     return raw ? (JSON.parse(raw) as AdminSession) : null;
-  } catch { return null; }
+  } catch {
+    return null;
+  }
 }
 
 export function saveSession(s: AdminSession): void {

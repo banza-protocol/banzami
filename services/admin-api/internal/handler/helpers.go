@@ -5,8 +5,18 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/banzami/banzami/services/admin-api/internal/auth"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
+
+// actorOf returns the authenticated operator's email for audit / reviewed_by.
+// The JWT middleware always sets the principal on protected routes.
+func actorOf(r *http.Request) string {
+	if p, ok := auth.FromContext(r.Context()); ok {
+		return p.Actor()
+	}
+	return ""
+}
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")

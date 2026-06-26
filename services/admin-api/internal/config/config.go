@@ -32,6 +32,11 @@ type Config struct {
 	InternalAPIKey     string // shared secret sent as X-Internal-Key
 	// WebsiteBaseURL builds the activation link (e.g. https://banzami.com).
 	WebsiteBaseURL string
+
+	// Operator auth (admin_users + admin JWT). DatabaseURL connects to the
+	// shared Postgres; AdminJWTSecret signs the operator JWT.
+	DatabaseURL    string
+	AdminJWTSecret string
 }
 
 // Load reads config from environment variables.
@@ -51,10 +56,10 @@ func Load() (*Config, error) {
 		coreURL = "http://127.0.0.1:8081"
 	}
 
+	// ADMIN_API_KEY is now LEGACY — it no longer authenticates the portal (the
+	// admin uses per-operator email/password + JWT). Kept optional so existing
+	// server env doesn't break startup; slated for removal.
 	adminKey := os.Getenv("ADMIN_API_KEY")
-	if adminKey == "" {
-		return nil, fmt.Errorf("ADMIN_API_KEY must be set")
-	}
 
 	logLevel := os.Getenv("LOG_LEVEL")
 	if logLevel == "" {
@@ -97,6 +102,8 @@ func Load() (*Config, error) {
 		GatewayInternalURL: getenvDefault("GATEWAY_INTERNAL_URL", "http://api-gateway:8080"),
 		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
 		WebsiteBaseURL:     getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),
+		DatabaseURL:        os.Getenv("DATABASE_URL"),
+		AdminJWTSecret:     os.Getenv("ADMIN_JWT_SECRET"),
 	}, nil
 }
 

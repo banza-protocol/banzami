@@ -106,11 +106,8 @@ func (h *RiskHandler) ResolveRiskFlag(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_RESOLUTION", "resolution must be APPROVED or REJECTED")
 		return
 	}
-	if body.ResolvedBy == "" {
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "resolved_by is required")
-		return
-	}
-	res, err := h.core.ResolveRiskFlag(r.Context(), id, body.Resolution, body.ResolvedBy)
+	// Attribution from the authenticated operator (ignores any client value).
+	res, err := h.core.ResolveRiskFlag(r.Context(), id, body.Resolution, actorOf(r))
 	if err != nil {
 		handleCoreErr(w, err)
 		return

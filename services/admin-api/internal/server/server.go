@@ -22,7 +22,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -37,9 +37,26 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.Get("/health", handler.Liveness)
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
-	// All admin routes require API key authentication
+	// Build nil-safe interfaces so a nil *AdminUserService stays a true nil
+	// interface (auth endpoints then respond 503 instead of panicking).
+	var loginStore handler.LoginStore
+	var jwtStore middleware.OperatorStore
+	if users != nil {
+		loginStore = users
+		jwtStore = users
+	}
+
+	// Operator login — public (no token yet). Email + password → admin JWT.
+	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, 12*time.Hour)
+	r.Post("/admin/v1/auth/login", authH.Login)
+
+	// All admin routes require an operator JWT (per-operator email/password).
+	// The legacy ADMIN_API_KEY no longer authenticates the portal.
 	r.Group(func(r chi.Router) {
-		r.Use(middleware.AdminAuth(cfg.AdminAPIKey))
+		r.Use(middleware.AdminJWT(cfg.AdminJWTSecret, jwtStore))
+
+		r.Get("/admin/v1/auth/me", authH.Me)
+		r.Post("/admin/v1/auth/logout", authH.Logout)
 
 		complianceH := handler.NewComplianceHandler(core)
 		settlementH := handler.NewSettlementHandler(core)

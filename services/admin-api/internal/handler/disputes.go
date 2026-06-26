@@ -66,23 +66,19 @@ func (h *DisputeHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Outcome         string `json:"outcome"`
 		ResolutionNotes string `json:"resolution_notes"`
-		ResolvedBy      string `json:"resolved_by"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
 		return
 	}
 
-	switch {
-	case body.Outcome == "":
+	if body.Outcome == "" {
 		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "outcome is required")
-		return
-	case body.ResolvedBy == "":
-		writeError(w, http.StatusBadRequest, "MISSING_FIELD", "resolved_by is required")
 		return
 	}
 
-	result, err := h.core.ResolveDispute(r.Context(), id, body.Outcome, body.ResolutionNotes, body.ResolvedBy)
+	// Attribution from the authenticated operator (ignores any client value).
+	result, err := h.core.ResolveDispute(r.Context(), id, body.Outcome, body.ResolutionNotes, actorOf(r))
 	if err != nil {
 		if errors.Is(err, service.ErrNotFound) {
 			writeError(w, http.StatusNotFound, "NOT_FOUND", "dispute not found")

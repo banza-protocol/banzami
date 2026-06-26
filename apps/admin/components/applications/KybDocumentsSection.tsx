@@ -33,11 +33,9 @@ function fmtSize(bytes: number): string {
 export function KybDocumentsSection({
   api,
   applicationId,
-  reviewedBy,
 }: {
   api: AdminApi;
   applicationId: string;
-  reviewedBy: string;
 }) {
   const [docs, setDocs] = useState<KybDocument[] | null>(null);
   const [notConfigured, setNotConfigured] = useState(false);
@@ -79,7 +77,7 @@ export function KybDocumentsSection({
   async function accept(documentId: string) {
     setBusy(documentId);
     try {
-      await api.acceptDocument(applicationId, documentId, reviewedBy);
+      await api.acceptDocument(applicationId, documentId);
       await load();
     } catch {
       setError('Não foi possível aceitar o documento.');
@@ -93,7 +91,7 @@ export function KybDocumentsSection({
     if (!reason || !reason.trim()) return;
     setBusy(documentId);
     try {
-      await api.rejectDocument(applicationId, documentId, reason.trim(), reviewedBy);
+      await api.rejectDocument(applicationId, documentId, reason.trim());
       await load();
     } catch {
       setError('Não foi possível rejeitar o documento.');

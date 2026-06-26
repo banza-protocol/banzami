@@ -10,7 +10,7 @@ import { formatKz, formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
 // "Pagamentos" is backed by the real payouts API (the admin payment flow with

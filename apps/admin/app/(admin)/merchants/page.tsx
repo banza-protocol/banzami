@@ -12,7 +12,7 @@ import { formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
 // Status chips → application status codes. "Comerciantes" is backed by the

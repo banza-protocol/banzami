@@ -13,10 +13,9 @@ import { formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
-  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
+  return s ? new AdminApi(s.token) : null;
 }
 
-const REVIEWER = 'admin-console';
 type Tab = 'dados' | 'docs' | 'tx';
 
 export default function MerchantDetailPage() {
@@ -56,7 +55,7 @@ export default function MerchantDetailPage() {
     if (!api || !m) return;
     setBusy('approve');
     try {
-      await api.approveApplication(m.id, REVIEWER);
+      await api.approveApplication(m.id);
       toast('success', 'Candidatura aprovada. Email de ativação enviado.');
       await load();
     } catch {
@@ -72,7 +71,7 @@ export default function MerchantDetailPage() {
     if (!message || !message.trim()) return;
     setBusy('reject');
     try {
-      await api.rejectApplication(m.id, REVIEWER, '', message.trim());
+      await api.rejectApplication(m.id, '', message.trim());
       toast('success', 'Candidatura rejeitada. Email enviado ao comerciante.');
       await load();
     } catch {
@@ -224,7 +223,7 @@ export default function MerchantDetailPage() {
         </div>
       )}
 
-      {tab === 'docs' && api && <KybDocumentsSection api={api} applicationId={m.id} reviewedBy={REVIEWER} />}
+      {tab === 'docs' && api && <KybDocumentsSection api={api} applicationId={m.id} />}
 
       {tab === 'tx' && (
         <Card>
