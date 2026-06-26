@@ -1,6 +1,6 @@
 // admin-bootstrap creates the first (or an additional) Banzami Admin operator.
 //
-//	go run ./cmd/admin-bootstrap --email fidel@banzami.com \
+//	go run ./cmd/admin-bootstrap --email fidelmonteiro@banzami.com \
 //	  --full-name "Fidel Monteiro" --role SUPER_ADMIN
 //
 // The password is read from $ADMIN_BOOTSTRAP_PASSWORD, or prompted without echo.
