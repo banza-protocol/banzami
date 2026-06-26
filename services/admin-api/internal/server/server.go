@@ -41,9 +41,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	// interface (auth endpoints then respond 503 instead of panicking).
 	var loginStore handler.LoginStore
 	var jwtStore middleware.OperatorStore
+	var opStore handler.OperatorStore
 	if users != nil {
 		loginStore = users
 		jwtStore = users
+		opStore = users
 	}
 
 	// Operator login — public (no token yet). Email + password → admin JWT.
@@ -58,6 +60,16 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Get("/admin/v1/auth/me", authH.Me)
 		r.Post("/admin/v1/auth/logout", authH.Logout)
 		r.Post("/admin/v1/auth/change-password", authH.ChangePassword)
+
+		// Operator management (SUPER_ADMIN for mutations; read for any operator).
+		opH := handler.NewOperatorHandler(opStore)
+		r.Get("/admin/v1/operators", opH.List)
+		r.Get("/admin/v1/operators/{id}", opH.Get)
+		r.Post("/admin/v1/operators", opH.Create)
+		r.Patch("/admin/v1/operators/{id}", opH.Update)
+		r.Post("/admin/v1/operators/{id}/role", opH.SetRole)
+		r.Post("/admin/v1/operators/{id}/suspend", opH.Suspend)
+		r.Post("/admin/v1/operators/{id}/activate", opH.Activate)
 
 		complianceH := handler.NewComplianceHandler(core)
 		settlementH := handler.NewSettlementHandler(core)

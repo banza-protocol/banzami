@@ -441,6 +441,27 @@ export class AdminApi {
     return this.req(`/admin/v1/risk/acquiring-recon/${runId}`);
   }
 
+  // Operators (BANZADMIN access management). Mutations require SUPER_ADMIN
+  // (enforced server-side). No password material is ever returned.
+  listOperators(): Promise<{ operators: Operator[] }> {
+    return this.req('/admin/v1/operators');
+  }
+  createOperator(email: string, fullName: string, role: OperatorRole): Promise<Operator> {
+    return this.req('/admin/v1/operators', { method: 'POST', body: JSON.stringify({ email, full_name: fullName, role }) });
+  }
+  updateOperatorName(id: string, fullName: string): Promise<Operator> {
+    return this.req(`/admin/v1/operators/${id}`, { method: 'PATCH', body: JSON.stringify({ full_name: fullName }) });
+  }
+  setOperatorRole(id: string, role: OperatorRole): Promise<Operator> {
+    return this.req(`/admin/v1/operators/${id}/role`, { method: 'POST', body: JSON.stringify({ role }) });
+  }
+  suspendOperator(id: string): Promise<Operator> {
+    return this.req(`/admin/v1/operators/${id}/suspend`, { method: 'POST' });
+  }
+  activateOperator(id: string): Promise<Operator> {
+    return this.req(`/admin/v1/operators/${id}/activate`, { method: 'POST' });
+  }
+
   // Merchant applications (Business onboarding / Track 1). approve/reject never
   // return the activation token, API key or PIN — the admin-api strips them.
   listApplications(status?: string, environment?: string): Promise<{ applications: MerchantApplication[] }> {
@@ -480,6 +501,20 @@ export class AdminApi {
       method: 'POST', body: JSON.stringify({ reason }),
     });
   }
+}
+
+export type OperatorRole = 'SUPER_ADMIN' | 'OPERATIONS' | 'COMPLIANCE' | 'SUPPORT' | 'READ_ONLY';
+
+export interface Operator {
+  id:            string;
+  email:         string;
+  full_name:     string;
+  role:          OperatorRole;
+  status:        'ACTIVE' | 'SUSPENDED';
+  last_login_at: string | null;
+  locked_until:  string | null;
+  password_set:  boolean;
+  created_at:    string;
 }
 
 export interface MerchantApplication {

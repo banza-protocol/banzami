@@ -17,6 +17,7 @@ const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
   { match: (p) => p.startsWith('/reconciliation'), title: 'Reconciliação', sub: 'Conferência de movimentos e divergências.' },
   { match: (p) => p.startsWith('/disputes'), title: 'Disputas', sub: 'Resolução de disputas de transações.' },
   { match: (p) => p.startsWith('/risk'), title: 'Risco & Audit', sub: 'Sinalizações de risco e registo de auditoria.' },
+  { match: (p) => p.startsWith('/operators'), title: 'Operadores', sub: 'Gestão de acesso ao BANZADMIN.' },
 ];
 
 export function Topbar({ user }: { user: AdminUser }) {

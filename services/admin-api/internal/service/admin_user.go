@@ -83,9 +83,10 @@ func (s *AdminUserService) TouchLastLogin(ctx context.Context, id string) {
 	_, _ = s.pool.Exec(ctx, `UPDATE admin_users SET last_login_at = now(), updated_at = now() WHERE id = $1`, id)
 }
 
-// UpdatePassword replaces an operator's bcrypt hash and bumps updated_at.
+// UpdatePassword replaces an operator's bcrypt hash, records password_set_at,
+// and bumps updated_at.
 func (s *AdminUserService) UpdatePassword(ctx context.Context, id, passwordHash string) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE admin_users SET password_hash = $2, updated_at = now() WHERE id = $1`, id, passwordHash)
+	tag, err := s.pool.Exec(ctx, `UPDATE admin_users SET password_hash = $2, password_set_at = now(), updated_at = now() WHERE id = $1`, id, passwordHash)
 	if err != nil {
 		return err
 	}
