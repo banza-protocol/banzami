@@ -105,12 +105,11 @@ export async function submitApplication(input: ApplicationInput): Promise<Submit
 export type KybDocumentType =
   | 'BUSINESS_REGISTRATION'
   | 'TAX_ID'
-  | 'REPRESENTATIVE_ID'
-  | 'BANK_PROOF';
+  | 'REPRESENTATIVE_ID';
 
-/** Required company documents for a Business application (MVP). Three only —
- *  no proof-of-address, to reduce onboarding friction. BANK_PROOF is optional
- *  and collected later for payout/settlement, so it is not listed here. */
+/** Required company documents for a Business application — exactly three, no
+ *  more. No proof-of-address and no bank proof: banking/settlement details are
+ *  collected later (payout configuration), not in the initial application. */
 export const REQUIRED_KYB_DOCUMENTS: KybDocumentType[] = [
   'BUSINESS_REGISTRATION',
   'TAX_ID',

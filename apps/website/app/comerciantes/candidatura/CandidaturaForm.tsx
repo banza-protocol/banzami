@@ -40,16 +40,15 @@ const MAX_DOC_BYTES = 5 * 1024 * 1024;
 const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
-type DocKey = 'docCertidao' | 'docNif' | 'docBi' | 'docBanco';
-type DocDef = { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType; optional?: boolean };
-// 3 obrigatórios (registo, NIF, representante) + comprovativo bancário opcional.
+type DocKey = 'docCertidao' | 'docNif' | 'docBi';
+type DocDef = { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType };
+// Exatamente 3 documentos obrigatórios da empresa. Sem prova de residência e
+// sem dados de banco (estes pertencem a uma fase posterior de payout).
 const DOC_DEFS: DocDef[] = [
   { key: 'docCertidao', label: 'Registo Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
   { key: 'docNif', label: 'NIF da Empresa', icon: 'doc', type: 'TAX_ID' },
   { key: 'docBi', label: 'Documento do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
 ];
-const DOC_BANK: DocDef = { key: 'docBanco', label: 'Comprovativo bancário', icon: 'doc', type: 'BANK_PROOF', optional: true };
-const ALL_DOCS: DocDef[] = [...DOC_DEFS, DOC_BANK];
 
 type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
@@ -396,7 +395,6 @@ export function CandidaturaForm() {
     docCertidao: { ...emptyDoc },
     docNif: { ...emptyDoc },
     docBi: { ...emptyDoc },
-    docBanco: { ...emptyDoc },
   });
 
   const [accepted, setAccepted] = useState(false);
@@ -411,7 +409,6 @@ export function CandidaturaForm() {
     docCertidao: { status: 'pending' },
     docNif: { status: 'pending' },
     docBi: { status: 'pending' },
-    docBanco: { status: 'pending' },
   });
 
   // Dependências Angola/categorias: município depende da província, cidade do
@@ -555,8 +552,7 @@ export function CandidaturaForm() {
   }
 
   async function uploadAllDocs(appId: string) {
-    // Required docs first, then the optional bank proof (uploaded only if picked).
-    for (const d of ALL_DOCS) {
+    for (const d of DOC_DEFS) {
       const keepGoing = await uploadOne(appId, d.key);
       if (!keepGoing) break; // storage not configured — stop, don't fake the rest
     }
@@ -922,30 +918,6 @@ export function CandidaturaForm() {
                 {show1 && errors.docs && (
                   <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">{errors.docs}</p>
                 )}
-
-                {/* Comprovativo bancário — opcional */}
-                <label
-                  className="mt-[14px] flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-white px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
-                  style={{ borderColor: docs.docBanco.error ? '#e8a3a3' : docs.docBanco.name ? '#bfe6cd' : '#f1e3e3' }}
-                >
-                  <input type="file" accept={DOC_ACCEPT} className="hidden" onChange={(e) => onPickDoc('docBanco', e.target.files?.[0])} />
-                  <span className="flex h-[42px] w-[42px] flex-none items-center justify-center rounded-[12px] bg-[#FFF1F0]">{Ic.docSm}</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-extrabold">
-                      {DOC_BANK.label} <span className="font-bold text-[#b9a9ab]">(opcional)</span>
-                    </div>
-                    <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
-                      {docs.docBanco.error || (docs.docBanco.name ? docs.docBanco.name : 'Acelera a configuração de pagamentos. PDF, JPG ou PNG.')}
-                    </div>
-                  </div>
-                  {docs.docBanco.name ? (
-                    <span className="inline-flex flex-none items-center gap-[6px] rounded-[30px] bg-[#eafaf0] px-[14px] py-2 text-[13px] font-extrabold text-[#1f9d57]">
-                      {Ic.check(GREEN, 2.6, 15)} Enviado
-                    </span>
-                  ) : (
-                    <span className="flex-none rounded-[30px] bg-[#FFF1F0] px-4 py-2 text-[13px] font-extrabold text-[#B5101F]">Enviar</span>
-                  )}
-                </label>
               </section>
 
               {/* TERMOS */}
@@ -998,14 +970,14 @@ export function CandidaturaForm() {
                   </div>
                 </div>
                 <div className="mt-[22px] flex flex-col gap-3">
-                  {ALL_DOCS.map((d) => {
+                  {DOC_DEFS.map((d) => {
                     const st = docs[d.key];
                     const up = !!st.name;
                     return (
                       <label
                         key={d.key}
                         className="flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-[#FFF7F6] px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 && !d.optional ? '#e8a3a3' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -1017,10 +989,7 @@ export function CandidaturaForm() {
                           {docTileIcon(d.icon)}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[15px] font-extrabold">
-                            {d.label}
-                            {d.optional && <span className="font-bold text-[#b9a9ab]"> (opcional)</span>}
-                          </div>
+                          <div className="text-[15px] font-extrabold">{d.label}</div>
                           <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
                             {st.error || (up ? st.name : 'Toque para enviar (PDF, JPG ou PNG)')}
                           </div>

@@ -13,7 +13,6 @@ const TYPE_LABEL: Record<string, string> = {
   BUSINESS_REGISTRATION: 'Registo Comercial',
   TAX_ID: 'NIF da Empresa',
   REPRESENTATIVE_ID: 'Documento do Representante',
-  BANK_PROOF: 'Comprovativo Bancário',
   OTHER: 'Outro',
 };
 

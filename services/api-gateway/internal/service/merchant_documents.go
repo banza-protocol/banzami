@@ -31,13 +31,15 @@ var (
 
 // Allowed document types (v1). Three required company documents plus an
 // optional bank proof (for payout/settlement later) and a catch-all. There is
-// deliberately NO proof-of-address document — removed to reduce onboarding
-// friction for the Angolan market.
+// The Business application requires exactly THREE company documents:
+// BUSINESS_REGISTRATION, TAX_ID, REPRESENTATIVE_ID. Deliberately NO
+// proof-of-address and NO bank proof — banking/settlement details belong to a
+// later payout configuration phase, not the initial application. OTHER is kept
+// only as a generic admin-side bucket. This keeps onboarding friction minimal.
 var allowedDocTypes = map[string]bool{
 	"BUSINESS_REGISTRATION": true,
 	"TAX_ID":                true,
 	"REPRESENTATIVE_ID":     true,
-	"BANK_PROOF":            true,
 	"OTHER":                 true,
 }
 

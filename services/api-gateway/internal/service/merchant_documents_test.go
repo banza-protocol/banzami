@@ -44,7 +44,9 @@ func TestValidateUpload(t *testing.T) {
 		{"ok registration", "BUSINESS_REGISTRATION", "rc.pdf", "application/pdf", 500, nil},
 		{"ok pdf", "TAX_ID", "nif.pdf", "application/pdf", 500, nil},
 		{"ok jpg", "REPRESENTATIVE_ID", "bi.JPG", "image/jpeg", 500, nil},
-		{"ok bank optional", "BANK_PROOF", "iban.pdf", "application/pdf", 500, nil},
+		// Bank proof was removed from the application KYB and must now be rejected
+		// (banking details belong to a later payout-configuration phase).
+		{"bank proof removed", "BANK_PROOF", "iban.pdf", "application/pdf", 500, ErrInvalidDocumentType},
 		// Proof-of-address was removed from KYB and must now be rejected.
 		{"proof of address removed", "PROOF_OF_ADDRESS", "morada.pdf", "application/pdf", 500, ErrInvalidDocumentType},
 		{"bad type", "PASSPORT", "x.pdf", "application/pdf", 10, ErrInvalidDocumentType},

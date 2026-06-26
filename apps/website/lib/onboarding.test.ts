@@ -120,12 +120,18 @@ describe('CandidaturaForm — final flow guarantees', () => {
     expect(FORM).not.toMatch(/comprovativo de morada/i);
   });
 
-  it('requires the 3 company documents and offers an optional bank proof', () => {
+  it('requires exactly the 3 company documents — no bank proof, no optional', () => {
     expect(FORM).toContain('BUSINESS_REGISTRATION');
     expect(FORM).toContain('TAX_ID');
     expect(FORM).toContain('REPRESENTATIVE_ID');
-    expect(FORM).toContain('BANK_PROOF');
-    expect(FORM).toMatch(/optional: true/);
+    // Bank proof was removed from the application entirely.
+    expect(FORM).not.toContain('BANK_PROOF');
+    expect(FORM).not.toMatch(/comprovativo banc[áa]rio/i);
+    expect(FORM).not.toMatch(/optional: true/); // no optional DOCUMENT defs
+    expect(FORM).not.toMatch(/acelera a configuração de pagamentos/i);
+    // Exactly three document definitions (BUSINESS_REGISTRATION/TAX_ID/REPRESENTATIVE_ID).
+    expect((FORM.match(/type: 'BUSINESS_REGISTRATION'|type: 'TAX_ID'|type: 'REPRESENTATIVE_ID'/g) || []).length).toBe(3);
+    // Optional FORM fields (subcategoria, referência) remain legitimately optional.
   });
 
   it('never fakes uploads — handles storage-not-configured', () => {
