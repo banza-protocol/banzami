@@ -2,71 +2,102 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { AlertCircle } from 'lucide-react';
 import { saveSession } from '@/lib/session';
+import { BanzamiLogo } from '@/components/ui/brand';
+
+const DEFAULT_API_URL = process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://admin.banzami.com/api';
+
+const inputCls =
+  'w-full rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-[#FFF7F6] px-4 py-[14px] text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [form, setForm] = useState({
-    apiUrl:   process.env.NEXT_PUBLIC_ADMIN_API_URL ?? 'https://admin.banzami.com/api',
-    adminKey: '',
-  });
-  const [error, setError]     = useState('');
+  const [apiUrl, setApiUrl] = useState(DEFAULT_API_URL);
+  const [adminKey, setAdminKey] = useState('');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-
-  function set(k: keyof typeof form) {
-    return (e: React.ChangeEvent<HTMLInputElement>) => setForm(p => ({ ...p, [k]: e.target.value }));
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!form.adminKey.trim()) { setError('Admin Key é obrigatória.'); return; }
-    setLoading(true); setError('');
+    if (!adminKey.trim()) {
+      setError('invalid or missing admin API key');
+      return;
+    }
+    setLoading(true);
+    setError('');
+    const base = apiUrl.replace(/\/$/, '');
     try {
-      const res = await fetch(`${form.apiUrl.replace(/\/$/, '')}/health`, {
-        headers: { Authorization: `Bearer ${form.adminKey}` },
-      });
-      if (res.status === 401) throw new Error('Chave inválida.');
+      const res = await fetch(`${base}/health`, { headers: { Authorization: `Bearer ${adminKey}` } });
+      if (res.status === 401) throw new Error('invalid or missing admin API key');
       if (!res.ok && res.status !== 404) throw new Error(`HTTP ${res.status}`);
-      saveSession({ adminKey: form.adminKey, apiUrl: form.apiUrl.replace(/\/$/, '') });
+      saveSession({ adminKey, apiUrl: base });
       router.replace('/');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro de ligação.');
+      setError(err instanceof Error ? err.message : 'invalid or missing admin API key');
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-xl">
-      <div className="w-full max-w-sm bg-white rounded-xl shadow-modal p-2xl flex flex-col gap-xl">
-        <div>
-          <p className="text-xs font-semibold text-error uppercase tracking-widest mb-xs">Banzami</p>
-          <h1 className="text-xl font-bold text-gray-900">Painel de Operações</h1>
-          <p className="text-sm text-gray-400 mt-xs">Acesso restrito — operadores Banzami.</p>
+    <div
+      className="flex min-h-screen items-center justify-center p-6"
+      style={{ background: 'radial-gradient(1200px 600px at 50% -10%, #fff, #FFF7F6 60%)' }}
+    >
+      <div className="w-full max-w-[430px] rounded-[26px] border border-[#f1e3e3] bg-white px-[34px] py-[38px] shadow-[0_40px_90px_-50px_rgba(181,16,31,0.45)]">
+        <div className="mb-[26px] flex items-center gap-[11px]">
+          <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[12px] bg-[#B5101F] shadow-[0_6px_14px_-4px_rgba(181,16,31,0.5)]">
+            <BanzamiLogo size={21} />
+          </span>
+          <span className="text-[13px] font-black tracking-[0.16em] text-[#B5101F]">BANZAMI</span>
         </div>
+        <h1 className="m-0 text-[27px] font-black tracking-[-0.02em]">Painel de Operações</h1>
+        <p className="m-0 mb-[26px] mt-2 text-[15px] font-semibold text-[#9a8a8e]">
+          Acesso restrito — operadores Banzami.
+        </p>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-lg">
-          <div className="flex flex-col gap-xs">
-            <label className="text-xs font-medium text-gray-700">Admin API URL</label>
-            <input type="url" value={form.apiUrl} onChange={set('apiUrl')} required
-              className={cls} placeholder="https://admin.banzami.com/api" />
-          </div>
-          <div className="flex flex-col gap-xs">
-            <label className="text-xs font-medium text-gray-700">Admin Key</label>
-            <input type="password" value={form.adminKey} onChange={set('adminKey')} required
-              autoComplete="current-password" className={cls} placeholder="••••••••••••••••" />
-          </div>
+        <form onSubmit={handleSubmit}>
+          <label className="mb-2 block text-[13px] font-extrabold">Admin API URL</label>
+          <input
+            type="url"
+            value={apiUrl}
+            onChange={(e) => setApiUrl(e.target.value)}
+            className={`${inputCls} mb-[18px]`}
+            placeholder="https://admin.banzami.com/api"
+            required
+          />
 
-          {error && <p className="text-sm text-error bg-error-bg rounded-md px-md py-sm">{error}</p>}
+          <label className="mb-2 block text-[13px] font-extrabold">Admin Key</label>
+          <input
+            type="password"
+            value={adminKey}
+            onChange={(e) => setAdminKey(e.target.value)}
+            autoComplete="current-password"
+            placeholder="••••••••••••••••"
+            className={`${inputCls} font-mono`}
+            style={error ? { borderColor: '#f0a9a9' } : undefined}
+          />
 
-          <button type="submit" disabled={loading}
-            className="w-full h-12 bg-gray-900 text-white rounded-md text-sm font-semibold hover:bg-gray-700 transition-colors disabled:opacity-60">
+          {error && (
+            <div className="mt-[14px] flex items-center gap-[9px] rounded-[12px] border border-[#f6d3d1] bg-[#FFF1F0] px-[14px] py-3 text-[13.5px] font-bold text-[#B5101F]">
+              <AlertCircle size={16} strokeWidth={1.8} />
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="mt-6 w-full rounded-[14px] bg-[#1a1416] py-4 text-[15.5px] font-extrabold text-white transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-black disabled:opacity-60"
+          >
             {loading ? 'A verificar…' : 'Entrar'}
           </button>
         </form>
+        <p className="m-0 mt-[18px] text-center text-[12.5px] font-semibold text-[#b09498]">
+          Todas as acções são auditadas.
+        </p>
       </div>
     </div>
   );
 }
-
-const cls = 'w-full h-10 bg-gray-100 rounded-md px-lg text-sm text-gray-900 placeholder-gray-400 outline-none focus:ring-2 focus:ring-gray-900/20 focus:bg-white transition-colors';

@@ -390,6 +390,30 @@ export class AdminApi {
     return this.req(`/admin/v1/risk/acquiring-recon/${runId}`);
   }
 
+  // Merchant applications (Business onboarding / Track 1). approve/reject never
+  // return the activation token, API key or PIN — the admin-api strips them.
+  listApplications(status?: string, environment?: string): Promise<{ applications: MerchantApplication[] }> {
+    const q = new URLSearchParams();
+    if (status) q.set('status', status);
+    if (environment) q.set('environment', environment);
+    const qs = q.toString();
+    return this.req(`/admin/v1/merchant-applications${qs ? `?${qs}` : ''}`);
+  }
+  getApplication(id: string): Promise<MerchantApplication> {
+    return this.req(`/admin/v1/merchant-applications/${id}`);
+  }
+  approveApplication(id: string, reviewedBy: string): Promise<{ status: string; handle: string; email_sent_to: string }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/approve`, {
+      method: 'POST', body: JSON.stringify({ reviewed_by: reviewedBy }),
+    });
+  }
+  rejectApplication(id: string, reviewedBy: string, adminNotes: string, merchantMessage: string): Promise<{ status: string; email_sent_to: string }> {
+    return this.req(`/admin/v1/merchant-applications/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ reviewed_by: reviewedBy, admin_notes: adminNotes, merchant_message: merchantMessage }),
+    });
+  }
+
   // KYB documents (Track 3). On 503 STORAGE_NOT_CONFIGURED the caller should
   // show the "storage not configured" notice (see isStorageNotConfigured).
   listApplicationDocuments(id: string): Promise<{ data: KybDocument[] }> {
@@ -408,6 +432,29 @@ export class AdminApi {
       method: 'POST', body: JSON.stringify({ reason, reviewed_by: reviewedBy }),
     });
   }
+}
+
+export interface MerchantApplication {
+  id:                   string;
+  status:               'DRAFT' | 'SUBMITTED' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
+  environment:          'LIVE' | 'SANDBOX';
+  desired_handle:       string;
+  business_name:        string;
+  category:             string;
+  email:                string;
+  phone:                string;
+  nif:                  string;
+  country:              string;
+  city:                 string;
+  address:              string;
+  legal_representative: string;
+  business_activity:    string;
+  estimated_volume:     string;
+  admin_notes:          string;
+  merchant_message:     string;
+  created_merchant_id:  string;
+  created_at:           string;
+  reviewed_at:          string | null;
 }
 
 export interface KybDocument {

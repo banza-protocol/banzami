@@ -2,7 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ============================================================
+   Banzami Admin — Painel de Operações.
+   Source of truth: Downloads/design_handoff_banzami_admin/README.md
+   (design tokens + inline styles of the .dc.html reference).
+   ============================================================ */
+
 @layer base {
-  html { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; -webkit-font-smoothing: antialiased; }
-  body { background-color: #FCF6F5; color: #1C0D0D; }
+  html {
+    font-family: 'Nunito', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    margin: 0;
+    background-color: #fff7f6;
+    color: #2a2024;
+  }
+  ::selection {
+    background: #fbd2d0;
+    color: #9a1b22;
+  }
+  input::placeholder {
+    color: #bca9ab;
+    font-weight: 600;
+  }
+}
+
+/* Skeleton shimmer (merchant list loading) */
+@keyframes adm-shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.adm-skel {
+  background: linear-gradient(90deg, #f4ecec 25%, #fbf4f4 50%, #f4ecec 75%);
+  background-size: 800px 100%;
+  animation: adm-shimmer 1.3s infinite;
+}
+
+/* Toast entrance */
+@keyframes adm-toast {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.adm-toast-in { animation: adm-toast 0.25s ease; }
+
+/* Spinner */
+@keyframes adm-spin {
+  to { transform: rotate(360deg); }
+}
+.adm-spin { animation: adm-spin 0.8s linear infinite; }
+
+/* Table row hover */
+.adm-row:hover { background: #fff7f6; }
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-skel, .adm-toast-in, .adm-spin { animation: none !important; }
 }

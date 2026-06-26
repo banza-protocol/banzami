@@ -1,146 +1,148 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { RefreshCw, CheckCircle2, ExternalLink, AlertTriangle } from 'lucide-react';
-import Link from 'next/link';
+import { useCallback, useEffect, useState } from 'react';
+import { RefreshCw } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type AcquiringReconRun } from '@/lib/admin-api';
-import { Spinner } from '@/components/ui/spinner';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardHeader, Th, Td, EmptyMsg } from '@/components/ui/table';
+import { useToast } from '@/components/ui/toast';
+import { formatKz, formatDate } from '@/lib/format';
 
-function api() {
-  const session = getSession();
-  if (!session) throw new Error('Not authenticated');
-  return new AdminApi(session.apiUrl, session.adminKey);
+function getApi(): AdminApi | null {
+  const s = getSession();
+  return s ? new AdminApi(s.apiUrl, s.adminKey) : null;
 }
 
 export default function ReconciliationPage() {
-  const [loading, setLoading]   = useState(false);
-  const [result, setResult]     = useState<Record<string, unknown> | null>(null);
-  const [error, setError]       = useState('');
+  const toast = useToast();
+  const [runs, setRuns] = useState<AcquiringReconRun[]>([]);
+  const [last, setLast] = useState<AcquiringReconRun | null>(null);
+  const [running, setRunning] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [latestRun, setLatestRun]       = useState<AcquiringReconRun | null>(null);
-  const [runsLoading, setRunsLoading]   = useState(true);
-
-  useEffect(() => {
-    api().listAcquiringReconciliationRuns()
-      .then(res => {
-        const runs = res.data ?? [];
-        if (runs.length > 0) setLatestRun(runs[0]);
-      })
-      .catch(() => {})
-      .finally(() => setRunsLoading(false));
-  }, []);
-
-  async function runReconciliation() {
-    setLoading(true); setError(''); setResult(null);
+  const load = useCallback(async () => {
+    const api = getApi();
+    if (!api) return;
+    setLoading(true);
     try {
-      const r = await api().runReconciliation();
-      setResult(r);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Erro');
+      const r = await api.listAcquiringReconciliationRuns();
+      setRuns(r.data);
+    } catch {
+      /* show empty history */
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  async function run() {
+    const api = getApi();
+    if (!api) return;
+    setRunning(true);
+    try {
+      const result = await api.runAcquiringReconciliation();
+      setLast(result);
+      const div = (result.amount_mismatch ?? 0) + (result.missing_posting ?? 0);
+      toast(div > 0 ? 'warning' : 'success', div > 0 ? `Reconciliação concluída — ${div} divergências.` : 'Reconciliação concluída — sem divergências.');
+      await load();
+    } catch {
+      toast('danger', 'Não foi possível executar a reconciliação.');
+    } finally {
+      setRunning(false);
+    }
   }
 
+  const divergences = (last?.items ?? []).filter((i) => i.status !== 'MATCHED');
+
   return (
-    <div className="max-w-xl mx-auto flex flex-col gap-xl">
-
-      {/* Settlement reconciliation */}
-      <div className="bg-white rounded-lg shadow-card p-xl flex flex-col gap-lg">
+    <>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-4 rounded-[18px] border border-[#f1e3e3] bg-white px-6 py-[22px]">
         <div>
-          <h2 className="text-sm font-semibold text-gray-900">Reconciliação de Liquidações</h2>
-          <p className="text-xs text-gray-400 mt-xs">
-            Verifica a consistência entre o ledger e o estado externo das liquidações.
+          <h3 className="m-0 text-[16px] font-black">Reconciliação manual</h3>
+          <p className="m-0 mt-[5px] text-[13.5px] font-semibold text-[#9a8a8e]">
+            Compara liquidações esperadas com os movimentos recebidos e identifica divergências.
           </p>
         </div>
-
-        <div className="bg-warning-bg rounded-lg p-lg">
-          <p className="text-xs font-medium text-warning">
-            A reconciliação é executada automaticamente em produção. Use esta opção apenas
-            para verificações urgentes ou após incidentes.
-          </p>
-        </div>
-
         <button
-          onClick={runReconciliation}
-          disabled={loading}
-          className="h-10 px-xl bg-gray-900 text-white rounded-md text-sm font-medium hover:bg-gray-700 disabled:opacity-60 transition-colors flex items-center justify-center gap-sm self-start"
+          onClick={run}
+          disabled={running}
+          className="inline-flex items-center gap-[9px] rounded-[14px] bg-[#1a1416] px-6 py-[14px] text-[14.5px] font-extrabold text-white transition hover:bg-black disabled:opacity-60"
         >
-          {loading ? (
-            <><Spinner className="h-4 w-4 text-white" /> A reconciliar…</>
-          ) : (
-            <><RefreshCw size={15} /> Executar reconciliação</>
-          )}
+          <RefreshCw size={17} strokeWidth={1.9} className={running ? 'adm-spin' : ''} />
+          {running ? 'A executar…' : 'Executar reconciliação'}
         </button>
       </div>
 
-      {error && (
-        <p className="text-sm text-error bg-error-bg rounded-lg px-xl py-lg">{error}</p>
+      {last && (
+        <Card className="mb-4">
+          <CardHeader title={`Reconciliação concluída — ${divergences.length} divergências encontradas`} />
+          {divergences.length === 0 ? (
+            <EmptyMsg title="Sem divergências nesta execução." />
+          ) : (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-[#FFF7F6]">
+                  <Th>Referência</Th>
+                  <Th right>Esperado</Th>
+                  <Th right>Recebido</Th>
+                  <Th right>Δ</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {divergences.map((d) => (
+                  <tr key={d.id}>
+                    <Td mono className="font-extrabold text-[#B5101F]">{d.external_ref}</Td>
+                    <Td right mono className="font-bold">{formatKz(d.ledger_amount_minor)}</Td>
+                    <Td right mono className="font-bold">{formatKz(d.callback_amount_minor)}</Td>
+                    <Td right mono className="font-extrabold text-[#B5101F]">{formatKz(d.discrepancy_minor)}</Td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </Card>
       )}
 
-      {result && (
-        <div className="bg-white rounded-lg shadow-card overflow-hidden">
-          <div className="flex items-center gap-md px-xl py-lg border-b border-gray-100">
-            <CheckCircle2 size={18} className="text-success" />
-            <h3 className="text-sm font-semibold text-gray-900">Resultado</h3>
-          </div>
-          <div className="p-xl">
-            <pre className="text-xs font-mono text-gray-700 bg-gray-100 rounded-md p-lg overflow-auto max-h-64">
-              {JSON.stringify(result, null, 2)}
-            </pre>
-          </div>
-        </div>
-      )}
-
-      {/* Latest acquiring recon summary */}
-      <div className="bg-white rounded-lg shadow-card overflow-hidden">
-        <div className="px-xl py-lg border-b border-gray-100 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-gray-900">Última Reconciliação Acquiring</h2>
-          <Link href="/risk" className="flex items-center gap-xs text-xs text-gray-400 hover:text-gray-700 transition-colors">
-            Ver tudo <ExternalLink size={12} />
-          </Link>
-        </div>
-
-        {runsLoading && (
-          <div className="flex justify-center py-xl">
-            <Spinner className="h-5 w-5" />
-          </div>
+      <Card>
+        <CardHeader title="Histórico de reconciliações" />
+        {loading ? (
+          <div className="adm-skel m-6 h-[160px] rounded-[14px]" />
+        ) : runs.length === 0 ? (
+          <EmptyMsg title="Ainda não há execuções de reconciliação." />
+        ) : (
+          <table className="w-full border-collapse">
+            <thead>
+              <tr className="bg-[#FFF7F6]">
+                <Th>Execução</Th>
+                <Th>Data</Th>
+                <Th right>Movimentos</Th>
+                <Th>Divergências</Th>
+                <Th>Estado</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {runs.map((r) => {
+                const div = (r.amount_mismatch ?? 0) + (r.missing_posting ?? 0);
+                return (
+                  <tr key={r.id}>
+                    <Td mono className="font-extrabold text-[#B5101F]">{r.id.slice(0, 10)}</Td>
+                    <Td mono className="font-semibold text-[#5a4a4e]">{formatDate(r.reconciliation_date)}</Td>
+                    <Td right mono className="font-bold">{r.total_callbacks}</Td>
+                    <Td className="font-extrabold" >
+                      <span style={{ color: div > 0 ? '#B5101F' : '#1f9d57' }}>{div}</span>
+                    </Td>
+                    <Td><Badge label={r.status} variant={r.status === 'COMPLETED' ? 'success' : r.status === 'FAILED' ? 'danger' : 'warning'} /></Td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         )}
-
-        {!runsLoading && !latestRun && (
-          <p className="text-xs text-gray-400 text-center py-xl">Nenhum run executado ainda.</p>
-        )}
-
-        {latestRun && (
-          <div className="divide-y divide-gray-100">
-            <div className="grid grid-cols-4 divide-x divide-gray-100">
-              {[
-                { label: 'Data',      value: latestRun.reconciliation_date },
-                { label: 'Status',    value: latestRun.status },
-                { label: 'Matched',   value: String(latestRun.matched), ok: true },
-                { label: 'Issues',    value: String((latestRun.missing_posting ?? 0) + (latestRun.amount_mismatch ?? 0)),
-                  warn: (latestRun.missing_posting + latestRun.amount_mismatch) > 0 },
-              ].map(s => (
-                <div key={s.label} className="px-xl py-lg text-center">
-                  <p className="text-xs text-gray-400">{s.label}</p>
-                  <p className={`text-sm font-semibold mt-xs ${
-                    s.ok ? 'text-success' : s.warn ? 'text-error' : 'text-gray-900'
-                  }`}>{s.value}</p>
-                </div>
-              ))}
-            </div>
-            {(latestRun.missing_posting > 0 || latestRun.amount_mismatch > 0) && (
-              <div className="px-xl py-lg flex items-center gap-sm">
-                <AlertTriangle size={14} className="text-warning" />
-                <p className="text-xs text-gray-600">
-                  Existem discrepâncias. <Link href="/risk" className="text-gray-900 font-medium hover:underline">Ver detalhes →</Link>
-                </p>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+      </Card>
+    </>
   );
 }

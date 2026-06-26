@@ -43,7 +43,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        sans: ["'Inter'", 'sans-serif'],
+        sans: ["'Nunito'", 'system-ui', 'sans-serif'],
         mono: ["'JetBrains Mono'", 'monospace'],
       },
       borderRadius: {
