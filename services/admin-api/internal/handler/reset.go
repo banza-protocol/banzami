@@ -46,9 +46,10 @@ func (h *ResetHandler) ready(w http.ResponseWriter) bool {
 	return true
 }
 
-// POST /admin/v1/operators/{id}/password-reset (SUPER_ADMIN)
+// POST /admin/v1/operators/{id}/password-reset — authorized via RequireCapability
+// (CapOperatorReset) on the route.
 func (h *ResetHandler) Request(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -119,13 +120,13 @@ func (h *ResetHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		NewPassword string `json:"new_password"`
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
-	if len(body.NewPassword) < 10 {
-		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+	if len(body.NewPassword) < auth.MinPasswordLen {
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 12 characters")
 		return
 	}
 	hash, err := auth.HashPassword(body.NewPassword)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 12 characters")
 		return
 	}
 	reason, err := h.store.CompleteReset(r.Context(), body.Token, hash)

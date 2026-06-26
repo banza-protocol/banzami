@@ -25,6 +25,7 @@ type OperatorStore interface {
 	SetOperatorStatus(ctx context.Context, id, status, updatedBy string) error
 	CountActiveSuperAdmins(ctx context.Context) (int, error)
 	CreateInviteToken(ctx context.Context, adminUserID, createdBy string) (string, time.Time, error)
+	BumpTokenVersion(ctx context.Context, id string) error
 }
 
 // OperatorMailer sends the invitation email.
@@ -73,16 +74,6 @@ func (h *OperatorHandler) ready(w http.ResponseWriter) bool {
 	return true
 }
 
-// requireSuperAdmin enforces role on the server (not just the UI).
-func requireSuperAdmin(w http.ResponseWriter, r *http.Request) bool {
-	p, ok := auth.FromContext(r.Context())
-	if !ok || p.Role != "SUPER_ADMIN" {
-		writeError(w, http.StatusForbidden, "FORBIDDEN", "requires SUPER_ADMIN")
-		return false
-	}
-	return true
-}
-
 func (h *OperatorHandler) opErr(w http.ResponseWriter, err error) {
 	switch {
 	case errors.Is(err, service.ErrAdminUserNotFound):
@@ -122,7 +113,7 @@ func (h *OperatorHandler) Get(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/operators (SUPER_ADMIN)
 func (h *OperatorHandler) Create(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	var body struct {
@@ -165,7 +156,7 @@ func (h *OperatorHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/operators/{id}/resend-invite (SUPER_ADMIN)
 func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	o, err := h.ops.GetOperator(r.Context(), chi.URLParam(r, "id"))
@@ -193,7 +184,7 @@ func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
 
 // PATCH /admin/v1/operators/{id} (SUPER_ADMIN) — update full_name
 func (h *OperatorHandler) Update(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	var body struct {
@@ -213,7 +204,7 @@ func (h *OperatorHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/operators/{id}/role (SUPER_ADMIN)
 func (h *OperatorHandler) SetRole(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	var body struct {
@@ -246,7 +237,7 @@ func (h *OperatorHandler) SetRole(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/operators/{id}/suspend (SUPER_ADMIN)
 func (h *OperatorHandler) Suspend(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -271,7 +262,7 @@ func (h *OperatorHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 
 // POST /admin/v1/operators/{id}/activate (SUPER_ADMIN)
 func (h *OperatorHandler) Activate(w http.ResponseWriter, r *http.Request) {
-	if !h.ready(w) || !requireSuperAdmin(w, r) {
+	if !h.ready(w) {
 		return
 	}
 	id := chi.URLParam(r, "id")
@@ -280,6 +271,26 @@ func (h *OperatorHandler) Activate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	h.returnOperator(w, r, id)
+}
+
+// POST /admin/v1/operators/{id}/terminate-sessions — authorized via
+// RequireCapability(CapOperatorReset). Increments the target's token_version so
+// every session they hold is revoked immediately.
+func (h *OperatorHandler) TerminateSessions(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	id := chi.URLParam(r, "id")
+	if _, err := h.ops.GetOperator(r.Context(), id); err != nil {
+		h.opErr(w, err)
+		return
+	}
+	if err := h.ops.BumpTokenVersion(r.Context(), id); err != nil {
+		h.opErr(w, err)
+		return
+	}
+	slog.InfoContext(r.Context(), "admin.operator_sessions_terminated", "admin_user_id", id)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 func (h *OperatorHandler) returnOperator(w http.ResponseWriter, r *http.Request, id string) {

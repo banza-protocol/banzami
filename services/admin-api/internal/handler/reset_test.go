@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
+	"github.com/banzami/banzami/services/admin-api/internal/middleware"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
@@ -44,7 +45,9 @@ func (f *fakeReset) AdminPasswordReset(_, _, link string) { f.mailedLink = link 
 
 func resetRouter(h *ResetHandler) http.Handler {
 	r := chi.NewRouter()
-	r.Post("/admin/v1/operators/{id}/password-reset", h.Request)
+	// Operator-initiated reset is gated by CapOperatorReset (SUPER_ADMIN/SUPPORT);
+	// the public validate/complete routes carry no capability.
+	r.With(middleware.RequireCapability(auth.CapOperatorReset)).Post("/admin/v1/operators/{id}/password-reset", h.Request)
 	r.Post("/admin/v1/auth/password-reset/validate", h.Validate)
 	r.Post("/admin/v1/auth/password-reset/complete", h.Complete)
 	return r

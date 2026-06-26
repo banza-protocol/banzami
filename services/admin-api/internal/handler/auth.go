@@ -21,6 +21,13 @@ type LoginStore interface {
 	RecordFailedLogin(ctx context.Context, id string) (*time.Time, error)
 	ResetLoginCountersAndTouch(ctx context.Context, id string)
 	RecordLoginAttempt(ctx context.Context, emailNorm string, adminUserID *string, ip, userAgent string, success bool, failureReason string)
+	BumpTokenVersion(ctx context.Context, id string) error
+}
+
+// AuditSink appends to the immutable admin audit log. *service.AuditService
+// satisfies it; nil disables direct auditing (e.g. in unit tests).
+type AuditSink interface {
+	Write(ctx context.Context, e service.AuditEntry)
 }
 
 // clientIP extracts the caller IP (nginx sets X-Real-IP to cf-connecting-ip).
@@ -44,10 +51,24 @@ type AuthHandler struct {
 	users     LoginStore
 	jwtSecret string
 	ttl       time.Duration
+	audit     AuditSink
 }
 
 func NewAuthHandler(users LoginStore, jwtSecret string, ttl time.Duration) *AuthHandler {
 	return &AuthHandler{users: users, jwtSecret: jwtSecret, ttl: ttl}
+}
+
+// WithAudit attaches an audit sink. Login/logout are public routes (outside the
+// audit middleware), so they record their own audit rows here.
+func (h *AuthHandler) WithAudit(a AuditSink) *AuthHandler {
+	h.audit = a
+	return h
+}
+
+func (h *AuthHandler) writeAudit(ctx context.Context, e service.AuditEntry) {
+	if h.audit != nil {
+		h.audit.Write(ctx, e)
+	}
 }
 
 type userDTO struct {
@@ -84,39 +105,68 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	ip, ua := clientIP(r), r.UserAgent()
 	now := time.Now()
 
+	// failLogin keeps every rejection identical from the caller's perspective:
+	// same 401 + same generic message + an equal-cost bcrypt comparison. The only
+	// path that differs is a true lockout (429), which an attacker triggers
+	// against a known-existing account anyway.
+	failLogin := func(reason string, userID *string) {
+		h.users.RecordLoginAttempt(ctx, emailNorm, userID, ip, ua, false, reason)
+		uid := ""
+		if userID != nil {
+			uid = *userID
+		}
+		h.writeAudit(ctx, service.AuditEntry{
+			AdminUserID: uid, AdminEmail: emailNorm, Action: "LOGIN_FAILED",
+			EntityType: "operator", EntityID: uid, StatusCode: http.StatusUnauthorized,
+			IP: ip, UserAgent: ua, After: map[string]string{"reason": reason},
+		})
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
+	}
+
 	u, err := h.users.GetByEmail(ctx, emailNorm)
 	if err != nil {
-		// Unknown email: record the attempt (no lock for non-existent users),
-		// respond generically — never reveal whether the email exists.
-		h.users.RecordLoginAttempt(ctx, emailNorm, nil, ip, ua, false, "UNKNOWN_EMAIL")
-		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
+		// Unknown email: still spend one bcrypt comparison so the response time
+		// matches a real verification, then fail generically.
+		auth.DummyVerify(body.Password)
+		failLogin("UNKNOWN_EMAIL", nil)
 		return
 	}
 	if u.IsLocked(now) {
+		// The only non-generic outcome — a genuine lockout returns 429.
 		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "LOCKED")
+		h.writeAudit(ctx, service.AuditEntry{
+			AdminUserID: u.ID, AdminEmail: emailNorm, Action: "LOGIN_FAILED",
+			EntityType: "operator", EntityID: u.ID, StatusCode: http.StatusTooManyRequests,
+			IP: ip, UserAgent: ua, After: map[string]string{"reason": "LOCKED"},
+		})
 		writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
 		return
 	}
-	if u.Status == "SUSPENDED" {
-		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "SUSPENDED")
-		writeError(w, http.StatusForbidden, "ACCOUNT_SUSPENDED", "account suspended")
-		return
+	// Always run a bcrypt comparison (real hash, or the dummy for an INVITED
+	// account with no password) so timing does not leak account state.
+	var ok bool
+	if u.PasswordHash == "" {
+		auth.DummyVerify(body.Password)
+	} else {
+		ok = auth.VerifyPassword(u.PasswordHash, body.Password)
 	}
-	// INVITED (or any non-ACTIVE) account has no usable password yet. Empty hash
-	// = operator must set a password via the invite/reset link. Both are a
-	// generic failed login — never reveal the account state.
-	if u.PasswordHash == "" || !auth.VerifyPassword(u.PasswordHash, body.Password) {
+	if !ok {
 		reason := "BAD_PASSWORD"
 		if u.PasswordHash == "" {
 			reason = "NO_PASSWORD_SET"
 		}
 		_, _ = h.users.RecordFailedLogin(ctx, u.ID)
-		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, reason)
-		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
+		failLogin(reason, &u.ID)
+		return
+	}
+	// Correct password but not an active account (e.g. SUSPENDED): respond
+	// exactly like a wrong password — never reveal the account state.
+	if u.Status != "ACTIVE" {
+		failLogin("NOT_ACTIVE", &u.ID)
 		return
 	}
 
-	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role}
+	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion}
 	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, now)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue session")
@@ -124,6 +174,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 	h.users.ResetLoginCountersAndTouch(ctx, u.ID)
 	h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, true, "")
+	h.writeAudit(ctx, service.AuditEntry{
+		AdminUserID: u.ID, AdminEmail: u.Email, FullName: u.FullName, Role: u.Role,
+		Action: "LOGIN_SUCCESS", EntityType: "operator", EntityID: u.ID,
+		StatusCode: http.StatusOK, IP: ip, UserAgent: ua,
+	})
 	slog.InfoContext(ctx, "admin.login", "admin_user_id", u.ID, "role", u.Role) // no password/token
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -131,6 +186,26 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		"expires_at": exp,
 		"user":       userDTO{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role},
 	})
+}
+
+// POST /admin/v1/auth/terminate-sessions — the operator revokes all of their own
+// sessions (including the current one) by incrementing token_version. The next
+// request with any previously-issued token fails the middleware's version check.
+func (h *AuthHandler) TerminateSessions(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	p, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return
+	}
+	if err := h.users.BumpTokenVersion(r.Context(), p.ID); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not terminate sessions")
+		return
+	}
+	slog.InfoContext(r.Context(), "admin.sessions_terminated", "admin_user_id", p.ID)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 // GET /admin/v1/auth/me
@@ -184,8 +259,8 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "INVALID_CURRENT_PASSWORD", "current password is incorrect")
 		return
 	}
-	if len(body.NewPassword) < 10 {
-		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+	if len(body.NewPassword) < auth.MinPasswordLen {
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 12 characters")
 		return
 	}
 	if auth.VerifyPassword(u.PasswordHash, body.NewPassword) {
@@ -195,7 +270,7 @@ func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
 
 	hash, err := auth.HashPassword(body.NewPassword)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 12 characters")
 		return
 	}
 	if err := h.users.UpdatePassword(r.Context(), u.ID, hash); err != nil {

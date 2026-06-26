@@ -27,6 +27,7 @@ type AdminUser struct {
 	LastLoginAt         *time.Time
 	FailedLoginAttempts int
 	LockedUntil         *time.Time
+	TokenVersion        int
 }
 
 // Lockout policy.
@@ -49,12 +50,12 @@ func NewAdminUserService(pool *pgxpool.Pool) *AdminUserService {
 }
 
 const adminUserCols = `id::text, email, full_name, COALESCE(password_hash,''), role, status,
-	last_login_at, failed_login_attempts, locked_until`
+	last_login_at, failed_login_attempts, locked_until, token_version`
 
 func scanAdminUser(row pgx.Row) (AdminUser, error) {
 	var u AdminUser
 	err := row.Scan(&u.ID, &u.Email, &u.FullName, &u.PasswordHash, &u.Role, &u.Status,
-		&u.LastLoginAt, &u.FailedLoginAttempts, &u.LockedUntil)
+		&u.LastLoginAt, &u.FailedLoginAttempts, &u.LockedUntil, &u.TokenVersion)
 	return u, err
 }
 
@@ -84,9 +85,29 @@ func (s *AdminUserService) TouchLastLogin(ctx context.Context, id string) {
 }
 
 // UpdatePassword replaces an operator's bcrypt hash, records password_set_at,
-// and bumps updated_at.
+// bumps updated_at, and increments token_version so that changing the password
+// revokes every outstanding session for that operator.
 func (s *AdminUserService) UpdatePassword(ctx context.Context, id, passwordHash string) error {
-	tag, err := s.pool.Exec(ctx, `UPDATE admin_users SET password_hash = $2, password_set_at = now(), updated_at = now() WHERE id = $1`, id, passwordHash)
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE admin_users
+		    SET password_hash = $2, password_set_at = now(),
+		        token_version = token_version + 1, updated_at = now()
+		  WHERE id = $1`, id, passwordHash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrAdminUserNotFound
+	}
+	return nil
+}
+
+// BumpTokenVersion increments token_version, immediately invalidating every
+// outstanding session for the operator. Backs the "terminate all sessions"
+// action (self-service and SUPER_ADMIN-initiated).
+func (s *AdminUserService) BumpTokenVersion(ctx context.Context, id string) error {
+	tag, err := s.pool.Exec(ctx,
+		`UPDATE admin_users SET token_version = token_version + 1, updated_at = now() WHERE id = $1`, id)
 	if err != nil {
 		return err
 	}

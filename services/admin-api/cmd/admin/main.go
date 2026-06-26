@@ -57,6 +57,7 @@ func main() {
 	// Operator auth (admin_users). Requires DATABASE_URL + ADMIN_JWT_SECRET.
 	// Without them the auth endpoints respond 503; the service still starts.
 	var users *service.AdminUserService
+	var audit *service.AuditService
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -65,6 +66,7 @@ func main() {
 		}
 		defer pool.Close()
 		users = service.NewAdminUserService(pool)
+		audit = service.NewAuditService(pool)
 		if cfg.AdminJWTSecret == "" {
 			slog.Warn("ADMIN_JWT_SECRET not set — operator login disabled (503)")
 		} else {
@@ -74,7 +76,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users)
+	srv := server.New(cfg, core, mailer, gw, users, audit)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

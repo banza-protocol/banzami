@@ -49,7 +49,18 @@ func AdminJWT(secret string, users OperatorStore) func(http.Handler) http.Handle
 				deny(w, http.StatusForbidden, "FORBIDDEN", "account suspended")
 				return
 			}
-			ctx := auth.WithPrincipal(r.Context(), auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role})
+			// Session revocation: the JWT carries the token_version it was minted
+			// with. Any change-password / reset / suspend / "terminate sessions"
+			// increments the row's token_version, so a stale token no longer matches.
+			if p.TokenVersion != u.TokenVersion {
+				deny(w, http.StatusUnauthorized, "UNAUTHORIZED", "session expired, please sign in again")
+				return
+			}
+			// Identity (full name) and live role come from the database, not the
+			// token; token_version is the row's current value.
+			ctx := auth.WithPrincipal(r.Context(), auth.Principal{
+				ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role, TokenVersion: u.TokenVersion,
+			})
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

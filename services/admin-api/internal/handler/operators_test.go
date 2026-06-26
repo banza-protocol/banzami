@@ -11,6 +11,7 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
+	"github.com/banzami/banzami/services/admin-api/internal/middleware"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
@@ -22,6 +23,7 @@ type fakeOps struct {
 	roleSet     string
 	statusSet   string
 	inviteCalls int
+	bumpCalls   int
 	mailedLink  string
 }
 
@@ -60,6 +62,10 @@ func (f *fakeOps) CreateInviteToken(_ context.Context, _, _ string) (string, tim
 	f.inviteCalls++
 	return "rawinvite", time.Now().Add(72 * time.Hour), nil
 }
+func (f *fakeOps) BumpTokenVersion(_ context.Context, _ string) error {
+	f.bumpCalls++
+	return nil
+}
 func (f *fakeOps) AdminOperatorInvite(_, _, link string) { f.mailedLink = link }
 
 func newOpH(f *fakeOps, showLink bool) *OperatorHandler {
@@ -76,14 +82,21 @@ func opReq(method, path, body, role string) *http.Request {
 	return r.WithContext(auth.WithPrincipal(r.Context(), auth.Principal{ID: "me", Email: "me@banzami.com", Role: role}))
 }
 
+// opRouter mirrors the real route table: authorization is enforced by the
+// RequireCapability middleware (not by the handlers), so the tests exercise the
+// same gate production uses.
 func opRouter(h *OperatorHandler) http.Handler {
 	r := chi.NewRouter()
-	r.Get("/admin/v1/operators", h.List)
-	r.Post("/admin/v1/operators", h.Create)
-	r.Post("/admin/v1/operators/{id}/role", h.SetRole)
-	r.Post("/admin/v1/operators/{id}/suspend", h.Suspend)
-	r.Post("/admin/v1/operators/{id}/activate", h.Activate)
-	r.Post("/admin/v1/operators/{id}/resend-invite", h.ResendInvite)
+	manage := middleware.RequireCapability(auth.CapOperatorManage)
+	reset := middleware.RequireCapability(auth.CapOperatorReset)
+	read := middleware.RequireCapability(auth.CapOperatorRead)
+	r.With(read).Get("/admin/v1/operators", h.List)
+	r.With(manage).Post("/admin/v1/operators", h.Create)
+	r.With(manage).Post("/admin/v1/operators/{id}/role", h.SetRole)
+	r.With(manage).Post("/admin/v1/operators/{id}/suspend", h.Suspend)
+	r.With(manage).Post("/admin/v1/operators/{id}/activate", h.Activate)
+	r.With(reset).Post("/admin/v1/operators/{id}/resend-invite", h.ResendInvite)
+	r.With(reset).Post("/admin/v1/operators/{id}/terminate-sessions", h.TerminateSessions)
 	return r
 }
 

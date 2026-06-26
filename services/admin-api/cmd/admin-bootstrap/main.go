@@ -54,7 +54,7 @@ func main() {
 
 	password := os.Getenv("ADMIN_BOOTSTRAP_PASSWORD")
 	if password == "" {
-		fmt.Fprint(os.Stderr, "Password (min 10 chars, hidden): ")
+		fmt.Fprint(os.Stderr, "Password (min 12 chars, hidden): ")
 		b, err := term.ReadPassword(int(syscall.Stdin))
 		fmt.Fprintln(os.Stderr)
 		if err != nil {

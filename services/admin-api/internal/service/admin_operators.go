@@ -89,11 +89,14 @@ func (s *AdminUserService) SetOperatorRole(ctx context.Context, id, role, update
 	return s.execOperator(ctx, `UPDATE admin_users SET role=$2, updated_by=$3, updated_at=now() WHERE id=$1`, id, role, nullStr(updatedBy))
 }
 
-// SetOperatorStatus also clears the lock when re-activating.
+// SetOperatorStatus also clears the lock when re-activating and increments
+// token_version so a suspend (or re-activate) immediately revokes any sessions
+// the operator still holds.
 func (s *AdminUserService) SetOperatorStatus(ctx context.Context, id, status, updatedBy string) error {
 	return s.execOperator(ctx,
 		`UPDATE admin_users
 		    SET status=$2, updated_by=$3, updated_at=now(),
+		        token_version = token_version + 1,
 		        failed_login_attempts = CASE WHEN $2='ACTIVE' THEN 0 ELSE failed_login_attempts END,
 		        locked_until = CASE WHEN $2='ACTIVE' THEN NULL ELSE locked_until END
 		  WHERE id=$1`, id, status, nullStr(updatedBy))

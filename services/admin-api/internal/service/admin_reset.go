@@ -155,11 +155,14 @@ func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash 
 
 	// INVITE completion activates the account; PASSWORD_RESET only sets the
 	// password (a SUSPENDED operator stays suspended — never auto-reactivated).
+	// token_version is bumped in both branches so completing an invite or a reset
+	// revokes any session minted before the password was (re)set.
 	if purpose == PurposeInvite {
 		if _, err := tx.Exec(ctx,
 			`UPDATE admin_users
 			    SET password_hash=$2, password_set_at=now(), activated_at=now(),
 			        status = CASE WHEN status='INVITED' THEN 'ACTIVE' ELSE status END,
+			        token_version = token_version + 1,
 			        failed_login_attempts=0, locked_until=NULL, updated_at=now()
 			  WHERE id=$1`, adminUserID, passwordHash); err != nil {
 			return "", err
@@ -167,6 +170,7 @@ func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash 
 	} else if _, err := tx.Exec(ctx,
 		`UPDATE admin_users
 		    SET password_hash=$2, password_set_at=now(), failed_login_attempts=0,
+		        token_version = token_version + 1,
 		        locked_until=NULL, updated_at=now()
 		  WHERE id=$1`, adminUserID, passwordHash); err != nil {
 		return "", err

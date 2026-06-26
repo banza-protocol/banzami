@@ -59,6 +59,12 @@ func (f *fakeStore) ResetLoginCountersAndTouch(_ context.Context, id string) {
 func (f *fakeStore) RecordLoginAttempt(_ context.Context, _ string, _ *string, _, _ string, success bool, reason string) {
 	f.attempts = append(f.attempts, map[bool]string{true: "success", false: "fail"}[success]+":"+reason)
 }
+func (f *fakeStore) BumpTokenVersion(_ context.Context, id string) error {
+	if f.user != nil && f.user.ID == id {
+		f.user.TokenVersion++
+	}
+	return nil
+}
 
 func loginReq(body string) *http.Request {
 	return httptest.NewRequest("POST", "/admin/v1/auth/login", strings.NewReader(body))
@@ -117,8 +123,29 @@ func TestLogin_Suspended(t *testing.T) {
 	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
 	w := httptest.NewRecorder()
 	h.Login(w, loginReq(`{"email":"op@banzami.com","password":"a-strong-password"}`))
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("suspended user must be 403, got %d", w.Code)
+	// Anti-enumeration: a suspended account responds exactly like a wrong
+	// password (generic 401) — never a distinct 403/"suspended" signal.
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("suspended user must be a generic 401, got %d", w.Code)
+	}
+	if strings.Contains(w.Body.String(), "token") {
+		t.Fatalf("suspended login must not issue a token: %s", w.Body.String())
+	}
+}
+
+func TestLogin_TerminateSessions(t *testing.T) {
+	u := activeUser(t)
+	store := &fakeStore{user: u}
+	h := NewAuthHandler(store, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	r := httptest.NewRequest("POST", "/admin/v1/auth/terminate-sessions", nil)
+	r = r.WithContext(auth.WithPrincipal(r.Context(), principalFor(u)))
+	h.TerminateSessions(w, r)
+	if w.Code != http.StatusOK {
+		t.Fatalf("terminate-sessions must be 200, got %d", w.Code)
+	}
+	if u.TokenVersion != 1 {
+		t.Fatalf("terminate-sessions must bump token_version, got %d", u.TokenVersion)
 	}
 }
 

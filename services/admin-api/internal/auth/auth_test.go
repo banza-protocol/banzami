@@ -26,7 +26,10 @@ func TestPassword(t *testing.T) {
 
 func TestJWTRoundTrip(t *testing.T) {
 	const secret = "test-secret-please-change"
-	p := Principal{ID: "u1", Email: "op@banzami.com", FullName: "Op Silva", Role: "OPERATIONS"}
+	// The JWT carries only sub/email/role/token_version (not the full name): the
+	// middleware re-loads identity from the database. FullName is therefore empty
+	// after a round-trip, by design.
+	p := Principal{ID: "u1", Email: "op@banzami.com", FullName: "Op Silva", Role: "OPERATIONS", TokenVersion: 7}
 	now := time.Now()
 	tok, exp, err := Issue(secret, p, time.Hour, now)
 	if err != nil {
@@ -39,8 +42,9 @@ func TestJWTRoundTrip(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if got != p {
-		t.Fatalf("round-trip mismatch: %+v != %+v", got, p)
+	want := Principal{ID: "u1", Email: "op@banzami.com", Role: "OPERATIONS", TokenVersion: 7}
+	if got != want {
+		t.Fatalf("round-trip mismatch: %+v != %+v", got, want)
 	}
 }
 

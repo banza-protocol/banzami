@@ -74,3 +74,23 @@ func TestRejectsSuspended(t *testing.T) {
 		t.Fatalf("suspended operator must be 403, got %d", code)
 	}
 }
+
+func TestRejectsStaleTokenVersion(t *testing.T) {
+	// DB has token_version 2 (e.g. after a "terminate sessions"); the token was
+	// minted at version 1 → must be rejected as a revoked session.
+	ops := &fakeOps{user: &service.AdminUser{ID: "u1", Status: "ACTIVE", Role: "OPERATIONS", TokenVersion: 2}}
+	tok, _, _ := auth.Issue(secret, auth.Principal{ID: "u1", Role: "OPERATIONS", TokenVersion: 1}, time.Hour, time.Now())
+	code := run(AdminJWT(secret, ops), func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+tok) })
+	if code != http.StatusUnauthorized {
+		t.Fatalf("stale token_version must be 401, got %d", code)
+	}
+}
+
+func TestAcceptsMatchingTokenVersion(t *testing.T) {
+	ops := &fakeOps{user: &service.AdminUser{ID: "u1", Status: "ACTIVE", Role: "OPERATIONS", TokenVersion: 5}}
+	tok, _, _ := auth.Issue(secret, auth.Principal{ID: "u1", Role: "OPERATIONS", TokenVersion: 5}, time.Hour, time.Now())
+	code := run(AdminJWT(secret, ops), func(r *http.Request) { r.Header.Set("Authorization", "Bearer "+tok) })
+	if code != http.StatusOK {
+		t.Fatalf("matching token_version must pass, got %d", code)
+	}
+}
