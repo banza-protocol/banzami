@@ -24,8 +24,8 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (next.length < 10) {
-      setError('A nova palavra-passe deve ter pelo menos 10 caracteres.');
+    if (next.length < 12) {
+      setError('A nova palavra-passe deve ter pelo menos 12 caracteres.');
       return;
     }
     if (next !== confirm) {
@@ -46,7 +46,7 @@ export function ChangePasswordModal({ onClose }: { onClose: () => void }) {
     } catch (err) {
       if (err instanceof AdminApiError) {
         if (err.code === 'INVALID_CURRENT_PASSWORD') setError('A palavra-passe atual está incorreta.');
-        else if (err.code === 'WEAK_PASSWORD') setError('A nova palavra-passe deve ter pelo menos 10 caracteres.');
+        else if (err.code === 'WEAK_PASSWORD') setError('A nova palavra-passe deve ter pelo menos 12 caracteres.');
         else if (err.code === 'SAME_PASSWORD') setError('A nova palavra-passe deve ser diferente da atual.');
         else setError('Não foi possível alterar a palavra-passe.');
       } else {

@@ -55,6 +55,12 @@ export default function MerchantDetailPage() {
 
   async function approve() {
     if (!api || !m) return;
+    const okGo = await dialog.confirm({
+      title: 'Aprovar candidatura',
+      message: `Aprovar ${m.business_name}? Isto cria a conta de comerciante e a wallet, e envia o email de ativação. A ação fica registada no log de auditoria.`,
+      confirmLabel: 'Aprovar',
+    });
+    if (!okGo) return;
     setBusy('approve');
     try {
       await api.approveApplication(m.id);

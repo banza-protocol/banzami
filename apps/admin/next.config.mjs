@@ -13,11 +13,17 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
+      // script-src/style-src still allow 'unsafe-inline': Next.js 14 (app router)
+      // emits inline bootstrap/hydration scripts and next/font injects inline
+      // styles. Removing it safely requires a per-request nonce served from a
+      // Next middleware — tracked as the follow-up to this phase.
       "script-src 'self' 'unsafe-inline'",
       "style-src 'self' 'unsafe-inline'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
       "connect-src 'self' https://api.banzami.com",
+      "object-src 'none'",
+      "frame-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "form-action 'self'",

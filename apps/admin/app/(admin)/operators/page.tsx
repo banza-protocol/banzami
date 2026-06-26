@@ -103,6 +103,26 @@ export default function OperatorsPage() {
     }
   }
 
+  async function terminateSessions(o: Operator) {
+    const api = getApi();
+    if (!api) return;
+    if (!(await dialog.confirm({
+      title: 'Terminar sessões',
+      message: `Terminar todas as sessões ativas de ${o.full_name}? Os tokens atuais deixam de funcionar imediatamente e o operador terá de iniciar sessão de novo. Fica registado no log de auditoria.`,
+      confirmLabel: 'Terminar sessões',
+      danger: true,
+    }))) return;
+    setBusy(o.id);
+    try {
+      await api.terminateOperatorSessions(o.id);
+      toast('success', `Sessões de ${o.full_name} terminadas.`);
+    } catch (e) {
+      toast('danger', errMsg(e, 'Não foi possível terminar as sessões.'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function toggleStatus(o: Operator) {
     const api = getApi();
     if (!api) return;
@@ -211,6 +231,15 @@ export default function OperatorsPage() {
                       >
                         {o.status === 'INVITED' || !o.password_set ? 'Reenviar convite' : 'Reset password'}
                       </button>
+                      {o.status === 'ACTIVE' && o.password_set && (
+                        <button
+                          onClick={() => terminateSessions(o)}
+                          disabled={busy === o.id}
+                          className="rounded-[30px] border-[1.5px] border-[#f1e3e3] bg-white px-[14px] py-2 text-[13px] font-extrabold text-[#5a4a4e] transition hover:bg-[#FFF7F6] disabled:opacity-50"
+                        >
+                          Terminar sessões
+                        </button>
+                      )}
                       <button
                         onClick={() => toggleStatus(o)}
                         disabled={busy === o.id}

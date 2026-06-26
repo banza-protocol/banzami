@@ -77,6 +77,12 @@ export function KybDocumentsSection({
   }
 
   async function accept(documentId: string) {
+    const okGo = await dialog.confirm({
+      title: 'Aceitar documento KYB',
+      message: 'Aceitar este documento como válido para a verificação KYB? A decisão fica registada no log de auditoria.',
+      confirmLabel: 'Aceitar',
+    });
+    if (!okGo) return;
     setBusy(documentId);
     try {
       await api.acceptDocument(applicationId, documentId);

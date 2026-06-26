@@ -54,7 +54,14 @@ export default function DisputesPage() {
       required: true,
     });
     if (!outcome || !outcome.trim()) return;
-    const notes = (await dialog.prompt({ title: 'Resolver disputa', label: 'Notas de resolução (opcional)', multiline: true, confirmLabel: 'Resolver' })) ?? '';
+    const notes = (await dialog.prompt({ title: 'Resolver disputa', label: 'Notas de resolução (opcional)', multiline: true, confirmLabel: 'Continuar' })) ?? '';
+    const okGo = await dialog.confirm({
+      title: 'Resolver disputa',
+      message: `Resolver a disputa ${d.id.slice(0, 10)} com o resultado "${outcome.trim()}"? Esta ação é definitiva e fica registada no log de auditoria.`,
+      confirmLabel: 'Resolver',
+      danger: true,
+    });
+    if (!okGo) return;
     setBusy(d.id);
     try {
       await api.resolveDispute(d.id, outcome.trim(), notes);

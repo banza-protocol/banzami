@@ -70,8 +70,8 @@ function ResetInner() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (next.length < 10) {
-      setError('A palavra-passe deve ter pelo menos 10 caracteres.');
+    if (next.length < 12) {
+      setError('A palavra-passe deve ter pelo menos 12 caracteres.');
       return;
     }
     if (next !== confirm) {
@@ -84,7 +84,7 @@ function ResetInner() {
       await adminCompleteReset(token, next);
       setPhase({ kind: 'done' });
     } catch (err) {
-      if (err instanceof AdminApiError && err.code === 'WEAK_PASSWORD') setError('A palavra-passe deve ter pelo menos 10 caracteres.');
+      if (err instanceof AdminApiError && err.code === 'WEAK_PASSWORD') setError('A palavra-passe deve ter pelo menos 12 caracteres.');
       else setError('O link já não é válido. Peça um novo ao administrador.');
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ function ResetInner() {
     <Shell>
       <h1 className="m-0 text-[24px] font-black tracking-[-0.02em]">Definir palavra-passe</h1>
       <p className="m-0 mb-5 mt-2 text-[14.5px] font-semibold text-[#9a8a8e]">
-        {phase.fullName ? `Olá ${phase.fullName}. ` : ''}Escolha uma palavra-passe (mín. 10 caracteres).
+        {phase.fullName ? `Olá ${phase.fullName}. ` : ''}Escolha uma palavra-passe (mín. 12 caracteres).
       </p>
       <form onSubmit={submit} className="flex flex-col gap-3">
         <div>

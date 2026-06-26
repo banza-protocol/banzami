@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
-import { AlertCircle, ChevronDown, KeyRound, LogOut } from 'lucide-react';
-import { type AdminUser, destroySession } from '@/lib/session';
+import { AlertCircle, ChevronDown, KeyRound, LogOut, ShieldOff } from 'lucide-react';
+import { type AdminUser, destroySession, getSession } from '@/lib/session';
+import { AdminApi } from '@/lib/admin-api';
 import { initials } from '@/lib/format';
 import { ChangePasswordModal } from '@/components/ui/change-password-modal';
+import { useDialog } from '@/components/ui/dialog';
+import { useToast } from '@/components/ui/toast';
 
 // Title + subtitle per route (README §Header).
 const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
@@ -24,12 +27,34 @@ export function Topbar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
   const router = useRouter();
   const meta = META.find((m) => m.match(pathname)) ?? { title: 'Admin', sub: '' };
+  const dialog = useDialog();
+  const toast = useToast();
   const [menuOpen, setMenuOpen] = useState(false);
   const [pwOpen, setPwOpen] = useState(false);
 
   function logout() {
     destroySession();
     router.replace('/login');
+  }
+
+  async function terminateMySessions() {
+    setMenuOpen(false);
+    const okGo = await dialog.confirm({
+      title: 'Terminar as minhas sessões',
+      message: 'Terminar todas as sessões ativas em todos os dispositivos? Vais ter de iniciar sessão de novo aqui também. A ação fica registada no log de auditoria.',
+      confirmLabel: 'Terminar sessões',
+      danger: true,
+    });
+    if (!okGo) return;
+    const session = getSession();
+    if (!session) { logout(); return; }
+    try {
+      await new AdminApi(session.token).terminateMySessions();
+    } catch {
+      // The current token is revoked server-side either way; fall through to logout.
+    }
+    toast('success', 'Sessões terminadas.');
+    logout();
   }
 
   return (
@@ -73,6 +98,13 @@ export function Topbar({ user }: { user: AdminUser }) {
                 >
                   <KeyRound size={17} strokeWidth={1.8} color="#9a8a8e" />
                   Alterar palavra-passe
+                </button>
+                <button
+                  onClick={terminateMySessions}
+                  className="flex w-full items-center gap-2.5 border-t border-[#f6eded] px-4 py-3 text-left text-[14px] font-bold text-[#5a4a4e] transition-colors hover:bg-[#FFF7F6]"
+                >
+                  <ShieldOff size={17} strokeWidth={1.8} color="#9a8a8e" />
+                  Terminar as minhas sessões
                 </button>
                 <button
                   onClick={logout}

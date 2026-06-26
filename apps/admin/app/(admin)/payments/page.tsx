@@ -49,6 +49,12 @@ export default function PaymentsPage() {
   async function confirm(p: Payout) {
     const api = getApi();
     if (!api) return;
+    const okGo = await dialog.confirm({
+      title: 'Confirmar pagamento',
+      message: `Confirmar o pagamento ${p.id.slice(0, 10)} de ${formatKz(p.amount?.amount_minor)}? Esta é uma ação financeira definitiva e fica registada no log de auditoria.`,
+      confirmLabel: 'Confirmar pagamento',
+    });
+    if (!okGo) return;
     setBusy(p.id);
     try {
       await api.confirmPayout(p.id);

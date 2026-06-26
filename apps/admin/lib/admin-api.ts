@@ -496,6 +496,15 @@ export class AdminApi {
   requestOperatorPasswordReset(id: string): Promise<{ ok: boolean; expires_at: string; email_sent_to: string; reset_url?: string }> {
     return this.req(`/admin/v1/operators/${id}/password-reset`, { method: 'POST' });
   }
+  // Revoke every session of another operator (increments their token_version).
+  terminateOperatorSessions(id: string): Promise<{ ok: boolean }> {
+    return this.req(`/admin/v1/operators/${id}/terminate-sessions`, { method: 'POST' });
+  }
+  // Revoke all of MY own sessions (including the current one). The next request
+  // with the old token is rejected, so callers should clear the local session.
+  terminateMySessions(): Promise<{ ok: boolean }> {
+    return this.req('/admin/v1/auth/terminate-sessions', { method: 'POST' });
+  }
 
   // Merchant applications (Business onboarding / Track 1). approve/reject never
   // return the activation token, API key or PIN — the admin-api strips them.
