@@ -41,7 +41,7 @@ export default function AdminDisputesPage() {
     setLoading(true);
     setError('');
     try {
-      const api  = new AdminApi(session.adminUrl, session.adminKey);
+      const api  = new AdminApi(session.apiUrl, session.adminKey);
       const page = await api.listDisputes({ status: filter || undefined, limit: 100 });
       setRows(page.data ?? []);
     } catch (e) {
@@ -67,7 +67,7 @@ export default function AdminDisputesPage() {
     setResolving(true);
     setResolveErr('');
     try {
-      const api = new AdminApi(session.adminUrl, session.adminKey);
+      const api = new AdminApi(session.apiUrl, session.adminKey);
       await api.resolveDispute(selected.id, outcome, notes.trim(), resolvedBy.trim());
       setSelected(null);
       setNotes('');
@@ -128,7 +128,7 @@ export default function AdminDisputesPage() {
                       <td className="px-4 py-3 font-mono text-xs text-gray-500">{d.transaction_id.slice(0, 8)}…</td>
                       <td className="px-4 py-3 font-semibold text-gray-900">{fmt(d.amount_minor)}</td>
                       <td className="px-4 py-3">
-                        <Badge className={STATUS_COLORS[d.status] ?? 'bg-gray-100 text-gray-600'}>{d.status}</Badge>
+                        <Badge label={d.status} />
                       </td>
                       <td className="px-4 py-3 text-gray-400 whitespace-nowrap text-xs">
                         {new Date(d.created_at).toLocaleDateString('pt-AO')}
