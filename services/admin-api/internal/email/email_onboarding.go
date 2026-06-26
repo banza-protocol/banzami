@@ -2,10 +2,25 @@ package email
 
 import (
 	"bytes"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"time"
 )
+
+// AdminPasswordReset emails a BANZADMIN operator a single-use link to set their
+// password. The link (which contains the token) is NEVER logged. Call in a
+// goroutine.
+func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
+	body := fmt.Sprintf(
+		`<p>Olá %s,</p>`+
+			`<p>Foi gerado um link para definir a sua palavra-passe do <strong>BANZADMIN</strong>. `+
+			`O link é de uso único e expira em 24 horas:</p>`+
+			`<p><a href="%s">Definir palavra-passe BANZADMIN</a></p>`+
+			`<p>Se não esperava este email, ignore-o.</p>`,
+		template.HTMLEscapeString(fullName), resetURL)
+	s.deliver("admin_password_reset", to, "Definir palavra-passe BANZADMIN", body)
+}
 
 // Merchant Lifecycle onboarding emails. The approved email carries ONLY a
 // single-use activation link — never a PIN, token value, or API key. The

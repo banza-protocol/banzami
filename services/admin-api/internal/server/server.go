@@ -42,15 +42,25 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	var loginStore handler.LoginStore
 	var jwtStore middleware.OperatorStore
 	var opStore handler.OperatorStore
+	var resetStore handler.ResetStore
 	if users != nil {
 		loginStore = users
 		jwtStore = users
 		opStore = users
+		resetStore = users
 	}
+
+	// SMTP off / dry-run → reset link is returned to the SUPER_ADMIN in the
+	// authenticated response so they can deliver it.
+	showResetLink := cfg.EmailDryRun || !mailer.Enabled()
+	resetH := handler.NewResetHandler(resetStore, mailer, cfg.AdminBaseURL, showResetLink)
 
 	// Operator login — public (no token yet). Email + password → admin JWT.
 	authH := handler.NewAuthHandler(loginStore, cfg.AdminJWTSecret, 12*time.Hour)
 	r.Post("/admin/v1/auth/login", authH.Login)
+	// Password-reset validate/complete are public (the operator has no session).
+	r.Post("/admin/v1/auth/password-reset/validate", resetH.Validate)
+	r.Post("/admin/v1/auth/password-reset/complete", resetH.Complete)
 
 	// All admin routes require an operator JWT (per-operator email/password).
 	// The legacy ADMIN_API_KEY no longer authenticates the portal.
@@ -70,6 +80,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/operators/{id}/role", opH.SetRole)
 		r.Post("/admin/v1/operators/{id}/suspend", opH.Suspend)
 		r.Post("/admin/v1/operators/{id}/activate", opH.Activate)
+		r.Post("/admin/v1/operators/{id}/password-reset", resetH.Request)
 
 		complianceH := handler.NewComplianceHandler(core)
 		settlementH := handler.NewSettlementHandler(core)

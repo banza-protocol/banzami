@@ -192,6 +192,31 @@ export async function adminLogin(
   return res.json();
 }
 
+/** Validate a password-reset token (public — the operator has no session). */
+export async function adminValidateResetToken(
+  token: string,
+): Promise<{ reason: string; valid: boolean; full_name?: string }> {
+  const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/password-reset/validate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token }),
+  });
+  return res.json();
+}
+
+/** Set a new password from a reset token (public). Throws AdminApiError. */
+export async function adminCompleteReset(token: string, newPassword: string): Promise<void> {
+  const res = await fetch(`${ADMIN_API_BASE}/admin/v1/auth/password-reset/complete`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, new_password: newPassword }),
+  });
+  if (!res.ok) {
+    const b = (await res.json().catch(() => ({}))) as { error?: { code?: string; message?: string } };
+    throw new AdminApiError(res.status, b.error?.code ?? 'ERROR', b.error?.message ?? 'failed');
+  }
+}
+
 export class AdminApi {
   private readonly base: string;
   private readonly token: string;
@@ -460,6 +485,11 @@ export class AdminApi {
   }
   activateOperator(id: string): Promise<Operator> {
     return this.req(`/admin/v1/operators/${id}/activate`, { method: 'POST' });
+  }
+  // SUPER_ADMIN issues a set/reset-password link. reset_url is present only when
+  // email is dry-run/off, so the operator can deliver it manually.
+  requestOperatorPasswordReset(id: string): Promise<{ ok: boolean; expires_at: string; email_sent_to: string; reset_url?: string }> {
+    return this.req(`/admin/v1/operators/${id}/password-reset`, { method: 'POST' });
   }
 
   // Merchant applications (Business onboarding / Track 1). approve/reject never

@@ -37,6 +37,9 @@ type Config struct {
 	// shared Postgres; AdminJWTSecret signs the operator JWT.
 	DatabaseURL    string
 	AdminJWTSecret string
+	// AdminBaseURL is the BANZADMIN front-end origin, used to build
+	// password-reset links (e.g. https://admin.banzami.com).
+	AdminBaseURL string
 }
 
 // Load reads config from environment variables.
@@ -104,6 +107,7 @@ func Load() (*Config, error) {
 		WebsiteBaseURL:     getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
 		AdminJWTSecret:     os.Getenv("ADMIN_JWT_SECRET"),
+		AdminBaseURL:       getenvDefault("ADMIN_BASE_URL", "https://admin.banzami.com"),
 	}, nil
 }
 

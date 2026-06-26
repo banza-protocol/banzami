@@ -76,6 +76,26 @@ export default function OperatorsPage() {
     }
   }
 
+  async function sendReset(o: Operator) {
+    const api = getApi();
+    if (!api) return;
+    setBusy(o.id);
+    try {
+      const r = await api.requestOperatorPasswordReset(o.id);
+      if (r.reset_url) {
+        // Email is off/dry-run: surface the link so the SUPER_ADMIN can deliver it.
+        toast('info', 'Link de reset gerado — copie-o do ecrã.');
+        window.prompt('Link de reset (uso único, expira em 24h):', r.reset_url);
+      } else {
+        toast('success', `Link de reset enviado a ${r.email_sent_to}.`);
+      }
+    } catch (e) {
+      toast('danger', errMsg(e, 'Não foi possível gerar o reset.'));
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function toggleStatus(o: Operator) {
     const api = getApi();
     if (!api) return;
@@ -165,15 +185,24 @@ export default function OperatorsPage() {
                 <Td mono className="font-semibold text-[#5a4a4e]">{o.last_login_at ? formatDate(o.last_login_at) : '—'}</Td>
                 {isSuperAdmin && (
                   <Td right>
-                    <button
-                      onClick={() => toggleStatus(o)}
-                      disabled={busy === o.id}
-                      className={`rounded-[30px] px-[14px] py-2 text-[13px] font-extrabold transition disabled:opacity-50 ${
-                        o.status === 'ACTIVE' ? 'bg-[#FFF1F0] text-[#B5101F]' : 'bg-[#eafaf0] text-[#1f9d57]'
-                      }`}
-                    >
-                      {o.status === 'ACTIVE' ? 'Suspender' : 'Ativar'}
-                    </button>
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => sendReset(o)}
+                        disabled={busy === o.id}
+                        className="rounded-[30px] border-[1.5px] border-[#f1e3e3] bg-white px-[14px] py-2 text-[13px] font-extrabold text-[#5a4a4e] transition hover:bg-[#FFF7F6] disabled:opacity-50"
+                      >
+                        {o.password_set ? 'Reset password' : 'Definir password'}
+                      </button>
+                      <button
+                        onClick={() => toggleStatus(o)}
+                        disabled={busy === o.id}
+                        className={`rounded-[30px] px-[14px] py-2 text-[13px] font-extrabold transition disabled:opacity-50 ${
+                          o.status === 'ACTIVE' ? 'bg-[#FFF1F0] text-[#B5101F]' : 'bg-[#eafaf0] text-[#1f9d57]'
+                        }`}
+                      >
+                        {o.status === 'ACTIVE' ? 'Suspender' : 'Ativar'}
+                      </button>
+                    </div>
                   </Td>
                 )}
               </tr>
