@@ -1,30 +1,20 @@
 import type { Metadata } from 'next';
-import { SiteHeader } from '@/components/site/SiteHeader';
-import { Footer } from '@/components/site/Footer';
 import { CandidaturaForm } from './CandidaturaForm';
 
 export const metadata: Metadata = {
-  title: 'Criar conta Banzami Business',
+  title: 'Banzami Business — Crie a sua conta em minutos',
   description:
-    'Candidate-se para aceitar pagamentos com o Banzami Business. Preencha os dados do seu negócio e a equipa Banzami irá analisar a candidatura.',
+    'Registe o seu negócio no Banzami e comece a aceitar pagamentos digitais. Simples, rápido e 100% online. Feito para comerciantes e empresas angolanas.',
 };
 
+// Self-contained onboarding page (its own top bar + sidebar + panel), per the
+// Banzami Business design dossier — no marketing SiteHeader/Footer here.
 export default function CandidaturaPage() {
   return (
-    <main className="min-h-screen bg-white">
-      <SiteHeader />
-      <section className="px-6 pb-24 pt-[clamp(110px,16vw,130px)]">
-        <div className="mx-auto max-w-[680px]">
-          <h1 className="m-0 text-[clamp(30px,4.4vw,46px)] font-black leading-[1.05] tracking-[-0.03em] text-ink">
-            Criar conta Banzami Business
-          </h1>
-          <p className="m-0 mt-4 max-w-[560px] text-[clamp(15px,1.5vw,18px)] font-semibold leading-[1.55] text-ink-secondary">
-            Preencha os dados do seu negócio. A equipa Banzami irá analisar a candidatura.
-          </p>
-          <CandidaturaForm />
-        </div>
-      </section>
-      <Footer />
+    <main className="min-h-screen bg-[#FFF7F6] px-6 pb-[60px] pt-7">
+      <div className="mx-auto max-w-[1180px]">
+        <CandidaturaForm />
+      </div>
     </main>
   );
 }
