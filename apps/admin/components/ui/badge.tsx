@@ -29,6 +29,7 @@ const VARIANT: Record<string, Variant> = {
   FLAGGED: 'maroon', SINALIZADO: 'maroon',
   // info
   SUBMITTED: 'info', SENT: 'info', UPLOADED: 'info', SUBMETIDO: 'info', ENVIADO: 'info',
+  INVITED: 'info', CONVIDADO: 'info',
   // neutral
   SUSPENDED: 'neutral', SUSPENSO: 'neutral', DELETED: 'neutral',
 };
@@ -60,6 +61,7 @@ export function statusLabelPt(code: string | null | undefined): string {
     ACTIVE: 'Ativo',
     SUSPENDED: 'Suspenso',
     PENDING: 'Pendente',
+    INVITED: 'Convidado',
   };
   return map[code.toUpperCase()] ?? code;
 }

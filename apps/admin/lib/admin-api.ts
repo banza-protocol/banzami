@@ -471,8 +471,13 @@ export class AdminApi {
   listOperators(): Promise<{ operators: Operator[] }> {
     return this.req('/admin/v1/operators');
   }
-  createOperator(email: string, fullName: string, role: OperatorRole): Promise<Operator> {
+  // Creating an operator also issues an INVITE link. invite_url is present only
+  // in dry-run / SMTP-off (so the SUPER_ADMIN can deliver it).
+  createOperator(email: string, fullName: string, role: OperatorRole): Promise<{ operator: Operator; email_sent_to: string; expires_at: string; invite_url?: string }> {
     return this.req('/admin/v1/operators', { method: 'POST', body: JSON.stringify({ email, full_name: fullName, role }) });
+  }
+  resendOperatorInvite(id: string): Promise<{ ok: boolean; expires_at: string; email_sent_to: string; invite_url?: string }> {
+    return this.req(`/admin/v1/operators/${id}/resend-invite`, { method: 'POST' });
   }
   updateOperatorName(id: string, fullName: string): Promise<Operator> {
     return this.req(`/admin/v1/operators/${id}`, { method: 'PATCH', body: JSON.stringify({ full_name: fullName }) });
@@ -540,10 +545,12 @@ export interface Operator {
   email:         string;
   full_name:     string;
   role:          OperatorRole;
-  status:        'ACTIVE' | 'SUSPENDED';
+  status:        'INVITED' | 'ACTIVE' | 'SUSPENDED';
   last_login_at: string | null;
   locked_until:  string | null;
   password_set:  boolean;
+  invited_at:    string | null;
+  activated_at:  string | null;
   created_at:    string;
 }
 

@@ -72,7 +72,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/auth/change-password", authH.ChangePassword)
 
 		// Operator management (SUPER_ADMIN for mutations; read for any operator).
-		opH := handler.NewOperatorHandler(opStore)
+		opH := handler.NewOperatorHandler(opStore, mailer, cfg.AdminBaseURL, showResetLink)
 		r.Get("/admin/v1/operators", opH.List)
 		r.Get("/admin/v1/operators/{id}", opH.Get)
 		r.Post("/admin/v1/operators", opH.Create)
@@ -80,6 +80,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/operators/{id}/role", opH.SetRole)
 		r.Post("/admin/v1/operators/{id}/suspend", opH.Suspend)
 		r.Post("/admin/v1/operators/{id}/activate", opH.Activate)
+		r.Post("/admin/v1/operators/{id}/resend-invite", opH.ResendInvite)
 		r.Post("/admin/v1/operators/{id}/password-reset", resetH.Request)
 
 		complianceH := handler.NewComplianceHandler(core)

@@ -97,13 +97,14 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
 		return
 	}
-	if u.Status != "ACTIVE" {
+	if u.Status == "SUSPENDED" {
 		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "SUSPENDED")
 		writeError(w, http.StatusForbidden, "ACCOUNT_SUSPENDED", "account suspended")
 		return
 	}
-	// Empty hash = operator created without a password yet (must use a reset
-	// link). Treated as a generic failed login.
+	// INVITED (or any non-ACTIVE) account has no usable password yet. Empty hash
+	// = operator must set a password via the invite/reset link. Both are a
+	// generic failed login — never reveal the account state.
 	if u.PasswordHash == "" || !auth.VerifyPassword(u.PasswordHash, body.Password) {
 		reason := "BAD_PASSWORD"
 		if u.PasswordHash == "" {

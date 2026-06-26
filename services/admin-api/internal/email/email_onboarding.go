@@ -8,18 +8,32 @@ import (
 	"time"
 )
 
-// AdminPasswordReset emails a BANZADMIN operator a single-use link to set their
+// AdminOperatorInvite emails a new operator a single-use link to define their
+// password and activate their BANZADMIN account. The link (token) is NEVER
+// logged. Call in a goroutine.
+func (s *Sender) AdminOperatorInvite(to, fullName, inviteURL string) {
+	body := fmt.Sprintf(
+		`<p>Olá %s,</p>`+
+			`<p>Foi convidado para aceder ao <strong>BANZADMIN</strong>. `+
+			`Defina a sua palavra-passe através do link de uso único abaixo (expira em 72 horas):</p>`+
+			`<p><a href="%s">Definir palavra-passe BANZADMIN</a></p>`+
+			`<p>Se não esperava este email, ignore-o.</p>`,
+		template.HTMLEscapeString(fullName), inviteURL)
+	s.deliver("admin_operator_invite", to, "Convite para aceder ao BANZADMIN", body)
+}
+
+// AdminPasswordReset emails a BANZADMIN operator a single-use link to reset their
 // password. The link (which contains the token) is NEVER logged. Call in a
 // goroutine.
 func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 	body := fmt.Sprintf(
 		`<p>Olá %s,</p>`+
-			`<p>Foi gerado um link para definir a sua palavra-passe do <strong>BANZADMIN</strong>. `+
+			`<p>Foi gerado um link para redefinir a sua palavra-passe do <strong>BANZADMIN</strong>. `+
 			`O link é de uso único e expira em 24 horas:</p>`+
-			`<p><a href="%s">Definir palavra-passe BANZADMIN</a></p>`+
+			`<p><a href="%s">Redefinir palavra-passe BANZADMIN</a></p>`+
 			`<p>Se não esperava este email, ignore-o.</p>`,
 		template.HTMLEscapeString(fullName), resetURL)
-	s.deliver("admin_password_reset", to, "Definir palavra-passe BANZADMIN", body)
+	s.deliver("admin_password_reset", to, "Redefinir palavra-passe BANZADMIN", body)
 }
 
 // Merchant Lifecycle onboarding emails. The approved email carries ONLY a

@@ -20,6 +20,8 @@ type OperatorView struct {
 	LastLoginAt *time.Time `json:"last_login_at"`
 	LockedUntil *time.Time `json:"locked_until"`
 	PasswordSet bool       `json:"password_set"`
+	InvitedAt   *time.Time `json:"invited_at"`
+	ActivatedAt *time.Time `json:"activated_at"`
 	CreatedAt   time.Time  `json:"created_at"`
 }
 
@@ -28,12 +30,12 @@ var ValidRoles = map[string]bool{
 }
 
 const operatorCols = `id::text, email, full_name, role, status, last_login_at, locked_until,
-	(password_hash IS NOT NULL) AS password_set, created_at`
+	(password_hash IS NOT NULL) AS password_set, invited_at, activated_at, created_at`
 
 func scanOperator(row pgx.Row) (OperatorView, error) {
 	var o OperatorView
 	err := row.Scan(&o.ID, &o.Email, &o.FullName, &o.Role, &o.Status, &o.LastLoginAt,
-		&o.LockedUntil, &o.PasswordSet, &o.CreatedAt)
+		&o.LockedUntil, &o.PasswordSet, &o.InvitedAt, &o.ActivatedAt, &o.CreatedAt)
 	return o, err
 }
 
@@ -62,13 +64,13 @@ func (s *AdminUserService) GetOperator(ctx context.Context, id string) (Operator
 	return o, err
 }
 
-// CreateOperator inserts an operator WITHOUT a password (password_hash NULL).
-// They cannot log in until a password is set via a reset link.
+// CreateOperator inserts an INVITED operator WITHOUT a password. They cannot log
+// in until they set a password via the INVITE link (which activates the account).
 func (s *AdminUserService) CreateOperator(ctx context.Context, email, fullName, role, createdBy string) (string, error) {
 	id := uuid.NewString()
 	_, err := s.pool.Exec(ctx,
-		`INSERT INTO admin_users (id, email, full_name, role, status, created_by, updated_by)
-		 VALUES ($1, $2, $3, $4, 'ACTIVE', $5, $5)`,
+		`INSERT INTO admin_users (id, email, full_name, role, status, invited_at, created_by, updated_by)
+		 VALUES ($1, $2, $3, $4, 'INVITED', now(), $5, $5)`,
 		id, email, fullName, role, nullStr(createdBy))
 	if err != nil {
 		if pgConstraintCode(err) == "23505" {

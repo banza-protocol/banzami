@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -22,13 +24,46 @@ type OperatorStore interface {
 	SetOperatorRole(ctx context.Context, id, role, updatedBy string) error
 	SetOperatorStatus(ctx context.Context, id, status, updatedBy string) error
 	CountActiveSuperAdmins(ctx context.Context) (int, error)
+	CreateInviteToken(ctx context.Context, adminUserID, createdBy string) (string, time.Time, error)
+}
+
+// OperatorMailer sends the invitation email.
+type OperatorMailer interface {
+	AdminOperatorInvite(to, fullName, inviteURL string)
 }
 
 type OperatorHandler struct {
-	ops OperatorStore
+	ops          OperatorStore
+	mailer       OperatorMailer
+	adminBaseURL string
+	showLink     bool // dry-run / SMTP off → return invite_url to the SUPER_ADMIN
 }
 
-func NewOperatorHandler(ops OperatorStore) *OperatorHandler { return &OperatorHandler{ops: ops} }
+func NewOperatorHandler(ops OperatorStore, mailer OperatorMailer, adminBaseURL string, showLink bool) *OperatorHandler {
+	return &OperatorHandler{ops: ops, mailer: mailer, adminBaseURL: adminBaseURL, showLink: showLink}
+}
+
+func principalID(r *http.Request) string {
+	if p, ok := auth.FromContext(r.Context()); ok {
+		return p.ID
+	}
+	return ""
+}
+
+// sendInvite issues an INVITE token for op and emails it. Returns the invite URL
+// (only surfaced to the SUPER_ADMIN when email is dry-run/off).
+func (h *OperatorHandler) sendInvite(r *http.Request, op service.OperatorView) (string, time.Time, error) {
+	raw, exp, err := h.ops.CreateInviteToken(r.Context(), op.ID, principalID(r))
+	if err != nil {
+		return "", time.Time{}, err
+	}
+	inviteURL := h.adminBaseURL + "/reset-password?token=" + raw
+	if h.mailer != nil {
+		h.mailer.AdminOperatorInvite(op.Email, op.FullName, inviteURL)
+	}
+	slog.InfoContext(r.Context(), "admin.operator_invited", "admin_user_id", op.ID) // never the token/link
+	return inviteURL, exp, nil
+}
 
 func (h *OperatorHandler) ready(w http.ResponseWriter) bool {
 	if h.ops == nil {
@@ -115,7 +150,45 @@ func (h *OperatorHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
-	writeJSON(w, http.StatusCreated, o)
+	// New operator is INVITED — send the invite link to set a password.
+	inviteURL, exp, err := h.sendInvite(r, o)
+	if err != nil {
+		h.opErr(w, err)
+		return
+	}
+	out := map[string]any{"operator": o, "email_sent_to": o.Email, "expires_at": exp}
+	if h.showLink {
+		out["invite_url"] = inviteURL
+	}
+	writeJSON(w, http.StatusCreated, out)
+}
+
+// POST /admin/v1/operators/{id}/resend-invite (SUPER_ADMIN)
+func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) || !requireSuperAdmin(w, r) {
+		return
+	}
+	o, err := h.ops.GetOperator(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.opErr(w, err)
+		return
+	}
+	// Only operators who haven't activated (still INVITED / no password) can be
+	// re-invited; an active operator uses the password-reset flow instead.
+	if o.Status != "INVITED" && o.PasswordSet {
+		writeError(w, http.StatusConflict, "ALREADY_ACTIVE", "operator already has a password; use password reset")
+		return
+	}
+	inviteURL, exp, err := h.sendInvite(r, o)
+	if err != nil {
+		h.opErr(w, err)
+		return
+	}
+	out := map[string]any{"ok": true, "email_sent_to": o.Email, "expires_at": exp}
+	if h.showLink {
+		out["invite_url"] = inviteURL
+	}
+	writeJSON(w, http.StatusOK, out)
 }
 
 // PATCH /admin/v1/operators/{id} (SUPER_ADMIN) — update full_name

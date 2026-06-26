@@ -76,21 +76,23 @@ export default function OperatorsPage() {
     }
   }
 
-  async function sendReset(o: Operator) {
+  // INVITED / no-password operators get a (re)invite; active ones get a reset.
+  async function sendInviteOrReset(o: Operator) {
     const api = getApi();
     if (!api) return;
+    const invite = o.status === 'INVITED' || !o.password_set;
     setBusy(o.id);
     try {
-      const r = await api.requestOperatorPasswordReset(o.id);
-      if (r.reset_url) {
-        // Email is off/dry-run: surface the link so the SUPER_ADMIN can deliver it.
-        toast('info', 'Link de reset gerado — copie-o do ecrã.');
-        window.prompt('Link de reset (uso único, expira em 24h):', r.reset_url);
+      const r = invite ? await api.resendOperatorInvite(o.id) : await api.requestOperatorPasswordReset(o.id);
+      const url = invite ? (r as { invite_url?: string }).invite_url : (r as { reset_url?: string }).reset_url;
+      if (url) {
+        toast('info', invite ? 'Convite gerado — copie o link do ecrã.' : 'Link de redefinição gerado — copie o link do ecrã.');
+        window.prompt(invite ? 'Link de convite (uso único):' : 'Link de redefinição (uso único):', url);
       } else {
-        toast('success', `Link de reset enviado a ${r.email_sent_to}.`);
+        toast('success', invite ? `Convite enviado a ${r.email_sent_to}.` : `Link de redefinição enviado a ${r.email_sent_to}.`);
       }
     } catch (e) {
-      toast('danger', errMsg(e, 'Não foi possível gerar o reset.'));
+      toast('danger', errMsg(e, 'Não foi possível gerar o link.'));
     } finally {
       setBusy(null);
     }
@@ -143,7 +145,7 @@ export default function OperatorsPage() {
               <Th>Operador</Th>
               <Th>Função</Th>
               <Th>Estado</Th>
-              <Th>Último login</Th>
+              <Th>Último login / convite</Th>
               {isSuperAdmin && <Th />}
             </tr>
           </thead>
@@ -179,19 +181,25 @@ export default function OperatorsPage() {
                   <div className="flex items-center gap-2">
                     <Badge label={statusLabelPt(o.status)} />
                     {isLocked(o) && <Badge label="Bloqueado" variant="danger" />}
-                    {!o.password_set && <Badge label="Sem password" variant="warning" />}
+                    {!o.password_set && o.status !== 'INVITED' && <Badge label="Sem password" variant="warning" />}
                   </div>
                 </Td>
-                <Td mono className="font-semibold text-[#5a4a4e]">{o.last_login_at ? formatDate(o.last_login_at) : '—'}</Td>
+                <Td mono className="font-semibold text-[#5a4a4e]">
+                  {o.last_login_at
+                    ? formatDate(o.last_login_at)
+                    : o.status === 'INVITED' && o.invited_at
+                      ? `Convidado ${formatDate(o.invited_at)}`
+                      : '—'}
+                </Td>
                 {isSuperAdmin && (
                   <Td right>
                     <div className="flex justify-end gap-2">
                       <button
-                        onClick={() => sendReset(o)}
+                        onClick={() => sendInviteOrReset(o)}
                         disabled={busy === o.id}
                         className="rounded-[30px] border-[1.5px] border-[#f1e3e3] bg-white px-[14px] py-2 text-[13px] font-extrabold text-[#5a4a4e] transition hover:bg-[#FFF7F6] disabled:opacity-50"
                       >
-                        {o.password_set ? 'Reset password' : 'Definir password'}
+                        {o.status === 'INVITED' || !o.password_set ? 'Reenviar convite' : 'Reset password'}
                       </button>
                       <button
                         onClick={() => toggleStatus(o)}
@@ -245,8 +253,13 @@ function CreateOperatorModal({ onClose, onCreated }: { onClose: () => void; onCr
     setLoading(true);
     setError('');
     try {
-      await api.createOperator(email.trim(), fullName.trim(), role);
-      toast('success', 'Operador criado. Envie um link para definir a palavra-passe.');
+      const r = await api.createOperator(email.trim(), fullName.trim(), role);
+      if (r.invite_url) {
+        toast('info', 'Operador criado — copie o link de convite do ecrã.');
+        window.prompt('Link de convite (uso único, expira em 72h):', r.invite_url);
+      } else {
+        toast('success', `Convite enviado a ${r.email_sent_to}.`);
+      }
       onCreated();
     } catch (err) {
       if (err instanceof AdminApiError && err.code === 'EMAIL_EXISTS') setError('Já existe um operador com esse email.');
@@ -280,7 +293,7 @@ function CreateOperatorModal({ onClose, onCreated }: { onClose: () => void; onCr
             </select>
           </div>
           <p className="m-0 text-[12.5px] font-semibold text-[#9a8a8e]">
-            O operador é criado sem palavra-passe e só poderá entrar depois de definir uma através de um link de reset.
+            O operador é criado sem palavra-passe (estado Convidado) e recebe um link de convite para a definir. Só fica ativo depois disso.
           </p>
           {error && <div className="rounded-[12px] border border-[#f6d3d1] bg-[#FFF1F0] px-[14px] py-2.5 text-[13px] font-bold text-[#B5101F]">{error}</div>}
           <button type="submit" disabled={loading} className="mt-2 w-full rounded-[14px] bg-[#1a1416] py-3.5 text-[15px] font-extrabold text-white transition hover:bg-black disabled:opacity-60">
