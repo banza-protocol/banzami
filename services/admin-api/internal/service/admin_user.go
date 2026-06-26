@@ -18,13 +18,26 @@ var (
 // AdminUser is an operator account. password_hash is never serialized to JSON
 // and never returned by the API.
 type AdminUser struct {
-	ID           string
-	Email        string
-	FullName     string
-	PasswordHash string
-	Role         string
-	Status       string
-	LastLoginAt  *time.Time
+	ID                  string
+	Email               string
+	FullName            string
+	PasswordHash        string
+	Role                string
+	Status              string
+	LastLoginAt         *time.Time
+	FailedLoginAttempts int
+	LockedUntil         *time.Time
+}
+
+// Lockout policy.
+const (
+	MaxFailedLogins = 5
+	LockoutWindow   = 15 * time.Minute
+)
+
+// IsLocked reports whether the account is currently locked.
+func (u AdminUser) IsLocked(now time.Time) bool {
+	return u.LockedUntil != nil && u.LockedUntil.After(now)
 }
 
 type AdminUserService struct {
@@ -35,11 +48,13 @@ func NewAdminUserService(pool *pgxpool.Pool) *AdminUserService {
 	return &AdminUserService{pool: pool}
 }
 
-const adminUserCols = `id::text, email, full_name, password_hash, role, status, last_login_at`
+const adminUserCols = `id::text, email, full_name, COALESCE(password_hash,''), role, status,
+	last_login_at, failed_login_attempts, locked_until`
 
 func scanAdminUser(row pgx.Row) (AdminUser, error) {
 	var u AdminUser
-	err := row.Scan(&u.ID, &u.Email, &u.FullName, &u.PasswordHash, &u.Role, &u.Status, &u.LastLoginAt)
+	err := row.Scan(&u.ID, &u.Email, &u.FullName, &u.PasswordHash, &u.Role, &u.Status,
+		&u.LastLoginAt, &u.FailedLoginAttempts, &u.LockedUntil)
 	return u, err
 }
 
@@ -78,6 +93,41 @@ func (s *AdminUserService) UpdatePassword(ctx context.Context, id, passwordHash 
 		return ErrAdminUserNotFound
 	}
 	return nil
+}
+
+// RecordFailedLogin increments the failure counter and, once MaxFailedLogins is
+// reached, locks the account for LockoutWindow. Returns the resulting
+// locked_until (nil if not locked).
+func (s *AdminUserService) RecordFailedLogin(ctx context.Context, id string) (*time.Time, error) {
+	var lockedUntil *time.Time
+	err := s.pool.QueryRow(ctx,
+		`UPDATE admin_users
+		    SET failed_login_attempts = failed_login_attempts + 1,
+		        locked_until = CASE WHEN failed_login_attempts + 1 >= $2
+		                            THEN now() + make_interval(mins => $3)
+		                            ELSE locked_until END,
+		        updated_at = now()
+		  WHERE id = $1
+		  RETURNING locked_until`,
+		id, MaxFailedLogins, int(LockoutWindow.Minutes())).Scan(&lockedUntil)
+	return lockedUntil, err
+}
+
+// ResetLoginCountersAndTouch clears the failure counter + lock and records a
+// successful login.
+func (s *AdminUserService) ResetLoginCountersAndTouch(ctx context.Context, id string) {
+	_, _ = s.pool.Exec(ctx,
+		`UPDATE admin_users
+		    SET failed_login_attempts = 0, locked_until = NULL, last_login_at = now(), updated_at = now()
+		  WHERE id = $1`, id)
+}
+
+// RecordLoginAttempt appends to the auditable login-attempt trail (no secrets).
+func (s *AdminUserService) RecordLoginAttempt(ctx context.Context, emailNorm string, adminUserID *string, ip, userAgent string, success bool, failureReason string) {
+	_, _ = s.pool.Exec(ctx,
+		`INSERT INTO admin_login_attempts (id, email_normalized, admin_user_id, ip, user_agent, success, failure_reason)
+		 VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+		uuid.NewString(), emailNorm, adminUserID, nullStr(ip), nullStr(userAgent), success, nullStr(failureReason))
 }
 
 // Create inserts a new operator (bootstrap). Fails if the email exists.

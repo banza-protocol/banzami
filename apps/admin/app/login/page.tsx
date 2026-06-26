@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AlertCircle } from 'lucide-react';
 import { saveSession } from '@/lib/session';
-import { adminLogin } from '@/lib/admin-api';
+import { adminLogin, AdminApiError } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
 
 const inputCls =
@@ -29,9 +29,13 @@ export default function LoginPage() {
       const r = await adminLogin(email.trim(), password);
       saveSession({ token: r.token, user: r.user });
       router.replace('/');
-    } catch {
-      // Always generic — never reveal whether the email exists.
-      setError('Email ou palavra-passe inválidos.');
+    } catch (err) {
+      if (err instanceof AdminApiError && err.status === 429) {
+        setError('Muitas tentativas. Tente novamente mais tarde.');
+      } else {
+        // Always generic — never reveal whether the email exists.
+        setError('Email ou palavra-passe inválidos.');
+      }
     } finally {
       setLoading(false);
     }

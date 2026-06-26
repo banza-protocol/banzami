@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/banzami/banzami/services/admin-api/internal/auth"
@@ -16,8 +17,24 @@ import (
 type LoginStore interface {
 	GetByEmail(ctx context.Context, email string) (service.AdminUser, error)
 	GetByID(ctx context.Context, id string) (service.AdminUser, error)
-	TouchLastLogin(ctx context.Context, id string)
 	UpdatePassword(ctx context.Context, id, passwordHash string) error
+	RecordFailedLogin(ctx context.Context, id string) (*time.Time, error)
+	ResetLoginCountersAndTouch(ctx context.Context, id string)
+	RecordLoginAttempt(ctx context.Context, emailNorm string, adminUserID *string, ip, userAgent string, success bool, failureReason string)
+}
+
+// clientIP extracts the caller IP (nginx sets X-Real-IP to cf-connecting-ip).
+func clientIP(r *http.Request) string {
+	if v := r.Header.Get("X-Real-IP"); v != "" {
+		return v
+	}
+	if v := r.Header.Get("X-Forwarded-For"); v != "" {
+		if i := strings.IndexByte(v, ','); i > 0 {
+			return strings.TrimSpace(v[:i])
+		}
+		return v
+	}
+	return r.RemoteAddr
 }
 
 // AuthHandler implements operator login / me / logout. Errors are deliberately
@@ -58,34 +75,55 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Email == "" || body.Password == "" {
-		// Generic — never reveal which field / whether the email exists.
-		writeErr(w, http.StatusUnauthorized, "invalid credentials")
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
 		return
 	}
 
-	u, err := h.users.GetByEmail(r.Context(), body.Email)
+	ctx := r.Context()
+	emailNorm := strings.ToLower(strings.TrimSpace(body.Email))
+	ip, ua := clientIP(r), r.UserAgent()
+	now := time.Now()
+
+	u, err := h.users.GetByEmail(ctx, emailNorm)
 	if err != nil {
-		// Run a dummy verify is unnecessary here; respond generically.
-		writeErr(w, http.StatusUnauthorized, "invalid credentials")
+		// Unknown email: record the attempt (no lock for non-existent users),
+		// respond generically — never reveal whether the email exists.
+		h.users.RecordLoginAttempt(ctx, emailNorm, nil, ip, ua, false, "UNKNOWN_EMAIL")
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
+		return
+	}
+	if u.IsLocked(now) {
+		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "LOCKED")
+		writeError(w, http.StatusTooManyRequests, "TOO_MANY_ATTEMPTS", "too many attempts, try again later")
 		return
 	}
 	if u.Status != "ACTIVE" {
-		writeErr(w, http.StatusForbidden, "account suspended")
+		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, "SUSPENDED")
+		writeError(w, http.StatusForbidden, "ACCOUNT_SUSPENDED", "account suspended")
 		return
 	}
-	if !auth.VerifyPassword(u.PasswordHash, body.Password) {
-		writeErr(w, http.StatusUnauthorized, "invalid credentials")
+	// Empty hash = operator created without a password yet (must use a reset
+	// link). Treated as a generic failed login.
+	if u.PasswordHash == "" || !auth.VerifyPassword(u.PasswordHash, body.Password) {
+		reason := "BAD_PASSWORD"
+		if u.PasswordHash == "" {
+			reason = "NO_PASSWORD_SET"
+		}
+		_, _ = h.users.RecordFailedLogin(ctx, u.ID)
+		h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, false, reason)
+		writeError(w, http.StatusUnauthorized, "INVALID_CREDENTIALS", "invalid credentials")
 		return
 	}
 
 	principal := auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role}
-	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, time.Now())
+	token, exp, err := auth.Issue(h.jwtSecret, principal, h.ttl, now)
 	if err != nil {
-		writeErr(w, http.StatusInternalServerError, "could not issue session")
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not issue session")
 		return
 	}
-	h.users.TouchLastLogin(r.Context(), u.ID)
-	slog.InfoContext(r.Context(), "admin.login", "admin_user_id", u.ID, "role", u.Role) // no password/token
+	h.users.ResetLoginCountersAndTouch(ctx, u.ID)
+	h.users.RecordLoginAttempt(ctx, emailNorm, &u.ID, ip, ua, true, "")
+	slog.InfoContext(ctx, "admin.login", "admin_user_id", u.ID, "role", u.Role) // no password/token
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"token":      token,

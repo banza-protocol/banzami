@@ -14,8 +14,9 @@ import (
 
 type fakeStore struct {
 	user        *service.AdminUser
-	touchedID   string
 	updatedHash string
+	resetCalls  int
+	attempts    []string // "success:reason"
 }
 
 func (f *fakeStore) GetByEmail(_ context.Context, email string) (service.AdminUser, error) {
@@ -30,13 +31,33 @@ func (f *fakeStore) GetByID(_ context.Context, id string) (service.AdminUser, er
 	}
 	return service.AdminUser{}, service.ErrAdminUserNotFound
 }
-func (f *fakeStore) TouchLastLogin(_ context.Context, id string) { f.touchedID = id }
 func (f *fakeStore) UpdatePassword(_ context.Context, id, hash string) error {
 	f.updatedHash = hash
 	if f.user != nil && f.user.ID == id {
 		f.user.PasswordHash = hash
 	}
 	return nil
+}
+func (f *fakeStore) RecordFailedLogin(_ context.Context, id string) (*time.Time, error) {
+	if f.user != nil && f.user.ID == id {
+		f.user.FailedLoginAttempts++
+		if f.user.FailedLoginAttempts >= service.MaxFailedLogins {
+			t := time.Now().Add(service.LockoutWindow)
+			f.user.LockedUntil = &t
+		}
+		return f.user.LockedUntil, nil
+	}
+	return nil, nil
+}
+func (f *fakeStore) ResetLoginCountersAndTouch(_ context.Context, id string) {
+	f.resetCalls++
+	if f.user != nil && f.user.ID == id {
+		f.user.FailedLoginAttempts = 0
+		f.user.LockedUntil = nil
+	}
+}
+func (f *fakeStore) RecordLoginAttempt(_ context.Context, _ string, _ *string, _, _ string, success bool, reason string) {
+	f.attempts = append(f.attempts, map[bool]string{true: "success", false: "fail"}[success]+":"+reason)
 }
 
 func loginReq(body string) *http.Request {
@@ -64,8 +85,11 @@ func TestLogin_Success(t *testing.T) {
 	if strings.Contains(body, "password") || strings.Contains(body, "PasswordHash") {
 		t.Fatalf("login response leaks password material: %s", body)
 	}
-	if store.touchedID != "u1" {
-		t.Fatal("last_login should be touched")
+	if store.resetCalls == 0 {
+		t.Fatal("successful login should reset counters + touch last_login")
+	}
+	if len(store.attempts) == 0 || store.attempts[len(store.attempts)-1] != "success:" {
+		t.Fatalf("successful login should record a success attempt: %v", store.attempts)
 	}
 }
 
@@ -104,6 +128,51 @@ func TestLogin_NotConfigured(t *testing.T) {
 	h.Login(w, loginReq(`{"email":"x@x.co","password":"a-strong-password"}`))
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("nil store must be 503, got %d", w.Code)
+	}
+}
+
+// --- lockout --------------------------------------------------------------
+
+func TestLogin_LocksAfterFiveFailures(t *testing.T) {
+	store := &fakeStore{user: activeUser(t)}
+	h := NewAuthHandler(store, "secret-xyz", time.Hour)
+	for i := 0; i < service.MaxFailedLogins; i++ {
+		w := httptest.NewRecorder()
+		h.Login(w, loginReq(`{"email":"op@banzami.com","password":"wrong-password-x"}`))
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("attempt %d: want 401, got %d", i+1, w.Code)
+		}
+	}
+	// Now locked → next attempt (even correct password) is 429.
+	w := httptest.NewRecorder()
+	h.Login(w, loginReq(`{"email":"op@banzami.com","password":"a-strong-password"}`))
+	if w.Code != http.StatusTooManyRequests || !strings.Contains(w.Body.String(), "TOO_MANY_ATTEMPTS") {
+		t.Fatalf("locked account must be 429, got %d %s", w.Code, w.Body.String())
+	}
+}
+
+func TestLogin_LockedReturns429(t *testing.T) {
+	u := activeUser(t)
+	lock := time.Now().Add(10 * time.Minute)
+	u.LockedUntil = &lock
+	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.Login(w, loginReq(`{"email":"op@banzami.com","password":"a-strong-password"}`))
+	if w.Code != http.StatusTooManyRequests {
+		t.Fatalf("want 429, got %d", w.Code)
+	}
+}
+
+func TestLogin_UnknownEmailRecordsAttempt(t *testing.T) {
+	store := &fakeStore{user: activeUser(t)}
+	h := NewAuthHandler(store, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.Login(w, loginReq(`{"email":"ghost@banzami.com","password":"a-strong-password"}`))
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("unknown email must be 401, got %d", w.Code)
+	}
+	if len(store.attempts) != 1 || store.attempts[0] != "fail:UNKNOWN_EMAIL" {
+		t.Fatalf("unknown email should record a fail attempt: %v", store.attempts)
 	}
 }
 

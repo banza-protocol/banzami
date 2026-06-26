@@ -14,3 +14,11 @@ func pgConstraintCode(err error) string {
 	}
 	return ""
 }
+
+// nullStr maps "" to a SQL NULL.
+func nullStr(s string) any {
+	if s == "" {
+		return nil
+	}
+	return s
+}
