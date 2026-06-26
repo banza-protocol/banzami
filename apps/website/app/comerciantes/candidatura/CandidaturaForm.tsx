@@ -726,23 +726,31 @@ export function CandidaturaForm() {
               </section>
 
               {/* TERMOS */}
-              <label className="flex cursor-pointer items-center gap-[11px] px-0.5 pb-1 pt-[22px]">
-                <span
+              <div className="flex items-center gap-[11px] px-0.5 pb-1 pt-[22px]">
+                <button
+                  type="button"
+                  role="checkbox"
+                  aria-checked={accepted}
+                  aria-label="Aceito os termos e condições"
                   onClick={() => setAccepted((a) => !a)}
                   className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-2 transition-all duration-150"
                   style={{ borderColor: accepted ? RED : '#d8c6c8', background: accepted ? RED : '#fff' }}
                 >
                   {accepted && Ic.check('#fff', 3, 14)}
-                </span>
-                <input type="checkbox" className="sr-only" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} />
+                </button>
                 <span className="text-[14.5px] font-semibold text-[#5a4a4e]">
-                  Li e aceito os{' '}
+                  <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
+                    Li e aceito os{' '}
+                  </span>
                   <Link href="/suporte" className="font-extrabold text-[#B5101F] underline">
                     termos e condições
-                  </Link>{' '}
-                  do Banzami Business
+                  </Link>
+                  <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
+                    {' '}
+                    do Banzami Business
+                  </span>
                 </span>
-              </label>
+              </div>
             </div>
           )}
 
