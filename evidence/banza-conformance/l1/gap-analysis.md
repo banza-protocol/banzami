@@ -87,7 +87,7 @@ Status labels: `IMPLEMENTED` · `PARTIAL` · `MISSING` · `BLOCKED_EXTERNAL` · 
 
 ## 5. Expected L1 Conformance Failures Today
 
-If `banza-conformance --url https://sandbox.banzami.org --level 1` were run **today**:
+If `banza-conformance --url https://sandbox-api.banzami.com --level 1` were run **today**:
 
 - `health` (HEALTH-001/002) → **PASS** (unchanged from L0).
 - `manifest` (MAN-001/002/003) → **PASS** (unchanged from L0).

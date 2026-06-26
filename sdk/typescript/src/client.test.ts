@@ -358,8 +358,8 @@ describe('paymentLinkQr (pure)', () => {
   });
 
   // Domain canonicalization guards: payment URLs MUST use pay.banzami.com and
-  // the canonical /pay/<slug> path, and MUST NEVER use banzami.org (reserved
-  // for the BANZA protocol).
+  // the canonical /pay/<slug> path, and MUST NEVER use a legacy .org domain
+  // (the BANZA protocol lives at banza.network).
   it('emits the canonical /pay/<slug> path', () => {
     const qr = client.paymentLinkQr(LINK);
     expect(qr.qrValue).toBe('https://pay.banzami.com/pay/abc123');
@@ -367,10 +367,10 @@ describe('paymentLinkQr (pure)', () => {
     expect(qr.paymentUrl).toBe(qr.qrValue);
   });
 
-  it('never emits a banzami.org payment URL (live or sandbox)', () => {
-    expect(client.paymentLinkQr(LINK).qrValue).not.toContain('banzami.org');
+  it('never emits a legacy .org payment URL (live or sandbox)', () => {
+    expect(client.paymentLinkQr(LINK).qrValue).not.toMatch(/\.org\b/);
     const sandbox = new BanzamiClient({ apiKey: 'bz_test_x' });
-    expect(sandbox.paymentLinkQr(LINK).qrValue).not.toContain('banzami.org');
+    expect(sandbox.paymentLinkQr(LINK).qrValue).not.toMatch(/\.org\b/);
   });
 
   it('defaults to the pay.banzami.com host in both environments', () => {

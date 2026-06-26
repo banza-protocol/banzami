@@ -35,9 +35,9 @@ void main() {
       expect(AppConfig.apiHostIsSandbox('https://api.banzami.com/consumer'), isFalse);
     });
 
-    test('legacy .org host is NOT recognised (no longer a payment/runtime host)', () {
-      expect(AppConfig.apiHostIsSandbox('https://sandbox-api.banzami.org'), isNull);
-      expect(AppConfig.apiHostIsSandbox('https://staging.banzami.org'), isNull);
+    test('unrecognised host is NOT classified as sandbox (only the canonical hosts are)', () {
+      expect(AppConfig.apiHostIsSandbox('https://api.example.com'), isNull);
+      expect(AppConfig.apiHostIsSandbox('https://staging.example.com'), isNull);
     });
   });
 

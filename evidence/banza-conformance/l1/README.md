@@ -63,7 +63,7 @@ Banzami's Rust core already implements the underlying primitives (wallets, atomi
 transfers, gold-standard double-entry ledger, idempotency, 422 on insufficient funds). The
 gaps to an L1 PASS are **shape and surface**, not core correctness:
 
-- the public sandbox (`sandbox.banzami.org`) is **L0-only by design** (no wallet/transfer routes);
+- the public sandbox (`sandbox-api.banzami.com`) is **L0-only by design** (no wallet/transfer routes);
 - the core API uses `/internal/v1/` paths and different field names than the runner expects;
 - transfer responses do not yet expose a `trace_id`, and there is no `/traces/:id` or `/events` surface.
 

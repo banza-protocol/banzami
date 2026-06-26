@@ -87,7 +87,7 @@ void main() {
         if (!f.path.endsWith('.dart')) continue;
         final src = f.readAsStringSync();
         expect(bareBanza.hasMatch(src), isFalse, reason: '${f.path} contains bare "Banza"');
-        expect(src.contains('banzami.org'), isFalse, reason: '${f.path} has .org domain');
+        expect(src.contains('.org'), isFalse, reason: '${f.path} has a legacy .org domain');
       }
     });
   });

@@ -10,16 +10,15 @@ official BANZA conformance suite against the Banzami **sandbox** operator. Banza
 runs the suite as an **operator candidate** — to demonstrate that the sandbox is
 reference-compatible at Level 0. The result is **evidence, not certification.**
 
-> **Current host: `sandbox-api.banzami.com`** (2026-06-26). The latest run targets
-> the official Banzami sandbox operator host and is stored under
+> **Host: `sandbox-api.banzami.com`.** The current run targets the official Banzami
+> sandbox operator host and is stored under
 > [`20260626-2137-sandbox-api-banzami-com/`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json)
 > — **5/5 PASS, Level 0**. On this host `/.well-known/banza/operator.json` and
 > `/health` are served by `sandbox-operator`; all other paths by the sandbox
-> gateway. The root [`banzami-sandbox-l0-report.json`](banzami-sandbox-l0-report.json)
-> below is the **earlier run against the now-retired `sandbox.banzami.org`**, kept
-> as historical record (not modified).
+> gateway. (An earlier run against a legacy operator host — since removed — was
+> superseded and is not retained.)
 
-| Field | Value (latest run) |
+| Field | Value |
 |-------|-------|
 | Target | `https://sandbox-api.banzami.com` (Banzami sandbox operator) |
 | Tool | `banza-conformance` `0.1.0` (PyPI) — equivalently `ghcr.io/banza-protocol/banza-conformance:v0.1.0` |
@@ -27,7 +26,6 @@ reference-compatible at Level 0. The result is **evidence, not certification.**
 | Level achieved | **0 — Protocol Sandbox** |
 | Result | **5 passed · 0 failed · 0 skipped** |
 | Report | [`20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json) |
-| Prior run (historical) | `https://sandbox.banzami.org` → [`banzami-sandbox-l0-report.json`](banzami-sandbox-l0-report.json) |
 | Statement (from the tool) | *"This report is conformance evidence, not a production certificate."* |
 
 ## What this is — and is not
