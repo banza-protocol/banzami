@@ -73,6 +73,22 @@ deletes rows.
 Captured per row: actor (id/email/full name/role), action, entity type/id,
 before/after JSON, HTTP status, IP, user-agent, request id, timestamp.
 
+### Coverage closed in the follow-up
+
+- **Public reset/invite completion** (`POST /auth/password-reset/complete`) runs
+  outside the middleware (no session yet), so `ResetHandler` now writes its own
+  row: `ADMIN_INVITE_COMPLETE` or `ADMIN_PASSWORD_RESET_COMPLETE`, actor =
+  target operator (`actor_type: SELF_VIA_TOKEN`), with a before/after snapshot of
+  `status` / `password_set` / `token_version` (never the password, hash or token).
+- **Sensitive/financial actions now carry payloads.** Handlers attach a redacted
+  before/after via `auth.AuditAnnotation` (helpers `auditAfter` / `auditChange`
+  in `handler/audit.go`): merchant application approve/reject, KYB accept/reject,
+  wallet credit (`amount_minor`+`currency`+`reason`), payout + settlement
+  lifecycle (target status, reason), dispute resolve, risk freeze/unfreeze/flag
+  resolve, and the full operator lifecycle (role before→after, status before→after,
+  create/activate/reset/terminate). Payloads **never** include API keys,
+  activation/reset tokens, passwords, hashes or signed R2 URLs.
+
 ---
 
 ## 3. Session revocation (token_version)

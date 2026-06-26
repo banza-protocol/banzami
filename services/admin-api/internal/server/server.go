@@ -54,7 +54,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	// SMTP off / dry-run → reset link is returned to the SUPER_ADMIN in the
 	// authenticated response so they can deliver it.
 	showResetLink := cfg.EmailDryRun || !mailer.Enabled()
-	resetH := handler.NewResetHandler(resetStore, mailer, cfg.AdminBaseURL, showResetLink)
+	resetH := handler.NewResetHandler(resetStore, mailer, cfg.AdminBaseURL, showResetLink).WithAudit(auditSink(audit))
 
 	// Per-IP rate limit for the unauthenticated auth surface: 20 req/min/IP.
 	// Mounted only on these routes so authenticated operators are never throttled

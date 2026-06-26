@@ -147,6 +147,9 @@ func (h *OperatorHandler) Create(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditAfter(r, "admin_user", o.ID, map[string]any{
+		"action": "CREATE", "email": o.Email, "full_name": o.FullName, "role": o.Role, "status": "INVITED",
+	})
 	out := map[string]any{"operator": o, "email_sent_to": o.Email, "expires_at": exp}
 	if h.showLink {
 		out["invite_url"] = inviteURL
@@ -175,6 +178,7 @@ func (h *OperatorHandler) ResendInvite(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditAfter(r, "admin_user", o.ID, map[string]any{"action": "RESEND_INVITE", "email": o.Email})
 	out := map[string]any{"ok": true, "email_sent_to": o.Email, "expires_at": exp}
 	if h.showLink {
 		out["invite_url"] = inviteURL
@@ -199,6 +203,7 @@ func (h *OperatorHandler) Update(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditAfter(r, "admin_user", chi.URLParam(r, "id"), map[string]any{"action": "UPDATE_NAME", "full_name": strings.TrimSpace(body.FullName)})
 	h.returnOperator(w, r, chi.URLParam(r, "id"))
 }
 
@@ -232,6 +237,9 @@ func (h *OperatorHandler) SetRole(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditChange(r, "admin_user", id,
+		map[string]any{"role": target.Role},
+		map[string]any{"role": body.Role})
 	h.returnOperator(w, r, id)
 }
 
@@ -257,6 +265,9 @@ func (h *OperatorHandler) Suspend(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditChange(r, "admin_user", id,
+		map[string]any{"status": target.Status},
+		map[string]any{"status": "SUSPENDED"})
 	h.returnOperator(w, r, id)
 }
 
@@ -270,6 +281,7 @@ func (h *OperatorHandler) Activate(w http.ResponseWriter, r *http.Request) {
 		h.opErr(w, err)
 		return
 	}
+	auditAfter(r, "admin_user", id, map[string]any{"status": "ACTIVE", "action": "ACTIVATE"})
 	h.returnOperator(w, r, id)
 }
 
@@ -289,6 +301,7 @@ func (h *OperatorHandler) TerminateSessions(w http.ResponseWriter, r *http.Reque
 		h.opErr(w, err)
 		return
 	}
+	auditAfter(r, "admin_user", id, map[string]any{"action": "TERMINATE_SESSIONS"})
 	slog.InfoContext(r.Context(), "admin.operator_sessions_terminated", "admin_user_id", id)
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

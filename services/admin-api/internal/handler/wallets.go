@@ -89,5 +89,11 @@ func (h *WalletHandler) AdminCredit(w http.ResponseWriter, r *http.Request) {
 		})
 		return
 	}
+	auditAfter(r, "wallet", walletID, map[string]any{
+		"wallet_id":    walletID,
+		"amount_minor": body.AmountMinor,
+		"currency":     currency,
+		"reason":       body.Reason,
+	})
 	writeJSON(w, http.StatusOK, result)
 }

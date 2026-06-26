@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -19,7 +20,7 @@ type fakeReset struct {
 	op         service.OperatorView
 	created    string // raw token returned
 	validate   service.ResetTokenInfo
-	complete   string // reason returned
+	completion service.ResetCompletion // returned by CompleteReset
 	lastHash   string
 	mailedLink string
 }
@@ -36,9 +37,9 @@ func (f *fakeReset) CreateResetToken(_ context.Context, _, _ string) (string, ti
 func (f *fakeReset) ValidateResetToken(_ context.Context, _ string) (service.ResetTokenInfo, error) {
 	return f.validate, nil
 }
-func (f *fakeReset) CompleteReset(_ context.Context, _, hash string) (string, error) {
+func (f *fakeReset) CompleteReset(_ context.Context, _, hash string) (service.ResetCompletion, error) {
 	f.lastHash = hash
-	return f.complete, nil
+	return f.completion, nil
 }
 
 func (f *fakeReset) AdminPasswordReset(_, _, link string) { f.mailedLink = link }
@@ -114,7 +115,7 @@ func TestReset_Validate(t *testing.T) {
 }
 
 func TestReset_CompleteSuccess(t *testing.T) {
-	f := &fakeReset{complete: service.ResetValid}
+	f := &fakeReset{completion: service.ResetCompletion{Reason: service.ResetValid, Purpose: service.PurposeReset}}
 	h := NewResetHandler(f, f, "x", false)
 	w := httptest.NewRecorder()
 	resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"a-strong-password"}`)))
@@ -127,7 +128,7 @@ func TestReset_CompleteSuccess(t *testing.T) {
 }
 
 func TestReset_CompleteWeak(t *testing.T) {
-	f := &fakeReset{complete: service.ResetValid}
+	f := &fakeReset{completion: service.ResetCompletion{Reason: service.ResetValid}}
 	h := NewResetHandler(f, f, "x", false)
 	w := httptest.NewRecorder()
 	resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"short"}`)))
@@ -138,12 +139,80 @@ func TestReset_CompleteWeak(t *testing.T) {
 
 func TestReset_CompleteUsedOrExpired(t *testing.T) {
 	for _, reason := range []string{service.ResetUsed, service.ResetExpired, service.ResetInvalid} {
-		f := &fakeReset{complete: reason}
+		f := &fakeReset{completion: service.ResetCompletion{Reason: reason}}
 		h := NewResetHandler(f, f, "x", false)
 		w := httptest.NewRecorder()
 		resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"a-strong-password"}`)))
 		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "INVALID_TOKEN_"+reason) {
 			t.Fatalf("reason %s must be 400 with code, got %d %s", reason, w.Code, w.Body.String())
 		}
+	}
+}
+
+// --- FU1: reset/invite completion is audited (public route, own audit row) ---
+
+type captureAudit struct{ entries []service.AuditEntry }
+
+func (c *captureAudit) Write(_ context.Context, e service.AuditEntry) { c.entries = append(c.entries, e) }
+
+func auditJSON(e service.AuditEntry) string {
+	b, _ := json.Marshal(map[string]any{"before": e.Before, "after": e.After})
+	return string(b)
+}
+
+func TestReset_CompleteInviteAudited(t *testing.T) {
+	f := &fakeReset{completion: service.ResetCompletion{
+		Reason: service.ResetValid, Purpose: service.PurposeInvite, AdminUserID: "u1",
+		Email: "op@b.co", FullName: "Op", Role: "OPERATIONS",
+		BeforeStatus: "INVITED", AfterStatus: "ACTIVE", BeforePasswordSet: false,
+		BeforeTokenVersion: 1, AfterTokenVersion: 2,
+	}}
+	sink := &captureAudit{}
+	h := NewResetHandler(f, f, "x", false).WithAudit(sink)
+	w := httptest.NewRecorder()
+	resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"a-strong-password"}`)))
+	if w.Code != http.StatusOK {
+		t.Fatalf("status=%d", w.Code)
+	}
+	if len(sink.entries) != 1 {
+		t.Fatalf("invite completion must write one audit row, got %d", len(sink.entries))
+	}
+	e := sink.entries[0]
+	if e.Action != "ADMIN_INVITE_COMPLETE" || e.EntityType != "admin_user" || e.EntityID != "u1" {
+		t.Fatalf("unexpected audit row: %+v", e)
+	}
+	if e.AdminEmail != "op@b.co" || e.Role != "OPERATIONS" {
+		t.Fatalf("audit must capture target identity: %+v", e)
+	}
+	// No secret material anywhere in the snapshot.
+	if blob := auditJSON(e); strings.Contains(blob, "a-strong-password") || strings.Contains(blob, "$2") ||
+		strings.Contains(strings.ToLower(blob), "hash") || strings.Contains(strings.ToLower(blob), "token_hash") {
+		t.Fatalf("audit snapshot leaked secret material: %s", blob)
+	}
+}
+
+func TestReset_CompleteResetAudited(t *testing.T) {
+	f := &fakeReset{completion: service.ResetCompletion{
+		Reason: service.ResetValid, Purpose: service.PurposeReset, AdminUserID: "u9",
+		Email: "x@b.co", Role: "SUPPORT", BeforeStatus: "ACTIVE", AfterStatus: "ACTIVE",
+		BeforeTokenVersion: 4, AfterTokenVersion: 5,
+	}}
+	sink := &captureAudit{}
+	h := NewResetHandler(f, f, "x", false).WithAudit(sink)
+	w := httptest.NewRecorder()
+	resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"a-strong-password"}`)))
+	if len(sink.entries) != 1 || sink.entries[0].Action != "ADMIN_PASSWORD_RESET_COMPLETE" {
+		t.Fatalf("reset completion must write ADMIN_PASSWORD_RESET_COMPLETE: %+v", sink.entries)
+	}
+}
+
+func TestReset_CompleteAuditFailureDoesNotBlock(t *testing.T) {
+	// A handler with no audit sink still completes the reset successfully.
+	f := &fakeReset{completion: service.ResetCompletion{Reason: service.ResetValid, Purpose: service.PurposeReset}}
+	h := NewResetHandler(f, f, "x", false) // no WithAudit
+	w := httptest.NewRecorder()
+	resetRouter(h).ServeHTTP(w, httptest.NewRequest("POST", "/admin/v1/auth/password-reset/complete", strings.NewReader(`{"token":"t","new_password":"a-strong-password"}`)))
+	if w.Code != http.StatusOK {
+		t.Fatalf("completion must succeed even without an audit sink, got %d", w.Code)
 	}
 }

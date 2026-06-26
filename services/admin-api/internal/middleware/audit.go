@@ -45,6 +45,9 @@ func Audit(sink AuditWriter) func(http.Handler) http.Handler {
 			}
 			action := auditAction(r.Method, pattern)
 			entityType, entityID := auditEntity(r, pattern)
+			if ann.Action != "" {
+				action = ann.Action
+			}
 			if ann.EntityType != "" {
 				entityType = ann.EntityType
 			}

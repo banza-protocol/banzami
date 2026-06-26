@@ -39,6 +39,7 @@ func (h *ComplianceHandler) ApproveMerchant(w http.ResponseWriter, r *http.Reque
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "kyb_status": "APPROVED", "aml_status": "APPROVED"})
 	writeJSON(w, http.StatusOK, record)
 }
 
@@ -60,6 +61,7 @@ func (h *ComplianceHandler) RejectMerchant(w http.ResponseWriter, r *http.Reques
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "kyb_status": "REJECTED", "notes": body.Notes})
 	writeJSON(w, http.StatusOK, record)
 }
 
@@ -78,6 +80,7 @@ func (h *ComplianceHandler) SuspendMerchant(w http.ResponseWriter, r *http.Reque
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "status": "SUSPENDED", "notes": body.Notes})
 	writeJSON(w, http.StatusOK, record)
 }
 
@@ -96,5 +99,6 @@ func (h *ComplianceHandler) FlagAML(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "merchant", id, map[string]any{"merchant_id": id, "aml_status": "UNDER_REVIEW", "notes": body.Notes})
 	writeJSON(w, http.StatusOK, record)
 }

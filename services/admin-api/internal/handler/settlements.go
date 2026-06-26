@@ -32,6 +32,8 @@ func (h *SettlementHandler) CreateBatch(w http.ResponseWriter, r *http.Request) 
 		handleCoreErr(w, err)
 		return
 	}
+	// merchant_id/period only (no secrets in a settlement batch request).
+	auditAfter(r, "settlement", "", map[string]any{"status": "CREATED", "request": body})
 	writeJSON(w, http.StatusCreated, result)
 }
 
@@ -81,6 +83,7 @@ func (h *SettlementHandler) Submit(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "settlement", id, map[string]any{"settlement_id": id, "status": "SUBMITTED"})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -93,6 +96,7 @@ func (h *SettlementHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "settlement", id, map[string]any{"settlement_id": id, "status": "CONFIRMED"})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -112,5 +116,6 @@ func (h *SettlementHandler) Fail(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "settlement", id, map[string]any{"settlement_id": id, "status": "FAILED", "reason": body.Reason})
 	writeJSON(w, http.StatusOK, result)
 }

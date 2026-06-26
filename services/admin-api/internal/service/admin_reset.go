@@ -119,13 +119,33 @@ func (s *AdminUserService) ValidateResetToken(ctx context.Context, raw string) (
 	return ResetTokenInfo{Reason: ResetValid, AdminUserID: adminUserID, FullName: fullName}, nil
 }
 
+// ResetCompletion is the audit-friendly outcome of CompleteReset. On the
+// non-success branches (USED/EXPIRED/INVALID) only Reason is set. On success it
+// carries the target operator's identity plus a before/after snapshot — all
+// non-secret fields (never the password, hash or token).
+type ResetCompletion struct {
+	Reason             string
+	Purpose            string // INVITE | PASSWORD_RESET
+	AdminUserID        string
+	Email              string
+	FullName           string
+	Role               string
+	BeforeStatus       string
+	AfterStatus        string
+	BeforePasswordSet  bool
+	BeforeTokenVersion int
+	AfterTokenVersion  int
+	ActivatedAt        *time.Time
+}
+
 // CompleteReset consumes a valid token and sets the new password hash. It clears
-// the lockout, marks the token used, all atomically. Returns the validation
-// reason ("" on success path means VALID).
-func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash string) (string, error) {
+// the lockout, bumps token_version, marks the token used, all atomically, and
+// returns a redacted before/after snapshot for auditing. Reason == ResetValid on
+// the success path.
+func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash string) (ResetCompletion, error) {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return "", err
+		return ResetCompletion{}, err
 	}
 	defer tx.Rollback(ctx)
 
@@ -141,46 +161,61 @@ func (s *AdminUserService) CompleteReset(ctx context.Context, raw, passwordHash 
 		   FROM admin_password_reset_tokens WHERE token_hash = $1 FOR UPDATE`, hashToken(raw)).
 		Scan(&tokenID, &adminUserID, &purpose, &expiresAt, &usedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return ResetInvalid, nil
+		return ResetCompletion{Reason: ResetInvalid}, nil
 	}
 	if err != nil {
-		return "", err
+		return ResetCompletion{}, err
 	}
 	if usedAt != nil {
-		return ResetUsed, nil
+		return ResetCompletion{Reason: ResetUsed}, nil
 	}
 	if expiresAt.Before(time.Now()) {
-		return ResetExpired, nil
+		return ResetCompletion{Reason: ResetExpired}, nil
+	}
+
+	// Capture the before-state (identity + status + token_version) for the audit
+	// snapshot. No secret columns are read.
+	out := ResetCompletion{Reason: ResetValid, Purpose: purpose, AdminUserID: adminUserID}
+	if err := tx.QueryRow(ctx,
+		`SELECT email, full_name, role, status, (password_hash IS NOT NULL), token_version
+		   FROM admin_users WHERE id=$1`, adminUserID).
+		Scan(&out.Email, &out.FullName, &out.Role, &out.BeforeStatus, &out.BeforePasswordSet, &out.BeforeTokenVersion); err != nil {
+		return ResetCompletion{}, err
 	}
 
 	// INVITE completion activates the account; PASSWORD_RESET only sets the
 	// password (a SUSPENDED operator stays suspended — never auto-reactivated).
 	// token_version is bumped in both branches so completing an invite or a reset
-	// revokes any session minted before the password was (re)set.
+	// revokes any session minted before the password was (re)set. RETURNING gives
+	// the exact after-state for the audit snapshot.
 	if purpose == PurposeInvite {
-		if _, err := tx.Exec(ctx,
+		if err := tx.QueryRow(ctx,
 			`UPDATE admin_users
 			    SET password_hash=$2, password_set_at=now(), activated_at=now(),
 			        status = CASE WHEN status='INVITED' THEN 'ACTIVE' ELSE status END,
 			        token_version = token_version + 1,
 			        failed_login_attempts=0, locked_until=NULL, updated_at=now()
-			  WHERE id=$1`, adminUserID, passwordHash); err != nil {
-			return "", err
+			  WHERE id=$1
+			  RETURNING status, token_version, activated_at`, adminUserID, passwordHash).
+			Scan(&out.AfterStatus, &out.AfterTokenVersion, &out.ActivatedAt); err != nil {
+			return ResetCompletion{}, err
 		}
-	} else if _, err := tx.Exec(ctx,
+	} else if err := tx.QueryRow(ctx,
 		`UPDATE admin_users
 		    SET password_hash=$2, password_set_at=now(), failed_login_attempts=0,
 		        token_version = token_version + 1,
 		        locked_until=NULL, updated_at=now()
-		  WHERE id=$1`, adminUserID, passwordHash); err != nil {
-		return "", err
+		  WHERE id=$1
+		  RETURNING status, token_version, activated_at`, adminUserID, passwordHash).
+		Scan(&out.AfterStatus, &out.AfterTokenVersion, &out.ActivatedAt); err != nil {
+		return ResetCompletion{}, err
 	}
 	if _, err := tx.Exec(ctx,
 		`UPDATE admin_password_reset_tokens SET used_at=now() WHERE id=$1`, tokenID); err != nil {
-		return "", err
+		return ResetCompletion{}, err
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return "", err
+		return ResetCompletion{}, err
 	}
-	return ResetValid, nil
+	return out, nil
 }

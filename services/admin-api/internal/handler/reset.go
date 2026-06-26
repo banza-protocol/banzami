@@ -19,7 +19,7 @@ type ResetStore interface {
 	GetOperator(ctx context.Context, id string) (service.OperatorView, error)
 	CreateResetToken(ctx context.Context, adminUserID, createdBy string) (string, time.Time, error)
 	ValidateResetToken(ctx context.Context, raw string) (service.ResetTokenInfo, error)
-	CompleteReset(ctx context.Context, raw, passwordHash string) (string, error)
+	CompleteReset(ctx context.Context, raw, passwordHash string) (service.ResetCompletion, error)
 }
 
 // ResetMailer sends the set-password email.
@@ -32,10 +32,18 @@ type ResetHandler struct {
 	mailer       ResetMailer
 	adminBaseURL string
 	showLink     bool // dry-run / SMTP off → return reset_url to the SUPER_ADMIN
+	audit        AuditSink
 }
 
 func NewResetHandler(store ResetStore, mailer ResetMailer, adminBaseURL string, showLink bool) *ResetHandler {
 	return &ResetHandler{store: store, mailer: mailer, adminBaseURL: adminBaseURL, showLink: showLink}
+}
+
+// WithAudit attaches an audit sink. Used by the public Complete endpoint, which
+// runs outside the authenticated audit middleware and records its own row.
+func (h *ResetHandler) WithAudit(a AuditSink) *ResetHandler {
+	h.audit = a
+	return h
 }
 
 func (h *ResetHandler) ready(w http.ResponseWriter) bool {
@@ -79,6 +87,7 @@ func (h *ResetHandler) Request(w http.ResponseWriter, r *http.Request) {
 	}
 	// Log only that a reset was issued — never the token/link.
 	slog.InfoContext(r.Context(), "admin.password_reset_issued", "admin_user_id", id)
+	auditAfter(r, "admin_user", id, map[string]any{"action": "RESET_PASSWORD_ISSUED", "email": op.Email})
 
 	out := map[string]any{"ok": true, "expires_at": exp, "email_sent_to": op.Email}
 	if h.showLink {
@@ -129,16 +138,46 @@ func (h *ResetHandler) Complete(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 12 characters")
 		return
 	}
-	reason, err := h.store.CompleteReset(r.Context(), body.Token, hash)
+	res, err := h.store.CompleteReset(r.Context(), body.Token, hash)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not set password")
 		return
 	}
-	if reason != service.ResetValid {
+	if res.Reason != service.ResetValid {
 		// INVALID / USED / EXPIRED — 400 with the reason code.
-		writeError(w, http.StatusBadRequest, "INVALID_TOKEN_"+reason, "reset link is no longer valid")
+		writeError(w, http.StatusBadRequest, "INVALID_TOKEN_"+res.Reason, "reset link is no longer valid")
 		return
 	}
+
+	// This public route runs outside the authenticated audit middleware, so it
+	// records its own immutable audit row. The actor is the target operator
+	// acting via a single-use token (no JWT principal). Snapshot is non-secret:
+	// no password, hash or token is ever recorded. Audit failure must not block
+	// the activation/reset.
+	action := "ADMIN_PASSWORD_RESET_COMPLETE"
+	if res.Purpose == service.PurposeInvite {
+		action = "ADMIN_INVITE_COMPLETE"
+	}
+	if h.audit != nil {
+		h.audit.Write(r.Context(), service.AuditEntry{
+			AdminUserID: res.AdminUserID, AdminEmail: res.Email, FullName: res.FullName, Role: res.Role,
+			Action: action, EntityType: "admin_user", EntityID: res.AdminUserID, StatusCode: http.StatusOK,
+			IP: clientIP(r), UserAgent: r.UserAgent(),
+			Before: map[string]any{
+				"status":        res.BeforeStatus,
+				"password_set":  res.BeforePasswordSet,
+				"token_version": res.BeforeTokenVersion,
+			},
+			After: map[string]any{
+				"status":        res.AfterStatus,
+				"password_set":  true,
+				"token_version": res.AfterTokenVersion,
+				"activated_at":  res.ActivatedAt,
+				"actor_type":    "SELF_VIA_TOKEN",
+			},
+		})
+	}
+
 	// Does not create a session — the operator signs in with the new password.
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }

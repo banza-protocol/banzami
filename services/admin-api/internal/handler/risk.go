@@ -47,6 +47,9 @@ func (h *RiskHandler) FreezeAccount(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "risk_freeze", body.EntityID, map[string]any{
+		"entity_type": body.EntityType, "entity_id": body.EntityID, "action": "FREEZE", "reason": body.Reason,
+	})
 	writeJSON(w, http.StatusCreated, out)
 }
 
@@ -68,6 +71,9 @@ func (h *RiskHandler) UnfreezeAccount(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "risk_freeze", entityID, map[string]any{
+		"entity_type": entityType, "entity_id": entityID, "action": "UNFREEZE", "reason": body.Reason,
+	})
 	writeJSON(w, http.StatusOK, out)
 }
 
@@ -112,6 +118,7 @@ func (h *RiskHandler) ResolveRiskFlag(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "risk_flag", id, map[string]any{"risk_flag_id": id, "resolution": body.Resolution})
 	writeJSON(w, http.StatusOK, res)
 }
 

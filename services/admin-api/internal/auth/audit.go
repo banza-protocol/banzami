@@ -8,6 +8,7 @@ import "context"
 // context before the handler runs and reads it back afterwards. Never put
 // passwords, hashes or tokens in Before/After.
 type AuditAnnotation struct {
+	Action     string // override the route-derived action name (optional)
 	EntityType string
 	EntityID   string
 	Before     any

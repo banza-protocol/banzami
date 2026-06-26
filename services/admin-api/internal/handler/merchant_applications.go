@@ -89,6 +89,14 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 	activationURL := h.websiteBaseURL + "/comerciantes/activar?token=" + res.ActivationToken
 	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, activationURL)
 
+	// Audit (no token, no full API key — prefix/handle/merchant id are safe).
+	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
+		"status":        "APPROVED",
+		"merchant_id":   res.MerchantID,
+		"handle":        res.Handle,
+		"email_sent_to": res.Email,
+	})
+
 	writeRaw(w, http.StatusOK, mustJSON(map[string]any{
 		"status":         "APPROVED",
 		"merchant_id":    res.MerchantID,
@@ -112,6 +120,13 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 	}
 
 	h.mailer.MerchantApplicationRejected(res.Email, res.BusinessName, res.MerchantMessage)
+
+	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
+		"status":           "REJECTED",
+		"admin_notes":      body.AdminNotes,
+		"merchant_message": res.MerchantMessage,
+		"email_sent_to":    res.Email,
+	})
 
 	writeRaw(w, http.StatusOK, mustJSON(map[string]any{
 		"status":        "REJECTED",
@@ -149,6 +164,11 @@ func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *ht
 		writeErr(w, http.StatusBadGateway, "could not accept document")
 		return
 	}
+	auditAfter(r, "kyb_document", chi.URLParam(r, "documentId"), map[string]any{
+		"application_id": chi.URLParam(r, "id"),
+		"document_id":    chi.URLParam(r, "documentId"),
+		"status":         "ACCEPTED",
+	})
 	writeRaw(w, code, raw)
 }
 
@@ -166,6 +186,12 @@ func (h *MerchantApplicationHandler) RejectDocument(w http.ResponseWriter, r *ht
 		writeErr(w, http.StatusBadGateway, "could not reject document")
 		return
 	}
+	auditAfter(r, "kyb_document", chi.URLParam(r, "documentId"), map[string]any{
+		"application_id": chi.URLParam(r, "id"),
+		"document_id":    chi.URLParam(r, "documentId"),
+		"status":         "REJECTED",
+		"reason":         body.Reason,
+	})
 	writeRaw(w, code, raw)
 }
 

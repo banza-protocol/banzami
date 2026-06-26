@@ -64,6 +64,7 @@ func (h *PayoutHandler) Process(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "PROCESSING"})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -76,6 +77,7 @@ func (h *PayoutHandler) MarkSent(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "SENT"})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -88,6 +90,7 @@ func (h *PayoutHandler) Confirm(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "CONFIRMED"})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -107,6 +110,7 @@ func (h *PayoutHandler) Fail(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "FAILED", "reason": body.Reason})
 	writeJSON(w, http.StatusOK, result)
 }
 
@@ -119,5 +123,6 @@ func (h *PayoutHandler) MarkReturned(w http.ResponseWriter, r *http.Request) {
 		handleCoreErr(w, err)
 		return
 	}
+	auditAfter(r, "payout", id, map[string]any{"payout_id": id, "status": "RETURNED"})
 	writeJSON(w, http.StatusOK, result)
 }

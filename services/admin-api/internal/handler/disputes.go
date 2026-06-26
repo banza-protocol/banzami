@@ -87,5 +87,11 @@ func (h *DisputeHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
 	}
+	auditAfter(r, "dispute", id, map[string]any{
+		"dispute_id":       id,
+		"outcome":          body.Outcome,
+		"resolution_notes": body.ResolutionNotes,
+		"status":           "RESOLVED",
+	})
 	writeJSON(w, http.StatusOK, result)
 }
