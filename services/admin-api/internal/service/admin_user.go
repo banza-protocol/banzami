@@ -68,6 +68,18 @@ func (s *AdminUserService) TouchLastLogin(ctx context.Context, id string) {
 	_, _ = s.pool.Exec(ctx, `UPDATE admin_users SET last_login_at = now(), updated_at = now() WHERE id = $1`, id)
 }
 
+// UpdatePassword replaces an operator's bcrypt hash and bumps updated_at.
+func (s *AdminUserService) UpdatePassword(ctx context.Context, id, passwordHash string) error {
+	tag, err := s.pool.Exec(ctx, `UPDATE admin_users SET password_hash = $2, updated_at = now() WHERE id = $1`, id, passwordHash)
+	if err != nil {
+		return err
+	}
+	if tag.RowsAffected() == 0 {
+		return ErrAdminUserNotFound
+	}
+	return nil
+}
+
 // Create inserts a new operator (bootstrap). Fails if the email exists.
 func (s *AdminUserService) Create(ctx context.Context, email, fullName, passwordHash, role string) (string, error) {
 	id := uuid.NewString()

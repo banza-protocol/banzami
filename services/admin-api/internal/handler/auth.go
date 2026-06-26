@@ -11,11 +11,13 @@ import (
 	"github.com/banzami/banzami/services/admin-api/internal/service"
 )
 
-// LoginStore is the slice of AdminUserService the login flow needs (interface
+// LoginStore is the slice of AdminUserService the auth handler needs (interface
 // for testability; *service.AdminUserService satisfies it).
 type LoginStore interface {
 	GetByEmail(ctx context.Context, email string) (service.AdminUser, error)
+	GetByID(ctx context.Context, id string) (service.AdminUser, error)
 	TouchLastLogin(ctx context.Context, id string)
+	UpdatePassword(ctx context.Context, id, passwordHash string) error
 }
 
 // AuthHandler implements operator login / me / logout. Errors are deliberately
@@ -108,6 +110,61 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 // the endpoint exists for symmetry and future server-side revocation.
 func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// POST /admin/v1/auth/change-password — operator changes their own password.
+// Auth comes from the JWT middleware (principal in context); the body never
+// reaches the logs and no hash/password is ever returned. A wrong current
+// password is a 400 (not 401) so it does NOT trigger the client's auto-logout.
+func (h *AuthHandler) ChangePassword(w http.ResponseWriter, r *http.Request) {
+	if !h.ready(w) {
+		return
+	}
+	p, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "UNAUTHORIZED", "unauthenticated")
+		return
+	}
+	var body struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+
+	u, err := h.users.GetByID(r.Context(), p.ID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not change password")
+		return
+	}
+	// Wrong current password → 400 (human, no technical detail). Not 401, to
+	// avoid the client treating it as an expired session.
+	if !auth.VerifyPassword(u.PasswordHash, body.CurrentPassword) {
+		writeError(w, http.StatusBadRequest, "INVALID_CURRENT_PASSWORD", "current password is incorrect")
+		return
+	}
+	if len(body.NewPassword) < 10 {
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+		return
+	}
+	if auth.VerifyPassword(u.PasswordHash, body.NewPassword) {
+		writeError(w, http.StatusConflict, "SAME_PASSWORD", "new password must differ from the current one")
+		return
+	}
+
+	hash, err := auth.HashPassword(body.NewPassword)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "WEAK_PASSWORD", "new password must be at least 10 characters")
+		return
+	}
+	if err := h.users.UpdatePassword(r.Context(), u.ID, hash); err != nil {
+		writeError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "could not change password")
+		return
+	}
+	slog.InfoContext(r.Context(), "admin.password_changed", "admin_user_id", u.ID) // no password/hash
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
 // writeJSON is shared with other handlers (helpers.go); declared there.

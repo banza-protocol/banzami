@@ -208,6 +208,14 @@ export class AdminApi {
   logout(): Promise<void> {
     return this.req('/admin/v1/auth/logout', { method: 'POST' });
   }
+  // Operator changes their own password. A wrong current password is a 400
+  // (code INVALID_CURRENT_PASSWORD), so it does NOT trip the 401 auto-logout.
+  changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+    return this.req('/admin/v1/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    });
+  }
 
   private async req<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${this.base}${path}`, {

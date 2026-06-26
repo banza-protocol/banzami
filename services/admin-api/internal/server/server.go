@@ -57,6 +57,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 		r.Get("/admin/v1/auth/me", authH.Me)
 		r.Post("/admin/v1/auth/logout", authH.Logout)
+		r.Post("/admin/v1/auth/change-password", authH.ChangePassword)
 
 		complianceH := handler.NewComplianceHandler(core)
 		settlementH := handler.NewSettlementHandler(core)

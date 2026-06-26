@@ -13,8 +13,9 @@ import (
 )
 
 type fakeStore struct {
-	user      *service.AdminUser
-	touchedID string
+	user        *service.AdminUser
+	touchedID   string
+	updatedHash string
 }
 
 func (f *fakeStore) GetByEmail(_ context.Context, email string) (service.AdminUser, error) {
@@ -23,7 +24,20 @@ func (f *fakeStore) GetByEmail(_ context.Context, email string) (service.AdminUs
 	}
 	return service.AdminUser{}, service.ErrAdminUserNotFound
 }
+func (f *fakeStore) GetByID(_ context.Context, id string) (service.AdminUser, error) {
+	if f.user != nil && f.user.ID == id {
+		return *f.user, nil
+	}
+	return service.AdminUser{}, service.ErrAdminUserNotFound
+}
 func (f *fakeStore) TouchLastLogin(_ context.Context, id string) { f.touchedID = id }
+func (f *fakeStore) UpdatePassword(_ context.Context, id, hash string) error {
+	f.updatedHash = hash
+	if f.user != nil && f.user.ID == id {
+		f.user.PasswordHash = hash
+	}
+	return nil
+}
 
 func loginReq(body string) *http.Request {
 	return httptest.NewRequest("POST", "/admin/v1/auth/login", strings.NewReader(body))
@@ -90,5 +104,81 @@ func TestLogin_NotConfigured(t *testing.T) {
 	h.Login(w, loginReq(`{"email":"x@x.co","password":"a-strong-password"}`))
 	if w.Code != http.StatusServiceUnavailable {
 		t.Fatalf("nil store must be 503, got %d", w.Code)
+	}
+}
+
+// --- change password ------------------------------------------------------
+
+func changeReq(body string, p auth.Principal) *http.Request {
+	r := httptest.NewRequest("POST", "/admin/v1/auth/change-password", strings.NewReader(body))
+	return r.WithContext(auth.WithPrincipal(r.Context(), p))
+}
+
+func principalFor(u *service.AdminUser) auth.Principal {
+	return auth.Principal{ID: u.ID, Email: u.Email, FullName: u.FullName, Role: u.Role}
+}
+
+func TestChangePassword_Success(t *testing.T) {
+	u := activeUser(t) // current password is "a-strong-password"
+	store := &fakeStore{user: u}
+	h := NewAuthHandler(store, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.ChangePassword(w, changeReq(`{"current_password":"a-strong-password","new_password":"a-brand-new-password"}`, principalFor(u)))
+	if w.Code != http.StatusOK || !strings.Contains(w.Body.String(), `"ok":true`) {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+	body := w.Body.String()
+	if strings.Contains(body, "password") || strings.Contains(body, "hash") || strings.Contains(body, "$2") {
+		t.Fatalf("response leaks password material: %s", body)
+	}
+	// Hash changed and the new password verifies; the old one no longer does.
+	if store.updatedHash == "" || !auth.VerifyPassword(store.updatedHash, "a-brand-new-password") {
+		t.Fatal("new password should verify against the stored hash")
+	}
+	if auth.VerifyPassword(store.updatedHash, "a-strong-password") {
+		t.Fatal("old password must no longer verify")
+	}
+}
+
+func TestChangePassword_WrongCurrent(t *testing.T) {
+	u := activeUser(t)
+	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.ChangePassword(w, changeReq(`{"current_password":"nope-nope-nope","new_password":"a-brand-new-password"}`, principalFor(u)))
+	// 400 (not 401, so the client does not auto-logout) with a safe code.
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "INVALID_CURRENT_PASSWORD") {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestChangePassword_Weak(t *testing.T) {
+	u := activeUser(t)
+	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.ChangePassword(w, changeReq(`{"current_password":"a-strong-password","new_password":"short"}`, principalFor(u)))
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "WEAK_PASSWORD") {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestChangePassword_Same(t *testing.T) {
+	u := activeUser(t)
+	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	h.ChangePassword(w, changeReq(`{"current_password":"a-strong-password","new_password":"a-strong-password"}`, principalFor(u)))
+	if w.Code != http.StatusConflict || !strings.Contains(w.Body.String(), "SAME_PASSWORD") {
+		t.Fatalf("status=%d body=%s", w.Code, w.Body.String())
+	}
+}
+
+func TestChangePassword_Unauthenticated(t *testing.T) {
+	u := activeUser(t)
+	h := NewAuthHandler(&fakeStore{user: u}, "secret-xyz", time.Hour)
+	w := httptest.NewRecorder()
+	// No principal in context (e.g., route reached without the JWT middleware).
+	r := httptest.NewRequest("POST", "/x", strings.NewReader(`{"current_password":"a-strong-password","new_password":"a-brand-new-password"}`))
+	h.ChangePassword(w, r)
+	if w.Code != http.StatusUnauthorized {
+		t.Fatalf("missing principal must be 401, got %d", w.Code)
 	}
 }

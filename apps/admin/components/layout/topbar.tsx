@@ -1,9 +1,11 @@
 'use client';
 
-import { usePathname } from 'next/navigation';
-import { AlertCircle } from 'lucide-react';
-import type { AdminUser } from '@/lib/session';
+import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { AlertCircle, ChevronDown, KeyRound, LogOut } from 'lucide-react';
+import { type AdminUser, destroySession } from '@/lib/session';
 import { initials } from '@/lib/format';
+import { ChangePasswordModal } from '@/components/ui/change-password-modal';
 
 // Title + subtitle per route (README §Header).
 const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
@@ -19,7 +21,15 @@ const META: { match: (p: string) => boolean; title: string; sub: string }[] = [
 
 export function Topbar({ user }: { user: AdminUser }) {
   const pathname = usePathname();
+  const router = useRouter();
   const meta = META.find((m) => m.match(pathname)) ?? { title: 'Admin', sub: '' };
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+
+  function logout() {
+    destroySession();
+    router.replace('/login');
+  }
 
   return (
     <header className="sticky top-0 z-20 flex items-center justify-between gap-4 border-b border-[#f1e3e3] bg-[rgba(255,247,246,0.85)] px-8 py-[18px] backdrop-blur-[12px] backdrop-saturate-150">
@@ -32,16 +42,51 @@ export function Topbar({ user }: { user: AdminUser }) {
           <AlertCircle size={14} strokeWidth={1.8} />
           Uso interno
         </span>
-        <span className="flex items-center gap-[9px]">
-          <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#1a1416] text-[13px] font-extrabold text-white">
-            {initials(user.full_name)}
-          </span>
-          <span className="leading-[1.2] max-[860px]:hidden">
-            <span className="block text-[13.5px] font-extrabold text-[#2a2024]">{user.full_name}</span>
-            <span className="block text-[11.5px] font-semibold text-[#9a8a8e]">{user.role}</span>
-          </span>
-        </span>
+
+        <div className="relative">
+          <button
+            onClick={() => setMenuOpen((o) => !o)}
+            className="flex items-center gap-[9px] rounded-[12px] px-1.5 py-1 transition-colors hover:bg-[#FFF1F0]"
+          >
+            <span className="flex h-[34px] w-[34px] items-center justify-center rounded-full bg-[#1a1416] text-[13px] font-extrabold text-white">
+              {initials(user.full_name)}
+            </span>
+            <span className="leading-[1.2] max-[860px]:hidden">
+              <span className="block text-left text-[13.5px] font-extrabold text-[#2a2024]">{user.full_name}</span>
+              <span className="block text-left text-[11.5px] font-semibold text-[#9a8a8e]">{user.role}</span>
+            </span>
+            <ChevronDown size={16} strokeWidth={2} color="#9a8a8e" />
+          </button>
+
+          {menuOpen && (
+            <>
+              <div className="fixed inset-0 z-10" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-[calc(100%+8px)] z-20 w-[230px] overflow-hidden rounded-[14px] border border-[#f1e3e3] bg-white shadow-[0_20px_50px_-20px_rgba(0,0,0,0.25)]">
+                <div className="border-b border-[#f6eded] px-4 py-3">
+                  <div className="text-[13px] font-extrabold text-[#2a2024]">{user.full_name}</div>
+                  <div className="truncate text-[12px] font-semibold text-[#9a8a8e]">{user.email}</div>
+                </div>
+                <button
+                  onClick={() => { setMenuOpen(false); setPwOpen(true); }}
+                  className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[14px] font-bold text-[#5a4a4e] transition-colors hover:bg-[#FFF7F6]"
+                >
+                  <KeyRound size={17} strokeWidth={1.8} color="#9a8a8e" />
+                  Alterar palavra-passe
+                </button>
+                <button
+                  onClick={logout}
+                  className="flex w-full items-center gap-2.5 border-t border-[#f6eded] px-4 py-3 text-left text-[14px] font-bold text-[#5a4a4e] transition-colors hover:bg-[#FFF1F0] hover:text-[#B5101F]"
+                >
+                  <LogOut size={17} strokeWidth={1.8} />
+                  Sair
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
+      {pwOpen && <ChangePasswordModal onClose={() => setPwOpen(false)} />}
     </header>
   );
 }
