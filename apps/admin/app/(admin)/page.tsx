@@ -109,7 +109,7 @@ export default function OverviewPage() {
           className="pointer-events-none absolute -right-10 -top-[60px] h-[260px] w-[260px] rounded-full"
           style={{ background: 'radial-gradient(circle, rgba(181,16,31,.5), rgba(181,16,31,0) 68%)' }}
         />
-        <p className="m-0 text-[12px] font-extrabold tracking-[0.16em] text-[#8a7a7e]">BANZAMI OPERATIONS</p>
+        <p className="m-0 text-[12px] font-extrabold tracking-[0.16em] text-[#8a7a7e]">BANZADMIN OPERATIONS</p>
         <h2 className="m-0 mt-2 text-[30px] font-black tracking-[-0.02em] text-white">Painel Interno</h2>
         <p className="m-0 mt-[10px] max-w-[560px] text-[15px] font-semibold text-[#bcaeb0]">
           Acesso restrito a operadores autorizados. Todas as acções são auditadas e registadas em tempo real.

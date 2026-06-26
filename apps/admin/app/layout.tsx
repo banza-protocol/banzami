@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title:       'Banzami Admin — Painel de Operações',
-  description: 'Painel interno de operações Banzami. Acesso restrito a operadores autorizados.',
+  title:       'BANZADMIN — Painel de Operações',
+  description: 'Portal interno de operações Banzami.',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -47,7 +47,7 @@ export default function LoginPage() {
           <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[12px] bg-[#B5101F] shadow-[0_6px_14px_-4px_rgba(181,16,31,0.5)]">
             <BanzamiLogo size={21} />
           </span>
-          <span className="text-[13px] font-black tracking-[0.16em] text-[#B5101F]">BANZAMI</span>
+          <span className="text-[13px] font-black tracking-[0.16em] text-[#B5101F]">BANZADMIN</span>
         </div>
         <h1 className="m-0 text-[27px] font-black tracking-[-0.02em]">Painel de Operações</h1>
         <p className="m-0 mb-[26px] mt-2 text-[15px] font-semibold text-[#9a8a8e]">

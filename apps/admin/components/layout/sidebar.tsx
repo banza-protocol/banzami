@@ -40,8 +40,7 @@ export function Sidebar() {
           <BanzamiLogo />
         </span>
         <span className="flex items-baseline gap-[7px] max-[860px]:hidden">
-          <span className="text-[19px] font-black tracking-[-0.02em]">Banzami</span>
-          <span className="text-[10.5px] font-extrabold tracking-[0.14em] text-[#b09498]">ADMIN</span>
+          <span className="text-[19px] font-black tracking-[-0.02em]">BANZADMIN</span>
         </span>
       </div>
 
