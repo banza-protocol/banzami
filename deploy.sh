@@ -28,7 +28,7 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -128,6 +128,26 @@ deploy_api_gateway() {
   info "Recreating container..."
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d api-gateway 2>&1"
   _wait_healthy "banzami-api-gateway-1"
+}
+
+deploy_sandbox_operator() {
+  step "sandbox-operator" "BANZA L0 sandbox operator (manifest + health at sandbox-api.banzami.com)"
+
+  info "Syncing source to server..."
+  rsync -az --delete \
+    --exclude='.git' \
+    "$REPO_ROOT/services/sandbox-operator/" \
+    "$REMOTE:/srv/banzami/sandbox-operator-build/"
+  ok "Sync complete"
+
+  info "Building Docker image on server..."
+  ssh "$REMOTE" "cd /srv/banzami/sandbox-operator-build && docker build $NO_CACHE -t banzami/sandbox-operator:latest . 2>&1" \
+    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
+  ok "Image built"
+
+  info "Recreating container..."
+  ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d sandbox-operator 2>&1"
+  _wait_healthy "banzami-sandbox-operator-1"
 }
 
 deploy_public_api() {
@@ -259,6 +279,7 @@ for svc in "${SERVICES[@]}"; do
     admin-api)          deploy_admin_api ;;
     api-gateway)        deploy_api_gateway ;;
     public-api)         deploy_public_api ;;
+    sandbox-operator)   deploy_sandbox_operator ;;
     admin-frontend)     deploy_admin_frontend ;;
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
