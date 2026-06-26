@@ -3,13 +3,17 @@
 Status: **approved** (PR #4). This is the binding domain architecture for Banzami.
 Everything Banzami payment/product/runtime is `.com`, kept intentionally small.
 
-> **Protocol domain migration (2026-06-26):** the BANZA protocol moved its site
-> and namespace from `banzami.org` → **`banza.network`** (announced by the BANZA
-> protocol team). The protocol site is no longer hosted by Banzami at
-> `banzami.org`. Operator references to the protocol now point to
-> `https://banza.network`. The legacy `banzami.org` operator subdomains
-> (`api/admin/business/pay/sandbox.banzami.org`) are unaffected by this protocol
-> change and continue their separate consolidation to `.com` (below).
+> **`banzami.org` FULLY REMOVED (2026-06-26).** The domain `banzami.org` (and all
+> its subdomains: `api/admin/business/pay/sandbox/www.banzami.org`) no longer
+> exists in the ecosystem — **no nginx block, no redirect, no fallback, no
+> certificate, no service**. The official domains are:
+> - Banzami platform → `banzami.com`
+> - BANZA protocol → `banza.network`
+> - Banzami sandbox/operator → `sandbox-api.banzami.com`
+>
+> The sections below that describe the `.org` decommission plan are kept as
+> **historical record** only. Any remaining `banzami.org` mention in this repo
+> should appear solely in history/evidence/governance artifacts.
 
 ## 1. Final approved domain architecture
 
