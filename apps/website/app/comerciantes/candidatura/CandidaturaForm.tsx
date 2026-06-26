@@ -195,18 +195,38 @@ const AngolaFlag = ({ w = 22, h = 15 }: { w?: number; h?: number }) => (
 
 // --- Reusable field primitives ---------------------------------------------
 
-const inputCls =
-  'w-full rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-white px-4 py-3.5 text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 placeholder:font-semibold placeholder:text-[#bca9ab] focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10';
+// Border colour is the only token that changes between valid / error states.
+const ERR_BORDER = 'border-[#e8a3a3]';
+const OK_BORDER = 'border-[#f1e3e3]';
+const inputBase =
+  'w-full rounded-[14px] border-[1.5px] bg-white px-4 py-3.5 text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 placeholder:font-semibold placeholder:text-[#bca9ab] focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10';
+const inputClass = (bad?: boolean) => `${inputBase} ${bad ? ERR_BORDER : OK_BORDER}`;
 const labelCls = 'mb-2 block text-[13px] font-extrabold text-[#2a2024]';
 
-function Field({ label, optional, children }: { label: string; optional?: boolean; children: ReactNode }) {
+function FieldError({ error }: { error?: string | null }) {
+  if (!error) return null;
+  return <p className="mt-1.5 text-[13px] font-semibold text-[#B5101F]">{error}</p>;
+}
+
+function Field({
+  label,
+  optional,
+  error,
+  children,
+}: {
+  label: string;
+  optional?: boolean;
+  error?: string | null;
+  children: ReactNode;
+}) {
   return (
-    <div>
+    <div data-invalid={error ? 'true' : undefined} className="scroll-mt-24">
       <label className={labelCls}>
         {label}
         {optional && <span className="font-bold text-[#b9a9ab]"> (opcional)</span>}
       </label>
       {children}
+      <FieldError error={error} />
     </div>
   );
 }
@@ -216,18 +236,22 @@ function Select({
   onChange,
   placeholder,
   options,
+  error,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   options: string[];
+  error?: boolean;
 }) {
   return (
     <div className="relative">
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full cursor-pointer appearance-none rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-white py-3.5 pl-4 pr-10 text-[15px] font-semibold outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10"
+        className={`w-full cursor-pointer appearance-none rounded-[14px] border-[1.5px] ${
+          error ? ERR_BORDER : OK_BORDER
+        } bg-white py-3.5 pl-4 pr-10 text-[15px] font-semibold outline-none transition-[border-color,box-shadow] duration-150 focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10`}
         style={{ color: value ? '#2a2024' : '#bca9ab' }}
       >
         <option value="">{placeholder}</option>
@@ -248,15 +272,21 @@ function PhoneField({
   flagW = 22,
   flagH = 15,
   compact,
+  error,
 }: {
   value: string;
   onChange: (v: string) => void;
   flagW?: number;
   flagH?: number;
   compact?: boolean;
+  error?: boolean;
 }) {
   return (
-    <div className="flex items-stretch overflow-hidden rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-white transition-[border-color,box-shadow] duration-150 focus-within:border-[#B5101F] focus-within:ring-4 focus-within:ring-[#B5101F]/10">
+    <div
+      className={`flex items-stretch overflow-hidden rounded-[14px] border-[1.5px] ${
+        error ? ERR_BORDER : OK_BORDER
+      } bg-white transition-[border-color,box-shadow] duration-150 focus-within:border-[#B5101F] focus-within:ring-4 focus-within:ring-[#B5101F]/10`}
+    >
       <span
         className={`flex items-center border-r-[1.5px] border-[#f1e3e3] bg-[#FFF7F6] font-bold text-[#5a4a4e] ${
           compact ? 'gap-[7px] px-[11px] text-[14px]' : 'gap-2 px-[14px] text-[15px]'
@@ -380,6 +410,9 @@ export function CandidaturaForm() {
   const [handleState, setHandleState] = useState<HandleState>({ status: 'idle' });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  // Per-step "validation revealed" flags — errors only show after a failed
+  // attempt to advance, then update live as the user fixes them.
+  const [tried, setTried] = useState<{ 1?: boolean; 2?: boolean }>({});
 
   const handleClean = normalizeHandle(handle);
   const handleDisplay = handleClean || 'oseunegocio';
@@ -479,6 +512,77 @@ export function CandidaturaForm() {
       setSubmitError('O @negócio escolhido já não está disponível. Volte ao passo 1 e escolha outro.');
     } else {
       setSubmitError('Não foi possível enviar a candidatura. Verifique os dados e tente novamente.');
+    }
+  }
+
+  // ---- Validation ---------------------------------------------------------
+  const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
+  const phoneOk = (s: string) => /^\d{9}$/.test(s.replace(/\D/g, ''));
+  const nifOk = (s: string) => /^\d{9,14}$/.test(s.replace(/\D/g, ''));
+  const docsComplete = DOC_DEFS.every((d) => !!docs[d.key].name);
+
+  const errors = {
+    name: name.trim() ? null : 'Indique o nome do negócio.',
+    handle: !handleClean
+      ? 'Escolha o seu @negócio.'
+      : !isValidHandleFormat(handleClean)
+        ? 'Use 3 a 30 caracteres: letras minúsculas, números ou _.'
+        : handleState.status === 'available'
+          ? null
+          : handleState.status === 'checking'
+            ? 'A verificar disponibilidade…'
+            : handleState.status === 'unavailable'
+              ? handleState.message
+              : 'Este @negócio não está disponível.',
+    category: category ? null : 'Selecione a categoria.',
+    phone: phoneOk(phone) ? null : 'Telefone inválido — 9 dígitos (ex: 923 456 789).',
+    email: emailOk(email) ? null : 'Email inválido.',
+    provincia: provincia ? null : 'Selecione a província.',
+    municipio: municipio ? null : 'Selecione o município.',
+    cidade: cidade ? null : 'Selecione a cidade.',
+    endereco: endereco.trim() ? null : 'Indique o endereço do negócio.',
+    repNome: repNome.trim() ? null : 'Indique o nome do responsável.',
+    nif: nifOk(nif) ? null : 'NIF inválido — apenas dígitos.',
+    cargo: cargo ? null : 'Selecione o cargo.',
+    emailPessoal: !emailPessoal.trim() || emailOk(emailPessoal) ? null : 'Email pessoal inválido.',
+    telPessoal: !telPessoal.trim() || phoneOk(telPessoal) ? null : 'Telefone pessoal inválido.',
+    docs: docsComplete ? null : 'Envie os 4 documentos obrigatórios.',
+    accepted: accepted ? null : 'Tem de aceitar os termos e condições.',
+  };
+  const step1Valid = Object.values(errors).every((e) => e === null);
+  const show1 = !!tried[1];
+  const show2 = !!tried[2];
+
+  function focusFirstError() {
+    if (typeof document === 'undefined') return;
+    requestAnimationFrame(() => {
+      const el = document.querySelector('[data-invalid="true"]');
+      if (el) (el as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
+  }
+
+  function onPrimary() {
+    if (step === 1) {
+      if (!step1Valid) {
+        setTried((t) => ({ ...t, 1: true }));
+        focusFirstError();
+        return;
+      }
+      go(2);
+    } else if (step === 2) {
+      if (!docsComplete) {
+        setTried((t) => ({ ...t, 2: true }));
+        return;
+      }
+      go(3);
+    } else {
+      // Step 3 — final guard: if anything regressed, send the user back.
+      if (!step1Valid || !docsComplete) {
+        setTried({ 1: true, 2: true });
+        go(1);
+        return;
+      }
+      onSubmit();
     }
   }
 
@@ -588,14 +692,16 @@ export function CandidaturaForm() {
               <section className="border-b-[1.5px] border-[#f6eded] py-[18px] pb-[30px]">
                 <SectionHead icon={Ic.store} title="Sobre o seu negócio" subtitle="Informações básicas da sua empresa." />
                 <div className="grid grid-cols-2 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
-                  <Field label="Nome do negócio">
-                    <input className={inputCls} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Cantina do Alex" />
+                  <Field label="Nome do negócio" error={show1 ? errors.name : null}>
+                    <input className={inputClass(show1 && !!errors.name)} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Cantina do Alex" />
                   </Field>
-                  <Field label="@negócio desejado">
+                  <Field label="@negócio desejado" error={show1 ? errors.handle : null}>
                     <div className="relative">
                       <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono text-[15px] font-semibold text-[#9a8a8e]">@</span>
                       <input
-                        className="w-full rounded-[14px] border-[1.5px] border-[#f1e3e3] bg-white py-3.5 pl-8 pr-[110px] font-mono text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-[#bca9ab] focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10"
+                        className={`w-full rounded-[14px] border-[1.5px] ${
+                          show1 && !!errors.handle ? ERR_BORDER : OK_BORDER
+                        } bg-white py-3.5 pl-8 pr-[110px] font-mono text-[15px] font-semibold text-[#2a2024] outline-none transition-[border-color,box-shadow] duration-150 placeholder:text-[#bca9ab] focus:border-[#B5101F] focus:ring-4 focus:ring-[#B5101F]/10`}
                         value={handle}
                         onChange={(e) => setHandle(e.target.value)}
                         placeholder="cantina_alex"
@@ -605,19 +711,18 @@ export function CandidaturaForm() {
                       />
                       <HandleBadge state={handleState} />
                     </div>
-                    <HandleHint state={handleState} />
                   </Field>
-                  <Field label="Categoria do negócio">
-                    <Select value={category} onChange={setCategory} placeholder="Selecione uma categoria" options={CATEGORIES} />
+                  <Field label="Categoria do negócio" error={show1 ? errors.category : null}>
+                    <Select value={category} onChange={setCategory} placeholder="Selecione uma categoria" options={CATEGORIES} error={show1 && !!errors.category} />
                   </Field>
                   <Field label="Subcategoria" optional>
                     <Select value={subcategory} onChange={setSubcategory} placeholder="Selecione uma subcategoria" options={SUBCATEGORIES} />
                   </Field>
-                  <Field label="Telefone">
-                    <PhoneField value={phone} onChange={setPhone} />
+                  <Field label="Telefone" error={show1 ? errors.phone : null}>
+                    <PhoneField value={phone} onChange={setPhone} error={show1 && !!errors.phone} />
                   </Field>
-                  <Field label="Email">
-                    <input className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Ex: contacto@seudominio.co.ao" inputMode="email" />
+                  <Field label="Email" error={show1 ? errors.email : null}>
+                    <input className={inputClass(show1 && !!errors.email)} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Ex: contacto@seudominio.co.ao" inputMode="email" />
                   </Field>
                 </div>
               </section>
@@ -625,24 +730,24 @@ export function CandidaturaForm() {
               <section className="border-b-[1.5px] border-[#f6eded] py-[28px] pb-[30px]">
                 <SectionHead icon={Ic.pin} title="Localização" subtitle="Onde o seu negócio está localizado." />
                 <div className="grid grid-cols-3 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
-                  <Field label="Província">
-                    <Select value={provincia} onChange={setProvincia} placeholder="Selecione" options={PROVINCIAS} />
+                  <Field label="Província" error={show1 ? errors.provincia : null}>
+                    <Select value={provincia} onChange={setProvincia} placeholder="Selecione" options={PROVINCIAS} error={show1 && !!errors.provincia} />
                   </Field>
-                  <Field label="Município">
-                    <Select value={municipio} onChange={setMunicipio} placeholder="Selecione" options={MUNICIPIOS} />
+                  <Field label="Município" error={show1 ? errors.municipio : null}>
+                    <Select value={municipio} onChange={setMunicipio} placeholder="Selecione" options={MUNICIPIOS} error={show1 && !!errors.municipio} />
                   </Field>
-                  <Field label="Cidade">
-                    <Select value={cidade} onChange={setCidade} placeholder="Selecione" options={CIDADES} />
+                  <Field label="Cidade" error={show1 ? errors.cidade : null}>
+                    <Select value={cidade} onChange={setCidade} placeholder="Selecione" options={CIDADES} error={show1 && !!errors.cidade} />
                   </Field>
                 </div>
                 <div className="mt-[18px]">
-                  <Field label="Endereço do negócio">
-                    <input className={inputCls} value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Ex: Rua Direita do Kilamba, Bairro Talatona" />
+                  <Field label="Endereço do negócio" error={show1 ? errors.endereco : null}>
+                    <input className={inputClass(show1 && !!errors.endereco)} value={endereco} onChange={(e) => setEndereco(e.target.value)} placeholder="Ex: Rua Direita do Kilamba, Bairro Talatona" />
                   </Field>
                 </div>
                 <div className="mt-[18px]">
                   <Field label="Referência" optional>
-                    <input className={inputCls} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Ex: Próximo ao supermercado X" />
+                    <input className={inputClass()} value={referencia} onChange={(e) => setReferencia(e.target.value)} placeholder="Ex: Próximo ao supermercado X" />
                   </Field>
                 </div>
               </section>
@@ -650,28 +755,28 @@ export function CandidaturaForm() {
               <section className="py-[28px] pb-[30px]">
                 <SectionHead icon={Ic.personLg} title="Responsável legal" subtitle="Pessoa responsável pelo negócio." />
                 <div className="grid grid-cols-2 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
-                  <Field label="Nome completo">
-                    <input className={inputCls} value={repNome} onChange={(e) => setRepNome(e.target.value)} placeholder="Ex: João da Silva" />
+                  <Field label="Nome completo" error={show1 ? errors.repNome : null}>
+                    <input className={inputClass(show1 && !!errors.repNome)} value={repNome} onChange={(e) => setRepNome(e.target.value)} placeholder="Ex: João da Silva" />
                   </Field>
-                  <Field label="NIF">
-                    <input className={inputCls} value={nif} onChange={(e) => setNif(e.target.value)} placeholder="Ex: 5001234567" inputMode="numeric" />
+                  <Field label="NIF" error={show1 ? errors.nif : null}>
+                    <input className={inputClass(show1 && !!errors.nif)} value={nif} onChange={(e) => setNif(e.target.value)} placeholder="Ex: 5001234567" inputMode="numeric" />
                   </Field>
                 </div>
                 <div className="mt-[18px] grid grid-cols-3 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
-                  <Field label="Cargo no negócio">
-                    <Select value={cargo} onChange={setCargo} placeholder="Selecione o cargo" options={CARGOS} />
+                  <Field label="Cargo no negócio" error={show1 ? errors.cargo : null}>
+                    <Select value={cargo} onChange={setCargo} placeholder="Selecione o cargo" options={CARGOS} error={show1 && !!errors.cargo} />
                   </Field>
-                  <Field label="Email pessoal">
-                    <input className={inputCls} value={emailPessoal} onChange={(e) => setEmailPessoal(e.target.value)} placeholder="Ex: joao.silva@email.com" inputMode="email" />
+                  <Field label="Email pessoal" error={show1 ? errors.emailPessoal : null}>
+                    <input className={inputClass(show1 && !!errors.emailPessoal)} value={emailPessoal} onChange={(e) => setEmailPessoal(e.target.value)} placeholder="Ex: joao.silva@email.com" inputMode="email" />
                   </Field>
-                  <Field label="Telefone pessoal">
-                    <PhoneField value={telPessoal} onChange={setTelPessoal} compact flagW={20} flagH={14} />
+                  <Field label="Telefone pessoal" error={show1 ? errors.telPessoal : null}>
+                    <PhoneField value={telPessoal} onChange={setTelPessoal} compact flagW={20} flagH={14} error={show1 && !!errors.telPessoal} />
                   </Field>
                 </div>
               </section>
 
               {/* DOCUMENTOS */}
-              <section className="mb-2 rounded-[20px] bg-[#FFF7F6] p-[26px]">
+              <section className="mb-2 scroll-mt-24 rounded-[20px] bg-[#FFF7F6] p-[26px]" data-invalid={show1 && !!errors.docs ? 'true' : undefined}>
                 <div className="mb-5 flex items-center gap-[14px]">
                   <span className="flex h-[44px] w-[44px] flex-none items-center justify-center rounded-[13px] bg-white">
                     {Ic.docLg}
@@ -691,7 +796,7 @@ export function CandidaturaForm() {
                       <label
                         key={d.key}
                         className="flex cursor-pointer flex-col gap-[10px] rounded-[16px] border-[1.5px] bg-white p-4 transition-[border-color,box-shadow] duration-150 hover:border-[#f0c9c9] hover:shadow-[0_8px_22px_-14px_rgba(181,16,31,0.3)]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show1 ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -723,33 +828,41 @@ export function CandidaturaForm() {
                     );
                   })}
                 </div>
+                {show1 && errors.docs && (
+                  <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">{errors.docs}</p>
+                )}
               </section>
 
               {/* TERMOS */}
-              <div className="flex items-center gap-[11px] px-0.5 pb-1 pt-[22px]">
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={accepted}
-                  aria-label="Aceito os termos e condições"
-                  onClick={() => setAccepted((a) => !a)}
-                  className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-2 transition-all duration-150"
-                  style={{ borderColor: accepted ? RED : '#d8c6c8', background: accepted ? RED : '#fff' }}
-                >
-                  {accepted && Ic.check('#fff', 3, 14)}
-                </button>
-                <span className="text-[14.5px] font-semibold text-[#5a4a4e]">
-                  <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
-                    Li e aceito os{' '}
+              <div className="scroll-mt-24 pt-[22px]" data-invalid={show1 && !!errors.accepted ? 'true' : undefined}>
+                <div className="flex items-center gap-[11px] px-0.5 pb-1">
+                  <button
+                    type="button"
+                    role="checkbox"
+                    aria-checked={accepted}
+                    aria-label="Aceito os termos e condições"
+                    onClick={() => setAccepted((a) => !a)}
+                    className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-2 transition-all duration-150"
+                    style={{ borderColor: show1 && errors.accepted ? '#e8a3a3' : accepted ? RED : '#d8c6c8', background: accepted ? RED : '#fff' }}
+                  >
+                    {accepted && Ic.check('#fff', 3, 14)}
+                  </button>
+                  <span className="text-[14.5px] font-semibold text-[#5a4a4e]">
+                    <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
+                      Li e aceito os{' '}
+                    </span>
+                    <Link href="/suporte" className="font-extrabold text-[#B5101F] underline">
+                      termos e condições
+                    </Link>
+                    <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
+                      {' '}
+                      do Banzami Business
+                    </span>
                   </span>
-                  <Link href="/suporte" className="font-extrabold text-[#B5101F] underline">
-                    termos e condições
-                  </Link>
-                  <span className="cursor-pointer" onClick={() => setAccepted((a) => !a)}>
-                    {' '}
-                    do Banzami Business
-                  </span>
-                </span>
+                </div>
+                {show1 && errors.accepted && (
+                  <p className="mt-1.5 text-[13px] font-semibold text-[#B5101F]">{errors.accepted}</p>
+                )}
               </div>
             </div>
           )}
@@ -777,7 +890,7 @@ export function CandidaturaForm() {
                       <label
                         key={d.key}
                         className="flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-[#FFF7F6] px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -808,6 +921,11 @@ export function CandidaturaForm() {
                     );
                   })}
                 </div>
+                {show2 && !docsComplete && (
+                  <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">
+                    Envie os 4 documentos obrigatórios para continuar.
+                  </p>
+                )}
               </section>
             </div>
           )}
@@ -917,7 +1035,7 @@ export function CandidaturaForm() {
                 )}
                 <button
                   type="button"
-                  onClick={() => (step === 3 ? onSubmit() : go(step + 1))}
+                  onClick={onPrimary}
                   disabled={submitting}
                   className="inline-flex items-center justify-center gap-[9px] rounded-[40px] bg-[#B5101F] px-[34px] py-4 text-[15.5px] font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(181,16,31,0.5)] transition-[transform,background] duration-150 hover:-translate-y-0.5 hover:bg-[#9A1B22] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
                 >
@@ -974,11 +1092,5 @@ function HandleBadge({ state }: { state: HandleState }) {
         ✕
       </span>
     );
-  return null;
-}
-
-function HandleHint({ state }: { state: HandleState }) {
-  if (state.status === 'unavailable')
-    return <p className="mt-1.5 text-[13px] font-semibold text-[#B5101F]">{state.message}</p>;
   return null;
 }
