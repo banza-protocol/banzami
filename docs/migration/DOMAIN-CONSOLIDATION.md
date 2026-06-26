@@ -1,8 +1,15 @@
 # Domain Consolidation & `.com` Canonicalization
 
 Status: **approved** (PR #4). This is the binding domain architecture for Banzami.
-`banzami.org` is reserved for the **BANZA protocol**; everything Banzami
-payment/product/runtime is `.com`, kept intentionally small.
+Everything Banzami payment/product/runtime is `.com`, kept intentionally small.
+
+> **Protocol domain migration (2026-06-26):** the BANZA protocol moved its site
+> and namespace from `banzami.org` → **`banza.network`** (announced by the BANZA
+> protocol team). The protocol site is no longer hosted by Banzami at
+> `banzami.org`. Operator references to the protocol now point to
+> `https://banza.network`. The legacy `banzami.org` operator subdomains
+> (`api/admin/business/pay/sandbox.banzami.org`) are unaffected by this protocol
+> change and continue their separate consolidation to `.com` (below).
 
 ## 1. Final approved domain architecture
 
@@ -14,7 +21,9 @@ The **complete** set of Banzami hosts — nothing else exists:
 | `api.banzami.com` | **Single** public API (live) |
 | `sandbox-api.banzami.com` | Sandbox API |
 | `pay.banzami.com` | Payments / hosted checkout |
-| `banzami.org` | BANZA protocol only (docs/site) |
+
+> The BANZA protocol site is now `banza.network` (migrated from `banzami.org`,
+> 2026-06-26) and is **not** a Banzami-operated host.
 
 ### No new subdomains
 

@@ -236,7 +236,7 @@ export default function SuportePage() {
                 Banzami.
               </p>
               <a
-                href="https://banzami.org"
+                href="https://banza.network"
                 target="_blank"
                 rel="noopener"
                 className="mt-4 inline-flex items-center gap-1.5 text-[14px] font-extrabold text-cherry no-underline"
