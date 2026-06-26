@@ -40,18 +40,23 @@ func main() {
 	core := service.NewCoreAdminClient(cfg.CoreAPIURL)
 	gw := service.NewGatewayClient(cfg.GatewayInternalURL, cfg.InternalAPIKey)
 	mailer := email.NewSender(email.Config{
-		Host:     cfg.SMTPHost,
-		Port:     cfg.SMTPPort,
-		User:     cfg.SMTPUser,
-		Password: cfg.SMTPPassword,
-		From:     cfg.SMTPFrom,
-		FromName: cfg.SMTPFromName,
-		DryRun:   cfg.EmailDryRun,
+		Provider:       cfg.EmailProvider,
+		DryRun:         cfg.EmailDryRun,
+		ResendAPIKey:   cfg.ResendAPIKey,
+		SMTPHost:       cfg.SMTPHost,
+		SMTPPort:       cfg.SMTPPort,
+		SMTPUser:       cfg.SMTPUser,
+		SMTPPassword:   cfg.SMTPPassword,
+		FromName:       cfg.EmailFromName,
+		FromAddress:    cfg.EmailFromAddress,
+		ReplyTo:        cfg.EmailReplyTo,
+		NoreplyName:    cfg.EmailNoreplyName,
+		NoreplyAddress: cfg.EmailNoreplyAddress,
 	})
 	if cfg.EmailDryRun {
 		slog.Warn("EMAIL_DRY_RUN enabled — emails are logged, not sent")
 	} else if !mailer.Enabled() {
-		slog.Warn("SMTP not configured — emails will be skipped")
+		slog.Warn("email provider not configured — emails will be skipped", "provider", cfg.EmailProvider)
 	}
 
 	// Operator auth (admin_users). Requires DATABASE_URL + ADMIN_JWT_SECRET.

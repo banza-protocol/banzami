@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 // Config holds all runtime configuration for the admin-api service.
@@ -15,13 +16,24 @@ type Config struct {
 	LogFormat    string
 	OTLPEndpoint string // optional; tracing is a no-op when empty
 
-	// SMTP — optional; email is skipped when Host is empty.
+	// Email provider — "resend" (HTTP API) or "smtp". Defaults to "resend" when
+	// RESEND_API_KEY is set, otherwise "smtp".
+	EmailProvider string
+	ResendAPIKey  string
+
+	// SMTP — optional legacy transport; used only when EmailProvider == "smtp".
 	SMTPHost     string
 	SMTPPort     int
 	SMTPUser     string
 	SMTPPassword string
-	SMTPFrom     string
-	SMTPFromName string
+
+	// Institutional sender (contact@) — replyable mail.
+	EmailFromName    string
+	EmailFromAddress string
+	EmailReplyTo     string
+	// Automated sender (noreply@) — security/automatic mail.
+	EmailNoreplyName    string
+	EmailNoreplyAddress string
 
 	// EmailDryRun logs emails instead of sending them. Defaults to TRUE (safe):
 	// real emails are sent only when EMAIL_DRY_RUN=false is set explicitly.
@@ -80,10 +92,25 @@ func Load() (*Config, error) {
 		}
 	}
 
-	smtpFromName := os.Getenv("SMTP_FROM_NAME")
-	if smtpFromName == "" {
-		smtpFromName = "Banzami"
+	// Email provider selection: explicit EMAIL_PROVIDER wins; otherwise infer
+	// from RESEND_API_KEY presence.
+	resendKey := os.Getenv("RESEND_API_KEY")
+	emailProvider := strings.ToLower(strings.TrimSpace(os.Getenv("EMAIL_PROVIDER")))
+	if emailProvider == "" {
+		if resendKey != "" {
+			emailProvider = "resend"
+		} else {
+			emailProvider = "smtp"
+		}
 	}
+
+	// Sender identities. New EMAIL_FROM_* vars win; fall back to legacy SMTP_FROM*
+	// then to the institutional defaults.
+	fromName := getenvDefault("EMAIL_FROM_NAME", getenvDefault("SMTP_FROM_NAME", "Banzami"))
+	fromAddress := getenvDefault("EMAIL_FROM_ADDRESS", getenvDefault("SMTP_FROM", "contact@banzami.com"))
+	replyTo := getenvDefault("EMAIL_REPLY_TO", fromAddress)
+	noreplyName := getenvDefault("EMAIL_NOREPLY_NAME", fromName)
+	noreplyAddress := getenvDefault("EMAIL_NOREPLY_ADDRESS", "noreply@banzami.com")
 
 	return &Config{
 		Port:         port,
@@ -93,12 +120,19 @@ func Load() (*Config, error) {
 		LogFormat:    logFormat,
 		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
 
+		EmailProvider: emailProvider,
+		ResendAPIKey:  resendKey,
+
 		SMTPHost:     os.Getenv("SMTP_HOST"),
 		SMTPPort:     smtpPort,
 		SMTPUser:     os.Getenv("SMTP_USER"),
 		SMTPPassword: os.Getenv("SMTP_PASSWORD"),
-		SMTPFrom:     os.Getenv("SMTP_FROM"),
-		SMTPFromName: smtpFromName,
+
+		EmailFromName:       fromName,
+		EmailFromAddress:    fromAddress,
+		EmailReplyTo:        replyTo,
+		EmailNoreplyName:    noreplyName,
+		EmailNoreplyAddress: noreplyAddress,
 
 		// Dry-run is the safe default; only EMAIL_DRY_RUN=false enables real sends.
 		EmailDryRun:        os.Getenv("EMAIL_DRY_RUN") != "false",

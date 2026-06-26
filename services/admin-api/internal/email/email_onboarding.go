@@ -9,8 +9,8 @@ import (
 )
 
 // AdminOperatorInvite emails a new operator a single-use link to define their
-// password and activate their BANZADMIN account. The link (token) is NEVER
-// logged. Call in a goroutine.
+// password and activate their BANZADMIN account. Security email — From noreply@,
+// no Reply-To. The link (token) is NEVER logged. Call in a goroutine.
 func (s *Sender) AdminOperatorInvite(to, fullName, inviteURL string) {
 	body := fmt.Sprintf(
 		`<p>Olá %s,</p>`+
@@ -19,12 +19,12 @@ func (s *Sender) AdminOperatorInvite(to, fullName, inviteURL string) {
 			`<p><a href="%s">Definir palavra-passe BANZADMIN</a></p>`+
 			`<p>Se não esperava este email, ignore-o.</p>`,
 		template.HTMLEscapeString(fullName), inviteURL)
-	s.deliver("admin_operator_invite", to, "Convite para aceder ao BANZADMIN", body)
+	s.deliver(s.automated("admin_operator_invite", to, "Convite para aceder ao BANZADMIN", body, ""))
 }
 
 // AdminPasswordReset emails a BANZADMIN operator a single-use link to reset their
-// password. The link (which contains the token) is NEVER logged. Call in a
-// goroutine.
+// password. Security email — From noreply@, no Reply-To. The link (which
+// contains the token) is NEVER logged. Call in a goroutine.
 func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 	body := fmt.Sprintf(
 		`<p>Olá %s,</p>`+
@@ -33,27 +33,16 @@ func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 			`<p><a href="%s">Redefinir palavra-passe BANZADMIN</a></p>`+
 			`<p>Se não esperava este email, ignore-o.</p>`,
 		template.HTMLEscapeString(fullName), resetURL)
-	s.deliver("admin_password_reset", to, "Redefinir palavra-passe BANZADMIN", body)
+	s.deliver(s.automated("admin_password_reset", to, "Redefinir palavra-passe BANZADMIN", body, ""))
 }
 
 // Merchant Lifecycle onboarding emails. The approved email carries ONLY a
 // single-use activation link — never a PIN, token value, or API key. The
 // merchant sets their own PIN on the activation page.
 
-// deliver sends (or dry-runs) an email, skipping cleanly when neither SMTP nor
-// dry-run is configured. Never logs the body.
-func (s *Sender) deliver(kind, to, subject, body string) {
-	if !s.Enabled() && !s.dryRun {
-		slog.Warn("email not configured — skipping", "email", kind, "to", to)
-		return
-	}
-	if err := s.send(to, subject, body); err != nil {
-		slog.Error("failed to send email", "email", kind, "error", err, "to", to)
-	}
-}
-
 // MerchantApplicationApproved emails the activation link for an approved
-// Business application. Call in a goroutine.
+// Business application. Carries an activation link → From noreply@, Reply-To
+// contact@. Call in a goroutine.
 func (s *Sender) MerchantApplicationApproved(to, businessName, activationURL string) {
 	var buf bytes.Buffer
 	if err := approvedTmpl.Execute(&buf, approvedData{
@@ -64,10 +53,12 @@ func (s *Sender) MerchantApplicationApproved(to, businessName, activationURL str
 		slog.Error("failed to render approved email", "error", err)
 		return
 	}
-	s.deliver("application_approved", to, "A sua conta Banzami Business foi aprovada", buf.String())
+	s.deliver(s.automated("application_approved", to,
+		"A sua conta Banzami Business foi aprovada", buf.String(), s.replyTo))
 }
 
-// MerchantApplicationRejected emails a rejection with an optional message.
+// MerchantApplicationRejected emails a rejection with an optional message. The
+// merchant may reply → From contact@, Reply-To contact@.
 func (s *Sender) MerchantApplicationRejected(to, businessName, message string) {
 	var buf bytes.Buffer
 	if err := rejectedTmpl.Execute(&buf, rejectedData{
@@ -78,7 +69,8 @@ func (s *Sender) MerchantApplicationRejected(to, businessName, message string) {
 		slog.Error("failed to render rejected email", "error", err)
 		return
 	}
-	s.deliver("application_rejected", to, "Atualização sobre a sua candidatura Banzami Business", buf.String())
+	s.deliver(s.institutional("application_rejected", to,
+		"Atualização sobre a sua candidatura Banzami Business", buf.String()))
 }
 
 type approvedData struct {

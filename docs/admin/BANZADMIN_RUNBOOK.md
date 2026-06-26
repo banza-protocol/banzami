@@ -256,6 +256,60 @@ n'effectue ni UPDATE ni DELETE.
 
 ---
 
+## Email (Resend)
+
+Les emails transactionnels (invite/reset BANZADMIN, approbation/rejet de
+candidature, welcome marchand) sont envoyés par **admin-api**. Aucun autre
+service n'envoie d'email.
+
+### Provider
+
+`admin-api` supporte deux transports, sélectionnés par `EMAIL_PROVIDER` :
+
+| `EMAIL_PROVIDER` | Transport | Quand |
+|---|---|---|
+| `resend` (défaut en prod) | API HTTP Resend (`POST https://api.resend.com/emails`) | production |
+| `smtp` | `net/smtp` (legacy fallback) | si pas de clé Resend |
+
+Si `EMAIL_PROVIDER` est vide, le provider est `resend` quand `RESEND_API_KEY`
+est présent, sinon `smtp`.
+
+### Variables d'environnement
+
+| Variable | Rôle |
+|---|---|
+| `EMAIL_PROVIDER` | `resend` \| `smtp` |
+| `RESEND_API_KEY` | **secret** — clé API Resend (jamais loggée, jamais commitée) |
+| `EMAIL_FROM_NAME` / `EMAIL_FROM_ADDRESS` | expéditeur **institutionnel** (`Banzami` / `contact@banzami.com`) |
+| `EMAIL_REPLY_TO` | Reply-To institutionnel (`contact@banzami.com`) |
+| `EMAIL_NOREPLY_NAME` / `EMAIL_NOREPLY_ADDRESS` | expéditeur **automatique** (`Banzami` / `noreply@banzami.com`) |
+| `EMAIL_DRY_RUN` | `true` (défaut sûr) = log seulement ; `false` = envoi réel |
+| `SMTP_*` | conservé pour le fallback `smtp` uniquement |
+
+### Règle d'expéditeur (par template)
+
+| Email | From | Reply-To |
+|---|---|---|
+| Invitation opérateur (`AdminOperatorInvite`) | `noreply@banzami.com` | — |
+| Reset mot de passe (`AdminPasswordReset`) | `noreply@banzami.com` | — |
+| Candidature approuvée + lien d'activation (`MerchantApplicationApproved`) | `noreply@banzami.com` | `contact@banzami.com` |
+| Candidature rejetée (`MerchantApplicationRejected`) | `contact@banzami.com` | `contact@banzami.com` |
+| Welcome marchand (`MerchantWelcome`) | `noreply@banzami.com` | `contact@banzami.com` |
+
+### Sécurité des logs
+
+En `EMAIL_DRY_RUN` comme en envoi réel, les logs ne contiennent **que**
+`provider`, `to`, `subject`, `from`, `purpose`. **Jamais** : corps de l'email,
+lien complet, token, PIN, API key, clé Resend, header Authorization.
+
+### Rollback
+
+Repasser en mode sûr sans redéployer le code : mettre `EMAIL_DRY_RUN=true` dans
+`/srv/banzami/.env`, puis `docker compose up -d admin-api`. Les liens
+invite/reset redeviennent visibles dans la réponse authentifiée au SUPER_ADMIN.
+
+---
+
 ## Déploiement
 
 ### Ordre officiel (impératif)

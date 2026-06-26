@@ -2,61 +2,180 @@ package email
 
 import (
 	"bytes"
-	"crypto/tls"
-	"fmt"
 	"html/template"
 	"log/slog"
-	"net/smtp"
 	"strings"
 	"time"
 )
 
-// Sender sends transactional emails via SMTP.
-// When SMTP is not configured it logs a warning and is a no-op.
+// Sender sends transactional emails through a pluggable transport (Resend HTTP
+// API or SMTP). When the transport is not configured it logs a warning and is a
+// no-op. Two sender identities are supported per the brand rules:
+//
+//   - institutional (contact@banzami.com) — emails the recipient may reply to
+//     (e.g. rejection, support).
+//   - automated (noreply@banzami.com) — security / activation / automatic emails.
+//
+// Reply-To is set per message (see institutional/automated helpers).
 type Sender struct {
-	host     string
-	port     int
-	user     string
-	password string
-	from     string
-	fromName string
+	tx       transport
 	dryRun   bool
+	provider string
+
+	// institutional identity (contact@)
+	fromName    string
+	fromAddress string
+	replyTo     string
+	// automated identity (noreply@)
+	noreplyName    string
+	noreplyAddress string
 }
 
-// Config holds SMTP connection parameters.
+// Config holds the provider selection, credentials, and sender identities.
 type Config struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	From     string
-	FromName string
+	// Provider selects the transport: "resend" (HTTP API) or "smtp".
+	Provider string
 	// DryRun logs emails instead of sending them (default in sandbox). It never
 	// logs the body, so tokens/links/secrets stay out of the logs.
 	DryRun bool
+
+	// Resend
+	ResendAPIKey string
+
+	// SMTP (legacy fallback, used when Provider != "resend")
+	SMTPHost     string
+	SMTPPort     int
+	SMTPUser     string
+	SMTPPassword string
+
+	// Institutional identity (contact@) — replyable mail.
+	FromName    string
+	FromAddress string
+	ReplyTo     string
+	// Automated identity (noreply@) — security/automatic mail.
+	NoreplyName    string
+	NoreplyAddress string
+}
+
+// transport is the wire mechanism that actually delivers a message.
+type transport interface {
+	send(m message) error
+	// configured reports whether the transport has the credentials it needs.
+	configured() bool
+}
+
+// message is a single rendered email ready for delivery. purpose is a stable
+// label (e.g. "application_approved") used only for logging — never the body.
+type message struct {
+	fromName string
+	fromAddr string
+	to       string
+	subject  string
+	html     string
+	replyTo  string // optional
+	purpose  string
 }
 
 func NewSender(cfg Config) *Sender {
+	provider := strings.ToLower(strings.TrimSpace(cfg.Provider))
+	if provider == "" {
+		if cfg.ResendAPIKey != "" {
+			provider = "resend"
+		} else {
+			provider = "smtp"
+		}
+	}
+
+	var tx transport
+	switch provider {
+	case "resend":
+		tx = &resendTransport{apiKey: cfg.ResendAPIKey}
+	default:
+		provider = "smtp"
+		tx = &smtpTransport{
+			host:     cfg.SMTPHost,
+			port:     cfg.SMTPPort,
+			user:     cfg.SMTPUser,
+			password: cfg.SMTPPassword,
+		}
+	}
+
 	return &Sender{
-		host:     cfg.Host,
-		port:     cfg.Port,
-		user:     cfg.User,
-		password: cfg.Password,
-		from:     cfg.From,
-		fromName: cfg.FromName,
-		dryRun:   cfg.DryRun,
+		tx:             tx,
+		dryRun:         cfg.DryRun,
+		provider:       provider,
+		fromName:       cfg.FromName,
+		fromAddress:    cfg.FromAddress,
+		replyTo:        cfg.ReplyTo,
+		noreplyName:    cfg.NoreplyName,
+		noreplyAddress: cfg.NoreplyAddress,
 	}
 }
 
-// Enabled reports whether SMTP is configured.
+// Enabled reports whether the sender can deliver real email: the transport is
+// configured and both sender identities have a From address.
 func (s *Sender) Enabled() bool {
-	return s.host != "" && s.from != ""
+	return s.tx.configured() && s.fromAddress != "" && s.noreplyAddress != ""
+}
+
+// institutional builds a message sent from contact@ with Reply-To contact@ —
+// for mail the recipient may reply to (rejection, support, welcome).
+func (s *Sender) institutional(purpose, to, subject, html string) message {
+	return message{
+		fromName: s.fromName,
+		fromAddr: s.fromAddress,
+		replyTo:  s.replyTo,
+		to:       to,
+		subject:  subject,
+		html:     html,
+		purpose:  purpose,
+	}
+}
+
+// automated builds a message sent from noreply@ for security/automatic mail.
+// replyTo is optional — pass s.replyTo to let the recipient reach support, or ""
+// for a purely automatic message.
+func (s *Sender) automated(purpose, to, subject, html, replyTo string) message {
+	return message{
+		fromName: s.noreplyName,
+		fromAddr: s.noreplyAddress,
+		replyTo:  replyTo,
+		to:       to,
+		subject:  subject,
+		html:     html,
+		purpose:  purpose,
+	}
+}
+
+// deliver sends (or dry-runs) a message, skipping cleanly when the transport is
+// not configured and dry-run is off. Never logs the body.
+func (s *Sender) deliver(m message) {
+	if !s.Enabled() && !s.dryRun {
+		slog.Warn("email not configured — skipping", "email", m.purpose, "to", m.to)
+		return
+	}
+	if err := s.send(m); err != nil {
+		slog.Error("failed to send email", "email", m.purpose, "error", err, "to", m.to)
+	}
+}
+
+func (s *Sender) send(m message) error {
+	// Dry-run (default in sandbox): log the envelope only — never the body, so
+	// activation links / tokens / API keys stay out of the logs.
+	if s.dryRun {
+		slog.Info("email dry-run — not sending",
+			"provider", s.provider, "to", m.to, "subject", m.subject,
+			"from", m.fromAddr, "purpose", m.purpose)
+		return nil
+	}
+	return s.tx.send(m)
 }
 
 // MerchantWelcome sends the welcome email with credentials to a new merchant.
-// It is intentionally non-blocking — call it in a goroutine.
+// It is automatic (From noreply@) but Reply-To contact@ so the merchant can
+// reach support. It is intentionally non-blocking — call it in a goroutine.
 func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
-	if !s.Enabled() {
+	if !s.Enabled() && !s.dryRun {
 		slog.Warn("email not configured — skipping merchant welcome email",
 			"merchant_id", merchantID, "to", to)
 		return
@@ -68,67 +187,8 @@ func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
 		return
 	}
 
-	if err := s.send(to, "Bem-vindo à Banzami — as suas credenciais", body); err != nil {
-		slog.Error("failed to send merchant welcome email",
-			"error", err, "merchant_id", merchantID, "to", to)
-	}
-}
-
-func (s *Sender) send(to, subject, htmlBody string) error {
-	// Dry-run (default in sandbox): log the envelope only — never the body, so
-	// activation links / tokens / API keys stay out of the logs.
-	if s.dryRun {
-		slog.Info("email dry-run — not sending", "to", to, "subject", subject)
-		return nil
-	}
-
-	fromHeader := fmt.Sprintf("%s <%s>", s.fromName, s.from)
-	msg := strings.Join([]string{
-		fmt.Sprintf("From: %s", fromHeader),
-		fmt.Sprintf("To: %s", to),
-		fmt.Sprintf("Subject: %s", subject),
-		"MIME-Version: 1.0",
-		`Content-Type: text/html; charset="UTF-8"`,
-		"",
-		htmlBody,
-	}, "\r\n")
-
-	addr := fmt.Sprintf("%s:%d", s.host, s.port)
-	auth := smtp.PlainAuth("", s.user, s.password, s.host)
-
-	// Use STARTTLS on port 587; plain TCP on 25 (dev/internal).
-	if s.port == 465 {
-		tlsCfg := &tls.Config{ServerName: s.host}
-		conn, err := tls.Dial("tcp", addr, tlsCfg)
-		if err != nil {
-			return fmt.Errorf("tls dial: %w", err)
-		}
-		client, err := smtp.NewClient(conn, s.host)
-		if err != nil {
-			return fmt.Errorf("smtp client: %w", err)
-		}
-		defer client.Close()
-		if err := client.Auth(auth); err != nil {
-			return fmt.Errorf("smtp auth: %w", err)
-		}
-		if err := client.Mail(s.from); err != nil {
-			return err
-		}
-		if err := client.Rcpt(to); err != nil {
-			return err
-		}
-		w, err := client.Data()
-		if err != nil {
-			return err
-		}
-		_, err = w.Write([]byte(msg))
-		if err != nil {
-			return err
-		}
-		return w.Close()
-	}
-
-	return smtp.SendMail(addr, auth, s.from, []string{to}, []byte(msg))
+	s.deliver(s.automated("merchant_welcome", to,
+		"Bem-vindo à Banzami — as suas credenciais", body, s.replyTo))
 }
 
 // ---------------------------------------------------------------------------
