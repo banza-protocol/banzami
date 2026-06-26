@@ -58,12 +58,11 @@ const MAX_DOC_BYTES = 5 * 1024 * 1024;
 const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
-type DocKey = 'docCertidao' | 'docNif' | 'docBi' | 'docMorada';
+type DocKey = 'docCertidao' | 'docNif' | 'docBi';
 const DOC_DEFS: { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType }[] = [
-  { key: 'docCertidao', label: 'Certidão Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
+  { key: 'docCertidao', label: 'Registo Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
   { key: 'docNif', label: 'NIF da Empresa', icon: 'doc', type: 'TAX_ID' },
-  { key: 'docBi', label: 'BI do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
-  { key: 'docMorada', label: 'Comprovativo de Morada', icon: 'home', type: 'PROOF_OF_ADDRESS' },
+  { key: 'docBi', label: 'Documento do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
 ];
 
 type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
@@ -407,7 +406,6 @@ export function CandidaturaForm() {
     docCertidao: { ...emptyDoc },
     docNif: { ...emptyDoc },
     docBi: { ...emptyDoc },
-    docMorada: { ...emptyDoc },
   });
 
   const [accepted, setAccepted] = useState(false);
@@ -422,7 +420,6 @@ export function CandidaturaForm() {
     docCertidao: { status: 'pending' },
     docNif: { status: 'pending' },
     docBi: { status: 'pending' },
-    docMorada: { status: 'pending' },
   });
   // Per-step "validation revealed" flags — errors only show after a failed
   // attempt to advance, then update live as the user fixes them.
@@ -592,7 +589,7 @@ export function CandidaturaForm() {
     cargo: cargo ? null : 'Selecione o cargo.',
     emailPessoal: !emailPessoal.trim() || emailOk(emailPessoal) ? null : 'Email pessoal inválido.',
     telPessoal: !telPessoal.trim() || phoneOk(telPessoal) ? null : 'Telefone pessoal inválido.',
-    docs: docsComplete ? null : 'Envie os 4 documentos obrigatórios.',
+    docs: docsComplete ? null : 'Envie os 3 documentos obrigatórios.',
     accepted: accepted ? null : 'Tem de aceitar os termos e condições.',
   };
   const step1Valid = Object.values(errors).every((e) => e === null);
@@ -697,7 +694,7 @@ export function CandidaturaForm() {
           <div className="rounded-[18px] border-[1.5px] border-[#f4e6e6] bg-white p-5">
             <div className="mb-[13px] text-[13.5px] font-black text-[#2a2024]">Vai precisar de:</div>
             <div className="flex flex-col gap-[9px]">
-              {['NIF da empresa', 'Certidão Comercial', 'BI do representante', 'Comprovativo de morada'].map((t) => (
+              {['Registo Comercial', 'NIF da empresa', 'Documento do representante'].map((t) => (
                 <div key={t} className="flex items-center gap-[9px] text-[13.5px] font-bold text-[#5a4a4e]">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                     <path d="M20 6L9 17l-5-5" stroke={RED} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -830,11 +827,11 @@ export function CandidaturaForm() {
                   <div>
                     <h2 className="m-0 text-[19px] font-black tracking-[-0.01em]">Documentos necessários</h2>
                     <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-[#9a8a8e]">
-                      Envie os documentos do seu negócio. Aceitamos apenas ficheiros nítidos.
+                      Para analisar a candidatura, precisamos apenas dos documentos essenciais da empresa.
                     </p>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-[14px] max-[980px]:grid-cols-2 max-[560px]:grid-cols-1">
+                <div className="grid grid-cols-3 gap-[14px] max-[980px]:grid-cols-2 max-[560px]:grid-cols-1">
                   {DOC_DEFS.map((d) => {
                     const st = docs[d.key];
                     const up = !!st.name;
@@ -969,7 +966,7 @@ export function CandidaturaForm() {
                 </div>
                 {show2 && !docsComplete && (
                   <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">
-                    Envie os 4 documentos obrigatórios para continuar.
+                    Envie os 3 documentos obrigatórios para continuar.
                   </p>
                 )}
               </section>

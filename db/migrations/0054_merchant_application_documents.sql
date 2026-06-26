@@ -17,7 +17,7 @@ CREATE TABLE IF NOT EXISTS merchant_application_documents (
     document_type      TEXT        NOT NULL
                        CHECK (document_type IN (
                          'BUSINESS_REGISTRATION', 'TAX_ID', 'REPRESENTATIVE_ID',
-                         'PROOF_OF_ADDRESS', 'BANK_PROOF', 'OTHER')),
+                         'BANK_PROOF', 'OTHER')),
     original_filename  TEXT        NOT NULL,
     storage_bucket     TEXT        NOT NULL,
     storage_key        TEXT        NOT NULL UNIQUE,  -- never returned to any client

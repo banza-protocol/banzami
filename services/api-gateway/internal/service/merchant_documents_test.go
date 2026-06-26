@@ -41,8 +41,12 @@ func TestValidateUpload(t *testing.T) {
 		size     int64
 		want     error
 	}{
+		{"ok registration", "BUSINESS_REGISTRATION", "rc.pdf", "application/pdf", 500, nil},
 		{"ok pdf", "TAX_ID", "nif.pdf", "application/pdf", 500, nil},
 		{"ok jpg", "REPRESENTATIVE_ID", "bi.JPG", "image/jpeg", 500, nil},
+		{"ok bank optional", "BANK_PROOF", "iban.pdf", "application/pdf", 500, nil},
+		// Proof-of-address was removed from KYB and must now be rejected.
+		{"proof of address removed", "PROOF_OF_ADDRESS", "morada.pdf", "application/pdf", 500, ErrInvalidDocumentType},
 		{"bad type", "PASSPORT", "x.pdf", "application/pdf", 10, ErrInvalidDocumentType},
 		{"bad mime", "TAX_ID", "x.pdf", "application/zip", 10, ErrInvalidMimeType},
 		{"bad ext", "TAX_ID", "x.docx", "application/pdf", 10, ErrInvalidExtension},

@@ -110,8 +110,16 @@ export type KybDocumentType =
   | 'BUSINESS_REGISTRATION'
   | 'TAX_ID'
   | 'REPRESENTATIVE_ID'
-  | 'PROOF_OF_ADDRESS'
   | 'BANK_PROOF';
+
+/** Required company documents for a Business application (MVP). Three only —
+ *  no proof-of-address, to reduce onboarding friction. BANK_PROOF is optional
+ *  and collected later for payout/settlement, so it is not listed here. */
+export const REQUIRED_KYB_DOCUMENTS: KybDocumentType[] = [
+  'BUSINESS_REGISTRATION',
+  'TAX_ID',
+  'REPRESENTATIVE_ID',
+];
 
 type UploadUrlResponse = {
   document_id: string;

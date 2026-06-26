@@ -9,10 +9,9 @@ import { AdminApi, isStorageNotConfigured, type KybDocument } from '@/lib/admin-
 // failing. Signed read URLs are opened directly and never rendered as text.
 
 const TYPE_LABEL: Record<string, string> = {
-  BUSINESS_REGISTRATION: 'Certidão Comercial',
+  BUSINESS_REGISTRATION: 'Registo Comercial',
   TAX_ID: 'NIF da Empresa',
-  REPRESENTATIVE_ID: 'BI do Representante',
-  PROOF_OF_ADDRESS: 'Comprovativo de Morada',
+  REPRESENTATIVE_ID: 'Documento do Representante',
   BANK_PROOF: 'Comprovativo Bancário',
   OTHER: 'Outro',
 };

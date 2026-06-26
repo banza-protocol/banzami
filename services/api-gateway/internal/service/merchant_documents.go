@@ -29,13 +29,14 @@ var (
 	ErrObjectMissing        = errors.New("uploaded object not found in storage")
 )
 
-// Allowed document types (v1). The four required ones plus an optional bank
-// proof and a catch-all.
+// Allowed document types (v1). Three required company documents plus an
+// optional bank proof (for payout/settlement later) and a catch-all. There is
+// deliberately NO proof-of-address document — removed to reduce onboarding
+// friction for the Angolan market.
 var allowedDocTypes = map[string]bool{
 	"BUSINESS_REGISTRATION": true,
 	"TAX_ID":                true,
 	"REPRESENTATIVE_ID":     true,
-	"PROOF_OF_ADDRESS":      true,
 	"BANK_PROOF":            true,
 	"OTHER":                 true,
 }

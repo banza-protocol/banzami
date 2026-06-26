@@ -10,6 +10,7 @@ import {
   submitApplication,
   validateActivation,
   completeActivation,
+  REQUIRED_KYB_DOCUMENTS,
 } from './api';
 
 function mockFetch(status: number, body: unknown) {
@@ -131,5 +132,33 @@ describe('activation success — Abrir Banzami Business is a real action', () =>
     expect(src).toContain("'banzami://'");
     expect(src).toContain('onClick={openBusinessApp}');
     expect(src).toMatch(/Se a app não abrir/);
+  });
+});
+
+describe('KYB documents — proof-of-address removed', () => {
+  it('requires exactly 3 company documents, none of them proof-of-address', () => {
+    expect(REQUIRED_KYB_DOCUMENTS).toHaveLength(3);
+    expect(REQUIRED_KYB_DOCUMENTS).toEqual([
+      'BUSINESS_REGISTRATION',
+      'TAX_ID',
+      'REPRESENTATIVE_ID',
+    ]);
+    expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('PROOF_OF_ADDRESS');
+    expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('BANK_PROOF');
+  });
+
+  it('the onboarding form does not render or reference proof-of-address', () => {
+    const src = readFileSync(
+      join(__dirname, '../app/comerciantes/candidatura/CandidaturaForm.tsx'),
+      'utf8',
+    );
+    expect(src).not.toContain('PROOF_OF_ADDRESS');
+    expect(src).not.toMatch(/[Cc]omprovativo de [Mm]orada/);
+    expect(src).not.toMatch(/[Cc]omprovativo de [Ee]ndere[çc]o/);
+    expect(src).not.toMatch(/[Cc]omprovativo de resid[êe]ncia/i);
+    // The 3 kept documents are present.
+    expect(src).toContain('Registo Comercial');
+    expect(src).toContain('NIF da Empresa');
+    expect(src).toContain('Documento do Representante');
   });
 });
