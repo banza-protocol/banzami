@@ -131,7 +131,7 @@ deploy_api_gateway() {
 }
 
 deploy_sandbox_operator() {
-  step "sandbox-operator" "BANZA L0 sandbox operator (manifest + health at sandbox-api.banzami.com)"
+  step "sandbox-operator" "BANZA L0 sandbox operator (manifest + health at sandbox-operator.banzami.com)"
 
   info "Syncing source to server..."
   rsync -az --delete \

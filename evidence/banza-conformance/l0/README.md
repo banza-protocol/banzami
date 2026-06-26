@@ -10,22 +10,24 @@ official BANZA conformance suite against the Banzami **sandbox** operator. Banza
 runs the suite as an **operator candidate** — to demonstrate that the sandbox is
 reference-compatible at Level 0. The result is **evidence, not certification.**
 
-> **Host: `sandbox-api.banzami.com`.** The current run targets the official Banzami
-> sandbox operator host and is stored under
-> [`20260626-2137-sandbox-api-banzami-com/`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json)
-> — **5/5 PASS, Level 0**. On this host `/.well-known/banza/operator.json` and
-> `/health` are served by `sandbox-operator`; all other paths by the sandbox
-> gateway. (An earlier run against a legacy operator host — since removed — was
-> superseded and is not retained.)
+> **Operator host: `sandbox-operator.banzami.com`** (dedicated; no hybrid). The
+> current run is stored under
+> [`20260626-2246-sandbox-operator-banzami-com/`](20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json)
+> — **5/5 PASS, Level 0**. The operator host serves **only** `/health` and
+> `/.well-known/banza/operator.json`; the sandbox API/gateway is the separate host
+> `sandbox-api.banzami.com`. The earlier run under
+> `20260626-2137-sandbox-api-banzami-com/` (when the operator endpoints were
+> co-hosted on the gateway) is **superseded** and kept for history.
 
 | Field | Value |
 |-------|-------|
-| Target | `https://sandbox-api.banzami.com` (Banzami sandbox operator) |
+| Target | `https://sandbox-operator.banzami.com` (Banzami sandbox operator host) |
 | Tool | `banza-conformance` `0.1.0` (PyPI) — equivalently `ghcr.io/banza-protocol/banza-conformance:v0.1.0` |
 | Requested level | 0 — Protocol Sandbox |
 | Level achieved | **0 — Protocol Sandbox** |
 | Result | **5 passed · 0 failed · 0 skipped** |
-| Report | [`20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json`](20260626-2137-sandbox-api-banzami-com/banzami-sandbox-l0-report.json) |
+| Report | [`20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json`](20260626-2246-sandbox-operator-banzami-com/banzami-sandbox-l0-report.json) |
+| Superseded run | `20260626-2137-sandbox-api-banzami-com/` (operator endpoints co-hosted on the gateway) |
 | Statement (from the tool) | *"This report is conformance evidence, not a production certificate."* |
 
 ## What this is — and is not
