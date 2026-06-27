@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -94,6 +94,9 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// (wallet_payments / transfers). Capability-gated + audited (in this group).
 		docH := handler.NewDocumentHandler(receiptSrc)
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/transactions/{id}/receipt.pdf", docH.TransactionReceipt)
+		// Received wallet-native payments list (canonical: wallet_payments).
+		wpH := handler.NewWalletPaymentsHandler(walletLister)
+		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/wallet-payments", wpH.List)
 
 		// Operator management.
 		opH := handler.NewOperatorHandler(opStore, mailer, cfg.AdminBaseURL, showResetLink)

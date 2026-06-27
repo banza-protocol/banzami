@@ -47,6 +47,7 @@ type Dependencies struct {
 	ComplianceSvc       service.ComplianceService
 	SplitSvc            service.SplitService
 	WalletPaymentSvc    service.WalletPaymentReader
+	WalletPaymentLister service.WalletPaymentLister
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -91,6 +92,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	payoutHandler := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
 	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc)
+	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
 	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
@@ -152,6 +154,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Get("/transactions", txHandler.List)
 			r.Get("/transactions/{id}", txHandler.Get)
 
+			// Merchant received wallet-native payments (canonical: wallet_payments).
+			r.Get("/merchant/wallet-payments", walletPaymentsHandler.List)
 			// Official merchant payment receipt (PDF) — Document Engine, real
 			// wallet_payments data.
 			r.Get("/merchant/transactions/{id}/receipt.pdf", receiptHandler.MerchantReceipt)

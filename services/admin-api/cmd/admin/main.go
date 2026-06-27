@@ -64,6 +64,7 @@ func main() {
 	var users *service.AdminUserService
 	var audit *service.AuditService
 	var receiptSrc service.ReceiptSource
+	var walletLister service.AdminWalletPaymentLister
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -74,6 +75,7 @@ func main() {
 		users = service.NewAdminUserService(pool)
 		audit = service.NewAuditService(pool)
 		receiptSrc = service.NewPostgresReceiptSource(pool)
+		walletLister = service.NewPostgresWalletPaymentService(pool)
 		if cfg.AdminJWTSecret == "" {
 			slog.Warn("ADMIN_JWT_SECRET not set — operator login disabled (503)")
 		} else {
@@ -83,7 +85,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
