@@ -310,16 +310,27 @@ invite/reset redeviennent visibles dans la réponse authentifiée au SUPER_ADMIN
 
 ### Design system & previews
 
-Tous les emails partagent un **Banzami Email Design System** centralisé
-(`internal/email/design.go` = tokens + layout + composants ; `templates.go` =
-un `build*` par email ; aucun HTML dupliqué). Couleurs/typo/rayons repris
-verbatim de la palette website/dashboard (`#B5101F` …). Compatible Gmail /
-Apple Mail / Outlook (VML) / Yahoo ; responsive + dark-mode + preheader.
+Tous les emails partagent le **Banzami Email Design System** centralisé, dérivé
+du hero institutionnel (`docs/diagrams/banzami-hero-v1.svg`) adapté en HTML :
 
-Ajouter un nouvel email (Payment Received, Refund, KYC, …) = une nouvelle
-fonction `build*` qui compose les composants — sans toucher à l'envoi.
+- `internal/email/design.go` — tokens officiels (`#C8102E`, dégradé
+  `#B80E27→#E12638`, texte `#231F20`, secondaire `#6B7280`, séparateurs
+  `#F3F4F6`), le hero texte (overline mono + wordmark BANZAMI + tagline), le
+  layout et les composants (`emHero`, `emLabel`, `emTitle`, `emLead`, `emPara`,
+  `emButton`, `emInfo`, `emDivider`, `emAlert`, `emCode`, `emList`, `emFooter`).
+- `templates.go` — un `build*` par email (structure fixe : Hero → Label → Titre →
+  Lead → Contenu → CTA → Footer). Aucun HTML dupliqué.
 
-Prévisualiser tous les templates en HTML autonome (aucun envoi, aucune
+Identité : minimaliste, fond blanc, une seule bande hero en dégradé, un seul
+bouton, labels discrets (SEGURANÇA, NEGÓCIOS, ADMINISTRAÇÃO, PAGAMENTOS,
+CONFORMIDADE). Copy 100 % portugais. Hero **texte** (pas d'image → robuste,
+accessible). Compatible Gmail / Apple Mail / Outlook (VML) / Yahoo ; responsive
++ dark-mode + preheader.
+
+Ajouter un email (Refund, KYC, Settlement, …) = une nouvelle fonction `build*`
+qui compose les composants — sans toucher à l'envoi.
+
+Prévisualiser les 14 templates en HTML autonome (aucun envoi, aucune
 credential) :
 
 ```bash
