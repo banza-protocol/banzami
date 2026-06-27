@@ -1,16 +1,17 @@
-// Official current Banzami partners (companies with a Memorandum of Understanding
-// to use the platform and receive payments from their own clients). Single source
-// of truth for the homepage partner marquee and the metrics counter — add a partner
-// here and both update automatically.
+// Banzami homepage partners/ecosystem list — single source of truth for the
+// hero marquee and the metrics counter.
 //
-// Note: DOA is an ecosystem product/platform, NOT a memorandum partner — it is
-// intentionally excluded from this list and from partnerCount.
+// `memorandum` = companies with a Memorandum of Understanding to use the platform
+// and receive payments from their own clients. `ecosystem` = ecosystem
+// products/platforms (e.g. DOA): shown in the marquee but NOT counted as a
+// commercial partner. partnerCount counts only memorandum partners.
 
 export type Partner = {
   name: string;
   shortName?: string;
   handle: string;
-  kind: 'memorandum';
+  kind: 'memorandum' | 'ecosystem';
+  website?: string;
 };
 
 export const partners: Partner[] = [
@@ -32,6 +33,13 @@ export const partners: Partner[] = [
     handle: '@agro-one',
     kind: 'memorandum',
   },
+  {
+    name: 'DOA',
+    handle: '@doa',
+    kind: 'ecosystem',
+    website: 'https://doadoa.app',
+  },
 ];
 
-export const partnerCount = partners.length;
+// Commercial partner counter — ecosystem entries (e.g. DOA) are excluded.
+export const partnerCount = partners.filter((p) => p.kind === 'memorandum').length;

@@ -27,12 +27,15 @@ const CHIP_COLORS = [
 const MERCHANTS = partners.map((p, i) => ({
   initial: (p.shortName ?? p.name).charAt(0).toUpperCase(),
   handle: p.handle,
+  href: p.website,
   ...CHIP_COLORS[i % CHIP_COLORS.length],
 }));
 
 function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
-  return (
-    <span className="inline-flex flex-none items-center gap-[9px] rounded-pill border border-border-soft bg-white py-[7px] pl-[7px] pr-[15px] shadow-[0_6px_16px_-10px_rgba(181,16,31,.25)]">
+  const cls =
+    'inline-flex flex-none items-center gap-[9px] rounded-pill border border-border-soft bg-white py-[7px] pl-[7px] pr-[15px] no-underline shadow-[0_6px_16px_-10px_rgba(181,16,31,.25)]';
+  const inner = (
+    <>
       <span
         className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-black"
         style={{ background: m.bg, color: m.fg }}
@@ -40,8 +43,17 @@ function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
         {m.initial}
       </span>
       <span className="bz-mono whitespace-nowrap text-[12.5px] font-semibold text-[#3a2a2e]">{m.handle}</span>
-    </span>
+    </>
   );
+  // Ecosystem entries (e.g. DOA) carry a website and open in a new tab.
+  if (m.href) {
+    return (
+      <a href={m.href} target="_blank" rel="noopener noreferrer" className={cls}>
+        {inner}
+      </a>
+    );
+  }
+  return <span className={cls}>{inner}</span>;
 }
 
 const STATS = [
