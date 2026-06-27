@@ -56,6 +56,31 @@ Loopback only (127.0.0.1)
   └─ core-api                (Rust/Axum, port 8081)
 ```
 
+### Hosts de sandbox (separados)
+
+| Host | Serve | Backend |
+|------|-------|---------|
+| `sandbox-operator.banzami.com` (**Operator Host**) | apenas `/health` + `/.well-known/banza/operator.json` | `sandbox-operator` |
+| `sandbox-api.banzami.com` (**Gateway Host**) | API/gateway sandbox (`/v1/...`, `/consumer/...`) | api-gateway / public-api (staging) |
+
+São hosts distintos — sem host híbrido. O Operator Host é o candidato à conformância **BANZA L0** (HEALTH-001/002 + MAN-001/002/003).
+
+### Document Engine (comprovativos PDF oficiais)
+
+Módulo Go partilhado `services/common/documents` (workspace `go.work`) gera os
+comprovativos PDF oficiais **server-side** com Chromium headless
+(`BANZAMI_CHROME_BIN`, presente nas imagens `public-api`, `api-gateway`,
+`admin-api`). É **read-only** — lê as fontes canónicas (`transfers`,
+`wallet_payments`) e não toca no ledger. As apps móveis **não geram PDF
+localmente**. Ver [docs/document-engine.md](docs/document-engine.md).
+
+### Sistema de emails (Resend)
+
+Os emails transacionais (admin-api) usam um design system centralizado enviado
+via **Resend** (`EMAIL_PROVIDER=resend`), com remetentes `contact@` (institucional)
+e `noreply@` (automático/segurança) e `EMAIL_DRY_RUN` como modo seguro. Ver
+[docs/admin/BANZADMIN_RUNBOOK.md](docs/admin/BANZADMIN_RUNBOOK.md) (§Email).
+
 ---
 
 ## Diagrama de Componentes

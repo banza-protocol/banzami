@@ -14,8 +14,12 @@ This directory contains the API reference for all external and internal Banza AP
 |---------|------|----------|------|
 | `api-gateway` | 8080 | Merchants (server-to-server) | JWT (API key exchange) |
 | `public-api` | 8083 | Consumers (mobile/browser) | JWT (handle + PIN) |
-| `admin-api` | 8082 | Internal operators | Static `X-Admin-Key` |
+| `admin-api` | 8082 | Internal operators (BANZADMIN) | Operator JWT (email + password) + capability RBAC |
 | `core-api` (Rust) | 8081 | Internal only | None (loopback) |
+
+The `public-api`, `api-gateway`, and `admin-api` runtime images also bundle
+**Chromium** (`BANZAMI_CHROME_BIN`) for the shared [Document Engine](../document-engine.md)
+(server-side PDF receipts).
 
 ---
 
@@ -832,3 +836,25 @@ X-Idempotency-Key: <client-generated-uuid>
 If the same key is sent twice within 24 hours, the second request returns the original response without re-executing. Use this to safely retry after network errors.
 
 Financial endpoints (`/v1/transfers`, `/v1/transactions`) also accept `idempotency_key` in the request body as an alternative.
+
+---
+
+## Official receipts (Document Engine)
+
+Official Banzami receipts are generated server-side as PDF by the shared
+[Document Engine](../document-engine.md) from canonical data (`transfers`,
+`wallet_payments`). Apps never build PDFs locally. All endpoints require auth and
+enforce ownership.
+
+| Method · Path | Service | Auth | Returns |
+|---|---|---|---|
+| `GET /v1/consumer/transactions/{id}/receipt.pdf` | public-api | Consumer JWT | `application/pdf` |
+| `GET /v1/merchant/wallet-payments` | api-gateway | Merchant JWT | JSON list (received payments) |
+| `GET /v1/merchant/transactions/{id}/receipt.pdf` | api-gateway | Merchant JWT | `application/pdf` |
+| `GET /admin/v1/wallet-payments` | admin-api | Operator JWT + `merchant.view` | JSON list |
+| `GET /admin/v1/transactions/{id}/receipt.pdf` | admin-api | Operator JWT + `merchant.view` | `application/pdf` |
+
+PDF responses use `Content-Disposition: inline; filename="banzami-comprovativo-<reference>.pdf"`.
+List filters: `status`, `date_from`, `date_to`, `limit`, `cursor` (admin also
+`merchant_id`, `environment`). Unknown transaction → `404`; empty list → `200`
+with `items: []`.

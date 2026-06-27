@@ -170,7 +170,7 @@ part of the Banzami operator.
 | Directory | Contents |
 |-----------|----------|
 | `core/` | Rust financial core — ledger, wallets, transfers, QR, settlement, payouts |
-| `services/` | Go services — `api-gateway`, `public-api`, `admin-api` |
+| `services/` | Go services — `api-gateway`, `public-api`, `admin-api`, and `common/documents` (shared [Document Engine](docs/document-engine.md)). A root `go.work` ties them together. |
 | `apps/` | Product apps — mobile, merchant, dashboard, admin, pay, checkout, website |
 | `sdk/` | Banzami integration SDKs — TypeScript, Flutter, Python, PHP, Go |
 | `plugins/` | Commerce platform adapters |

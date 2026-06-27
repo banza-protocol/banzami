@@ -38,6 +38,12 @@ All deployments go through `./deploy.sh` at the repository root.
 | `checkout-frontend` | Next.js hosted checkout |
 | `staging` | Full staging environment |
 
+The `api-gateway`, `public-api`, and `admin-api` images bundle **Chromium** for
+the shared [Document Engine](docs/document-engine.md) (server-side PDF receipts).
+Their Docker build context contains `services/common/` + the service as siblings
+so the shared module's `replace ../common/documents` resolves in Docker; the
+build is driven by `go.work`.
+
 ---
 
 ## Deployment Flow
@@ -125,8 +131,21 @@ REDIS_URL           Redis connection string
 | `BANZA_API_KEY_SECRET` | core-api | HMAC key for API key verification |
 | `BANZA_WEBHOOK_SECRET` | api-gateway | HMAC key for webhook signature |
 | `OTLP_ENDPOINT` | all | OpenTelemetry collector endpoint |
+| `BANZAMI_CHROME_BIN` | public-api, api-gateway, admin-api | Headless Chromium binary for the Document Engine (set in each image, e.g. `/usr/bin/chromium-browser`) |
+| `EMAIL_PROVIDER` | admin-api | Email transport — `resend` (default in prod) or `smtp` |
+| `RESEND_API_KEY` | admin-api | Resend API key (secret) — used when `EMAIL_PROVIDER=resend` |
+| `EMAIL_FROM_NAME` / `EMAIL_FROM_ADDRESS` / `EMAIL_REPLY_TO` | admin-api | Institutional sender (`Banzami` / `contact@banzami.com`) |
+| `EMAIL_NOREPLY_NAME` / `EMAIL_NOREPLY_ADDRESS` | admin-api | Automatic/security sender (`noreply@banzami.com`) |
+| `EMAIL_DRY_RUN` | admin-api | `true` (safe default — log only) / `false` (send) |
+| `KYB_STORAGE_PROVIDER` / `KYB_STORAGE_BUCKET` / `KYB_STORAGE_ENDPOINT` / `KYB_STORAGE_REGION` | api-gateway | Cloudflare R2 KYB document storage |
+| `KYB_STORAGE_ACCESS_KEY_ID` / `KYB_STORAGE_SECRET_ACCESS_KEY` | api-gateway | R2 credentials (secret) |
+| `KYB_SIGNED_URL_TTL_SECONDS` / `KYB_MAX_FILE_SIZE_BYTES` | api-gateway | KYB upload signed-URL TTL + max file size |
 
 Environment variables are defined in `.env` (local, gitignored) and set on the production server via the deployment configuration. Never commit `.env` files.
+
+The Document Engine (`BANZAMI_CHROME_BIN`) and KYB R2 upload are documented in
+[docs/document-engine.md](docs/document-engine.md) and
+[docs/ops/KYB_R2_SETUP.md](docs/ops/KYB_R2_SETUP.md).
 
 ---
 
