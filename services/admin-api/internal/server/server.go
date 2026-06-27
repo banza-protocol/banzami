@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -89,6 +89,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.Post("/admin/v1/auth/logout", authH.Logout)
 		r.With(authLimit.Middleware).Post("/admin/v1/auth/change-password", authH.ChangePassword)
 		r.Post("/admin/v1/auth/terminate-sessions", authH.TerminateSessions)
+
+		// Official transaction receipt (PDF) — Document Engine, real sources
+		// (wallet_payments / transfers). Capability-gated + audited (in this group).
+		docH := handler.NewDocumentHandler(receiptSrc)
+		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/transactions/{id}/receipt.pdf", docH.TransactionReceipt)
 
 		// Operator management.
 		opH := handler.NewOperatorHandler(opStore, mailer, cfg.AdminBaseURL, showResetLink)
