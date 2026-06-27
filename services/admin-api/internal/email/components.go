@@ -61,6 +61,7 @@ const (
 
 	// Assets
 	logoURL      = "https://pay.banzami.com/banzami_icon_512.png"
+	assetBase    = "https://admin.banzami.com/api/email-assets" // served by AssetsHandler
 	contactEmail = "contact@banzami.com"
 	siteURL      = "https://banzami.com"
 )
@@ -97,11 +98,11 @@ func emBadge(kind string) string {
 	case "security":
 		return `<span style="display:inline-block;padding:6px 11px;border-radius:30px;background:#FBEFEF;color:` + cRedDark +
 			`;font-family:` + fSans + `;font-weight:800;font-size:11.5px;border:1px solid ` + cSecBorder + `;white-space:nowrap;">` +
-			svgShield(13, cRedDark) + `&nbsp;Segurança</span>`
+			iconImg("badge-shield.png", 13) + `&nbsp;Segurança</span>`
 	case "receipt":
 		return `<span style="display:inline-block;padding:6px 11px;border-radius:30px;background:` + cTint + `;color:` + cRedDark +
 			`;font-family:` + fSans + `;font-weight:800;font-size:11.5px;white-space:nowrap;">` +
-			svgCheck(13, cRedDark) + `&nbsp;Recibo</span>`
+			iconImg("badge-check.png", 13) + `&nbsp;Recibo</span>`
 	default:
 		return `<span style="display:inline-block;padding:6px 11px;border-radius:30px;background:` + cTint + `;color:` + cRedDark +
 			`;font-family:` + fSans + `;font-weight:800;font-size:11.5px;white-space:nowrap;">` +
@@ -125,7 +126,7 @@ func emHeroAmount(label, amount string) string {
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:0 0 22px;">
         <tr><td align="center" style="background:` + cSoftBg + `;border:1px solid ` + cSecBorder + `;border-radius:16px;padding:24px 20px;">
           <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:separate;border-spacing:0;margin:0 auto 12px;"><tr>
-            <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:` + cRed + `;border-radius:50%;box-shadow:` + shCircle + `;">` + svgCheck(22, cWhite) + `</td>
+            <td width="40" height="40" align="center" valign="middle" style="width:40px;height:40px;background:` + cRed + `;border-radius:50%;box-shadow:` + shCircle + `;">` + iconImg("hero-check.png", 22) + `</td>
           </tr></table>
           <div style="font-family:` + fSans + `;font-size:13.5px;font-weight:700;color:` + cLabel + `;">` + esc(label) + `</div>
           <div style="font-family:` + fSans + `;font-size:40px;font-weight:900;letter-spacing:-.025em;color:` + cRed + `;margin-top:3px;line-height:1;">` + esc(amount) + `</div>
@@ -169,11 +170,11 @@ func emNotice(kind, text string) string {
 	var icon string
 	switch kind {
 	case "clock":
-		icon = svgClock(18, cRedDark)
+		icon = iconImg("notice-clock.png", 18)
 	case "shield":
-		icon = svgShield(18, cRedDark)
+		icon = iconImg("notice-shield.png", 18)
 	default:
-		icon = svgDoc(18, cRedDark)
+		icon = iconImg("notice-doc.png", 18)
 	}
 	return `
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:22px 0 4px;">
@@ -215,26 +216,12 @@ func emURLFallback(hint, url string) string {
       </table>`
 }
 
-// ── Inline SVG icons (decorative; match prototypes; degrade gracefully) ────────
+// ── Icons (hosted PNG — Gmail strips inline SVG) ──────────────────────────────
 
-func svgCheck(size int, color string) string {
+// iconImg renders a decorative icon as a hosted PNG <img>, square at size px.
+func iconImg(file string, size int) string {
 	s := itoa(size)
-	return `<svg width="` + s + `" height="` + s + `" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M5 12.5l4 4 10-10" stroke="` + color + `" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
-}
-
-func svgShield(size int, color string) string {
-	s := itoa(size)
-	return `<svg width="` + s + `" height="` + s + `" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="` + color + `" stroke-width="1.8" stroke-linejoin="round"></path></svg>`
-}
-
-func svgClock(size int, color string) string {
-	s := itoa(size)
-	return `<svg width="` + s + `" height="` + s + `" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><circle cx="12" cy="12" r="9" stroke="` + color + `" stroke-width="1.8"></circle><path d="M12 7.5V12l3 2" stroke="` + color + `" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></path></svg>`
-}
-
-func svgDoc(size int, color string) string {
-	s := itoa(size)
-	return `<svg width="` + s + `" height="` + s + `" viewBox="0 0 24 24" fill="none" style="vertical-align:middle;"><path d="M14 3H7a2 2 0 00-2 2v14a2 2 0 002 2h10a2 2 0 002-2V8l-5-5z" stroke="` + color + `" stroke-width="1.8" stroke-linejoin="round"></path><path d="M14 3v5h5M9 13h6M9 16h4" stroke="` + color + `" stroke-width="1.8" stroke-linecap="round"></path></svg>`
+	return `<img src="` + assetBase + `/` + file + `" width="` + s + `" height="` + s + `" alt="" style="display:inline-block;vertical-align:middle;border:0;outline:none;">`
 }
 
 func itoa(n int) string {

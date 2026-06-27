@@ -38,6 +38,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r.Get("/health", handler.Liveness)
 	r.Get("/metrics", promhttp.Handler().ServeHTTP)
 
+	// Email icon assets (PNG) — public, read-only. Gmail strips inline SVG, so
+	// transactional emails reference these hosted icons.
+	r.Handle("/email-assets/*", email.AssetsHandler())
+
 	// Build nil-safe interfaces so a nil *AdminUserService stays a true nil
 	// interface (auth endpoints then respond 503 instead of panicking).
 	var loginStore handler.LoginStore

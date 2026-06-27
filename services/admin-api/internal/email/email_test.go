@@ -98,6 +98,17 @@ func TestEmailRobustHTML(t *testing.T) {
 			t.Errorf("%s: URL fallback must use overflow-wrap:anywhere", name)
 		}
 	}
+	// no inline SVG (Gmail strips it); icons are hosted PNGs
+	for name, html := range all {
+		if strings.Contains(html, "<svg") {
+			t.Errorf("%s: must not use inline SVG (Gmail strips it)", name)
+		}
+	}
+	for _, name := range []string{"rejected", "invite", "reset", "receipt"} {
+		if !strings.Contains(all[name], "email-assets/") {
+			t.Errorf("%s: icons must be hosted PNGs (email-assets)", name)
+		}
+	}
 }
 
 func TestTemplatesHaveNoSecrets(t *testing.T) {
