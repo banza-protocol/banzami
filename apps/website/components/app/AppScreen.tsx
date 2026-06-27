@@ -44,7 +44,7 @@ function StatusBar({ time, dark = false }: { time: string; dark?: boolean }) {
       className="flex shrink-0 items-center justify-between"
       style={{ padding: '17px 24px 0', fontSize: 14, fontWeight: 800, color: c }}
     >
-      <span>{time}</span>
+      <span><LiveClock format="hm" initial={time} /></span>
       <span className="flex items-center" style={{ gap: 6 }}>
         <svg width="17" height="12" viewBox="0 0 17 12" fill="none">
           <rect x="0" y="7.5" width="3" height="4.5" rx="1" fill={c} />
@@ -570,7 +570,7 @@ export function AppScreen({
             <span style={{ width: 34 }} />
           </div>
           <div className="flex flex-1 flex-col items-center text-center" style={{ padding: '6px 18px 14px' }}>
-            <p className="bz-mono" style={{ margin: '6px 0 0', fontSize: 10.5, fontWeight: 600, letterSpacing: '.5em', color: 'rgba(255,255,255,.9)', textIndent: '.5em' }}>BANZA</p>
+            <p className="bz-mono" style={{ margin: '6px 0 0', fontSize: 10.5, fontWeight: 600, letterSpacing: '.5em', color: 'rgba(255,255,255,.9)', textIndent: '.5em' }}>BANZAMI</p>
             <div className="relative flex items-center justify-center" style={{ width: 84, height: 84, margin: '6px 0 0' }}>
               <div className="anim-bzpulsering absolute" style={{ width: 64, height: 64, borderRadius: '50%', border: '2px solid rgba(255,255,255,.4)' }} />
               <div className="anim-bzpulsering-delayed absolute" style={{ width: 64, height: 64, borderRadius: '50%', border: '2px solid rgba(255,255,255,.4)' }} />
