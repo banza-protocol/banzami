@@ -161,25 +161,25 @@ export function Footer() {
           <div className="relative">
             <p className="m-0 text-[24px] font-black tracking-[-0.01em]">Explorar Banzami</p>
             <p className="m-0 mt-[14px] text-[15px] font-semibold leading-[1.55] text-white/85">
-              Baixa a app ou junta-te à waitlist e sê um dos primeiros a experimentar o futuro dos
-              pagamentos em Angola.
+              Descobre uma nova forma de pagar, receber e gerir dinheiro em Kwanza. Simples, rápida e
+              pensada para o dia a dia em Angola.
             </p>
 
             <a
               href="/app-demo"
               className="bz-foot-cta mt-[22px] flex items-center justify-between rounded-[16px] bg-white px-[20px] py-[16px] text-[15px] font-extrabold text-cherry no-underline transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Ver a app
+              Baixar a app
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#B5101F" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </a>
 
             <a
-              href={mailto('Waitlist Banzami')}
+              href={mailto('Contacto Banzami')}
               className="bz-foot-cta mt-[12px] flex items-center justify-between rounded-[16px] border border-white/25 bg-white/[0.12] px-[20px] py-[16px] text-[15px] font-extrabold text-white no-underline transition hover:bg-white/[0.2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-white focus-visible:outline-offset-2"
             >
-              Entrar na waitlist
+              Entrar em contacto
               <svg className="bz-foot-arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                 <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
