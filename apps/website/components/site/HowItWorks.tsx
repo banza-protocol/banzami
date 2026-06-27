@@ -116,9 +116,8 @@ export function HowItWorks() {
 
         <div className="mt-[50px] flex flex-wrap items-center justify-center gap-[18px]">
           <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
-          <p className="m-0 max-w-[520px] text-center text-[13px] font-semibold leading-[1.55] text-ink-muted">
-            O dinheiro move-se entre carteiras Banzami, com registo seguro em ledger de dupla
-            entrada.
+          <p className="m-0 max-w-[520px] text-center text-[13px] font-semibold leading-[1.55] text-ink-muted md:max-w-none md:whitespace-nowrap">
+            O dinheiro move-se entre carteiras Banzami, com registo seguro em ledger de dupla entrada.
           </p>
           <span className="h-px w-[54px]" style={{ background: '#E8C8C6' }} />
         </div>
