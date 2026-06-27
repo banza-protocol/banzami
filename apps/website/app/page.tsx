@@ -3,7 +3,13 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { AppDemo } from '@/components/app/AppDemo';
 import { HowItWorks } from '@/components/site/HowItWorks';
-import { partners, partnerCount } from '@/lib/partners';
+import {
+  homepageEntities,
+  userCount,
+  merchantCount,
+  companyCount,
+  dailyTransactionCount,
+} from '@/lib/entities';
 
 // "Live" status dot used in the hero badge pills: the core dot gently pulses
 // while a ring pings outward. Both stop under prefers-reduced-motion.
@@ -16,22 +22,22 @@ function LiveDot({ size = 8 }: { size?: number }) {
   );
 }
 
-// Hero marquee chips, built from the real partner list (duplicated so the -50%
-// loop is seamless). Avatar colours cycle the existing palette — presentation
-// only; the data (names, handles, count) lives in lib/partners.ts.
+// Hero marquee chips, built from the homepage entity model (duplicated so the
+// -50% loop is seamless). Avatar colours cycle the existing palette — presentation
+// only; the data (names, handles, counts) lives in lib/entities.ts.
 const CHIP_COLORS = [
   { bg: '#FBD2D0', fg: '#B5101F' },
   { bg: '#E8434B', fg: '#fff' },
   { bg: '#FFE0DE', fg: '#B5101F' },
 ];
-const MERCHANTS = partners.map((p, i) => ({
-  initial: (p.shortName ?? p.name).charAt(0).toUpperCase(),
-  handle: p.handle,
-  href: p.website,
+const ENTITY_CHIPS = homepageEntities.map((e, i) => ({
+  initial: (e.shortName ?? e.name).charAt(0).toUpperCase(),
+  label: e.handle ?? e.shortName ?? e.name,
+  href: e.website,
   ...CHIP_COLORS[i % CHIP_COLORS.length],
 }));
 
-function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
+function EntityChip({ m }: { m: (typeof ENTITY_CHIPS)[number] }) {
   const cls =
     'inline-flex flex-none items-center gap-[9px] rounded-pill border border-border-soft bg-white py-[7px] pl-[7px] pr-[15px] no-underline shadow-[0_6px_16px_-10px_rgba(181,16,31,.25)]';
   const inner = (
@@ -42,10 +48,10 @@ function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
       >
         {m.initial}
       </span>
-      <span className="bz-mono whitespace-nowrap text-[12.5px] font-semibold text-[#3a2a2e]">{m.handle}</span>
+      <span className="bz-mono whitespace-nowrap text-[12.5px] font-semibold text-[#3a2a2e]">{m.label}</span>
     </>
   );
-  // Ecosystem entries (e.g. DOA) carry a website and open in a new tab.
+  // Entities with a website (e.g. DOA) open in a new tab.
   if (m.href) {
     return (
       <a href={m.href} target="_blank" rel="noopener noreferrer" className={cls}>
@@ -56,9 +62,10 @@ function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
   return <span className={cls}>{inner}</span>;
 }
 
+// Adoption metrics — values derive from lib/entities.ts (no hardcoded numbers).
 const STATS = [
   {
-    value: '0',
+    value: String(userCount),
     label: 'UTILIZADORES',
     icon: (
       <>
@@ -69,8 +76,8 @@ const STATS = [
     ),
   },
   {
-    value: String(partnerCount),
-    label: 'PARCEIROS',
+    value: String(merchantCount),
+    label: 'COMERCIANTES',
     icon: (
       <>
         <path d="M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
@@ -80,23 +87,24 @@ const STATS = [
     ),
   },
   {
-    value: '0',
+    value: String(companyCount),
+    label: 'EMPRESAS',
+    icon: (
+      <>
+        <rect x="5" y="3" width="14" height="18" rx="1.6" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+        <path d="M9 7h2M13 7h2M9 11h2M13 11h2" stroke="#B5101F" strokeWidth="1.9" strokeLinecap="round" />
+        <path d="M10 21v-3h4v3" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
+      </>
+    ),
+  },
+  {
+    value: String(dailyTransactionCount),
     label: 'TRANSAÇÕES/DIA',
     icon: (
       <>
         <rect x="3" y="6" width="13" height="11" rx="2.5" stroke="#B5101F" strokeWidth="1.9" />
         <path d="M3 10h13" stroke="#B5101F" strokeWidth="1.9" />
         <path d="M17 13h4m0 0l-2-2m2 2l-2 2" stroke="#B5101F" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
-      </>
-    ),
-  },
-  {
-    value: '18',
-    label: 'PROVÍNCIAS',
-    icon: (
-      <>
-        <path d="M12 21s6.5-5.4 6.5-10.5A6.5 6.5 0 005.5 10.5C5.5 15.6 12 21 12 21z" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
-        <circle cx="12" cy="10.3" r="2.4" stroke="#B5101F" strokeWidth="1.9" />
       </>
     ),
   },
@@ -141,11 +149,11 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="mt-[30px] max-w-[540px]">
-              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">PARCEIROS</p>
+              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">COMERCIANTES &amp; EMPRESAS</p>
               <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
                 <div className="anim-marquee flex w-max gap-[10px]">
-                  {[...MERCHANTS, ...MERCHANTS].map((m, i) => (
-                    <MerchantChip key={i} m={m} />
+                  {[...ENTITY_CHIPS, ...ENTITY_CHIPS].map((m, i) => (
+                    <EntityChip key={i} m={m} />
                   ))}
                 </div>
               </div>
