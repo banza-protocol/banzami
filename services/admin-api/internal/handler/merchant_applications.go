@@ -25,7 +25,7 @@ type GatewayApplications interface {
 
 // ApplicationMailer is the subset of the email sender the admin handler uses.
 type ApplicationMailer interface {
-	MerchantApplicationApproved(to, businessName, activationURL string)
+	MerchantApplicationApproved(to, businessName, handle, environment, activationURL string)
 	MerchantApplicationRejected(to, businessName, message string)
 }
 
@@ -87,7 +87,7 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 	// Build the activation link and email it. The token is never returned to the
 	// admin UI nor logged.
 	activationURL := h.websiteBaseURL + "/comerciantes/activar?token=" + res.ActivationToken
-	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, activationURL)
+	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, res.Environment, activationURL)
 
 	// Audit (no token, no full API key — prefix/handle/merchant id are safe).
 	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{

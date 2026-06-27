@@ -65,7 +65,7 @@ func TestSenderIdentitiesAndReplyTo(t *testing.T) {
 
 	s.AdminOperatorInvite("u@example.test", "User", "https://admin.banzami.com/invite/x")
 	s.AdminPasswordReset("u@example.test", "User", "https://admin.banzami.com/reset/y")
-	s.MerchantApplicationApproved("m@example.test", "Loja", "https://banzami.com/comerciantes/activar?token=z")
+	s.MerchantApplicationApproved("m@example.test", "Loja", "loja_ao", "LIVE", "https://banzami.com/comerciantes/activar?token=z")
 	s.MerchantApplicationRejected("m@example.test", "Loja", "motivo")
 
 	if len(captured) != 4 {
@@ -105,7 +105,7 @@ func TestApprovedEmailHasNoSecrets(t *testing.T) {
 	var captured []resendPayload
 	var auth string
 	s := newCapturingSender(t, &captured, &auth)
-	s.MerchantApplicationApproved("m@example.test", "Loja", "https://banzami.com/comerciantes/activar?token=ACTV")
+	s.MerchantApplicationApproved("m@example.test", "Loja", "loja_ao", "LIVE", "https://banzami.com/comerciantes/activar?token=ACTV")
 	body := captured[0].HTML
 	if !strings.Contains(body, "https://banzami.com/comerciantes/activar?token=ACTV") {
 		t.Error("approved email must contain the activation link")

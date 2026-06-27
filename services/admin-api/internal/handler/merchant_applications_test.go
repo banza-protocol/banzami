@@ -55,7 +55,7 @@ type fakeMailer struct {
 	rejectedCalled          bool
 }
 
-func (m *fakeMailer) MerchantApplicationApproved(to, _, url string) {
+func (m *fakeMailer) MerchantApplicationApproved(to, _, _, _, url string) {
 	m.approvedCalled, m.approvedTo, m.approvedURL = true, to, url
 }
 func (m *fakeMailer) MerchantApplicationRejected(to, _, msg string) {

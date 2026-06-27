@@ -308,6 +308,25 @@ Repasser en mode sûr sans redéployer le code : mettre `EMAIL_DRY_RUN=true` dan
 `/srv/banzami/.env`, puis `docker compose up -d admin-api`. Les liens
 invite/reset redeviennent visibles dans la réponse authentifiée au SUPER_ADMIN.
 
+### Design system & previews
+
+Tous les emails partagent un **Banzami Email Design System** centralisé
+(`internal/email/design.go` = tokens + layout + composants ; `templates.go` =
+un `build*` par email ; aucun HTML dupliqué). Couleurs/typo/rayons repris
+verbatim de la palette website/dashboard (`#B5101F` …). Compatible Gmail /
+Apple Mail / Outlook (VML) / Yahoo ; responsive + dark-mode + preheader.
+
+Ajouter un nouvel email (Payment Received, Refund, KYC, …) = une nouvelle
+fonction `build*` qui compose les composants — sans toucher à l'envoi.
+
+Prévisualiser tous les templates en HTML autonome (aucun envoi, aucune
+credential) :
+
+```bash
+cd services/admin-api && go run ./cmd/email-preview ./email-previews
+# ouvrir les .html dans un navigateur / les coller dans un client mail
+```
+
 ---
 
 ## Déploiement
