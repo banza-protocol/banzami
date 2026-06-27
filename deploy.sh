@@ -117,14 +117,18 @@ deploy_api_gateway() {
   step "api-gateway" "Go public API gateway"
 
   info "Syncing source to server..."
-  rsync -az --delete \
-    --exclude='.git' \
+  # Build context contains common/ + api-gateway/ as siblings for the shared
+  # Document Engine module (replace ../common/documents).
+  rsync -az --delete --exclude='.git' \
+    "$REPO_ROOT/services/common/" \
+    "$REMOTE:/srv/banzami/api-gateway-build/common/"
+  rsync -az --delete --exclude='.git' \
     "$REPO_ROOT/services/api-gateway/" \
-    "$REMOTE:/srv/banzami/api-gateway-build/"
+    "$REMOTE:/srv/banzami/api-gateway-build/api-gateway/"
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/api-gateway-build && docker build $NO_CACHE -t banzami/api-gateway:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/api-gateway-build && docker build $NO_CACHE -f api-gateway/Dockerfile -t banzami/api-gateway:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 

@@ -68,6 +68,7 @@ func main() {
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
 	var activationSvc service.ActivationService
+	var walletPaymentSvc service.WalletPaymentReader
 	if cfg.DatabaseURL != "" {
 		dbPool, err := pgxpool.New(ctx, cfg.DatabaseURL)
 		if err != nil {
@@ -90,6 +91,7 @@ func main() {
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
 		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		activationSvc = service.NewPostgresActivationService(dbPool)
+		walletPaymentSvc = service.NewPostgresWalletPaymentService(dbPool)
 
 		// KYB document storage (Track 3). Absent KYB_STORAGE_* → storage stays
 		// nil and the document endpoints return 503 STORAGE_NOT_CONFIGURED.
@@ -146,6 +148,7 @@ func main() {
 		ActivationSvc:       activationSvc,
 		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:            service.NewCoreApiSplitService(coreClient),
+		WalletPaymentSvc:    walletPaymentSvc,
 	}
 
 	srv := server.New(cfg, deps)
