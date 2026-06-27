@@ -1,22 +1,28 @@
+# Build context is a dir containing `common/` and `admin-api/` as siblings (see
+# deploy.sh deploy_admin_api), so the go.mod `replace ../common/documents`
+# resolves both locally and in Docker.
+
 # ─── Stage 1: Build ───────────────────────────────────────────────────────────
 FROM golang:1.25-alpine AS builder
 
 WORKDIR /app
+COPY common/ ./common/
+COPY admin-api/ ./admin-api/
 
-COPY go.mod go.sum ./
+WORKDIR /app/admin-api
 RUN go mod download
-
-COPY . .
-
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
-    go build -ldflags="-s -w" -o /app/admin-api ./cmd/admin
+    go build -ldflags="-s -w" -o /app/bin/admin-api ./cmd/admin
 
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM alpine:3.21 AS runtime
 
-RUN apk --no-cache add ca-certificates curl
+# Chromium for the official Document Engine (server-side PDF generation).
+RUN apk --no-cache add ca-certificates curl \
+    chromium nss freetype harfbuzz ttf-freefont font-noto
+ENV BANZAMI_CHROME_BIN=/usr/bin/chromium-browser
 
-COPY --from=builder /app/admin-api /usr/local/bin/admin-api
+COPY --from=builder /app/bin/admin-api /usr/local/bin/admin-api
 
 EXPOSE 8082
 

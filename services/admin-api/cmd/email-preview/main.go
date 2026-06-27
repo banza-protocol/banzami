@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/banzami/banzami/services/admin-api/internal/email"
-	"github.com/banzami/banzami/services/admin-api/internal/email/pdf"
+	documents "github.com/banzami/banzami/services/common/documents"
 )
 
 func main() {
@@ -47,15 +47,15 @@ func main() {
 	}
 
 	// Receipt PDF — HTML always; PDF if a headless browser is present.
-	sample := pdf.SampleData()
-	if html, err := pdf.RenderHTML(sample); err == nil {
+	sample := documents.SampleData()
+	if html, err := documents.RenderHTML(sample); err == nil {
 		p := filepath.Join(outDir, "pdf-comprovativo.html")
 		_ = os.WriteFile(p, []byte(html), 0o644)
 		fmt.Printf("wrote %s (%d bytes)\n", p, len(html))
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	if pdfBytes, err := pdf.GeneratePDF(ctx, sample); err != nil {
+	if pdfBytes, err := documents.GeneratePDF(ctx, sample); err != nil {
 		fmt.Printf("pdf: skipped (%v)\n", err)
 	} else {
 		p := filepath.Join(outDir, "pdf-comprovativo.pdf")

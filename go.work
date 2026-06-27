@@ -1,0 +1,10 @@
+go 1.25.0
+
+use (
+	./sdk/go
+	./services/admin-api
+	./services/api-gateway
+	./services/common/documents
+	./services/public-api
+	./services/sandbox-operator
+)

@@ -93,15 +93,18 @@ deploy_admin_api() {
   step "admin-api" "Go admin service"
 
   info "Syncing source to server..."
-  # admin-api has its own build directory (Dockerfile context is the service dir)
-  rsync -az --delete \
-    --exclude='.git' \
+  # Build context contains common/ + admin-api/ as siblings so the shared
+  # Document Engine module (replace ../common/documents) resolves in Docker.
+  rsync -az --delete --exclude='.git' \
+    "$REPO_ROOT/services/common/" \
+    "$REMOTE:/srv/banzami/admin-api-build/common/"
+  rsync -az --delete --exclude='.git' \
     "$REPO_ROOT/services/admin-api/" \
-    "$REMOTE:/srv/banzami/admin-api-build/"
+    "$REMOTE:/srv/banzami/admin-api-build/admin-api/"
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/admin-api-build && docker build $NO_CACHE -t banzami/admin-api:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/admin-api-build && docker build $NO_CACHE -f admin-api/Dockerfile -t banzami/admin-api:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 

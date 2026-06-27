@@ -20,6 +20,7 @@ require (
 )
 
 require (
+	github.com/banzami/banzami/services/common/documents v0.0.0
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -49,3 +50,5 @@ require (
 	google.golang.org/grpc v1.80.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
 )
+
+replace github.com/banzami/banzami/services/common/documents => ../common/documents
