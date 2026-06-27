@@ -54,8 +54,8 @@ func renderLayout(o layoutOpts) string {
   <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <!--[if mso]><style>* { font-family: Arial, sans-serif !important; }</style><![endif]-->
   <style>
-    body { margin:0; padding:0; width:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
-    table { border-collapse:collapse; }
+    body { margin:0; padding:0; width:100% !important; font-family:'Nunito',Arial,Helvetica,sans-serif; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    table { border-collapse:separate; border-spacing:0; }
     img { border:0; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
     a { text-decoration:none; }
     @media only screen and (max-width:600px) {
@@ -77,14 +77,13 @@ func renderLayout(o layoutOpts) string {
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="bz-band" style="background:` + cPageBand + `;">
     <tr><td align="center" style="padding:40px 16px 12px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" class="bz-card" style="width:600px;max-width:600px;">
-        <tr><td class="bz-card-bg" style="background:` + cWhite + `;border:1px solid ` + cLine + `;border-radius:20px;box-shadow:0 30px 70px -42px rgba(120,20,30,.5);overflow:hidden;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">` +
+        <tr><td class="bz-card-bg" style="background:` + cWhite + `;border:1px solid ` + cLine + `;border-radius:20px;box-shadow:` + shCard + `;overflow:hidden;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;">` +
 		emHeader(o.Subtitle, o.BadgeKind) + `
             <tr><td class="bz-pad" style="padding:36px 34px 32px;">` + o.Body + `</td></tr>` +
 		emFooter(o.SafetyKind) + `
           </table>
         </td></tr>
-        <tr><td align="center" style="padding:16px 16px 0;font-family:` + fSans + `;font-size:12px;font-weight:700;color:` + cMuted + `;">Construído sobre o protocolo aberto BANZA · O Banzami é como Angola paga</td></tr>
       </table>
     </td></tr>
   </table>

@@ -76,6 +76,30 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 	}
 }
 
+// TestEmailRobustHTML enforces the handoff's email-compatibility rules: Nunito
+// stack, rounded panels with border-collapse:separate (no square corners), and
+// URL fallbacks that wrap.
+func TestEmailRobustHTML(t *testing.T) {
+	all := renderAll()
+	for name, html := range all {
+		if !strings.Contains(html, "'Nunito'") {
+			t.Errorf("%s: missing Nunito font stack", name)
+		}
+		if !strings.Contains(html, "border-collapse:separate") {
+			t.Errorf("%s: rounded panels must use border-collapse:separate", name)
+		}
+		if strings.Contains(html, "border-collapse:collapse") {
+			t.Errorf("%s: must not use border-collapse:collapse (square corners)", name)
+		}
+	}
+	// templates with an action link must show a wrapping URL fallback
+	for _, name := range []string{"approved", "invite", "reset", "receipt"} {
+		if !strings.Contains(all[name], "overflow-wrap:anywhere") {
+			t.Errorf("%s: URL fallback must use overflow-wrap:anywhere", name)
+		}
+	}
+}
+
 func TestTemplatesHaveNoSecrets(t *testing.T) {
 	for name, html := range renderAll() {
 		for _, bad := range []string{"API Key", "sk_live", "sk_test", "PIN:", "Bearer ", "RESEND_API_KEY"} {
