@@ -50,16 +50,17 @@ function TileArrow({ external }: { external?: boolean }) {
 
 type ExploreLink = { label: string; href: string; icon: IconKey; external?: boolean };
 
-// Order mirrors the design (row-major across the 2-column grid).
+// Mirrors the official navbar taxonomy, in order (row-major across the grid),
+// followed by Suporte and Contacto.
 const EXPLORE: ExploreLink[] = [
-  { label: 'Produtos', href: '/produto', icon: 'produtos' },
-  { label: 'Sobre', href: '/sobre', icon: 'sobre' },
-  { label: 'Comerciantes', href: '/comerciantes', icon: 'comerciantes' },
-  { label: 'Contacto', href: mailto(), icon: 'contacto' },
-  { label: 'Developers', href: '/developers', icon: 'developers' },
-  { label: 'Waitlist', href: mailto('Waitlist Banzami'), icon: 'waitlist' },
+  { label: 'Produto', href: '/produto', icon: 'produtos' },
+  { label: 'Para comerciantes', href: '/comerciantes', icon: 'comerciantes' },
+  { label: 'Para empresas', href: '/developers', icon: 'developers' },
+  { label: 'Segurança', href: '/produto#seguranca', icon: 'shieldcheck' },
+  { label: 'BANZA', href: SITE.protocolUrl, icon: 'banza', external: true },
+  { label: 'Sobre nós', href: '/sobre', icon: 'sobre' },
   { label: 'Suporte', href: '/suporte', icon: 'suporte' },
-  { label: 'Protocolo BANZA', href: SITE.protocolUrl, icon: 'banza', external: true },
+  { label: 'Contacto', href: '/produto#contacto', icon: 'contacto' },
 ];
 
 const CHIPS: { label: string; icon: IconKey }[] = [
