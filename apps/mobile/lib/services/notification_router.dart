@@ -93,6 +93,7 @@ class BanzamiNotificationRouter {
           data:         data,
           navigator:    navigator,
           ownHandle:    ownHandle,
+          client:       client,
         );
 
       case 'payment_request':
@@ -113,9 +114,10 @@ class BanzamiNotificationRouter {
   // ── payment_received ─────────────────────────────────────────────────────
 
   static void _routePaymentReceived({
-    required Map<String, String> data,
-    required NavigatorState      navigator,
-    required String              ownHandle,
+    required Map<String, String>  data,
+    required NavigatorState       navigator,
+    required String               ownHandle,
+    required ConsumerPublicClient client,
   }) {
     final transferId   = data['transfer_id']  ?? '';
     final senderHandle = data['sender_handle'] ?? '';
@@ -145,9 +147,10 @@ class BanzamiNotificationRouter {
         transfer:      transfer,
         ownHandle:     ownHandle,
         // Received money — refresh the home balance when the receipt is closed.
-        onDone:        (_) => WalletRefreshBus.instance.signal(),
-        isSandbox:     AppConfig.isSandbox,
-        logoAssetPath: BrandingAssets.icon,
+        onDone:          (_) => WalletRefreshBus.instance.signal(),
+        isSandbox:       AppConfig.isSandbox,
+        logoAssetPath:   BrandingAssets.icon,
+        fetchReceiptPdf: () => client.fetchReceiptPdf(transferId),
       ),
     ));
   }

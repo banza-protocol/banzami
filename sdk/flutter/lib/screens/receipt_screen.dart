@@ -1,15 +1,17 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../client/api_exception.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
 import '../utils/money_format.dart';
-import '../utils/pdf_receipt_generator.dart';
 import '../utils/screen_security.dart';
 import '../widgets/banzami_components.dart';
 import '../widgets/banzami_verified_mark.dart';
@@ -54,6 +56,11 @@ class BanzamiReceiptScreen extends StatefulWidget {
   /// "@" prefix is dropped so merchant payments read "para Doa Sandbox".
   final bool recipientIsHandle;
 
+  /// Fetches the official receipt PDF bytes from the backend Document Engine
+  /// (e.g. `() => client.fetchReceiptPdf(transfer.transferId)`). The app must
+  /// NOT build PDFs locally. When null, sharing falls back to plain text.
+  final Future<List<int>> Function()? fetchReceiptPdf;
+
   const BanzamiReceiptScreen({
     super.key,
     required this.transfer,
@@ -62,6 +69,7 @@ class BanzamiReceiptScreen extends StatefulWidget {
     this.isSandbox         = false,
     this.logoAssetPath,
     this.recipientIsHandle = true,
+    this.fetchReceiptPdf,
   });
 
   @override
@@ -184,41 +192,50 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
     final origin = box == null
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
+
+    // Official PDF comes from the backend Document Engine — never built locally.
+    if (widget.fetchReceiptPdf != null) {
+      try {
+        final bytes = await widget.fetchReceiptPdf!();
+        final dir   = await getTemporaryDirectory();
+        final file  = File('${dir.path}/banzami-comprovativo-$_ref.pdf');
+        await file.writeAsBytes(bytes, flush: true);
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'application/pdf')],
+          subject:             'Comprovativo Banzami · Ref $_ref',
+          sharePositionOrigin: origin,
+        );
+        return;
+      } on BanzamiApiException catch (e) {
+        if (!mounted) return;
+        BanzamiToast.showError(
+          context,
+          e.isNotFound ? 'Comprovativo indisponível.' : 'Não foi possível obter o comprovativo.',
+        );
+        return;
+      } catch (_) {
+        // Network/offline or share failure → clear message, no local PDF.
+        if (!mounted) return;
+        BanzamiToast.showError(context, 'Sem ligação. Tente novamente para partilhar o comprovativo.');
+        return;
+      }
+    }
+
+    // Fallback (no backend fetcher wired): plain text — never a local PDF.
     try {
-      final file = await BanzamiPdfReceiptGenerator.generate(
-        transfer:          widget.transfer,
-        ownHandle:         _from,
-        isSandbox:         widget.isSandbox,
-        logoAssetPath:     widget.logoAssetPath,
-        recipientIsHandle: widget.recipientIsHandle,
-      );
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/pdf')],
-        subject:             'Comprovativo Banzami · Ref $_ref',
+      await Share.share(
+        'Comprovativo Banzami\n'
+        'Ref: $_ref\n'
+        'Montante: $_amount\n'
+        'De: @$_from\n'
+        'Para: @${widget.transfer.recipient}\n'
+        'Data: $_dateShort\n'
+        'Método: Saldo Banzami',
         sharePositionOrigin: origin,
       );
     } catch (_) {
       if (!mounted) return;
-      // Emergency fallback — plain text if PDF generation fails.
-      final box2 = _shareKey.currentContext?.findRenderObject() as RenderBox?;
-      final origin2 = box2 == null
-          ? null
-          : box2.localToGlobal(Offset.zero) & box2.size;
-      try {
-        await Share.share(
-          'Comprovativo Banzami\n'
-          'Ref: $_ref\n'
-          'Montante: $_amount\n'
-          'De: @$_from\n'
-          'Para: @${widget.transfer.recipient}\n'
-          'Data: $_dateShort\n'
-          'Método: Saldo Banzami',
-          sharePositionOrigin: origin2,
-        );
-      } catch (_) {
-        if (!mounted) return;
-        BanzamiToast.showError(context, 'Não foi possível partilhar.');
-      }
+      BanzamiToast.showError(context, 'Não foi possível partilhar.');
     }
   }
 

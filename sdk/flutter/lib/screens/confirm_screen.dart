@@ -105,11 +105,12 @@ class _BanzamiConfirmScreenState extends State<BanzamiConfirmScreen>
 
       await Navigator.of(context).push(BanzamiPageRoute(
         page: BanzamiReceiptScreen(
-          transfer:      transfer,
-          ownHandle:     widget.ownHandle,
-          onDone:        widget.onSuccess,
-          isSandbox:     widget.isSandbox,
-          logoAssetPath: widget.logoAssetPath,
+          transfer:        transfer,
+          ownHandle:       widget.ownHandle,
+          onDone:          widget.onSuccess,
+          isSandbox:       widget.isSandbox,
+          logoAssetPath:   widget.logoAssetPath,
+          fetchReceiptPdf: () => widget.client.fetchReceiptPdf(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {

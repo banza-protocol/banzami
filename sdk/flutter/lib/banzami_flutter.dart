@@ -46,7 +46,6 @@ export 'utils/banzami_toast.dart';
 export 'utils/camera_permission.dart';
 export 'utils/date_formatter.dart';
 export 'utils/money_format.dart';
-export 'utils/pdf_receipt_generator.dart';
 export 'utils/qr_logo_utils.dart';
 export 'utils/qr_parser.dart';
 export 'utils/screen_security.dart';

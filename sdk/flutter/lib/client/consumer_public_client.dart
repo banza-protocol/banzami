@@ -454,6 +454,29 @@ class ConsumerPublicClient {
         body:   fcmToken != null ? {'fcm_token': fcmToken} : null,
       );
 
+  /// Fetches the official transfer receipt PDF for [transactionId], generated
+  /// server-side by the Banzami Document Engine. Returns the raw PDF bytes.
+  /// Throws [BanzamiApiException] on 401/403/404/etc. The app must never build
+  /// PDFs locally — this is the single official document.
+  Future<List<int>> fetchReceiptPdf(String transactionId) async {
+    final path = '/v1/consumer/transactions/$transactionId/receipt.pdf';
+    onRequest?.call('GET', path);
+    final resp = await _http.get(Uri.parse('$baseUrl$path'), headers: _headers());
+    if (resp.statusCode != 200) {
+      Map<String, dynamic>? j;
+      try {
+        j = jsonDecode(resp.body) as Map<String, dynamic>;
+      } catch (_) {}
+      if (j != null) throw BanzamiApiException.fromJson(resp.statusCode, j);
+      throw BanzamiApiException(
+        statusCode: resp.statusCode,
+        code: 'RECEIPT_ERROR',
+        message: 'Não foi possível obter o comprovativo.',
+      );
+    }
+    return resp.bodyBytes;
+  }
+
   // ---------------------------------------------------------------------------
   // HTTP helpers
   // ---------------------------------------------------------------------------

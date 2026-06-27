@@ -182,6 +182,7 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
           isSandbox:         widget.isSandbox,
           logoAssetPath:     widget.logoAssetPath,
           recipientIsHandle: widget.recipientIsHandle,
+          fetchReceiptPdf:   () => widget.client.fetchReceiptPdf(transfer.transferId),
         ),
       ));
     } on BanzamiApiException catch (e) {
