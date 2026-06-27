@@ -60,7 +60,7 @@ const EXPLORE: ExploreLink[] = [
   { label: 'BANZA', href: SITE.protocolUrl, icon: 'banza', external: true },
   { label: 'Sobre nós', href: '/sobre', icon: 'sobre' },
   { label: 'Suporte', href: '/suporte', icon: 'suporte' },
-  { label: 'Contacto', href: '/produto#contacto', icon: 'contacto' },
+  { label: 'FAQ', href: '/faq', icon: 'contacto' },
 ];
 
 const CHIPS: { label: string; icon: IconKey }[] = [
