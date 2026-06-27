@@ -58,8 +58,7 @@ export function HowItWorks() {
             Um pagamento em menos de 10 segundos.
           </h2>
           <p className="m-0 mt-[18px] text-[17px] font-semibold leading-[1.55] text-ink-secondary">
-            Uma experiência desenhada para desaparecer. Sem IBANs, sem terminais complexos, sem
-            esperas — apenas três gestos naturais.
+            Sem IBANs, sem terminais complexos, sem esperas — apenas três gestos naturais.
           </p>
         </Reveal>
 
