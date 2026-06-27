@@ -257,6 +257,18 @@ body {
 }
 .bz-megalink:hover { background: #FFF1F0; }
 .bz-megalink:focus-visible { outline: 2px solid #B5101F; outline-offset: 3px; border-radius: 12px; }
+
+/* ===== Footer (Footer.tsx) — tile + CTA hover interactions ===== */
+.bz-foot-tile { transition: background .15s ease, transform .15s ease, box-shadow .15s ease; }
+.bz-foot-tile:hover { background: #FFF1F0; transform: translateY(-1px); box-shadow: 0 12px 24px -18px rgba(181, 16, 31, .45); }
+.bz-foot-cta { transition: transform .15s ease, background .15s ease, box-shadow .15s ease; }
+.bz-foot-cta:hover { transform: translateY(-2px); }
+.bz-foot-arrow { transition: transform .15s ease; }
+.bz-foot-tile:hover .bz-foot-arrow,
+.bz-foot-cta:hover .bz-foot-arrow { transform: translateX(3px); }
+@media (prefers-reduced-motion: reduce) {
+  .bz-foot-tile, .bz-foot-cta, .bz-foot-arrow { transition-duration: .001ms !important; }
+}
 .bz-megacta:hover { transform: translateY(-2px); }
 .bz-start:hover { transform: translateY(-2px); }
 .bz-nav summary { list-style: none; }
