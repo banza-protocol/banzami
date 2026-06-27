@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-/// Premium amber card — shown on screens that have their own scroll area
-/// (Profile, Receive, etc.) when the app is running in sandbox mode.
+/// Premium amber card — the single, shared SANDBOX banner reused by both the
+/// Banzami Consumer and Banzami Business apps. Shown on screens that have their
+/// own scroll area (Profile, Merchant dashboard, …) when running in sandbox.
 ///
 /// Uses a breathing pulse animation to make the environment state unmistakable
 /// while remaining aesthetically coherent with the product palette.
+///
+/// [visible] lets callers gate rendering without an outer `if`. [compact]
+/// (default `true`) is the normalized, lower-height layout; pass `false` for the
+/// original taller spacing. Colours, copy, radius and shadows are identical in
+/// both modes — only padding/sizing changes.
 class SandboxBanner extends StatefulWidget {
-  const SandboxBanner({super.key});
+  final bool visible;
+  final bool compact;
+  const SandboxBanner({super.key, this.visible = true, this.compact = true});
 
   @override
   State<SandboxBanner> createState() => _SandboxBannerState();
@@ -36,13 +44,27 @@ class _SandboxBannerState extends State<SandboxBanner>
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.visible) return const SizedBox.shrink();
+
+    final bool compact = widget.compact;
+    // Normalized (compact) vs original sizing — ~22% shorter, same identity.
+    final double vPad        = compact ? 8 : 12;
+    final double dotSize     = compact ? 7 : 8;
+    final double dotGap      = compact ? 8 : 10;
+    final double iconSize    = compact ? 13 : 15;
+    final double titleSize   = compact ? 9.5 : 10;
+    final double titleSpace  = compact ? 1.3 : 1.4;
+    final double titleHeight = compact ? 1.1 : 1.2;
+    final double subSize     = compact ? 10.5 : 11;
+    final double subHeight   = compact ? 1.2 : 1.35;
+
     return AnimatedBuilder(
       animation: _glow,
       builder: (_, __) => Container(
         width:   double.infinity,
-        padding: const EdgeInsets.symmetric(
+        padding: EdgeInsets.symmetric(
           horizontal: BanzamiSpacing.lg,
-          vertical:   12,
+          vertical:   vPad,
         ),
         decoration: BoxDecoration(
           gradient: const LinearGradient(
@@ -69,11 +91,11 @@ class _SandboxBannerState extends State<SandboxBanner>
         ),
         child: Row(
           children: [
-            _BreathingDot(glow: _glow),
-            const SizedBox(width: 10),
-            const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
+            _BreathingDot(glow: _glow, size: dotSize),
+            SizedBox(width: dotGap),
+            Icon(Icons.science_rounded, size: iconSize, color: const Color(0xFF92400E)),
             const SizedBox(width: BanzamiSpacing.sm),
-            const Expanded(
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize:       MainAxisSize.min,
@@ -81,20 +103,20 @@ class _SandboxBannerState extends State<SandboxBanner>
                   Text(
                     'SANDBOX',
                     style: TextStyle(
-                      fontSize:      10,
+                      fontSize:      titleSize,
                       fontWeight:    FontWeight.w800,
-                      color:         Color(0xFF78350F),
-                      letterSpacing: 1.4,
-                      height:        1.2,
+                      color:         const Color(0xFF78350F),
+                      letterSpacing: titleSpace,
+                      height:        titleHeight,
                     ),
                   ),
                   Text(
                     'Dinheiro de teste · Sem valor financeiro real',
                     style: TextStyle(
-                      fontSize:   11,
+                      fontSize:   subSize,
                       fontWeight: FontWeight.w400,
-                      color:      Color(0xFFB45309),
-                      height:     1.35,
+                      color:      const Color(0xFFB45309),
+                      height:     subHeight,
                     ),
                   ),
                 ],
@@ -111,13 +133,14 @@ class _SandboxBannerState extends State<SandboxBanner>
 /// home-screen environment card.
 class _BreathingDot extends StatelessWidget {
   final Animation<double> glow;
-  const _BreathingDot({required this.glow});
+  final double size;
+  const _BreathingDot({required this.glow, this.size = 8});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width:  8,
-      height: 8,
+      width:  size,
+      height: size,
       decoration: BoxDecoration(
         color: Color.lerp(
           const Color(0xFFF59E0B).withValues(alpha: 0.55),

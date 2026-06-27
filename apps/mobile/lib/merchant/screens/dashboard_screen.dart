@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../widgets/sandbox_banner.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_dashboard_stats.dart';
 import '../widgets/merchant_kpi_grid.dart';
@@ -151,6 +152,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           padding: const EdgeInsets.all(BanzamiSpacing.lg),
           sliver: SliverList(
             delegate: SliverChildListDelegate([
+              // Shared SANDBOX banner (same component as the Consumer app).
+              if (isSandbox) ...[
+                const SandboxBanner(),
+                const SizedBox(height: BanzamiSpacing.lg),
+              ],
+
               // KYB status badge (tap to verify when pending)
               _KybRow(verified: session.verified, onVerify: () => _open(const KybScreen())),
               const SizedBox(height: BanzamiSpacing.lg),
