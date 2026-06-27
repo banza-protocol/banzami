@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SiteHeader } from '@/components/site/SiteHeader';
 import { BrandMark, Logo } from '@/components/site/BrandMark';
 import { AppDemo } from '@/components/app/AppDemo';
+import { HowItWorks } from '@/components/site/HowItWorks';
 import { SITE, mailto } from '@/lib/site';
 
 // "Live" status dot used in the hero badge pills: the core dot gently pulses
@@ -197,6 +198,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* ===================== COMO FUNCIONA (após métricas) ===================== */}
+      <HowItWorks />
 
       {/* ===================== ZONA FINAL ===================== */}
       <section className="px-6 pb-[18px] pt-2">
