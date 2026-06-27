@@ -3,6 +3,7 @@ import { SiteHeader } from '@/components/site/SiteHeader';
 import { Footer } from '@/components/site/Footer';
 import { AppDemo } from '@/components/app/AppDemo';
 import { HowItWorks } from '@/components/site/HowItWorks';
+import { partners, partnerCount } from '@/lib/partners';
 
 // "Live" status dot used in the hero badge pills: the core dot gently pulses
 // while a ring pings outward. Both stop under prefers-reduced-motion.
@@ -15,15 +16,19 @@ function LiveDot({ size = 8 }: { size?: number }) {
   );
 }
 
-// Merchant handles for the hero marquee (duplicated so the -50% loop is seamless).
-const MERCHANTS = [
-  { initial: 'C', handle: '@cantina-alex', bg: '#FBD2D0', fg: '#B5101F' },
-  { initial: 'P', handle: '@padaria-luanda', bg: '#F8B4B1', fg: '#9A1B22' },
-  { initial: 'M', handle: '@mercado-k', bg: '#E8434B', fg: '#fff' },
-  { initial: 'F', handle: '@farmacia-vida', bg: '#FFE0DE', fg: '#B5101F' },
-  { initial: 'T', handle: '@taxi-luanda', bg: '#F8B4B1', fg: '#9A1B22' },
-  { initial: 'L', handle: '@loja-bita', bg: '#FBD2D0', fg: '#B5101F' },
+// Hero marquee chips, built from the real partner list (duplicated so the -50%
+// loop is seamless). Avatar colours cycle the existing palette — presentation
+// only; the data (names, handles, count) lives in lib/partners.ts.
+const CHIP_COLORS = [
+  { bg: '#FBD2D0', fg: '#B5101F' },
+  { bg: '#E8434B', fg: '#fff' },
+  { bg: '#FFE0DE', fg: '#B5101F' },
 ];
+const MERCHANTS = partners.map((p, i) => ({
+  initial: (p.shortName ?? p.name).charAt(0).toUpperCase(),
+  handle: p.handle,
+  ...CHIP_COLORS[i % CHIP_COLORS.length],
+}));
 
 function MerchantChip({ m }: { m: (typeof MERCHANTS)[number] }) {
   return (
@@ -52,8 +57,8 @@ const STATS = [
     ),
   },
   {
-    value: '0',
-    label: 'COMERCIANTES',
+    value: String(partnerCount),
+    label: 'PARCEIROS',
     icon: (
       <>
         <path d="M4 10v8a1 1 0 001 1h14a1 1 0 001-1v-8" stroke="#B5101F" strokeWidth="1.9" strokeLinejoin="round" />
@@ -124,7 +129,7 @@ export default function HomePage() {
               </Link>
             </div>
             <div className="mt-[30px] max-w-[540px]">
-              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">COMERCIANTES &amp; EMPRESAS</p>
+              <p className="m-0 mb-3 text-[12px] font-black tracking-[0.08em] text-ink-muted">PARCEIROS</p>
               <div className="relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)] [-webkit-mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]">
                 <div className="anim-marquee flex w-max gap-[10px]">
                   {[...MERCHANTS, ...MERCHANTS].map((m, i) => (
