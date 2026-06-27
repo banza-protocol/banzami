@@ -157,14 +157,18 @@ deploy_public_api() {
   step "public-api" "Go public REST API"
 
   info "Syncing source to server..."
-  rsync -az --delete \
-    --exclude='.git' \
+  # Build context contains common/ + public-api/ as siblings for the shared
+  # Document Engine module (replace ../common/documents).
+  rsync -az --delete --exclude='.git' \
+    "$REPO_ROOT/services/common/" \
+    "$REMOTE:/srv/banzami/public-api-build/common/"
+  rsync -az --delete --exclude='.git' \
     "$REPO_ROOT/services/public-api/" \
-    "$REMOTE:/srv/banzami/public-api-build/"
+    "$REMOTE:/srv/banzami/public-api-build/public-api/"
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/public-api-build && docker build $NO_CACHE -t banzami/public-api:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/public-api-build && docker build $NO_CACHE -f public-api/Dockerfile -t banzami/public-api:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 

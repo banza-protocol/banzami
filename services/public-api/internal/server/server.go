@@ -56,6 +56,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	meH             := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
 	transferH       := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
 	activityH       := handler.NewActivityHandler(deps.CoreClient)
+	receiptH        := handler.NewReceiptHandler(deps.CoreClient)
 	paymentLinkH    := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
@@ -96,6 +97,9 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Post("/v1/transfers",       transferH.Send)
 		r.Get("/v1/transfers",        transferH.List)
 		r.Get("/v1/transfers/{id}",   transferH.Get)
+
+		// Official transfer receipt (PDF) — Document Engine, real transfers data.
+		r.Get("/v1/consumer/transactions/{id}/receipt.pdf", receiptH.ConsumerReceipt)
 
 		// Payment link payment
 		r.Post("/v1/payment-links/{slug}/pay", paymentLinkH.Pay)
