@@ -308,34 +308,36 @@ Repasser en mode sûr sans redéployer le code : mettre `EMAIL_DRY_RUN=true` dan
 `/srv/banzami/.env`, puis `docker compose up -d admin-api`. Les liens
 invite/reset redeviennent visibles dans la réponse authentifiée au SUPER_ADMIN.
 
-### Design system & previews
+### Design system, previews & comprovativo PDF
 
-Tous les emails partagent le **Banzami Email Design System** centralisé, dérivé
-du hero institutionnel (`docs/diagrams/banzami-hero-v1.svg`) adapté en HTML :
+Implémentation fidèle du **design handoff officiel** (`design_handoff_banzami_email`).
+Un design system Go centralisé sert tous les emails + le PDF de comprovativo :
 
-- `internal/email/design.go` — tokens officiels (`#C8102E`, dégradé
-  `#B80E27→#E12638`, texte `#231F20`, secondaire `#6B7280`, séparateurs
-  `#F3F4F6`), le hero texte (overline mono + wordmark BANZAMI + tagline), le
-  layout et les composants (`emHero`, `emLabel`, `emTitle`, `emLead`, `emPara`,
-  `emButton`, `emInfo`, `emDivider`, `emAlert`, `emCode`, `emList`, `emFooter`).
-- `templates.go` — un `build*` par email (structure fixe : Hero → Label → Titre →
-  Lead → Contenu → CTA → Footer). Aucun HTML dupliqué.
+- `internal/email/components.go` — tokens du handoff (`#B5101F`, dégradé
+  `#B5101F→#D7242E→#E8434B`, texte `#221c1e`, etc.) + composants partagés
+  (`emHeader`, `emBadge` business/security/receipt, `emTitle`, `emPara`,
+  `emHeroAmount`, `emDetailRows`, `emNotice` clock/shield/doc, `emButton` VML,
+  `emURLFallback`).
+- `internal/email/layout.go` — shell 600px (tables + CSS inline), header
+  (logo PNG + wordmark + sous-titre Business/BANZADMIN/Carteira + badge),
+  footer (message de sécurité normal/security/receipt), responsive + dark-mode.
+- `internal/email/template.go` — un struct typé + `Render…()` par email
+  (HTML + plain-text). **5 emails** : Comerciante Aprovado, Comerciante
+  Recusado, Convite BANZADMIN, Recuperar Palavra-passe, Comprovativo. (+ Merchant
+  Welcome, flux existant, restylé.)
+- `internal/email/pdf/` — `receipt.html` (A4, CSS moderne) + `receipt.go`
+  (`RenderHTML`, `GeneratePDF` via Chrome headless ; binaire résolu par
+  `BANZAMI_CHROME_BIN` ou chemins courants — **le serveur doit avoir
+  Chrome/Chromium installé** pour générer le PDF).
 
-Identité : minimaliste, fond blanc, une seule bande hero en dégradé, un seul
-bouton, labels discrets (SEGURANÇA, NEGÓCIOS, ADMINISTRAÇÃO, PAGAMENTOS,
-CONFORMIDADE). Copy 100 % portugais. Hero **texte** (pas d'image → robuste,
-accessible). Compatible Gmail / Apple Mail / Outlook (VML) / Yahoo ; responsive
-+ dark-mode + preheader.
+Copy 100 % portugais, verbatim du handoff. Logo = PNG hébergé
+(`pay.banzami.com/banzami_icon_512.png`). Aucun secret/token dans le corps.
 
-Ajouter un email (Refund, KYC, Settlement, …) = une nouvelle fonction `build*`
-qui compose les composants — sans toucher à l'envoi.
-
-Prévisualiser les 14 templates en HTML autonome (aucun envoi, aucune
-credential) :
+Prévisualiser les 5 emails + welcome + le PDF (aucun envoi, aucune credential) :
 
 ```bash
 cd services/admin-api && go run ./cmd/email-preview ./email-previews
-# ouvrir les .html dans un navigateur / les coller dans un client mail
+# .html → navigateur / client mail ; pdf-comprovativo.pdf si Chrome présent
 ```
 
 ---

@@ -30,7 +30,15 @@ type OperatorStore interface {
 
 // OperatorMailer sends the invitation email.
 type OperatorMailer interface {
-	AdminOperatorInvite(to, fullName, inviteURL string)
+	AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL string)
+}
+
+// principalEmail returns the acting operator's email (inviter), or "".
+func principalEmail(r *http.Request) string {
+	if p, ok := auth.FromContext(r.Context()); ok {
+		return p.Email
+	}
+	return ""
 }
 
 type OperatorHandler struct {
@@ -60,7 +68,7 @@ func (h *OperatorHandler) sendInvite(r *http.Request, op service.OperatorView) (
 	}
 	inviteURL := h.adminBaseURL + "/reset-password?token=" + raw
 	if h.mailer != nil {
-		h.mailer.AdminOperatorInvite(op.Email, op.FullName, inviteURL)
+		h.mailer.AdminOperatorInvite(op.Email, op.FullName, op.Role, principalEmail(r), inviteURL)
 	}
 	slog.InfoContext(r.Context(), "admin.operator_invited", "admin_user_id", op.ID) // never the token/link
 	return inviteURL, exp, nil

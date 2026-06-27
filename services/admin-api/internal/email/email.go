@@ -69,6 +69,7 @@ type message struct {
 	to       string
 	subject  string
 	html     string
+	text     string // plain-text alternative (optional)
 	replyTo  string // optional
 	purpose  string
 }
@@ -117,7 +118,7 @@ func (s *Sender) Enabled() bool {
 
 // institutional builds a message sent from contact@ with Reply-To contact@ —
 // for mail the recipient may reply to (rejection, support, welcome).
-func (s *Sender) institutional(purpose, to, subject, html string) message {
+func (s *Sender) institutional(purpose, to, subject, html, text string) message {
 	return message{
 		fromName: s.fromName,
 		fromAddr: s.fromAddress,
@@ -125,6 +126,7 @@ func (s *Sender) institutional(purpose, to, subject, html string) message {
 		to:       to,
 		subject:  subject,
 		html:     html,
+		text:     text,
 		purpose:  purpose,
 	}
 }
@@ -132,7 +134,7 @@ func (s *Sender) institutional(purpose, to, subject, html string) message {
 // automated builds a message sent from noreply@ for security/automatic mail.
 // replyTo is optional — pass s.replyTo to let the recipient reach support, or ""
 // for a purely automatic message.
-func (s *Sender) automated(purpose, to, subject, html, replyTo string) message {
+func (s *Sender) automated(purpose, to, subject, html, text, replyTo string) message {
 	return message{
 		fromName: s.noreplyName,
 		fromAddr: s.noreplyAddress,
@@ -140,6 +142,7 @@ func (s *Sender) automated(purpose, to, subject, html, replyTo string) message {
 		to:       to,
 		subject:  subject,
 		html:     html,
+		text:     text,
 		purpose:  purpose,
 	}
 }
@@ -177,7 +180,9 @@ func (s *Sender) MerchantWelcome(to, merchantName, merchantID, apiKey string) {
 			"merchant_id", merchantID, "to", to)
 		return
 	}
+	html, text := RenderMerchantWelcome(MerchantWelcomeData{
+		MerchantName: merchantName, MerchantID: merchantID, APIKey: apiKey,
+	})
 	s.deliver(s.automated("merchant_welcome", to,
-		"Bem-vindo à Banzami — as suas credenciais",
-		buildMerchantWelcome(merchantName, merchantID, apiKey), s.replyTo))
+		"Bem-vindo à Banzami — as suas credenciais", html, text, s.replyTo))
 }

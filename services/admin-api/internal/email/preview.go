@@ -1,30 +1,35 @@
 package email
 
-// Previews renders every template with safe sample data for visual QA across
-// clients (Gmail, Apple Mail, Outlook, dark mode, mobile). Used by
-// cmd/email-preview. Sample tokens/keys/codes here are obviously fake — no real
-// secrets, links, or PII.
+// Previews renders every email template with safe sample data (from the design
+// handoff) for visual QA across clients. Used by cmd/email-preview. Sample
+// tokens are obviously fake — no real secrets, links, or PII.
 func Previews() map[string]string {
-	const merchantLink = "https://banzami.com/comerciantes/activar?token=SAMPLE-NAO-VALIDO"
-	const adminLink = "https://admin.banzami.com/reset-password?token=SAMPLE-NAO-VALIDO"
-	const appLink = "https://banzami.com/ativar?token=SAMPLE-NAO-VALIDO"
-	const confirmLink = "https://banzami.com/confirmar?token=SAMPLE-NAO-VALIDO"
-	const secureLink = "https://banzami.com/seguranca"
-
+	approved, _ := RenderMerchantApproved(MerchantApprovedData{
+		MerchantName: "Mercado Central, Lda.", Handle: "mercadocentral", Environment: "SANDBOX",
+		ActivateURL: "https://business.banzami.com/activate?token=SAMPLE-NAO-VALIDO",
+	})
+	rejected, _ := RenderMerchantRejected(MerchantRejectedData{})
+	invite, _ := RenderAdminInvite(AdminInviteData{
+		Role: "SUPER_ADMIN", InvitedBy: "security@banzami.com",
+		AcceptURL: "https://admin.banzami.com/invite/accept?token=SAMPLE-NAO-VALIDO",
+	})
+	reset, _ := RenderAdminPasswordReset(AdminResetData{
+		ResetURL: "https://admin.banzami.com/reset?token=SAMPLE-NAO-VALIDO",
+	})
+	receipt, _ := RenderReceipt(ReceiptData{
+		FromHandle: "joaomanuel", ToHandle: "mercadocentral", Reference: "BZM-7F3A-92K1",
+		DateText: "27 jun 2026, 14:32", AmountText: "Kz 25.000,00", State: "Confirmado",
+		ReceiptURL: "https://banzami.com/r/BZM-7F3A-92K1",
+	})
+	welcome, _ := RenderMerchantWelcome(MerchantWelcomeData{
+		MerchantName: "Mercado Central, Lda.", MerchantID: "mch_8a7b6c5d4e3f", APIKey: "bz_live_SAMPLE_nao_valida_0000",
+	})
 	return map[string]string{
-		"01-merchant-approved":  buildMerchantApproved("Mercearia Kianda", "kianda", "LIVE", merchantLink),
-		"02-merchant-rejected":  buildMerchantRejected("Mercearia Kianda", "Precisamos de uma fotografia mais legível do documento do representante."),
-		"03-additional-docs":    buildAdditionalDocs("Mercearia Kianda", []string{"Certidão comercial atualizada", "Comprovativo de morada do estabelecimento", "Documento de identificação do representante"}, merchantLink),
-		"04-admin-invite":       buildAdminInvite("Ana Domingos", adminLink),
-		"05-admin-reset":        buildAdminPasswordReset("Ana Domingos", adminLink),
-		"06-account-activation": buildAccountActivation(appLink),
-		"07-email-confirmation": buildEmailConfirmation(confirmLink),
-		"08-otp":                buildOTP("482915", 10),
-		"09-email-change":       buildEmailChange("novo@exemplo.ao", confirmLink),
-		"10-pin-changed":        buildPinChanged(),
-		"11-password-changed":   buildPasswordChanged(),
-		"12-security-alert":     buildSecurityAlert("iPhone 15 · Safari", "Luanda, Angola", "27 jun 2026, 14:32", secureLink),
-		"13-merchant-welcome":   buildMerchantWelcome("Mercearia Kianda", "mch_8a7b6c5d4e3f", "bz_live_SAMPLE_nao_valida_0000"),
-		"14-notification":       buildNotification("Pagamentos", "Recebeu um pagamento.", "Recebeu 15.000 Kz de @kianda na sua conta Banzami.", "Ver no Banzami", secureLink),
+		"1-comerciante-aprovado":     approved,
+		"2-comerciante-recusado":     rejected,
+		"3-convite-banzadmin":        invite,
+		"4-recuperar-palavra-passe":  reset,
+		"5-comprovativo":             receipt,
+		"6-comerciante-welcome":      welcome,
 	}
 }

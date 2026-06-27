@@ -32,6 +32,7 @@ type resendPayload struct {
 	To      []string `json:"to"`
 	Subject string   `json:"subject"`
 	HTML    string   `json:"html"`
+	Text    string   `json:"text,omitempty"`
 	ReplyTo string   `json:"reply_to,omitempty"`
 }
 
@@ -41,6 +42,7 @@ func (t *resendTransport) send(m message) error {
 		To:      []string{m.to},
 		Subject: m.subject,
 		HTML:    m.html,
+		Text:    m.text,
 		ReplyTo: m.replyTo,
 	})
 	if err != nil {

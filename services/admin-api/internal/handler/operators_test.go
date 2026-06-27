@@ -66,7 +66,7 @@ func (f *fakeOps) BumpTokenVersion(_ context.Context, _ string) error {
 	f.bumpCalls++
 	return nil
 }
-func (f *fakeOps) AdminOperatorInvite(_, _, link string) { f.mailedLink = link }
+func (f *fakeOps) AdminOperatorInvite(_, _, _, _, link string) { f.mailedLink = link }
 
 func newOpH(f *fakeOps, showLink bool) *OperatorHandler {
 	return NewOperatorHandler(f, f, "https://admin.banzami.com", showLink)

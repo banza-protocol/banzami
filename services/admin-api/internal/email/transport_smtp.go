@@ -29,12 +29,33 @@ func (t *smtpTransport) send(m message) error {
 	if m.replyTo != "" {
 		headers = append(headers, fmt.Sprintf("Reply-To: %s", m.replyTo))
 	}
-	headers = append(headers,
-		"MIME-Version: 1.0",
-		`Content-Type: text/html; charset="UTF-8"`,
-		"",
-		m.html,
-	)
+	headers = append(headers, "MIME-Version: 1.0")
+
+	if m.text != "" {
+		// multipart/alternative: plain-text first, then HTML.
+		const boundary = "bz-alt-boundary-9f3a"
+		headers = append(headers,
+			`Content-Type: multipart/alternative; boundary="`+boundary+`"`,
+			"",
+			"--"+boundary,
+			`Content-Type: text/plain; charset="UTF-8"`,
+			"",
+			m.text,
+			"",
+			"--"+boundary,
+			`Content-Type: text/html; charset="UTF-8"`,
+			"",
+			m.html,
+			"",
+			"--"+boundary+"--",
+		)
+	} else {
+		headers = append(headers,
+			`Content-Type: text/html; charset="UTF-8"`,
+			"",
+			m.html,
+		)
+	}
 	msg := strings.Join(headers, "\r\n")
 
 	addr := fmt.Sprintf("%s:%d", t.host, t.port)

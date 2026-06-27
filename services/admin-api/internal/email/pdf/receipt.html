@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  @page { size: A4; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body { font-family: 'Nunito', Arial, Helvetica, sans-serif; color: #221c1e; -webkit-font-smoothing: antialiased; background: #fff; }
+  .page { width: 794px; min-height: 1123px; margin: 0 auto; background: #fff; display: flex; flex-direction: column; }
+  .accent { height: 6px; background: linear-gradient(90deg,#B5101F,#D7242E,#E8434B); }
+  .pad { padding: 46px 54px 40px; flex: 1; display: flex; flex-direction: column; }
+  .mono { font-family: 'JetBrains Mono','Courier New',monospace; }
+  .header { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding-bottom:26px; border-bottom:1.5px solid #f2e7e7; }
+  .brand { display:flex; align-items:center; gap:13px; }
+  .logo { width:46px; height:46px; border-radius:14px; background:#B5101F; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 8px 18px -6px rgba(181,16,31,.55); }
+  .hero { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:34px 0 0; }
+  .badge { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:30px; background:#FFF1F0; color:#9A1B22; font-weight:800; font-size:12.5px; margin-bottom:16px; }
+  .amount { font-size:52px; font-weight:900; letter-spacing:-.03em; color:#B5101F; line-height:1; margin-top:4px; }
+  .verify { flex:none; width:118px; height:118px; border-radius:18px; border:1.5px solid #f2e7e7; background:#FBF4F3; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; padding:12px; }
+  .parties { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:38px 0 0; }
+  .party { border:1.5px solid #f2e7e7; border-radius:16px; padding:20px 22px; }
+  .details { margin:24px 0 0; border:1.5px solid #f2e7e7; border-radius:16px; overflow:hidden; }
+  .drow { display:flex; align-items:center; justify-content:space-between; padding:15px 22px; border-bottom:1px solid #f4ebeb; }
+  .drow:last-child { border-bottom:0; }
+  .dlabel { font-size:14px; font-weight:700; color:#9a8a8e; }
+  .dvalue { font-size:14px; font-weight:800; color:#221c1e; }
+  .note { margin:22px 0 0; display:flex; gap:12px; align-items:flex-start; padding:16px 20px; border-radius:14px; background:#FFF7F6; border:1px solid #F3DBDB; }
+  .footer { margin-top:34px; padding-top:22px; border-top:1.5px solid #f2e7e7; }
+</style>
+</head>
+<body>
+  <div class="page">
+    <div class="accent"></div>
+    <div class="pad">
+
+      <!-- HEADER -->
+      <div class="header">
+        <div class="brand">
+          <span class="logo"><svg width="26" height="26" viewBox="0 0 100 100" fill="none" role="img" aria-label="Banzami"><rect x="6" y="6" width="42" height="42" rx="13" fill="#fff"></rect><rect x="56" y="10" width="32" height="32" rx="10" fill="#FBD2D0"></rect><rect x="10" y="56" width="38" height="38" rx="11" fill="#FBD2D0"></rect><rect x="58" y="60" width="28" height="28" rx="9" fill="#fff"></rect></svg></span>
+          <div style="line-height:1.2">
+            <div style="font-size:22px;font-weight:900;letter-spacing:-.02em">Banzami</div>
+            <div style="font-size:12.5px;font-weight:700;color:#9a8a8e">Pagamentos modernos para África</div>
+          </div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#b09a9e">Comprovativo de transferência</div>
+          <div class="mono" style="font-size:13px;font-weight:700;color:#7a6a6e;margin-top:5px">Nº {{.Reference}}</div>
+          <div style="font-size:12.5px;font-weight:600;color:#9a8a8e;margin-top:2px">Emitido a {{.IssuedDate}}</div>
+        </div>
+      </div>
+
+      <!-- AMOUNT HERO -->
+      <div class="hero">
+        <div>
+          <span class="badge"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12.5l4 4 10-10" stroke="#B5101F" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"></path></svg>Transferência confirmada</span>
+          <div style="font-size:13.5px;font-weight:700;color:#9a8a8e">Valor transferido</div>
+          <div class="amount">{{.AmountText}}</div>
+          <div style="font-size:13.5px;font-weight:600;color:#7a6a6e;margin-top:10px">{{.AmountWords}} · liquidado em segundos dentro da rede</div>
+        </div>
+        <div class="verify">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="#B5101F" stroke-width="1.7"></rect><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="#B5101F" stroke-width="1.7"></rect><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="#B5101F" stroke-width="1.7"></rect><path d="M14 14h3v3M21 14v.01M17 21v-3M21 18v3h-3" stroke="#B5101F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+          <div style="font-size:10.5px;font-weight:700;color:#9a8a8e;line-height:1.3">Verificar em<br>banzami.com</div>
+        </div>
+      </div>
+
+      <!-- PARTIES -->
+      <div class="parties">
+        <div class="party">
+          <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#b09a9e;margin-bottom:11px">De</div>
+          <div style="font-size:17px;font-weight:900;color:#221c1e">{{.FromName}}</div>
+          <div class="mono" style="font-size:14px;font-weight:600;color:#9A1B22;margin-top:3px">{{.FromHandle}}</div>
+        </div>
+        <div class="party">
+          <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:#b09a9e;margin-bottom:11px">Para</div>
+          <div style="font-size:17px;font-weight:900;color:#221c1e">{{.ToName}}</div>
+          <div class="mono" style="font-size:14px;font-weight:600;color:#9A1B22;margin-top:3px">{{.ToHandle}}</div>
+        </div>
+      </div>
+
+      <!-- DETAILS -->
+      <div class="details">
+        <div class="drow"><span class="dlabel">Referência da transação</span><span class="dvalue mono">{{.Reference}}</span></div>
+        <div class="drow"><span class="dlabel">Data e hora</span><span class="dvalue">{{.DateTime}}</span></div>
+        <div class="drow"><span class="dlabel">Método</span><span class="dvalue">{{.Method}}</span></div>
+        <div class="drow"><span class="dlabel">Descrição</span><span class="dvalue">{{.Description}}</span></div>
+        <div class="drow"><span class="dlabel">Estado</span><span class="dvalue" style="display:inline-flex;align-items:center;gap:7px;color:#1a7a3e"><span style="width:8px;height:8px;border-radius:50%;background:#22a35a"></span>{{.State}}</span></div>
+      </div>
+
+      <!-- VERIFICATION NOTE -->
+      <div class="note">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#9A1B22" stroke-width="1.7" stroke-linejoin="round"></path><path d="M9 11.5l2 2 4-4" stroke="#9A1B22" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e">Registado no ledger de dupla entrada do Banzami — cada lançamento é imutável e auditável. Confirme a autenticidade deste comprovativo em <span class="mono" style="font-weight:800;color:#9A1B22">{{.VerifyShort}}</span></div>
+      </div>
+
+      <div style="flex:1"></div>
+
+      <!-- FOOTER -->
+      <div class="footer">
+        <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">A liquidação descrita é uma transferência de carteira para carteira dentro da rede Banzami, em Kwanza. Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. O Banzami é construído sobre o protocolo aberto BANZA.</p>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+          <div style="font-size:12.5px;font-weight:800;color:#221c1e">Banzami</div>
+          <div class="mono" style="font-size:12.5px;font-weight:600;color:#9a8a8e">contact@banzami.com&nbsp;&nbsp;·&nbsp;&nbsp;banzami.com</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</body>
+</html>
