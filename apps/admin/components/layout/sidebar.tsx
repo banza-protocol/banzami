@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, RefreshCw, Scale, Shield, UserCog, LogOut,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 import { BanzamiLogo } from '@/components/ui/brand';
@@ -14,6 +14,7 @@ const NAV = [
   { href: '/consumers', label: 'Consumidores', Icon: Users },
   { href: '/settlements', label: 'Liquidações', Icon: Layers },
   { href: '/payments', label: 'Pagamentos', Icon: CreditCard },
+  { href: '/wallet-payments', label: 'Pagamentos recebidos', Icon: ReceiptText },
   { href: '/reconciliation', label: 'Reconciliação', Icon: RefreshCw },
   { href: '/disputes', label: 'Disputas', Icon: Scale },
   { href: '/risk', label: 'Risco & Audit', Icon: Shield },

@@ -454,6 +454,33 @@ export class AdminApi {
     });
   }
 
+  // Received wallet-native payments (canonical: wallet_payments) + receipts
+  listWalletPayments(params?: {
+    merchant_id?: string; status?: string; environment?: string;
+    date_from?: string; date_to?: string; limit?: number; cursor?: string;
+  }): Promise<WalletPaymentList> {
+    const q = new URLSearchParams();
+    if (params?.merchant_id) q.set('merchant_id', params.merchant_id);
+    if (params?.status)      q.set('status',      params.status);
+    if (params?.environment) q.set('environment', params.environment);
+    if (params?.date_from)   q.set('date_from',   params.date_from);
+    if (params?.date_to)     q.set('date_to',     params.date_to);
+    if (params?.limit)       q.set('limit',       String(params.limit));
+    if (params?.cursor)      q.set('cursor',      params.cursor);
+    return this.req(`/admin/v1/wallet-payments?${q.toString()}`);
+  }
+
+  /** Fetches the official transaction receipt PDF (auth Bearer) as a Blob. */
+  async fetchReceiptPdf(id: string): Promise<Blob> {
+    const res = await fetch(`${this.base}/admin/v1/transactions/${id}/receipt.pdf`, {
+      headers: { 'Authorization': `Bearer ${this.token}` },
+    });
+    if (!res.ok) {
+      throw new AdminApiError(res.status, 'RECEIPT_ERROR', 'Não foi possível obter o comprovativo.');
+    }
+    return res.blob();
+  }
+
   // Acquiring reconciliation
   runAcquiringReconciliation(date?: string): Promise<AcquiringReconRun> {
     const q = date ? `?date=${encodeURIComponent(date)}` : '';
@@ -604,6 +631,25 @@ export interface KybDocument {
   reviewed_by:      string | null;
   reviewed_at:      string | null;
   rejection_reason: string | null;
+}
+
+export interface WalletPayment {
+  id:                string;
+  reference:         string;
+  merchant_id:       string;
+  merchant_name:     string;
+  payer_name:        string;
+  amount_minor:      number;
+  currency:          string;
+  status:            string;
+  environment:       string;
+  created_at:        string;
+  receipt_available: boolean;
+}
+
+export interface WalletPaymentList {
+  items:        WalletPayment[];
+  next_cursor?: string;
 }
 
 /** True when an AdminApiError signals that KYB storage isn't provisioned yet. */
