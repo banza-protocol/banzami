@@ -10,4 +10,8 @@ abstract class BrandingAssets {
   static String get icon => '$_base/icon.png';
   static String get logo => '$_base/logo.png';
   static String get splash => '$_base/splash.png';
+
+  /// Banzami Business (merchant) logo — the only logo used by merchant surfaces
+  /// (e.g. the centre of merchant QR codes).
+  static String get businessLogo => 'assets/business/business_logo.png';
 }

@@ -40,15 +40,15 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load(BrandingAssets.icon);
+    final data  = await rootBundle.load(BrandingAssets.businessLogo);
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth:  160,
       targetHeight: 160,
     );
-    final frame   = await codec.getNextFrame();
-    final rounded = await roundQrLogoCorners(frame.image);
-    if (mounted) setState(() => _logoImage = rounded);
+    final frame    = await codec.getNextFrame();
+    final composed = await composeQrCenterLogo(frame.image);
+    if (mounted) setState(() => _logoImage = composed);
   }
 
   Future<void> _loadQr() async {
@@ -89,7 +89,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
           color:           BanzamiColors.gray900,
         ),
         embeddedImage:      _logoImage,
-        embeddedImageStyle: const QrEmbeddedImageStyle(size: Size(80, 80)),
+        embeddedImageStyle: const QrEmbeddedImageStyle(
+          size: Size(512 * kQrEmbeddedBoxFraction, 512 * kQrEmbeddedBoxFraction)),
       );
 
       final byteData = await painter.toImageData(512);
@@ -197,7 +198,8 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
                 ),
                 embeddedImage:      _logoImage,
                 embeddedImageStyle: _logoImage != null
-                    ? const QrEmbeddedImageStyle(size: Size(48, 48))
+                    ? const QrEmbeddedImageStyle(
+                        size: Size(256 * kQrEmbeddedBoxFraction, 256 * kQrEmbeddedBoxFraction))
                     : null,
               ),
             ),

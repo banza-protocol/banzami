@@ -381,8 +381,8 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
   }
 
   Future<void> _applyRounding(ui.Image raw) async {
-    final rounded = await roundQrLogoCorners(raw);
-    if (mounted) setState(() => _loadedImage = rounded);
+    final composed = await composeQrCenterLogo(raw);
+    if (mounted) setState(() => _loadedImage = composed);
   }
 
   void _detachStream() {
@@ -553,7 +553,9 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                               ),
                               embeddedImage:      _loadedImage,
                               embeddedImageStyle: _loadedImage != null
-                                  ? const QrEmbeddedImageStyle(size: Size(24, 24))
+                                  ? const QrEmbeddedImageStyle(
+                                      size: Size(120 * kQrEmbeddedBoxFraction,
+                                                 120 * kQrEmbeddedBoxFraction))
                                   : null,
                             ),
                           ),

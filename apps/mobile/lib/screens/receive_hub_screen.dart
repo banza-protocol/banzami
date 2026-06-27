@@ -206,8 +206,8 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
       currency:    _activeLink?.currency,
       note:        _activeLink?.note,
       isSandbox:         AppConfig.isSandbox,
-      logoWidget:        BanzamiLogoWidget(assetPath: BrandingAssets.icon, size: 20),
-      embeddedLogoImage: AssetImage(BrandingAssets.icon),
+      logoWidget:        BanzamiLogoWidget(assetPath: BrandingAssets.logo, size: 20),
+      embeddedLogoImage: AssetImage(BrandingAssets.logo),
     );
   }
 
@@ -264,7 +264,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
                                   ? formatMinor(_activeLink!.amountMinor!, _activeLink!.currency)
                                   : null,
                               size:          190,
-                              embeddedImage: AssetImage(BrandingAssets.icon),
+                              embeddedImage: AssetImage(BrandingAssets.logo),
                             ),
                             if (_activeLink?.note != null &&
                                 _activeLink!.note!.trim().isNotEmpty) ...[

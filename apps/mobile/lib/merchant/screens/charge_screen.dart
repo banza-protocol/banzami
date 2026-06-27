@@ -45,15 +45,15 @@ class _ChargeScreenState extends State<ChargeScreen> {
   }
 
   Future<void> _loadLogo() async {
-    final data  = await rootBundle.load(BrandingAssets.icon);
+    final data  = await rootBundle.load(BrandingAssets.businessLogo);
     final codec = await ui.instantiateImageCodec(
       data.buffer.asUint8List(),
       targetWidth:  160,
       targetHeight: 160,
     );
-    final frame   = await codec.getNextFrame();
-    final rounded = await roundQrLogoCorners(frame.image);
-    if (mounted) setState(() => _logoUiImage = rounded);
+    final frame    = await codec.getNextFrame();
+    final composed = await composeQrCenterLogo(frame.image);
+    if (mounted) setState(() => _logoUiImage = composed);
   }
 
   // Converts a user-typed Kz string (e.g. "250" or "250,50") to minor units
@@ -279,7 +279,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
               ),
               embeddedImage:      _logoUiImage,
               embeddedImageStyle: _logoUiImage != null
-                  ? const QrEmbeddedImageStyle(size: Size(44, 44))
+                  ? const QrEmbeddedImageStyle(
+                      size: Size(220 * kQrEmbeddedBoxFraction, 220 * kQrEmbeddedBoxFraction))
                   : null,
             ),
           ),

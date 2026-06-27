@@ -95,8 +95,8 @@ class _BanzamiQrDisplayState extends State<BanzamiQrDisplay> {
   }
 
   Future<void> _applyRounding(ui.Image raw) async {
-    final rounded = await roundQrLogoCorners(raw);
-    if (mounted) setState(() => _loadedImage = rounded);
+    final composed = await composeQrCenterLogo(raw);
+    if (mounted) setState(() => _loadedImage = composed);
   }
 
   void _detachStream() {
@@ -138,7 +138,9 @@ class _BanzamiQrDisplayState extends State<BanzamiQrDisplay> {
               ),
               embeddedImage:      _loadedImage,
               embeddedImageStyle: _loadedImage != null
-                  ? QrEmbeddedImageStyle(size: Size(widget.size * 0.2, widget.size * 0.2))
+                  ? QrEmbeddedImageStyle(
+                      size: Size(widget.size * kQrEmbeddedBoxFraction,
+                                 widget.size * kQrEmbeddedBoxFraction))
                   : null,
             ),
           ),
