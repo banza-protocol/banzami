@@ -1,6 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/merchant_session_service.dart';
@@ -20,7 +24,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -56,6 +60,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
           tabs: const [
             Tab(text: 'Transacções'),
             Tab(text: 'Cobranças'),
+            Tab(text: 'Recebidos'),
           ],
         ),
       ),
@@ -64,6 +69,7 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
         children: const [
           _TransactionsTab(),
           _PaymentLinksTab(),
+          _ReceivedPaymentsTab(),
         ],
       ),
     );
@@ -528,6 +534,149 @@ class _PaymentLinkTile extends StatelessWidget {
           ),
         ),
       ]),
+    );
+  }
+}
+
+// =============================================================================
+// Received payments tab (wallet_payments) — official receipt via Document Engine
+// =============================================================================
+
+class _ReceivedPaymentsTab extends StatefulWidget {
+  const _ReceivedPaymentsTab();
+
+  @override
+  State<_ReceivedPaymentsTab> createState() => _ReceivedPaymentsTabState();
+}
+
+class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
+    with AutomaticKeepAliveClientMixin {
+
+  final List<MerchantWalletPayment> _items = [];
+  String? _cursor;
+  bool    _loading = false;
+  bool    _hasMore = true;
+  bool    _busyReceipt = false;
+  String? _error;
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load({bool refresh = false}) async {
+    if (_loading) return;
+    if (!_hasMore && !refresh) return;
+    setState(() { _loading = true; _error = null; });
+    if (refresh) { _items.clear(); _cursor = null; _hasMore = true; }
+
+    final client = context.read<BanzamiClient>();
+    try {
+      final page = await client.listMerchantWalletPayments(limit: 30, cursor: _cursor);
+      setState(() {
+        _items.addAll(page.items);
+        _cursor  = page.nextCursor;
+        _hasMore = page.nextCursor != null;
+      });
+    } catch (_) {
+      setState(() => _error = 'Não foi possível carregar os pagamentos recebidos.');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _shareReceipt(MerchantWalletPayment p) async {
+    if (_busyReceipt) return;
+    setState(() => _busyReceipt = true);
+    final client = context.read<BanzamiClient>();
+    try {
+      final bytes = await client.fetchMerchantReceiptPdf(p.id);
+      final dir   = await getTemporaryDirectory();
+      final file  = File('${dir.path}/banzami-comprovativo-${p.reference}.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        subject: 'Comprovativo Banzami · ${p.reference}',
+      );
+    } on BanzamiApiException catch (e) {
+      if (mounted) _snack(e.isNotFound ? 'Comprovativo indisponível.' : 'Não foi possível obter o comprovativo.');
+    } catch (_) {
+      if (mounted) _snack('Sem ligação. Tente novamente.');
+    } finally {
+      if (mounted) setState(() => _busyReceipt = false);
+    }
+  }
+
+  void _snack(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    super.build(context);
+    if (_items.isEmpty && _loading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    if (_items.isEmpty && _error != null) {
+      return _emptyState(icon: Icons.error_outline, label: _error!);
+    }
+    if (_items.isEmpty) {
+      return _emptyState(icon: Icons.receipt_long_outlined, label: 'Sem pagamentos recebidos');
+    }
+    return RefreshIndicator(
+      onRefresh: () => _load(refresh: true),
+      child: ListView.separated(
+        padding: const EdgeInsets.all(BanzamiSpacing.md),
+        itemCount: _items.length + (_hasMore ? 1 : 0),
+        separatorBuilder: (_, __) => const SizedBox(height: BanzamiSpacing.sm),
+        itemBuilder: (context, i) {
+          if (i >= _items.length) {
+            _load();
+            return const Padding(
+              padding: EdgeInsets.all(BanzamiSpacing.md),
+              child: Center(child: CircularProgressIndicator()),
+            );
+          }
+          final p = _items[i];
+          return Container(
+            padding: const EdgeInsets.all(BanzamiSpacing.md),
+            decoration: BoxDecoration(
+              color: BanzamiColors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: BanzamiColors.gray200),
+            ),
+            child: Row(children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      p.payerName.isNotEmpty ? p.payerName : 'Pagamento',
+                      style: BanzamiTextStyles.label.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${formatMinor(p.amountMinor, p.currency)} · ${_dateHeader(p.createdAt)}',
+                      style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+                    ),
+                  ],
+                ),
+              ),
+              if (p.receiptAvailable)
+                TextButton.icon(
+                  onPressed: _busyReceipt ? null : () => _shareReceipt(p),
+                  icon: const Icon(Icons.download_rounded, size: 18),
+                  label: const Text('Comprovativo'),
+                  style: TextButton.styleFrom(foregroundColor: BanzamiColors.primary),
+                ),
+            ]),
+          );
+        },
+      ),
     );
   }
 }

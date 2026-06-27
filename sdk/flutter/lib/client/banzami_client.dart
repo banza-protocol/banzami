@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
 import '../models/merchant.dart';
+import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
 import '../models/payment_request.dart';
 import '../models/qr_code.dart';
@@ -468,6 +469,44 @@ class BanzamiClient {
     if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
     final json = await _get(path);
     return MerchantTransactionPage.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Received wallet-native payments (canonical: wallet_payments) + receipts
+  // ---------------------------------------------------------------------------
+
+  /// Lists the merchant's received wallet-native payments. Scoped server-side to
+  /// the authenticated merchant + environment.
+  Future<MerchantWalletPaymentPage> listMerchantWalletPayments({
+    int     limit = 20,
+    String? cursor,
+    String? status,
+  }) async {
+    var path = '/v1/merchant/wallet-payments?limit=$limit';
+    if (cursor != null) path += '&cursor=${Uri.encodeComponent(cursor)}';
+    if (status != null) path += '&status=${Uri.encodeComponent(status)}';
+    final json = await _get(path);
+    return MerchantWalletPaymentPage.fromJson(json);
+  }
+
+  /// Fetches the official merchant payment receipt PDF (generated server-side by
+  /// the Document Engine). Returns the raw PDF bytes. The app must never build
+  /// PDFs locally. Throws [BanzamiApiException] on 403/404/etc.
+  Future<List<int>> fetchMerchantReceiptPdf(String id) async {
+    final path = '/v1/merchant/transactions/$id/receipt.pdf';
+    onRequest?.call('GET', path, 0);
+    late http.Response resp;
+    try {
+      resp = await _http.get(Uri.parse('$baseUrl$path'), headers: await _headers);
+    } catch (e) {
+      if (e is BanzamiApiException) rethrow;
+      throw BanzamiNetworkException(e.toString());
+    }
+    if (resp.statusCode != 200) {
+      _decode(resp); // throws BanzamiApiException for non-2xx JSON errors
+      throw BanzamiNetworkException('receipt unavailable (${resp.statusCode})');
+    }
+    return resp.bodyBytes;
   }
 
   // ---------------------------------------------------------------------------
