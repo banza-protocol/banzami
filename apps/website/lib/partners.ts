@@ -3,8 +3,8 @@
 //
 // `memorandum` = companies with a Memorandum of Understanding to use the platform
 // and receive payments from their own clients. `ecosystem` = ecosystem
-// products/platforms (e.g. DOA): shown in the marquee but NOT counted as a
-// commercial partner. partnerCount counts only memorandum partners.
+// products/platforms (e.g. DOA). Both kinds appear in the marquee and both count
+// toward partnerCount (= partners.length); `kind` is metadata only.
 
 export type Partner = {
   name: string;
@@ -20,6 +20,7 @@ export const partners: Partner[] = [
     shortName: 'NCSJ Solutions',
     handle: '@ncsj-solutions',
     kind: 'memorandum',
+    website: 'https://www.ncsj-solutions.com',
   },
   {
     name: 'BEC ONE, Lda.',
@@ -41,5 +42,6 @@ export const partners: Partner[] = [
   },
 ];
 
-// Commercial partner counter — ecosystem entries (e.g. DOA) are excluded.
-export const partnerCount = partners.filter((p) => p.kind === 'memorandum').length;
+// Partner counter — counts every entry (memorandum and ecosystem alike, incl.
+// DOA). `kind` is kept as metadata but no longer narrows the count.
+export const partnerCount = partners.length;
