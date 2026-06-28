@@ -157,10 +157,10 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
           ),
 
           // ── BANZAMI label — fixed just above the ring top ─────────────
-          // Stays pinned while the dashed ring rotates beneath it. The 0.10
+          // Stays pinned while the dashed ring rotates beneath it. The 0.13
           // offset lifts it clear of the topmost dash for a little breathing room.
           Positioned(
-            top:   size * (0.50 - ringR - 0.10),
+            top:   size * (0.50 - ringR - 0.13),
             left:  0,
             right: 0,
             child: Text(
