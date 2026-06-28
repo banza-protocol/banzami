@@ -40,6 +40,9 @@ Never redefine protocol rules locally. If a financial rule is needed that does n
 
 ### Protocol-first product development (BANZA ADR-035 · Banzami ADR-019)
 
+> **Regra absoluta:**
+> qualquer conceito financeiro/protocolar novo nasce primeiro no BANZA Protocol, depois é implementado pelo operador Banzami, depois exposto no SDK, e só depois usado nas apps.
+
 New **structural** financial/protocolar concepts originate in the protocol and
 flow **downward** — never the other way:
 
