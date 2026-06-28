@@ -47,7 +47,7 @@ class _Logo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Image.asset(
-      BrandingAssets.splash,
+      BrandingAssets.businessSplash,
       width: 80,
     );
   }

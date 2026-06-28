@@ -1,17 +1,22 @@
-/// Official Banzami brand assets used in-app (logo/icon on splash, login,
-/// receipts, notifications). There is a single official set: Banzami.
+/// Official Banzami brand assets used in-app. Two sets:
+///   • Banzami (consumer)  — `icon` / `logo` / `splash`   (assets/banzami/)
+///   • Banzami Business    — `business*`                  (assets/business/)
+/// Consumer surfaces use the Banzami set; merchant surfaces use the Business set.
 ///
-/// Sandbox does NOT have its own branding — it reuses the official assets. The
+/// Sandbox does NOT have its own branding — it reuses these official assets. The
 /// only visual difference in Sandbox is the permanent yellow banner shown inside
 /// the app (driven by AppConfig.isSandbox), not the brand assets.
 abstract class BrandingAssets {
   static const String _base = 'assets/banzami';
 
+  // Banzami (consumer)
   static String get icon => '$_base/icon.png';
   static String get logo => '$_base/logo.png';
   static String get splash => '$_base/splash.png';
 
-  /// Banzami Business (merchant) logo — the only logo used by merchant surfaces
-  /// (e.g. the centre of merchant QR codes).
-  static String get businessLogo => 'assets/business/business_logo.png';
+  // Banzami Business (merchant) — used by every merchant surface.
+  static const String _business = 'assets/business';
+  static String get businessIcon => '$_business/business_icon.png';
+  static String get businessLogo => '$_business/business_logo.png';
+  static String get businessSplash => '$_business/business_splash.png';
 }

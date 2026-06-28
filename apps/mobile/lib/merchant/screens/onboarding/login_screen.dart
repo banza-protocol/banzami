@@ -179,7 +179,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
             const SizedBox(height: BanzamiSpacing.xxl),
             ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset(BrandingAssets.icon, height: 48, width: 48, fit: BoxFit.cover),
+              child: Image.asset(BrandingAssets.businessIcon, height: 48, width: 48, fit: BoxFit.cover),
             ),
             const SizedBox(height: BanzamiSpacing.lg),
             const Text('Entrar na sua conta Business', style: BanzamiTextStyles.displayMd),

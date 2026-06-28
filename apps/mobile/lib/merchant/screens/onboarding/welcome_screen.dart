@@ -57,7 +57,7 @@ class _MerchantWelcomeScreenState extends State<MerchantWelcomeScreen>
 
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
-                      child: Image.asset(BrandingAssets.icon, height: 56),
+                      child: Image.asset(BrandingAssets.businessIcon, height: 56),
                     ),
                     const SizedBox(height: BanzamiSpacing.xl),
 
