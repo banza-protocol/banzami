@@ -414,27 +414,29 @@ class _QuickActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Reuse the Consumer home's BanzamiActionTile so the three merchant tiles
-    // match it in size, spacing and accent. 'Cobrar' carries the accent (wine
-    // icon on a white tile) exactly like the Consumer 'QR Code' first tile.
+    // Visual hierarchy via the same BanzamiActionTile design-system component:
+    // 'Cobrar' is the primary CTA (premium red gradient, stronger shadow), QR and
+    // Payout are secondary (red-tinted icon on a white tile). Equal widths.
     return Row(children: [
       BanzamiActionTile(
-        icon:   Icons.add_circle_outline_rounded,
-        label:  'Cobrar',
-        onTap:  onCharge,
+        icon:    Icons.add_circle_outline_rounded,
+        label:   'Cobrar',
+        onTap:   onCharge,
+        primary: true,
+      ),
+      const SizedBox(width: BanzamiSpacing.md),
+      BanzamiActionTile(
+        icon:   Icons.qr_code_rounded,
+        label:  'QR',
+        onTap:  onQr,
         accent: true,
       ),
       const SizedBox(width: BanzamiSpacing.md),
       BanzamiActionTile(
-        icon:  Icons.qr_code_rounded,
-        label: 'QR',
-        onTap: onQr,
-      ),
-      const SizedBox(width: BanzamiSpacing.md),
-      BanzamiActionTile(
-        icon:  Icons.account_balance_rounded,
-        label: 'Payout',
-        onTap: onPayout,
+        icon:   Icons.account_balance_rounded,
+        label:  'Payout',
+        onTap:  onPayout,
+        accent: true,
       ),
     ]);
   }
