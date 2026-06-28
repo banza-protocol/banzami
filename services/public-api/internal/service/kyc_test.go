@@ -20,8 +20,8 @@ func TestRequiredSlots(t *testing.T) {
 		t.Fatalf("IDENTITY_CARD: want 3 slots, got %d (err %v)", len(id), err)
 	}
 	pp, err := requiredSlots("PASSPORT")
-	if err != nil || len(pp) != 2 {
-		t.Fatalf("PASSPORT: want 2 slots, got %d (err %v)", len(pp), err)
+	if err != nil || len(pp) != 3 {
+		t.Fatalf("PASSPORT: want 3 slots, got %d (err %v)", len(pp), err)
 	}
 	if _, err := requiredSlots("NATIONAL_LOTTERY_TICKET"); !errors.Is(err, ErrKycInvalidInput) {
 		t.Fatalf("unknown document type should be ErrKycInvalidInput, got %v", err)
@@ -37,6 +37,7 @@ func TestSlotFor(t *testing.T) {
 		{"IDENTITY_CARD", "DOCUMENT_IMAGE", "BACK", "document-back", false},
 		{"IDENTITY_CARD", "SELFIE", "SELFIE", "selfie", false},
 		{"PASSPORT", "DOCUMENT_IMAGE", "MAIN_PAGE", "passport-main", false},
+		{"PASSPORT", "DOCUMENT_IMAGE", "LAST_PAGE", "passport-last", false},
 		{"PASSPORT", "DOCUMENT_IMAGE", "BACK", "", true},           // passport has no back
 		{"IDENTITY_CARD", "DOCUMENT_IMAGE", "MAIN_PAGE", "", true}, // BI has no main page
 	}
@@ -61,8 +62,11 @@ func TestSlotName(t *testing.T) {
 	if slotName("DOCUMENT_IMAGE", "MAIN_PAGE") != "passport-main" {
 		t.Error("passport-main slot")
 	}
-	if RequiredEvidenceFor("PASSPORT") == nil || len(RequiredEvidenceFor("PASSPORT")) != 2 {
+	if RequiredEvidenceFor("PASSPORT") == nil || len(RequiredEvidenceFor("PASSPORT")) != 3 {
 		t.Error("RequiredEvidenceFor PASSPORT")
+	}
+	if slotName("DOCUMENT_IMAGE", "LAST_PAGE") != "passport-last" {
+		t.Error("passport-last slot")
 	}
 	if RequiredEvidenceFor("BOGUS") != nil {
 		t.Error("RequiredEvidenceFor unknown should be nil")

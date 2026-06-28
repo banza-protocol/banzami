@@ -38,7 +38,7 @@ only on submit; `APPROVED` only via a real review. No auto-approval; no level
 change without an approval.
 
 Required evidence: IDENTITY_CARD/RESIDENCE_PERMIT/DRIVING_LICENSE → FRONT+BACK+SELFIE;
-PASSPORT → MAIN_PAGE+SELFIE. (Angola v1: IDENTITY_CARD, PASSPORT.)
+PASSPORT → MAIN_PAGE+LAST_PAGE+SELFIE. (Angola v1: IDENTITY_CARD, PASSPORT.)
 
 ## Upload flow (signed URL, multipart → R2)
 
@@ -69,6 +69,7 @@ KYC uses its **own** R2 buckets, never a KYB bucket:
 kyc/consumer/{consumer_id}/{case_id}/document-front
 kyc/consumer/{consumer_id}/{case_id}/document-back
 kyc/consumer/{consumer_id}/{case_id}/passport-main
+kyc/consumer/{consumer_id}/{case_id}/passport-last
 kyc/consumer/{consumer_id}/{case_id}/selfie
 ```
 

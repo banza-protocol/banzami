@@ -32,6 +32,7 @@ var allowedSlots = map[string]bool{
 	"document-front":   true,
 	"document-back":    true,
 	"passport-main":    true,
+	"passport-last":    true,
 	"proof-of-address": true,
 	"selfie":           true,
 }

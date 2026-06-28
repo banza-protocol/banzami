@@ -103,6 +103,7 @@ class _KycScreenState extends State<KycScreen> {
     if (_docType == KycDocumentType.passport) {
       return const [
         KycDocument(evidenceType: KycEvidenceType.documentImage, side: KycDocumentSide.mainPage, slot: 'passport-main', uploaded: false),
+        KycDocument(evidenceType: KycEvidenceType.documentImage, side: KycDocumentSide.lastPage, slot: 'passport-last', uploaded: false),
         KycDocument(evidenceType: KycEvidenceType.selfie, side: KycDocumentSide.selfie, slot: 'selfie', uploaded: false),
       ];
     }
@@ -341,7 +342,7 @@ class _ChooseDocView extends StatelessWidget {
       _DocCard(
         icon: Icons.menu_book_outlined,
         title: 'Passaporte',
-        sub: 'Página principal',
+        sub: 'Página principal e última',
         onTap: () => onPick(KycDocumentType.passport),
       ),
       if (error != null) ...[
@@ -497,6 +498,7 @@ String _labelFor(KycDocument d) {
     KycDocumentSide.front => 'Frente do documento',
     KycDocumentSide.back => 'Verso do documento',
     KycDocumentSide.mainPage => 'Página principal',
+    KycDocumentSide.lastPage => 'Última página',
     _ => 'Documento',
   };
 }

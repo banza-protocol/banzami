@@ -105,6 +105,7 @@ func requiredSlots(documentType string) ([]reqSlot, error) {
 	case "PASSPORT":
 		return []reqSlot{
 			{"DOCUMENT_IMAGE", "MAIN_PAGE", "passport-main"},
+			{"DOCUMENT_IMAGE", "LAST_PAGE", "passport-last"},
 			{"SELFIE", "SELFIE", "selfie"},
 		}, nil
 	case "IDENTITY_CARD", "RESIDENCE_PERMIT", "DRIVING_LICENSE":
@@ -567,6 +568,8 @@ func slotName(evidenceType, side string) string {
 		return "document-back"
 	case side == "MAIN_PAGE":
 		return "passport-main"
+	case side == "LAST_PAGE":
+		return "passport-last"
 	default:
 		return ""
 	}

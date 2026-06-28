@@ -32,6 +32,7 @@ enum KycDocumentSide {
   front('FRONT'),
   back('BACK'),
   mainPage('MAIN_PAGE'),
+  lastPage('LAST_PAGE'),
   selfie('SELFIE');
 
   const KycDocumentSide(this.wire);

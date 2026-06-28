@@ -53,7 +53,7 @@ level** — the consumer never picks it.
 bytes).
 - `id`, `case_id`, `document_id?` (null for a selfie), `evidence_type`
   (`DOCUMENT_IMAGE` | `SELFIE` | `LIVENESS_VIDEO` | `PROOF_OF_ADDRESS`),
-  `side?` (`FRONT` | `BACK` | `MAIN_PAGE` | `SELFIE`)
+  `side?` (`FRONT` | `BACK` | `MAIN_PAGE` | `LAST_PAGE` | `SELFIE`)
 - `storage_key` (R2 — **never returned to clients/logs**), `bucket`, `mime_type`,
   `sha256`, `size_bytes`, `status` (`PENDING` | `UPLOADED` | `FAILED`),
   `captured_at?`, `uploaded_at?`, `retention_until?`, `metadata`
@@ -90,7 +90,7 @@ Evidence required by document type:
 | Document | Required evidence |
 |---|---|
 | `IDENTITY_CARD` (Bilhete de Identidade) | FRONT + BACK + SELFIE |
-| `PASSPORT` | MAIN_PAGE + SELFIE |
+| `PASSPORT` | MAIN_PAGE + LAST_PAGE + SELFIE |
 | `RESIDENCE_PERMIT` | FRONT + BACK + SELFIE |
 | `DRIVING_LICENSE` | FRONT + BACK + SELFIE |
 
@@ -106,6 +106,7 @@ never mixed with KYB business documents:
 kyc/consumer/{consumer_id}/{case_id}/document-front
 kyc/consumer/{consumer_id}/{case_id}/document-back
 kyc/consumer/{consumer_id}/{case_id}/passport-main
+kyc/consumer/{consumer_id}/{case_id}/passport-last
 kyc/consumer/{consumer_id}/{case_id}/selfie
 ```
 
@@ -123,7 +124,7 @@ user-chosen `requested_level`):
 POST /v1/kyc/cases                          create a case (document_type)
 GET  /v1/kyc/cases/current                  the caller's active case + status
 GET  /v1/kyc/cases/{id}
-POST /v1/kyc/cases/{id}/evidence/upload-url  signed PUT URL for FRONT/BACK/MAIN_PAGE/SELFIE
+POST /v1/kyc/cases/{id}/evidence/upload-url  signed PUT URL for FRONT/BACK/MAIN_PAGE/LAST_PAGE/SELFIE
 POST /v1/kyc/cases/{id}/evidence/complete    confirm an upload (HEAD verify) -> evidence UPLOADED
 POST /v1/kyc/cases/{id}/submit               -> UNDER_REVIEW (only when required evidence present)
 GET  /v1/kyc/cases/{id}/status
