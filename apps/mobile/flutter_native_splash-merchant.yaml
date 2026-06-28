@@ -1,0 +1,11 @@
+# Banzami Business (merchant flavor) native splash — business branding on the
+# same red background. Generated into the merchant flavor resources.
+flutter_native_splash:
+  color: "#B5101F"
+  image: assets/business/business_splash_native.png
+  android: true
+  ios: false
+  web: false
+  android_12:
+    color: "#B5101F"
+    image: assets/business/business_splash_native.png

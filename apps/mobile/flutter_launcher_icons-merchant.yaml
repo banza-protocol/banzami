@@ -1,0 +1,8 @@
+# Banzami Business (merchant flavor) launcher icon — generated into the
+# Android `src/merchant/res` flavor dir and the iOS AppIcon-merchant set.
+flutter_launcher_icons:
+  image_path: "assets/business/business_icon.png"
+  android: true
+  ios: true
+  remove_alpha_ios: true
+  min_sdk_android: 24
