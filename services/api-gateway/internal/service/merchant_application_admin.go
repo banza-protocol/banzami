@@ -212,6 +212,17 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		return ApprovalResult{}, err
 	}
 
+	// Link the application's documents to the new merchant (history) and bridge
+	// them into the merchant-maintained KYB set (post-approval source of truth).
+	if _, err := tx.Exec(ctx,
+		`UPDATE merchant_application_documents SET merchant_id=$2, updated_at=now()
+		  WHERE application_id=$1 AND deleted_at IS NULL`, id, merchantID); err != nil {
+		return ApprovalResult{}, err
+	}
+	if err := BridgeFromApplicationTx(ctx, tx, id, merchantID, app.Environment); err != nil {
+		return ApprovalResult{}, fmt.Errorf("bridge kyb documents: %w", err)
+	}
+
 	if err := tx.Commit(ctx); err != nil {
 		return ApprovalResult{}, err
 	}

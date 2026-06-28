@@ -67,6 +67,7 @@ func main() {
 	var merchantAppSvc service.MerchantApplicationService
 	var merchantAppAdminSvc service.MerchantApplicationAdminService
 	var merchantDocumentSvc service.MerchantDocumentService
+	var merchantKybSvc *service.PostgresMerchantKybService
 	var activationSvc service.ActivationService
 	var walletPaymentSvc service.WalletPaymentReader
 	var walletPaymentLister service.WalletPaymentLister
@@ -117,6 +118,7 @@ func main() {
 			slog.Info("[Track 3] KYB document storage configured", "bucket", cfg.KYBStorageBucket)
 		}
 		merchantDocumentSvc = service.NewPostgresMerchantDocumentService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
+		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -149,6 +151,7 @@ func main() {
 		MerchantAppSvc:      merchantAppSvc,
 		MerchantAppAdminSvc: merchantAppAdminSvc,
 		MerchantDocumentSvc: merchantDocumentSvc,
+		MerchantKybSvc:      merchantKybSvc,
 		ActivationSvc:       activationSvc,
 		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:            service.NewCoreApiSplitService(coreClient),

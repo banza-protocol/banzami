@@ -44,6 +44,7 @@ type Dependencies struct {
 	MerchantAppSvc      service.MerchantApplicationService
 	MerchantAppAdminSvc service.MerchantApplicationAdminService
 	MerchantDocumentSvc service.MerchantDocumentService
+	MerchantKybSvc      *service.PostgresMerchantKybService
 	ActivationSvc       service.ActivationService
 	ComplianceSvc       service.ComplianceService
 	SplitSvc            service.SplitService
@@ -84,6 +85,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
+	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -141,6 +143,12 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Post("/{id}/documents/{document_id}/accept", merchantDocumentHandler.AdminAccept)
 			r.Post("/{id}/documents/{document_id}/reject", merchantDocumentHandler.AdminReject)
 		})
+		// Merchant KYB documents (post-approval) — admin review.
+		r.Route("/internal/v1/merchant-kyb", func(r chi.Router) {
+			r.Get("/documents", merchantKybHandler.AdminList)
+			r.Post("/documents/{id}/approve", merchantKybHandler.AdminApprove)
+			r.Post("/documents/{id}/reject", merchantKybHandler.AdminReject)
+		})
 	})
 
 	r.Group(func(r chi.Router) {
@@ -190,6 +198,17 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/customers/status", complianceHandler.KycStatus)
 				r.Post("/merchants/verify", complianceHandler.VerifyMerchant)
 				r.Get("/merchants/status", complianceHandler.MerchantStatus)
+			})
+
+			// Merchant-authenticated KYB documents (post-approval maintenance).
+			// The application form is NOT repeated; here the merchant sees status
+			// and updates documents.
+			r.Route("/merchant/kyb", func(r chi.Router) {
+				r.Get("/status", merchantKybHandler.Status)
+				r.Get("/documents", merchantKybHandler.ListDocuments)
+				r.Get("/documents/{id}", merchantKybHandler.GetDocument)
+				r.Post("/documents/{id}/upload-url", merchantKybHandler.RequestUploadURL) // {id}=document_type
+				r.Post("/documents/{id}/complete", merchantKybHandler.CompleteUpload)
 			})
 
 			r.Route("/team", func(r chi.Router) {
