@@ -151,16 +151,16 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
             painter: _DashedRingPainter(
               color:          ringColor,
               radiusFraction: ringR,
-              gapAngleRad:    1.28,
+              gapAngleRad:    0.0, // full dashed circle — no break at the top
               rotation:       rotation,
             ),
           ),
 
-          // ── BANZAMI label — fixed just above the ring top ─────────────
-          // Stays pinned while the dashed ring rotates beneath it. The 0.13
-          // offset lifts it clear of the topmost dash for a little breathing room.
+          // ── BANZAMI label — fixed above the ring ──────────────────────
+          // Stays pinned while the full dashed ring rotates beneath it. The
+          // 0.16 offset lifts it clear of the ring for comfortable separation.
           Positioned(
-            top:   size * (0.50 - ringR - 0.13),
+            top:   size * (0.50 - ringR - 0.16),
             left:  0,
             right: 0,
             child: Text(
