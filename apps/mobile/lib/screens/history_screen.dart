@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../widgets/tab_screen_header.dart';
+import '../widgets/app_screen_header.dart';
 
 enum _HistoryFilter { all, received, sent }
 
@@ -125,7 +125,7 @@ class _HistoryScreenState extends State<HistoryScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            TabScreenHeader(
+            AppScreenHeader(
               title:    'Histórico',
               subtitle: 'As suas movimentações',
               trailing: _items.isEmpty ? null : _CountBadge(count: _items.length),
@@ -243,7 +243,7 @@ class _HistoryScreenState extends State<HistoryScreen>
 }
 
 // =============================================================================
-// Count badge — trailing widget for TabScreenHeader
+// Count badge — trailing widget for AppScreenHeader
 // =============================================================================
 
 class _CountBadge extends StatelessWidget {

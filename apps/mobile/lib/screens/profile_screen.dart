@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../services/session_service.dart';
+import '../widgets/app_screen_header.dart';
 import '../widgets/banzami_premium_dialog.dart';
 import 'help_screen.dart';
 import 'kyc_screen.dart';
@@ -30,25 +31,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
       backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
+          padding: EdgeInsets.zero,
           children: [
-            const SizedBox(height: BanzamiSpacing.xl),
-
-            Text(
-              'Perfil',
-              style: BanzamiTextStyles.displayMd.copyWith(
-                fontWeight:    FontWeight.w700,
-                letterSpacing: -0.5,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'O seu perfil e definições',
-              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+            const AppScreenHeader(
+              title:    'Perfil',
+              subtitle: 'O seu perfil e definições',
             ),
 
-            const SizedBox(height: BanzamiSpacing.lg),
-
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize:       MainAxisSize.min,
+                children: [
             // ── Identity card ──────────────────────────────────────────────
             _ProfileHeader(session: session),
 
@@ -138,6 +133,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
 
             const SizedBox(height: BanzamiSpacing.xl),
+                ],
+              ),
+            ),
           ],
         ),
       ),

@@ -8,7 +8,7 @@ import '../branding_assets.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/sandbox_banner.dart';
-import '../widgets/tab_screen_header.dart';
+import '../widgets/app_screen_header.dart';
 
 // ---------------------------------------------------------------------------
 // Bottom-sheet widget — collects amount + optional note, calls API, pops link
@@ -227,7 +227,7 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
 
               // ── Header ──────────────────────────────────────────────────
               SliverToBoxAdapter(
-                child: TabScreenHeader(
+                child: AppScreenHeader(
                   title:    'Receber',
                   subtitle: 'QR Code e ligação de pagamento',
                   trailing: IconButton(

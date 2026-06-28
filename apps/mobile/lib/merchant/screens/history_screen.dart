@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../widgets/app_screen_header.dart';
 import '../services/merchant_session_service.dart';
 
 class MerchantHistoryScreen extends StatefulWidget {
@@ -37,40 +38,46 @@ class _MerchantHistoryScreenState extends State<MerchantHistoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: BanzamiColors.offWhite,
-      appBar: AppBar(
-        backgroundColor:        BanzamiColors.white,
-        foregroundColor:        BanzamiColors.gray900,
-        elevation:              0,
-        scrolledUnderElevation: 0,
-        title: const Text('Histórico', style: BanzamiTextStyles.headingMd),
-        bottom: TabBar(
-          controller:          _tabs,
-          labelColor:          BanzamiColors.primary,
-          unselectedLabelColor: BanzamiColors.gray400,
-          indicatorColor:      BanzamiColors.primary,
-          indicatorWeight:     2,
-          labelStyle:          BanzamiTextStyles.label.copyWith(
-            fontSize:   14,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: BanzamiTextStyles.label.copyWith(
-            fontSize:   14,
-            fontWeight: FontWeight.w500,
-          ),
-          tabs: const [
-            Tab(text: 'Transacções'),
-            Tab(text: 'Cobranças'),
-            Tab(text: 'Recebidos'),
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const AppScreenHeader(
+              title:    'Histórico',
+              subtitle: 'As suas transações e cobranças',
+            ),
+            TabBar(
+              controller:          _tabs,
+              labelColor:          BanzamiColors.primary,
+              unselectedLabelColor: BanzamiColors.gray400,
+              indicatorColor:      BanzamiColors.primary,
+              indicatorWeight:     2,
+              labelStyle:          BanzamiTextStyles.label.copyWith(
+                fontSize:   14,
+                fontWeight: FontWeight.w600,
+              ),
+              unselectedLabelStyle: BanzamiTextStyles.label.copyWith(
+                fontSize:   14,
+                fontWeight: FontWeight.w500,
+              ),
+              tabs: const [
+                Tab(text: 'Transacções'),
+                Tab(text: 'Cobranças'),
+                Tab(text: 'Recebidos'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabs,
+                children: const [
+                  _TransactionsTab(),
+                  _PaymentLinksTab(),
+                  _ReceivedPaymentsTab(),
+                ],
+              ),
+            ),
           ],
         ),
-      ),
-      body: TabBarView(
-        controller: _tabs,
-        children: const [
-          _TransactionsTab(),
-          _PaymentLinksTab(),
-          _ReceivedPaymentsTab(),
-        ],
       ),
     );
   }

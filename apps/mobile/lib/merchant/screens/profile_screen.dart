@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../widgets/app_screen_header.dart';
 import '../../widgets/banzami_premium_dialog.dart';
 import '../services/merchant_session_service.dart';
 import '../widgets/merchant_status_badge.dart';
@@ -41,14 +42,19 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
       backgroundColor: BanzamiColors.offWhite,
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.lg),
+          padding: EdgeInsets.zero,
           children: [
-            const SizedBox(height: BanzamiSpacing.xl),
+            const AppScreenHeader(
+              title:    'Perfil',
+              subtitle: 'O seu perfil e definições',
+            ),
 
-            const Text('Perfil', style: BanzamiTextStyles.headingMd),
-
-            const SizedBox(height: BanzamiSpacing.lg),
-
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.xl),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisSize:       MainAxisSize.min,
+                children: [
             _MerchantProfileHeader(session: session),
 
             const SizedBox(height: BanzamiSpacing.sm),
@@ -156,6 +162,9 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
             const Center(child: _AppVersionLabel()),
 
             const SizedBox(height: BanzamiSpacing.xl),
+                ],
+              ),
+            ),
           ],
         ),
       ),

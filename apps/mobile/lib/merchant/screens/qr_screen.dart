@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 import '../../branding_assets.dart';
+import '../../widgets/app_screen_header.dart';
 
 import '../services/merchant_session_service.dart';
 import 'charge_screen.dart';
@@ -131,22 +132,30 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     final session = context.read<MerchantSessionService>().session!;
 
     return BanzamiScaffold(
-      appBar: BanzamiAppBar(
-        title:    'Receber',
-        showBack: false,
-        actions: [
-          IconButton(
-            icon:      const Icon(Icons.refresh_rounded, color: BanzamiColors.gray400),
-            onPressed: _loadQr,
-            tooltip:   'Regenerar QR',
-          ),
-        ],
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AppScreenHeader(
+              title:    'Receber',
+              subtitle: 'QR Code e ligação de pagamento',
+              trailing: IconButton(
+                icon:      const Icon(Icons.refresh_rounded, size: 20),
+                color:     BanzamiColors.gray400,
+                onPressed: _loadQr,
+                tooltip:   'Regenerar QR',
+              ),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
+                  : _error != null
+                      ? _buildError()
+                      : _buildBody(session),
+            ),
+          ],
+        ),
       ),
-      body: _loading
-          ? const Center(child: CircularProgressIndicator(color: BanzamiColors.primary))
-          : _error != null
-              ? _buildError()
-              : _buildBody(session),
     );
   }
 
