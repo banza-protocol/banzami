@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/banzami_premium_dialog.dart';
 import 'help_screen.dart';
@@ -52,11 +51,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             // ── Identity card ──────────────────────────────────────────────
             _ProfileHeader(session: session),
-
-            if (AppConfig.isSandbox) ...[
-              const SizedBox(height: BanzamiSpacing.sm),
-              const BanzamiSandboxBanner(),
-            ],
 
             const SizedBox(height: BanzamiSpacing.sm),
 
