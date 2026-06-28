@@ -19,6 +19,16 @@ type Config struct {
 	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
 	// When empty, push notifications are silently disabled.
 	FirebaseCredentialsJSON string
+
+	// KYC consumer-evidence storage (Cloudflare R2 / S3-compatible). When any
+	// required field is empty, KYC upload endpoints respond 503 instead of
+	// failing startup — the rest of the API is unaffected.
+	KycStorageProvider  string
+	KycStorageBucket    string
+	KycStorageEndpoint  string
+	KycStorageRegion    string
+	KycStorageAccessKey string
+	KycStorageSecretKey string
 }
 
 // Load reads config from environment variables.
@@ -63,6 +73,12 @@ func Load() (*Config, error) {
 
 	return &Config{
 		FirebaseCredentialsJSON: os.Getenv("FIREBASE_CREDENTIALS_JSON"),
+		KycStorageProvider:  os.Getenv("KYC_STORAGE_PROVIDER"),
+		KycStorageBucket:    os.Getenv("KYC_STORAGE_BUCKET"),
+		KycStorageEndpoint:  os.Getenv("KYC_STORAGE_ENDPOINT"),
+		KycStorageRegion:    os.Getenv("KYC_STORAGE_REGION"),
+		KycStorageAccessKey: os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
+		KycStorageSecretKey: os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
 		Port:         port,
 		CoreAPIURL:   coreURL,
 		DatabaseURL:  dbURL,

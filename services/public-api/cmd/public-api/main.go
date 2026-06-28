@@ -13,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/banzami/banzami/services/public-api/internal/config"
+	"github.com/banzami/banzami/services/public-api/internal/kycstorage"
 	"github.com/banzami/banzami/services/public-api/internal/notify"
 	"github.com/banzami/banzami/services/public-api/internal/observability"
 	"github.com/banzami/banzami/services/public-api/internal/server"
@@ -50,6 +51,27 @@ func main() {
 	core  := service.NewCorePublicClient(cfg.CoreAPIURL)
 	creds := service.NewCredentialStore(pool)
 
+	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload
+	// endpoints respond 503 — it never blocks startup.
+	kycStore, err := kycstorage.NewFromConfig(kycstorage.Config{
+		Provider:        cfg.KycStorageProvider,
+		Bucket:          cfg.KycStorageBucket,
+		Endpoint:        cfg.KycStorageEndpoint,
+		Region:          cfg.KycStorageRegion,
+		AccessKeyID:     cfg.KycStorageAccessKey,
+		SecretAccessKey: cfg.KycStorageSecretKey,
+	})
+	if err != nil {
+		if errors.Is(err, kycstorage.ErrNotConfigured) {
+			slog.Warn("KYC storage not configured — /v1/kyc upload endpoints will return 503")
+			kycStore = nil
+		} else {
+			slog.Error("kyc storage init error", "error", err)
+			os.Exit(1)
+		}
+	}
+	kycSvc := service.NewKycService(pool, kycStore, cfg.Environment)
+
 	fcmSvc, err := notify.NewFCMService(ctx, cfg.FirebaseCredentialsJSON, cfg.Environment)
 	if err != nil {
 		slog.Error("[FCM] initialization failed", "error", err)
@@ -60,6 +82,7 @@ func main() {
 		CoreClient: core,
 		CredStore:  creds,
 		FCMSvc:     fcmSvc,
+		KycSvc:     kycSvc,
 	})
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

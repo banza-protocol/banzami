@@ -28,6 +28,7 @@ type Dependencies struct {
 	CoreClient  *service.CorePublicClient
 	CredStore   *service.CredentialStore
 	FCMSvc      *notify.FCMService
+	KycSvc      *service.KycService
 }
 
 // Server wraps the HTTP server lifecycle.
@@ -62,6 +63,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
 	onboardingH     := handler.NewOnboardingHandler(deps.CoreClient)
 	debugPushH      := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
+	kycH            := handler.NewKycHandler(deps.KycSvc)
 
 	// Public auth — no JWT required
 	r.Post("/v1/auth/register", authH.Register)
@@ -107,6 +109,16 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		// Consumer pay links — create + pay
 		r.Post("/v1/consumer-pay-links",            consumerPayLinkH.Create)
 		r.Post("/v1/consumer-pay-links/{code}/pay", consumerPayLinkH.Pay)
+
+		// Consumer identity verification (KYC) — ADR-020. The operator decides
+		// the level; the consumer never sends `requested_level`.
+		r.Post("/v1/kyc/cases",                          kycH.CreateCase)
+		r.Get("/v1/kyc/cases/current",                   kycH.GetCurrent)
+		r.Get("/v1/kyc/cases/{id}",                      kycH.GetCase)
+		r.Get("/v1/kyc/cases/{id}/status",               kycH.GetCase)
+		r.Post("/v1/kyc/cases/{id}/evidence/upload-url", kycH.RequestUploadURL)
+		r.Post("/v1/kyc/cases/{id}/evidence/complete",   kycH.CompleteEvidence)
+		r.Post("/v1/kyc/cases/{id}/submit",              kycH.Submit)
 
 		// Sandbox utilities — 403 when not in SANDBOX environment
 		r.Post("/v1/sandbox/fund",           sandboxH.FundWallet)
