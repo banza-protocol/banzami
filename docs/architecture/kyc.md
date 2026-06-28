@@ -1,6 +1,6 @@
 # KYC — Consumer Identity Verification (architecture)
 
-**Status:** Increment 2 — backend implemented · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
+**Status:** Increment 3 — backend + Flutter SDK implemented · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
 
 Banzami's first official consumer identity verification. Real evidence (document
 + selfie), real review, operator-decided level. Files live in **Cloudflare R2**;

@@ -7,6 +7,7 @@ import '../models/activity_item.dart';
 import '../models/consumer.dart';
 import '../models/consumer_pay_link.dart';
 import '../models/consumer_suggestion.dart';
+import '../models/kyc.dart';
 import '../models/payment_link.dart';
 import '../models/transfer.dart';
 import '../models/wallet_balance.dart';
@@ -413,6 +414,109 @@ class ConsumerPublicClient {
       'payer': payer,
       'amount_minor': amountMinor,
     });
+  }
+
+  // ---------------------------------------------------------------------------
+  // KYC — consumer identity verification (Banzami ADR-020)
+  //
+  // The operator decides the granted level; the consumer NEVER sends a
+  // `requested_level`. Document/selfie bytes go straight to R2 via the signed
+  // PUT returned by [requestKycUploadUrl] — the SDK never carries the bytes and
+  // never logs the signed URL or any `storage_key`.
+  // ---------------------------------------------------------------------------
+
+  /// Opens (or resumes) a verification case for [documentType]. Returns the case
+  /// in `WAITING_DOCUMENTS`. An [idempotencyKey] makes repeat calls safe; if the
+  /// consumer already has an active case it is resumed. No level is requested.
+  Future<KycCase> createKycCase({
+    required KycDocumentType documentType,
+    String? country,
+    String? idempotencyKey,
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/kyc/cases',
+      body: {
+        'document_type': documentType.wire,
+        if (country != null && country.isNotEmpty) 'country': country,
+      },
+    );
+    return KycCase.fromJson(json);
+  }
+
+  /// The caller's most recent case, or `null` when they have none yet (404).
+  Future<KycCase?> getCurrentKycCase() async {
+    try {
+      final json = await _call(method: 'GET', path: '/v1/kyc/cases/current');
+      return KycCase.fromJson(json);
+    } on BanzamiApiException catch (e) {
+      if (e.isNotFound) return null;
+      rethrow;
+    }
+  }
+
+  /// Loads a case by id. Throws [BanzamiApiException] (404) if it is not the
+  /// caller's case — cross-subject access is indistinguishable from "not found".
+  Future<KycCase> getKycCase(String caseId) async {
+    final json = await _call(method: 'GET', path: '/v1/kyc/cases/$caseId');
+    return KycCase.fromJson(json);
+  }
+
+  /// Requests a short-lived signed PUT URL for one piece of evidence. The app
+  /// then PUTs the bytes directly to [KycUploadUrl.url] (do not log it) and calls
+  /// [completeKycEvidenceUpload]. Throws [BanzamiApiException] 503
+  /// (`STORAGE_NOT_CONFIGURED`) when storage is unavailable, 409 when the case is
+  /// not accepting documents, 400 for an invalid evidence type/side.
+  Future<KycUploadUrl> requestKycUploadUrl({
+    required String caseId,
+    required KycEvidenceType evidenceType,
+    KycDocumentSide? side,
+    String contentType = 'image/jpeg',
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/kyc/cases/$caseId/evidence/upload-url',
+      body: {
+        'evidence_type': evidenceType.wire,
+        if (side != null) 'side': side.wire,
+        'content_type': contentType,
+      },
+    );
+    return KycUploadUrl.fromJson(json);
+  }
+
+  /// Confirms an upload (after the PUT to R2). The operator HEAD-verifies the
+  /// object before marking the evidence UPLOADED, advancing the case to
+  /// `DOCUMENTS_RECEIVED` once every required piece is present. Returns the
+  /// updated case. [sha256] is optional integrity metadata.
+  Future<KycCase> completeKycEvidenceUpload({
+    required String caseId,
+    required String evidenceId,
+    String? sha256,
+  }) async {
+    final json = await _call(
+      method: 'POST',
+      path: '/v1/kyc/cases/$caseId/evidence/complete',
+      body: {
+        'evidence_id': evidenceId,
+        if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
+      },
+    );
+    return KycCase.fromJson(json);
+  }
+
+  /// Submits the case for review (-> `UNDER_REVIEW`). Throws
+  /// [BanzamiApiException] 409 (`EVIDENCE_INCOMPLETE`) when required evidence is
+  /// still missing — the consumer cannot self-approve.
+  Future<KycCase> submitKycCase(String caseId) async {
+    final json = await _call(method: 'POST', path: '/v1/kyc/cases/$caseId/submit');
+    return KycCase.fromJson(json);
+  }
+
+  /// The current [KycStatus] of a case.
+  Future<KycStatus> getKycStatus(String caseId) async {
+    final json = await _call(method: 'GET', path: '/v1/kyc/cases/$caseId/status');
+    return KycStatus.fromWire(json['status'] as String?);
   }
 
   // ---------------------------------------------------------------------------

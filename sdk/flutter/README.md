@@ -125,6 +125,40 @@ print(result.newBalance);    // 5000000
 
 Throws `BanzamiApiException` with code `SANDBOX_ONLY` if called against a production public-api instance.
 
+### Identity verification (KYC)
+
+Real document + selfie verification (Banzami ADR-020). The operator decides the
+level — you **never** send a `requested_level`. Bytes go straight to R2 via a
+short-lived signed PUT; never log the upload URL.
+
+```dart
+// 1. Open (or resume) a case for a document type.
+final kycCase = await client.createKycCase(documentType: KycDocumentType.identityCard);
+
+// 2. For each required piece of evidence: get a signed URL, PUT the bytes to R2,
+//    then confirm (the operator HEAD-verifies before accepting it).
+final up = await client.requestKycUploadUrl(
+  caseId: kycCase.id,
+  evidenceType: KycEvidenceType.documentImage,
+  side: KycDocumentSide.front,
+  contentType: 'image/jpeg',
+);
+await http.put(Uri.parse(up.url), headers: up.headers, body: bytes); // app does the PUT
+await client.completeKycEvidenceUpload(caseId: kycCase.id, evidenceId: up.evidenceId);
+
+// 3. When `kycCase.isReadyToSubmit`, submit for review.
+final submitted = await client.submitKycCase(kycCase.id);   // -> KycStatus.underReview
+
+// Status / resume.
+final current = await client.getCurrentKycCase();           // null if none yet
+final status  = await client.getKycStatus(kycCase.id);      // KycStatus enum
+```
+
+`submitKycCase` throws `BanzamiApiException` (409 `EVIDENCE_INCOMPLETE`) until all
+required evidence is uploaded; `requestKycUploadUrl` throws 503
+`STORAGE_NOT_CONFIGURED` when storage is unavailable. The SDK never exposes a
+`storage_key`, and `KycUploadUrl.toString()` redacts the signed URL.
+
 ---
 
 ## Pre-built screens

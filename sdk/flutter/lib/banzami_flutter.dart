@@ -31,6 +31,7 @@ export 'client/api_exception.dart';
 export 'models/activity_item.dart';
 export 'models/consumer.dart';
 export 'models/consumer_pay_link.dart';
+export 'models/kyc.dart';
 export 'models/merchant.dart';
 export 'models/merchant_wallet_payment.dart';
 export 'models/wallet_balance.dart';

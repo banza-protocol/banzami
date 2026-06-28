@@ -193,9 +193,14 @@ a real review approves a level.
    and `/admin/v1/kyc/*` review APIs (`admin-api`); ownership-scoped (cross-subject
    → 404); real-DB lifecycle + ownership + review tests. The granted level is
    written to `customer_compliance` only on an operator approval.
-3. **SDK:** `createKycCase`, `getCurrentKycCase`, `requestKycUploadUrl`,
-   `completeKycEvidenceUpload`, `submitKycCase`, `getKycStatus` (no R2 details
-   beyond the signed URL; no PII logged).
+3. **SDK (implemented):** Flutter `ConsumerPublicClient` — `createKycCase`,
+   `getCurrentKycCase`, `getKycCase`, `requestKycUploadUrl`,
+   `completeKycEvidenceUpload`, `submitKycCase`, `getKycStatus`, plus models
+   (`KycCase`, `KycDocument`, `KycEvidence`, `KycUploadUrl`, `KycStatus`,
+   `KycDocumentType`/`Side`, `KycEvidenceType`). No `requested_level`; no
+   `storage_key` modelled; the signed upload URL is redacted in `toString()` and
+   never logged. The app performs the R2 PUT. Unit-tested (parsing, 404/409/503,
+   incomplete submit, upload-url payload).
 4. **Mobile (Consumer):** replace the old screen — intro → choose document →
    capture (BI front+back / passport main page) → selfie → review → submit →
    status. BanzamiAppBar compact, off-white, premium cards, no level dropdown,
