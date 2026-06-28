@@ -179,6 +179,15 @@ deploy_public_api() {
   info "Recreating container..."
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d public-api 2>&1"
   _wait_healthy "banzami-public-api-1"
+  _reload_nginx
+}
+
+# Recreating a public-api container gives it a new IP; nginx resolves upstream
+# names once at start and would keep routing to the stale IP. Reload after every
+# recreate so api.banzami.com / sandbox-api.banzami.com re-resolve correctly.
+_reload_nginx() {
+  info "Reloading nginx (re-resolve upstream IPs)..."
+  ssh "$REMOTE" "docker exec banzami-nginx-1 nginx -s reload 2>&1 || true"
 }
 
 deploy_admin_frontend() {
@@ -274,6 +283,7 @@ deploy_staging() {
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d --force-recreate core-api-staging public-api-staging 2>&1"
   _wait_healthy "banzami-core-api-staging-1"
   _wait_healthy "banzami-public-api-staging-1"
+  _reload_nginx
 }
 
 # ─── Main ─────────────────────────────────────────────────────────────────────
