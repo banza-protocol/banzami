@@ -736,7 +736,7 @@ Resposta esperada:
   "environment": "SANDBOX",
   "delivery_mode": "token",
   "target": "edSTrkNd...",
-  "firebase_message_id": "projects/banza-e0c07/messages/..."
+  "firebase_message_id": "projects/banzami/messages/..."
 }
 ```
 
@@ -786,7 +786,7 @@ curl -s -X POST https://staging.banzami.com/v1/debug/push-test \
 # Confirmar que o container carregou as credenciais certas
 docker logs banzami-public-api-staging-1 | grep FCM
 # Esperado:
-# {"msg":"[FCM] credentials loaded","project_id":"banza-e0c07","client_email":"..."}
+# {"msg":"[FCM] credentials loaded","project_id":"banzami","client_email":"..."}
 # {"msg":"[FCM] initialized","environment":"SANDBOX"}
 
 # Confirmar a variável de ambiente dentro do container
@@ -959,13 +959,13 @@ Exemplo do erro nos logs do backend:
 1. Verificar o `SENDER_ID` no `GoogleService-Info.plist` do flavor:
    ```xml
    <key>GCM_SENDER_ID</key>
-   <string>186759898040</string>
+   <string>473654224852</string>
    ```
 
 2. Verificar o `project_id` nas credenciais do backend — deve ser o mesmo Firebase project:
    ```bash
    docker logs banzami-public-api-staging-1 | grep 'credentials loaded'
-   # Esperado: project_id=banza-e0c07
+   # Esperado: project_id=banzami
    ```
 
 3. Confirmar no startup log do backend que o `project_id` corresponde ao projeto Firebase do mobile.
@@ -981,7 +981,7 @@ Exemplo do erro nos logs do backend:
 
 O startup log deve mostrar:
 ```
-{"msg":"[FCM] credentials loaded","project_id":"banza-e0c07","client_email":"firebase-adminsdk-...@banza-e0c07.iam.gserviceaccount.com"}
+{"msg":"[FCM] credentials loaded","project_id":"banzami","client_email":"firebase-adminsdk-...@banzami.iam.gserviceaccount.com"}
 ```
 
 O endpoint de debug deve retornar um `firebase_message_id` real sem erro.
@@ -1093,12 +1093,14 @@ Handlers que disparam FCM:
 
 | Variável | Serviço | Valor |
 |---|---|---|
-| `FIREBASE_CREDENTIALS_JSON` | `public-api` (LIVE) | JSON minificado do service account `banza-e0c07` |
+| `FIREBASE_CREDENTIALS_JSON` | `public-api` (LIVE) | JSON minificado do service account `banzami` |
 | `FIREBASE_CREDENTIALS_JSON` | `public-api-staging` | Mesmo JSON — **mesmo Firebase project** |
 | `ENVIRONMENT` | `public-api` | `LIVE` |
 | `ENVIRONMENT` | `public-api-staging` | `SANDBOX` |
 
 O `ENVIRONMENT` controla o prefixo do tópico (`sandbox_consumer_` vs `consumer_`) e bloqueia o endpoint de debug em LIVE.
+
+> **Projeto Firebase atual: `banzami` (project_number `473654224852`).** O `FIREBASE_CREDENTIALS_JSON` tem de ser o service account **deste** projeto — gerado em Firebase Console → Project Settings → Service accounts → Generate new private key — e o seu `project_id` tem de ser igual ao `PROJECT_ID` dos `GoogleService-Info.plist` / `google-services.json` do mobile. Os tópicos FCM são por-projeto: credenciais de outro projeto não entregam push às apps. (Migração histórica: o projeto anterior era `banza-e0c07` / `186759898040`; já não deve ser usado em nenhum passo ativo.)
 
 > **Nunca commitar o service account JSON.** Injectar sempre via `.env` no servidor ou sistema de secrets. O ficheiro contém uma chave privada com acesso total ao projeto Firebase.
 
@@ -1138,7 +1140,7 @@ Mobile
 
 Backend
 ───────
-[ ] Startup log mostra: [FCM] credentials loaded project_id=banza-e0c07
+[ ] Startup log mostra: [FCM] credentials loaded project_id=banzami
 [ ] Startup log mostra: [FCM] initialized environment=SANDBOX/LIVE
 [ ] docker exec ... env | grep FIREBASE retorna o JSON completo
 
@@ -1187,7 +1189,7 @@ ssh root@217.160.9.248 "docker exec banzami-public-api-staging-1 env | grep FIRE
 # Confirmar logs de startup:
 ssh root@217.160.9.248 "docker logs banzami-public-api-staging-1 2>&1 | grep FCM"
 # Esperado:
-# {"msg":"[FCM] credentials loaded","project_id":"banza-e0c07",...}
+# {"msg":"[FCM] credentials loaded","project_id":"banzami",...}
 # {"msg":"[FCM] initialized","environment":"SANDBOX"}
 ```
 
@@ -1246,7 +1248,7 @@ ssh root@217.160.9.248 "docker logs banzami-public-api-staging-1 2>&1 | grep FCM
 29. ./deploy.sh staging     → deploy staging (obrigatório — ver §18)
 30. Verificação             → docker logs banzami-public-api-staging-1 | grep FCM
                                esperado:
-                               [FCM] credentials loaded project_id=banza-e0c07
+                               [FCM] credentials loaded project_id=banzami
                                [FCM] initialized environment=SANDBOX
 31. Teste endpoint          → curl POST /v1/debug/push-test → firebase_message_id sem erro
 32. Teste foreground        → app aberta → push aparece como banner in-app
