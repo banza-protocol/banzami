@@ -1,0 +1,12 @@
+[
+  {
+    "AllowedOrigins": [
+      "https://banzami.com",
+      "https://pay.banzami.com"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]

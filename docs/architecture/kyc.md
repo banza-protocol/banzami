@@ -56,7 +56,14 @@ Mobile                          Operator (api-gateway/public-api)        R2
 The image bytes go **directly to R2** via the signed PUT; the API never carries
 the bytes and the `storage_key` is never returned to the client.
 
-## Storage layout (R2, separate from KYB)
+## Storage layout (R2, dedicated buckets — separate from KYB)
+
+KYC uses its **own** R2 buckets, never a KYB bucket:
+
+| Purpose | Sandbox | Live | Prefix |
+|---|---|---|---|
+| **KYC** consumer evidence | `banzami-kyc-sandbox` | `banzami-kyc-live` | `kyc/consumer/` |
+| **KYB** merchant documents | `banzami-kyb-sandbox` | `banzami-kyb-live` | `kyb/` |
 
 ```
 kyc/consumer/{consumer_id}/{case_id}/document-front
@@ -64,8 +71,14 @@ kyc/consumer/{consumer_id}/{case_id}/document-back
 kyc/consumer/{consumer_id}/{case_id}/passport-main
 kyc/consumer/{consumer_id}/{case_id}/selfie
 ```
-Never mixed with merchant KYB documents. Reuses the existing signed-URL R2
-abstraction (SigV4 presigner).
+
+Never mixed with merchant KYB documents. Buckets are **private** (no public URL,
+no public domain); access is only via short-TTL signed PUT/GET (SigV4) + HEAD.
+CORS on the KYC buckets exists only to permit the signed upload/download from the
+operator origins. A KYC-scoped R2 token (not the KYB token) is used. See the
+provisioning runbook: [docs/runbooks/kyc-r2-storage.md](../runbooks/kyc-r2-storage.md)
+and the CORS policies in `infra/r2/`. Live storage is documented but **not
+activated** until an explicit GO.
 
 ## APIs
 
