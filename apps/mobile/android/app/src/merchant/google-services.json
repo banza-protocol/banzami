@@ -1,13 +1,13 @@
 {
   "project_info": {
-    "project_number": "186759898040",
-    "project_id": "banza-e0c07",
-    "storage_bucket": "banza-e0c07.firebasestorage.app"
+    "project_number": "473654224852",
+    "project_id": "banzami",
+    "storage_bucket": "banzami.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:186759898040:android:b74c131d7476ac2e43654d",
+        "mobilesdk_app_id": "1:473654224852:android:1c17b31c97e00d83561841",
         "android_client_info": {
           "package_name": "com.banzami.consumer"
         }
@@ -15,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBFDOX6mu-hW_OH3gN-zVGytGuDBgHDd4Q"
+          "current_key": "AIzaSyBRiK65YfCjNsCxHllFXCFjg8zCspu2oBM"
         }
       ],
       "services": {
@@ -26,7 +26,7 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:186759898040:android:a8afaa45bc3be42243654d",
+        "mobilesdk_app_id": "1:473654224852:android:40fac7beffe1ba1c561841",
         "android_client_info": {
           "package_name": "com.banzami.merchant"
         }
@@ -34,7 +34,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyBFDOX6mu-hW_OH3gN-zVGytGuDBgHDd4Q"
+          "current_key": "AIzaSyBRiK65YfCjNsCxHllFXCFjg8zCspu2oBM"
         }
       ],
       "services": {
