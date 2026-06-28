@@ -5,12 +5,21 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
+
+// merchantSessionTTL is the lifetime of a @handle + PIN merchant JWT. Unlike the
+// API-key flow — where the SDK transparently exchanges the key for a fresh token
+// — a handle-login client holds only the JWT and cannot self-refresh. A longer
+// window avoids a daily forced re-login on the Business app; when it does expire
+// the app signs out cleanly (onUnauthorized → login). The API-key token TTL
+// (auth.go tokenTTL) is unchanged.
+const merchantSessionTTL = 30 * 24 * time.Hour
 
 // MerchantAuthHandler implements @handle + PIN login for the Banzami Business
 // app. It issues the SAME merchant JWT as the API-key flow, so all existing
@@ -57,7 +66,7 @@ func (h *MerchantAuthHandler) Token(w http.ResponseWriter, r *http.Request) {
 	}
 
 	token, expiresAt, err := middleware.NewMerchantToken(
-		h.cfg.JWTSecret, merchantID, []string{"*"}, env, tokenTTL,
+		h.cfg.JWTSecret, merchantID, []string{"*"}, env, merchantSessionTTL,
 	)
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "failed to issue token")
