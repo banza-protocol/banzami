@@ -1,6 +1,6 @@
 # KYC — Consumer Identity Verification (architecture)
 
-**Status:** Design (Increment 1) · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
+**Status:** Increment 2 — backend implemented · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
 
 Banzami's first official consumer identity verification. Real evidence (document
 + selfie), real review, operator-decided level. Files live in **Cloudflare R2**;
@@ -94,6 +94,28 @@ events).
   cross-subject → 404.
 - **No PII / storage_key / signed URL / token in logs.** `retention_until` per
   evidence; deletion + regulatory export future-ready.
+
+## Implementation (Increment 2 — backend)
+
+Migration `db/migrations/0067_kyc_schema.sql` (`kyc_cases`, `kyc_documents`,
+`kyc_evidence`, `kyc_reviews`, `kyc_events`).
+
+- **Consumer** (`public-api`): `internal/kycstorage` (R2 signed PUT/GET, SigV4),
+  `internal/service/kyc.go` (state machine, persistence, HEAD-verify, outbox),
+  `internal/handler/kyc.go` → the `/v1/kyc/*` routes. Upload is a signed PUT
+  straight to R2; `evidence/complete` HEAD-verifies before marking UPLOADED; a
+  case reaches `DOCUMENTS_RECEIVED` only when every required slot is uploaded and
+  `UNDER_REVIEW` only on submit.
+- **Review** (`admin-api`): `internal/service/kyc_review.go` +
+  `internal/handler/kyc.go` → `/admin/v1/kyc/cases…/approve|reject|request-more-info`.
+  The operator decides `granted_level`; an approval is the only thing that writes
+  `customer_compliance.kyc_level`. Evidence is viewed via short-TTL signed GET.
+  View reuses `consumer.view`; decisions reuse `compliance.review`.
+- **Events**: `kyc_events` is an operator-internal transactional outbox written in
+  the same tx as the state change, idempotency-keyed (not merchant webhooks, not
+  protocol events). Ownership is enforced (cross-subject → 404); no PII /
+  storage_key / signed URL is logged. `KYC_STORAGE_*` unset → uploads return 503,
+  startup unaffected.
 
 ## Boundaries
 

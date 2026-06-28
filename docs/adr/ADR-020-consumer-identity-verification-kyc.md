@@ -186,9 +186,13 @@ a real review approves a level.
 ## Increment plan
 
 1. **(this) Architecture & domain ADR** + BANZA boundary note (ADR-038) + `docs/architecture/kyc.md`.
-2. **Backend:** migrations (`kyc_cases`, `kyc_documents`, `kyc_evidence`,
-   `kyc_reviews`), domain crate, R2 consumer-KYC storage, `/v1/kyc/*` + admin
-   review APIs, outbox events, real-DB + ownership tests.
+2. **Backend (implemented):** migration `0067_kyc_schema.sql` (`kyc_cases`,
+   `kyc_documents`, `kyc_evidence`, `kyc_reviews`, `kyc_events`); KYC domain +
+   state machine + transactional outbox in `public-api` (`internal/service/kyc.go`)
+   with R2 consumer-KYC storage (`internal/kycstorage`); `/v1/kyc/*` consumer APIs
+   and `/admin/v1/kyc/*` review APIs (`admin-api`); ownership-scoped (cross-subject
+   → 404); real-DB lifecycle + ownership + review tests. The granted level is
+   written to `customer_compliance` only on an operator approval.
 3. **SDK:** `createKycCase`, `getCurrentKycCase`, `requestKycUploadUrl`,
    `completeKycEvidenceUpload`, `submitKycCase`, `getKycStatus` (no R2 details
    beyond the signed URL; no PII logged).
