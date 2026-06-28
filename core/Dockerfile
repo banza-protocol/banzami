@@ -32,6 +32,7 @@ COPY transfers/       ./transfers/
 COPY qr/              ./qr/
 COPY payment-links/   ./payment-links/
 COPY acquiring/       ./acquiring/
+COPY collections/     ./collections/
 COPY api/             ./api/
 
 # sqlx validates queries against a real database at compile time.

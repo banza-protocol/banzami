@@ -526,8 +526,10 @@ impl CollectionRepository for PostgresCollectionRepository {
         &self,
         collection_id: CollectionId,
     ) -> Result<i64, CollectionError> {
+        // SUM(bigint) returns NUMERIC in Postgres — cast back to bigint so it
+        // decodes as i64.
         let sum: Option<i64> = sqlx::query_scalar(
-            "SELECT COALESCE(SUM(amount_minor), 0) FROM collection_shares \
+            "SELECT COALESCE(SUM(amount_minor), 0)::bigint FROM collection_shares \
              WHERE collection_id = $1 AND status = 'PAID'",
         )
         .bind(collection_id.as_uuid())
