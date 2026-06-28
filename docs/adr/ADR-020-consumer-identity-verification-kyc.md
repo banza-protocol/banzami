@@ -201,10 +201,16 @@ a real review approves a level.
    `storage_key` modelled; the signed upload URL is redacted in `toString()` and
    never logged. The app performs the R2 PUT. Unit-tested (parsing, 404/409/503,
    incomplete submit, upload-url payload).
-4. **Mobile (Consumer):** replace the old screen — intro → choose document →
-   capture (BI front+back / passport main page) → selfie → review → submit →
-   status. BanzamiAppBar compact, off-white, premium cards, no level dropdown,
-   document-first, honest states (real upload, real `UNDER_REVIEW`).
+4. **Mobile (Consumer) (implemented):** the old `Verificar identidade` form is
+   replaced by a real document-first flow in `apps/mobile/lib/screens/kyc_screen.dart`
+   — intro → choose document → capture (BI front+back / passport main page) →
+   selfie → review → real signed-URL upload to R2 + complete + submit → live
+   status (UNDER_REVIEW / APPROVED / REJECTED / NEEDS_MORE_INFO). `AppScreenHeader`,
+   off-white, premium cards, red CTAs, no level dropdown, no `requested_level`, no
+   legacy JSON endpoint. Images are in-memory only and temp files are deleted
+   after upload; signed URLs / storage keys / paths / PII are never logged.
+   `image_picker` added for camera capture. Widget test covers the flow; analyze
+   + `flutter build bundle` green.
 
 ## Consequences
 
