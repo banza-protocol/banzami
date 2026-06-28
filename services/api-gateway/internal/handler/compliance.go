@@ -77,6 +77,23 @@ func (h *ComplianceHandler) KycStatus(w http.ResponseWriter, r *http.Request) {
 	writeRaw(w, http.StatusOK, data)
 }
 
+// MerchantStatus returns the authenticated merchant's KYB + AML status, so the
+// Business app can show the real verification state (read-only).
+// GET /v1/compliance/merchants/status
+func (h *ComplianceHandler) MerchantStatus(w http.ResponseWriter, r *http.Request) {
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "merchant authentication required")
+		return
+	}
+	status, err := h.svc.GetMerchantStatus(r.Context(), principal.MerchantID)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadGateway, "STATUS_UNAVAILABLE", "could not fetch KYB status")
+		return
+	}
+	writeJSON(w, http.StatusOK, status)
+}
+
 func writeRaw(w http.ResponseWriter, status int, data []byte) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

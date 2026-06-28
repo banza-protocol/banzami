@@ -457,6 +457,14 @@ class BanzamiClient {
     });
   }
 
+  /// The authenticated merchant's real KYB + AML status (read-only).
+  /// Returns `{kyb_status, aml_status}` — e.g. `PENDING` | `UNDER_REVIEW` |
+  /// `APPROVED` | `REJECTED` | `SUSPENDED`. Used by the Business app to show the
+  /// verification state without re-submitting the application.
+  Future<Map<String, dynamic>> getMerchantKybStatus() async {
+    return _get('/v1/compliance/merchants/status');
+  }
+
   static String _ymd(DateTime d) =>
       '${d.year.toString().padLeft(4, '0')}-'
       '${d.month.toString().padLeft(2, '0')}-'
