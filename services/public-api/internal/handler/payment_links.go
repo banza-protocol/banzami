@@ -121,7 +121,7 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	// resolves the wallet internally via consumer_id. RecipientID is the merchant's
 	// wallet UUID; the engine falls back to the `wallets` table when the recipient is
 	// not found in consumer_wallets.
-	_, err = h.core.SendTransfer(r.Context(), service.SendTransferRequest{
+	transfer, err := h.core.SendTransfer(r.Context(), service.SendTransferRequest{
 		IdempotencyKey: "pl-pay-" + link.ID,
 		SenderID:       consumer.ID,
 		RecipientID:    link.WalletID,
@@ -141,6 +141,11 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
+
+	// Collections (BANZA ADR-036): if this payment-link is the LINK surface of a
+	// CollectionShare's PaymentIntent, settle it now that the transfer is done.
+	// Best-effort + idempotent; a plain link payment is a no-op.
+	h.core.SettleCollectionSurface(r.Context(), "LINK", link.ID, transfer.ID)
 
 	// Mark the link as used — idempotent if the transfer already occurred.
 	updated, err := h.core.MarkPaymentLinkUsed(r.Context(), link.ID)

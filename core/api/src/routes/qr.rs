@@ -437,6 +437,21 @@ pub async fn pay(
     )
     .await;
 
+    // Collections (BANZA ADR-036): if this QR backs a CollectionShare's
+    // PaymentIntent, settle it now that the transfer is COMPLETED. Eventual +
+    // idempotent: a plain QR (no backing intent) is a no-op, and a replay marks
+    // nothing twice. Best-effort — a settlement hiccup never fails the payment.
+    if let Some(qr_id) = target.qr_code_id {
+        super::collections::settle_and_emit(
+            &state,
+            banzami_collections::Surface::Qr,
+            &qr_id.to_string(),
+            transfer.id,
+            state.environment.as_str(),
+        )
+        .await;
+    }
+
     Ok((
         StatusCode::CREATED,
         Json(serde_json::json!({

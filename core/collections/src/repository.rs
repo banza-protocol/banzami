@@ -81,6 +81,44 @@ pub trait CollectionRepository: Send + Sync {
         merchant_id: MerchantId,
         environment: &str,
     ) -> Result<Option<PaymentIntent>, CollectionError>;
+
+    // ── settlement (Increment 2) ────────────────────────────────────────────
+    /// Resolve the PaymentIntent backing a settled surface, by (surface,
+    /// surface_ref). Returns None when the surface is not a collection payment.
+    async fn find_intent_by_surface(
+        &self,
+        surface: Surface,
+        surface_ref: &str,
+        environment: &str,
+    ) -> Result<Option<PaymentIntent>, CollectionError>;
+    /// Mark an intent PAID conditionally (WHERE status != PAID). Returns true iff
+    /// this call performed the transition — the basis of idempotency.
+    async fn mark_intent_paid(
+        &self,
+        id: PaymentIntentId,
+        transfer_id: TransferId,
+    ) -> Result<bool, CollectionError>;
+    async fn find_share_by_intent(
+        &self,
+        intent_id: PaymentIntentId,
+    ) -> Result<Option<CollectionShare>, CollectionError>;
+    /// Mark a share PAID conditionally (WHERE status != PAID). Returns true iff
+    /// this call performed the transition (no double payment).
+    async fn mark_share_paid(
+        &self,
+        id: CollectionShareId,
+        transfer_id: TransferId,
+    ) -> Result<bool, CollectionError>;
+    /// (total_shares, paid_shares) for a collection — for the roll-up.
+    async fn share_counts(
+        &self,
+        collection_id: CollectionId,
+    ) -> Result<(i64, i64), CollectionError>;
+    /// Unscoped collection lookup (settlement resolves scope via the intent).
+    async fn find_collection_unscoped(
+        &self,
+        id: CollectionId,
+    ) -> Result<Option<Collection>, CollectionError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -545,5 +583,100 @@ impl CollectionRepository for PostgresCollectionRepository {
         .await
         .map_err(CollectionError::Database)?;
         Ok(row.map(IntentRow::into_domain))
+    }
+
+    async fn find_intent_by_surface(
+        &self,
+        surface: Surface,
+        surface_ref: &str,
+        environment: &str,
+    ) -> Result<Option<PaymentIntent>, CollectionError> {
+        let row = sqlx::query_as::<_, IntentRow>(&format!(
+            "{I_SELECT} WHERE surface = $1 AND surface_ref = $2 AND environment = $3 LIMIT 1"
+        ))
+        .bind(surface.as_str())
+        .bind(surface_ref)
+        .bind(environment)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        Ok(row.map(IntentRow::into_domain))
+    }
+
+    async fn mark_intent_paid(
+        &self,
+        id: PaymentIntentId,
+        transfer_id: TransferId,
+    ) -> Result<bool, CollectionError> {
+        let res = sqlx::query(
+            "UPDATE payment_intents SET status = 'PAID', transfer_id = $2, \
+             version = version + 1, updated_at = NOW() \
+             WHERE id = $1 AND status <> 'PAID'",
+        )
+        .bind(id.as_uuid())
+        .bind(transfer_id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        Ok(res.rows_affected() > 0)
+    }
+
+    async fn find_share_by_intent(
+        &self,
+        intent_id: PaymentIntentId,
+    ) -> Result<Option<CollectionShare>, CollectionError> {
+        let row = sqlx::query_as::<_, ShareRow>(&format!(
+            "{S_SELECT} WHERE payment_intent_id = $1 LIMIT 1"
+        ))
+        .bind(intent_id.as_uuid())
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        Ok(row.map(ShareRow::into_domain))
+    }
+
+    async fn mark_share_paid(
+        &self,
+        id: CollectionShareId,
+        transfer_id: TransferId,
+    ) -> Result<bool, CollectionError> {
+        let res = sqlx::query(
+            "UPDATE collection_shares SET status = 'PAID', transfer_id = $2, \
+             paid_at = NOW(), updated_at = NOW() \
+             WHERE id = $1 AND status <> 'PAID'",
+        )
+        .bind(id.as_uuid())
+        .bind(transfer_id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        Ok(res.rows_affected() > 0)
+    }
+
+    async fn share_counts(
+        &self,
+        collection_id: CollectionId,
+    ) -> Result<(i64, i64), CollectionError> {
+        let row: (i64, i64) = sqlx::query_as(
+            "SELECT COUNT(*)::bigint, COUNT(*) FILTER (WHERE status = 'PAID')::bigint \
+             FROM collection_shares WHERE collection_id = $1",
+        )
+        .bind(collection_id.as_uuid())
+        .fetch_one(&self.pool)
+        .await
+        .map_err(CollectionError::Database)?;
+        Ok(row)
+    }
+
+    async fn find_collection_unscoped(
+        &self,
+        id: CollectionId,
+    ) -> Result<Option<Collection>, CollectionError> {
+        let row = sqlx::query_as::<_, CollectionRow>(&format!("{C_SELECT} WHERE id = $1"))
+            .bind(id.as_uuid())
+            .fetch_optional(&self.pool)
+            .await
+            .map_err(CollectionError::Database)?;
+        row.map(CollectionRow::into_domain).transpose()
     }
 }

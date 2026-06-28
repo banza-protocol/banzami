@@ -237,3 +237,14 @@ pub struct ResolvedShare {
     pub amount_minor: i64,
     pub participant: Option<String>,
 }
+
+/// Result of settling a PaymentIntent from a real surface payment (Increment 2).
+/// `newly_paid` is false on idempotent replays (already PAID) — callers MUST NOT
+/// emit events when false. `transition` is set when the collection rolled up.
+pub struct SettlementOutcome {
+    pub intent_id: PaymentIntentId,
+    pub share: Option<CollectionShare>,
+    pub collection: Option<Collection>,
+    pub newly_paid: bool,
+    pub transition: Option<CollectionStatus>,
+}

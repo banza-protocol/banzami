@@ -498,6 +498,10 @@ async fn main() {
             "/internal/v1/collection-shares/:id/surface",
             post(routes::collections::surface_share),
         )
+        .route(
+            "/internal/v1/collections/settle-surface",
+            post(routes::collections::settle_surface),
+        )
         // Acquiring — payment initiation, callbacks, and simulation helper
         .route(
             "/internal/v1/acquiring/payments",

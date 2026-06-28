@@ -18,10 +18,12 @@ use chrono::{DateTime, Utc};
 use serde::Deserialize;
 
 use banzami_collections::{
-    Collection, CollectionEngine, CollectionError, CollectionRule, CreateCollectionRequest,
-    CreateShareRequest, Surface,
+    Collection, CollectionEngine, CollectionError, CollectionRule, CollectionShare,
+    CollectionStatus, CreateCollectionRequest, CreateShareRequest, Surface,
 };
-use banzami_types::{CollectionId, CollectionShareId, MerchantId, WalletId};
+use banzami_payment_links::{CreatePaymentLinkRequest, PaymentLinkEngine};
+use banzami_qr::{CreateDynamicQrRequest, QrEngine, QrOwnerType};
+use banzami_types::{CollectionId, CollectionShareId, Currency, MerchantId, TransferId, WalletId};
 
 use crate::{
     error::{ApiError, ApiResult},
@@ -457,9 +459,26 @@ pub async fn surface_share(
         .parse::<CollectionShareId>()
         .map_err(|_| ApiError::bad_request("invalid share id"))?;
     let merchant_id = parse_merchant(&body.merchant_id)?;
+
+    // SurfaceResolver (Increment 2): create the REAL surface artifact (QR/LINK)
+    // for this share using the existing engines; REQUEST is recognised but not yet
+    // implemented. The surface tables never learn about the PaymentIntent — the
+    // only link is intent.surface_ref -> artifact id (resolved back at settlement).
+    let share0 = state
+        .collections
+        .get_share(sid, merchant_id, &body.environment)
+        .await
+        .map_err(map_err)?;
+    let collection = state
+        .collections
+        .get_collection(share0.collection_id, merchant_id, &body.environment)
+        .await
+        .map_err(map_err)?;
+    let surface_ref = create_surface(&state, body.surface, &collection, &share0).await?;
+
     let (intent, share) = state
         .collections
-        .surface_share(sid, merchant_id, &body.environment, body.surface, body.surface_ref)
+        .surface_share(sid, merchant_id, &body.environment, body.surface, Some(surface_ref))
         .await
         .map_err(map_err)?;
 
@@ -518,4 +537,170 @@ pub async fn events(
     .map_err(|e| ApiError::internal(e.to_string()))?;
     let data: Vec<serde_json::Value> = rows.into_iter().map(|r| r.0).collect();
     Ok(Json(serde_json::json!({ "data": data })))
+}
+
+// ---------------------------------------------------------------------------
+// SurfaceResolver — create the concrete payment surface for a share's intent.
+// One place decides per-surface; the rest of Collections is surface-agnostic.
+// ---------------------------------------------------------------------------
+
+async fn create_surface(
+    state: &AppState,
+    surface: Surface,
+    collection: &Collection,
+    share: &CollectionShare,
+) -> Result<String, ApiError> {
+    match surface {
+        Surface::Qr => {
+            let currency = Currency::from_code(&share.currency)
+                .ok_or_else(|| ApiError::bad_request("unsupported currency"))?;
+            let expires_at = share
+                .expires_at
+                .unwrap_or_else(|| Utc::now() + chrono::Duration::days(7));
+            let qr = state
+                .qr
+                .create_dynamic(CreateDynamicQrRequest {
+                    owner_id: collection.merchant_id.as_uuid(),
+                    owner_type: QrOwnerType::Merchant,
+                    currency,
+                    amount_minor: share.amount_minor,
+                    expires_at,
+                    reference: Some(share.id.to_string()),
+                })
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
+            Ok(qr.id.to_string())
+        }
+        Surface::Link => {
+            let link = state
+                .payment_links
+                .create(CreatePaymentLinkRequest {
+                    merchant_id: collection.merchant_id,
+                    wallet_id: collection.wallet_id,
+                    amount_minor: Some(share.amount_minor),
+                    currency: share.currency.clone(),
+                    description: collection.title.clone(),
+                    expires_at: share.expires_at,
+                })
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
+            Ok(link.id.to_string())
+        }
+        // Recognised by the model but not wired to a real flow yet.
+        Surface::Request => Err(ApiError::unprocessable(
+            "UNSUPPORTED_SURFACE",
+            "REQUEST surface is recognised but not yet implemented",
+        )),
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Settlement — called when a real surface payment settles (transfer COMPLETED).
+// Idempotent: a replay changes nothing and emits nothing. Best-effort: a plain
+// QR/link payment (no backing intent) is a no-op. NEVER marks PAID without a
+// real transfer.
+// ---------------------------------------------------------------------------
+
+pub async fn settle_and_emit(
+    state: &AppState,
+    surface: Surface,
+    surface_ref: &str,
+    transfer_id: TransferId,
+    environment: &str,
+) {
+    let outcome = match state
+        .collections
+        .settle_from_surface(surface, surface_ref, transfer_id, environment)
+        .await
+    {
+        Ok(Some(o)) => o,
+        Ok(None) => return,        // not a collection payment
+        Err(e) => {
+            tracing::warn!(error = %e, surface_ref, "collection settlement failed");
+            return; // never fail the underlying payment
+        }
+    };
+    if !outcome.newly_paid {
+        return; // idempotent replay — no second PAID, no second event
+    }
+    let Some(share) = outcome.share.as_ref() else {
+        return;
+    };
+    let merchant = share.merchant_id;
+    emit(
+        state,
+        merchant,
+        "payment_intent.paid",
+        format!("payment_intent.paid:{}", outcome.intent_id),
+        serde_json::json!({
+            "payment_intent_id": outcome.intent_id.to_string(),
+            "transfer_id": transfer_id.to_string(),
+            "amount_minor": share.amount_minor,
+        }),
+    )
+    .await;
+    emit(
+        state,
+        merchant,
+        "collection.share.paid",
+        format!("collection.share.paid:{}", share.id),
+        serde_json::json!({
+            "collection_id": share.collection_id.to_string(),
+            "share_id": share.id.to_string(),
+            "payment_intent_id": outcome.intent_id.to_string(),
+            "transfer_id": transfer_id.to_string(),
+            "amount_minor": share.amount_minor,
+        }),
+    )
+    .await;
+    match outcome.transition {
+        Some(CollectionStatus::Completed) => {
+            emit(
+                state,
+                merchant,
+                "collection.completed",
+                format!("collection.completed:{}", share.collection_id),
+                serde_json::json!({ "collection_id": share.collection_id.to_string() }),
+            )
+            .await
+        }
+        Some(CollectionStatus::PartiallyCompleted) => {
+            emit(
+                state,
+                merchant,
+                "collection.partially_completed",
+                format!("collection.partially_completed:{}", share.collection_id),
+                serde_json::json!({ "collection_id": share.collection_id.to_string() }),
+            )
+            .await
+        }
+        _ => {}
+    }
+}
+
+#[derive(Deserialize)]
+pub struct SettleSurfaceBody {
+    pub surface: Surface,
+    pub surface_ref: String,
+    pub transfer_id: String,
+    pub environment: String,
+}
+
+/// Internal settlement entry point — used by surfaces that settle outside the
+/// core (e.g. merchant payment-link payment orchestrated by public-api). The QR
+/// path calls `settle_and_emit` directly. Idempotent.
+pub async fn settle_surface(
+    State(state): State<AppState>,
+    Json(body): Json<SettleSurfaceBody>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let tid = body
+        .transfer_id
+        .parse::<TransferId>()
+        .map_err(|_| ApiError::bad_request("invalid transfer_id"))?;
+    // The core deployment serves exactly one environment; the intent was created
+    // with that same environment. Use it (the body field is informational).
+    let _ = body.environment;
+    let env = state.environment.as_str().to_string();
+    settle_and_emit(&state, body.surface, &body.surface_ref, tid, &env).await;
+    Ok(Json(serde_json::json!({ "ok": true })))
 }

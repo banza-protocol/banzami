@@ -15,7 +15,7 @@ pub mod rules;
 pub use domain::{
     Collection, CollectionRule, CollectionShare, CollectionStatus, CreateCollectionRequest,
     CreateShareRequest, Divisibility, FixedShare, IntentStatus, PaymentIntent, PercentShare,
-    ResolvedShare, ShareStatus, Surface,
+    ResolvedShare, SettlementOutcome, ShareStatus, Surface,
 };
 pub use engine::{CollectionEngine, PostgresCollectionEngine};
 pub use repository::{CollectionRepository, PostgresCollectionRepository};

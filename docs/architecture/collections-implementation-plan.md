@@ -38,14 +38,49 @@ in `~/banza`, so the operator implementation is unblocked and proceeds downward
   `collection.partially_completed`, `collection.completed`, `collection.cancelled`,
   `payment_intent.created`.
 
-## Deferred — increment 2 (live settlement) — NOT in this increment
+## Delivered — increment 2 (live settlement)
 
-The hook that marks a share **PAID** on a real confirmed Transfer (touching the
-transfer engine) is a separate, reviewed increment: `collection.share.paid`,
-`payment_intent.paid`, rollup to `collection.completed`, and refunds-per-share
-(ADR-030). No share can reach PAID until then — there is no optimistic/simulated
-payment. The app-side "Cobrança dividida" prototype stays disabled-by-default
-(Banzami ADR-019) until the SDK/UI lands after settlement.
+A share reaches **PAID only on a real confirmed Transfer** — never optimistic,
+never simulated. Architecture (confirmed 2026-06-28):
+
+- **Eventual + idempotent** settlement (matches the existing
+  `record_merchant_qr_payment` precedent), not in-transaction: once a surface
+  payment's Transfer is `COMPLETED`, the surface settlement path calls
+  `settle_from_surface(surface, surface_ref, transfer_id, env)`. Idempotent via
+  conditional `WHERE status <> 'PAID'` updates — a replay marks nothing twice and
+  emits nothing; a different transfer on a PAID share never double-pays
+  (INV-COLLECTION-006).
+- **No reverse coupling:** surface tables (qr/payment-links) carry **no**
+  `payment_intent_id`. The only link is `intent.surface_ref → artifact id`,
+  resolved back at settlement by `(surface, surface_ref)`.
+- **SurfaceResolver** (`core/api` route layer) centralises per-surface logic:
+  - **QR** — functional: creates a real dynamic merchant QR; settles via the hook
+    in `qr.rs` (after the transfer COMPLETED).
+  - **LINK** — functional: creates a real merchant payment-link; settles via the
+    `public-api` payment-link Pay path calling the internal
+    `/internal/v1/collections/settle-surface` endpoint.
+  - **REQUEST** — recognised by the model, returns `UNSUPPORTED_SURFACE` (not yet
+    wired). No fake behaviour.
+- **Roll-up** recomputed from persisted shares (never a counter): `OPEN →
+  PARTIALLY_COMPLETED → COMPLETED`, forward-only, never overwriting a terminal
+  collection.
+- **Events** via the outbox, only on a real transition: `payment_intent.paid`,
+  `collection.share.paid`, `collection.partially_completed`,
+  `collection.completed`. Idempotency-keyed (`<type>:<id>`).
+- **Ledger untouched:** Collections only observe `Transfer COMPLETED`; they never
+  post to the ledger.
+
+Proven by `core/collections/tests/invariants.rs` (11 tests: first payment,
+idempotent replay, no double-pay, last-share → COMPLETED, partial roll-up,
+non-collection no-op).
+
+### Still deferred (increment 3+)
+- **REQUEST** surface wiring (payment-requests flow).
+- **Refunds per share** (ADR-030, source-aware): the model is refund-ready (each
+  share has its own `transfer_id`; shares are independent), but refund logic is
+  not implemented. No global refund.
+- The app-side "Cobrança dividida" prototype stays disabled-by-default (Banzami
+  ADR-019) until the SDK/UI lands.
 
 ## Operator scope (once unblocked)
 

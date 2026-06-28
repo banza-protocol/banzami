@@ -175,6 +175,86 @@ impl CollectionRepository for MemRepo {
             .filter(|p| p.merchant_id.as_uuid() == merchant_id.as_uuid() && p.environment == environment)
             .cloned())
     }
+
+    async fn find_intent_by_surface(
+        &self,
+        surface: Surface,
+        surface_ref: &str,
+        environment: &str,
+    ) -> Result<Option<PaymentIntent>, CollectionError> {
+        Ok(self
+            .intents
+            .lock()
+            .unwrap()
+            .values()
+            .find(|p| {
+                p.surface.as_str() == surface.as_str()
+                    && p.surface_ref.as_deref() == Some(surface_ref)
+                    && p.environment == environment
+            })
+            .cloned())
+    }
+    async fn mark_intent_paid(
+        &self,
+        id: PaymentIntentId,
+        transfer_id: banzami_types::TransferId,
+    ) -> Result<bool, CollectionError> {
+        let mut g = self.intents.lock().unwrap();
+        let p = g.get_mut(&id.as_uuid()).ok_or(CollectionError::IntentNotFound(id))?;
+        if matches!(p.status, IntentStatus::Paid) {
+            return Ok(false);
+        }
+        p.status = IntentStatus::Paid;
+        p.transfer_id = Some(transfer_id);
+        Ok(true)
+    }
+    async fn find_share_by_intent(
+        &self,
+        intent_id: PaymentIntentId,
+    ) -> Result<Option<CollectionShare>, CollectionError> {
+        Ok(self
+            .shares
+            .lock()
+            .unwrap()
+            .values()
+            .find(|s| s.payment_intent_id.map(|p| p.as_uuid()) == Some(intent_id.as_uuid()))
+            .cloned())
+    }
+    async fn mark_share_paid(
+        &self,
+        id: CollectionShareId,
+        transfer_id: banzami_types::TransferId,
+    ) -> Result<bool, CollectionError> {
+        let mut g = self.shares.lock().unwrap();
+        let s = g.get_mut(&id.as_uuid()).ok_or(CollectionError::ShareNotFound(id))?;
+        if matches!(s.status, ShareStatus::Paid) {
+            return Ok(false);
+        }
+        s.status = ShareStatus::Paid;
+        s.transfer_id = Some(transfer_id);
+        Ok(true)
+    }
+    async fn share_counts(
+        &self,
+        collection_id: CollectionId,
+    ) -> Result<(i64, i64), CollectionError> {
+        let g = self.shares.lock().unwrap();
+        let mut total = 0i64;
+        let mut paid = 0i64;
+        for s in g.values().filter(|s| s.collection_id.as_uuid() == collection_id.as_uuid()) {
+            total += 1;
+            if matches!(s.status, ShareStatus::Paid) {
+                paid += 1;
+            }
+        }
+        Ok((total, paid))
+    }
+    async fn find_collection_unscoped(
+        &self,
+        id: CollectionId,
+    ) -> Result<Option<Collection>, CollectionError> {
+        Ok(self.collections.lock().unwrap().get(&id.as_uuid()).cloned())
+    }
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -381,4 +461,79 @@ async fn surface_share_creates_intent_and_is_not_repeatable() {
         e.surface_share(share_id, c.merchant_id, "SANDBOX", Surface::Qr, None).await.unwrap_err(),
         CollectionError::InvalidStatus(_)
     ));
+}
+
+// ─── Increment 2: settlement (eventual, idempotent) ──────────────────────────
+
+use banzami_types::TransferId;
+
+async fn surface(e: &PostgresCollectionEngine<MemRepo>, share: &CollectionShare, merchant: MerchantId, sref: &str) {
+    e.surface_share(share.id, merchant, "SANDBOX", Surface::Qr, Some(sref.into())).await.unwrap();
+}
+
+#[tokio::test]
+async fn settlement_first_payment_marks_paid_and_rolls_up_partial() {
+    let e = engine();
+    let (c, shares) = e
+        .create_collection(req(2_000_000, CollectionRule::EqualSplit { participants_count: 2, divisibility: Divisibility::Exact }))
+        .await
+        .unwrap();
+    surface(&e, &shares[0], c.merchant_id, "qr-1").await;
+
+    let tid = TransferId::new();
+    let out = e.settle_from_surface(Surface::Qr, "qr-1", tid, "SANDBOX").await.unwrap().unwrap();
+    assert!(out.newly_paid, "real transfer -> share PAID");
+    assert_eq!(out.transition, Some(CollectionStatus::PartiallyCompleted));
+    let share = out.share.unwrap();
+    assert_eq!(share.status, ShareStatus::Paid);
+    assert_eq!(share.transfer_id, Some(tid), "INV-COLLECTION-005: real transfer recorded");
+    assert_eq!(out.collection.unwrap().status, CollectionStatus::PartiallyCompleted);
+}
+
+#[tokio::test]
+async fn settlement_is_idempotent_no_double_pay_no_double_event() {
+    let e = engine();
+    let (c, shares) = e
+        .create_collection(req(2_000_000, CollectionRule::EqualSplit { participants_count: 2, divisibility: Divisibility::Exact }))
+        .await
+        .unwrap();
+    surface(&e, &shares[0], c.merchant_id, "qr-1").await;
+    let tid = TransferId::new();
+    let first = e.settle_from_surface(Surface::Qr, "qr-1", tid, "SANDBOX").await.unwrap().unwrap();
+    assert!(first.newly_paid);
+
+    // Replay the SAME settlement -> no second PAID, no transition (no event).
+    let again = e.settle_from_surface(Surface::Qr, "qr-1", tid, "SANDBOX").await.unwrap().unwrap();
+    assert!(!again.newly_paid, "idempotent: already paid");
+    assert_eq!(again.transition, None);
+
+    // A *different* transfer on an already-PAID share also does not double-pay.
+    let other = e.settle_from_surface(Surface::Qr, "qr-1", TransferId::new(), "SANDBOX").await.unwrap().unwrap();
+    assert!(!other.newly_paid, "INV-COLLECTION-006: PAID is terminal, no double payment");
+}
+
+#[tokio::test]
+async fn settlement_last_share_completes_collection() {
+    let e = engine();
+    let (c, shares) = e
+        .create_collection(req(2_000_000, CollectionRule::EqualSplit { participants_count: 2, divisibility: Divisibility::Exact }))
+        .await
+        .unwrap();
+    surface(&e, &shares[0], c.merchant_id, "qr-1").await;
+    surface(&e, &shares[1], c.merchant_id, "qr-2").await;
+
+    let p1 = e.settle_from_surface(Surface::Qr, "qr-1", TransferId::new(), "SANDBOX").await.unwrap().unwrap();
+    assert_eq!(p1.transition, Some(CollectionStatus::PartiallyCompleted));
+
+    let p2 = e.settle_from_surface(Surface::Qr, "qr-2", TransferId::new(), "SANDBOX").await.unwrap().unwrap();
+    assert_eq!(p2.transition, Some(CollectionStatus::Completed), "all shares paid -> COMPLETED");
+    assert_eq!(p2.collection.unwrap().status, CollectionStatus::Completed);
+}
+
+#[tokio::test]
+async fn settlement_of_non_collection_surface_is_a_noop() {
+    let e = engine();
+    // No intent exists for this surface_ref -> not a collection payment.
+    let out = e.settle_from_surface(Surface::Qr, "unrelated-qr", TransferId::new(), "SANDBOX").await.unwrap();
+    assert!(out.is_none(), "plain QR/link payments are not affected");
 }

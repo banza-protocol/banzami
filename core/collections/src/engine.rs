@@ -6,11 +6,13 @@
 
 use chrono::Utc;
 
-use banzami_types::{CollectionId, CollectionShareId, MerchantId, PaymentIntentId, WalletId};
+use banzami_types::{
+    CollectionId, CollectionShareId, MerchantId, PaymentIntentId, TransferId, WalletId,
+};
 
 use crate::domain::{
     Collection, CollectionShare, CollectionStatus, CreateCollectionRequest, CreateShareRequest,
-    IntentStatus, PaymentIntent, ShareStatus, Surface,
+    IntentStatus, PaymentIntent, SettlementOutcome, ShareStatus, Surface,
 };
 use crate::repository::CollectionRepository;
 use crate::{rules, CollectionError};
@@ -70,6 +72,13 @@ pub trait CollectionEngine: Send + Sync {
         req: CreateShareRequest,
     ) -> Result<CollectionShare, CollectionError>;
 
+    async fn get_share(
+        &self,
+        share_id: CollectionShareId,
+        merchant_id: MerchantId,
+        environment: &str,
+    ) -> Result<CollectionShare, CollectionError>;
+
     async fn list_shares(
         &self,
         collection_id: CollectionId,
@@ -95,6 +104,20 @@ pub trait CollectionEngine: Send + Sync {
         &self,
         collection_id: CollectionId,
     ) -> Result<i64, CollectionError>;
+
+    /// Settle a PaymentIntent from a real, confirmed surface payment (Increment 2).
+    /// Resolves the intent by (surface, surface_ref); if it backs a collection
+    /// share, marks the intent + share PAID with the real transfer_id and rolls up
+    /// the collection. Idempotent: a replay (already PAID) returns newly_paid=false
+    /// and changes nothing. Returns None when the surface is not a collection
+    /// payment (a plain QR/link payment). NEVER marks PAID without a real transfer.
+    async fn settle_from_surface(
+        &self,
+        surface: Surface,
+        surface_ref: &str,
+        transfer_id: TransferId,
+        environment: &str,
+    ) -> Result<Option<SettlementOutcome>, CollectionError>;
 }
 
 pub struct PostgresCollectionEngine<R: CollectionRepository> {
@@ -332,6 +355,18 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
         Ok(share)
     }
 
+    async fn get_share(
+        &self,
+        share_id: CollectionShareId,
+        merchant_id: MerchantId,
+        environment: &str,
+    ) -> Result<CollectionShare, CollectionError> {
+        self.repo
+            .find_share(share_id, merchant_id, environment)
+            .await?
+            .ok_or(CollectionError::ShareNotFound(share_id))
+    }
+
     async fn list_shares(
         &self,
         collection_id: CollectionId,
@@ -409,5 +444,92 @@ impl<R: CollectionRepository> CollectionEngine for PostgresCollectionEngine<R> {
         collection_id: CollectionId,
     ) -> Result<i64, CollectionError> {
         self.repo.collected_amount(collection_id).await
+    }
+
+    async fn settle_from_surface(
+        &self,
+        surface: Surface,
+        surface_ref: &str,
+        transfer_id: TransferId,
+        environment: &str,
+    ) -> Result<Option<SettlementOutcome>, CollectionError> {
+        // 1. Resolve the intent from the surface. Not a collection payment -> no-op.
+        let Some(intent) = self
+            .repo
+            .find_intent_by_surface(surface, surface_ref, environment)
+            .await?
+        else {
+            return Ok(None);
+        };
+
+        // 2. Mark the intent PAID (idempotent: conditional WHERE status != PAID).
+        let _intent_transitioned = self.repo.mark_intent_paid(intent.id, transfer_id).await?;
+
+        // 3. Mark the backing share PAID (idempotent). This transition is the
+        //    authoritative "newly paid" signal — events fire only on a real change.
+        let mut share = self.repo.find_share_by_intent(intent.id).await?;
+        let newly_paid = match &share {
+            Some(s) => self.repo.mark_share_paid(s.id, transfer_id).await?,
+            None => false,
+        };
+        if newly_paid {
+            if let Some(s) = share.as_mut() {
+                s.status = ShareStatus::Paid;
+                s.transfer_id = Some(transfer_id);
+                s.paid_at = Some(Utc::now());
+            }
+        }
+
+        // 4. Roll up the collection from the persisted shares (never a counter).
+        let mut transition = None;
+        let mut collection = match &share {
+            Some(s) => self.repo.find_collection_unscoped(s.collection_id).await?,
+            None => None,
+        };
+        if newly_paid {
+            if let Some(c) = collection.as_mut() {
+                let collected = self.repo.collected_amount(c.id).await?;
+                let (total_shares, paid_shares) = self.repo.share_counts(c.id).await?;
+                let closed = c.rule.is_closed();
+                let target_reached = (closed && collected >= c.total_amount_minor)
+                    || (total_shares > 0 && paid_shares == total_shares);
+                let next = if target_reached {
+                    Some(CollectionStatus::Completed)
+                } else if collected > 0 {
+                    Some(CollectionStatus::PartiallyCompleted)
+                } else {
+                    None
+                };
+                // Forward-only; never overwrite a terminal collection.
+                if let Some(ns) = next {
+                    let terminal = matches!(
+                        c.status,
+                        CollectionStatus::Completed
+                            | CollectionStatus::Cancelled
+                            | CollectionStatus::Expired
+                            | CollectionStatus::Failed
+                    );
+                    if c.status != ns && !terminal {
+                        let closed_at = if matches!(ns, CollectionStatus::Completed) {
+                            Some(Utc::now())
+                        } else {
+                            None
+                        };
+                        let updated =
+                            self.repo.update_collection_status(c.id, ns, closed_at).await?;
+                        *c = updated;
+                        transition = Some(ns);
+                    }
+                }
+            }
+        }
+
+        Ok(Some(SettlementOutcome {
+            intent_id: intent.id,
+            share,
+            collection,
+            newly_paid,
+            transition,
+        }))
     }
 }
