@@ -233,23 +233,29 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
                     ),
                     child: Row(
                       children: [
+                        // Same hierarchy as the Merchant dashboard: 'QR Code' is
+                        // the primary CTA (premium red gradient); Enviar/Receber
+                        // are secondary (accent). Identical BanzamiActionTile
+                        // variants — one shared design-system component.
                         BanzamiActionTile(
-                          icon:   Icons.qr_code_rounded,
-                          label:  'QR Code',
-                          onTap:  _onScan,
+                          icon:    Icons.qr_code_rounded,
+                          label:   'QR Code',
+                          onTap:   _onScan,
+                          primary: true,
+                        ),
+                        const SizedBox(width: BanzamiSpacing.md),
+                        BanzamiActionTile(
+                          icon:   Icons.arrow_upward_rounded,
+                          label:  'Enviar',
+                          onTap:  _onSend,
                           accent: true,
                         ),
                         const SizedBox(width: BanzamiSpacing.md),
                         BanzamiActionTile(
-                          icon:  Icons.arrow_upward_rounded,
-                          label: 'Enviar',
-                          onTap: _onSend,
-                        ),
-                        const SizedBox(width: BanzamiSpacing.md),
-                        BanzamiActionTile(
-                          icon:  Icons.arrow_downward_rounded,
-                          label: 'Receber',
-                          onTap: _onReceive,
+                          icon:   Icons.arrow_downward_rounded,
+                          label:  'Receber',
+                          onTap:  _onReceive,
+                          accent: true,
                         ),
                       ],
                     ),
