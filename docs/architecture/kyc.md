@@ -1,6 +1,6 @@
 # KYC — Consumer Identity Verification (architecture)
 
-**Status:** Increment 4 — backend + Flutter SDK + Consumer mobile implemented · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
+**Status:** Live (sandbox + production) · backend + Flutter SDK + Consumer mobile · **Authority:** Banzami ADR-020 · BANZA ADR-038 (KYC = operator policy)
 
 Banzami's first official consumer identity verification. Real evidence (document
 + selfie), real review, operator-decided level. Files live in **Cloudflare R2**;
@@ -78,8 +78,9 @@ no public domain); access is only via short-TTL signed PUT/GET (SigV4) + HEAD.
 CORS on the KYC buckets exists only to permit the signed upload/download from the
 operator origins. A KYC-scoped R2 token (not the KYB token) is used. See the
 provisioning runbook: [docs/runbooks/kyc-r2-storage.md](../runbooks/kyc-r2-storage.md)
-and the CORS policies in `infra/r2/`. Live storage is documented but **not
-activated** until an explicit GO.
+and the CORS policies in `infra/r2/`. **Live is activated** (2026-06-29):
+`banzami-kyc-live` is wired to the live `public-api` + `admin-api`, migrations
+`0067`+`0068` applied to the live `banzami` DB.
 
 ## APIs
 

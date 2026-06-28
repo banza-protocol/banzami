@@ -133,7 +133,11 @@ evidence becomes UPLOADED only after HEAD verify.
   (`AccessDenied`), so CORS is applied in the dashboard using `infra/r2/`. It is
   **not** needed for the server-side signed PUT/HEAD validated above; it **is**
   needed before browser/mobile origin uploads (SDK/mobile increments).
-- **Live not activated.** `banzami-kyc-live` is not wired into any service.
+- **Live activated (2026-06-29).** `banzami-kyc-live` is wired into the live
+  `public-api` + `admin-api` (bucket hardcoded in each service block; token /
+  endpoint shared via `KYC_STORAGE_*` in `.env`). Migrations `0067` + `0068`
+  applied to the live `banzami` DB (schema backup taken first). Full flow
+  validated on `api.banzami.com` against `banzami-kyc-live`; test data cleaned.
 
 - Signed URLs are short-TTL (default 300s); there are no permanent public URLs.
 - Buckets are private; CORS only enables the signed upload/download from operator
