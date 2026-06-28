@@ -144,6 +144,12 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/accept", applicationsH.AcceptDocument)
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/reject", applicationsH.RejectDocument)
 
+		// Merchant KYB documents (post-approval) — admin review.
+		merchantKybH := handler.NewMerchantKybHandler(gw)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/documents", merchantKybH.List)
+		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-kyb/documents/{id}/approve", merchantKybH.Approve)
+		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-kyb/documents/{id}/reject", merchantKybH.Reject)
+
 		// Consumer KYC review (ADR-020). View reuses consumer.view; decisions
 		// reuse compliance.review (the operator decides the granted level).
 		kycH := handler.NewKycReviewHandler(kycReview)

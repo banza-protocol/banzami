@@ -1,52 +1,89 @@
 # KYB — Business verification inside the Merchant app
 
-**Status:** Status read-only (real) · document update = backend gap reported
+**Status:** Implemented (merchant-authenticated documents, real lifecycle) ·
+operator policy — KYB · not deployed to live without GO
 
 The Business (Merchant) app does **not** repeat the onboarding application. A
 merchant applies at `/comerciantes/candidatura` (business data + base documents),
 the Banzami team reviews and approves, and only then are credentials issued.
-Inside the app the merchant just **sees the verification state** and updates
-documents when supported — never re-submits the business, the @handle, the legal
+Inside the app the merchant **sees the real verification state** and **updates
+documents**, never re-submitting the business, the @handle, the legal
 representative, estimated volume, category or location.
 
-## Base application documents
+## Two document stores (application vs merchant)
 
-* Registo Comercial — `BUSINESS_REGISTRATION`
-* NIF da empresa — `TAX_ID`
-* Documento do representante — `REPRESENTATIVE_ID`
+| Store | Scope | Lifetime | Purpose |
+|---|---|---|---|
+| `merchant_application_documents` | application-scoped (public apply flow) | the application | the documents sent at apply time — **history, preserved** |
+| `merchant_kyb_documents` | **merchant-scoped** (authenticated) | post-approval | the documents the merchant maintains in-app — **source of truth** |
 
-## Screen — "Verificação do negócio"
+On merchant approval the application's documents are linked to the new merchant
+and **bridged** into `merchant_kyb_documents` as `VALID` (the application rows are
+never lost). See `BridgeFromApplicationTx`.
 
-`apps/mobile/lib/merchant/screens/kyb_screen.dart`. Three cards:
+## Document model (`merchant_kyb_documents`, migration 0069)
 
-1. **Estado da verificação** — real KYB status (see below): Em análise / Aprovado
-   / Rejeitado / Suspenso.
-2. **Documentos da empresa** — the three base documents, each with a state badge
-   and an "Atualizar documento" action.
-3. **Ações necessárias** — derived from the verification status.
+Three canonical slots: `COMMERCIAL_REGISTRATION` (Registo Comercial),
+`COMPANY_TAX_ID` (NIF da empresa), `REPRESENTATIVE_ID` (Documento do representante).
 
-The old in-app KYB **form** (legal name + NIF + representative re-entry, via the
-legacy `verifyMerchantKyb` JSON endpoint) is removed.
+Lifecycle: `MISSING` (no row) → `PENDING_UPLOAD` (upload-url) → `PENDING_REVIEW`
+(complete, HEAD-verified) → `VALID` | `REJECTED` (reason required) → `EXPIRED`
+(`valid_until` passed; never deletes) / `REPLACED` (superseded by a newer accepted
+doc). Fields: `valid_until`, `rejection_reason`, `replaced_by_document_id`,
+`sha256`, `mime_type`, `size_bytes`, `submitted_at`, `reviewed_at`. Plus a
+`merchant_kyb_events` outbox (idempotent; no PII / storage_key / signed URL).
 
-## Backend audit (what's real vs gap)
+## Storage
 
-| Capability | Backend | App behaviour |
-|---|---|---|
-| KYB status (read) | **Real** — `GET /v1/compliance/merchants/status` (exposes the existing `GetMerchantStatus` → `{kyb_status, aml_status}`) | Card 1 shows the real state; falls back to the session `verified` flag if the endpoint isn't deployed yet. |
-| Per-document status | **Gap** — `merchant_application_documents` is application-scoped (public, keyed by application id); no merchant-authenticated list exists, and there are **no expiry/validity columns** | Document badges show a state **derived from the case-level KYB status** (Válido / Em análise / Rejeitado), not per-document. `Expirado` / `Em falta` are not representable yet. |
-| Document update / replace | **Gap** — no merchant-authenticated upload-url/confirm; the document flow is pre-approval, application-scoped | "Atualizar documento" **honestly reports the gap** (directs to support) — it never fakes an upload. |
+KYB R2 buckets (`banzami-kyb-sandbox` / `banzami-kyb-live`), **never** KYC. Key
+prefix `kyb/merchant/{merchant_id}/{document_type}/{document_id}`. The DB holds
+only `{bucket, storage_key, mime, sha256, size}`; signed short-TTL PUT (merchant)
+/ GET (admin). MIME allowlist: PDF/JPEG/PNG; max size enforced (`KYB_MAX_FILE_SIZE_BYTES`).
 
-### Gaps to close (future increment, operator policy — KYB)
+## APIs
 
-A merchant-authenticated KYB document surface, e.g.:
+Merchant (gateway, merchant-authenticated):
 
 ```
-GET  /v1/merchant/kyb/documents                       (scoped by principal.MerchantID)
-POST /v1/merchant/kyb/documents/{type}/upload-url     (reuse kybstorage signed PUT)
-POST /v1/merchant/kyb/documents/{document_id}/confirm (HEAD verify)
+GET  /v1/merchant/kyb/status                     status + 3 document slots
+GET  /v1/merchant/kyb/documents
+GET  /v1/merchant/kyb/documents/{id}
+POST /v1/merchant/kyb/documents/{type}/upload-url  signed PUT
+POST /v1/merchant/kyb/documents/{id}/complete      HEAD verify -> PENDING_REVIEW
 ```
 
-plus document `valid_until` / `EXPIRED` modelling, would make Card 2 fully real
-(per-document `Válido / Em análise / Rejeitado / Expirado / Em falta`) and enable
-in-app replace. Until then the app shows status truthfully and reports the update
-gap. This is operator policy (no protocol ADR); KYC Consumer is untouched.
+Admin (admin-api → gateway internal):
+
+```
+GET  /admin/v1/merchant-kyb/documents             list (signed download URLs)
+POST /admin/v1/merchant-kyb/documents/{id}/approve   {valid_until?}; all VALID -> KYB APPROVED
+POST /admin/v1/merchant-kyb/documents/{id}/reject    {rejection_reason}
+```
+
+Approval supersedes the prior current document of the same type (`REPLACED`) and,
+when all required types are `VALID`, promotes `merchant_compliance.kyb_status` to
+`APPROVED`. The KYB level changes **only** via an admin decision — never an upload.
+
+## App — "Verificação do negócio"
+
+`apps/mobile/lib/merchant/screens/kyb_screen.dart`: Estado da verificação (Em
+análise / Aprovado / Rejeitado / Suspenso / Documentos necessários / Documentos
+expirados) · Documentos da empresa (each: real status, submitted/validity dates,
+rejection reason, "Atualizar documento" → pick image → signed PUT → complete) ·
+Ações necessárias. No application form, no fake upload.
+
+## Security & ownership
+
+A merchant sees only its own documents; cross-merchant access → 404. `storage_key`
+never returned to clients; signed URLs never logged; logs carry no NIF / names /
+document numbers. HEAD verify before accepting; MIME allowlist + max size; sha256.
+KYB buckets separate from KYC; no permanent public URLs.
+
+## Limitations / remaining
+
+- **Upload is image-only in the app** (camera/gallery via `image_picker`, sent as
+  `image/jpeg`). PDF upload would need a file picker (`file_picker`) — backend
+  already accepts PDF.
+- **Admin review UI** lives in BANZADMIN (web); the admin **APIs** are ready here.
+- **Not deployed to live** (migration `0069` + gateway/admin-api) without a GO;
+  works in sandbox once deployed.

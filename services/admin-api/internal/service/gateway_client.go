@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -158,4 +159,31 @@ func (c *GatewayClient) AcceptDocumentRaw(ctx context.Context, id, documentID, r
 func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, reviewedBy, reason string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-applications/"+id+"/documents/"+documentID+"/reject",
 		map[string]string{"reviewed_by": reviewedBy, "reason": reason})
+}
+
+// ── Merchant KYB documents (post-approval) — admin review ───────────────────
+
+func (c *GatewayClient) ListMerchantKybDocumentsRaw(ctx context.Context, status, limit string) (json.RawMessage, int, error) {
+	q := url.Values{}
+	if status != "" {
+		q.Set("status", status)
+	}
+	if limit != "" {
+		q.Set("limit", limit)
+	}
+	path := "/internal/v1/merchant-kyb/documents"
+	if e := q.Encode(); e != "" {
+		path += "?" + e
+	}
+	return c.doRaw(ctx, http.MethodGet, path, nil)
+}
+
+func (c *GatewayClient) ApproveMerchantKybDocumentRaw(ctx context.Context, documentID, actor, validUntil string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/approve",
+		map[string]string{"actor": actor, "valid_until": validUntil})
+}
+
+func (c *GatewayClient) RejectMerchantKybDocumentRaw(ctx context.Context, documentID, actor, reason string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/reject",
+		map[string]string{"actor": actor, "rejection_reason": reason})
 }
