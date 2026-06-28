@@ -96,7 +96,8 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
       width:  size,
       height: size,
       child: Stack(
-        alignment: Alignment.center,
+        alignment:    Alignment.center,
+        clipBehavior: Clip.none, // lets the BANZAMI label sit just above the ring
         children: [
           // ── Layer 0: ambient cherry bloom ─────────────────────────────
           Container(
@@ -155,10 +156,11 @@ class _BanzamiVerifiedMarkState extends State<BanzamiVerifiedMark>
             ),
           ),
 
-          // ── BANZAMI label — fixed at ring top ─────────────────────────
-          // Stays pinned while the dashed ring rotates beneath it.
+          // ── BANZAMI label — fixed just above the ring top ─────────────
+          // Stays pinned while the dashed ring rotates beneath it. The 0.10
+          // offset lifts it clear of the topmost dash for a little breathing room.
           Positioned(
-            top:   size * (0.50 - ringR - 0.046),
+            top:   size * (0.50 - ringR - 0.10),
             left:  0,
             right: 0,
             child: Text(
