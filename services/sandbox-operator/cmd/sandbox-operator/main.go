@@ -43,11 +43,20 @@ type healthResponse struct {
 }
 
 // capabilities declares the operator's feature support. At L0 every capability
-// is false: no wallet/QR/settlement endpoints exist yet.
+// is false: this is a stateless L0 conformance operator with no wallet/QR/
+// settlement/collections endpoints.
+//
+// supports_payment_intents (ADR-037) and supports_collections (ADR-036) are
+// Level-2 capabilities of the Banzami *reference operator* (core-api + gateway),
+// not of this L0 sandbox operator — hence false here. They are declared for
+// BANZA-schema completeness; a production capabilities surface advertises them
+// where the feature is actually served.
 type capabilities struct {
-	SupportsWallets    bool `json:"supports_wallets"`
-	SupportsQR         bool `json:"supports_qr"`
-	SupportsSettlement bool `json:"supports_settlement"`
+	SupportsWallets         bool `json:"supports_wallets"`
+	SupportsQR              bool `json:"supports_qr"`
+	SupportsSettlement      bool `json:"supports_settlement"`
+	SupportsPaymentIntents  bool `json:"supports_payment_intents"`
+	SupportsCollections     bool `json:"supports_collections"`
 }
 
 // operatorManifest is the body of GET /.well-known/banza/operator.json

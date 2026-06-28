@@ -469,6 +469,35 @@ async fn main() {
             "/internal/v1/payment-links/:id/mark-used",
             post(routes::payment_links::mark_used),
         )
+        // Collections (BANZA ADR-036) + PaymentIntent (ADR-037)
+        .route(
+            "/internal/v1/collections",
+            post(routes::collections::create).get(routes::collections::list),
+        )
+        .route(
+            "/internal/v1/collections/:id",
+            get(routes::collections::get).patch(routes::collections::update),
+        )
+        .route(
+            "/internal/v1/collections/:id/shares",
+            post(routes::collections::create_share).get(routes::collections::list_shares),
+        )
+        .route(
+            "/internal/v1/collections/:id/close",
+            post(routes::collections::close),
+        )
+        .route(
+            "/internal/v1/collections/:id/cancel",
+            post(routes::collections::cancel),
+        )
+        .route(
+            "/internal/v1/collections/:id/events",
+            get(routes::collections::events),
+        )
+        .route(
+            "/internal/v1/collection-shares/:id/surface",
+            post(routes::collections::surface_share),
+        )
         // Acquiring — payment initiation, callbacks, and simulation helper
         .route(
             "/internal/v1/acquiring/payments",

@@ -1175,6 +1175,33 @@ func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any) (int
 	return resp.StatusCode, json.RawMessage(raw), nil
 }
 
+// requestRaw issues an arbitrary-method request and returns the core's status
+// code + raw body verbatim, for pass-through forwarding (e.g. Collections).
+func (c *CoreApiClient) requestRaw(ctx context.Context, method, path string, body any) (int, json.RawMessage, error) {
+	var reader io.Reader
+	if body != nil {
+		data, err := json.Marshal(body)
+		if err != nil {
+			return 0, nil, fmt.Errorf("core-api marshal: %w", err)
+		}
+		reader = bytes.NewReader(data)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, c.baseURL+path, reader)
+	if err != nil {
+		return 0, nil, fmt.Errorf("core-api request: %w", err)
+	}
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return 0, nil, fmt.Errorf("core-api transport: %w", err)
+	}
+	defer resp.Body.Close()
+	raw, _ := io.ReadAll(resp.Body)
+	return resp.StatusCode, json.RawMessage(raw), nil
+}
+
 func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {

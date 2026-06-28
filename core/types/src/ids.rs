@@ -76,3 +76,6 @@ typed_id!(TransferId); // Instant P2P wallet transfer
 typed_id!(QrCodeId); // Static or dynamic QR code
 typed_id!(PaymentLinkId); // Shareable payment link
 typed_id!(AcquiringPaymentId); // External payment via acquirer (EMIS, bank, etc.)
+typed_id!(PaymentIntentId); // BANZA ADR-037 payment-initiation primitive
+typed_id!(CollectionId); // BANZA ADR-036 composite financial obligation
+typed_id!(CollectionShareId); // BANZA ADR-036 one payer's portion of a collection

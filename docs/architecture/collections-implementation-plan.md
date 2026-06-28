@@ -1,24 +1,51 @@
-# Collections — Banzami implementation plan
+# Collections — Banzami implementation plan & status
 
-**Status:** 🚫 BLOCKED on BANZA ADR-036 (Payment Collections, *Proposed*)  
-**Authority:** BANZA ADR-035 (protocol-first), BANZA ADR-036, Banzami ADR-019
+**Status:** ✅ UNBLOCKED — increment 1 delivered (model + API + events); live
+settlement deferred to increment 2.  
+**Authority:** BANZA ADR-035 (protocol-first), BANZA ADR-036/037, Banzami ADR-019
 
-This plan describes how Banzami will implement split/group payments **after** the
-protocol concept exists. It is intentionally a plan, not an implementation: per
-BANZA ADR-035, the operator implements only what the protocol defines, and the
-`Collection` concept is still **Proposed** in BANZA ADR-036. No code in this plan
-may ship until ADR-036 is **Accepted**.
+Per BANZA ADR-035 the operator implements only what the protocol defines. The
+`Collection` (ADR-036) and `PaymentIntent` (ADR-037) concepts are now **Accepted**
+in `~/banza`, so the operator implementation is unblocked and proceeds downward
+(protocol → operator → SDK → apps).
 
 ## Precondition (protocol-first gate)
 
-- [ ] **BANZA ADR-036 Accepted** — `Collection`, `CollectionShare`, `CollectionRule`,
-      their states, events, and relationship to `PaymentIntent` / `Transfer` /
-      ledger are ratified, and the event/contract additions land in
-      `~/banza/contracts/`.
+- [x] **BANZA ADR-036/037 Accepted** — `Collection`, `CollectionShare`,
+      `CollectionRule`, `PaymentIntent`, their states, events, and relationship to
+      `Transfer` / ledger are ratified, with contracts in `~/banza/contracts/`
+      (`collections/`, `payment-intents/`, `openapi/collections.yaml`,
+      `events/types.json`) and vectors in `conformance/vectors/collections.json`.
 
-Until that box is checked, the operator builds nothing financial here. The
-existing app-side "Cobrança dividida" stays a disabled-by-default prototype
-(Banzami ADR-019).
+## Delivered — increment 1 (model + API + events)
+
+- **Persistence** (Rust core, `core/collections/`): `collections`, `payment_intents`,
+  `collection_shares` tables (migrations `0064`–`0066`); aggregates + extensible
+  `CollectionRule` + state machines; runtime-sqlx repository.
+- **Invariants** (`INV-COLLECTION-001..008`): no money/ledger on a Collection;
+  closed-rule sum == total; **EXACT divisibility, no silent rounding**; sum-mismatch
+  + below-minimum rejected; ownership + environment scoping (404, never 403);
+  immutable structural fields after OPEN; idempotency. Proven by
+  `core/collections/tests/invariants.rs` (7 tests, no DB needed).
+- **API** (core `/internal/v1/collections*` + gateway `/v1/collections*`): create,
+  get, list, patch, close, cancel, events, shares (create/list), and
+  `collection-shares/{id}/surface` (creates the share's PaymentIntent). The gateway
+  derives `merchant_id` + `environment` from the merchant principal; the core
+  returns 404 on cross-tenant access.
+- **Events** via the existing transactional outbox (`core/api/.../webhooks.rs::emit`),
+  BANZA-canonical names: `collection.created`, `collection.opened`,
+  `collection.share.created`, `collection.share.payment_requested`,
+  `collection.partially_completed`, `collection.completed`, `collection.cancelled`,
+  `payment_intent.created`.
+
+## Deferred — increment 2 (live settlement) — NOT in this increment
+
+The hook that marks a share **PAID** on a real confirmed Transfer (touching the
+transfer engine) is a separate, reviewed increment: `collection.share.paid`,
+`payment_intent.paid`, rollup to `collection.completed`, and refunds-per-share
+(ADR-030). No share can reach PAID until then — there is no optimistic/simulated
+payment. The app-side "Cobrança dividida" prototype stays disabled-by-default
+(Banzami ADR-019) until the SDK/UI lands after settlement.
 
 ## Operator scope (once unblocked)
 

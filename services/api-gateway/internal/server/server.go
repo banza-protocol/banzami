@@ -31,6 +31,7 @@ type Dependencies struct {
 	TransferSvc         service.TransferService
 	QrSvc               service.QrService
 	PaymentLinkSvc      service.PaymentLinkService
+	CollectionSvc       service.CollectionService
 	AcquiringSvc        service.AcquiringService
 	RefundSvc           service.RefundService
 	DisputeSvc          service.DisputeService
@@ -98,6 +99,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
 	splitHandler := handler.NewSplitHandler(deps.SplitSvc)
 	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
+	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
 	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
@@ -258,6 +260,22 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Delete("/{id}", paymentLinkHandler.Cancel)
 				r.Post("/{id}/mark-used", paymentLinkHandler.MarkUsed)
 			})
+
+			// Collections (BANZA ADR-036) + PaymentIntent (ADR-037).
+			// merchant_id + environment are derived from the principal; the core
+			// returns 404 on cross-tenant access. Not exposed in mobile yet.
+			r.Route("/collections", func(r chi.Router) {
+				r.Post("/", collectionHandler.Create)
+				r.Get("/", collectionHandler.List)
+				r.Get("/{id}", collectionHandler.Get)
+				r.Patch("/{id}", collectionHandler.Update)
+				r.Post("/{id}/close", collectionHandler.Close)
+				r.Post("/{id}/cancel", collectionHandler.Cancel)
+				r.Get("/{id}/events", collectionHandler.Events)
+				r.Post("/{id}/shares", collectionHandler.CreateShare)
+				r.Get("/{id}/shares", collectionHandler.ListShares)
+			})
+			r.Post("/collection-shares/{id}/surface", collectionHandler.SurfaceShare)
 
 			// Refunds
 			r.Route("/refunds", func(r chi.Router) {

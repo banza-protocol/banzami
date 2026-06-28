@@ -17,6 +17,7 @@ members = [
     "qr",
     "payment-links",
     "acquiring",
+    "collections",
     "api",
 ]
 resolver = "2"
@@ -54,6 +55,7 @@ banzami-transfers       = { path = "transfers" }
 banzami-qr              = { path = "qr" }
 banzami-payment-links   = { path = "payment-links" }
 banzami-acquiring       = { path = "acquiring" }
+banzami-collections     = { path = "collections" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }
@@ -78,6 +80,7 @@ sqlx = { version = "0.7", features = [
     "uuid",
     "chrono",
     "rust_decimal",
+    "json",
 ] }
 
 # Observability (CLAUDE.md §9)

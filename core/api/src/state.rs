@@ -92,6 +92,7 @@ use banzami_ledger::PostgresLedgerRepository;
 use banzami_merchants::{
     PostgresApiKeyRepository, PostgresMerchantEngine, PostgresMerchantRepository,
 };
+use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
 use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
@@ -126,6 +127,7 @@ pub type TransferEng = PostgresTransferEngine<PostgresTransferRepository>;
 pub type QrEng = PostgresQrEngine<PostgresQrRepository>;
 pub type PaymentLinksEng = PostgresPaymentLinkEngine<PostgresPaymentLinkRepository>;
 pub type AcquiringEng = PostgresAcquiringEngine;
+pub type CollectionsEng = PostgresCollectionEngine<PostgresCollectionRepository>;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -155,6 +157,7 @@ pub struct AppState {
     pub qr: Arc<QrEng>,
     pub payment_links: Arc<PaymentLinksEng>,
     pub acquiring: Arc<AcquiringEng>,
+    pub collections: Arc<CollectionsEng>,
 }
 
 impl AppState {
@@ -275,6 +278,10 @@ impl AppState {
         let acquiring_repo = PostgresAcquiringRepository::new(pool.clone());
         let acquiring = Arc::new(PostgresAcquiringEngine::new(provider, acquiring_repo));
 
+        // --- Collections engine (BANZA ADR-036/037) ---
+        let collections_repo = PostgresCollectionRepository::new(pool.clone());
+        let collections = Arc::new(PostgresCollectionEngine::new(collections_repo));
+
         Self {
             pool,
             transit_account_id,
@@ -295,6 +302,7 @@ impl AppState {
             qr,
             payment_links,
             acquiring,
+            collections,
         }
     }
 }

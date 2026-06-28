@@ -136,6 +136,7 @@ func main() {
 		TransferSvc:         service.NewCoreApiTransferService(coreClient),
 		QrSvc:               service.NewCoreApiQrService(coreClient),
 		PaymentLinkSvc:      service.NewCoreApiPaymentLinkService(coreClient),
+		CollectionSvc:       service.NewCoreApiCollectionService(coreClient),
 		AcquiringSvc:        service.NewCoreApiAcquiringService(coreClient),
 		RefundSvc:           service.NewCoreApiRefundService(coreClient),
 		DisputeSvc:          service.NewCoreApiDisputeService(coreClient),
