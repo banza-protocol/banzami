@@ -4,10 +4,13 @@ import '../theme/banzami_theme.dart';
 
 enum BanzamiButtonVariant { primary, secondary, ghost, destructive }
 
-/// The canonical Banzami branded button.
+/// Legacy small-radius button. **Do not use.**
 ///
-/// Always 48dp tall on mobile. Never smaller than a 44dp touch target.
-/// Text is always sentence case, never all-caps.
+/// Superseded by [BanzamiPrimaryButton] / [BanzamiSecondaryButton]
+/// (`banzami_components.dart`), the canonical Banzami buttons (radius 20,
+/// gradient + press animation). Kept only so existing external SDK consumers
+/// keep compiling; no Banzami app screen uses it.
+@Deprecated('Use BanzamiPrimaryButton or BanzamiSecondaryButton instead.')
 class BanzamiButton extends StatelessWidget {
   final String label;
   final VoidCallback? onPressed;

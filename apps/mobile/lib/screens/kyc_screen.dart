@@ -313,7 +313,7 @@ class _IntroView extends StatelessWidget {
       const _InfoRow(icon: Icons.face_outlined, title: 'Uma selfie', sub: 'Para confirmar que é mesmo você'),
       const _InfoRow(icon: Icons.lock_outline, title: 'Seguro e privado', sub: 'As imagens são enviadas de forma cifrada'),
       const SizedBox(height: BanzamiSpacing.xl),
-      BanzamiButton(label: 'Começar', onPressed: onStart),
+      BanzamiPrimaryButton(label: 'Começar', onPressed: onStart),
       const SizedBox(height: BanzamiSpacing.lg),
     ]);
   }
@@ -387,7 +387,7 @@ class _CaptureView extends StatelessWidget {
       ],
       if (error != null) ...[const SizedBox(height: BanzamiSpacing.xs), _ErrorText(error!)],
       const SizedBox(height: BanzamiSpacing.md),
-      BanzamiButton(label: 'Continuar', onPressed: onContinue),
+      BanzamiPrimaryButton(label: 'Continuar', onPressed: onContinue),
       const SizedBox(height: BanzamiSpacing.lg),
     ]);
   }
@@ -422,9 +422,9 @@ class _ReviewView extends StatelessWidget {
         ),
       if (error != null) ...[const SizedBox(height: BanzamiSpacing.xs), _ErrorText(error!)],
       const SizedBox(height: BanzamiSpacing.md),
-      BanzamiButton(label: 'Enviar verificação', onPressed: onSubmit),
+      BanzamiPrimaryButton(label: 'Enviar verificação', onPressed: onSubmit),
       const SizedBox(height: BanzamiSpacing.sm),
-      BanzamiButton.secondary(label: 'Voltar e editar', onPressed: onEdit),
+      BanzamiSecondaryButton(label: 'Voltar e editar', onPressed: onEdit),
       const SizedBox(height: BanzamiSpacing.lg),
     ]);
   }
@@ -479,9 +479,9 @@ class _StatusView extends StatelessWidget {
       const SizedBox(height: BanzamiSpacing.sm),
       Text(sub, textAlign: TextAlign.center, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600)),
       const SizedBox(height: BanzamiSpacing.xl),
-      if (retry) BanzamiButton(label: 'Tentar novamente', onPressed: onRetry),
+      if (retry) BanzamiPrimaryButton(label: 'Tentar novamente', onPressed: onRetry),
       if (retry) const SizedBox(height: BanzamiSpacing.sm),
-      BanzamiButton.secondary(label: 'Concluir', onPressed: onDone),
+      BanzamiSecondaryButton(label: 'Concluir', onPressed: onDone),
       const SizedBox(height: BanzamiSpacing.lg),
     ]);
   }
