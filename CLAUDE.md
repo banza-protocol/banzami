@@ -38,6 +38,27 @@ Read the shared operating rules first: [../banza/docs/governance/CLAUDE_BASE.md]
 
 Never redefine protocol rules locally. If a financial rule is needed that does not exist in `~/banza`, the correct action is to open an ADR in `~/banza` — not to implement the rule locally in `~/banzami`.
 
+### Protocol-first product development (BANZA ADR-035 · Banzami ADR-019)
+
+New **structural** financial/protocolar concepts originate in the protocol and
+flow **downward** — never the other way:
+
+```
+BANZA Protocol  →  Banzami Operator  →  SDK  →  Consumer / Merchant / Admin Apps
+```
+
+Banzami does NOT invent a financial/protocolar concept in an app and then retrofit
+it into BANZA. A new financial object, a new way value is grouped/structured/
+settled, a new lifecycle, a new event or wire field MUST start as a BANZA ADR/RFC,
+then be implemented by the operator, exposed by the SDKs, and only then consumed
+by apps. Apps own UX; SDKs expose capabilities; neither defines new financial
+behaviour alone.
+
+**One-line test before any product work:** *does this introduce a new financial/
+protocolar concept?* If yes, it starts in `~/banza`. (Worked example: split charge
+/ Collections — pre-protocol prototype, disabled by default, pending BANZA ADR-036;
+see [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md) and Banzami ADR-019.) Pure UX and operator-local policy (KYC/AML, fees within invariants, onboarding) stay here and need no protocol ADR.
+
 ---
 
 ## National-Grade Financial Infrastructure for Angola

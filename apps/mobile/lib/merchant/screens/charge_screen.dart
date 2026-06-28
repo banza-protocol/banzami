@@ -20,6 +20,12 @@ import '../services/merchant_session_service.dart';
 ///                agrupamento persistido no backend — cada link é uma cobrança
 ///                normal; o "grupo" é apenas visual nesta app. Nenhum movimento
 ///                financeiro acontece até cada pessoa pagar o seu link.
+///
+/// ⚠ PRÉ-PROTOCOLAR: o modo "Dividida" antecipa o conceito BANZA Collections
+/// (BANZA ADR-036, *Proposed*) e NÃO é uma feature oficial — está atrás de
+/// `AppConfig.splitChargeEnabled` (disabled por default). Por BANZA ADR-035
+/// (protocol-first) um conceito estrutural nasce no protocolo e desce
+/// protocolo → operador → SDK → app. Classificação operador: Banzami ADR-019.
 class ChargeScreen extends StatefulWidget {
   const ChargeScreen({super.key});
 
@@ -276,11 +282,16 @@ class _ChargeScreenState extends State<ChargeScreen> {
         key: _formKey,
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           // ── Type toggle ──────────────────────────────────────────────────
-          _ChargeTypeToggle(
-            split: _split,
-            onChanged: (v) => setState(() { _split = v; _error = null; }),
-          ),
-          const SizedBox(height: BanzamiSpacing.xl),
+          // Pre-protocol: the split mode only appears when explicitly enabled.
+          // When disabled, the toggle is hidden and the screen is the original
+          // simple charge (no way to set _split = true). See Banzami ADR-019.
+          if (AppConfig.splitChargeEnabled) ...[
+            _ChargeTypeToggle(
+              split: _split,
+              onChanged: (v) => setState(() { _split = v; _error = null; }),
+            ),
+            const SizedBox(height: BanzamiSpacing.xl),
+          ],
 
           Text(
             _split ? 'Cobrança dividida' : 'Detalhes da cobrança',

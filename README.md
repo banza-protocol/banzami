@@ -107,6 +107,21 @@ writer of financial state — no service above it can violate a financial invari
 
 ![Architecture — apps, Go services, Rust core, PostgreSQL](docs/diagrams/banzami-architecture-v1.svg)
 
+### Protocol-first
+
+Banzami is the **reference operator** of BANZA — an implementation and a product,
+not the source of the protocol's concepts. New structural financial/protocolar
+concepts originate in the protocol and flow **downward**, never the other way:
+
+```
+BANZA Protocol  →  Banzami Operator  →  SDK  →  Consumer / Merchant / Admin Apps
+```
+
+Apps own UX and consume capabilities; the operator implements what the protocol
+defines; the SDKs expose it. Apps and SDKs never invent new financial behaviour
+on their own. See [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md),
+Banzami ADR-019, and BANZA ADR-035.
+
 ---
 
 ## Why Banzami
