@@ -120,7 +120,20 @@ evidence becomes UPLOADED only after HEAD verify.
 - KYB continues to use its own buckets; `KYB_STORAGE_*` unchanged.
 - Logs contain no `storage_key`, signed URL, access key, secret, token, or PII.
 
-## Security notes
+## Status (2026-06-28)
+
+- **Sandbox provisioned & validated.** Buckets `banzami-kyc-sandbox` /
+  `banzami-kyc-live` exist; the scoped **Banzami KYC R2** token (Object Read &
+  Write, KYC buckets only) is configured for `public-api-staging` via `.env`
+  (`KYC_STORAGE_*`) + `docker-compose.staging-kyc.yml`. Full flow validated end to
+  end against `banzami-kyc-sandbox` (upload → R2 PUT → HEAD verify → submit), with
+  confirmed isolation (the KYC token is denied 403 on KYB buckets; zero KYC
+  objects in any KYB bucket) and no secrets/`storage_key`/signed URLs in logs.
+- **CORS pending (dashboard).** The Object-R&W token cannot set bucket CORS
+  (`AccessDenied`), so CORS is applied in the dashboard using `infra/r2/`. It is
+  **not** needed for the server-side signed PUT/HEAD validated above; it **is**
+  needed before browser/mobile origin uploads (SDK/mobile increments).
+- **Live not activated.** `banzami-kyc-live` is not wired into any service.
 
 - Signed URLs are short-TTL (default 300s); there are no permanent public URLs.
 - Buckets are private; CORS only enables the signed upload/download from operator
