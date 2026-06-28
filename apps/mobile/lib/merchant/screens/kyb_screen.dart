@@ -1,22 +1,19 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
-import '../services/merchant_session_service.dart';
-
-/// Business verification (KYB) — status + documents, inside the Business app.
+/// Business verification (KYB) — real status + real document maintenance.
 ///
-/// The app does NOT repeat the application form. A merchant applies (and sends
-/// the base documents) at `/comerciantes/candidatura`; the Banzami team approves
-/// and only then issues credentials. Here the merchant just sees the verification
-/// state and (when supported) updates documents — never re-submits the business,
-/// the handle, the legal representative, volume, category or location.
-///
-/// Backend reality (audited): the merchant KYB **status** is real
-/// (`GET /v1/compliance/merchants/status`). A merchant-authenticated **document
-/// update** flow does not exist yet (documents are application-scoped at apply
-/// time), so "Atualizar documento" honestly reports the gap — it never fakes an
-/// upload.
+/// The app does NOT repeat the website application form. A merchant applies at
+/// `/comerciantes/candidatura`; the Banzami team approves and issues credentials.
+/// Here the merchant sees the real verification state and updates documents:
+/// pick image → signed PUT to R2 → confirm → PENDING_REVIEW. Never re-submits the
+/// business, handle, representative, volume, category or location. Never fakes an
+/// upload; signed URLs / storage keys / PII are never logged.
 class KybScreen extends StatefulWidget {
   const KybScreen({super.key});
 
@@ -24,22 +21,23 @@ class KybScreen extends StatefulWidget {
   State<KybScreen> createState() => _KybScreenState();
 }
 
-/// One required business document (the base set sent in the application).
-class _Doc {
-  final String title;
-  final IconData icon;
-  const _Doc(this.title, this.icon);
-}
-
-const _docs = <_Doc>[
-  _Doc('Registo Comercial', Icons.business_outlined),
-  _Doc('NIF da empresa', Icons.numbers_outlined),
-  _Doc('Documento do representante', Icons.badge_outlined),
-];
+const _titles = {
+  MerchantKybDocumentType.commercialRegistration: 'Registo Comercial',
+  MerchantKybDocumentType.companyTaxId: 'NIF da empresa',
+  MerchantKybDocumentType.representativeId: 'Documento do representante',
+};
+const _icons = {
+  MerchantKybDocumentType.commercialRegistration: Icons.business_outlined,
+  MerchantKybDocumentType.companyTaxId: Icons.numbers_outlined,
+  MerchantKybDocumentType.representativeId: Icons.badge_outlined,
+};
 
 class _KybScreenState extends State<KybScreen> {
+  final _picker = ImagePicker();
   bool _loading = true;
-  String? _kyb; // KYB status from the backend, or null if unavailable
+  String? _loadError;
+  MerchantKybStatus? _status;
+  MerchantKybDocumentType? _busyType; // document currently uploading
 
   @override
   void initState() {
@@ -48,62 +46,77 @@ class _KybScreenState extends State<KybScreen> {
   }
 
   Future<void> _load() async {
-    setState(() => _loading = true);
+    setState(() { _loading = true; _loadError = null; });
     final client = context.read<BanzamiClient>();
-    final sessionSvc = context.read<MerchantSessionService>();
     try {
-      final res = await client.getMerchantKybStatus();
-      if (mounted) setState(() => _kyb = (res['kyb_status'] ?? '').toString().toUpperCase());
+      final st = await client.getMerchantKybStatus();
+      if (mounted) setState(() => _status = st);
     } catch (_) {
-      // Endpoint not reachable yet → fall back to the session's verified flag.
-      final verified = sessionSvc.session?.verified ?? false;
-      if (mounted) setState(() => _kyb = verified ? 'APPROVED' : null);
+      if (mounted) setState(() => _loadError = 'Não foi possível carregar a verificação.');
     } finally {
       if (mounted) setState(() => _loading = false);
     }
   }
 
-  _Status get _status => _statusFor(_kyb);
-
-  void _updateDocument(String title) {
-    // No merchant-authenticated KYB document update exists yet — report the gap
-    // honestly; never fake an upload.
-    showModalBottomSheet<void>(
+  Future<void> _updateDocument(MerchantKybDocumentType type) async {
+    final client = context.read<BanzamiClient>();
+    final source = await showModalBottomSheet<ImageSource>(
       context: context,
       backgroundColor: BanzamiColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(BanzamiRadius.xxl)),
       ),
-      builder: (_) => Padding(
-        padding: const EdgeInsets.all(BanzamiSpacing.lg),
-        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(width: 40, height: 4, margin: const EdgeInsets.only(bottom: BanzamiSpacing.lg),
-            decoration: const BoxDecoration(color: BanzamiColors.gray200, borderRadius: BanzamiRadius.fullAll)),
-          Text('Atualizar “$title”', style: BanzamiTextStyles.headingSm),
+      builder: (_) => SafeArea(
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
           const SizedBox(height: BanzamiSpacing.sm),
-          Text(
-            'A atualização de documentos diretamente na app ainda não está disponível. '
-            'Para substituir um documento do negócio, contacte o suporte — a equipa Banzami '
-            'trata da atualização e revisão.',
-            style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
+          ListTile(
+            leading: const Icon(Icons.photo_camera_outlined, color: BanzamiColors.primary),
+            title: const Text('Tirar foto'),
+            onTap: () => Navigator.of(context).pop(ImageSource.camera),
           ),
-          const SizedBox(height: BanzamiSpacing.md),
-          Container(
-            padding: const EdgeInsets.all(BanzamiSpacing.md),
-            decoration: const BoxDecoration(color: BanzamiColors.gray100, borderRadius: BanzamiRadius.lgAll),
-            child: Row(children: [
-              const Icon(Icons.mail_outline, size: 18, color: BanzamiColors.gray600),
-              const SizedBox(width: BanzamiSpacing.sm),
-              Text('suporte@banzami.com', style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600)),
-            ]),
+          ListTile(
+            leading: const Icon(Icons.photo_library_outlined, color: BanzamiColors.primary),
+            title: const Text('Escolher da galeria'),
+            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
           ),
-          const SizedBox(height: BanzamiSpacing.lg),
-          BanzamiPrimaryButton(label: 'Entendido', onPressed: () => Navigator.of(context).maybePop()),
           const SizedBox(height: BanzamiSpacing.sm),
         ]),
       ),
     );
+    if (source == null) return;
+
+    setState(() => _busyType = type);
+    try {
+      final XFile? x = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 2400);
+      if (x == null) {
+        if (mounted) setState(() => _busyType = null);
+        return;
+      }
+      final Uint8List bytes = await x.readAsBytes();
+      final up = await client.requestMerchantKybDocumentUploadUrl(type, contentType: 'image/jpeg');
+      final put = await http.put(Uri.parse(up.url), headers: {'Content-Type': 'image/jpeg', ...up.headers}, body: bytes);
+      if (put.statusCode < 200 || put.statusCode >= 300) {
+        throw Exception('upload failed');
+      }
+      await client.completeMerchantKybDocumentUpload(up.documentId);
+      if (!mounted) { return; }
+      _snack('Documento enviado. Em análise.');
+      await _load();
+    } on BanzamiApiException catch (e) {
+      if (mounted) {
+        _snack(e.code == 'STORAGE_NOT_CONFIGURED'
+            ? 'Serviço temporariamente indisponível. Tente mais tarde.'
+            : 'Não foi possível enviar: ${e.message}');
+      }
+    } catch (_) {
+      if (mounted) { _snack('O envio falhou. Verifique a ligação e tente novamente.'); }
+    } finally {
+      if (mounted) setState(() => _busyType = null);
+    }
   }
+
+  void _snack(String m) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(m)));
 
   @override
   Widget build(BuildContext context) {
@@ -116,96 +129,132 @@ class _KybScreenState extends State<KybScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(BanzamiSpacing.lg),
                 children: [
-                  Text(
-                    'Acompanhe o estado da verificação e atualize documentos quando necessário.',
-                    style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600),
-                  ),
+                  Text('Acompanhe o estado da verificação e atualize documentos quando necessário.',
+                      style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600)),
                   const SizedBox(height: BanzamiSpacing.lg),
 
-                  // 1. Estado da verificação
-                  _StatusCard(status: _status),
+                  _StatusCard(view: _overall()),
                   const SizedBox(height: BanzamiSpacing.lg),
 
-                  // 2. Documentos da empresa
                   const Text('Documentos da empresa', style: BanzamiTextStyles.headingSm),
                   const SizedBox(height: BanzamiSpacing.sm),
-                  for (final d in _docs) ...[
-                    _DocCard(doc: d, docStatus: _status.docState, onUpdate: () => _updateDocument(d.title)),
+                  for (final d in _orderedDocuments()) ...[
+                    _DocCard(
+                      type: d.type!,
+                      doc: d,
+                      busy: _busyType == d.type,
+                      onUpdate: () => _updateDocument(d.type!),
+                    ),
                     const SizedBox(height: BanzamiSpacing.md),
                   ],
 
                   const SizedBox(height: BanzamiSpacing.sm),
-
-                  // 3. Ações necessárias
                   const Text('Ações necessárias', style: BanzamiTextStyles.headingSm),
                   const SizedBox(height: BanzamiSpacing.sm),
-                  _ActionsCard(status: _status),
+                  _ActionsCard(view: _overall()),
+                  if (_loadError != null) ...[
+                    const SizedBox(height: BanzamiSpacing.md),
+                    Text(_loadError!, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
+                  ],
                   const SizedBox(height: BanzamiSpacing.xl),
                 ],
               ),
             ),
     );
   }
+
+  /// The 3 slots in canonical order (filling any missing from the API defensively).
+  List<MerchantKybDocument> _orderedDocuments() {
+    final byType = {for (final d in _status?.documents ?? const []) d.type: d};
+    return [
+      for (final t in MerchantKybDocumentType.values)
+        byType[t] ??
+            MerchantKybDocument(
+              id: '', type: t, status: MerchantKybDocumentStatus.missing,
+              mimeType: '', sizeBytes: 0, submittedAt: null, reviewedAt: null,
+              validUntil: null, rejectionReason: null,
+            ),
+    ];
+  }
+
+  _OverallView _overall() {
+    final st = _status;
+    final docs = _orderedDocuments();
+    final anyMissing = docs.any((d) => d.status == MerchantKybDocumentStatus.missing);
+    final anyExpired = docs.any((d) => d.status == MerchantKybDocumentStatus.expired);
+    switch (st?.kybStatus) {
+      case 'APPROVED':
+        if (anyExpired) {
+          return const _OverallView('Documentos expirados', 'Atualize os documentos expirados.',
+              BanzamiColors.warning, Icons.event_busy_outlined);
+        }
+        return const _OverallView('Aprovado', 'O seu negócio está verificado.',
+            BanzamiColors.success, Icons.verified_rounded);
+      case 'REJECTED':
+        return const _OverallView('Rejeitado', 'A verificação foi recusada. Reenvie os documentos.',
+            BanzamiColors.error, Icons.cancel_outlined);
+      case 'SUSPENDED':
+        return const _OverallView('Suspenso', 'A conta está suspensa. Contacte o suporte.',
+            BanzamiColors.error, Icons.pause_circle_outline);
+      default:
+        if (anyMissing) {
+          return const _OverallView('Documentos necessários', 'Envie os documentos em falta para concluir a verificação.',
+              BanzamiColors.warning, Icons.upload_file_outlined);
+        }
+        return const _OverallView('Em análise', 'A equipa Banzami está a rever os seus documentos.',
+            BanzamiColors.warning, Icons.hourglass_top_rounded);
+    }
+  }
 }
 
-// ── Status model ────────────────────────────────────────────────────────────
+// ── View helpers ─────────────────────────────────────────────────────────────
 
-class _Status {
+class _OverallView {
   final String label;
   final String detail;
   final Color color;
   final IconData icon;
-  final String docState; // verification-derived document state
-  const _Status(this.label, this.detail, this.color, this.icon, this.docState);
+  const _OverallView(this.label, this.detail, this.color, this.icon);
 }
 
-_Status _statusFor(String? kyb) {
-  switch (kyb) {
-    case 'APPROVED':
-      return const _Status('Aprovado', 'O seu negócio está verificado.',
-          BanzamiColors.success, Icons.verified_rounded, 'Válido');
-    case 'REJECTED':
-      return const _Status('Rejeitado', 'A verificação foi recusada.',
-          BanzamiColors.error, Icons.cancel_outlined, 'Rejeitado');
-    case 'SUSPENDED':
-      return const _Status('Suspenso', 'A conta está suspensa.',
-          BanzamiColors.error, Icons.pause_circle_outline, 'Suspenso');
-    case 'UNDER_REVIEW':
-    case 'PENDING':
-      return const _Status('Em análise', 'A equipa Banzami está a rever os seus dados.',
-          BanzamiColors.warning, Icons.hourglass_top_rounded, 'Em análise');
-    default:
-      return const _Status('Em análise', 'A verificação está em curso.',
-          BanzamiColors.warning, Icons.hourglass_top_rounded, 'Em análise');
-  }
-}
+({String label, Color color}) _docBadge(MerchantKybDocumentStatus s) => switch (s) {
+      MerchantKybDocumentStatus.valid => (label: 'Válido', color: BanzamiColors.success),
+      MerchantKybDocumentStatus.pendingReview ||
+      MerchantKybDocumentStatus.pendingUpload => (label: 'Em análise', color: BanzamiColors.warning),
+      MerchantKybDocumentStatus.rejected => (label: 'Rejeitado', color: BanzamiColors.error),
+      MerchantKybDocumentStatus.expired => (label: 'Expirado', color: BanzamiColors.error),
+      _ => (label: 'Em falta', color: BanzamiColors.gray400),
+    };
 
-// ── Cards ───────────────────────────────────────────────────────────────────
+String _fmtDate(DateTime? d) =>
+    d == null ? '' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
+
+// ── Cards ────────────────────────────────────────────────────────────────────
 
 class _StatusCard extends StatelessWidget {
-  final _Status status;
-  const _StatusCard({required this.status});
+  final _OverallView view;
+  const _StatusCard({required this.view});
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
       decoration: BoxDecoration(
-        color: status.color.withValues(alpha: 0.10),
+        color: view.color.withValues(alpha: 0.10),
         borderRadius: BanzamiRadius.xlAll,
-        border: Border.all(color: status.color.withValues(alpha: 0.25)),
+        border: Border.all(color: view.color.withValues(alpha: 0.25)),
       ),
       child: Row(children: [
         Container(
           width: 48, height: 48,
-          decoration: BoxDecoration(color: status.color.withValues(alpha: 0.15), shape: BoxShape.circle),
-          child: Icon(status.icon, color: status.color),
+          decoration: BoxDecoration(color: view.color.withValues(alpha: 0.15), shape: BoxShape.circle),
+          child: Icon(view.icon, color: view.color),
         ),
         const SizedBox(width: BanzamiSpacing.md),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(status.label, style: BanzamiTextStyles.headingSm.copyWith(color: status.color)),
+            Text(view.label, style: BanzamiTextStyles.headingSm.copyWith(color: view.color)),
             const SizedBox(height: 2),
-            Text(status.detail, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray600)),
+            Text(view.detail, style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray600)),
           ]),
         ),
       ]),
@@ -214,19 +263,19 @@ class _StatusCard extends StatelessWidget {
 }
 
 class _DocCard extends StatelessWidget {
-  final _Doc doc;
-  final String docStatus;
+  final MerchantKybDocumentType type;
+  final MerchantKybDocument doc;
+  final bool busy;
   final VoidCallback onUpdate;
-  const _DocCard({required this.doc, required this.docStatus, required this.onUpdate});
-
-  Color get _color => switch (docStatus) {
-        'Válido' => BanzamiColors.success,
-        'Rejeitado' || 'Suspenso' => BanzamiColors.error,
-        _ => BanzamiColors.warning,
-      };
+  const _DocCard({required this.type, required this.doc, required this.busy, required this.onUpdate});
 
   @override
   Widget build(BuildContext context) {
+    final badge = _docBadge(doc.status);
+    final meta = <String>[];
+    if (doc.submittedAt != null) meta.add('Enviado: ${_fmtDate(doc.submittedAt)}');
+    if (doc.validUntil != null) meta.add('Validade: ${_fmtDate(doc.validUntil)}');
+
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
       decoration: BoxDecoration(
@@ -236,19 +285,35 @@ class _DocCard extends StatelessWidget {
       ),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         Row(children: [
-          Icon(doc.icon, color: BanzamiColors.primary, size: 22),
+          Icon(_icons[type], color: BanzamiColors.primary, size: 22),
           const SizedBox(width: BanzamiSpacing.md),
-          Expanded(child: Text(doc.title, style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600))),
+          Expanded(child: Text(_titles[type]!, style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w600))),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: BanzamiSpacing.sm, vertical: 4),
-            decoration: BoxDecoration(color: _color.withValues(alpha: 0.12), borderRadius: BanzamiRadius.fullAll),
-            child: Text(docStatus, style: BanzamiTextStyles.bodySm.copyWith(color: _color, fontWeight: FontWeight.w600)),
+            decoration: BoxDecoration(color: badge.color.withValues(alpha: 0.12), borderRadius: BanzamiRadius.fullAll),
+            child: Text(badge.label, style: BanzamiTextStyles.bodySm.copyWith(color: badge.color, fontWeight: FontWeight.w600)),
           ),
         ]),
+        if (meta.isNotEmpty) ...[
+          const SizedBox(height: BanzamiSpacing.sm),
+          Text(meta.join('  ·  '), style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+        ],
+        if (doc.rejectionReason != null) ...[
+          const SizedBox(height: BanzamiSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(BanzamiSpacing.sm),
+            decoration: const BoxDecoration(color: BanzamiColors.errorBg, borderRadius: BanzamiRadius.lgAll),
+            child: Text('Motivo: ${doc.rejectionReason}',
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
+          ),
+        ],
         const SizedBox(height: BanzamiSpacing.md),
         SizedBox(
           width: double.infinity,
-          child: BanzamiSecondaryButton(label: 'Atualizar documento', onPressed: onUpdate),
+          child: BanzamiSecondaryButton(
+            label: busy ? 'A enviar…' : 'Atualizar documento',
+            onPressed: busy ? null : onUpdate,
+          ),
         ),
       ]),
     );
@@ -256,19 +321,19 @@ class _DocCard extends StatelessWidget {
 }
 
 class _ActionsCard extends StatelessWidget {
-  final _Status status;
-  const _ActionsCard({required this.status});
-
-  String get _message => switch (status.label) {
-        'Aprovado' => 'Tudo em ordem. Nenhuma ação necessária.',
-        'Rejeitado' => 'Reenvie os documentos pedidos ou contacte o suporte para reabrir a verificação.',
-        'Suspenso' => 'Contacte o suporte para reativar a conta.',
-        _ => 'Os seus documentos estão em análise. Avisamos quando a verificação estiver concluída.',
-      };
-
+  final _OverallView view;
+  const _ActionsCard({required this.view});
   @override
   Widget build(BuildContext context) {
-    final ok = status.label == 'Aprovado';
+    final ok = view.label == 'Aprovado';
+    final msg = switch (view.label) {
+      'Aprovado' => 'Tudo em ordem. Nenhuma ação necessária.',
+      'Rejeitado' => 'Reenvie os documentos pedidos ou contacte o suporte.',
+      'Suspenso' => 'Contacte o suporte para reativar a conta.',
+      'Documentos necessários' => 'Envie os documentos em falta usando "Atualizar documento".',
+      'Documentos expirados' => 'Atualize os documentos expirados para manter a conta válida.',
+      _ => 'Os seus documentos estão em análise. Avisamos quando concluído.',
+    };
     return Container(
       padding: const EdgeInsets.all(BanzamiSpacing.lg),
       decoration: BoxDecoration(
@@ -280,7 +345,7 @@ class _ActionsCard extends StatelessWidget {
         Icon(ok ? Icons.check_circle_outline : Icons.info_outline,
             color: ok ? BanzamiColors.success : BanzamiColors.warning, size: 20),
         const SizedBox(width: BanzamiSpacing.md),
-        Expanded(child: Text(_message, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600))),
+        Expanded(child: Text(msg, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600))),
       ]),
     );
   }

@@ -33,6 +33,7 @@ export 'models/consumer.dart';
 export 'models/consumer_pay_link.dart';
 export 'models/kyc.dart';
 export 'models/merchant.dart';
+export 'models/merchant_kyb.dart';
 export 'models/merchant_wallet_payment.dart';
 export 'models/wallet_balance.dart';
 export 'models/transfer.dart';

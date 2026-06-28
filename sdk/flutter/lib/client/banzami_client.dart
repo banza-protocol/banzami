@@ -5,6 +5,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/consumer.dart';
 import '../models/merchant.dart';
+import '../models/merchant_kyb.dart';
 import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
 import '../models/payment_request.dart';
@@ -457,12 +458,50 @@ class BanzamiClient {
     });
   }
 
-  /// The authenticated merchant's real KYB + AML status (read-only).
-  /// Returns `{kyb_status, aml_status}` — e.g. `PENDING` | `UNDER_REVIEW` |
-  /// `APPROVED` | `REJECTED` | `SUSPENDED`. Used by the Business app to show the
-  /// verification state without re-submitting the application.
-  Future<Map<String, dynamic>> getMerchantKybStatus() async {
-    return _get('/v1/compliance/merchants/status');
+  /// The authenticated merchant's real KYB status + the 3 business document
+  /// slots (read-only). The Business app shows this without re-submitting the
+  /// application. The operator decides approval — never an upload.
+  Future<MerchantKybStatus> getMerchantKybStatus() async {
+    return MerchantKybStatus.fromJson(await _get('/v1/merchant/kyb/status'));
+  }
+
+  /// The 3 business document slots with their real states (MISSING / PENDING /
+  /// VALID / REJECTED / EXPIRED).
+  Future<List<MerchantKybDocument>> getMerchantKybDocuments() async {
+    final json = await _get('/v1/merchant/kyb/documents');
+    return ((json['documents'] as List?) ?? const [])
+        .map((e) => MerchantKybDocument.fromJson(e as Map<String, dynamic>))
+        .toList(growable: false);
+  }
+
+  /// Loads one business document (ownership-scoped; 404 for another merchant).
+  Future<MerchantKybDocument> getMerchantKybDocument(String documentId) async {
+    return MerchantKybDocument.fromJson(await _get('/v1/merchant/kyb/documents/$documentId'));
+  }
+
+  /// Requests a short-lived signed PUT URL to upload/replace a business document
+  /// of [type]. The app PUTs the bytes to [MerchantKybUploadUrl.url] (never log
+  /// it) then calls [completeMerchantKybDocumentUpload].
+  Future<MerchantKybUploadUrl> requestMerchantKybDocumentUploadUrl(
+    MerchantKybDocumentType type, {
+    String contentType = 'image/jpeg',
+  }) async {
+    final json = await _post('/v1/merchant/kyb/documents/${type.wire}/upload-url', {
+      'content_type': contentType,
+    });
+    return MerchantKybUploadUrl.fromJson(json);
+  }
+
+  /// Confirms an upload (after the PUT). The operator HEAD-verifies the object
+  /// and the document moves to PENDING_REVIEW. Returns the updated document.
+  Future<MerchantKybDocument> completeMerchantKybDocumentUpload(
+    String documentId, {
+    String? sha256,
+  }) async {
+    final json = await _post('/v1/merchant/kyb/documents/$documentId/complete', {
+      if (sha256 != null && sha256.isNotEmpty) 'sha256': sha256,
+    });
+    return MerchantKybDocument.fromJson(json);
   }
 
   static String _ymd(DateTime d) =>
