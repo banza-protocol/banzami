@@ -288,32 +288,6 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
         const SizedBox(height: BanzamiSpacing.xl),
 
-        // URL — tap to copy
-        GestureDetector(
-          onTap: () async {
-            await Clipboard.setData(ClipboardData(text: _payUrl));
-            if (!mounted) return;
-            BanzamiToast.showSuccess(context, 'Link copiado');
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.lg, vertical: BanzamiSpacing.md),
-            decoration: const BoxDecoration(
-              color:        BanzamiColors.gray100,
-              borderRadius: BanzamiRadius.lgAll,
-            ),
-            child: Row(children: [
-              Expanded(child: Text(_payUrl,
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray700),
-                  overflow: TextOverflow.ellipsis)),
-              const SizedBox(width: 8),
-              const Icon(Icons.copy_rounded, size: 18, color: BanzamiColors.gray400),
-            ]),
-          ),
-        ),
-
-        const SizedBox(height: BanzamiSpacing.xl),
-
         // Partilhar
         SizedBox(
           width: double.infinity,
