@@ -57,6 +57,7 @@ export 'widgets/banzami_amount_input.dart';
 export 'widgets/banzami_logo.dart';
 export 'widgets/banzami_qr_display.dart';
 export 'widgets/banzami_qr_scanner.dart';
+export 'widgets/banzami_sandbox_banner.dart';
 export 'widgets/banzami_transfer_item.dart';
 export 'widgets/banzami_components.dart';
 export 'widgets/banzami_verified_mark.dart';

@@ -6,7 +6,6 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../config.dart';
 import '../services/session_service.dart';
 import '../widgets/banzami_premium_dialog.dart';
-import '../widgets/sandbox_banner.dart';
 import 'help_screen.dart';
 import 'kyc_screen.dart';
 import 'notifications_screen.dart';
@@ -56,7 +55,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
             if (AppConfig.isSandbox) ...[
               const SizedBox(height: BanzamiSpacing.sm),
-              const SandboxBanner(),
+              const BanzamiSandboxBanner(),
             ],
 
             const SizedBox(height: BanzamiSpacing.sm),
