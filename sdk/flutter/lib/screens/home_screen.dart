@@ -751,7 +751,7 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
           width:   double.infinity,
           padding: const EdgeInsets.symmetric(
             horizontal: BanzamiSpacing.lg,
-            vertical:   12,
+            vertical:   8,
           ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
@@ -779,8 +779,8 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
           child: Row(
             children: [
               _SandboxDot(glow: _glow),
-              const SizedBox(width: 10),
-              const Icon(Icons.science_rounded, size: 15, color: Color(0xFF92400E)),
+              const SizedBox(width: 8),
+              const Icon(Icons.science_rounded, size: 13, color: Color(0xFF92400E)),
               const SizedBox(width: BanzamiSpacing.sm),
               const Expanded(
                 child: Column(
@@ -790,20 +790,20 @@ class _SandboxEnvironmentCardState extends State<_SandboxEnvironmentCard>
                     Text(
                       'SANDBOX',
                       style: TextStyle(
-                        fontSize:      10,
+                        fontSize:      9.5,
                         fontWeight:    FontWeight.w800,
                         color:         Color(0xFF78350F),
-                        letterSpacing: 1.4,
-                        height:        1.2,
+                        letterSpacing: 1.3,
+                        height:        1.1,
                       ),
                     ),
                     Text(
                       'Dinheiro de teste · Sem valor financeiro real',
                       style: TextStyle(
-                        fontSize:   11,
+                        fontSize:   10.5,
                         fontWeight: FontWeight.w400,
                         color:      Color(0xFFB45309),
-                        height:     1.35,
+                        height:     1.2,
                       ),
                     ),
                   ],
@@ -824,8 +824,8 @@ class _SandboxDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width:  8,
-      height: 8,
+      width:  7,
+      height: 7,
       decoration: BoxDecoration(
         color: Color.lerp(
           const Color(0xFFF59E0B).withValues(alpha: 0.55),
