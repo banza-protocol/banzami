@@ -165,7 +165,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
               _QuickActions(
                 onCharge: () => _open(const ChargeScreen()),
                 onQr: () => widget.onSwitchTab?.call(2),
-                onHistory: () => widget.onSwitchTab?.call(1),
                 onPayout: () => _open(const PayoutScreen()),
               ),
               const SizedBox(height: BanzamiSpacing.xl),
@@ -405,59 +404,39 @@ class _KybRow extends StatelessWidget {
 class _QuickActions extends StatelessWidget {
   final VoidCallback onCharge;
   final VoidCallback onQr;
-  final VoidCallback onHistory;
   final VoidCallback onPayout;
 
   const _QuickActions({
     required this.onCharge,
     required this.onQr,
-    required this.onHistory,
     required this.onPayout,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Reuse the Consumer home's BanzamiActionTile so the three merchant tiles
+    // match it in size, spacing and accent. 'Cobrar' carries the accent (wine
+    // icon on a white tile) exactly like the Consumer 'QR Code' first tile.
     return Row(children: [
-      Expanded(child: _QuickAction(icon: Icons.add_circle_outline_rounded, label: 'Cobrar', onTap: onCharge)),
-      Expanded(child: _QuickAction(icon: Icons.qr_code_rounded, label: 'QR', onTap: onQr)),
-      Expanded(child: _QuickAction(icon: Icons.history_rounded, label: 'Histórico', onTap: onHistory)),
-      Expanded(child: _QuickAction(icon: Icons.account_balance_rounded, label: 'Payout', onTap: onPayout)),
-    ]);
-  }
-}
-
-class _QuickAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-  const _QuickAction({required this.icon, required this.label, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BanzamiRadius.lgAll,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: BanzamiSpacing.sm),
-        child: Column(children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: const BoxDecoration(
-              color: BanzamiColors.white,
-              borderRadius: BanzamiRadius.lgAll,
-              boxShadow: BanzamiShadows.card,
-            ),
-            child: Icon(icon, color: BanzamiColors.primary, size: 22),
-          ),
-          const SizedBox(height: BanzamiSpacing.xs),
-          Text(
-            label,
-            style: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray600, fontSize: 11),
-          ),
-        ]),
+      BanzamiActionTile(
+        icon:   Icons.add_circle_outline_rounded,
+        label:  'Cobrar',
+        onTap:  onCharge,
+        accent: true,
       ),
-    );
+      const SizedBox(width: BanzamiSpacing.md),
+      BanzamiActionTile(
+        icon:  Icons.qr_code_rounded,
+        label: 'QR',
+        onTap: onQr,
+      ),
+      const SizedBox(width: BanzamiSpacing.md),
+      BanzamiActionTile(
+        icon:  Icons.account_balance_rounded,
+        label: 'Payout',
+        onTap: onPayout,
+      ),
+    ]);
   }
 }
 
