@@ -50,6 +50,12 @@ class BanzamiClient {
   final OnResponseHook? onResponse;
   final OnErrorHook?    onError;
 
+  /// Called whenever a request fails with 401 (session token invalid or expired
+  /// and the client cannot self-refresh). The app should sign the user out and
+  /// route them to login. Invoked before the [BanzamiApiException] is thrown, so
+  /// callers still receive the error too.
+  final void Function()? onUnauthorized;
+
   String?   _jwt;
   DateTime? _jwtExpiry;
 
@@ -78,6 +84,7 @@ class BanzamiClient {
     this.onRequest,
     this.onResponse,
     this.onError,
+    this.onUnauthorized,
     String? jwt,
     DateTime? jwtExpiresAt,
   })  : baseUrl = (baseUrl ?? environment.defaultBaseUrl).replaceAll(RegExp(r'/$'), ''),
@@ -582,6 +589,7 @@ class BanzamiClient {
     if (apiKey.isEmpty) {
       // JWT-only client (handle login) with a missing/expired token — it cannot
       // self-refresh, so surface a 401 and let the app re-authenticate (PIN).
+      onUnauthorized?.call();
       throw BanzamiApiException.fromJson(401, const {
         'code':    'TOKEN_EXPIRED',
         'message': 'session expired, please sign in again',
@@ -726,6 +734,7 @@ class BanzamiClient {
   Map<String, dynamic> _decode(http.Response resp) {
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     if (resp.statusCode >= 200 && resp.statusCode < 300) return body;
+    if (resp.statusCode == 401) onUnauthorized?.call();
     throw BanzamiApiException.fromJson(resp.statusCode, body);
   }
 }

@@ -36,6 +36,11 @@ class BanzamiMerchantApp extends StatelessWidget {
               jwt:          s?.jwt,
               jwtExpiresAt: s?.jwtExpiresAt,
               httpClient:   pinnedClient,
+              // Session token invalid/expired (handle-login JWT can't refresh) →
+              // sign out so the app routes back to login instead of dead-ending.
+              onUnauthorized: () {
+                if (session.session != null) session.logout();
+              },
             );
           },
         ),
