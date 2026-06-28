@@ -14,6 +14,7 @@ import (
 
 	"github.com/banzami/banzami/services/admin-api/internal/config"
 	"github.com/banzami/banzami/services/admin-api/internal/email"
+	"github.com/banzami/banzami/services/admin-api/internal/kycstorage"
 	"github.com/banzami/banzami/services/admin-api/internal/observability"
 	"github.com/banzami/banzami/services/admin-api/internal/server"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
@@ -65,6 +66,7 @@ func main() {
 	var audit *service.AuditService
 	var receiptSrc service.ReceiptSource
 	var walletLister service.AdminWalletPaymentLister
+	var kycReview *service.KycReviewService
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -76,6 +78,27 @@ func main() {
 		audit = service.NewAuditService(pool)
 		receiptSrc = service.NewPostgresReceiptSource(pool)
 		walletLister = service.NewPostgresWalletPaymentService(pool)
+
+		// Consumer KYC review. Storage (read URLs) is optional — without it the
+		// case detail simply omits evidence download links.
+		kycStore, kerr := kycstorage.NewFromConfig(kycstorage.Config{
+			Provider:        cfg.KycStorageProvider,
+			Bucket:          cfg.KycStorageBucket,
+			Endpoint:        cfg.KycStorageEndpoint,
+			Region:          cfg.KycStorageRegion,
+			AccessKeyID:     cfg.KycStorageAccessKey,
+			SecretAccessKey: cfg.KycStorageSecretKey,
+		})
+		if kerr != nil {
+			if errors.Is(kerr, kycstorage.ErrNotConfigured) {
+				slog.Warn("KYC storage not configured — admin KYC evidence downloads disabled")
+				kycStore = nil
+			} else {
+				slog.Error("kyc storage init error", "error", kerr)
+				os.Exit(1)
+			}
+		}
+		kycReview = service.NewKycReviewService(pool, kycStore)
 		if cfg.AdminJWTSecret == "" {
 			slog.Warn("ADMIN_JWT_SECRET not set — operator login disabled (503)")
 		} else {
@@ -85,7 +108,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

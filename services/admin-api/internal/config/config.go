@@ -52,6 +52,15 @@ type Config struct {
 	// AdminBaseURL is the BANZADMIN front-end origin, used to build
 	// password-reset links (e.g. https://admin.banzami.com).
 	AdminBaseURL string
+
+	// KYC consumer-evidence storage (same R2 bucket as public-api). Used only to
+	// mint short-lived signed download URLs for evidence review. Optional.
+	KycStorageProvider  string
+	KycStorageBucket    string
+	KycStorageEndpoint  string
+	KycStorageRegion    string
+	KycStorageAccessKey string
+	KycStorageSecretKey string
 }
 
 // Load reads config from environment variables.
@@ -142,6 +151,12 @@ func Load() (*Config, error) {
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
 		AdminJWTSecret:     os.Getenv("ADMIN_JWT_SECRET"),
 		AdminBaseURL:       getenvDefault("ADMIN_BASE_URL", "https://admin.banzami.com"),
+		KycStorageProvider:  os.Getenv("KYC_STORAGE_PROVIDER"),
+		KycStorageBucket:    os.Getenv("KYC_STORAGE_BUCKET"),
+		KycStorageEndpoint:  os.Getenv("KYC_STORAGE_ENDPOINT"),
+		KycStorageRegion:    os.Getenv("KYC_STORAGE_REGION"),
+		KycStorageAccessKey: os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
+		KycStorageSecretKey: os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
 	}, nil
 }
 
