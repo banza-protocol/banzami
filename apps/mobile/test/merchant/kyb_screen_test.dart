@@ -60,4 +60,23 @@ void main() {
     expect(find.text('Representante legal'), findsNothing);
     expect(find.byType(TextFormField), findsNothing);
   });
+
+  group('KYB upload validation', () {
+    test('mime by extension (PDF/JPEG/PNG only)', () {
+      expect(kybMimeFor('registo.pdf'), 'application/pdf');
+      expect(kybMimeFor('foto.PNG'), 'image/png');
+      expect(kybMimeFor('nif.jpeg'), 'image/jpeg');
+      expect(kybMimeFor('doc.jpg'), 'image/jpeg');
+      expect(kybMimeFor('malware.exe'), isNull);
+      expect(kybMimeFor('semext'), isNull);
+    });
+
+    test('invalid type / empty / too large are blocked; valid passes', () {
+      expect(kybPickError('doc.txt', 1000), isNotNull); // invalid type
+      expect(kybPickError('doc.pdf', 0), isNotNull); // empty
+      expect(kybPickError('doc.pdf', kKybMaxBytes + 1), contains('5 MB')); // too large
+      expect(kybPickError('doc.pdf', 1000), isNull); // ok
+      expect(kybPickError('scan.jpg', kKybMaxBytes), isNull); // exactly at limit
+    });
+  });
 }

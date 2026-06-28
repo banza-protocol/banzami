@@ -1,10 +1,35 @@
 import 'dart:typed_data';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
+
+/// Max KYB document size accepted by the app (matches the operator default).
+const int kKybMaxBytes = 5 * 1024 * 1024;
+
+/// Allowed upload MIME by file extension (backend allowlist: PDF/JPEG/PNG).
+String? kybMimeFor(String filename) {
+  final ext = filename.toLowerCase().split('.').last;
+  return switch (ext) {
+    'pdf' => 'application/pdf',
+    'png' => 'image/png',
+    'jpg' || 'jpeg' => 'image/jpeg',
+    _ => null,
+  };
+}
+
+/// Validation error for a picked file, or null when acceptable.
+String? kybPickError(String filename, int sizeBytes) {
+  if (kybMimeFor(filename) == null) {
+    return 'Tipo de ficheiro inválido. Use PDF, JPG ou PNG.';
+  }
+  if (sizeBytes <= 0) return 'O ficheiro está vazio.';
+  if (sizeBytes > kKybMaxBytes) return 'Ficheiro demasiado grande (máx. 5 MB).';
+  return null;
+}
 
 /// Business verification (KYB) — real status + real document maintenance.
 ///
@@ -20,6 +45,8 @@ class KybScreen extends StatefulWidget {
   @override
   State<KybScreen> createState() => _KybScreenState();
 }
+
+enum _PickKind { camera, gallery, pdf }
 
 const _titles = {
   MerchantKybDocumentType.commercialRegistration: 'Registo Comercial',
@@ -38,6 +65,7 @@ class _KybScreenState extends State<KybScreen> {
   String? _loadError;
   MerchantKybStatus? _status;
   MerchantKybDocumentType? _busyType; // document currently uploading
+  final Map<MerchantKybDocumentType, String> _selectedName = {};
 
   @override
   void initState() {
@@ -59,8 +87,7 @@ class _KybScreenState extends State<KybScreen> {
   }
 
   Future<void> _updateDocument(MerchantKybDocumentType type) async {
-    final client = context.read<BanzamiClient>();
-    final source = await showModalBottomSheet<ImageSource>(
+    final kind = await showModalBottomSheet<_PickKind>(
       context: context,
       backgroundColor: BanzamiColors.white,
       shape: const RoundedRectangleBorder(
@@ -72,29 +99,86 @@ class _KybScreenState extends State<KybScreen> {
           ListTile(
             leading: const Icon(Icons.photo_camera_outlined, color: BanzamiColors.primary),
             title: const Text('Tirar foto'),
-            onTap: () => Navigator.of(context).pop(ImageSource.camera),
+            onTap: () => Navigator.of(context).pop(_PickKind.camera),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library_outlined, color: BanzamiColors.primary),
             title: const Text('Escolher da galeria'),
-            onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+            onTap: () => Navigator.of(context).pop(_PickKind.gallery),
+          ),
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined, color: BanzamiColors.primary),
+            title: const Text('Escolher PDF'),
+            onTap: () => Navigator.of(context).pop(_PickKind.pdf),
           ),
           const SizedBox(height: BanzamiSpacing.sm),
         ]),
       ),
     );
-    if (source == null) return;
+    if (kind == null) return;
+    await _pickAndUpload(type, kind);
+  }
 
-    setState(() => _busyType = type);
+  /// Picks an image (camera/gallery) or a PDF (file), validates it, then uploads
+  /// via the signed PUT. Local paths / signed URLs / storage keys / PII are never
+  /// logged.
+  Future<void> _pickAndUpload(MerchantKybDocumentType type, _PickKind kind) async {
+    final client = context.read<BanzamiClient>();
+
+    Uint8List? bytes;
+    String filename;
     try {
-      final XFile? x = await _picker.pickImage(source: source, imageQuality: 85, maxWidth: 2400);
-      if (x == null) {
-        if (mounted) setState(() => _busyType = null);
-        return;
+      if (kind == _PickKind.pdf) {
+        final res = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: const ['pdf', 'jpg', 'jpeg', 'png'],
+          withData: true,
+        );
+        if (res == null || res.files.isEmpty) return;
+        final f = res.files.first;
+        bytes = f.bytes;
+        filename = f.name;
+      } else {
+        final x = await _picker.pickImage(
+          source: kind == _PickKind.camera ? ImageSource.camera : ImageSource.gallery,
+          imageQuality: 85,
+          maxWidth: 2400,
+        );
+        if (x == null) return;
+        bytes = await x.readAsBytes();
+        filename = x.name;
       }
-      final Uint8List bytes = await x.readAsBytes();
-      final up = await client.requestMerchantKybDocumentUploadUrl(type, contentType: 'image/jpeg');
-      final put = await http.put(Uri.parse(up.url), headers: {'Content-Type': 'image/jpeg', ...up.headers}, body: bytes);
+    } catch (_) {
+      if (mounted) _snack('Não foi possível abrir o seletor.');
+      return;
+    }
+    if (bytes == null) {
+      if (mounted) _snack('Não foi possível ler o ficheiro.');
+      return;
+    }
+
+    // Resolve a usable mime; images without a clear extension default to JPEG.
+    String mime;
+    final guessed = kybMimeFor(filename);
+    if (guessed != null) {
+      mime = guessed;
+    } else if (kind != _PickKind.pdf) {
+      filename = 'documento.jpg';
+      mime = 'image/jpeg';
+    } else {
+      if (mounted) _snack('Tipo de ficheiro inválido. Use PDF, JPG ou PNG.');
+      return;
+    }
+    final err = kybPickError(filename, bytes.length);
+    if (err != null) {
+      if (mounted) _snack(err);
+      return;
+    }
+
+    setState(() { _busyType = type; _selectedName[type] = filename; });
+    try {
+      final up = await client.requestMerchantKybDocumentUploadUrl(type, contentType: mime);
+      final put = await http.put(Uri.parse(up.url), headers: {'Content-Type': mime, ...up.headers}, body: bytes);
       if (put.statusCode < 200 || put.statusCode >= 300) {
         throw Exception('upload failed');
       }
@@ -111,7 +195,7 @@ class _KybScreenState extends State<KybScreen> {
     } catch (_) {
       if (mounted) { _snack('O envio falhou. Verifique a ligação e tente novamente.'); }
     } finally {
-      if (mounted) setState(() => _busyType = null);
+      if (mounted) setState(() { _busyType = null; _selectedName.remove(type); });
     }
   }
 
@@ -143,6 +227,7 @@ class _KybScreenState extends State<KybScreen> {
                       type: d.type!,
                       doc: d,
                       busy: _busyType == d.type,
+                      selectedName: _selectedName[d.type],
                       onUpdate: () => _updateDocument(d.type!),
                     ),
                     const SizedBox(height: BanzamiSpacing.md),
@@ -266,8 +351,9 @@ class _DocCard extends StatelessWidget {
   final MerchantKybDocumentType type;
   final MerchantKybDocument doc;
   final bool busy;
+  final String? selectedName;
   final VoidCallback onUpdate;
-  const _DocCard({required this.type, required this.doc, required this.busy, required this.onUpdate});
+  const _DocCard({required this.type, required this.doc, required this.busy, required this.selectedName, required this.onUpdate});
 
   @override
   Widget build(BuildContext context) {
@@ -306,6 +392,18 @@ class _DocCard extends StatelessWidget {
             child: Text('Motivo: ${doc.rejectionReason}',
                 style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.error)),
           ),
+        ],
+        if (busy && selectedName != null) ...[
+          const SizedBox(height: BanzamiSpacing.sm),
+          Row(children: [
+            const Icon(Icons.attach_file, size: 16, color: BanzamiColors.gray600),
+            const SizedBox(width: BanzamiSpacing.xs),
+            Expanded(
+              child: Text('Documento selecionado: ${selectedName!}',
+                  maxLines: 1, overflow: TextOverflow.ellipsis,
+                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray600)),
+            ),
+          ]),
         ],
         const SizedBox(height: BanzamiSpacing.md),
         SizedBox(
