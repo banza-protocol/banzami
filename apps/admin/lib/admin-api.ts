@@ -875,6 +875,19 @@ export class AdminApi {
   // Merchant KYB documents (post-approval, maintained inside the Business app —
   // distinct from the application docs above). The list carries short-TTL signed
   // download URLs; storage_key is never exposed.
+  // Merchant-centric KYB queue: one row per merchant with document aggregates.
+  listMerchantKybMerchants(environment?: string, limit?: number): Promise<{ merchants: MerchantKybSummary[] }> {
+    const qs = new URLSearchParams();
+    if (limit) qs.set('limit', String(limit));
+    if (environment) qs.set('environment', environment);
+    const q = qs.toString();
+    return this.req(`/admin/v1/merchant-kyb/merchants${q ? `?${q}` : ''}`);
+  }
+  // All current KYB documents for one merchant (for the merchant review drawer).
+  getMerchantKybDocuments(merchantId: string, environment?: string): Promise<{ documents: MerchantKybDoc[] }> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/merchant-kyb/merchants/${merchantId}/documents${q}`);
+  }
   listMerchantKybDocuments(status?: string, limit?: number, environment?: string): Promise<{ documents: MerchantKybDoc[] }> {
     const qs = new URLSearchParams();
     if (status) qs.set('status', status);
@@ -1053,7 +1066,27 @@ export interface MerchantKybDoc {
   reviewed_at?:      string | null;
   valid_until?:      string | null;
   rejection_reason?: string | null;
+  reviewed_by?:      string;
   download_url?:     string;
+}
+
+// Merchant-centric KYB queue row: a whole merchant with document aggregates.
+export interface MerchantKybSummary {
+  merchant_id:     string;
+  merchant_exists: boolean;
+  name?:           string;
+  handle?:         string;
+  status?:         string;
+  kyb_status?:     string;
+  environment?:    string;
+  country?:        string;
+  contact?:        string;
+  total:           number;
+  pending:         number;
+  approved:        number;
+  rejected:        number;
+  expired:         number;
+  last_submission?: string | null;
 }
 
 // Full operator context for the KYB review drawer. Fields are omitempty server-side

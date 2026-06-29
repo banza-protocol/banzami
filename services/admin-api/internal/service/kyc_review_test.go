@@ -208,6 +208,54 @@ func TestKycReview_EnrichmentAndTimeline(t *testing.T) {
 	}
 }
 
+// The queue is consumer-centric: a consumer with multiple cases appears once,
+// represented by its latest case.
+func TestKycReview_OnePerConsumer(t *testing.T) {
+	ctx := context.Background()
+	pool := kycPoolOrSkip(ctx, t)
+	defer pool.Close()
+	svc := NewKycReviewService(pool, nil)
+
+	sub := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO consumers (id, handle, display_name, status) VALUES ($1,$2,'Multi Caso','ACTIVE')`,
+		sub, "multi"+sub[:6]); err != nil {
+		t.Fatalf("seed consumer: %v", err)
+	}
+	// Two cases for the same consumer; the newer one (created later) must represent.
+	older := uuid.NewString()
+	newer := uuid.NewString()
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO kyc_cases (id, operator_id, subject_type, subject_id, status, environment, created_at)
+		 VALUES ($1,'banzami','CONSUMER',$3,'REJECTED','SANDBOX', NOW() - interval '1 day'),
+		        ($2,'banzami','CONSUMER',$3,'UNDER_REVIEW','SANDBOX', NOW())`, older, newer, sub); err != nil {
+		t.Fatalf("seed cases: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM kyc_cases WHERE subject_id=$1`, sub)
+		_, _ = pool.Exec(ctx, `DELETE FROM consumers WHERE id=$1`, sub)
+	})
+
+	cases, err := svc.ListCases(ctx, "", "SANDBOX", 200)
+	if err != nil {
+		t.Fatalf("list: %v", err)
+	}
+	n := 0
+	var rep *KycCaseSummary
+	for i := range cases {
+		if cases[i].SubjectID == sub {
+			n++
+			rep = &cases[i]
+		}
+	}
+	if n != 1 {
+		t.Fatalf("consumer must appear once, got %d rows", n)
+	}
+	if rep.ID != newer || rep.Status != "UNDER_REVIEW" {
+		t.Fatalf("latest case must represent: id=%s status=%s", rep.ID, rep.Status)
+	}
+}
+
 // ReadEvidenceURL mints a signed URL only for an UPLOADED object, never returns
 // the storage_key, and reports precise errors otherwise.
 func TestKycReview_ReadEvidenceURL(t *testing.T) {

@@ -156,6 +156,35 @@ func (h *MerchantKybHandler) AdminList(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"documents": docs})
 }
 
+// GET /internal/v1/merchant-kyb/merchants?limit=
+//
+// Merchant-centric review queue: one row per merchant with KYB documents.
+func (h *MerchantKybHandler) AdminMerchants(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	merchants, err := h.svc.AdminListMerchants(r.Context(), limit)
+	if err != nil {
+		h.fail(w, r, "admin_merchants", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"merchants": merchants})
+}
+
+// GET /internal/v1/merchant-kyb/merchants/{id}/documents
+func (h *MerchantKybHandler) AdminMerchantDocuments(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	docs, err := h.svc.AdminMerchantDocuments(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.fail(w, r, "admin_merchant_documents", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"documents": docs})
+}
+
 // POST /internal/v1/merchant-kyb/documents/{id}/approve   {valid_until?}
 func (h *MerchantKybHandler) AdminApprove(w http.ResponseWriter, r *http.Request) {
 	if h.unavailable(w, r) {

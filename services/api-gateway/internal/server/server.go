@@ -148,6 +148,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		// Merchant KYB documents (post-approval) — admin review.
 		r.Route("/internal/v1/merchant-kyb", func(r chi.Router) {
 			r.Get("/documents", merchantKybHandler.AdminList)
+			r.Get("/merchants", merchantKybHandler.AdminMerchants)
+			r.Get("/merchants/{id}/documents", merchantKybHandler.AdminMerchantDocuments)
 			r.Post("/documents/{id}/approve", merchantKybHandler.AdminApprove)
 			r.Post("/documents/{id}/reject", merchantKybHandler.AdminReject)
 			r.Post("/documents/{id}/read-url", merchantKybHandler.AdminReadURL)

@@ -41,8 +41,10 @@ var summaryCounts = []struct {
 	table string
 	expr  string
 }{
-	{"merchant_kyb_documents", "(SELECT count(*) FROM merchant_kyb_documents WHERE status = 'PENDING_REVIEW')"},
-	{"kyc_cases", "(SELECT count(*) FROM kyc_cases WHERE reviewed_at IS NULL AND status NOT IN ('APPROVED','REJECTED','EXPIRED','CANCELLED'))"},
+	// Entity counts, not loose documents: KYB badges count merchants with a pending
+	// document; KYC badges count consumers with a case awaiting review.
+	{"merchant_kyb_documents", "(SELECT count(DISTINCT merchant_id) FROM merchant_kyb_documents WHERE status = 'PENDING_REVIEW')"},
+	{"kyc_cases", "(SELECT count(DISTINCT subject_id) FROM kyc_cases WHERE reviewed_at IS NULL AND status NOT IN ('APPROVED','REJECTED','EXPIRED','CANCELLED'))"},
 	{"merchant_applications", "(SELECT count(*) FROM merchant_applications WHERE status IN ('SUBMITTED','UNDER_REVIEW','PENDING','PENDING_REVIEW'))"},
 	{"app_settlements", "(SELECT count(*) FROM app_settlements WHERE status = 'FAILED')"},
 	{"disputes", "(SELECT count(*) FROM disputes WHERE status = 'OPEN')"},

@@ -48,6 +48,36 @@ func (h *MerchantKybHandler) List(w http.ResponseWriter, r *http.Request) {
 	writeRaw(w, code, raw)
 }
 
+// GET /admin/v1/merchant-kyb/merchants?limit=   — merchant-centric review queue.
+func (h *MerchantKybHandler) Merchants(w http.ResponseWriter, r *http.Request) {
+	gw, ok := h.pick(r)
+	if !ok {
+		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
+		return
+	}
+	raw, code, err := gw.ListMerchantKybMerchantsRaw(r.Context(), r.URL.Query().Get("limit"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not list merchants")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
+// GET /admin/v1/merchant-kyb/merchants/{id}/documents
+func (h *MerchantKybHandler) MerchantDocuments(w http.ResponseWriter, r *http.Request) {
+	gw, ok := h.pick(r)
+	if !ok {
+		writeErr(w, http.StatusServiceUnavailable, "sandbox review is not configured")
+		return
+	}
+	raw, code, err := gw.MerchantKybMerchantDocumentsRaw(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		writeErr(w, http.StatusBadGateway, "could not list merchant documents")
+		return
+	}
+	writeRaw(w, code, raw)
+}
+
 // POST /admin/v1/merchant-kyb/documents/{id}/approve   {valid_until?, notes?}
 func (h *MerchantKybHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	var body struct {

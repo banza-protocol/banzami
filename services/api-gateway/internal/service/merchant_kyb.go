@@ -42,14 +42,14 @@ var appToKybType = map[string]string{
 var kybAllowedMimes = map[string]bool{"application/pdf": true, "image/jpeg": true, "image/png": true}
 
 var (
-	ErrKybMerchantNotFound = errors.New("merchant no longer exists")
-	ErrKybDocNotFound      = errors.New("kyb document not found")
-	ErrKybInvalidType      = errors.New("invalid kyb document_type")
-	ErrKybInvalidMime      = errors.New("unsupported file type")
-	ErrKybStorageDisabled  = errors.New("kyb storage not configured")
+	ErrKybMerchantNotFound  = errors.New("merchant no longer exists")
+	ErrKybDocNotFound       = errors.New("kyb document not found")
+	ErrKybInvalidType       = errors.New("invalid kyb document_type")
+	ErrKybInvalidMime       = errors.New("unsupported file type")
+	ErrKybStorageDisabled   = errors.New("kyb storage not configured")
 	ErrKybObjectNotUploaded = errors.New("document object was not uploaded")
-	ErrKybReasonRequired   = errors.New("rejection_reason is required")
-	ErrKybInvalidState     = errors.New("document is not in a valid state for this action")
+	ErrKybReasonRequired    = errors.New("rejection_reason is required")
+	ErrKybInvalidState      = errors.New("document is not in a valid state for this action")
 )
 
 // PostgresMerchantKybService owns merchant_kyb_documents + merchant_kyb_events.
@@ -95,11 +95,11 @@ type MerchantKybDocument struct {
 }
 
 type MerchantKybStatus struct {
-	KybStatus string                `json:"kyb_status"`
-	Verified  bool                  `json:"verified"`
-	ReasonCode string               `json:"reason_code,omitempty"`
-	UpdatedAt *time.Time            `json:"updated_at,omitempty"`
-	Documents []MerchantKybDocument `json:"documents"`
+	KybStatus  string                `json:"kyb_status"`
+	Verified   bool                  `json:"verified"`
+	ReasonCode string                `json:"reason_code,omitempty"`
+	UpdatedAt  *time.Time            `json:"updated_at,omitempty"`
+	Documents  []MerchantKybDocument `json:"documents"`
 }
 
 // MerchantKybAdminDocument is the admin projection. It carries the owning
@@ -117,7 +117,29 @@ type MerchantKybAdminDocument struct {
 	// MerchantExists is false when the document's merchant no longer exists
 	// (orphan). The reviewer UI marks it and blocks normal approve/reject.
 	MerchantExists bool   `json:"merchant_exists"`
+	ReviewedBy     string `json:"reviewed_by,omitempty"`  // operator who last reviewed this document
 	DownloadURL    string `json:"download_url,omitempty"` // short-TTL signed GET, admin only
+}
+
+// MerchantKybSummary is one row of the merchant-centric KYB review queue: a whole
+// merchant with its document aggregates (not a loose document). The operator
+// reviews a complete merchant, then acts on individual documents inside the drawer.
+type MerchantKybSummary struct {
+	MerchantID     string     `json:"merchant_id"`
+	MerchantExists bool       `json:"merchant_exists"`
+	Name           string     `json:"name,omitempty"`
+	Handle         string     `json:"handle,omitempty"`
+	Status         string     `json:"status,omitempty"`     // merchant account status
+	KybStatus      string     `json:"kyb_status,omitempty"` // overall KYB status
+	Environment    string     `json:"environment,omitempty"`
+	Country        string     `json:"country,omitempty"`
+	Contact        string     `json:"contact,omitempty"` // primary contact (application email)
+	Total          int        `json:"total"`
+	Pending        int        `json:"pending"`
+	Approved       int        `json:"approved"`
+	Rejected       int        `json:"rejected"`
+	Expired        int        `json:"expired"`
+	LastSubmission *time.Time `json:"last_submission,omitempty"`
 }
 
 // ── Merchant surface ─────────────────────────────────────────────────────────
@@ -353,6 +375,85 @@ func (s *PostgresMerchantKybService) AdminList(ctx context.Context, status strin
 	return out, rows.Err()
 }
 
+// AdminListMerchants returns the merchant-centric KYB review queue: one row per
+// merchant that has KYB documents, with per-status counts and the latest
+// submission. The operator reviews a whole merchant, not loose documents. An
+// orphan (merchant removed) still appears with merchant_exists=false. REPLACED
+// documents are excluded from the aggregates.
+func (s *PostgresMerchantKybService) AdminListMerchants(ctx context.Context, limit int) ([]MerchantKybSummary, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 100
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT d.merchant_id,
+		       COALESCE(m.name,''), COALESCE(p.handle,''), COALESCE(m.status,''),
+		       COALESCE(mc.kyb_status,''), COALESCE(max(d.environment),''),
+		       COALESCE(max(a.country),''), COALESCE(max(a.email),''),
+		       (m.id IS NOT NULL) AS merchant_exists,
+		       count(*) FILTER (WHERE d.status <> 'REPLACED') AS total,
+		       count(*) FILTER (WHERE d.status = 'PENDING_REVIEW') AS pending,
+		       count(*) FILTER (WHERE d.status = 'VALID') AS approved,
+		       count(*) FILTER (WHERE d.status = 'REJECTED') AS rejected,
+		       count(*) FILTER (WHERE d.status = 'EXPIRED') AS expired,
+		       max(d.submitted_at) AS last_submission
+		  FROM merchant_kyb_documents d
+		  LEFT JOIN merchants m            ON m.id = d.merchant_id
+		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = d.merchant_id
+		  LEFT JOIN merchant_profiles p    ON p.merchant_id = d.merchant_id
+		  LEFT JOIN merchant_applications a ON a.created_merchant_id = d.merchant_id
+		 GROUP BY d.merchant_id, m.id, m.name, p.handle, m.status, mc.kyb_status
+		HAVING count(*) FILTER (WHERE d.status <> 'REPLACED') > 0
+		 ORDER BY (count(*) FILTER (WHERE d.status = 'PENDING_REVIEW')) DESC, max(d.submitted_at) DESC NULLS LAST
+		 LIMIT $1`, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []MerchantKybSummary{}
+	for rows.Next() {
+		var m MerchantKybSummary
+		if err := rows.Scan(&m.MerchantID, &m.Name, &m.Handle, &m.Status, &m.KybStatus,
+			&m.Environment, &m.Country, &m.Contact, &m.MerchantExists,
+			&m.Total, &m.Pending, &m.Approved, &m.Rejected, &m.Expired, &m.LastSubmission); err != nil {
+			return nil, err
+		}
+		out = append(out, m)
+	}
+	return out, rows.Err()
+}
+
+// AdminMerchantDocuments returns all current (non-REPLACED) KYB documents for one
+// merchant, for the merchant review drawer. No signed URLs are minted here — the
+// operator mints one on demand per access (audited). storage_key never leaves.
+func (s *PostgresMerchantKybService) AdminMerchantDocuments(ctx context.Context, merchantID string) ([]MerchantKybAdminDocument, error) {
+	rows, err := s.pool.Query(ctx, `
+		SELECT d.id, d.merchant_id, d.document_type, d.status, COALESCE(d.mime_type,''),
+		       COALESCE(d.size_bytes,0), d.submitted_at, d.reviewed_at, d.valid_until,
+		       COALESCE(d.rejection_reason,''), COALESCE(d.reviewed_by,''),
+		       COALESCE(m.name,''), COALESCE(m.status,''), COALESCE(mc.kyb_status,''),
+		       COALESCE(d.environment,''), (m.id IS NOT NULL) AS merchant_exists
+		  FROM merchant_kyb_documents d
+		  LEFT JOIN merchants m            ON m.id = d.merchant_id
+		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = d.merchant_id
+		 WHERE d.merchant_id = $1 AND d.status <> 'REPLACED'
+		 ORDER BY d.document_type, d.submitted_at DESC NULLS LAST`, merchantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []MerchantKybAdminDocument{}
+	for rows.Next() {
+		var d MerchantKybAdminDocument
+		if err := rows.Scan(&d.ID, &d.MerchantID, &d.DocumentType, &d.Status, &d.MimeType, &d.SizeBytes,
+			&d.SubmittedAt, &d.ReviewedAt, &d.ValidUntil, &d.RejectionReason, &d.ReviewedBy,
+			&d.MerchantName, &d.MerchantStatus, &d.KybStatus, &d.Environment, &d.MerchantExists); err != nil {
+			return nil, err
+		}
+		out = append(out, d)
+	}
+	return out, rows.Err()
+}
+
 // AdminApprove marks a document VALID (optionally with valid_until), supersedes
 // the previous current document of the same type (-> REPLACED), and promotes the
 // merchant to KYB APPROVED when all required documents are VALID.
@@ -372,24 +473,24 @@ func (s *PostgresMerchantKybService) AdminReject(ctx context.Context, docID, act
 // + representative + company details (from the application) + KYB status.
 // Read-only; never carries secrets.
 type MerchantKybContext struct {
-	MerchantID     string  `json:"merchant_id"`
-	MerchantExists bool    `json:"merchant_exists"`
-	Name           string  `json:"name,omitempty"`
-	Email          string  `json:"email,omitempty"`
-	Status         string  `json:"status,omitempty"`
-	KybStatus      string  `json:"kyb_status,omitempty"`
-	Handle         string  `json:"handle,omitempty"`
-	Category       string  `json:"category,omitempty"`
-	CreatedAt      *string `json:"created_at,omitempty"`
-	RepName        string  `json:"representative_name,omitempty"`
-	RepEmail       string  `json:"representative_email,omitempty"`
-	RepPhone       string  `json:"representative_phone,omitempty"`
-	LegalName      string  `json:"legal_name,omitempty"`
-	Nif            string  `json:"nif,omitempty"`
-	Country        string  `json:"country,omitempty"`
-	City           string  `json:"city,omitempty"`
-	Address        string  `json:"address,omitempty"`
-	BusinessActivity string `json:"business_activity,omitempty"`
+	MerchantID       string  `json:"merchant_id"`
+	MerchantExists   bool    `json:"merchant_exists"`
+	Name             string  `json:"name,omitempty"`
+	Email            string  `json:"email,omitempty"`
+	Status           string  `json:"status,omitempty"`
+	KybStatus        string  `json:"kyb_status,omitempty"`
+	Handle           string  `json:"handle,omitempty"`
+	Category         string  `json:"category,omitempty"`
+	CreatedAt        *string `json:"created_at,omitempty"`
+	RepName          string  `json:"representative_name,omitempty"`
+	RepEmail         string  `json:"representative_email,omitempty"`
+	RepPhone         string  `json:"representative_phone,omitempty"`
+	LegalName        string  `json:"legal_name,omitempty"`
+	Nif              string  `json:"nif,omitempty"`
+	Country          string  `json:"country,omitempty"`
+	City             string  `json:"city,omitempty"`
+	Address          string  `json:"address,omitempty"`
+	BusinessActivity string  `json:"business_activity,omitempty"`
 }
 
 // KybTimelineEvent is one immutable history entry from merchant_kyb_events.
@@ -588,7 +689,10 @@ func BridgeFromApplicationTx(ctx context.Context, tx pgx.Tx, applicationID, merc
 	if err != nil {
 		return err
 	}
-	type srcDoc struct{ typ, bucket, key, mime, sha string; size int64 }
+	type srcDoc struct {
+		typ, bucket, key, mime, sha string
+		size                        int64
+	}
 	var src []srcDoc
 	for rows.Next() {
 		var d srcDoc

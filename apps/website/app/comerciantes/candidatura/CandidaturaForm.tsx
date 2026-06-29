@@ -9,6 +9,7 @@ import {
   normalizeHandle,
   isValidHandleFormat,
   handleReasonMessage,
+  API_ENV,
   type ApplicationInput,
   type KybDocumentType,
 } from '@/lib/api';
@@ -28,6 +29,11 @@ import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/busine
 const RED = '#B5101F';
 const RED_DARK = '#9A1B22';
 const GREEN = '#1f9d57';
+
+// The environment is implied by the API host (sandbox host → SANDBOX). When the
+// onboarding page is pointed at sandbox, every step makes that unmistakable so a
+// test application is never confused with a real production Business account.
+const IS_SANDBOX = API_ENV === 'SANDBOX';
 
 // --- Static data -----------------------------------------------------------
 
@@ -660,6 +666,21 @@ export function CandidaturaForm() {
         </div>
       </div>
 
+      {IS_SANDBOX && (
+        <div className="mb-[22px] flex items-start gap-3 rounded-[16px] border-[1.5px] border-amber-300 bg-amber-50 px-5 py-4">
+          <span className="mt-0.5 flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-amber-500 text-[13px] font-black text-white">!</span>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">Sandbox</span>
+              <span className="text-[15px] font-extrabold text-amber-900">Ambiente SANDBOX — candidatura de teste</span>
+            </div>
+            <p className="m-0 mt-1 text-[13.5px] font-semibold leading-[1.5] text-amber-800">
+              Os dados e documentos enviados nesta página são usados apenas para testes. Não criam uma conta Business real em produção.
+            </p>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-[330px_1fr] items-start gap-[30px] max-[980px]:grid-cols-1">
         {/* SIDEBAR */}
         <aside className="sticky top-6 flex flex-col gap-[22px] max-[980px]:static">
@@ -969,6 +990,11 @@ export function CandidaturaForm() {
                     </p>
                   </div>
                 </div>
+                {IS_SANDBOX && (
+                  <div className="mt-3 rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13px] font-bold text-amber-800">
+                    Sandbox — pode enviar documentos de teste. Não serão usados para uma conta real.
+                  </div>
+                )}
                 <div className="mt-[22px] flex flex-col gap-3">
                   {DOC_DEFS.map((d) => {
                     const st = docs[d.key];
@@ -1026,6 +1052,11 @@ export function CandidaturaForm() {
                     {Ic.check(RED, 2.4, 42)}
                   </div>
                   <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada</h2>
+                  {IS_SANDBOX && (
+                    <div className="mx-auto mt-4 max-w-[420px] rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13.5px] font-bold text-amber-800">
+                      Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não foi criada uma conta Business real.
+                    </div>
+                  )}
                   <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
                     A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for
                     aprovado, receberá um link de ativação no email indicado para definir o PIN de

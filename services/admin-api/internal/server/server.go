@@ -151,6 +151,8 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		}
 		merchantKybH := handler.NewMerchantKybHandler(gw, gwSandbox)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/documents", merchantKybH.List)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/merchants", merchantKybH.Merchants)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/merchants/{id}/documents", merchantKybH.MerchantDocuments)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/merchants/{id}/context", merchantKybH.Context)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/merchants/{id}/timeline", merchantKybH.Timeline)
 		r.With(cap(auth.CapApplicationView)).Post("/admin/v1/merchant-kyb/documents/{id}/read-url", merchantKybH.ReadURL)

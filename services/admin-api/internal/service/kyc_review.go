@@ -106,28 +106,43 @@ type KycTimelineEvent struct {
 
 // ── Reads ───────────────────────────────────────────────────────────────────
 
-// ListCases returns cases filtered by status/environment (most recent first).
+// ListCases returns the consumer-centric KYC review queue: one row per consumer
+// (their latest case), enriched with identity + compliance + evidence count. The
+// operator reviews a whole consumer, not loose documents. The status/environment
+// filters apply to that latest case.
 func (s *KycReviewService) ListCases(ctx context.Context, status, environment string, limit int) ([]KycCaseSummary, error) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
+	// Inner DISTINCT ON picks the latest case per consumer; the outer query filters
+	// on that case's status/environment so the queue is one entry per consumer.
 	rows, err := s.pool.Query(ctx, `
-		SELECT c.id, c.subject_id, c.status, COALESCE(d.document_type,''), COALESCE(d.country,''),
-		       COALESCE(c.reason_code,''), c.environment, c.created_at, c.submitted_at, c.reviewed_at,
-		       (cons.id IS NOT NULL),
-		       COALESCE(cons.handle,''), COALESCE(cons.display_name,''), COALESCE(cons.status,''),
-		       COALESCE(cons.phone_number,''), COALESCE(cc.kyc_level,''), COALESCE(cc.status,''),
-		       COALESCE(ev.n,0)
-		  FROM kyc_cases c
-		  LEFT JOIN LATERAL (
-		      SELECT document_type, country FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
-		  ) d ON true
-		  LEFT JOIN consumers cons ON cons.id = c.subject_id
-		  LEFT JOIN customer_compliance cc ON cc.customer_id = c.subject_id
-		  LEFT JOIN LATERAL (SELECT count(*) AS n FROM kyc_evidence WHERE case_id = c.id) ev ON true
-		 WHERE ($1 = '' OR c.status = $1)
-		   AND ($2 = '' OR c.environment = $2)
-		 ORDER BY c.submitted_at DESC NULLS LAST, c.created_at DESC
+		SELECT q.id, q.subject_id, q.status, q.document_type, q.country,
+		       q.reason_code, q.environment, q.created_at, q.submitted_at, q.reviewed_at,
+		       q.consumer_exists, q.handle, q.display_name, q.consumer_status,
+		       q.phone_number, q.kyc_level, q.compliance_status, q.evidence_count
+		  FROM (
+		    SELECT DISTINCT ON (c.subject_id)
+		           c.id, c.subject_id, c.status, COALESCE(d.document_type,'') AS document_type,
+		           COALESCE(d.country,'') AS country, COALESCE(c.reason_code,'') AS reason_code,
+		           c.environment, c.created_at, c.submitted_at, c.reviewed_at,
+		           (cons.id IS NOT NULL) AS consumer_exists,
+		           COALESCE(cons.handle,'') AS handle, COALESCE(cons.display_name,'') AS display_name,
+		           COALESCE(cons.status,'') AS consumer_status, COALESCE(cons.phone_number,'') AS phone_number,
+		           COALESCE(cc.kyc_level,'') AS kyc_level, COALESCE(cc.status,'') AS compliance_status,
+		           COALESCE(ev.n,0) AS evidence_count
+		      FROM kyc_cases c
+		      LEFT JOIN LATERAL (
+		          SELECT document_type, country FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
+		      ) d ON true
+		      LEFT JOIN consumers cons ON cons.id = c.subject_id
+		      LEFT JOIN customer_compliance cc ON cc.customer_id = c.subject_id
+		      LEFT JOIN LATERAL (SELECT count(*) AS n FROM kyc_evidence WHERE case_id = c.id) ev ON true
+		     ORDER BY c.subject_id, c.created_at DESC
+		  ) q
+		 WHERE ($1 = '' OR q.status = $1)
+		   AND ($2 = '' OR q.environment = $2)
+		 ORDER BY q.submitted_at DESC NULLS LAST, q.created_at DESC
 		 LIMIT $3`, status, environment, limit)
 	if err != nil {
 		return nil, err

@@ -194,6 +194,18 @@ func (c *GatewayClient) RejectMerchantKybDocumentRaw(ctx context.Context, docume
 		map[string]string{"actor": actor, "rejection_reason": reason, "notes": notes})
 }
 
+func (c *GatewayClient) ListMerchantKybMerchantsRaw(ctx context.Context, limit string) (json.RawMessage, int, error) {
+	path := "/internal/v1/merchant-kyb/merchants"
+	if limit != "" {
+		path += "?limit=" + limit
+	}
+	return c.doRaw(ctx, http.MethodGet, path, nil)
+}
+
+func (c *GatewayClient) MerchantKybMerchantDocumentsRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/documents", nil)
+}
+
 func (c *GatewayClient) MerchantKybContextRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/context", nil)
 }

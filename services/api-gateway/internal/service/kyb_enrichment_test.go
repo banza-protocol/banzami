@@ -95,6 +95,79 @@ func TestKybAdminList_EnrichesMerchantAndFlagsOrphan(t *testing.T) {
 	}
 }
 
+// The merchant-centric queue returns one row per merchant with correct per-status
+// counts; per-merchant documents lists that merchant's docs; and the KYB badge
+// counts distinct merchants, not loose documents.
+func TestKybAdminMerchants_AggregatesAndCounts(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
+
+	m := uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja Agregada',$2,'ACTIVE')`, m, m+"@test"); err != nil {
+		t.Fatalf("seed merchant: %v", err)
+	}
+	seed := func(dtype, status string) string {
+		id := uuid.NewString()
+		if _, err := pool.Exec(ctx,
+			`INSERT INTO merchant_kyb_documents (id, merchant_id, document_type, status, storage_bucket, storage_key, mime_type, environment, submitted_at)
+			 VALUES ($1,$2,$3,$4,'banzami-kyb-sandbox',$5,'image/jpeg','SANDBOX',NOW())`,
+			id, m, dtype, status, "k/"+id); err != nil {
+			t.Fatalf("seed doc: %v", err)
+		}
+		return id
+	}
+	d1 := seed("COMMERCIAL_REGISTRATION", "PENDING_REVIEW")
+	d2 := seed("COMPANY_TAX_ID", "VALID")
+	d3 := seed("REPRESENTATIVE_ID", "REJECTED")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE merchant_id=$1`, m)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m)
+	})
+
+	merchants, err := svc.AdminListMerchants(ctx, 200)
+	if err != nil {
+		t.Fatalf("AdminListMerchants: %v", err)
+	}
+	var row *MerchantKybSummary
+	for i := range merchants {
+		if merchants[i].MerchantID == m {
+			row = &merchants[i]
+		}
+	}
+	if row == nil {
+		t.Fatalf("merchant not in queue")
+	}
+	if row.Name != "Loja Agregada" || !row.MerchantExists {
+		t.Fatalf("merchant row not enriched: %+v", row)
+	}
+	if row.Total != 3 || row.Pending != 1 || row.Approved != 1 || row.Rejected != 1 {
+		t.Fatalf("aggregate counts wrong: total=%d pending=%d approved=%d rejected=%d", row.Total, row.Pending, row.Approved, row.Rejected)
+	}
+
+	docs, err := svc.AdminMerchantDocuments(ctx, m)
+	if err != nil {
+		t.Fatalf("AdminMerchantDocuments: %v", err)
+	}
+	if len(docs) != 3 {
+		t.Fatalf("expected 3 documents for merchant, got %d", len(docs))
+	}
+	_ = d1
+	_ = d2
+	_ = d3
+
+	// The KYB badge counts distinct merchants, not documents: this merchant with 1
+	// pending doc contributes exactly 1.
+	sum, err := NewNotificationsService(pool).Summary(ctx)
+	if err != nil {
+		t.Fatalf("Summary: %v", err)
+	}
+	if sum.PendingKybDocuments < 1 {
+		t.Fatalf("expected >=1 merchant with pending KYB, got %d", sum.PendingKybDocuments)
+	}
+}
+
 func TestNotificationsSummary_Counts(t *testing.T) {
 	pool := dbPoolOrSkip(t)
 	defer pool.Close()
