@@ -73,6 +73,29 @@ Reads are not audited (no mutation); `cancel`/`fail` write
 - No secrets/PII: amounts, references and the (already-immutable) pricing snapshot
   only.
 
+## Error semantics — admin-api preserves core-api HTTP codes
+
+The admin-api forwards the **exact HTTP status code and `{error:{code,message}}`
+payload** returned by core-api. A functional error stays itself end-to-end:
+
+| Core-api → | admin-api → BANZADMIN |
+|---|---|
+| `400 BAD_REQUEST` (invalid input) | `400` |
+| `401` / `403` | `401` / `403` |
+| `404 NOT_FOUND` (missing resource) | `404` |
+| `409 INVALID_STATUS` (e.g. cancel a COMPLETED/FAILED settlement) | `409` |
+| `422` (e.g. fee exceeds gross / insufficient funds) | `422` |
+| `429 RATE_LIMITED` | `429` |
+
+`500` is reserved for genuine internal failures only (transport, decode,
+unexpected). This means BANZADMIN shows the **correct functional message** —
+cancelling a terminal settlement is a clear `409`, a missing record is a `404`,
+invalid input is a `400` — never a generic "internal error". The translation
+lives in `service.CoreError` + `handleCoreErr` and benefits **every** admin-api
+endpoint that calls core-api (pricing, fees, settlements, merchants, operators,
+consumers, wallets, disputes, …), not only the finance surfaces. A 404 still
+satisfies the handlers that render a custom not-found message (`CoreError.Is`).
+
 ---
 
 ## Tests

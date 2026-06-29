@@ -33,7 +33,22 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 	})
 }
 
+// handleCoreErr forwards an error from a CoreAdminClient call to the HTTP
+// response. A functional error from core-api (a *CoreError) is forwarded with
+// its exact status code + `{error:{code,message}}` payload — a 400/401/403/404/
+// 409/422/429 stays itself, never masked as 500. Only genuine internal failures
+// (transport, decode, unexpected) become a 500.
 func handleCoreErr(w http.ResponseWriter, err error) {
+	var ce *service.CoreError
+	if errors.As(err, &ce) {
+		code := ce.Code
+		if code == "" {
+			code = "ERROR"
+		}
+		writeError(w, ce.Status, code, ce.Message)
+		return
+	}
+	// Backstop: anything still tagged not-found (e.g. a wrapped sentinel) → 404.
 	if errors.Is(err, service.ErrNotFound) {
 		writeError(w, http.StatusNotFound, "NOT_FOUND", "resource not found")
 		return

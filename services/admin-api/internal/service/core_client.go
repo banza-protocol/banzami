@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -544,6 +545,79 @@ func (c *CoreAdminClient) FailApplicationSettlement(ctx context.Context, id stri
 
 var ErrNotFound = errors.New("not found")
 
+// CoreError preserves the HTTP status code and the `{error:{code,message}}`
+// payload returned by core-api, so the admin-api can forward them verbatim
+// rather than collapsing every functional 4xx into a generic 500.
+type CoreError struct {
+	Status  int
+	Code    string
+	Message string
+	// Raw is the original response body (for diagnostics); never altered.
+	Raw []byte
+}
+
+func (e *CoreError) Error() string {
+	return fmt.Sprintf("core-api %d %s: %s", e.Status, e.Code, e.Message)
+}
+
+// Is keeps existing `errors.Is(err, service.ErrNotFound)` checks working for
+// 404s, so handlers that render a custom not-found message are unaffected.
+func (e *CoreError) Is(target error) bool {
+	return target == ErrNotFound && e.Status == http.StatusNotFound
+}
+
+// parseCoreError builds a CoreError from a >=400 response, extracting the
+// standard `{error:{code,message}}` envelope when present (both core-api and
+// admin-api use it) and falling back to sane defaults otherwise.
+func parseCoreError(status int, raw []byte) *CoreError {
+	ce := &CoreError{Status: status, Raw: raw}
+	var env struct {
+		Error struct {
+			Code    string `json:"code"`
+			Message string `json:"message"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(raw, &env) == nil {
+		ce.Code = env.Error.Code
+		ce.Message = env.Error.Message
+	}
+	if ce.Code == "" {
+		ce.Code = defaultErrorCode(status)
+	}
+	if ce.Message == "" {
+		if msg := strings.TrimSpace(string(raw)); msg != "" {
+			ce.Message = msg
+		} else {
+			ce.Message = http.StatusText(status)
+		}
+	}
+	return ce
+}
+
+func defaultErrorCode(status int) string {
+	switch status {
+	case http.StatusBadRequest:
+		return "BAD_REQUEST"
+	case http.StatusUnauthorized:
+		return "UNAUTHORIZED"
+	case http.StatusForbidden:
+		return "FORBIDDEN"
+	case http.StatusNotFound:
+		return "NOT_FOUND"
+	case http.StatusConflict:
+		return "CONFLICT"
+	case http.StatusUnprocessableEntity:
+		return "UNPROCESSABLE_ENTITY"
+	case http.StatusTooManyRequests:
+		return "RATE_LIMITED"
+	default:
+		if status >= 500 {
+			return "UPSTREAM_ERROR"
+		}
+		return "ERROR"
+	}
+}
+
 func (c *CoreAdminClient) post(ctx context.Context, path string, body any, out any) error {
 	var bodyReader io.Reader
 	if body != nil {
@@ -601,11 +675,11 @@ func (c *CoreAdminClient) do(req *http.Request, out any) error {
 
 	raw, _ := io.ReadAll(resp.Body)
 
-	if resp.StatusCode == http.StatusNotFound {
-		return ErrNotFound
-	}
+	// Preserve the core's HTTP status + error payload verbatim instead of
+	// masking every 4xx as a 500. A 404 still satisfies errors.Is(.., ErrNotFound)
+	// (see CoreError.Is) so existing handlers keep their custom not-found copy.
 	if resp.StatusCode >= 400 {
-		return fmt.Errorf("core-api error %d: %s", resp.StatusCode, string(raw))
+		return parseCoreError(resp.StatusCode, raw)
 	}
 
 	if out != nil {
