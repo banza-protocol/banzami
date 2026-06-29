@@ -161,8 +161,20 @@ settlements by status), with environment/currency/date filters. core-api
 `GET /internal/v1/finance/dashboard` (parameterized GROUP BY, no PII), admin-api
 `GET /admin/v1/finance/dashboard` (`finance.view`, no audit on reads), BANZADMIN
 `/finance` (custom CSS bars; no chart library). See
-[docs/admin/finance-dashboard.md](../admin/finance-dashboard.md). Pricing Profiles /
-Fee Policies CRUD and settlement reprocess remain deferred.
+[docs/admin/finance-dashboard.md](../admin/finance-dashboard.md). Settlement
+reprocess remains deferred.
+
+**Admin layer (increment 5.8, part 4 — done):** **Pricing Profiles** and **Fee
+Policies** become operator-managed reference catalogs (migration 0073, `UNIQUE
+(environment, code)`, not FK-linked to pricing_rules so old string refs never
+break). Catalogs carry **no percentages** — fee values stay only in pricing_rules;
+a FeePolicy just identifies a commercial policy. CRUD across core-api
+(`/internal/v1/pricing-profiles` + `/fee-policies`), admin-api
+(`/admin/v1/finance/…`, `pricing.view`/`pricing.manage`, audited), and BANZADMIN
+(Finanças → Perfis de preço / Políticas de fee); the Pricing Rules form's
+profile/fee-policy inputs now offer the enabled catalog codes (manual entry still
+allowed). See [docs/admin/pricing.md](../admin/pricing.md). Settlement reprocess
+remains the only deferred ADR-021 admin item.
 
 Nothing is deployed/pushed without an explicit GO; each increment ships and is
 validated independently. The financial-correctness invariants (double-entry,

@@ -456,6 +456,41 @@ func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, b
 // state permits (the core enforces the lifecycle).
 // ---------------------------------------------------------------------------
 
+// Pricing catalogs (pricing-profiles / fee-policies). `resource` is one of the
+// two fixed path segments; never caller-derived.
+func (c *CoreAdminClient) ListCatalog(ctx context.Context, resource, query string) (map[string]any, error) {
+	path := "/internal/v1/" + resource
+	if query != "" {
+		path += "?" + query
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetCatalog(ctx context.Context, resource, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/"+resource+"/"+id, &out)
+}
+
+func (c *CoreAdminClient) CreateCatalog(ctx context.Context, resource string, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/"+resource, body, &out)
+}
+
+func (c *CoreAdminClient) UpdateCatalog(ctx context.Context, resource, id string, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.patch(ctx, "/internal/v1/"+resource+"/"+id, body, &out)
+}
+
+func (c *CoreAdminClient) SetCatalogEnabled(ctx context.Context, resource, id string, enabled bool) (map[string]any, error) {
+	action := "disable"
+	if enabled {
+		action = "enable"
+	}
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/"+resource+"/"+id+"/"+action, nil, &out)
+}
+
 func (c *CoreAdminClient) GetFinanceDashboard(ctx context.Context, query string) (map[string]any, error) {
 	path := "/internal/v1/finance/dashboard"
 	if query != "" {

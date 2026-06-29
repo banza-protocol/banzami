@@ -95,7 +95,7 @@ use banzami_merchants::{
 use banzami_app_settlement::{
     PostgresApplicationSettlementEngine, PostgresApplicationSettlementRepository,
 };
-use banzami_pricing::PostgresPricingRuleAdminRepository;
+use banzami_pricing::{PostgresCatalogRepository, PostgresPricingRuleAdminRepository};
 use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
@@ -174,6 +174,7 @@ pub struct AppState {
     pub app_settlement: Arc<AppSettlementEng>,
     pub pricing_admin: Arc<PostgresPricingRuleAdminRepository>,
     pub operator_fee_read: Arc<PostgresOperatorFeeReadRepository>,
+    pub catalog: Arc<PostgresCatalogRepository>,
 }
 
 impl AppState {
@@ -321,6 +322,9 @@ impl AppState {
         // --- Operator fees (read-only audit; ADR-021) ---
         let operator_fee_read = Arc::new(PostgresOperatorFeeReadRepository::new(pool.clone()));
 
+        // --- Pricing catalogs: profiles + fee policies (ADR-021) ---
+        let catalog = Arc::new(PostgresCatalogRepository::new(pool.clone()));
+
         Self {
             pool,
             transit_account_id,
@@ -345,6 +349,7 @@ impl AppState {
             app_settlement,
             pricing_admin,
             operator_fee_read,
+            catalog,
         }
     }
 }

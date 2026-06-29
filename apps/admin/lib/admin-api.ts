@@ -204,6 +204,34 @@ export interface FinanceDashboardFilters {
   to?:          string;
 }
 
+/** A pricing-catalog entry (pricing profile OR fee policy; ADR-021). Reference
+ *  only — carries NO percentages. */
+export interface CatalogEntry {
+  id:          string;
+  code:        string;
+  name:        string;
+  description: string | null;
+  enabled:     boolean;
+  environment: 'LIVE' | 'SANDBOX';
+  metadata:    Record<string, unknown>;
+  created_at:  string;
+  updated_at:  string;
+}
+
+export interface CatalogInput {
+  code:         string;
+  name:         string;
+  description?: string | null;
+  environment:  'LIVE' | 'SANDBOX';
+  metadata?:    Record<string, unknown>;
+}
+
+export interface CatalogFilters {
+  environment?: string;
+  status?:      'enabled' | 'disabled';
+  code?:        string;
+}
+
 export interface Payout {
   id:          string;
   merchant_id: string;
@@ -548,6 +576,34 @@ export class AdminApi {
       method: 'POST', body: JSON.stringify({ rule_key: ruleKey }),
     });
   }
+
+  // Finance — Pricing catalogs (profiles + fee policies). Read = pricing.view;
+  // mutations = pricing.manage. Reference catalogs only (no percentages).
+  private catalogList(resource: string, f: CatalogFilters): Promise<{ data: CatalogEntry[] }> {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(f)) if (v) q.set(k, String(v));
+    const qs = q.toString();
+    return this.req(`/admin/v1/finance/${resource}${qs ? `?${qs}` : ''}`);
+  }
+  private catalogCreate(resource: string, body: CatalogInput): Promise<CatalogEntry> {
+    return this.req(`/admin/v1/finance/${resource}`, { method: 'POST', body: JSON.stringify(body) });
+  }
+  private catalogUpdate(resource: string, id: string, body: CatalogInput): Promise<CatalogEntry> {
+    return this.req(`/admin/v1/finance/${resource}/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  }
+  private catalogEnabled(resource: string, id: string, enabled: boolean): Promise<CatalogEntry> {
+    return this.req(`/admin/v1/finance/${resource}/${id}/${enabled ? 'enable' : 'disable'}`, { method: 'POST' });
+  }
+
+  listPricingProfiles(f: CatalogFilters = {}): Promise<{ data: CatalogEntry[] }> { return this.catalogList('pricing-profiles', f); }
+  createPricingProfile(b: CatalogInput): Promise<CatalogEntry> { return this.catalogCreate('pricing-profiles', b); }
+  updatePricingProfile(id: string, b: CatalogInput): Promise<CatalogEntry> { return this.catalogUpdate('pricing-profiles', id, b); }
+  setPricingProfileEnabled(id: string, e: boolean): Promise<CatalogEntry> { return this.catalogEnabled('pricing-profiles', id, e); }
+
+  listFeePolicies(f: CatalogFilters = {}): Promise<{ data: CatalogEntry[] }> { return this.catalogList('fee-policies', f); }
+  createFeePolicy(b: CatalogInput): Promise<CatalogEntry> { return this.catalogCreate('fee-policies', b); }
+  updateFeePolicy(id: string, b: CatalogInput): Promise<CatalogEntry> { return this.catalogUpdate('fee-policies', id, b); }
+  setFeePolicyEnabled(id: string, e: boolean): Promise<CatalogEntry> { return this.catalogEnabled('fee-policies', id, e); }
 
   // Finance — Dashboard (read-only aggregates).
   getFinanceDashboard(filters: FinanceDashboardFilters = {}): Promise<FinanceDashboard> {

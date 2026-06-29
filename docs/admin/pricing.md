@@ -106,10 +106,32 @@ non-admin principal can reach the surface (it lives behind the admin-api JWT).
 
 ---
 
+## Pricing Profiles & Fee Policies (catalogs, increment 5.8)
+
+`pricing_profile` and `fee_policy_ref` are now operator-managed **reference
+catalogs**, not free strings — **BANZADMIN → Finanças → Perfis de preço** and
+**Políticas de fee**.
+
+- **Catalogs carry NO percentages.** They name and describe a profile / a fee
+  policy. Fee values live ONLY in `pricing_rules`. A `FeePolicy` merely *identifies*
+  a commercial policy (code + internal note); the numbers behind it stay in rules.
+- Tables `pricing_profiles` / `fee_policies` (migration 0073), `UNIQUE(environment,
+  code)`. **Not** FK-linked to `pricing_rules`, so existing free-string refs never
+  break.
+- CRUD: create / list+filter (env, status, code search) / get / update (code &
+  environment are immutable identity) / enable / disable. Never deleted.
+- API: core-api `/internal/v1/pricing-profiles…` + `/fee-policies…`; admin-api
+  `/admin/v1/finance/pricing-profiles…` + `/fee-policies…` — read `pricing.view`,
+  mutations `pricing.manage` (SUPER_ADMIN), audited
+  (`CREATE/UPDATE/DISABLE/ENABLE_PRICING_PROFILE` / `…_FEE_POLICY`).
+- **Pricing Rules integration:** the rule form's profile / fee-policy inputs are
+  datalists populated from the **enabled** catalog codes, with manual entry still
+  allowed (so old rules with arbitrary string refs keep working). No hard
+  validation is enforced on rule create, to avoid breaking historical refs.
+
 ## Deferred (next increments)
 
-Pricing **Profiles** CRUD, **Fee Policies** CRUD, **Operator Fees** read screens,
-**Application Settlements** screens, and **Dashboards** are intentionally out of
-this part (profiles/fee-policies need new tables). BANZADMIN has **no unit-test
-runner** configured, so frontend behaviour is covered by type-check + build only;
-adding a runner (vitest/RTL) is a separate task.
+Settlement **reprocess** and finance **dashboards** beyond the current set remain
+for later parts. BANZADMIN has **no unit-test runner** configured, so frontend
+behaviour is covered by type-check + build only; adding a runner (vitest/RTL) is a
+separate task.

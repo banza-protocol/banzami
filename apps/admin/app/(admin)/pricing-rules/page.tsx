@@ -63,6 +63,25 @@ export default function PricingRulesPage() {
   const [form, setForm] = useState<PricingRuleInput>(emptyForm());
   const [versions, setVersions] = useState<PricingRule[]>([]);
   const [saving, setSaving] = useState(false);
+  // Enabled catalog codes for the form dropdowns (manual entry still allowed, so
+  // existing free-string refs never break).
+  const [profileCodes, setProfileCodes] = useState<string[]>([]);
+  const [policyCodes, setPolicyCodes] = useState<string[]>([]);
+
+  useEffect(() => {
+    const api = getApi();
+    if (!api) return;
+    void (async () => {
+      try {
+        const [profs, pols] = await Promise.all([
+          api.listPricingProfiles({ status: 'enabled' }),
+          api.listFeePolicies({ status: 'enabled' }),
+        ]);
+        setProfileCodes(profs.data.map((p) => p.code));
+        setPolicyCodes(pols.data.map((p) => p.code));
+      } catch { /* dropdowns fall back to the static lists */ }
+    })();
+  }, []);
 
   const load = useCallback(async (f: PricingRuleFilters) => {
     const api = getApi();
@@ -288,7 +307,7 @@ export default function PricingRulesPage() {
                   Esta regra já priçou pagamentos reais. Guardar criará a versão {mode.kind === 'edit' ? mode.rule.version + 1 : ''} e desativará a atual — o histórico permanece intacto.
                 </p>
               )}
-              <RuleForm form={form} setForm={setForm} lockKey={mode.kind === 'edit'} />
+              <RuleForm form={form} setForm={setForm} lockKey={mode.kind === 'edit'} profileCodes={profileCodes} policyCodes={policyCodes} />
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={closePanel} className="rounded-[11px] border border-[#f1e3e3] px-[15px] py-[9px] text-[13px] font-bold text-[#5a4a4e] hover:bg-[#FFF7F6]">
                   Cancelar
@@ -376,9 +395,13 @@ function Filters({ value, onChange }: { value: PricingRuleFilters; onChange: (f:
   );
 }
 
-function RuleForm({ form, setForm, lockKey }: {
+function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes }: {
   form: PricingRuleInput; setForm: (f: PricingRuleInput) => void; lockKey: boolean;
+  profileCodes: string[]; policyCodes: string[];
 }) {
+  // Catalog codes (enabled) merged with the static fallbacks; manual entry is
+  // still allowed via the free-text input, so old string refs never break.
+  const profileOptions = Array.from(new Set([...profileCodes, ...PROFILES]));
   function set<K extends keyof PricingRuleInput>(k: K, v: PricingRuleInput[K]) {
     setForm({ ...form, [k]: v });
   }
@@ -412,10 +435,11 @@ function RuleForm({ form, setForm, lockKey }: {
       </Field>
       <Field label="Perfil (vazio = qualquer)" labelClass={labelClass}>
         <input className={inputClass} list="pr-profiles" value={form.pricing_profile ?? ''} onChange={(e) => set('pricing_profile', e.target.value)} />
-        <datalist id="pr-profiles">{PROFILES.map((p) => <option key={p} value={p} />)}</datalist>
+        <datalist id="pr-profiles">{profileOptions.map((p) => <option key={p} value={p} />)}</datalist>
       </Field>
       <Field label="Fee policy ref" labelClass={labelClass}>
-        <input className={inputClass} value={form.fee_policy_ref ?? ''} onChange={(e) => set('fee_policy_ref', e.target.value)} placeholder="pol_…" />
+        <input className={inputClass} list="pr-policies" value={form.fee_policy_ref ?? ''} onChange={(e) => set('fee_policy_ref', e.target.value)} placeholder="pol_…" />
+        <datalist id="pr-policies">{policyCodes.map((p) => <option key={p} value={p} />)}</datalist>
       </Field>
       <Field label="País (ISO-2, vazio = qualquer)" labelClass={labelClass}>
         <input className={inputClass} value={form.country ?? ''} maxLength={2} onChange={(e) => set('country', e.target.value.toUpperCase())} placeholder="AO" />

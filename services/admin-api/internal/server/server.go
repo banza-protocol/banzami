@@ -202,6 +202,25 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/enable", pricingH.Enable)
 		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/duplicate", pricingH.Duplicate)
 
+		// Finance — Pricing catalogs (profiles + fee policies; ADR-021). Read =
+		// pricing.view; mutations = pricing.manage (SUPER_ADMIN-only) + audited.
+		for _, cat := range []struct {
+			path string
+			h    *handler.PricingCatalogHandler
+		}{
+			{"pricing-profiles", handler.NewPricingProfileHandler(core)},
+			{"fee-policies", handler.NewFeePolicyHandler(core)},
+		} {
+			base := "/admin/v1/finance/" + cat.path
+			ch := cat.h
+			r.With(cap(auth.CapPricingView)).Get(base, ch.List)
+			r.With(cap(auth.CapPricingView)).Get(base+"/{id}", ch.Get)
+			r.With(cap(auth.CapPricingManage)).Post(base, ch.Create)
+			r.With(cap(auth.CapPricingManage)).Patch(base+"/{id}", ch.Update)
+			r.With(cap(auth.CapPricingManage)).Post(base+"/{id}/disable", ch.Disable)
+			r.With(cap(auth.CapPricingManage)).Post(base+"/{id}/enable", ch.Enable)
+		}
+
 		// Finance — Operator Fees (read-only audit) + Application Settlements
 		// (read + cancel/fail). Read = finance.view (broad); cancel/fail =
 		// finance.manage (SUPER_ADMIN-only) and audited.

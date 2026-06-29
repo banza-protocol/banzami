@@ -15,12 +15,16 @@
 //! increment delivers only the engine, models, config and tests.
 
 pub mod admin;
+pub mod catalog;
 pub mod domain;
 pub mod engine;
 pub mod repository;
 
 pub use admin::{
     PostgresPricingRuleAdminRepository, PricingRuleFilter, PricingRuleInput, PricingRuleRecord,
+};
+pub use catalog::{
+    CatalogFilter, CatalogInput, CatalogKind, CatalogRecord, PostgresCatalogRepository,
 };
 
 pub use domain::{

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, Tags, Coins, HandCoins, PieChart,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
   type LucideIcon,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
@@ -30,6 +30,8 @@ const NAV: NavEntry[] = [
     items: [
       { href: '/finance', label: 'Visão geral', Icon: PieChart },
       { href: '/pricing-rules', label: 'Regras de preço', Icon: Tags },
+      { href: '/pricing-profiles', label: 'Perfis de preço', Icon: SlidersHorizontal },
+      { href: '/fee-policies', label: 'Políticas de fee', Icon: ScrollText },
       { href: '/operator-fees', label: 'Taxas do operador', Icon: Coins },
       { href: '/application-settlements', label: 'Liquidações de apps', Icon: HandCoins },
     ],

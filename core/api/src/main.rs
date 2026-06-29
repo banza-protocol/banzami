@@ -296,6 +296,20 @@ async fn main() {
             "/internal/v1/settlements/:id/fail",
             post(routes::settlements::fail),
         )
+        // Pricing catalogs (Banzami ADR-021) — operator-only; reference catalogs
+        // (no percentages). Pricing profiles + fee policies.
+        .route("/internal/v1/pricing-profiles", post(routes::finance_catalogs::profiles_create))
+        .route("/internal/v1/pricing-profiles", get(routes::finance_catalogs::profiles_list))
+        .route("/internal/v1/pricing-profiles/:id", get(routes::finance_catalogs::profiles_get))
+        .route("/internal/v1/pricing-profiles/:id", axum::routing::patch(routes::finance_catalogs::profiles_update))
+        .route("/internal/v1/pricing-profiles/:id/disable", post(routes::finance_catalogs::profiles_disable))
+        .route("/internal/v1/pricing-profiles/:id/enable", post(routes::finance_catalogs::profiles_enable))
+        .route("/internal/v1/fee-policies", post(routes::finance_catalogs::policies_create))
+        .route("/internal/v1/fee-policies", get(routes::finance_catalogs::policies_list))
+        .route("/internal/v1/fee-policies/:id", get(routes::finance_catalogs::policies_get))
+        .route("/internal/v1/fee-policies/:id", axum::routing::patch(routes::finance_catalogs::policies_update))
+        .route("/internal/v1/fee-policies/:id/disable", post(routes::finance_catalogs::policies_disable))
+        .route("/internal/v1/fee-policies/:id/enable", post(routes::finance_catalogs::policies_enable))
         // Finance dashboard (Banzami ADR-021) — operator-only read-only aggregates
         .route(
             "/internal/v1/finance/dashboard",
