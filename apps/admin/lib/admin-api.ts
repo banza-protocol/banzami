@@ -940,6 +940,17 @@ export class AdminApi {
     const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
     return this.req(`/admin/v1/notifications/summary${q}`);
   }
+  // ── Platform mode (SANDBOX/LIVE) ───────────────────────────────────────────
+  getPlatformMode(): Promise<PlatformMode> {
+    return this.req('/admin/v1/platform/mode');
+  }
+  setPlatformMode(mode: 'SANDBOX' | 'LIVE', confirmationText: string, reason: string): Promise<PlatformMode> {
+    return this.req('/admin/v1/platform/mode', {
+      method: 'POST',
+      body: JSON.stringify({ mode, confirmation_text: confirmationText, reason }),
+    });
+  }
+
   // ── Compliance Operations Console — unified case inbox (ADR-023) ───────────
   listComplianceCases(opts?: { caseType?: string; status?: string; priority?: string; risk?: string; operator?: string; q?: string; page?: number; pageSize?: number; environment?: string }): Promise<{ cases: ComplianceCase[]; total: number; page: number }> {
     const qs = new URLSearchParams();
@@ -1239,6 +1250,14 @@ export interface NotificationSummary {
   open_disputes:                number;
   pending_reconciliations:      number;
   unread_notifications?:        number;
+}
+
+// Central platform mode (SANDBOX/LIVE).
+export interface PlatformMode {
+  mode:        'SANDBOX' | 'LIVE';
+  updated_at:  string;
+  updated_by?: string;
+  reason?:     string;
 }
 
 // Unified compliance case (ADR-023) — an operational index over an entity.

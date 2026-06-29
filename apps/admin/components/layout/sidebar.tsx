@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Inbox, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Inbox, ToggleLeft, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
   type LucideIcon,
 } from 'lucide-react';
 import { destroySession, getSession } from '@/lib/session';
@@ -57,6 +57,7 @@ const NAV: NavEntry[] = [
   { href: '/disputes', label: 'Disputas', Icon: Scale },
   { href: '/risk', label: 'Risco & Audit', Icon: Shield },
   { href: '/operators', label: 'Operadores', Icon: UserCog },
+  { href: '/platform-mode', label: 'Modo da plataforma', Icon: ToggleLeft },
   {
     section: 'Finanças',
     items: [

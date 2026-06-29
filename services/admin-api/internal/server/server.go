@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -208,6 +208,12 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/resolve", casesH.Resolve)
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/priority", casesH.SetPriority)
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/risk", casesH.SetRisk)
+
+		// Platform mode (SANDBOX/LIVE). Any operator reads; only a SUPER_ADMIN may
+		// change it (enforced in the handler) with a typed confirmation + reason.
+		platformH := handler.NewPlatformHandler(platform)
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/platform/mode", platformH.Get)
+		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/platform/mode", platformH.Set)
 
 		// Settlements
 		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements", settlementH.CreateBatch)

@@ -69,6 +69,7 @@ func main() {
 	var merchantDocumentSvc service.MerchantDocumentService
 	var merchantKybSvc *service.PostgresMerchantKybService
 	var notificationsSvc *service.NotificationsService
+	var platformSvc *service.PlatformReadService
 	var activationSvc service.ActivationService
 	var walletPaymentSvc service.WalletPaymentReader
 	var walletPaymentLister service.WalletPaymentLister
@@ -121,6 +122,7 @@ func main() {
 		merchantDocumentSvc = service.NewPostgresMerchantDocumentService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		notificationsSvc = service.NewNotificationsService(dbPool)
+		platformSvc = service.NewPlatformReadService(dbPool)
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -155,6 +157,7 @@ func main() {
 		MerchantDocumentSvc: merchantDocumentSvc,
 		MerchantKybSvc:      merchantKybSvc,
 		NotificationsSvc:    notificationsSvc,
+		PlatformSvc:         platformSvc,
 		ActivationSvc:       activationSvc,
 		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:            service.NewCoreApiSplitService(coreClient),

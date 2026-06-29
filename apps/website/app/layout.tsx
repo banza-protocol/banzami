@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
+import { PlatformBanner } from '@/components/PlatformBanner';
 
 export const viewport: Viewport = {
   themeColor: '#FBD2D0',
@@ -57,7 +58,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body><PlatformBanner />{children}</body>
     </html>
   );
 }

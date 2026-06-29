@@ -51,6 +51,7 @@ type Dependencies struct {
 	WalletPaymentSvc    service.WalletPaymentReader
 	WalletPaymentLister service.WalletPaymentLister
 	NotificationsSvc    *service.NotificationsService
+	PlatformSvc         *service.PlatformReadService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -120,6 +121,10 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Non-secret handle lookup — the app prompts for a PIN only when the account
 	// exists and can sign in.
 	r.Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
+	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
+	// banner without a rebuild. Never leaks internal config.
+	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
+
 	// Public Business onboarding — no JWT required.
 	r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)
 	r.Post("/v1/merchant/applications", merchantOnboardingHandler.SubmitApplication)

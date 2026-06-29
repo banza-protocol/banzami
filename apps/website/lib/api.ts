@@ -8,6 +8,31 @@ export const API_BASE =
 // The gateway environment is implied by the API host (sandbox host → SANDBOX).
 export const API_ENV: 'LIVE' | 'SANDBOX' = /sandbox/i.test(API_BASE) ? 'SANDBOX' : 'LIVE';
 
+export interface PlatformModeInfo {
+  mode: 'SANDBOX' | 'LIVE';
+  public_banner: boolean;
+  label: string;
+  message: string;
+}
+
+// Reads the central platform mode (no rebuild needed to flip it). On ANY failure
+// it resolves to SANDBOX with a banner — the site never assumes LIVE on error.
+export async function getPlatformMode(): Promise<PlatformModeInfo> {
+  const fallback: PlatformModeInfo = {
+    mode: 'SANDBOX', public_banner: true, label: 'SANDBOX',
+    message: 'Ambiente de testes. A plataforma ainda não está em produção real.',
+  };
+  try {
+    const res = await fetch(`${API_BASE}/v1/platform-mode`, { cache: 'no-store' });
+    if (!res.ok) return fallback;
+    const j = (await res.json()) as Partial<PlatformModeInfo>;
+    if (j.mode !== 'LIVE' && j.mode !== 'SANDBOX') return fallback;
+    return { mode: j.mode, public_banner: !!j.public_banner, label: j.label || j.mode, message: j.message || '' };
+  } catch {
+    return fallback;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Pure helpers (unit-tested)
 // ---------------------------------------------------------------------------
