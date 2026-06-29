@@ -26,6 +26,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 //go:embed receipt.html
@@ -72,12 +74,49 @@ type ReceiptData struct {
 
 // receiptView is the flat struct the template consumes.
 type receiptView struct {
-	DocLabel, HeroBadge                  string
-	Reference, IssuedDate                string
-	AmountText, AmountWords              string
+	DocLabel, HeroBadge                    string
+	Reference, IssuedDate                  string
+	AmountText, AmountWords                string
 	FromName, FromHandle, ToName, ToHandle string
-	DateTime, Method, Description, State string
-	VerifyShort                          string
+	DateTime, Method, Description, State   string
+	VerifyShort                            string
+	VerifyURL                              string        // full https URL the QR encodes
+	QRSVG                                  template.HTML // inline SVG of the QR
+}
+
+// verificationURL returns the canonical public verification URL the QR encodes.
+// Always the production https page for a proof_reference — never the PDF, storage,
+// internal API, a temporary URL or localhost.
+func verificationURL(ref string) string {
+	return "https://banzami.com/r/" + ref
+}
+
+// qrSVG renders a QR code for url as a crisp inline SVG (rendered to PDF by
+// headless Chrome). Inline SVG avoids html/template URL normalization that would
+// mangle a base64 data URI. The QR carries only the public URL — no proof data,
+// no signature, no secrets.
+func qrSVG(url string) template.HTML {
+	q, err := qrcode.New(url, qrcode.Medium)
+	if err != nil {
+		return ""
+	}
+	bm := q.Bitmap()
+	n := len(bm)
+	if n == 0 {
+		return ""
+	}
+	var b strings.Builder
+	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" shape-rendering="crispEdges" width="100%%" height="100%%">`, n, n)
+	b.WriteString(`<rect width="100%" height="100%" fill="#fff"/>`)
+	for y := 0; y < n; y++ {
+		for x := 0; x < n; x++ {
+			if bm[y][x] {
+				fmt.Fprintf(&b, `<rect x="%d" y="%d" width="1" height="1" fill="#000"/>`, x, y)
+			}
+		}
+	}
+	b.WriteString(`</svg>`)
+	return template.HTML(b.String())
 }
 
 var ptMonths = [...]string{"jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"}
@@ -188,6 +227,7 @@ func toView(d ReceiptData) receiptView {
 	if verify == "" && d.Reference != "" {
 		verify = "banzami.com/r/" + d.Reference
 	}
+	qrURL := verificationURL(d.Reference)
 
 	return receiptView{
 		DocLabel:    docLabel,
@@ -205,6 +245,8 @@ func toView(d ReceiptData) receiptView {
 		Description: desc,
 		State:       statePT(d.Status),
 		VerifyShort: verify,
+		VerifyURL:   qrURL,
+		QRSVG:       qrSVG(qrURL),
 	}
 }
 

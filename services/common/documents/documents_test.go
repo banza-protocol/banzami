@@ -8,11 +8,11 @@ import (
 
 func TestFormatAmount(t *testing.T) {
 	cases := map[int64]string{
-		2500000: "Kz 25.000,00",
-		100:     "Kz 1,00",
-		99:      "Kz 0,99",
+		2500000:   "Kz 25.000,00",
+		100:       "Kz 1,00",
+		99:        "Kz 0,99",
 		123456789: "Kz 1.234.567,89",
-		0:       "Kz 0,00",
+		0:         "Kz 0,00",
 	}
 	for minor, want := range cases {
 		if got := FormatAmount(minor, "AOA"); got != want {
@@ -72,5 +72,40 @@ func TestNoSecretsInReceipt(t *testing.T) {
 func TestFilename(t *testing.T) {
 	if got := Filename("BZM-7F3A-92K1"); got != "banzami-comprovativo-BZM-7F3A-92K1.pdf" {
 		t.Errorf("Filename = %q", got)
+	}
+}
+
+func TestReceiptQRCode(t *testing.T) {
+	// The QR URL is always the canonical production verification page — never the
+	// PDF, storage, internal API, a temporary URL, localhost or sandbox.
+	got := verificationURL("BZM-3JK91A8X")
+	if got != "https://banzami.com/r/BZM-3JK91A8X" {
+		t.Fatalf("verification URL wrong: %q", got)
+	}
+	for _, bad := range []string{".pdf", "storage", "localhost", "127.0.0.1", "internal", "sandbox", "?sig="} {
+		if strings.Contains(got, bad) {
+			t.Fatalf("verification URL leaked %q: %s", bad, got)
+		}
+	}
+
+	html, err := RenderHTML(baseData(PerspectiveMerchant))
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	// The receipt embeds a real (inline SVG) QR, keeps the textual reference + URL,
+	// and carries the anti-fraud scan text.
+	for _, must := range []string{
+		"<svg", "Digitalize", "banzami.com/r/BZM-7F3A-92K1",
+		"BZM-7F3A-92K1", "Não confie apenas em PDFs",
+	} {
+		if !strings.Contains(html, must) {
+			t.Errorf("receipt missing %q", must)
+		}
+	}
+
+	// The QR is a non-trivial matrix (many black cells) — not an empty placeholder.
+	cells := strings.Count(html, `fill="#000"`)
+	if cells < 50 {
+		t.Fatalf("QR looks empty (only %d cells)", cells)
 	}
 }
