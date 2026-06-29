@@ -125,6 +125,35 @@ func TestNotificationsSummary_Counts(t *testing.T) {
 	}
 }
 
+// Summary must not 500 when an optional table is absent (e.g. live `banzami` has
+// no `disputes` table). The probe drops the missing metric to 0 instead of letting
+// Postgres fail to parse the relation.
+func TestNotificationsSummary_ToleratesMissingTable(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+
+	var hasDisputes bool
+	if err := pool.QueryRow(ctx, `SELECT to_regclass('public.disputes') IS NOT NULL`).Scan(&hasDisputes); err != nil {
+		t.Fatalf("probe: %v", err)
+	}
+	if hasDisputes {
+		// Simulate the live shape (no disputes table) for the duration of the test.
+		if _, err := pool.Exec(ctx, `ALTER TABLE disputes RENAME TO disputes__hidden_for_test`); err != nil {
+			t.Skipf("cannot hide disputes table: %v", err)
+		}
+		t.Cleanup(func() { _, _ = pool.Exec(ctx, `ALTER TABLE disputes__hidden_for_test RENAME TO disputes`) })
+	}
+
+	sum, err := NewNotificationsService(pool).Summary(ctx)
+	if err != nil {
+		t.Fatalf("Summary must tolerate a missing table, got: %v", err)
+	}
+	if sum.OpenDisputes != 0 {
+		t.Fatalf("absent disputes table must count as 0, got %d", sum.OpenDisputes)
+	}
+}
+
 func TestKybContext_Timeline_Notes(t *testing.T) {
 	pool := dbPoolOrSkip(t)
 	defer pool.Close()
