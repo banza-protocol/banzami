@@ -33,6 +33,18 @@ func forwardQuery(r *http.Request, keys ...string) string {
 	return q.Encode()
 }
 
+// ── Dashboard (read-only aggregates) ────────────────────────────────────────
+
+func (h *FinanceAuditHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
+	q := forwardQuery(r, "environment", "currency", "from", "to")
+	result, err := h.core.GetFinanceDashboard(r.Context(), q)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // ── Operator Fees (read-only) ───────────────────────────────────────────────
 
 func (h *FinanceAuditHandler) ListOperatorFees(w http.ResponseWriter, r *http.Request) {

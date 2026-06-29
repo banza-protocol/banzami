@@ -206,6 +206,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		// (read + cancel/fail). Read = finance.view (broad); cancel/fail =
 		// finance.manage (SUPER_ADMIN-only) and audited.
 		financeH := handler.NewFinanceAuditHandler(core)
+		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/dashboard", financeH.Dashboard)
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/operator-fees", financeH.ListOperatorFees)
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/operator-fees/{id}", financeH.GetOperatorFee)
 		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/application-settlements", financeH.ListSettlements)

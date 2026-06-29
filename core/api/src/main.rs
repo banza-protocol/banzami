@@ -296,6 +296,11 @@ async fn main() {
             "/internal/v1/settlements/:id/fail",
             post(routes::settlements::fail),
         )
+        // Finance dashboard (Banzami ADR-021) — operator-only read-only aggregates
+        .route(
+            "/internal/v1/finance/dashboard",
+            get(routes::finance_dashboard::get),
+        )
         // Operator Fees (Banzami ADR-021) — operator-only read-only audit
         .route(
             "/internal/v1/operator-fees",

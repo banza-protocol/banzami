@@ -36,6 +36,36 @@ func TestOperatorFees_ListForwardsWhitelistedFilters(t *testing.T) {
 	}
 }
 
+func TestDashboard_ForwardsWhitelistedFiltersNoAudit(t *testing.T) {
+	fc := newFakeCore()
+	defer fc.close()
+	fc.respond = func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"operator_fees":{},"application_settlements":{}}`))
+	}
+	h := NewFinanceAuditHandler(service.NewCoreAdminClient(fc.srv.URL))
+
+	sink := &annSink{}
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodGet,
+		"/admin/v1/finance/dashboard?environment=LIVE&currency=AOA&evil=x", nil)
+	auditedRoute(sink, http.MethodGet, "/admin/v1/finance/dashboard", h.Dashboard).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+	if !strings.HasPrefix(fc.lastPath, "/internal/v1/finance/dashboard") ||
+		!strings.Contains(fc.lastPath, "environment=LIVE") || !strings.Contains(fc.lastPath, "currency=AOA") {
+		t.Fatalf("filters not forwarded: %s", fc.lastPath)
+	}
+	if strings.Contains(fc.lastPath, "evil") {
+		t.Fatalf("non-whitelisted param leaked: %s", fc.lastPath)
+	}
+	if len(sink.entries) != 0 {
+		t.Fatalf("a GET dashboard must not write an audit row, got %d", len(sink.entries))
+	}
+}
+
 func TestSettlement_CancelAudits(t *testing.T) {
 	fc := newFakeCore()
 	defer fc.close()

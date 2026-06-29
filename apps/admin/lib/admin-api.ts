@@ -169,6 +169,41 @@ export interface AppSettlementFilters {
   to?:                string;
 }
 
+/** One aggregation bucket: `{ key, count, total_minor }`. */
+export interface FeeBucket {
+  key:         string | null;
+  count:       number;
+  total_minor: number;
+}
+
+/** Read-only finance dashboard aggregations (ADR-021). */
+export interface FinanceDashboard {
+  window:      { from: string; to: string };
+  environment: string | null;
+  currency:    string | null;
+  operator_fees: {
+    today:                FeeBucket[];
+    month:                FeeBucket[];
+    by_currency:          FeeBucket[];
+    by_business_category: FeeBucket[];
+    by_pricing_profile:   FeeBucket[];
+    by_day:               FeeBucket[];
+  };
+  application_settlements: {
+    today_count:   number;
+    pending_count: number;
+    failed_count:  number;
+    by_status:     FeeBucket[];
+  };
+}
+
+export interface FinanceDashboardFilters {
+  environment?: string;
+  currency?:    string;
+  from?:        string;
+  to?:          string;
+}
+
 export interface Payout {
   id:          string;
   merchant_id: string;
@@ -512,6 +547,14 @@ export class AdminApi {
     return this.req(`/admin/v1/finance/pricing-rules/${id}/duplicate`, {
       method: 'POST', body: JSON.stringify({ rule_key: ruleKey }),
     });
+  }
+
+  // Finance — Dashboard (read-only aggregates).
+  getFinanceDashboard(filters: FinanceDashboardFilters = {}): Promise<FinanceDashboard> {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) q.set(k, String(v));
+    const qs = q.toString();
+    return this.req(`/admin/v1/finance/dashboard${qs ? `?${qs}` : ''}`);
   }
 
   // Finance — Operator Fees (read-only audit).

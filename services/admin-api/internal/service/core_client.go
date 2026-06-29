@@ -456,6 +456,15 @@ func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, b
 // state permits (the core enforces the lifecycle).
 // ---------------------------------------------------------------------------
 
+func (c *CoreAdminClient) GetFinanceDashboard(ctx context.Context, query string) (map[string]any, error) {
+	path := "/internal/v1/finance/dashboard"
+	if query != "" {
+		path += "?" + query
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
 func (c *CoreAdminClient) ListOperatorFees(ctx context.Context, query string) (map[string]any, error) {
 	path := "/internal/v1/operator-fees"
 	if query != "" {

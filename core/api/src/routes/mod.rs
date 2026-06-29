@@ -14,6 +14,9 @@ pub mod consumer_pay_links;
 pub mod consumer_wallets;
 pub mod consumers;
 pub mod disputes;
+pub mod finance_dashboard;
+#[cfg(test)]
+mod finance_dashboard_tests;
 pub mod kyc_data;
 pub mod merchant_profiles;
 pub mod merchants;

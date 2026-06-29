@@ -152,8 +152,17 @@ read endpoints + filtered settlement listing, admin-api `/admin/v1/finance/opera
 fees` + `…/application-settlements` (`finance.view`/`finance.manage` RBAC, audited
 mutations), and the BANZADMIN Finanças screens. See
 [docs/admin/financial-operations.md](../admin/financial-operations.md). Pricing
-Profiles / Fee Policies CRUD, settlement reprocess and finance dashboards remain
-deferred.
+Profiles / Fee Policies CRUD and settlement reprocess remain deferred.
+
+**Admin layer (increment 5.7, part 3 — done):** BANZADMIN **finance dashboards**
+(Finanças → Visão geral) — read-only aggregations over `operator_fees` /
+`app_settlements` (KPI cards, revenue by category/currency/profile, fees per day,
+settlements by status), with environment/currency/date filters. core-api
+`GET /internal/v1/finance/dashboard` (parameterized GROUP BY, no PII), admin-api
+`GET /admin/v1/finance/dashboard` (`finance.view`, no audit on reads), BANZADMIN
+`/finance` (custom CSS bars; no chart library). See
+[docs/admin/finance-dashboard.md](../admin/finance-dashboard.md). Pricing Profiles /
+Fee Policies CRUD and settlement reprocess remain deferred.
 
 Nothing is deployed/pushed without an explicit GO; each increment ships and is
 validated independently. The financial-correctness invariants (double-entry,
