@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
+import { PlatformBadge } from '@/components/PlatformBadge';
 
 export const metadata: Metadata = {
   title:       'Banzami Business',
@@ -24,7 +25,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const nonce = (await headers()).get('x-nonce') ?? '';
   return (
     <html lang="pt">
-      <body>{children}</body>
+      <body><PlatformBadge />{children}</body>
     </html>
   );
 }

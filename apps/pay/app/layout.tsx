@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { headers } from 'next/headers';
 import './globals.css';
+import { PlatformBadge } from '@/components/PlatformBadge';
 
 export const metadata: Metadata = {
   title: 'Banzami Pay',
@@ -26,7 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <html lang="pt" nonce={nonce}>
-      <body className="bg-off-white min-h-screen">{children}</body>
+      <body className="bg-off-white min-h-screen"><PlatformBadge />{children}</body>
     </html>
   );
 }

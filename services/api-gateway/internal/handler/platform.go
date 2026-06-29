@@ -26,14 +26,14 @@ func (h *PlatformHandler) Mode(w http.ResponseWriter, r *http.Request) {
 	sandbox := mode == "SANDBOX"
 	// Short cache: the mode changes rarely; readers pick up a change within ~30s.
 	w.Header().Set("Cache-Control", "public, max-age=30")
+	// Production is silent: LIVE returns only {mode, public_banner:false}. SANDBOX
+	// is the only state communicated, with a public message.
 	resp := map[string]any{
 		"mode":          mode,
 		"public_banner": sandbox,
-		"label":         mode,
-		"message":       "",
 	}
 	if sandbox {
-		resp["message"] = "Ambiente de testes. A plataforma ainda não está em produção real."
+		resp["message"] = "Esta plataforma encontra-se em ambiente de testes."
 	}
 	writeJSON(w, http.StatusOK, resp)
 }

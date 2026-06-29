@@ -9,14 +9,13 @@ import { getPlatformMode } from '@/lib/api';
 // read failure it stays visible (never assume production on error).
 export function PlatformBanner() {
   const [show, setShow] = useState(false);
-  const [message, setMessage] = useState('Ambiente de testes. A plataforma ainda não está em produção real.');
 
   useEffect(() => {
     let active = true;
     void getPlatformMode().then((m) => {
       if (!active) return;
+      // Production is silent — only show in SANDBOX.
       setShow(m.public_banner || m.mode === 'SANDBOX');
-      if (m.message) setMessage(m.message);
     });
     return () => { active = false; };
   }, []);
@@ -24,10 +23,11 @@ export function PlatformBanner() {
   if (!show) return null;
 
   return (
-    <div role="status" className="flex items-center justify-center gap-3 border-b border-amber-300 bg-amber-100 px-4 py-2.5 text-center">
-      <span className="inline-flex h-[22px] w-[22px] flex-none items-center justify-center rounded-full bg-amber-500 text-[12px] font-black text-white">!</span>
-      <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">Sandbox</span>
-      <span className="text-[13px] font-bold text-amber-900">{message}</span>
+    <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-300 bg-amber-100 px-4 py-2.5 text-center">
+      <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">🟨 Sandbox</span>
+      <span className="text-[13px] font-bold text-amber-900">
+        Esta plataforma encontra-se atualmente em ambiente de testes. Os dados e operações efetuados não representam produção.
+      </span>
     </div>
   );
 }

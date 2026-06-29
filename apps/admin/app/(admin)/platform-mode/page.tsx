@@ -154,9 +154,19 @@ function ChangeModal({ target, onClose, onDone }: { target: 'SANDBOX' | 'LIVE'; 
       <div className="w-full max-w-[480px] rounded-[20px] border border-[#f1e3e3] bg-white p-7 shadow-[0_30px_80px_-40px_rgba(0,0,0,0.4)]" onClick={(e) => e.stopPropagation()}>
         <h2 className="m-0 text-[18px] font-black">Ativar {target}</h2>
         <div className={`mt-3 rounded-[12px] border-[1.5px] px-4 py-3 text-[13px] font-semibold ${live ? 'border-green-300 bg-green-50 text-green-800' : 'border-amber-300 bg-amber-50 text-amber-800'}`}>
-          {live
-            ? 'Vai colocar a plataforma em PRODUÇÃO real. O banner SANDBOX desaparece do website e toda a atividade passa a ser tratada como real.'
-            : 'Vai colocar a plataforma em SANDBOX. O website mostra o banner de testes e as operações públicas são tratadas como teste.'}
+          {live ? (
+            <>
+              Esta ação coloca oficialmente a plataforma em produção. Consequências:
+              <ul className="mt-1.5 list-disc pl-5">
+                <li>desaparecem todos os banners SANDBOX (website e portais);</li>
+                <li>o website passa a comportamento de produção;</li>
+                <li>novos utilizadores e comerciantes passam a ser considerados reais;</li>
+                <li>operações futuras serão consideradas produção.</li>
+              </ul>
+            </>
+          ) : (
+            'Vai colocar a plataforma em SANDBOX. O website e os portais mostram o aviso de ambiente de testes e as operações públicas são tratadas como teste.'
+          )}
         </div>
         <form onSubmit={submit}>
           <label className="mb-1.5 mt-4 block text-[13px] font-extrabold">Razão (obrigatória)</label>
