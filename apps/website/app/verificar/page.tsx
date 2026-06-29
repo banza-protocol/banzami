@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { BrandMark } from '@/components/site/BrandMark';
 
 // Normalizes a pasted code or full URL to a bare proof reference.
 function extractRef(input: string): string {
@@ -32,7 +33,9 @@ export default function VerificarPage() {
     <main style={{ minHeight: '100vh', background: '#FFF7F6', padding: '40px 20px' }}>
       <div style={{ maxWidth: 480, margin: '0 auto' }}>
         <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: 10, textDecoration: 'none', color: '#2a2024', fontWeight: 900, fontSize: 20, marginBottom: 24 }}>
-          <span style={{ display: 'inline-flex', width: 32, height: 32, borderRadius: 10, background: '#B5101F' }} />
+          <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 34, height: 34, borderRadius: 11, background: '#B5101F', boxShadow: '0 6px 14px -4px rgba(181,16,31,0.5)' }}>
+            <BrandMark size={18} />
+          </span>
           Banzami
         </Link>
 
