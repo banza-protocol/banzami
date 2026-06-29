@@ -101,6 +101,17 @@ func (s *CoreApiTransactionService) Create(
 		"wallet_id":        req.WalletID,
 		"description":      req.Description,
 	}
+	// Fee references (ADR-039) — reference only, never a fee/percentage. Omitted
+	// when empty so the core treats them as unset (unpriced => zero fee).
+	if req.BusinessCategory != "" {
+		body["business_category"] = req.BusinessCategory
+	}
+	if req.PricingProfile != "" {
+		body["pricing_profile"] = req.PricingProfile
+	}
+	if req.FeePolicyRef != "" {
+		body["fee_policy_ref"] = req.FeePolicyRef
+	}
 
 	var resp coreTransactionResp
 	if err := s.client.post(ctx, "/internal/v1/transactions", body, &resp); err != nil {

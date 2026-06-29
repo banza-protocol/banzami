@@ -30,6 +30,13 @@ pub struct CreateTransactionBody {
     pub merchant_id: String,
     pub wallet_id: String,
     pub description: Option<String>,
+    /// BANZA ADR-039 fee references (operator-internal). Reference only — never a
+    /// price. Optional and forward-compatible; absent => unpriced => zero fee, so
+    /// existing clients are unaffected. A client-supplied `rate_bps`/`fee_minor`
+    /// is simply ignored (not a field here): the client can never choose a fee.
+    pub business_category: Option<String>,
+    pub pricing_profile: Option<String>,
+    pub fee_policy_ref: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -90,11 +97,10 @@ pub async fn create(
             merchant_id,
             wallet_id,
             description: body.description,
-            // Fee references are not accepted on the public surface in this
-            // increment (no public API change). Unset => unpriced => zero fee.
-            business_category: None,
-            pricing_profile: None,
-            fee_policy_ref: None,
+            // References only (never a fee/percentage). Absent => zero fee.
+            business_category: body.business_category,
+            pricing_profile: body.pricing_profile,
+            fee_policy_ref: body.fee_policy_ref,
         })
         .await
         .map_err(|e| match e {

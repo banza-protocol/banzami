@@ -30,6 +30,13 @@ type createTransactionBody struct {
 	Currency        string `json:"currency"`
 	Description     string `json:"description"`
 	WalletID        string `json:"wallet_id"` // optional
+	// BANZA ADR-039 fee references (operator-internal). Reference only — never a
+	// price. Optional; absent => unpriced => zero fee. A client never sends a
+	// fee/percentage: there is no rate_bps/fee_minor field, so any such value is
+	// ignored on decode.
+	BusinessCategory string `json:"business_category"`
+	PricingProfile   string `json:"pricing_profile"`
+	FeePolicyRef     string `json:"fee_policy_ref"`
 }
 
 // Create handles POST /v1/transactions.
@@ -72,14 +79,17 @@ func (h *TransactionHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	tx, err := h.svc.Create(r.Context(), service.CreateTransactionRequest{
-		IdempotencyKey:  body.IdempotencyKey,
-		TransactionType: txType,
-		AmountMinor:     body.AmountMinor,
-		Currency:        body.Currency,
-		Description:     body.Description,
-		MerchantID:      principal.MerchantID,
-		WalletID:        body.WalletID,
-		Environment:     principal.Environment,
+		IdempotencyKey:   body.IdempotencyKey,
+		TransactionType:  txType,
+		AmountMinor:      body.AmountMinor,
+		Currency:         body.Currency,
+		Description:      body.Description,
+		MerchantID:       principal.MerchantID,
+		WalletID:         body.WalletID,
+		Environment:      principal.Environment,
+		BusinessCategory: body.BusinessCategory,
+		PricingProfile:   body.PricingProfile,
+		FeePolicyRef:     body.FeePolicyRef,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR",

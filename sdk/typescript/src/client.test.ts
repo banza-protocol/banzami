@@ -208,6 +208,35 @@ describe('createTransaction', () => {
     expect(body.wallet_id).toBe('w-1');
     expect(body.transaction_type).toBe('top_up');
   });
+
+  it('serializes fee references (ADR-039) as snake_case, never a fee', async () => {
+    mockFetch(201, tx);
+    await client.createTransaction({
+      idempotencyKey:   'ik-5',
+      amountMinor:      5000,
+      businessCategory: 'DONATION',
+      pricingProfile:   'STANDARD',
+      feePolicyRef:     'pol_donation_standard',
+    });
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect(body.business_category).toBe('DONATION');
+    expect(body.pricing_profile).toBe('STANDARD');
+    expect(body.fee_policy_ref).toBe('pol_donation_standard');
+    // the SDK must never put a fee/percentage on the wire
+    expect(body.fee_minor).toBeUndefined();
+    expect(body.rate_bps).toBeUndefined();
+    expect(body.operator_fee).toBeUndefined();
+    expect(body.application_fee).toBeUndefined();
+  });
+
+  it('omits fee references when unset (backwards compatible)', async () => {
+    mockFetch(201, tx);
+    await client.createTransaction({ idempotencyKey: 'ik-6', amountMinor: 100 });
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect('business_category' in body).toBe(false);
+    expect('pricing_profile' in body).toBe(false);
+    expect('fee_policy_ref' in body).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------

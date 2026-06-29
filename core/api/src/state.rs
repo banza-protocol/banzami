@@ -92,6 +92,9 @@ use banzami_ledger::PostgresLedgerRepository;
 use banzami_merchants::{
     PostgresApiKeyRepository, PostgresMerchantEngine, PostgresMerchantRepository,
 };
+use banzami_app_settlement::{
+    PostgresApplicationSettlementEngine, PostgresApplicationSettlementRepository,
+};
 use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
@@ -130,6 +133,11 @@ pub type QrEng = PostgresQrEngine<PostgresQrRepository>;
 pub type PaymentLinksEng = PostgresPaymentLinkEngine<PostgresPaymentLinkRepository>;
 pub type AcquiringEng = PostgresAcquiringEngine;
 pub type CollectionsEng = PostgresCollectionEngine<PostgresCollectionRepository>;
+pub type AppSettlementEng = PostgresApplicationSettlementEngine<
+    PostgresLedgerRepository,
+    PostgresPricingRuleProvider,
+    PostgresApplicationSettlementRepository,
+>;
 
 // ---------------------------------------------------------------------------
 // Shared application state — cloned into every handler via axum State extractor
@@ -160,6 +168,7 @@ pub struct AppState {
     pub payment_links: Arc<PaymentLinksEng>,
     pub acquiring: Arc<AcquiringEng>,
     pub collections: Arc<CollectionsEng>,
+    pub app_settlement: Arc<AppSettlementEng>,
 }
 
 impl AppState {
@@ -291,6 +300,16 @@ impl AppState {
         let collections_repo = PostgresCollectionRepository::new(pool.clone());
         let collections = Arc::new(PostgresCollectionEngine::new(collections_repo));
 
+        // --- Application Settlement engine (Banzami ADR-021 / BANZA ADR-039) ---
+        // Deferred app->beneficiary settlement; the application fee is resolved by
+        // the same Pricing Engine. Operator-internal surface only.
+        let app_settlement = Arc::new(PostgresApplicationSettlementEngine::new(
+            Arc::new(PostgresLedgerRepository::new(pool.clone())),
+            Arc::new(PostgresPricingRuleProvider::new(pool.clone())),
+            PostgresApplicationSettlementRepository::new(pool.clone()),
+            environment.as_str(),
+        ));
+
         Self {
             pool,
             transit_account_id,
@@ -312,6 +331,7 @@ impl AppState {
             payment_links,
             acquiring,
             collections,
+            app_settlement,
         }
     }
 }

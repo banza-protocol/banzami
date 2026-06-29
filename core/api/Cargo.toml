@@ -17,6 +17,7 @@ banzami-ledger           = { workspace = true }
 banzami-wallets          = { workspace = true }
 banzami-transactions     = { workspace = true }
 banzami-pricing          = { workspace = true }
+banzami-app-settlement   = { workspace = true }
 banzami-merchants        = { workspace = true }
 banzami-settlement       = { workspace = true }
 banzami-routing          = { workspace = true }

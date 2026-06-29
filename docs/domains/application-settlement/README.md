@@ -125,12 +125,35 @@ swapped), never by mutation. To be specified when the reversal path is built.
 
 ---
 
-## Scope (Increment 4)
+## Internal API (Increment 5)
+
+Operator-only surface, reached **only** via the internal `/internal/v1` boundary
+(never exposed by the public gateway). The caller supplies **references and
+accounts only** — never a fee or a percentage; the application fee is resolved
+internally by the Pricing Engine.
+
+| Method & path | Purpose |
+|---|---|
+| `POST /internal/v1/application-settlements` | create (CREATED) |
+| `POST /internal/v1/application-settlements/{id}/complete` | settle → COMPLETED |
+| `POST /internal/v1/application-settlements/{id}/cancel` | → CANCELLED |
+| `POST /internal/v1/application-settlements/{id}/fail` | → FAILED |
+| `GET  /internal/v1/application-settlements/{id}` | fetch |
+| `GET  /internal/v1/application-settlements?owner_ref=…` | list by owner |
+
+Create body carries only: `idempotency_key`, `owner_ref`, `source_account_id`,
+`beneficiary_account_id`, `application_fee_account_id` (optional), `gross_amount_minor`,
+`currency`, and the references `business_category` / `pricing_profile` /
+`fee_policy_ref`. There is **no** `rate_bps` / `fee_minor` field — a client can
+neither choose nor send a fee.
+
+## Scope (Increments 4–5)
 
 Delivered: the engine, models, `app_settlements` table (0072), pricing-driven
-application fee, balanced postings, idempotency, internal events, real-DB tests.
+application fee, balanced postings, idempotency, internal events, real-DB tests
+(increment 4); the operator-only internal HTTP API + route test (increment 5).
 
-**Not** in this increment: the public/internal HTTP API surface, the SDK, and the
-app consumers — **DOA first**, then Mongo / marketplace / crowdfunding — which
-call this capability with their own `business_category`/profile and decide *when*
-to settle. No DOA-specific logic exists here by design.
+**Not** in these increments: the app consumers — **DOA first**, then Mongo /
+marketplace / crowdfunding — which call this capability with their own
+`business_category`/profile and decide *when* to settle (increment 6). No
+DOA-specific logic exists here by design.

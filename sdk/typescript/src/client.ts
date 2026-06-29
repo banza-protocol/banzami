@@ -2,6 +2,8 @@ import { BanzamiApiError, BanzamiConfigError, BanzamiAuthError } from './errors.
 import { WebhooksClient } from './webhooks.js';
 import type {
   BanzamiEnvironment,
+  BusinessCategory,
+  PricingProfile,
   Consumer,
   ConsumerWallet,
   WalletBalance,
@@ -497,6 +499,15 @@ export class BanzamiClient {
     description?:     string;
     walletId?:        string;
     transactionType?: string;
+    /**
+     * BANZA ADR-039 fee references — operator-internal categorization only.
+     * Reference only: the SDK never sends or receives a fee/percentage; the
+     * operator resolves any fee internally. Omitting these keeps the legacy
+     * zero-fee behaviour (backwards compatible).
+     */
+    businessCategory?: BusinessCategory;
+    pricingProfile?:   PricingProfile;
+    feePolicyRef?:     string;
   }): Promise<Transaction> {
     return this.request<Transaction>('/transactions', {
       method: 'POST',
@@ -507,6 +518,10 @@ export class BanzamiClient {
         description:      params.description ?? null,
         wallet_id:        params.walletId ?? null,
         transaction_type: params.transactionType ?? 'payment',
+        // references only; omitted when unset so the operator treats them as unpriced
+        ...(params.businessCategory ? { business_category: params.businessCategory } : {}),
+        ...(params.pricingProfile   ? { pricing_profile:   params.pricingProfile   } : {}),
+        ...(params.feePolicyRef     ? { fee_policy_ref:    params.feePolicyRef     } : {}),
       }),
     });
   }

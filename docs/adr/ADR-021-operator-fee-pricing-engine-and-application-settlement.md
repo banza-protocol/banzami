@@ -128,8 +128,14 @@ differing only in *when* the Application Settlement fires.
    fee), append-only. The operator/admin HTTP API surface is folded into increment 5
    (no public surface yet). See
    [docs/domains/application-settlement/README.md](../domains/application-settlement/README.md).
-5. SDK + internal API: `business_category` / `pricing_profile` on initiation +
-   settlement calls (never the fee).
+5. **(done)** SDK + internal API: `business_category` / `pricing_profile` /
+   `fee_policy_ref` carried on the transaction-creation surface end-to-end
+   (gateway → core-api → operator fee) and on the internal Application Settlement
+   API (`/internal/v1/application-settlements`, operator-only); TypeScript server
+   SDK + Flutter reference types. References only — never a fee/percentage on the
+   wire; public responses never expose the operator fee. The payment-link / QR /
+   collections / wallet-payment surfaces and Flutter client methods stay deferred
+   (they settle via the `transfers` path, not the operator-fee path).
 6. DOA on the architecture; then Mongo / marketplace / crowdfunding.
 
 Nothing is deployed/pushed without an explicit GO; each increment ships and is

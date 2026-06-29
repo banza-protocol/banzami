@@ -7,6 +7,42 @@
  *  LIVE and SANDBOX data are completely isolated — they never mix. */
 export type BanzamiEnvironment = 'live' | 'sandbox';
 
+/**
+ * BANZA ADR-039 fee references — operator-internal categorization. These are
+ * **references only**: they let the operator price a payment internally. The SDK
+ * never sends or receives a fee, a percentage, or a pricing rule. `string` is
+ * permitted for forward-compatibility with categories not yet in this list
+ * (an unknown value resolves to a zero fee).
+ */
+export type BusinessCategory =
+  | 'DONATION'
+  | 'CROWDFUNDING'
+  | 'MARKETPLACE'
+  | 'ECOMMERCE'
+  | 'DELIVERY'
+  | 'FOOD_DELIVERY'
+  | 'RIDE_HAILING'
+  | 'SUBSCRIPTION'
+  | 'TICKETING'
+  | 'DIGITAL_GOODS'
+  | 'PHYSICAL_GOODS'
+  | 'P2P'
+  | 'BILL_PAYMENT'
+  | 'NGO'
+  | 'GOVERNMENT'
+  | (string & {});
+
+/** Commercial pricing tier (reference only; never a price). */
+export type PricingProfile =
+  | 'STANDARD'
+  | 'BUSINESS'
+  | 'ENTERPRISE'
+  | 'PARTNER'
+  | 'NGO'
+  | 'GOVERNMENT'
+  | 'CUSTOM'
+  | (string & {});
+
 // ---------------------------------------------------------------------------
 // Shared
 // ---------------------------------------------------------------------------

@@ -296,6 +296,31 @@ async fn main() {
             "/internal/v1/settlements/:id/fail",
             post(routes::settlements::fail),
         )
+        // Application Settlements (Banzami ADR-021 / BANZA ADR-039) — operator-only
+        .route(
+            "/internal/v1/application-settlements",
+            post(routes::application_settlements::create),
+        )
+        .route(
+            "/internal/v1/application-settlements",
+            get(routes::application_settlements::list),
+        )
+        .route(
+            "/internal/v1/application-settlements/:id",
+            get(routes::application_settlements::get),
+        )
+        .route(
+            "/internal/v1/application-settlements/:id/complete",
+            post(routes::application_settlements::complete),
+        )
+        .route(
+            "/internal/v1/application-settlements/:id/cancel",
+            post(routes::application_settlements::cancel),
+        )
+        .route(
+            "/internal/v1/application-settlements/:id/fail",
+            post(routes::application_settlements::fail),
+        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(

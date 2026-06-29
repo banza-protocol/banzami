@@ -226,7 +226,15 @@ percentage outside this crate.
   persistence, operator revenue account, real-DB invariant tests.
 - **Increment 4 (done):** Application Settlement application fee
   ([core/app-settlement](../application-settlement/README.md)).
-- **Not yet** (per ADR-021 sequencing): SDK surface carrying the references (5),
-  app consumers — DOA then Mongo/marketplace/crowdfunding (6). The QR/P2P-via-
-  `transfers` path is not fee-bearing in this increment (no `business_category`);
-  the fee point is the transaction/PaymentIntent fulfilment path.
+- **Increment 5 (done):** the **references** (`business_category` /
+  `pricing_profile` / `fee_policy_ref`) are carried on the transaction-creation
+  surface end-to-end (gateway → core-api → operator fee) and on the internal
+  Application Settlement API; the TypeScript server SDK and Flutter SDK expose the
+  reference types. **References only** cross the wire — never a fee, percentage or
+  rule; public responses never return the operator fee.
+- **Not yet** (per ADR-021 sequencing): app consumers — DOA then
+  Mongo/marketplace/crowdfunding (6). The payment-link / QR / collections /
+  wallet-payment surfaces and the Flutter client methods are **not** wired for
+  refs yet because they settle via the `transfers` (P2P) path, which is not
+  operator-fee-bearing; the fee point is the transaction/PaymentIntent fulfilment
+  path. The Flutter SDK ships the reference enums for forward-compatibility.
