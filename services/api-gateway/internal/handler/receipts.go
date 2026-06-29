@@ -9,10 +9,10 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	documents "github.com/banzami/banzami/services/common/documents"
 	"github.com/banzami/banzami/services/api-gateway/internal/apierror"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	documents "github.com/banzami/banzami/services/common/documents"
 )
 
 // Minimal lookups the merchant receipt handler needs (read-only).
@@ -34,11 +34,12 @@ type ReceiptHandler struct {
 	payments  walletPaymentLookup
 	consumers consumerLookup
 	merchants merchantLookup
+	proofs    *service.ProofService
 	gen       pdfGenerator
 }
 
-func NewReceiptHandler(p walletPaymentLookup, c consumerLookup, m merchantLookup) *ReceiptHandler {
-	return &ReceiptHandler{payments: p, consumers: c, merchants: m, gen: documents.GeneratePDF}
+func NewReceiptHandler(p walletPaymentLookup, c consumerLookup, m merchantLookup, proofs *service.ProofService) *ReceiptHandler {
+	return &ReceiptHandler{payments: p, consumers: c, merchants: m, proofs: proofs, gen: documents.GeneratePDF}
 }
 
 func reference(id string) string {
@@ -93,7 +94,18 @@ func (h *ReceiptHandler) MerchantReceipt(w http.ResponseWriter, r *http.Request)
 	payer, _ := h.consumers.Get(r.Context(), wp.ConsumerID)
 	merchant, _ := h.merchants.Get(r.Context(), wp.MerchantID)
 
-	data := buildMerchantReceipt(wp, payer, merchant)
+	// The receipt is not the proof. Materialize (idempotently) the public,
+	// verifiable proof and use its non-enumerable reference on the document, so the
+	// printed code resolves at banzami.com/r/<ref>. Fall back to the derived
+	// reference only if proofs are unavailable.
+	ref := reference(wp.ID)
+	if h.proofs != nil {
+		if proof, perr := h.proofs.Ensure(r.Context(), proofInputFromPayment(wp, payer, merchant)); perr == nil {
+			ref = proof.ProofReference
+		}
+	}
+
+	data := buildMerchantReceipt(wp, payer, merchant, ref)
 
 	pdf, err := h.gen(r.Context(), data)
 	if err != nil {
@@ -108,9 +120,31 @@ func (h *ReceiptHandler) MerchantReceipt(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write(pdf)
 }
 
+// proofInputFromPayment maps a real wallet payment + parties into a proof input.
+func proofInputFromPayment(wp *service.WalletPayment, payer *service.ConsumerRecord, merchant *service.MerchantRecord) service.ProofInput {
+	in := service.ProofInput{
+		TransactionID: wp.ID, Environment: wp.Environment,
+		PayerSubjectType: "consumer", PayerSubjectID: wp.ConsumerID,
+		PayeeSubjectType: "merchant", PayeeSubjectID: wp.MerchantID,
+		AmountMinor: wp.AmountMinor, Currency: wp.Currency, Status: "CONFIRMED",
+		Method: "Pagamento por QR · @banza", LedgerReference: wp.ID,
+		ConfirmedAt: &wp.CreatedAt,
+	}
+	if payer != nil {
+		in.PayerHandle = payer.Handle
+		in.PayerDisplayName = consumerName(payer)
+	}
+	if merchant != nil {
+		in.PayeeDisplayName = merchant.Name
+	}
+	if !strings.EqualFold(wp.Status, "COMPLETED") && !strings.EqualFold(wp.Status, "CONFIRMED") {
+		in.Status = "PENDING"
+	}
+	return in
+}
+
 // buildMerchantReceipt maps a real wallet payment + parties into ReceiptData. Pure.
-func buildMerchantReceipt(wp *service.WalletPayment, payer *service.ConsumerRecord, merchant *service.MerchantRecord) documents.ReceiptData {
-	ref := reference(wp.ID)
+func buildMerchantReceipt(wp *service.WalletPayment, payer *service.ConsumerRecord, merchant *service.MerchantRecord, ref string) documents.ReceiptData {
 	payerHandle, payerName := "", ""
 	if payer != nil {
 		payerHandle = payer.Handle

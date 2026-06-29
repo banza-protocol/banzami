@@ -70,6 +70,7 @@ func main() {
 	var merchantKybSvc *service.PostgresMerchantKybService
 	var notificationsSvc *service.NotificationsService
 	var platformSvc *service.PlatformReadService
+	var proofSvc *service.ProofService
 	var activationSvc service.ActivationService
 	var walletPaymentSvc service.WalletPaymentReader
 	var walletPaymentLister service.WalletPaymentLister
@@ -123,6 +124,9 @@ func main() {
 		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		notificationsSvc = service.NewNotificationsService(dbPool)
 		platformSvc = service.NewPlatformReadService(dbPool)
+		proofSvc = service.NewProofService(dbPool,
+			os.Getenv("BZM_PROOF_SIGNING_KEY"), os.Getenv("BZM_PROOF_KEY_ID"),
+			"banzami", "banza", "https://banzami.com/r/")
 		slog.Info("webhook + team services: postgres backend")
 	} else {
 		webhookSvc = service.NewStubWebhookService()
@@ -158,6 +162,8 @@ func main() {
 		MerchantKybSvc:      merchantKybSvc,
 		NotificationsSvc:    notificationsSvc,
 		PlatformSvc:         platformSvc,
+		ProofSvc:            proofSvc,
+		ProofHashSalt:       proofHashSalt(),
 		ActivationSvc:       activationSvc,
 		ComplianceSvc:       service.NewCoreApiComplianceService(coreClient),
 		SplitSvc:            service.NewCoreApiSplitService(coreClient),
@@ -225,4 +231,16 @@ func initLogger(cfg *config.Config) {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	}
 	slog.SetDefault(slog.New(handler))
+}
+
+// proofHashSalt salts the verification ip/ua hashes. Falls back to the proof
+// signing key, then a non-secret default — raw IPs are never stored either way.
+func proofHashSalt() string {
+	if s := os.Getenv("BZM_PROOF_SALT"); s != "" {
+		return s
+	}
+	if s := os.Getenv("BZM_PROOF_SIGNING_KEY"); s != "" {
+		return s
+	}
+	return "banzami-proof-salt"
 }

@@ -52,6 +52,8 @@ type Dependencies struct {
 	WalletPaymentLister service.WalletPaymentLister
 	NotificationsSvc    *service.NotificationsService
 	PlatformSvc         *service.PlatformReadService
+	ProofSvc            *service.ProofService
+	ProofHashSalt       string
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -97,7 +99,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	wltHandler := handler.NewWalletHandler(deps.WalletSvc)
 	payoutHandler := handler.NewPayoutHandler(deps.PayoutSvc, deps.ComplianceSvc)
 	consumerHandler := handler.NewConsumerHandler(deps.ConsumerSvc)
-	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc)
+	receiptHandler := handler.NewReceiptHandler(deps.WalletPaymentSvc, deps.ConsumerSvc, deps.MerchantSvc, deps.ProofSvc)
 	walletPaymentsHandler := handler.NewWalletPaymentsHandler(deps.WalletPaymentLister)
 	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
@@ -124,6 +126,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
 	// banner without a rebuild. Never leaks internal config.
 	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
+
+	// Public transaction-proof verification (BANZA ADR-040) — no auth, rate-limited,
+	// safe fields only. The QR/short link on every receipt resolves here.
+	r.With(middleware.RateLimit(deps.Redis, middleware.DefaultRateLimits)).
+		Get("/v1/public/proofs/{ref}", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Verify)
 
 	// Public Business onboarding — no JWT required.
 	r.Post("/v1/merchant/applications/check-handle", merchantOnboardingHandler.CheckHandle)

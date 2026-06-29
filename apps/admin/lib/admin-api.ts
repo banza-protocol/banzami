@@ -940,6 +940,19 @@ export class AdminApi {
     const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
     return this.req(`/admin/v1/notifications/summary${q}`);
   }
+  // ── Transaction proofs — read-only (ADR-040) ───────────────────────────────
+  listProofs(q?: string, environment?: string): Promise<{ proofs: AdminProof[] }> {
+    const qs = new URLSearchParams();
+    if (q) qs.set('q', q);
+    if (environment) qs.set('environment', environment);
+    const s = qs.toString();
+    return this.req(`/admin/v1/proofs${s ? `?${s}` : ''}`);
+  }
+  getProof(ref: string, environment?: string): Promise<{ proof: AdminProof; verifications: ProofVerification[] }> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/proofs/${ref}${q}`);
+  }
+
   // ── Platform mode (SANDBOX/LIVE) ───────────────────────────────────────────
   getPlatformMode(): Promise<PlatformMode> {
     return this.req('/admin/v1/platform/mode');
@@ -1250,6 +1263,35 @@ export interface NotificationSummary {
   open_disputes:                number;
   pending_reconciliations:      number;
   unread_notifications?:        number;
+}
+
+// Read-only transaction proof (ADR-040).
+export interface AdminProof {
+  proof_reference:     string;
+  transaction_id:      string;
+  environment:         string;
+  status:              string;
+  amount_minor:        number;
+  currency:            string;
+  payer_display_name?: string;
+  payer_handle?:       string;
+  payee_display_name?: string;
+  payee_handle?:       string;
+  method?:             string;
+  description?:        string;
+  proof_hash?:         string;
+  signature_key_id?:   string;
+  signature_algorithm?: string;
+  verification_count:  number;
+  public_url:          string;
+  issued_at:           string;
+  confirmed_at?:       string | null;
+  reversed_at?:        string | null;
+}
+export interface ProofVerification {
+  verified_at: string;
+  country?:    string;
+  result:      string;
 }
 
 // Central platform mode (SANDBOX/LIVE).

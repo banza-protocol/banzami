@@ -14,6 +14,41 @@ export interface PlatformModeInfo {
   message: string;
 }
 
+export interface ProofResult {
+  exists: boolean;
+  status: string;
+  amount?: number;
+  currency?: string;
+  payer_display?: string;
+  payer_handle?: string;
+  payee_display?: string;
+  payee_handle?: string;
+  method?: string;
+  description?: string;
+  confirmed_at?: string | null;
+  issued_at?: string;
+  verification_url?: string;
+  verification_count?: number;
+  proof_hash_short?: string;
+  network?: string;
+  operator?: string;
+  message?: string;
+}
+
+// Public transaction-proof verification (BANZA ADR-040). The receipt is not the
+// proof — this confirms the real ledger record. A not-found / error response is a
+// safe "invalid" outcome, never an exception that leaks internals.
+export async function getProof(ref: string): Promise<ProofResult> {
+  try {
+    const res = await fetch(`${API_BASE}/v1/public/proofs/${encodeURIComponent(ref)}`, { cache: 'no-store' });
+    const j = (await res.json().catch(() => null)) as ProofResult | null;
+    if (j && typeof j.exists === 'boolean') return j;
+    return { exists: false, status: 'NOT_FOUND', message: 'Este comprovativo não existe ou pode ter sido falsificado.' };
+  } catch {
+    return { exists: false, status: 'ERROR', message: 'Não foi possível verificar este comprovativo agora.' };
+  }
+}
+
 // Reads the central platform mode (no rebuild needed to flip it). Production is
 // silent: only SANDBOX is communicated. On ANY failure it resolves to SANDBOX —
 // the site never assumes LIVE on error.

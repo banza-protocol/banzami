@@ -112,7 +112,7 @@ func TestMerchantReceipt_NotFound404(t *testing.T) {
 }
 
 func TestBuildMerchantReceipt(t *testing.T) {
-	d := buildMerchantReceipt(sampleWP(), sampleConsumer(), sampleMerchant())
+	d := buildMerchantReceipt(sampleWP(), sampleConsumer(), sampleMerchant(), reference(sampleWP().ID))
 	if d.Perspective != documents.PerspectiveMerchant {
 		t.Error("wrong perspective")
 	}

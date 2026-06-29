@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService, platform *service.PlatformService, proofAdmin *service.ProofAdminService, proofAdminSandbox *service.ProofAdminService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -214,6 +214,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		platformH := handler.NewPlatformHandler(platform)
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/platform/mode", platformH.Get)
 		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/platform/mode", platformH.Set)
+
+		// Transaction proofs — READ-ONLY operator view (ADR-040). Never edits/deletes.
+		proofsH := handler.NewProofsHandler(proofAdmin, proofAdminSandbox)
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/proofs", proofsH.List)
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/proofs/{ref}", proofsH.Get)
 
 		// Settlements
 		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements", settlementH.CreateBatch)
