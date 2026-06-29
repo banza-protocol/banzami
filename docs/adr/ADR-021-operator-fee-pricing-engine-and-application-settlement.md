@@ -121,9 +121,15 @@ differing only in *when* the Application Settlement fires.
    postings** sharing the gross reservation (settle `net`, fee `fee`), not a third
    leg — same net effect, append-only. See
    [docs/domains/pricing/README.md](../domains/pricing/README.md).
-4. `core/app-settlement` + operator/admin APIs + state machine + events.
-5. SDK: `business_category` / `pricing_profile` on initiation + settlement calls
-   (never the fee).
+4. **(done)** `core/app-settlement` engine + state machine + events + `app_settlements`
+   persistence (migration 0072) + real-DB invariant tests. Deferred app→beneficiary
+   settlement of accumulated net value; application fee (distinct from the operator
+   fee) resolved by the same Pricing Engine; two balanced postings (settle net +
+   fee), append-only. The operator/admin HTTP API surface is folded into increment 5
+   (no public surface yet). See
+   [docs/domains/application-settlement/README.md](../domains/application-settlement/README.md).
+5. SDK + internal API: `business_category` / `pricing_profile` on initiation +
+   settlement calls (never the fee).
 6. DOA on the architecture; then Mongo / marketplace / crowdfunding.
 
 Nothing is deployed/pushed without an explicit GO; each increment ships and is

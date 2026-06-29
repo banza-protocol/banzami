@@ -180,6 +180,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "banzami-app-settlement"
+version = "0.1.0"
+dependencies = [
+ "banzami-ledger",
+ "banzami-pricing",
+ "banzami-types",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "banzami-collections"
 version = "0.1.0"
 dependencies = [

@@ -1,0 +1,374 @@
+// Real-DB invariant tests for Application Settlement (Banzami ADR-021 / ADR-039).
+//
+// Verifies that a settlement moves accumulated NET value from a source account to
+// a beneficiary (plus an optional application fee to the app's account) as
+// balanced, append-only ledger postings — funds-checked, idempotent, with an
+// immutable pricing snapshot, never mutating a completed settlement.
+//
+// Run: DATABASE_URL="postgres://banzami:banzami_dev@localhost:5433/banzami_dev" \
+//      cargo test -p banzami-app-settlement --test integration
+
+use std::sync::Arc;
+
+use sqlx::PgPool;
+use uuid::Uuid;
+
+use banzami_app_settlement::{
+    ApplicationSettlementEngine, ApplicationSettlementError, ApplicationSettlementStatus,
+    CreateApplicationSettlementRequest, PostgresApplicationSettlementEngine,
+    PostgresApplicationSettlementRepository,
+};
+use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository, PostingBuilder};
+use banzami_pricing::PostgresPricingRuleProvider;
+use banzami_types::{AccountId, Currency, Money};
+
+const ENV: &str = "LIVE";
+
+fn kz(minor: i64) -> Money {
+    Money::new(minor, Currency::AOA)
+}
+
+type Engine = PostgresApplicationSettlementEngine<
+    PostgresLedgerRepository,
+    PostgresPricingRuleProvider,
+    PostgresApplicationSettlementRepository,
+>;
+
+struct Fixture {
+    engine: Engine,
+    ledger: Arc<PostgresLedgerRepository>,
+    pool: PgPool,
+    funding: AccountId,
+}
+
+async fn account(pool: &PgPool, ty: AccountType, name: &str) -> AccountId {
+    let ledger = PostgresLedgerRepository::new(pool.clone());
+    let id = AccountId::new();
+    ledger
+        .create_account(Account {
+            id,
+            account_type: ty,
+            name: name.into(),
+            currency: Currency::AOA,
+            created_at: chrono::Utc::now(),
+        })
+        .await
+        .unwrap();
+    id
+}
+
+async fn setup(pool: PgPool) -> Fixture {
+    let ledger = Arc::new(PostgresLedgerRepository::new(pool.clone()));
+    let funding = account(&pool, AccountType::Asset, "Test — Funding").await;
+    let engine = PostgresApplicationSettlementEngine::new(
+        ledger.clone(),
+        Arc::new(PostgresPricingRuleProvider::new(pool.clone())),
+        PostgresApplicationSettlementRepository::new(pool.clone()),
+        ENV,
+    );
+    Fixture {
+        engine,
+        ledger,
+        pool,
+        funding,
+    }
+}
+
+/// Give `account` a positive available balance (it is a LIABILITY available
+/// account: CR raises the obligation Banzami owes).
+async fn fund(fx: &Fixture, account_id: AccountId, amount: i64) {
+    let posting = PostingBuilder::new(
+        format!("fund {account_id}"),
+        format!("fund-{}-{}", account_id.as_uuid(), amount),
+    )
+    .debit(fx.funding, kz(amount))
+    .credit(account_id, kz(amount))
+    .build()
+    .unwrap();
+    fx.ledger.post(posting).await.unwrap();
+}
+
+async fn seed_rule(pool: &PgPool, key: &str, category: &str, rate_bps: i32) {
+    sqlx::query(
+        "INSERT INTO pricing_rules (id, rule_key, business_category, rate_bps, environment)
+         VALUES ($1, $2, $3, $4, $5)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(key)
+    .bind(category)
+    .bind(rate_bps)
+    .bind(ENV)
+    .execute(pool)
+    .await
+    .unwrap();
+}
+
+/// Net credit of a ledger account (credits +, debits −).
+async fn net_credit(pool: &PgPool, account_id: AccountId) -> i64 {
+    sqlx::query_scalar::<_, i64>(
+        "SELECT COALESCE(SUM(CASE WHEN entry_type = 'CREDIT' THEN amount_minor
+                                  ELSE -amount_minor END), 0)::BIGINT
+           FROM ledger_entries WHERE account_id = $1",
+    )
+    .bind(account_id.as_uuid())
+    .fetch_one(pool)
+    .await
+    .unwrap()
+}
+
+async fn posting_balanced(pool: &PgPool, posting_id: Uuid) -> bool {
+    let net: Option<i64> = sqlx::query_scalar(
+        "SELECT SUM(CASE WHEN entry_type = 'CREDIT' THEN amount_minor
+                         ELSE -amount_minor END)::BIGINT
+           FROM ledger_entries WHERE posting_id = $1",
+    )
+    .bind(posting_id)
+    .fetch_one(pool)
+    .await
+    .unwrap();
+    net == Some(0)
+}
+
+fn req(
+    idem: &str,
+    source: AccountId,
+    beneficiary: AccountId,
+    fee_account: Option<AccountId>,
+    gross: i64,
+    category: Option<&str>,
+) -> CreateApplicationSettlementRequest {
+    CreateApplicationSettlementRequest {
+        idempotency_key: idem.into(),
+        owner_ref: "campaign_42".into(),
+        application_id: Some("app_x".into()),
+        source_account_id: source,
+        beneficiary_account_id: beneficiary,
+        application_fee_account_id: fee_account,
+        gross_amount: kz(gross),
+        business_category: category.map(str::to_string),
+        pricing_profile: None,
+        fee_policy_ref: None,
+        metadata: None,
+    }
+}
+
+// ─── gross 98000, fee 4900 (5%), net 93100 ──────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn settles_net_and_application_fee_balanced(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await; // 5%
+
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee Account").await;
+    fund(&fx, source, 98_000).await;
+
+    let created = fx
+        .engine
+        .create(req("s1", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    assert_eq!(created.status, ApplicationSettlementStatus::Created);
+    assert_eq!(created.application_fee.amount_minor(), 4_900);
+    assert_eq!(created.net_amount.amount_minor(), 93_100);
+
+    let done = fx.engine.complete(created.id).await.unwrap();
+    assert_eq!(done.status, ApplicationSettlementStatus::Completed);
+
+    // source debited gross (98000 funded − 98000 = 0); beneficiary +net; fee +fee.
+    assert_eq!(net_credit(&fx.pool, source).await, 0, "source debited gross");
+    assert_eq!(net_credit(&fx.pool, beneficiary).await, 93_100, "beneficiary NET");
+    assert_eq!(net_credit(&fx.pool, app_fee).await, 4_900, "app fee");
+
+    // both postings balanced
+    assert!(posting_balanced(&fx.pool, done.settlement_posting_id.unwrap().as_uuid()).await);
+    assert!(posting_balanced(&fx.pool, done.fee_posting_id.unwrap().as_uuid()).await);
+
+    // snapshot persisted, pinned to the rule
+    let snap: serde_json::Value =
+        sqlx::query_scalar("SELECT pricing_snapshot_json FROM app_settlements WHERE id = $1")
+            .bind(done.id.as_uuid())
+            .fetch_one(&fx.pool)
+            .await
+            .unwrap();
+    assert_eq!(snap["rate_bps"], serde_json::json!(500));
+    assert_eq!(snap["fee_minor"], serde_json::json!(4_900));
+    Ok(())
+}
+
+// ─── zero application fee → net == gross ────────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn zero_application_fee_net_equals_gross(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    // no rule for this category -> 0 fee
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    fund(&fx, source, 50_000).await;
+
+    let created = fx
+        .engine
+        .create(req("s2", source, beneficiary, None, 50_000, Some("DONATION")))
+        .await
+        .unwrap();
+    assert_eq!(created.application_fee.amount_minor(), 0);
+    assert_eq!(created.net_amount.amount_minor(), 50_000);
+
+    let done = fx.engine.complete(created.id).await.unwrap();
+    assert_eq!(net_credit(&fx.pool, beneficiary).await, 50_000, "all to beneficiary");
+    assert!(done.fee_posting_id.is_none(), "no fee posting when fee is 0");
+    Ok(())
+}
+
+// ─── fee > gross rejected at create ─────────────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fee_exceeding_gross_rejected(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "absurd", "CROWDFUNDING", 20_000).await; // 200%
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
+
+    let result = fx
+        .engine
+        .create(req("s3", source, beneficiary, Some(app_fee), 10_000, Some("CROWDFUNDING")))
+        .await;
+    assert!(
+        matches!(result, Err(ApplicationSettlementError::FeeExceedsGross { .. })),
+        "got {result:?}"
+    );
+    Ok(())
+}
+
+// ─── insufficient funds rejected, no partial postings ───────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn insufficient_funds_rejected_no_partial(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
+    fund(&fx, source, 50_000).await; // less than gross 98000
+
+    let created = fx
+        .engine
+        .create(req("s4", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    let result = fx.engine.complete(created.id).await;
+    assert!(
+        matches!(result, Err(ApplicationSettlementError::InsufficientFunds { .. })),
+        "got {result:?}"
+    );
+    // no money moved; settlement still CREATED
+    assert_eq!(net_credit(&fx.pool, beneficiary).await, 0);
+    assert_eq!(net_credit(&fx.pool, app_fee).await, 0);
+    assert_eq!(net_credit(&fx.pool, source).await, 50_000, "source untouched");
+    assert_eq!(
+        fx.engine.get(created.id).await.unwrap().status,
+        ApplicationSettlementStatus::Created
+    );
+    Ok(())
+}
+
+// ─── replay does not double-settle ──────────────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn complete_replay_is_idempotent(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
+    fund(&fx, source, 98_000).await;
+
+    let created = fx
+        .engine
+        .create(req("s5", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    fx.engine.complete(created.id).await.unwrap();
+    let again = fx.engine.complete(created.id).await.unwrap();
+    assert_eq!(again.status, ApplicationSettlementStatus::Completed);
+
+    // credited exactly once
+    assert_eq!(net_credit(&fx.pool, beneficiary).await, 93_100);
+    assert_eq!(net_credit(&fx.pool, app_fee).await, 4_900);
+
+    // create replay returns the same aggregate
+    let recreated = fx
+        .engine
+        .create(req("s5", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    assert_eq!(recreated.id, created.id, "idempotent create");
+    Ok(())
+}
+
+// ─── completed settlement is immutable ──────────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn completed_settlement_is_immutable(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
+    fund(&fx, source, 98_000).await;
+
+    let created = fx
+        .engine
+        .create(req("s6", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    fx.engine.complete(created.id).await.unwrap();
+
+    // cancel/fail after COMPLETED is rejected (terminal)
+    assert!(matches!(
+        fx.engine.cancel(created.id).await,
+        Err(ApplicationSettlementError::InvalidStatus { .. })
+    ));
+    assert!(matches!(
+        fx.engine.fail(created.id, "x".into()).await,
+        Err(ApplicationSettlementError::InvalidStatus { .. })
+    ));
+    Ok(())
+}
+
+// ─── a later rule change never alters a completed settlement ────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await; // 5%
+    let source = account(&fx.pool, AccountType::Liability, "Campaign Wallet").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary Wallet").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "App Fee").await;
+    fund(&fx, source, 98_000).await;
+
+    let created = fx
+        .engine
+        .create(req("s7", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    let done = fx.engine.complete(created.id).await.unwrap();
+
+    // operator changes the rate afterwards
+    sqlx::query("UPDATE pricing_rules SET rate_bps = 1000 WHERE rule_key = 'crowd-standard'")
+        .execute(&fx.pool)
+        .await
+        .unwrap();
+
+    let reloaded = fx.engine.get(done.id).await.unwrap();
+    assert_eq!(reloaded.application_fee.amount_minor(), 4_900, "fee unchanged");
+    assert_eq!(reloaded.net_amount.amount_minor(), 93_100, "net unchanged");
+    assert_eq!(
+        reloaded.pricing_snapshot_json["rate_bps"],
+        serde_json::json!(500),
+        "snapshot still v1's 5%"
+    );
+    Ok(())
+}

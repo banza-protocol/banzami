@@ -19,6 +19,7 @@ members = [
     "acquiring",
     "collections",
     "pricing",
+    "app-settlement",
     "api",
 ]
 resolver = "2"
@@ -58,6 +59,7 @@ banzami-payment-links   = { path = "payment-links" }
 banzami-acquiring       = { path = "acquiring" }
 banzami-collections     = { path = "collections" }
 banzami-pricing         = { path = "pricing" }
+banzami-app-settlement  = { path = "app-settlement" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }

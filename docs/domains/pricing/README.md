@@ -209,13 +209,24 @@ decision (default: the operator fee on a refunded payment is non-refundable unle
 policy says otherwise; a partial refund reverses a proportional fee). To be
 specified when the refund path is implemented.
 
+## Operator Fee vs Application Fee
+
+The Pricing Engine resolves **both** the per-payment **Operator Fee** (this domain,
+increment 3 — operator revenue, invisible to the payer) and the deferred
+**Application Fee** charged by an app at settlement time (see
+[application-settlement](../application-settlement/README.md), increment 4 — the
+app's own charge on accumulated net value). Same engine, same `pricing_rules`,
+different category/profile and different beneficiary of the fee. Neither exposes a
+percentage outside this crate.
+
 ## Scope
 
 - **Increment 2 (done):** engine, models, `pricing_rules` config + provider, tests.
 - **Increment 3 (done):** Operator-Fee ledger postings on capture, `operator_fees`
   persistence, operator revenue account, real-DB invariant tests.
-- **Not yet** (per ADR-021 sequencing): Application Settlement application fee
-  (increment 4), SDK surface carrying the references (5), app consumers — DOA then
-  Mongo/marketplace/crowdfunding (6). The QR/P2P-via-`transfers` path is not fee-
-  bearing in this increment (no `business_category`); the fee point is the
-  transaction/PaymentIntent fulfilment path.
+- **Increment 4 (done):** Application Settlement application fee
+  ([core/app-settlement](../application-settlement/README.md)).
+- **Not yet** (per ADR-021 sequencing): SDK surface carrying the references (5),
+  app consumers — DOA then Mongo/marketplace/crowdfunding (6). The QR/P2P-via-
+  `transfers` path is not fee-bearing in this increment (no `business_category`);
+  the fee point is the transaction/PaymentIntent fulfilment path.
