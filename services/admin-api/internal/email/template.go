@@ -18,11 +18,21 @@ func atHandle(h string) string {
 }
 
 func envLabel(env string) string {
-	switch strings.ToUpper(strings.TrimSpace(env)) {
-	case "", "LIVE", "PRODUCTION", "PROD":
-		return "Produção"
-	default:
+	if envIsSandbox(env) {
 		return "Sandbox"
+	}
+	return "Produção"
+}
+
+// envIsSandbox reports whether the (platform-status) environment is sandbox. Any
+// unknown/empty value is treated as SANDBOX — an email never communicates
+// production on a failed read.
+func envIsSandbox(env string) bool {
+	switch strings.ToUpper(strings.TrimSpace(env)) {
+	case "LIVE", "PRODUCTION", "PROD":
+		return false
+	default:
+		return true
 	}
 }
 
@@ -77,18 +87,30 @@ type MerchantApprovedData struct {
 }
 
 func RenderMerchantApproved(d MerchantApprovedData) (html, text string) {
+	sandbox := envIsSandbox(d.Environment)
 	paras := []string{
 		"Boas notícias — a sua conta de negócio Banzami foi aprovada. Já pode aceitar pagamentos em Kwanza por QR, link de pagamento ou @banza.",
 		"Ative a sua conta para abrir o dashboard e começar a receber em segundos.",
+	}
+	const sandboxText = "Esta conta foi criada num ambiente de testes. Não representa uma conta Business real em produção."
+	if sandbox {
+		// The explanatory text appears in the plain-text alternative too.
+		paras = append([]string{sandboxText}, paras...)
 	}
 	rows := []infoRow{
 		{Label: "Comerciante", Value: d.MerchantName},
 		{Label: "Identificador", Value: atHandle(d.Handle), Mono: true},
 		{Label: "Ambiente", Value: envLabel(d.Environment)},
 	}
-	body := emTitle("A sua conta Business está pronta") +
-		emPara(paras[0]) + emPara(paras[1]) +
-		emDetailRows(rows) +
+	body := emTitle("A sua conta Business está pronta")
+	if sandbox {
+		body += emNotice("shield", "Ambiente SANDBOX — esta conta é de teste. "+sandboxText)
+	}
+	body += emPara(paras[0])
+	for _, p := range paras[1:] {
+		body += emPara(p)
+	}
+	body += emDetailRows(rows) +
 		emButton("Ativar conta", d.ActivateURL) +
 		emURLFallback("Ou cole este link no seu navegador:", d.ActivateURL)
 	html = renderLayout(layoutOpts{Subtitle: "Business", BadgeKind: "business", SafetyKind: "normal",

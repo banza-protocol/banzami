@@ -116,7 +116,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		payoutH := handler.NewPayoutHandler(core)
 		merchantH := handler.NewMerchantHandler(core)
 		merchantSetupH := handler.NewMerchantSetupHandler(core, mailer)
-		applicationsH := handler.NewMerchantApplicationHandler(gw, mailer, cfg.WebsiteBaseURL)
+		applicationsH := handler.NewMerchantApplicationHandler(gw, mailer, cfg.WebsiteBaseURL, platform)
 		reconciliationH := handler.NewReconciliationHandler(core)
 		consumerH := handler.NewConsumerHandler(core)
 		walletH := handler.NewWalletHandler(core)

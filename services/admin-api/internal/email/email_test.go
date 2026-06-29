@@ -198,3 +198,31 @@ func TestDryRunDoesNotCallTransport(t *testing.T) {
 		t.Error("dry-run must not invoke the transport")
 	}
 }
+
+// The approval email respects Platform Status: SANDBOX shows the sandbox notice +
+// "Sandbox" and NEVER "Produção"; LIVE shows "Produção" and no sandbox notice.
+func TestApprovedEmailEnvironment(t *testing.T) {
+	sb, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Loja", Handle: "loja", Environment: "SANDBOX", ActivateURL: "https://x/a"})
+	for _, must := range []string{"Ambiente SANDBOX", "ambiente de testes", "Sandbox"} {
+		if !strings.Contains(sb, must) {
+			t.Errorf("sandbox email missing %q", must)
+		}
+	}
+	if strings.Contains(sb, "Produção") {
+		t.Errorf("sandbox email must NEVER contain 'Produção'")
+	}
+
+	lv, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Loja", Handle: "loja", Environment: "LIVE", ActivateURL: "https://x/a"})
+	if !strings.Contains(lv, "Produção") {
+		t.Errorf("live email should show 'Produção'")
+	}
+	if strings.Contains(lv, "Ambiente SANDBOX") || strings.Contains(lv, "ambiente de testes") {
+		t.Errorf("live email must NOT contain the sandbox notice")
+	}
+
+	// Fail-safe: an empty/unknown environment is treated as SANDBOX (never production).
+	fs, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Loja", Handle: "loja", Environment: "", ActivateURL: "https://x/a"})
+	if strings.Contains(fs, "Produção") || !strings.Contains(fs, "Ambiente SANDBOX") {
+		t.Errorf("empty environment must fail-safe to SANDBOX")
+	}
+}

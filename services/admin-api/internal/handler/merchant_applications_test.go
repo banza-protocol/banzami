@@ -49,14 +49,14 @@ func (f *fakeGW) RejectDocumentRaw(_ context.Context, _, _, _, _ string) (json.R
 }
 
 type fakeMailer struct {
-	approvedTo, approvedURL string
-	rejectedTo, rejectedMsg string
-	approvedCalled          bool
-	rejectedCalled          bool
+	approvedTo, approvedURL, approvedEnv string
+	rejectedTo, rejectedMsg              string
+	approvedCalled                       bool
+	rejectedCalled                       bool
 }
 
-func (m *fakeMailer) MerchantApplicationApproved(to, _, _, _, url string) {
-	m.approvedCalled, m.approvedTo, m.approvedURL = true, to, url
+func (m *fakeMailer) MerchantApplicationApproved(to, _, _, environment, url string) {
+	m.approvedCalled, m.approvedTo, m.approvedEnv, m.approvedURL = true, to, environment, url
 }
 func (m *fakeMailer) MerchantApplicationRejected(to, _, msg string) {
 	m.rejectedCalled, m.rejectedTo, m.rejectedMsg = true, to, msg
@@ -75,7 +75,7 @@ func TestApproveEmailsActivationLinkAndHidesToken(t *testing.T) {
 		Handle: "loja_alex", ApiKeyPrefix: "bz_test_ab", ActivationToken: "RAW-SECRET-123",
 	}}
 	mailer := &fakeMailer{}
-	h := NewMerchantApplicationHandler(gw, mailer, "https://banzami.com")
+	h := NewMerchantApplicationHandler(gw, mailer, "https://banzami.com", nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{"reviewed_by":"admin@x"}`))
 	rec := httptest.NewRecorder()
@@ -101,7 +101,7 @@ func TestApproveEmailsActivationLinkAndHidesToken(t *testing.T) {
 }
 
 func TestApproveGatewayErrorPropagates(t *testing.T) {
-	h := NewMerchantApplicationHandler(&fakeGW{approveErr: errBoom}, &fakeMailer{}, "https://banzami.com")
+	h := NewMerchantApplicationHandler(&fakeGW{approveErr: errBoom}, &fakeMailer{}, "https://banzami.com", nil)
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{}`))
 	rec := httptest.NewRecorder()
 	route(h).ServeHTTP(rec, req)
@@ -114,7 +114,7 @@ func TestRejectEmailsApplicant(t *testing.T) {
 	mailer := &fakeMailer{}
 	h := NewMerchantApplicationHandler(&fakeGW{rejection: service.RejectionResult{
 		Email: "r@x.co", BusinessName: "Loja", MerchantMessage: "Falta NIF",
-	}}, mailer, "https://banzami.com")
+	}}, mailer, "https://banzami.com", nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/reject", strings.NewReader(`{"merchant_message":"Falta NIF"}`))
 	rec := httptest.NewRecorder()
@@ -133,3 +133,44 @@ var errBoom = &boomErr{}
 type boomErr struct{}
 
 func (*boomErr) Error() string { return "boom" }
+
+// fakePlatform returns a fixed platform mode (or an error-style fallback).
+type fakePlatform struct{ mode string }
+
+func (p fakePlatform) GetMode(context.Context) service.PlatformMode {
+	return service.PlatformMode{Mode: p.mode}
+}
+
+// The approval email's environment follows the GLOBAL Platform Status, never the
+// application's own field. SANDBOX platform → email says SANDBOX (never "Produção");
+// a nil/failed reader is fail-safe SANDBOX; LIVE → LIVE.
+func TestApproveEmailEnvironmentFollowsPlatformStatus(t *testing.T) {
+	cases := []struct {
+		name     string
+		platform PlatformModeReader
+		want     string
+	}{
+		{"sandbox platform", fakePlatform{mode: "SANDBOX"}, "SANDBOX"},
+		{"live platform", fakePlatform{mode: "LIVE"}, "LIVE"},
+		{"unknown → sandbox fail-safe", fakePlatform{mode: ""}, "SANDBOX"},
+		{"nil reader → sandbox fail-safe", nil, "SANDBOX"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			// The application itself is LIVE — the email must still follow the platform.
+			gw := &fakeGW{approval: service.ApprovalResult{
+				Email: "x@y.co", BusinessName: "Loja", Handle: "loja", Environment: "LIVE", ActivationToken: "T",
+			}}
+			mailer := &fakeMailer{}
+			h := NewMerchantApplicationHandler(gw, mailer, "https://banzami.com", c.platform)
+			rec := httptest.NewRecorder()
+			route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{"reviewed_by":"a"}`)))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status=%d", rec.Code)
+			}
+			if mailer.approvedEnv != c.want {
+				t.Fatalf("email env = %q, want %q (platform, not application LIVE)", mailer.approvedEnv, c.want)
+			}
+		})
+	}
+}

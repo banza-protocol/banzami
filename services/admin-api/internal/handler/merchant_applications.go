@@ -29,6 +29,12 @@ type ApplicationMailer interface {
 	MerchantApplicationRejected(to, businessName, message string)
 }
 
+// PlatformModeReader reads the global Platform Status (SANDBOX/LIVE). Business
+// emails communicate the PLATFORM environment, never the application's own field.
+type PlatformModeReader interface {
+	GetMode(ctx context.Context) service.PlatformMode
+}
+
 // MerchantApplicationHandler exposes the admin-authed application endpoints. It
 // orchestrates: gateway (data + provisioning) + email. The raw activation token
 // is used ONLY to build the email link and is never returned to the admin UI.
@@ -36,10 +42,24 @@ type MerchantApplicationHandler struct {
 	gw             GatewayApplications
 	mailer         ApplicationMailer
 	websiteBaseURL string
+	platform       PlatformModeReader
 }
 
-func NewMerchantApplicationHandler(gw GatewayApplications, mailer ApplicationMailer, websiteBaseURL string) *MerchantApplicationHandler {
-	return &MerchantApplicationHandler{gw: gw, mailer: mailer, websiteBaseURL: websiteBaseURL}
+func NewMerchantApplicationHandler(gw GatewayApplications, mailer ApplicationMailer, websiteBaseURL string, platform PlatformModeReader) *MerchantApplicationHandler {
+	return &MerchantApplicationHandler{gw: gw, mailer: mailer, websiteBaseURL: websiteBaseURL, platform: platform}
+}
+
+// platformEnv returns the global platform environment for emails. Fail-safe: any
+// failure to read it resolves to SANDBOX — never communicate production on error.
+func (h *MerchantApplicationHandler) platformEnv(ctx context.Context) string {
+	if h.platform == nil {
+		return "SANDBOX"
+	}
+	m := h.platform.GetMode(ctx)
+	if m.Mode == "LIVE" {
+		return "LIVE"
+	}
+	return "SANDBOX"
 }
 
 func writeRaw(w http.ResponseWriter, code int, raw json.RawMessage) {
@@ -87,7 +107,9 @@ func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Requ
 	// Build the activation link and email it. The token is never returned to the
 	// admin UI nor logged.
 	activationURL := h.websiteBaseURL + "/comerciantes/activar?token=" + res.ActivationToken
-	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, res.Environment, activationURL)
+	// The email communicates the GLOBAL platform environment (Platform Status),
+	// never the application's own field — so a SANDBOX platform never says "Produção".
+	h.mailer.MerchantApplicationApproved(res.Email, res.BusinessName, res.Handle, h.platformEnv(r.Context()), activationURL)
 
 	// Audit (no token, no full API key — prefix/handle/merchant id are safe).
 	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
