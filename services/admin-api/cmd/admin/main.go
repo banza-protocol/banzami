@@ -150,7 +150,10 @@ func main() {
 			notifSandbox = service.NewNotificationService(stagingPool, "SANDBOX")
 			complianceSandbox = service.NewComplianceService(stagingPool, "SANDBOX")
 			proofAdminSandbox = service.NewProofAdminService(stagingPool)
-			slog.Info("sandbox KYC review enabled (staging database)")
+			// Platform Mode must reach both databases so the LIVE and SANDBOX
+			// gateway stacks read an identical global mode (ADR-025).
+			platform.WithModePropagation(stagingPool)
+			slog.Info("sandbox KYC review enabled (staging database); platform-mode propagation on")
 		} else {
 			slog.Warn("STAGING_DATABASE_URL not set — sandbox KYC review disabled (503 on SANDBOX)")
 		}

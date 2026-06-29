@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -14,10 +15,23 @@ import (
 // fall back to SANDBOX on any failure — never LIVE.
 type PlatformService struct {
 	pool *pgxpool.Pool
+	// stagingPool, when set, receives the platform_mode value on every SetMode so
+	// the SANDBOX stack (banzami_staging) reads the SAME mode as the LIVE stack.
+	// Platform Mode is the single source of truth for the whole platform (ADR-025):
+	// without propagation the two databases hold independent copies that drift.
+	stagingPool *pgxpool.Pool
 }
 
 func NewPlatformService(pool *pgxpool.Pool) *PlatformService {
 	return &PlatformService{pool: pool}
+}
+
+// WithModePropagation enables mirroring of platform_mode into a second database
+// (banzami_staging) so both gateway stacks observe an identical global mode. A
+// nil pool is a no-op (single-database deployments need no propagation).
+func (s *PlatformService) WithModePropagation(staging *pgxpool.Pool) *PlatformService {
+	s.stagingPool = staging
+	return s
 }
 
 const platformModeKey = "platform_mode"
@@ -107,5 +121,29 @@ func (s *PlatformService) SetMode(ctx context.Context, mode, confirmationText, r
 	if err := tx.Commit(ctx); err != nil {
 		return PlatformMode{}, err
 	}
+
+	// Propagate the new mode to the SANDBOX database so both gateway stacks read
+	// an identical global value (ADR-025). The history table is the LIVE DB's
+	// audit trail and is intentionally not mirrored. A propagation failure is
+	// surfaced (the call returns an error) and is safe to retry: the upsert is
+	// idempotent and the primary write above already landed.
+	if err := s.propagateMode(ctx, mode, reason, operator); err != nil {
+		return PlatformMode{}, fmt.Errorf("platform mode set on primary but not propagated to sandbox (safe to retry): %w", err)
+	}
 	return s.GetMode(ctx), nil
+}
+
+// propagateMode mirrors the platform_mode value into the staging database. No-op
+// when no staging pool is configured.
+func (s *PlatformService) propagateMode(ctx context.Context, mode, reason, operator string) error {
+	if s.stagingPool == nil {
+		return nil
+	}
+	_, err := s.stagingPool.Exec(ctx,
+		`INSERT INTO platform_settings (key, value, reason, updated_by, updated_at, version)
+		 VALUES ($1, $2, $3, $4, now(), 1)
+		 ON CONFLICT (key) DO UPDATE
+		    SET value=$2, reason=$3, updated_by=$4, updated_at=now(), version=platform_settings.version+1`,
+		platformModeKey, mode, reason, nullStr(operator))
+	return err
 }
