@@ -126,6 +126,12 @@ pub struct Transaction {
     pub description: Option<String>,
     /// Set when status transitions to FAILED; human-readable for the merchant.
     pub failure_reason: Option<String>,
+    /// BANZA ADR-039 fee references (operator-internal). Reference only — never a
+    /// price. Drive operator-fee resolution at capture; `None` => unpriced =>
+    /// zero fee, so behaviour is unchanged until a category is set.
+    pub business_category: Option<String>,
+    pub pricing_profile: Option<String>,
+    pub fee_policy_ref: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -141,6 +147,10 @@ pub struct CreateTransactionRequest {
     pub merchant_id: MerchantId,
     pub wallet_id: WalletId,
     pub description: Option<String>,
+    /// Optional BANZA ADR-039 fee references. Reference only — never a price.
+    pub business_category: Option<String>,
+    pub pricing_profile: Option<String>,
+    pub fee_policy_ref: Option<String>,
 }
 
 pub struct AuthorizeRequest {

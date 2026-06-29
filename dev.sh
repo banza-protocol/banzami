@@ -98,6 +98,10 @@ if [[ -z "${BANK_ACCOUNT_ID:-}" ]]; then
   _env_set BANK_ACCOUNT_ID "$(uuidgen | tr '[:upper:]' '[:lower:]')"
   generated+=("BANK_ACCOUNT_ID")
 fi
+if [[ -z "${OPERATOR_FEE_REVENUE_ACCOUNT_ID:-}" ]]; then
+  _env_set OPERATOR_FEE_REVENUE_ACCOUNT_ID "$(uuidgen | tr '[:upper:]' '[:lower:]')"
+  generated+=("OPERATOR_FEE_REVENUE_ACCOUNT_ID")
+fi
 
 if [[ ${#generated[@]} -gt 0 ]]; then
   warn "Generated and saved to .env: ${generated[*]}"

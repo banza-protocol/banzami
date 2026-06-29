@@ -72,6 +72,13 @@ async fn main() {
         .and_then(|s| s.parse().ok())
         .unwrap_or_default();
 
+    // Operator-fee REVENUE account (Banzami ADR-021). Internal operator account
+    // the per-payment operator fee is credited to — never a merchant wallet.
+    let operator_fee_account_id = env::var("OPERATOR_FEE_REVENUE_ACCOUNT_ID")
+        .ok()
+        .and_then(|s| s.parse().ok())
+        .unwrap_or_default();
+
     let pool = sqlx::postgres::PgPoolOptions::new()
         .max_connections(20)
         .connect(&database_url)
@@ -103,6 +110,18 @@ async fn main() {
         })
         .await
         .expect("failed to ensure bank ledger account");
+    // Operator-fee revenue account (ADR-021). REVENUE type (normal credit
+    // balance): the per-payment operator fee is credited here. Fixed id in .env.
+    ledger
+        .create_account(Account {
+            id: operator_fee_account_id,
+            account_type: AccountType::Revenue,
+            name: "Operator — Fee Revenue".into(),
+            currency: Currency::AOA,
+            created_at: chrono::Utc::now(),
+        })
+        .await
+        .expect("failed to ensure operator fee revenue ledger account");
 
     let environment = CoreEnvironment::from_env();
     tracing::info!(environment = ?environment, "boot: runtime environment");
@@ -114,6 +133,7 @@ async fn main() {
         pool.clone(),
         transit_account_id,
         bank_account_id,
+        operator_fee_account_id,
         environment,
     );
 

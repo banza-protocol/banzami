@@ -38,10 +38,12 @@ async fn ledger_account(pool: &PgPool, account_type: &str, name: &str) -> Uuid {
 async fn build_state(pool: PgPool) -> AppState {
     let transit = ledger_account(&pool, "ASSET", "System — Transit").await;
     let bank = ledger_account(&pool, "ASSET", "System — Bank").await;
+    let operator_fee = ledger_account(&pool, "REVENUE", "Operator — Fee Revenue").await;
     AppState::new(
         pool,
         AccountId::from_uuid(transit),
         AccountId::from_uuid(bank),
+        AccountId::from_uuid(operator_fee),
         CoreEnvironment::Sandbox,
     )
 }

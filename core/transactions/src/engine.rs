@@ -2,11 +2,14 @@ use std::sync::Arc;
 
 use chrono::{DateTime, Utc};
 
-use banzami_types::{AccountId, MerchantId, Money, TransactionId};
+use banzami_pricing::{
+    BusinessCategory, FeePolicyRef, PricingContext, PricingProfile, PricingRuleProvider,
+};
+use banzami_types::{AccountId, MerchantId, Money, OperatorFeeId, TransactionId};
 use banzami_wallets::{ReleaseRequest, ReserveRequest, SettleRequest, WalletEngine};
 
 use crate::{
-    repository::TransactionRepository,
+    repository::{OperatorFeeInsert, TransactionRepository},
     transaction::{
         AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest, ReverseRequest,
         Transaction, TransactionStatus,
@@ -69,27 +72,49 @@ pub trait TransactionEngine: Send + Sync {
 // Production implementation
 // ---------------------------------------------------------------------------
 
-pub struct PostgresTransactionEngine<W: WalletEngine, R: TransactionRepository> {
+pub struct PostgresTransactionEngine<W: WalletEngine, R: TransactionRepository, P: PricingRuleProvider>
+{
     wallet: Arc<W>,
     repo: R,
     /// System ASSET account used as the debit side of wallet reserve / credit
     /// side of wallet release. Represents the acquiring float — money arriving
     /// from or returning to the payment network.
     transit_account_id: AccountId,
+    /// Operator Pricing Engine rule source (Banzami ADR-021). The ONLY place
+    /// fees are resolved; the engine never hard-codes a percentage.
+    pricing: Arc<P>,
+    /// Internal REVENUE account the operator fee is credited to (never a merchant
+    /// wallet). Fixed at boot, mirroring the transit/bank system accounts.
+    operator_fee_account_id: AccountId,
+    /// Environment the engine runs in (LIVE/SANDBOX) — scopes rule loading and
+    /// the recorded operator_fee row.
+    environment: String,
 }
 
-impl<W: WalletEngine, R: TransactionRepository> PostgresTransactionEngine<W, R> {
-    pub fn new(wallet: Arc<W>, repo: R, transit_account_id: AccountId) -> Self {
+impl<W: WalletEngine, R: TransactionRepository, P: PricingRuleProvider>
+    PostgresTransactionEngine<W, R, P>
+{
+    pub fn new(
+        wallet: Arc<W>,
+        repo: R,
+        transit_account_id: AccountId,
+        pricing: Arc<P>,
+        operator_fee_account_id: AccountId,
+        environment: impl Into<String>,
+    ) -> Self {
         Self {
             wallet,
             repo,
             transit_account_id,
+            pricing,
+            operator_fee_account_id,
+            environment: environment.into(),
         }
     }
 }
 
-impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
-    for PostgresTransactionEngine<W, R>
+impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider> TransactionEngine
+    for PostgresTransactionEngine<W, R, P>
 {
     async fn create(&self, req: CreateTransactionRequest) -> Result<Transaction, TransactionError> {
         // Idempotency: return existing transaction if the key was already used.
@@ -119,6 +144,9 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
             wallet_id: req.wallet_id,
             description: req.description,
             failure_reason: None,
+            business_category: req.business_category,
+            pricing_profile: req.pricing_profile,
+            fee_policy_ref: req.fee_policy_ref,
             created_at: now,
             updated_at: now,
         };
@@ -154,21 +182,106 @@ impl<W: WalletEngine + 'static, R: TransactionRepository> TransactionEngine
         let tx = self.repo.get(req.tx_id).await?;
         guard_transition(&tx, TransactionStatus::Captured)?;
 
-        self.wallet
+        // --- Resolve the operator fee (Banzami ADR-021 / BANZA ADR-039) -------
+        // The fee comes ONLY from the Pricing Engine. An unpriced/unknown
+        // category resolves to 0, so capture behaviour is unchanged until a
+        // category is configured. No percentage is ever hard-coded here.
+        let rules = self
+            .pricing
+            .load_rules(&self.environment)
+            .await
+            .map_err(|e| TransactionError::Pricing(e.to_string()))?;
+
+        let ctx = PricingContext {
+            amount_minor: tx.amount.amount_minor(),
+            currency: tx.currency,
+            business_category: tx
+                .business_category
+                .as_deref()
+                .map(BusinessCategory::from_code)
+                // No category => an empty reference that matches no rule => 0 fee.
+                .unwrap_or_else(|| BusinessCategory::Other(String::new())),
+            pricing_profile: tx.pricing_profile.as_deref().map(PricingProfile::from_code),
+            fee_policy_ref: tx.fee_policy_ref.clone().map(FeePolicyRef::new),
+            country: None,
+            as_of: Utc::now(),
+        };
+        let resolution = banzami_pricing::resolve(&rules, &ctx);
+        let fee_minor = resolution.fee_minor;
+
+        // Net-to-payee guard: a fee may never exceed the amount (loud fail; never
+        // a silent clamp, never a negative net). The ledger leg would also reject
+        // it, but we fail early with a clear error.
+        if fee_minor > tx.amount.amount_minor() {
+            return Err(TransactionError::FeeExceedsAmount {
+                fee: fee_minor,
+                amount: tx.amount.amount_minor(),
+            });
+        }
+        let fee_money = Money::new(fee_minor, tx.currency);
+        let capture_key = format!("{}:capture", tx.idempotency_key);
+
+        // --- Settle: payee NET + operator fee, ONE balanced posting ----------
+        // Idempotent on `capture_key`: a replay returns the existing posting and
+        // never double-charges the fee.
+        let (operator_fee, operator_fee_account_id) = if fee_minor > 0 {
+            (Some(fee_money), Some(self.operator_fee_account_id))
+        } else {
+            (None, None)
+        };
+        let posting_id = self
+            .wallet
             .settle(SettleRequest {
-                idempotency_key: format!("{}:capture", tx.idempotency_key),
+                idempotency_key: capture_key.clone(),
                 wallet_id: tx.wallet_id,
                 amount: tx.amount,
+                operator_fee,
+                operator_fee_account_id,
             })
             .await
             .map_err(TransactionError::Wallet)?;
 
+        // --- Persist the (immutable) operator_fee record + set tx.fee --------
+        // One row per transaction; ON CONFLICT keeps replay idempotent. Recorded
+        // even when the fee is 0, for full auditability.
+        let operator_fee_id = OperatorFeeId::new();
+        let snapshot_json = serde_json::to_value(&resolution.snapshot)
+            .map_err(|e| TransactionError::Pricing(format!("snapshot serialize: {e}")))?;
+        let fee_record = OperatorFeeInsert {
+            id: operator_fee_id,
+            transaction_id: tx.id,
+            posting_id,
+            amount_minor: fee_minor,
+            currency: tx.currency,
+            business_category: tx.business_category.clone(),
+            pricing_profile: tx.pricing_profile.clone(),
+            fee_policy_ref: tx.fee_policy_ref.clone(),
+            pricing_rule_id: resolution.snapshot.rule_id,
+            pricing_rule_version: resolution.snapshot.rule_version,
+            engine_version: resolution.snapshot.engine_version as i32,
+            snapshot_json,
+            environment: self.environment.clone(),
+            idempotency_key: capture_key,
+        };
         let updated = self
             .repo
-            .update_status(tx.id, TransactionStatus::Captured, None)
+            .finalize_capture(tx.id, fee_money, fee_record)
             .await?;
 
-        tracing::info!(tx_id = %tx.id, amount = %tx.amount, "transaction captured");
+        // --- Internal event (no PII, no commercial rule beyond refs) ---------
+        // Operator-internal only; never a public webhook.
+        tracing::info!(
+            event = "operator.fee.applied",
+            operator_fee_id = %operator_fee_id,
+            transaction_id = %tx.id,
+            amount_minor = fee_minor,
+            currency = %tx.currency,
+            pricing_rule_id = ?resolution.snapshot.rule_id,
+            rule_version = ?resolution.snapshot.rule_version,
+            engine_version = resolution.snapshot.engine_version,
+            "operator fee applied"
+        );
+        tracing::info!(tx_id = %tx.id, amount = %tx.amount, fee = %fee_money, "transaction captured");
         Ok(updated)
     }
 
@@ -299,8 +412,23 @@ mod tests {
         async fn release(&self, _: ReleaseRequest) -> Result<(), WalletError> {
             Ok(())
         }
-        async fn settle(&self, _: SettleRequest) -> Result<(), WalletError> {
-            Ok(())
+        async fn settle(
+            &self,
+            _: SettleRequest,
+        ) -> Result<banzami_types::LedgerPostingId, WalletError> {
+            Ok(banzami_types::LedgerPostingId::new())
+        }
+    }
+
+    // Mock pricing provider — no rules => every category resolves to a zero fee,
+    // so these state-machine tests exercise capture with net == gross.
+    struct MockPricing;
+    impl PricingRuleProvider for MockPricing {
+        async fn load_rules(
+            &self,
+            _environment: &str,
+        ) -> Result<Vec<banzami_pricing::PricingRule>, banzami_pricing::PricingError> {
+            Ok(vec![])
         }
     }
 
@@ -372,6 +500,23 @@ mod tests {
             Ok(tx.clone())
         }
 
+        async fn finalize_capture(
+            &self,
+            id: TransactionId,
+            fee: Money,
+            _fee_record: crate::repository::OperatorFeeInsert,
+        ) -> Result<Transaction, TransactionError> {
+            let mut rows = self.rows.lock().unwrap();
+            let tx = rows
+                .iter_mut()
+                .find(|r| r.id == id)
+                .ok_or(TransactionError::NotFound(id))?;
+            tx.status = TransactionStatus::Captured;
+            tx.fee = fee;
+            tx.updated_at = Utc::now();
+            Ok(tx.clone())
+        }
+
         async fn list_for_merchant(
             &self,
             merchant_id: MerchantId,
@@ -391,15 +536,24 @@ mod tests {
         }
     }
 
-    fn make_engine() -> PostgresTransactionEngine<MockWallet, MockRepo> {
-        PostgresTransactionEngine::new(Arc::new(MockWallet), MockRepo::new(), AccountId::new())
+    fn make_engine() -> PostgresTransactionEngine<MockWallet, MockRepo, MockPricing> {
+        PostgresTransactionEngine::new(
+            Arc::new(MockWallet),
+            MockRepo::new(),
+            AccountId::new(),
+            Arc::new(MockPricing),
+            AccountId::new(),
+            "SANDBOX",
+        )
     }
 
     fn kz(minor: i64) -> Money {
         Money::new(minor, Currency::AOA)
     }
 
-    async fn pending_tx(engine: &PostgresTransactionEngine<MockWallet, MockRepo>) -> Transaction {
+    async fn pending_tx(
+        engine: &PostgresTransactionEngine<MockWallet, MockRepo, MockPricing>,
+    ) -> Transaction {
         engine
             .create(CreateTransactionRequest {
                 idempotency_key: "idem-001".into(),
@@ -408,6 +562,9 @@ mod tests {
                 merchant_id: MerchantId::new(),
                 wallet_id: WalletId::new(),
                 description: None,
+                business_category: None,
+                pricing_profile: None,
+                fee_policy_ref: None,
             })
             .await
             .unwrap()
@@ -438,6 +595,9 @@ mod tests {
                 merchant_id: MerchantId::new(),
                 wallet_id: WalletId::new(),
                 description: None,
+                business_category: None,
+                pricing_profile: None,
+                fee_policy_ref: None,
             })
             .await
             .unwrap();

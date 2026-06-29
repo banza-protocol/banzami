@@ -99,6 +99,7 @@ use banzami_qr::{PostgresQrEngine, PostgresQrRepository};
 use banzami_reconciliation::{PostgresReconciliationRepository, StaticReconciliationEngine};
 use banzami_risk::StaticRiskEngine;
 use banzami_routing::StaticRoutingEngine;
+use banzami_pricing::PostgresPricingRuleProvider;
 use banzami_settlement::{PostgresSettlementEngine, PostgresSettlementRepository};
 use banzami_transactions::{PostgresTransactionEngine, PostgresTransactionRepository};
 use banzami_transfers::{PostgresTransferEngine, PostgresTransferRepository};
@@ -110,7 +111,8 @@ use banzami_wallets::{PostgresWalletEngine, PostgresWalletRepository};
 
 pub type LedgerRepo = PostgresLedgerRepository;
 pub type WalletEng = PostgresWalletEngine<LedgerRepo, PostgresWalletRepository>;
-pub type TxEng = PostgresTransactionEngine<WalletEng, PostgresTransactionRepository>;
+pub type TxEng =
+    PostgresTransactionEngine<WalletEng, PostgresTransactionRepository, PostgresPricingRuleProvider>;
 pub type MerchantEng = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
 pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
 pub type PayoutEng =
@@ -165,6 +167,7 @@ impl AppState {
         pool: PgPool,
         transit_account_id: AccountId,
         bank_account_id: AccountId,
+        operator_fee_account_id: AccountId,
         environment: CoreEnvironment,
     ) -> Self {
         // --- Wallet engine (for wallet routes) ---
@@ -182,11 +185,17 @@ impl AppState {
             PostgresWalletEngine::new(Arc::new(tx_wallet_ledger), tx_wallet_repo);
 
         // --- Transaction engine ---
+        // The operator Pricing Engine (ADR-021) resolves the per-payment operator
+        // fee at capture; it is the only place fees are computed.
         let tx_repo = PostgresTransactionRepository::new(pool.clone());
+        let pricing_provider = PostgresPricingRuleProvider::new(pool.clone());
         let tx_engine = Arc::new(PostgresTransactionEngine::new(
             Arc::new(tx_wallet_engine),
             tx_repo,
             transit_account_id,
+            Arc::new(pricing_provider),
+            operator_fee_account_id,
+            environment.as_str(),
         ));
 
         // --- Merchant engine ---

@@ -42,6 +42,12 @@ pub enum TransactionError {
     #[error(transparent)]
     Money(#[from] MoneyError),
 
+    #[error("operator fee {fee} exceeds transaction amount {amount} (net would be negative)")]
+    FeeExceedsAmount { fee: i64, amount: i64 },
+
+    #[error("pricing error: {0}")]
+    Pricing(String),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

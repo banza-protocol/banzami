@@ -54,6 +54,9 @@ pub enum WalletError {
     #[error(transparent)]
     Money(#[from] MoneyError),
 
+    #[error("invalid operator fee: {0}")]
+    InvalidFee(String),
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

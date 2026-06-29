@@ -3,7 +3,7 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostingBuilder};
-use banzami_types::{Currency, MerchantId, WalletId};
+use banzami_types::{Currency, LedgerPostingId, MerchantId, WalletId};
 
 use crate::{
     repository::WalletRepository,
@@ -40,7 +40,10 @@ pub trait WalletEngine: Send + Sync {
     async fn balance(&self, wallet_id: WalletId) -> Result<WalletBalance, WalletError>;
     async fn reserve(&self, req: ReserveRequest) -> Result<(), WalletError>;
     async fn release(&self, req: ReleaseRequest) -> Result<(), WalletError>;
-    async fn settle(&self, req: SettleRequest) -> Result<(), WalletError>;
+    /// Returns the id of the ledger posting produced (or the existing one on an
+    /// idempotent replay). With an operator fee set, the posting is the balanced
+    /// 3-leg net/fee split (ADR-021).
+    async fn settle(&self, req: SettleRequest) -> Result<LedgerPostingId, WalletError>;
 }
 
 // ---------------------------------------------------------------------------
@@ -191,9 +194,65 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine for PostgresWa
         Ok(())
     }
 
-    async fn settle(&self, req: SettleRequest) -> Result<(), WalletError> {
+    async fn settle(&self, req: SettleRequest) -> Result<LedgerPostingId, WalletError> {
         let wallet = self.repo.get(req.wallet_id).await?;
 
+        // With an operator fee (ADR-021), the gross reservation clears across TWO
+        // balanced postings — the ledger is strictly one DR + one CR per posting,
+        // so the fee is its own paired posting, not a third leg. Net effect:
+        //   reserved DR net + DR fee (= gross, fully cleared)
+        //   available CR net   (payee NET)
+        //   operator CR fee    (operator revenue)
+        // No money is created or destroyed; each posting nets to zero.
+        if let (Some(fee), Some(fee_account_id)) = (req.operator_fee, req.operator_fee_account_id) {
+            if fee.currency != req.amount.currency {
+                return Err(WalletError::InvalidFee(format!(
+                    "fee currency {} != amount currency {}",
+                    fee.currency, req.amount.currency
+                )));
+            }
+            if fee.is_negative() {
+                return Err(WalletError::InvalidFee("fee is negative".into()));
+            }
+            if fee.amount_minor() > req.amount.amount_minor() {
+                return Err(WalletError::InvalidFee(format!(
+                    "fee {} exceeds amount {} (net would be negative)",
+                    fee, req.amount
+                )));
+            }
+            if !fee.is_zero() {
+                let net = req.amount.checked_sub(fee)?; // >= 0 by the guard above
+
+                // Posting 1: payee NET (idempotency key = the caller's capture key).
+                let settle = PostingBuilder::new(
+                    format!("Settle {} to wallet {} available (net of fee)", net, wallet.id),
+                    req.idempotency_key.clone(),
+                )
+                .debit(wallet.reserved_account_id, net)
+                .credit(wallet.available_account_id, net)
+                .build()
+                .map_err(|e| WalletError::Posting(e.to_string()))?;
+                self.ledger.post(settle).await.map_err(WalletError::Ledger)?;
+
+                // Posting 2: operator fee (derived, distinct key — idempotent).
+                let fee_posting = PostingBuilder::new(
+                    format!("Operator fee {} on wallet {}", fee, wallet.id),
+                    format!("{}:fee", req.idempotency_key),
+                )
+                .debit(wallet.reserved_account_id, fee)
+                .credit(fee_account_id, fee)
+                .build()
+                .map_err(|e| WalletError::Posting(e.to_string()))?;
+                let posted = self
+                    .ledger
+                    .post(fee_posting)
+                    .await
+                    .map_err(WalletError::Ledger)?;
+                return Ok(posted.id);
+            }
+        }
+
+        // No operator fee (or zero): legacy full-amount settle.
         let posting = PostingBuilder::new(
             format!("Settle {} to wallet {} available", req.amount, wallet.id),
             req.idempotency_key,
@@ -203,11 +262,8 @@ impl<L: LedgerEngine + 'static, R: WalletRepository> WalletEngine for PostgresWa
         .build()
         .map_err(|e| WalletError::Posting(e.to_string()))?;
 
-        self.ledger
-            .post(posting)
-            .await
-            .map_err(WalletError::Ledger)?;
-        Ok(())
+        let posted = self.ledger.post(posting).await.map_err(WalletError::Ledger)?;
+        Ok(posted.id)
     }
 }
 
@@ -430,6 +486,8 @@ mod tests {
                 idempotency_key: "stl-001".into(),
                 wallet_id: wallet.id,
                 amount: kz(100_000),
+                operator_fee: None,
+                operator_fee_account_id: None,
             })
             .await
             .unwrap();
@@ -582,6 +640,8 @@ mod tests {
                 idempotency_key: "stl-004".into(),
                 wallet_id: wallet.id,
                 amount: kz(120_000),
+                operator_fee: None,
+                operator_fee_account_id: None,
             })
             .await
             .unwrap();

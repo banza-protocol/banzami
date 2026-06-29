@@ -189,6 +189,8 @@ async fn settle_moves_reserved_to_available(pool: PgPool) -> sqlx::Result<()> {
             idempotency_key: "settle-01".into(),
             wallet_id: wallet.id,
             amount: kz(10_000_000),
+            operator_fee: None,
+            operator_fee_account_id: None,
         })
         .await
         .unwrap();

@@ -246,6 +246,7 @@ dependencies = [
  "banzami-merchants",
  "banzami-payment-links",
  "banzami-payouts",
+ "banzami-pricing",
  "banzami-qr",
  "banzami-reconciliation",
  "banzami-risk",
@@ -440,10 +441,13 @@ dependencies = [
 name = "banzami-transactions"
 version = "0.1.0"
 dependencies = [
+ "banzami-ledger",
+ "banzami-pricing",
  "banzami-types",
  "banzami-wallets",
  "chrono",
  "serde",
+ "serde_json",
  "sqlx",
  "thiserror",
  "tokio",

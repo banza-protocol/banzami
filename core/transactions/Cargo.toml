@@ -10,10 +10,22 @@ authors.workspace    = true
 [dependencies]
 banzami-types   = { workspace = true }
 banzami-wallets = { workspace = true }
+banzami-ledger  = { workspace = true }
+banzami-pricing = { workspace = true }
 serde           = { workspace = true }
+serde_json      = { workspace = true }
 uuid            = { workspace = true }
 chrono          = { workspace = true }
 thiserror       = { workspace = true }
 tracing         = { workspace = true }
 sqlx            = { workspace = true }
 tokio           = { workspace = true }
+
+[dev-dependencies]
+banzami-ledger  = { workspace = true }
+banzami-pricing = { workspace = true }
+sqlx            = { workspace = true }
+uuid            = { workspace = true }
+serde_json      = { workspace = true }
+chrono          = { workspace = true }
+tokio           = { workspace = true, features = ["macros", "rt-multi-thread"] }

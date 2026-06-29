@@ -148,10 +148,74 @@ to a zero fee.
 
 ---
 
-## Scope (Increment 2)
+## Operator Fee on capture (Increment 3)
 
-Delivered: the engine, models, the `pricing_rules` config table + provider, and
-the test suite. **Not** in this increment (per ADR-021 sequencing): the
-Operator-Fee ledger leg on PaymentIntent fulfilment (increment 3), the Application
-Settlement application fee (increment 4), SDK surface (5) and app consumers (6).
-The hot financial path and the ledger are untouched here.
+At transaction **capture** (`core/transactions`), the engine resolves the operator
+fee from `(amount, currency, business_category, pricing_profile?, fee_policy_ref?,
+environment)` and applies it as a ledger movement — invisible to the payer, who
+always sees the gross amount.
+
+### Ledger realization — two balanced postings
+
+This ledger is **strictly one DEBIT + one CREDIT per posting** (DB constraint
+`uq_ledger_entry_posting_type` on `(posting_id, entry_type)`), so the fee cannot
+be a third leg of the settle posting. It is realized as **two balanced postings**
+that share the gross reservation:
+
+```text
+authorize:  DR transit(gross)      CR wallet:reserved(gross)
+
+capture, posting 1 (key <idem>:capture):
+            DR wallet:reserved(net)   CR wallet:available(net)    ← payee NET
+capture, posting 2 (key <idem>:capture:fee):
+            DR wallet:reserved(fee)   CR operator_fee_revenue(fee) ← operator fee
+```
+
+`reserved` is debited `net + fee = gross` (fully cleared); `available` receives
+only the **net**; the **operator-fee REVENUE account** receives the fee. No money
+is created or destroyed; each posting nets to zero; everything is append-only
+(ADR-002). When the fee is 0 there is a single legacy settle posting.
+
+### Operator revenue account
+
+A single internal `AccountType::Revenue` account (`OPERATOR_FEE_REVENUE_ACCOUNT_ID`,
+fixed in env, ensured at boot — mirrors the transit/bank system accounts). **Never**
+a merchant wallet. The fee is fully auditable/reconcilable in the ledger.
+
+### Persistence, idempotency & audit
+
+Each capture writes one immutable `operator_fees` row (migration 0071): the
+resolved `fee_minor`, the references, `pricing_rule_id` + `pricing_rule_version`,
+`engine_version`, the immutable `snapshot_json`, and the fee `posting_id`.
+`UNIQUE(transaction_id)` + the ledger's idempotent posting keys make a capture
+replay a no-op — no double fee, no duplicate posting. A row is recorded even when
+the fee is 0 (auditable). `fee > amount` is **rejected** (loud fail; never a
+silent clamp, never a negative net). An internal `operator.fee.applied` event is
+emitted (tracing; never a public webhook).
+
+### Visibility
+
+The fee is **operator-internal**: no public/SDK/payer surface accepts or returns
+it; the payer sees the gross amount; the merchant sees the net in their wallet.
+`business_category`/`pricing_profile`/`fee_policy_ref` are not yet accepted on the
+public API (a later SDK increment) — until set, every transaction is unpriced and
+resolves to a zero fee, so existing behaviour is unchanged.
+
+### Refunds (deferred)
+
+Refunds are **out of scope** for this increment. A future refund must reverse via
+**reversal postings** (never mutation), and operator-fee refundability is a policy
+decision (default: the operator fee on a refunded payment is non-refundable unless
+policy says otherwise; a partial refund reverses a proportional fee). To be
+specified when the refund path is implemented.
+
+## Scope
+
+- **Increment 2 (done):** engine, models, `pricing_rules` config + provider, tests.
+- **Increment 3 (done):** Operator-Fee ledger postings on capture, `operator_fees`
+  persistence, operator revenue account, real-DB invariant tests.
+- **Not yet** (per ADR-021 sequencing): Application Settlement application fee
+  (increment 4), SDK surface carrying the references (5), app consumers — DOA then
+  Mongo/marketplace/crowdfunding (6). The QR/P2P-via-`transfers` path is not fee-
+  bearing in this increment (no `business_category`); the fee point is the
+  transaction/PaymentIntent fulfilment path.

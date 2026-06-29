@@ -111,11 +111,16 @@ differing only in *when* the Application Settlement fires.
 
 ## Implementation increments (this ADR is increment 1: design)
 
-1. **(this)** Operator design + the protocol foundation (BANZA ADR-039 + contracts).
-2. `core/pricing` crate (engine + operator rule config) + tests.
-3. Operator-Fee ledger leg on PaymentIntent fulfilment (`core/transactions` +
-   `core/ledger`) + `operator_fee` persistence + real-DB invariant tests (balanced,
-   irreversible, net-to-payee).
+1. **(done)** Operator design + the protocol foundation (BANZA ADR-039 + contracts).
+2. **(done)** `core/pricing` crate (engine + operator rule config) + tests.
+3. **(done)** Operator-Fee on transaction capture (`core/transactions` +
+   `core/wallets` + `core/ledger`) + `operator_fees` persistence (migration 0071) +
+   real-DB invariant tests (balanced, idempotent, net-to-payee, immutable snapshot).
+   **Realization note:** this ledger is strictly one DR + one CR per posting
+   (constraint `uq_ledger_entry_posting_type`), so the fee is **two balanced
+   postings** sharing the gross reservation (settle `net`, fee `fee`), not a third
+   leg — same net effect, append-only. See
+   [docs/domains/pricing/README.md](../domains/pricing/README.md).
 4. `core/app-settlement` + operator/admin APIs + state machine + events.
 5. SDK: `business_category` / `pricing_profile` on initiation + settlement calls
    (never the fee).

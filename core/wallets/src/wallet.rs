@@ -121,13 +121,28 @@ pub struct ReleaseRequest {
 
 /// Move funds from reserved to available on acquirer confirmation.
 ///
-/// Double-entry:
+/// Double-entry (no operator fee):
 /// ```text
 /// wallet:reserved [LIABILITY]   DR  amount   ← reservation cleared
 /// wallet:available [LIABILITY]  CR  amount   ← funds now withdrawable
+/// ```
+///
+/// With an operator fee (Banzami ADR-021 / BANZA ADR-039), the SAME posting
+/// splits the credit so the payee receives the NET and the operator-fee account
+/// the fee — one balanced posting, atomic and append-only:
+/// ```text
+/// wallet:reserved      [LIABILITY] DR  amount        ← gross reservation cleared
+/// wallet:available     [LIABILITY] CR  amount - fee  ← payee NET, now withdrawable
+/// operator_fee_revenue [REVENUE]   CR  fee           ← operator fee recognized
 /// ```
 pub struct SettleRequest {
     pub idempotency_key: String,
     pub wallet_id: WalletId,
     pub amount: Money,
+    /// Operator fee to retain from `amount`. `None` = legacy full-amount settle.
+    /// When `Some`, `operator_fee_account_id` MUST be set and `fee <= amount`.
+    pub operator_fee: Option<Money>,
+    /// The internal REVENUE account the operator fee is credited to. Required
+    /// when `operator_fee` is `Some`; never a merchant wallet account.
+    pub operator_fee_account_id: Option<AccountId>,
 }

@@ -94,6 +94,8 @@ async fn setup(pool: PgPool) -> TestFixture {
             idempotency_key: "setup-settle".into(),
             wallet_id: wallet.id,
             amount: kz(100_000_000),
+            operator_fee: None,
+            operator_fee_account_id: None,
         })
         .await
         .unwrap();

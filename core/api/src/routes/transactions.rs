@@ -90,6 +90,11 @@ pub async fn create(
             merchant_id,
             wallet_id,
             description: body.description,
+            // Fee references are not accepted on the public surface in this
+            // increment (no public API change). Unset => unpriced => zero fee.
+            business_category: None,
+            pricing_profile: None,
+            fee_policy_ref: None,
         })
         .await
         .map_err(|e| match e {
