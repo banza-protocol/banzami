@@ -79,3 +79,11 @@ typed_id!(AcquiringPaymentId); // External payment via acquirer (EMIS, bank, etc
 typed_id!(PaymentIntentId); // BANZA ADR-037 payment-initiation primitive
 typed_id!(CollectionId); // BANZA ADR-036 composite financial obligation
 typed_id!(CollectionShareId); // BANZA ADR-036 one payer's portion of a collection
+
+// ---------------------------------------------------------------------------
+// Fee & settlement domains (BANZA ADR-039 / Banzami ADR-021)
+// ---------------------------------------------------------------------------
+
+typed_id!(PricingRuleId); // Operator pricing rule (operator policy; never protocol)
+typed_id!(OperatorFeeId); // Operator fee record (one per fulfilled PaymentIntent)
+typed_id!(ApplicationSettlementId); // Deferred app -> beneficiary settlement

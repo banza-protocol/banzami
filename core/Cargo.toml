@@ -18,6 +18,7 @@ members = [
     "payment-links",
     "acquiring",
     "collections",
+    "pricing",
     "api",
 ]
 resolver = "2"
@@ -56,6 +57,7 @@ banzami-qr              = { path = "qr" }
 banzami-payment-links   = { path = "payment-links" }
 banzami-acquiring       = { path = "acquiring" }
 banzami-collections     = { path = "collections" }
+banzami-pricing         = { path = "pricing" }
 
 # Serialization
 serde      = { version = "1", features = ["derive"] }

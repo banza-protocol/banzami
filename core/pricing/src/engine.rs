@@ -1,0 +1,522 @@
+//! The Pricing Engine (Banzami ADR-021 / BANZA ADR-039).
+//!
+//! `resolve` is a PURE function of `(rules, context)` — no clock (the effective
+//! window matches against `context.as_of`), no randomness, no I/O, no global
+//! state — so it is deterministic and idempotent: the same inputs always yield
+//! the same `fee_minor` and the same snapshot. All arithmetic is integer minor
+//! units via `i128` intermediates; no floating point ever touches money
+//! (ADR-002 / §9.3).
+//!
+//! The engine performs NO ledger work and holds NO money. It returns a number
+//! and an audit snapshot; a caller (the Operator-Fee leg, an Application
+//! Settlement) decides what to do with it.
+
+use crate::domain::{
+    FeeResolution, FeeSnapshot, PricingContext, PricingRule, RoundingMode,
+};
+
+/// Bumped whenever the resolution algorithm changes in a way that could alter a
+/// previously-computed fee. Stored in every snapshot for forensic replay.
+pub const ENGINE_VERSION: u32 = 1;
+
+const BPS_DENOMINATOR: i128 = 10_000;
+
+/// Apply a basis-point rate to an amount, in integer minor units, with the given
+/// deterministic rounding. `i128` intermediates make overflow impossible for any
+/// realistic amount (i64 amount * u32 bps fits easily).
+///
+/// Returns 0 for non-positive amounts — a fee is only ever charged on value that
+/// actually moves.
+fn apply_bps(amount_minor: i64, rate_bps: u32, rounding: RoundingMode) -> i64 {
+    if amount_minor <= 0 || rate_bps == 0 {
+        return 0;
+    }
+    let numerator = (amount_minor as i128) * (rate_bps as i128);
+    let quotient = numerator / BPS_DENOMINATOR;
+    let remainder = numerator % BPS_DENOMINATOR; // always >= 0 here (both operands >= 0)
+
+    let rounded = match rounding {
+        RoundingMode::Floor => quotient,
+        RoundingMode::Ceil => {
+            if remainder != 0 {
+                quotient + 1
+            } else {
+                quotient
+            }
+        }
+        RoundingMode::HalfUp => {
+            if remainder * 2 >= BPS_DENOMINATOR {
+                quotient + 1
+            } else {
+                quotient
+            }
+        }
+        RoundingMode::HalfEven => {
+            let twice = remainder * 2;
+            // round up when over the half, or exactly on the half with an odd
+            // quotient (ties go to the even neighbour); otherwise round down.
+            if twice > BPS_DENOMINATOR || (twice == BPS_DENOMINATOR && quotient % 2 != 0) {
+                quotient + 1
+            } else {
+                quotient
+            }
+        }
+    };
+    rounded as i64
+}
+
+/// True when every present matcher on the rule equals the corresponding context
+/// value. A `None` matcher is a wildcard. A matcher that requires a dimension the
+/// context did not supply (e.g. rule wants a profile but the context has none)
+/// does NOT match.
+fn rule_matches(rule: &PricingRule, ctx: &PricingContext) -> bool {
+    // effective window: [effective_from, effective_to)
+    if ctx.as_of < rule.effective_from {
+        return false;
+    }
+    if let Some(to) = rule.effective_to {
+        if ctx.as_of >= to {
+            return false;
+        }
+    }
+
+    if let Some(cat) = &rule.business_category {
+        if cat != &ctx.business_category {
+            return false;
+        }
+    }
+    if let Some(profile) = &rule.pricing_profile {
+        match &ctx.pricing_profile {
+            Some(p) if p == profile => {}
+            _ => return false,
+        }
+    }
+    if let Some(policy) = &rule.fee_policy_ref {
+        match &ctx.fee_policy_ref {
+            Some(r) if &r.ref_ == policy => {}
+            _ => return false,
+        }
+    }
+    if let Some(cur) = rule.currency {
+        if cur != ctx.currency {
+            return false;
+        }
+    }
+    if let Some(country) = &rule.country {
+        match &ctx.country {
+            Some(c) if c == country => {}
+            _ => return false,
+        }
+    }
+    true
+}
+
+/// Pick the winning rule: highest specificity, then highest `priority`, then
+/// highest `version`. The final tiebreak is the rule id, so selection is total
+/// and deterministic even for otherwise-identical rules.
+fn select_rule<'a>(rules: &'a [PricingRule], ctx: &PricingContext) -> Option<&'a PricingRule> {
+    rules
+        .iter()
+        .filter(|r| rule_matches(r, ctx))
+        .max_by(|a, b| {
+            a.specificity()
+                .cmp(&b.specificity())
+                .then(a.priority.cmp(&b.priority))
+                .then(a.version.cmp(&b.version))
+                .then(a.id.as_uuid().cmp(&b.id.as_uuid()))
+        })
+}
+
+/// Resolve the fee for `ctx` against `rules`. When no rule matches (unknown
+/// category, unpriced combination, NGO/GOVERNMENT with no rule, …) the fee is
+/// **0** and the snapshot records `rule_id = None` — the caller still posts a
+/// balanced, fee-less entry.
+pub fn resolve(rules: &[PricingRule], ctx: &PricingContext) -> FeeResolution {
+    let echoed = |fee_minor: i64,
+                  rule: Option<&PricingRule>,
+                  rate_bps: u32,
+                  flat_minor: i64,
+                  min_fee_minor: Option<i64>,
+                  max_fee_minor: Option<i64>,
+                  rounding: RoundingMode|
+     -> FeeResolution {
+        let snapshot = FeeSnapshot {
+            engine_version: ENGINE_VERSION,
+            rule_id: rule.map(|r| r.id),
+            rule_key: rule.map(|r| r.key.clone()),
+            rule_version: rule.map(|r| r.version),
+            business_category: ctx.business_category.as_str().to_string(),
+            pricing_profile: ctx.pricing_profile.as_ref().map(|p| p.as_str().to_string()),
+            fee_policy_ref: ctx.fee_policy_ref.as_ref().map(|r| r.ref_.clone()),
+            currency: ctx.currency.code().to_string(),
+            country: ctx.country.clone(),
+            amount_minor: ctx.amount_minor,
+            rate_bps,
+            flat_minor,
+            min_fee_minor,
+            max_fee_minor,
+            rounding,
+            fee_minor,
+            resolved_at: ctx.as_of,
+        };
+        FeeResolution {
+            fee_minor,
+            snapshot,
+        }
+    };
+
+    let Some(rule) = select_rule(rules, ctx) else {
+        // Safe default: no policy configured for this combination -> zero fee.
+        return echoed(0, None, 0, 0, None, None, RoundingMode::Floor);
+    };
+
+    let pct = apply_bps(ctx.amount_minor, rule.rate_bps, rule.rounding);
+    // flat applies only to value that actually moves
+    let flat = if ctx.amount_minor > 0 { rule.flat_minor } else { 0 };
+    let mut fee = pct.saturating_add(flat);
+
+    if let Some(min) = rule.min_fee_minor {
+        if fee < min {
+            fee = min;
+        }
+    }
+    if let Some(max) = rule.max_fee_minor {
+        if fee > max {
+            fee = max;
+        }
+    }
+    // A fee is never negative.
+    if fee < 0 {
+        fee = 0;
+    }
+
+    echoed(
+        fee,
+        Some(rule),
+        rule.rate_bps,
+        rule.flat_minor,
+        rule.min_fee_minor,
+        rule.max_fee_minor,
+        rule.rounding,
+    )
+}
+
+#[cfg(test)]
+// `5_000_00` etc. is intentional minor-unit money grouping (5000.00 Kz).
+#[allow(clippy::inconsistent_digit_grouping)]
+mod tests {
+    use super::*;
+    use crate::domain::{BusinessCategory, FeePolicyRef, PricingProfile, PricingRule};
+    use banzami_types::{Currency, PricingRuleId};
+    use chrono::{TimeZone, Utc};
+
+    fn t(y: i32, mo: u32, d: u32) -> chrono::DateTime<Utc> {
+        Utc.with_ymd_and_hms(y, mo, d, 12, 0, 0).unwrap()
+    }
+
+    /// Minimal rule builder — wildcards everywhere, no fee, open window.
+    fn rule(key: &str) -> PricingRule {
+        PricingRule {
+            id: PricingRuleId::new(),
+            key: key.to_string(),
+            version: 1,
+            business_category: None,
+            pricing_profile: None,
+            fee_policy_ref: None,
+            currency: None,
+            country: None,
+            rate_bps: 0,
+            flat_minor: 0,
+            min_fee_minor: None,
+            max_fee_minor: None,
+            rounding: RoundingMode::HalfUp,
+            priority: 0,
+            effective_from: t(2020, 1, 1),
+            effective_to: None,
+        }
+    }
+
+    fn ctx(amount_minor: i64, cat: BusinessCategory) -> PricingContext {
+        PricingContext {
+            amount_minor,
+            currency: Currency::AOA,
+            business_category: cat,
+            pricing_profile: None,
+            fee_policy_ref: None,
+            country: Some("AO".into()),
+            as_of: t(2026, 6, 29),
+        }
+    }
+
+    // ---- documented worked examples -------------------------------------
+
+    #[test]
+    fn donation_standard_resolves_configured_rule() {
+        // DONATION / STANDARD -> 2% (200 bps)
+        let mut r = rule("donation-standard");
+        r.business_category = Some(BusinessCategory::Donation);
+        r.pricing_profile = Some(PricingProfile::Standard);
+        r.rate_bps = 200;
+        let mut c = ctx(5_000_00, BusinessCategory::Donation); // 5000 Kz, profile required
+        c.pricing_profile = Some(PricingProfile::Standard);
+
+        let res = resolve(&[r.clone()], &c);
+        // 500000 minor * 200 / 10000 = 10000 minor = 100.00 Kz
+        assert_eq!(res.fee_minor, 100_00);
+        assert_eq!(res.snapshot.rule_id, Some(r.id));
+        assert_eq!(res.snapshot.rule_version, Some(1));
+    }
+
+    #[test]
+    fn five_thousand_at_two_percent_is_one_hundred() {
+        // "5000 Kz com 2% -> 100" (Kz, not minor) i.e. 5000_00 minor -> 100_00 minor
+        let mut r = rule("flat2pct");
+        r.rate_bps = 200;
+        let res = resolve(&[r.clone()], &ctx(5_000_00, BusinessCategory::Ecommerce));
+        assert_eq!(res.fee_minor, 100_00);
+    }
+
+    #[test]
+    fn nine_hundred_ninety_nine_rounding_is_deterministic() {
+        // 999 Kz = 999_00 minor @ 2% = 1_998_00 / 100... let's use a fractional case:
+        // 99_900 minor @ 200 bps = 1_998_000 / 10_000 = 199.8 -> rounds by mode.
+        let amount = 99_900; // 999.00 Kz
+        let mk = |mode: RoundingMode| {
+            let mut r = rule("r");
+            r.rate_bps = 200;
+            r.rounding = mode;
+            resolve(&[r], &ctx(amount, BusinessCategory::Ecommerce)).fee_minor
+        };
+        // 99_900 * 200 / 10_000 = 1_998 exactly -> all modes agree.
+        assert_eq!(mk(RoundingMode::Floor), 1_998);
+        assert_eq!(mk(RoundingMode::HalfUp), 1_998);
+
+        // a genuinely fractional case: 99_950 * 175 / 10_000 = 1_749.125
+        let frac = |mode: RoundingMode| {
+            let mut r = rule("r");
+            r.rate_bps = 175;
+            r.rounding = mode;
+            resolve(&[r], &ctx(99_950, BusinessCategory::Ecommerce)).fee_minor
+        };
+        assert_eq!(frac(RoundingMode::Floor), 1_749); // .125 down
+        assert_eq!(frac(RoundingMode::Ceil), 1_750); // .125 up
+        assert_eq!(frac(RoundingMode::HalfUp), 1_749); // .125 < .5 -> down
+    }
+
+    #[test]
+    fn half_up_ties_round_up_half_even_to_even() {
+        // amount * bps / 10000 with remainder exactly 5000 (a half).
+        // 25 * 200 = 5000; /10000 = 0.5 exactly.
+        let mk = |amount: i64, mode: RoundingMode| {
+            let mut r = rule("r");
+            r.rate_bps = 200;
+            r.rounding = mode;
+            resolve(&[r], &ctx(amount, BusinessCategory::Ecommerce)).fee_minor
+        };
+        // 25 -> 0.5 : HalfUp=1, HalfEven=0 (0 is even), Floor=0, Ceil=1
+        assert_eq!(mk(25, RoundingMode::HalfUp), 1);
+        assert_eq!(mk(25, RoundingMode::HalfEven), 0);
+        assert_eq!(mk(25, RoundingMode::Floor), 0);
+        assert_eq!(mk(25, RoundingMode::Ceil), 1);
+        // 75 -> 1.5 : HalfUp=2, HalfEven=2 (2 is even)
+        assert_eq!(mk(75, RoundingMode::HalfUp), 2);
+        assert_eq!(mk(75, RoundingMode::HalfEven), 2);
+    }
+
+    // ---- zero-fee paths --------------------------------------------------
+
+    #[test]
+    fn ngo_and_government_can_resolve_zero() {
+        // Explicit 0-bps rules for NGO/GOVERNMENT.
+        let mut ngo = rule("ngo-free");
+        ngo.business_category = Some(BusinessCategory::Ngo);
+        ngo.rate_bps = 0;
+        let mut gov = rule("gov-free");
+        gov.business_category = Some(BusinessCategory::Government);
+        gov.rate_bps = 0;
+        let rules = [ngo, gov];
+
+        assert_eq!(
+            resolve(&rules, &ctx(1_000_00, BusinessCategory::Ngo)).fee_minor,
+            0
+        );
+        assert_eq!(
+            resolve(&rules, &ctx(1_000_00, BusinessCategory::Government)).fee_minor,
+            0
+        );
+    }
+
+    #[test]
+    fn unknown_category_resolves_zero_with_null_rule() {
+        let mut r = rule("ecom");
+        r.business_category = Some(BusinessCategory::Ecommerce);
+        r.rate_bps = 250;
+        let res = resolve(&[r], &ctx(10_000_00, BusinessCategory::Other("SPACE_TOURISM".into())));
+        assert_eq!(res.fee_minor, 0);
+        assert_eq!(res.snapshot.rule_id, None);
+        assert_eq!(res.snapshot.business_category, "SPACE_TOURISM");
+    }
+
+    #[test]
+    fn no_rules_at_all_is_zero() {
+        let res = resolve(&[], &ctx(50_000_00, BusinessCategory::Marketplace));
+        assert_eq!(res.fee_minor, 0);
+        assert_eq!(res.snapshot.rule_id, None);
+    }
+
+    // ---- selection -------------------------------------------------------
+
+    #[test]
+    fn expired_rule_is_ignored() {
+        let mut expired = rule("old");
+        expired.business_category = Some(BusinessCategory::Donation);
+        expired.rate_bps = 500;
+        expired.effective_from = t(2020, 1, 1);
+        expired.effective_to = Some(t(2025, 1, 1)); // ended before ctx.as_of (2026)
+        let res = resolve(&[expired], &ctx(1_000_00, BusinessCategory::Donation));
+        assert_eq!(res.fee_minor, 0, "expired rule must not apply");
+        assert_eq!(res.snapshot.rule_id, None);
+    }
+
+    #[test]
+    fn future_rule_is_ignored() {
+        let mut future = rule("future");
+        future.business_category = Some(BusinessCategory::Donation);
+        future.rate_bps = 500;
+        future.effective_from = t(2030, 1, 1);
+        let res = resolve(&[future], &ctx(1_000_00, BusinessCategory::Donation));
+        assert_eq!(res.fee_minor, 0);
+    }
+
+    #[test]
+    fn most_specific_rule_wins() {
+        // generic catch-all (1% on everything) vs specific DONATION/STANDARD (2%).
+        let mut generic = rule("generic");
+        generic.rate_bps = 100; // wildcard everything
+
+        let mut specific = rule("donation-standard");
+        specific.business_category = Some(BusinessCategory::Donation);
+        specific.pricing_profile = Some(PricingProfile::Standard);
+        specific.rate_bps = 200;
+
+        let mut c = ctx(10_000_00, BusinessCategory::Donation);
+        c.pricing_profile = Some(PricingProfile::Standard);
+
+        let res = resolve(&[generic, specific.clone()], &c);
+        assert_eq!(res.snapshot.rule_id, Some(specific.id));
+        assert_eq!(res.fee_minor, 200_00); // 2% of 10000, not 1%
+    }
+
+    #[test]
+    fn priority_breaks_specificity_ties() {
+        // two equally specific rules; higher priority wins.
+        let mut a = rule("a");
+        a.business_category = Some(BusinessCategory::Donation);
+        a.rate_bps = 300;
+        a.priority = 1;
+        let mut b = rule("b");
+        b.business_category = Some(BusinessCategory::Donation);
+        b.rate_bps = 200;
+        b.priority = 5; // wins
+
+        let res = resolve(&[a, b.clone()], &ctx(10_000_00, BusinessCategory::Donation));
+        assert_eq!(res.snapshot.rule_id, Some(b.id));
+        assert_eq!(res.fee_minor, 200_00);
+    }
+
+    #[test]
+    fn fee_policy_ref_matches_when_present() {
+        let mut r = rule("partner-policy");
+        r.fee_policy_ref = Some("pol_partner_x".into());
+        r.rate_bps = 150;
+        let mut c = ctx(20_000_00, BusinessCategory::Marketplace);
+        c.fee_policy_ref = Some(FeePolicyRef::new("pol_partner_x"));
+
+        let res = resolve(&[r.clone()], &c);
+        assert_eq!(res.snapshot.rule_id, Some(r.id));
+        assert_eq!(res.fee_minor, 300_00); // 1.5% of 20000
+
+        // different policy ref -> no match -> 0
+        let mut c2 = c.clone();
+        c2.fee_policy_ref = Some(FeePolicyRef::new("pol_other"));
+        assert_eq!(resolve(&[r], &c2).fee_minor, 0);
+    }
+
+    // ---- components ------------------------------------------------------
+
+    #[test]
+    fn flat_plus_percentage_with_min_max_clamp() {
+        let mut r = rule("composite");
+        r.rate_bps = 100; // 1%
+        r.flat_minor = 50; // + 0.50 Kz
+        r.min_fee_minor = Some(200);
+        r.max_fee_minor = Some(10_000);
+
+        // 1% of 100_00 = 100, + 50 = 150, below min 200 -> 200
+        assert_eq!(
+            resolve(&[r.clone()], &ctx(100_00, BusinessCategory::Ecommerce)).fee_minor,
+            200
+        );
+        // 1% of 50_000_00 = 50_000, +50 = 50_050, above max -> 10_000
+        assert_eq!(
+            resolve(&[r], &ctx(50_000_00, BusinessCategory::Ecommerce)).fee_minor,
+            10_000
+        );
+    }
+
+    #[test]
+    fn zero_and_negative_amount_never_charge() {
+        let mut r = rule("r");
+        r.rate_bps = 500;
+        r.flat_minor = 100;
+        assert_eq!(resolve(&[r.clone()], &ctx(0, BusinessCategory::Ecommerce)).fee_minor, 0);
+        assert_eq!(resolve(&[r], &ctx(-100, BusinessCategory::Ecommerce)).fee_minor, 0);
+    }
+
+    // ---- determinism / snapshot -----------------------------------------
+
+    #[test]
+    fn resolution_is_deterministic_and_idempotent() {
+        let mut r = rule("donation-standard");
+        r.business_category = Some(BusinessCategory::Donation);
+        r.rate_bps = 200;
+        let c = ctx(7_777_77, BusinessCategory::Donation);
+        let a = resolve(std::slice::from_ref(&r), &c);
+        let b = resolve(std::slice::from_ref(&r), &c);
+        assert_eq!(a, b, "same inputs -> identical resolution");
+    }
+
+    #[test]
+    fn snapshot_preserves_rule_version() {
+        let mut r = rule("donation-standard");
+        r.business_category = Some(BusinessCategory::Donation);
+        r.rate_bps = 200;
+        r.version = 7;
+        let res = resolve(&[r.clone()], &ctx(1_000_00, BusinessCategory::Donation));
+        assert_eq!(res.snapshot.rule_version, Some(7));
+        assert_eq!(res.snapshot.rule_key.as_deref(), Some("donation-standard"));
+        assert_eq!(res.snapshot.engine_version, ENGINE_VERSION);
+        assert_eq!(res.snapshot.rate_bps, 200);
+    }
+
+    #[test]
+    fn snapshot_round_trips_through_json() {
+        let mut r = rule("donation-standard");
+        r.business_category = Some(BusinessCategory::Donation);
+        r.rate_bps = 200;
+        let res = resolve(&[r], &ctx(1_234_56, BusinessCategory::Donation));
+        let json = serde_json::to_string(&res.snapshot).unwrap();
+        let back: FeeSnapshot = serde_json::from_str(&json).unwrap();
+        assert_eq!(res.snapshot, back);
+    }
+
+    #[test]
+    fn no_float_large_amount_does_not_overflow() {
+        // 9 trillion minor units * 9999 bps stays within i128.
+        let mut r = rule("r");
+        r.rate_bps = 9_999;
+        let res = resolve(&[r], &ctx(9_000_000_000_000, BusinessCategory::Ecommerce));
+        // 9e12 * 9999 / 10000 = 8_999_100_000_000
+        assert_eq!(res.fee_minor, 8_999_100_000_000);
+    }
+}

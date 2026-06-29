@@ -345,6 +345,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "banzami-pricing"
+version = "0.1.0"
+dependencies = [
+ "banzami-types",
+ "chrono",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
 name = "banzami-qr"
 version = "0.1.0"
 dependencies = [
