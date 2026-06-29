@@ -79,6 +79,22 @@ never returned to clients; signed URLs never logged; logs carry no NIF / names /
 document numbers. HEAD verify before accepting; MIME allowlist + max size; sha256.
 KYB buckets separate from KYC; no permanent public URLs.
 
+## Admin review UI (BANZADMIN)
+
+`apps/admin` → **Documentos KYB** (`/merchant-kyb`) lists post-approval
+`merchant_kyb_documents` (distinct from the application-doc section), filter by
+status, open via the short-TTL signed `download_url`, approve (optional
+`valid_until`) / reject (reason required). It shows an **environment badge**
+(LIVE/SANDBOX, inferred from the admin-api host) and an env-aware empty state —
+because the portal reads a single environment, a Business app in a *different*
+environment (e.g. app=SANDBOX, portal=LIVE) won't show its docs there, by design.
+
+## Stale-merchant guard
+
+The merchant KYB endpoints verify the JWT's `merchant_id` still exists in
+`merchants` before any read/write; a deleted/stale merchant gets `401
+INVALID_SESSION` and **no orphan `merchant_kyb_documents` are created**.
+
 ## Limitations / remaining
 
 - **Upload is image-only in the app** (camera/gallery via `image_picker`, sent as

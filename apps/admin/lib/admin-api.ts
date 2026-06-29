@@ -572,6 +572,27 @@ export class AdminApi {
       method: 'POST', body: JSON.stringify({ reason }),
     });
   }
+
+  // Merchant KYB documents (post-approval, maintained inside the Business app —
+  // distinct from the application docs above). The list carries short-TTL signed
+  // download URLs; storage_key is never exposed.
+  listMerchantKybDocuments(status?: string, limit?: number): Promise<{ documents: MerchantKybDoc[] }> {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (limit) qs.set('limit', String(limit));
+    const q = qs.toString();
+    return this.req(`/admin/v1/merchant-kyb/documents${q ? `?${q}` : ''}`);
+  }
+  approveMerchantKybDocument(id: string, validUntil?: string): Promise<{ status: string }> {
+    return this.req(`/admin/v1/merchant-kyb/documents/${id}/approve`, {
+      method: 'POST', body: JSON.stringify(validUntil ? { valid_until: validUntil } : {}),
+    });
+  }
+  rejectMerchantKybDocument(id: string, reason: string): Promise<{ status: string }> {
+    return this.req(`/admin/v1/merchant-kyb/documents/${id}/reject`, {
+      method: 'POST', body: JSON.stringify({ rejection_reason: reason }),
+    });
+  }
 }
 
 export type OperatorRole = 'SUPER_ADMIN' | 'OPERATIONS' | 'COMPLIANCE' | 'SUPPORT' | 'READ_ONLY';
@@ -631,6 +652,22 @@ export interface KybDocument {
   reviewed_by:      string | null;
   reviewed_at:      string | null;
   rejection_reason: string | null;
+}
+
+// Post-approval merchant KYB document (merchant_kyb_documents). Never carries a
+// storage_key; download_url is a short-TTL signed GET.
+export interface MerchantKybDoc {
+  id:                string;
+  merchant_id:       string;
+  document_type:     string;
+  status:            string;
+  mime_type?:        string;
+  size_bytes?:       number;
+  submitted_at?:     string | null;
+  reviewed_at?:      string | null;
+  valid_until?:      string | null;
+  rejection_reason?: string | null;
+  download_url?:     string;
 }
 
 export interface WalletPayment {

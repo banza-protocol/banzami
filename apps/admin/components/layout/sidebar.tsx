@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 import { BanzamiLogo } from '@/components/ui/brand';
@@ -11,6 +11,7 @@ import { BanzamiLogo } from '@/components/ui/brand';
 const NAV = [
   { href: '/', label: 'Visão geral', Icon: LayoutGrid, exact: true },
   { href: '/merchants', label: 'Comerciantes', Icon: Building2 },
+  { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck },
   { href: '/consumers', label: 'Consumidores', Icon: Users },
   { href: '/settlements', label: 'Liquidações', Icon: Layers },
   { href: '/payments', label: 'Pagamentos', Icon: CreditCard },
