@@ -87,10 +87,10 @@ func TestKybAdminList_EnrichesMerchantAndFlagsOrphan(t *testing.T) {
 	}
 
 	// Orphan-safety: approving/rejecting an orphan document is blocked.
-	if err := svc.AdminApprove(ctx, orphanDoc, "op", nil); !errors.Is(err, ErrKybMerchantNotFound) {
+	if err := svc.AdminApprove(ctx, orphanDoc, "op", "", nil); !errors.Is(err, ErrKybMerchantNotFound) {
 		t.Fatalf("orphan approve: want ErrKybMerchantNotFound, got %v", err)
 	}
-	if err := svc.AdminReject(ctx, orphanDoc, "op", "no"); !errors.Is(err, ErrKybMerchantNotFound) {
+	if err := svc.AdminReject(ctx, orphanDoc, "op", "no", ""); !errors.Is(err, ErrKybMerchantNotFound) {
 		t.Fatalf("orphan reject: want ErrKybMerchantNotFound, got %v", err)
 	}
 }
@@ -122,5 +122,68 @@ func TestNotificationsSummary_Counts(t *testing.T) {
 	}
 	if sum.FailedAppSettlements < 1 {
 		t.Fatalf("expected >=1 failed settlement, got %d", sum.FailedAppSettlements)
+	}
+}
+
+func TestKybContext_Timeline_Notes(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
+
+	m := uuid.NewString()
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Loja Teste',$2,'ACTIVE')`, m, m+"@test"); err != nil {
+		t.Fatalf("seed merchant: %v", err)
+	}
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email,
+		   created_merchant_id, legal_representative, phone, nif, country, city, address, business_activity)
+		 VALUES ($1,'APPROVED','SANDBOX',$2,'Loja Teste Lda',$3,$4,'Ana Silva','+244900','NIF123','AO','Luanda','Rua 1','Retalho')`,
+		uuid.NewString(), "loja"+m[:6], m+"@test", m); err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+	doc := seedKybDoc(t, pool, m, "PENDING_REVIEW")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_events WHERE merchant_id=$1`, m)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id=$1`, doc)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_applications WHERE created_merchant_id=$1`, m)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_compliance WHERE merchant_id=$1`, m)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m)
+	})
+
+	// Context returns merchant + representative + company.
+	c, err := svc.Context(ctx, m)
+	if err != nil {
+		t.Fatalf("Context: %v", err)
+	}
+	if !c.MerchantExists || c.Name != "Loja Teste" || c.RepName != "Ana Silva" || c.LegalName != "Loja Teste Lda" || c.Nif != "NIF123" || c.Country != "AO" {
+		t.Fatalf("context not enriched: %+v", c)
+	}
+
+	// Approve with internal notes -> stored in metadata + event payload.
+	if err := svc.AdminApprove(ctx, doc, "op-1", "documentos conferidos", nil); err != nil {
+		t.Fatalf("approve: %v", err)
+	}
+	ev, err := svc.Timeline(ctx, m)
+	if err != nil {
+		t.Fatalf("Timeline: %v", err)
+	}
+	var approved bool
+	for _, e := range ev {
+		if e.EventType == "merchant.kyb.document.approved" {
+			approved = true
+			if e.Payload["notes"] != "documentos conferidos" {
+				t.Fatalf("notes not in event payload: %v", e.Payload)
+			}
+		}
+	}
+	if !approved {
+		t.Fatalf("expected an approved event in timeline, got %d events", len(ev))
+	}
+
+	// On-demand signed URL is minted (fake storage), key never returned.
+	url, err := svc.ReadURL(ctx, doc)
+	if err != nil || url == "" {
+		t.Fatalf("ReadURL: url=%q err=%v", url, err)
 	}
 }

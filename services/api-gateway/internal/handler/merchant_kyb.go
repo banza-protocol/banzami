@@ -164,15 +164,16 @@ func (h *MerchantKybHandler) AdminApprove(w http.ResponseWriter, r *http.Request
 	var body struct {
 		ValidUntil string `json:"valid_until"`
 		Actor      string `json:"actor"`
+		Notes      string `json:"notes"`
 	}
-	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body)
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body)
 	var validUntil *time.Time
 	if body.ValidUntil != "" {
 		if t, perr := time.Parse(time.RFC3339, body.ValidUntil); perr == nil {
 			validUntil = &t
 		}
 	}
-	if err := h.svc.AdminApprove(r.Context(), chi.URLParam(r, "id"), body.Actor, validUntil); err != nil {
+	if err := h.svc.AdminApprove(r.Context(), chi.URLParam(r, "id"), body.Actor, body.Notes, validUntil); err != nil {
 		h.fail(w, r, "admin_approve", err)
 		return
 	}
@@ -187,13 +188,53 @@ func (h *MerchantKybHandler) AdminReject(w http.ResponseWriter, r *http.Request)
 	var body struct {
 		RejectionReason string `json:"rejection_reason"`
 		Actor           string `json:"actor"`
+		Notes           string `json:"notes"`
 	}
-	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 4<<10)).Decode(&body)
-	if err := h.svc.AdminReject(r.Context(), chi.URLParam(r, "id"), body.Actor, body.RejectionReason); err != nil {
+	_ = json.NewDecoder(http.MaxBytesReader(w, r.Body, 8<<10)).Decode(&body)
+	if err := h.svc.AdminReject(r.Context(), chi.URLParam(r, "id"), body.Actor, body.RejectionReason, body.Notes); err != nil {
 		h.fail(w, r, "admin_reject", err)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"status": "REJECTED"})
+}
+
+// GET /internal/v1/merchant-kyb/merchants/{id}/context
+func (h *MerchantKybHandler) AdminContext(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	c, err := h.svc.Context(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.fail(w, r, "admin_context", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, c)
+}
+
+// GET /internal/v1/merchant-kyb/merchants/{id}/timeline
+func (h *MerchantKybHandler) AdminTimeline(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	ev, err := h.svc.Timeline(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.fail(w, r, "admin_timeline", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"events": ev})
+}
+
+// POST /internal/v1/merchant-kyb/documents/{id}/read-url
+func (h *MerchantKybHandler) AdminReadURL(w http.ResponseWriter, r *http.Request) {
+	if h.unavailable(w, r) {
+		return
+	}
+	url, err := h.svc.ReadURL(r.Context(), chi.URLParam(r, "id"))
+	if err != nil {
+		h.fail(w, r, "admin_read_url", err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"download_url": url})
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

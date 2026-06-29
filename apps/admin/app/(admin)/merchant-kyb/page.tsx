@@ -5,8 +5,7 @@ import { FileText } from 'lucide-react';
 import { getSession } from '@/lib/session';
 import { AdminApi, type MerchantKybDoc } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
-import { useToast } from '@/components/ui/toast';
-import { useDialog } from '@/components/ui/dialog';
+import { KybReviewDrawer } from '@/components/merchant-kyb/review-drawer';
 import { formatDate } from '@/lib/format';
 
 function getApi(): AdminApi | null {
@@ -43,16 +42,12 @@ const CHIPS: { label: string; value: string }[] = [
 ];
 
 export default function MerchantKybPage() {
-  const toast = useToast();
-  const dialog = useDialog();
   const [docs, setDocs] = useState<MerchantKybDoc[] | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('PENDING_REVIEW');
   const [env, setEnv] = useState<Env>('LIVE');
-  const [busy, setBusy] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-
-  const envParam = (e: Env) => (e === 'SANDBOX' ? 'SANDBOX' : undefined);
+  const [selected, setSelected] = useState<MerchantKybDoc | null>(null);
 
   const load = useCallback(async (s: string, e: Env) => {
     const api = getApi();
@@ -83,62 +78,7 @@ export default function MerchantKybPage() {
     (d.document_type ?? '').toLowerCase().includes(q),
   );
 
-  function openDocument(d: MerchantKybDoc) {
-    // download_url is a short-TTL signed GET minted server-side; never logged.
-    if (!d.download_url) {
-      toast('warning', 'Documento indisponível para abrir.');
-      return;
-    }
-    window.open(d.download_url, '_blank', 'noopener,noreferrer');
-  }
-
-  async function approve(d: MerchantKybDoc) {
-    const vu = await dialog.prompt({
-      title: 'Aprovar documento',
-      label: 'Validade (opcional) — AAAA-MM-DD',
-      placeholder: 'ex.: 2027-12-31',
-      confirmLabel: 'Aprovar',
-      required: false,
-    });
-    if (vu === null) return; // cancelled
-    let validUntil: string | undefined;
-    const t = vu.trim();
-    if (t) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(t)) { toast('warning', 'Data inválida. Use AAAA-MM-DD.'); return; }
-      validUntil = `${t}T00:00:00Z`;
-    }
-    const a = getApi();
-    if (!a) return;
-    setBusy(d.id);
-    try {
-      await a.approveMerchantKybDocument(d.id, validUntil, envParam(env));
-      toast('success', 'Documento aprovado.');
-      await load(status, env);
-    } catch {
-      setError('Não foi possível aprovar o documento.');
-    } finally { setBusy(null); }
-  }
-
-  async function reject(d: MerchantKybDoc) {
-    const reason = await dialog.prompt({
-      title: 'Rejeitar documento',
-      label: 'Motivo da rejeição (visível para o comerciante)',
-      multiline: true,
-      confirmLabel: 'Rejeitar',
-      required: true,
-    });
-    if (!reason || !reason.trim()) return;
-    const a = getApi();
-    if (!a) return;
-    setBusy(d.id);
-    try {
-      await a.rejectMerchantKybDocument(d.id, reason.trim(), envParam(env));
-      toast('success', 'Documento rejeitado.');
-      await load(status, env);
-    } catch {
-      setError('Não foi possível rejeitar o documento.');
-    } finally { setBusy(null); }
-  }
+  const api = getApi();
 
   return (
     <div className="p-[26px]">
@@ -200,7 +140,11 @@ export default function MerchantKybPage() {
             {shown.map((d) => {
               const st = STATUS[d.status] ?? { label: d.status, cls: 'bg-gray-100 text-gray-500' };
               return (
-                <div key={d.id} className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 ${d.merchant_exists ? 'border-gray-100' : 'border-amber-300 bg-amber-50/40'}`}>
+                <button
+                  key={d.id}
+                  onClick={() => setSelected(d)}
+                  className={`flex w-full flex-wrap items-center gap-3 rounded-lg border px-4 py-3 text-left transition hover:border-[#B5101F]/40 hover:bg-[#FFF7F6] ${d.merchant_exists ? 'border-gray-100' : 'border-amber-300 bg-amber-50/40'}`}
+                >
                   <FileText size={18} className="text-[#B5101F]" />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
@@ -222,30 +166,23 @@ export default function MerchantKybPage() {
                     </div>
                   </div>
                   <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${st.cls}`}>{st.label}</span>
-                  {d.download_url && (
-                    <button onClick={() => openDocument(d)} className="rounded-lg border border-[#eaddde] px-3 py-1.5 text-sm font-semibold text-[#5a4a4e]">
-                      Ver
-                    </button>
-                  )}
-                  {d.status === 'PENDING_REVIEW' && d.merchant_exists && (
-                    <>
-                      <button disabled={busy === d.id} onClick={() => approve(d)} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50">
-                        Aprovar
-                      </button>
-                      <button disabled={busy === d.id} onClick={() => reject(d)} className="rounded-lg bg-[#B5101F] px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50">
-                        Rejeitar
-                      </button>
-                    </>
-                  )}
-                  {d.status === 'PENDING_REVIEW' && !d.merchant_exists && (
-                    <span className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">Revisão bloqueada</span>
-                  )}
-                </div>
+                  <span className="rounded-lg border border-[#eaddde] px-3 py-1.5 text-sm font-semibold text-[#5a4a4e]">Rever</span>
+                </button>
               );
             })}
           </div>
         )}
       </Card>
+
+      {selected && api && (
+        <KybReviewDrawer
+          api={api}
+          doc={selected}
+          env={env}
+          onClose={() => setSelected(null)}
+          onDecided={() => { setSelected(null); void load(status, env); }}
+        />
+      )}
     </div>
   );
 }

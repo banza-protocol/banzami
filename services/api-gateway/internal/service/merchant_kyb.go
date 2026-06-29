@@ -356,19 +356,132 @@ func (s *PostgresMerchantKybService) AdminList(ctx context.Context, status strin
 // AdminApprove marks a document VALID (optionally with valid_until), supersedes
 // the previous current document of the same type (-> REPLACED), and promotes the
 // merchant to KYB APPROVED when all required documents are VALID.
-func (s *PostgresMerchantKybService) AdminApprove(ctx context.Context, docID, actor string, validUntil *time.Time) error {
-	return s.decide(ctx, docID, actor, "VALID", "", validUntil)
+func (s *PostgresMerchantKybService) AdminApprove(ctx context.Context, docID, actor, notes string, validUntil *time.Time) error {
+	return s.decide(ctx, docID, actor, "VALID", "", notes, validUntil)
 }
 
 // AdminReject marks a document REJECTED with a required reason.
-func (s *PostgresMerchantKybService) AdminReject(ctx context.Context, docID, actor, reason string) error {
+func (s *PostgresMerchantKybService) AdminReject(ctx context.Context, docID, actor, reason, notes string) error {
 	if strings.TrimSpace(reason) == "" {
 		return ErrKybReasonRequired
 	}
-	return s.decide(ctx, docID, actor, "REJECTED", reason, nil)
+	return s.decide(ctx, docID, actor, "REJECTED", reason, notes, nil)
 }
 
-func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, decision, reason string, validUntil *time.Time) error {
+// MerchantKybContext is the full review context for the drawer: merchant identity
+// + representative + company details (from the application) + KYB status.
+// Read-only; never carries secrets.
+type MerchantKybContext struct {
+	MerchantID     string  `json:"merchant_id"`
+	MerchantExists bool    `json:"merchant_exists"`
+	Name           string  `json:"name,omitempty"`
+	Email          string  `json:"email,omitempty"`
+	Status         string  `json:"status,omitempty"`
+	KybStatus      string  `json:"kyb_status,omitempty"`
+	Handle         string  `json:"handle,omitempty"`
+	Category       string  `json:"category,omitempty"`
+	CreatedAt      *string `json:"created_at,omitempty"`
+	RepName        string  `json:"representative_name,omitempty"`
+	RepEmail       string  `json:"representative_email,omitempty"`
+	RepPhone       string  `json:"representative_phone,omitempty"`
+	LegalName      string  `json:"legal_name,omitempty"`
+	Nif            string  `json:"nif,omitempty"`
+	Country        string  `json:"country,omitempty"`
+	City           string  `json:"city,omitempty"`
+	Address        string  `json:"address,omitempty"`
+	BusinessActivity string `json:"business_activity,omitempty"`
+}
+
+// KybTimelineEvent is one immutable history entry from merchant_kyb_events.
+type KybTimelineEvent struct {
+	ID         string         `json:"id"`
+	EventType  string         `json:"event_type"`
+	DocumentID string         `json:"document_id,omitempty"`
+	Payload    map[string]any `json:"payload,omitempty"`
+	CreatedAt  string         `json:"created_at"`
+}
+
+// Context returns the merchant review context (merchant_exists=false for orphans).
+func (s *PostgresMerchantKybService) Context(ctx context.Context, merchantID string) (*MerchantKybContext, error) {
+	if _, err := uuid.Parse(merchantID); err != nil {
+		return nil, ErrKybMerchantNotFound
+	}
+	c := &MerchantKybContext{MerchantID: merchantID}
+	var created *time.Time
+	err := s.pool.QueryRow(ctx, `
+		SELECT (m.id IS NOT NULL), COALESCE(m.name,''), COALESCE(m.email,''), COALESCE(m.status,''),
+		       COALESCE(mc.kyb_status,''), COALESCE(p.handle,''), COALESCE(p.category,''), m.created_at,
+		       COALESCE(a.legal_representative,''), COALESCE(a.email,''), COALESCE(a.phone,''),
+		       COALESCE(a.business_name,''), COALESCE(a.nif,''), COALESCE(a.country,''),
+		       COALESCE(a.city,''), COALESCE(a.address,''), COALESCE(a.business_activity,'')
+		  FROM (SELECT $1::uuid AS id) q
+		  LEFT JOIN merchants m             ON m.id = q.id
+		  LEFT JOIN merchant_compliance mc  ON mc.merchant_id = q.id
+		  LEFT JOIN merchant_profiles p     ON p.merchant_id = q.id
+		  LEFT JOIN merchant_applications a ON a.created_merchant_id = q.id
+		 LIMIT 1`, merchantID).
+		Scan(&c.MerchantExists, &c.Name, &c.Email, &c.Status, &c.KybStatus, &c.Handle, &c.Category, &created,
+			&c.RepName, &c.RepEmail, &c.RepPhone, &c.LegalName, &c.Nif, &c.Country, &c.City, &c.Address, &c.BusinessActivity)
+	if err != nil {
+		return nil, err
+	}
+	if created != nil {
+		v := created.UTC().Format(time.RFC3339)
+		c.CreatedAt = &v
+	}
+	return c, nil
+}
+
+// Timeline returns the immutable KYB event history for a merchant (newest first).
+func (s *PostgresMerchantKybService) Timeline(ctx context.Context, merchantID string) ([]KybTimelineEvent, error) {
+	if _, err := uuid.Parse(merchantID); err != nil {
+		return nil, ErrKybMerchantNotFound
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, event_type, COALESCE(document_id::text,''), COALESCE(payload,'{}'::jsonb), created_at
+		  FROM merchant_kyb_events WHERE merchant_id=$1 ORDER BY created_at DESC LIMIT 200`, merchantID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var out []KybTimelineEvent
+	for rows.Next() {
+		var e KybTimelineEvent
+		var created time.Time
+		if err := rows.Scan(&e.ID, &e.EventType, &e.DocumentID, &e.Payload, &created); err != nil {
+			return nil, err
+		}
+		e.CreatedAt = created.UTC().Format(time.RFC3339)
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// ReadURL mints a fresh short-TTL signed GET for a document, on demand. The
+// storage key is never returned.
+func (s *PostgresMerchantKybService) ReadURL(ctx context.Context, docID string) (string, error) {
+	if s.storage == nil {
+		return "", ErrKybStorageDisabled
+	}
+	if _, err := uuid.Parse(docID); err != nil {
+		return "", ErrKybDocNotFound
+	}
+	var key string
+	err := s.pool.QueryRow(ctx, `SELECT storage_key FROM merchant_kyb_documents WHERE id=$1`, docID).Scan(&key)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrKybDocNotFound
+		}
+		return "", err
+	}
+	rd, err := s.storage.CreateReadURL(ctx, key, "")
+	if err != nil {
+		return "", err
+	}
+	return rd.URL, nil
+}
+
+func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, decision, reason, notes string, validUntil *time.Time) error {
 	if _, err := uuid.Parse(docID); err != nil {
 		return ErrKybDocNotFound
 	}
@@ -413,12 +526,16 @@ func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, d
 			return err
 		}
 		if _, err := tx.Exec(ctx,
-			`UPDATE merchant_kyb_documents SET status='VALID', valid_until=$2, reviewed_by=$3, reviewed_at=NOW(), rejection_reason=NULL, updated_at=NOW() WHERE id=$1`,
-			docID, validUntil, nullStrKyb(actor)); err != nil {
+			`UPDATE merchant_kyb_documents
+			    SET status='VALID', valid_until=$2, reviewed_by=$3, reviewed_at=NOW(), rejection_reason=NULL,
+			        metadata = COALESCE(metadata,'{}'::jsonb) || jsonb_build_object('review_notes', $4::text),
+			        updated_at=NOW()
+			  WHERE id=$1`,
+			docID, validUntil, nullStrKyb(actor), notes); err != nil {
 			return err
 		}
 		if err := emitKybEvent(ctx, tx, merchantID, docID, "merchant.kyb.document.approved", "approved:"+docID,
-			map[string]any{"document_type": docType}); err != nil {
+			map[string]any{"document_type": docType, "reviewed_by": actor, "notes": notes}); err != nil {
 			return err
 		}
 		// Promote KYB to APPROVED when all required types are VALID.
@@ -438,12 +555,16 @@ func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, d
 		}
 	} else { // REJECTED
 		if _, err := tx.Exec(ctx,
-			`UPDATE merchant_kyb_documents SET status='REJECTED', rejection_reason=$2, reviewed_by=$3, reviewed_at=NOW(), updated_at=NOW() WHERE id=$1`,
-			docID, reason, nullStrKyb(actor)); err != nil {
+			`UPDATE merchant_kyb_documents
+			    SET status='REJECTED', rejection_reason=$2, reviewed_by=$3, reviewed_at=NOW(),
+			        metadata = COALESCE(metadata,'{}'::jsonb) || jsonb_build_object('review_notes', $4::text),
+			        updated_at=NOW()
+			  WHERE id=$1`,
+			docID, reason, nullStrKyb(actor), notes); err != nil {
 			return err
 		}
 		if err := emitKybEvent(ctx, tx, merchantID, docID, "merchant.kyb.document.rejected", "rejected:"+docID,
-			map[string]any{"document_type": docType, "reason_code": reason}); err != nil {
+			map[string]any{"document_type": docType, "reason_code": reason, "reviewed_by": actor, "notes": notes}); err != nil {
 			return err
 		}
 	}

@@ -883,16 +883,42 @@ export class AdminApi {
     const q = qs.toString();
     return this.req(`/admin/v1/merchant-kyb/documents${q ? `?${q}` : ''}`);
   }
-  approveMerchantKybDocument(id: string, validUntil?: string, environment?: string): Promise<{ status: string }> {
+  approveMerchantKybDocument(id: string, opts?: { validUntil?: string; notes?: string }, environment?: string): Promise<{ status: string }> {
     const q = environment ? `?environment=${environment}` : '';
+    const body: Record<string, string> = {};
+    if (opts?.validUntil) body.valid_until = opts.validUntil;
+    if (opts?.notes) body.notes = opts.notes;
     return this.req(`/admin/v1/merchant-kyb/documents/${id}/approve${q}`, {
-      method: 'POST', body: JSON.stringify(validUntil ? { valid_until: validUntil } : {}),
+      method: 'POST', body: JSON.stringify(body),
     });
   }
-  rejectMerchantKybDocument(id: string, reason: string, environment?: string): Promise<{ status: string }> {
+  rejectMerchantKybDocument(id: string, reason: string, opts?: { notes?: string }, environment?: string): Promise<{ status: string }> {
     const q = environment ? `?environment=${environment}` : '';
+    const body: Record<string, string> = { rejection_reason: reason };
+    if (opts?.notes) body.notes = opts.notes;
     return this.req(`/admin/v1/merchant-kyb/documents/${id}/reject${q}`, {
-      method: 'POST', body: JSON.stringify({ rejection_reason: reason }),
+      method: 'POST', body: JSON.stringify(body),
+    });
+  }
+
+  // Full operator context for the review drawer (merchant + representative +
+  // company). Backed by merchants + merchant_compliance + merchant_profiles +
+  // merchant_applications. storage_key is never part of this payload.
+  getMerchantKybContext(merchantId: string, environment?: string): Promise<MerchantKybContext> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/merchant-kyb/merchants/${merchantId}/context${q}`);
+  }
+  // Immutable KYB event timeline (newest-first) from merchant_kyb_events.
+  getMerchantKybTimeline(merchantId: string, environment?: string): Promise<{ events: KybTimelineEvent[] }> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/merchant-kyb/merchants/${merchantId}/timeline${q}`);
+  }
+  // Mints a short-TTL signed GET on demand. The URL is never persisted; the access
+  // (view/download/copy) is audited server-side. storage_key is never returned.
+  mintMerchantKybReadUrl(id: string, intent: 'view' | 'download' | 'copy', environment?: string): Promise<{ download_url: string }> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/merchant-kyb/documents/${id}/read-url${q}`, {
+      method: 'POST', body: JSON.stringify({ intent }),
     });
   }
 
@@ -983,6 +1009,38 @@ export interface MerchantKybDoc {
   valid_until?:      string | null;
   rejection_reason?: string | null;
   download_url?:     string;
+}
+
+// Full operator context for the KYB review drawer. Fields are omitempty server-side
+// (sourced from merchant_applications, which may be absent for older merchants).
+export interface MerchantKybContext {
+  merchant_id:           string;
+  merchant_exists:       boolean;
+  name?:                 string;
+  email?:                string;
+  status?:               string;
+  kyb_status?:           string;
+  handle?:               string;
+  category?:             string;
+  created_at?:           string | null;
+  representative_name?:  string;
+  representative_email?: string;
+  representative_phone?: string;
+  legal_name?:           string;
+  nif?:                  string;
+  country?:              string;
+  city?:                 string;
+  address?:              string;
+  business_activity?:    string;
+}
+
+// One immutable entry from merchant_kyb_events. payload shape varies by event_type.
+export interface KybTimelineEvent {
+  id:          string;
+  event_type:  string;
+  document_id?: string;
+  payload?:    Record<string, unknown>;
+  created_at:  string;
 }
 
 export interface NotificationSummary {

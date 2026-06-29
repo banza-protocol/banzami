@@ -184,12 +184,24 @@ func (c *GatewayClient) ListMerchantKybDocumentsRaw(ctx context.Context, status,
 	return c.doRaw(ctx, http.MethodGet, path, nil)
 }
 
-func (c *GatewayClient) ApproveMerchantKybDocumentRaw(ctx context.Context, documentID, actor, validUntil string) (json.RawMessage, int, error) {
+func (c *GatewayClient) ApproveMerchantKybDocumentRaw(ctx context.Context, documentID, actor, validUntil, notes string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/approve",
-		map[string]string{"actor": actor, "valid_until": validUntil})
+		map[string]string{"actor": actor, "valid_until": validUntil, "notes": notes})
 }
 
-func (c *GatewayClient) RejectMerchantKybDocumentRaw(ctx context.Context, documentID, actor, reason string) (json.RawMessage, int, error) {
+func (c *GatewayClient) RejectMerchantKybDocumentRaw(ctx context.Context, documentID, actor, reason, notes string) (json.RawMessage, int, error) {
 	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/reject",
-		map[string]string{"actor": actor, "rejection_reason": reason})
+		map[string]string{"actor": actor, "rejection_reason": reason, "notes": notes})
+}
+
+func (c *GatewayClient) MerchantKybContextRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/context", nil)
+}
+
+func (c *GatewayClient) MerchantKybTimelineRaw(ctx context.Context, merchantID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/merchant-kyb/merchants/"+merchantID+"/timeline", nil)
+}
+
+func (c *GatewayClient) MerchantKybReadURLRaw(ctx context.Context, documentID string) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodPost, "/internal/v1/merchant-kyb/documents/"+documentID+"/read-url", nil)
 }

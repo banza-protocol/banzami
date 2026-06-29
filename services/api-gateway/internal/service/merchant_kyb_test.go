@@ -38,7 +38,7 @@ func TestMerchantKybLifecycle_RealDB(t *testing.T) {
 	mB := uuid.NewString()
 	// The stale-merchant guard requires the merchant to exist in `merchants`.
 	_, _ = pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS merchants (id uuid PRIMARY KEY, name text, email text, status text, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(), verified boolean DEFAULT false)`)
-	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'A','a@test','ACTIVE'),($2,'B','b@test','ACTIVE') ON CONFLICT (id) DO NOTHING`, mA, mB); err != nil {
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'A',$3,'ACTIVE'),($2,'B',$4,'ACTIVE') ON CONFLICT (id) DO NOTHING`, mA, mB, mA+"@test", mB+"@test"); err != nil {
 		t.Fatalf("seed merchants: %v", err)
 	}
 	t.Cleanup(func() {
@@ -96,10 +96,10 @@ func TestMerchantKybLifecycle_RealDB(t *testing.T) {
 	}
 
 	// Reject requires a reason.
-	if err := svc.AdminReject(ctx, ids["COMMERCIAL_REGISTRATION"], "admin-1", ""); !errors.Is(err, ErrKybReasonRequired) {
+	if err := svc.AdminReject(ctx, ids["COMMERCIAL_REGISTRATION"], "admin-1", "", ""); !errors.Is(err, ErrKybReasonRequired) {
 		t.Fatalf("reject w/o reason: %v", err)
 	}
-	if err := svc.AdminReject(ctx, ids["COMMERCIAL_REGISTRATION"], "admin-1", "DOC_UNREADABLE"); err != nil {
+	if err := svc.AdminReject(ctx, ids["COMMERCIAL_REGISTRATION"], "admin-1", "DOC_UNREADABLE", ""); err != nil {
 		t.Fatalf("reject: %v", err)
 	}
 	got, _ := svc.GetDocument(ctx, mA, ids["COMMERCIAL_REGISTRATION"])
@@ -110,7 +110,7 @@ func TestMerchantKybLifecycle_RealDB(t *testing.T) {
 	// Re-upload the rejected type, then approve all three.
 	ids["COMMERCIAL_REGISTRATION"] = upload("COMMERCIAL_REGISTRATION")
 	for _, typ := range KybDocumentTypes {
-		if err := svc.AdminApprove(ctx, ids[typ], "admin-1", nil); err != nil {
+		if err := svc.AdminApprove(ctx, ids[typ], "admin-1", "", nil); err != nil {
 			t.Fatalf("approve %s: %v", typ, err)
 		}
 	}

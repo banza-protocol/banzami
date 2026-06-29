@@ -150,6 +150,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Get("/documents", merchantKybHandler.AdminList)
 			r.Post("/documents/{id}/approve", merchantKybHandler.AdminApprove)
 			r.Post("/documents/{id}/reject", merchantKybHandler.AdminReject)
+			r.Post("/documents/{id}/read-url", merchantKybHandler.AdminReadURL)
+			r.Get("/merchants/{id}/context", merchantKybHandler.AdminContext)
+			r.Get("/merchants/{id}/timeline", merchantKybHandler.AdminTimeline)
 		})
 		// Operator review-queue summary (sidebar badges).
 		r.Get("/internal/v1/notifications/summary", notificationsHandler.Summary)
