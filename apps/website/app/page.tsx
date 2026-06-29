@@ -130,7 +130,7 @@ export default function HomePage() {
             <p className="m-0 mt-[22px] max-w-[520px] text-[clamp(16px,1.5vw,19px)] font-semibold leading-[1.55] text-ink-secondary">
               Cada conta é uma carteira em Kwanza. Paga por QR, envia para um{' '}
               <span className="bz-mono font-semibold text-cherry">@banza</span> e recebe em segundos
-              — sem dinheiro físico, sem comprovativos.
+              — sem dinheiro físico, sem comprovativos falsos.
             </p>
             <div className="mt-[18px] flex flex-wrap gap-3">
               <Link href="/produto#contacto" className="inline-flex items-center gap-[11px] rounded-[16px] bg-gradient-to-b from-cherry to-cherry-deeper px-5 py-[11px] no-underline shadow-[0_16px_32px_-12px_rgba(181,16,31,.5)] transition-transform hover:-translate-y-0.5">
