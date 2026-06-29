@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService, compliance *service.ComplianceService, complianceSandbox *service.ComplianceService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -193,6 +193,21 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/merchants/{id}/reject", complianceH.RejectMerchant)
 		r.With(cap(auth.CapMerchantSuspend)).Post("/admin/v1/compliance/merchants/{id}/suspend", complianceH.SuspendMerchant)
 		r.With(cap(auth.CapAmlFlag)).Post("/admin/v1/compliance/merchants/{id}/flag-aml", complianceH.FlagAML)
+
+		// Compliance Operations Console — unified case inbox (ADR-023). Read behind
+		// application.view; triage/assignment/notes behind compliance.review.
+		casesH := handler.NewComplianceCasesHandler(compliance, complianceSandbox)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/compliance/cases", casesH.List)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/compliance/cases/{id}", casesH.Get)
+		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/compliance/cases/{id}/notes", casesH.ListNotes)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/notes", casesH.AddNote)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/assign", casesH.Assign)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/transfer", casesH.Transfer)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/release", casesH.Release)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/escalate", casesH.Escalate)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/resolve", casesH.Resolve)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/priority", casesH.SetPriority)
+		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/compliance/cases/{id}/risk", casesH.SetRisk)
 
 		// Settlements
 		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements", settlementH.CreateBatch)

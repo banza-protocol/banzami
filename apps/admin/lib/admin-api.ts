@@ -940,6 +940,45 @@ export class AdminApi {
     const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
     return this.req(`/admin/v1/notifications/summary${q}`);
   }
+  // ── Compliance Operations Console — unified case inbox (ADR-023) ───────────
+  listComplianceCases(opts?: { caseType?: string; status?: string; priority?: string; risk?: string; operator?: string; q?: string; page?: number; pageSize?: number; environment?: string }): Promise<{ cases: ComplianceCase[]; total: number; page: number }> {
+    const qs = new URLSearchParams();
+    if (opts?.caseType) qs.set('case_type', opts.caseType);
+    if (opts?.status) qs.set('status', opts.status);
+    if (opts?.priority) qs.set('priority', opts.priority);
+    if (opts?.risk) qs.set('risk', opts.risk);
+    if (opts?.operator) qs.set('operator', opts.operator);
+    if (opts?.q) qs.set('q', opts.q);
+    if (opts?.page) qs.set('page', String(opts.page));
+    if (opts?.pageSize) qs.set('page_size', String(opts.pageSize));
+    if (opts?.environment) qs.set('environment', opts.environment);
+    const q = qs.toString();
+    return this.req(`/admin/v1/compliance/cases${q ? `?${q}` : ''}`);
+  }
+  getComplianceCase(id: string, environment?: string): Promise<ComplianceCase> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/compliance/cases/${id}${q}`);
+  }
+  listCaseNotes(id: string, environment?: string): Promise<{ notes: ComplianceNote[] }> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/compliance/cases/${id}/notes${q}`);
+  }
+  addCaseNote(id: string, body: string, environment?: string): Promise<ComplianceNote> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/compliance/cases/${id}/notes${q}`, { method: 'POST', body: JSON.stringify({ body }) });
+  }
+  private caseAction(id: string, action: string, environment?: string, payload?: Record<string, string>): Promise<void> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/compliance/cases/${id}/${action}${q}`, { method: 'POST', body: payload ? JSON.stringify(payload) : undefined });
+  }
+  assignCase(id: string, environment?: string) { return this.caseAction(id, 'assign', environment); }
+  releaseCase(id: string, environment?: string) { return this.caseAction(id, 'release', environment); }
+  escalateCase(id: string, environment?: string) { return this.caseAction(id, 'escalate', environment); }
+  resolveCase(id: string, environment?: string) { return this.caseAction(id, 'resolve', environment); }
+  transferCase(id: string, operatorId: string, operatorName: string, environment?: string) { return this.caseAction(id, 'transfer', environment, { operator_id: operatorId, operator_name: operatorName }); }
+  setCasePriority(id: string, priority: string, environment?: string) { return this.caseAction(id, 'priority', environment, { priority }); }
+  setCaseRisk(id: string, risk: string, environment?: string) { return this.caseAction(id, 'risk', environment, { risk }); }
+
   // Persistent operator notifications (bell dropdown + dashboard activity feed).
   listNotifications(opts?: { status?: string; limit?: number; environment?: string }): Promise<{ notifications: AdminNotification[] }> {
     const qs = new URLSearchParams();
@@ -1200,6 +1239,38 @@ export interface NotificationSummary {
   open_disputes:                number;
   pending_reconciliations:      number;
   unread_notifications?:        number;
+}
+
+// Unified compliance case (ADR-023) — an operational index over an entity.
+export interface ComplianceCase {
+  id:                     string;
+  environment:            string;
+  case_type:              string;
+  entity_type:            string;
+  entity_id:              string;
+  entity_name?:           string;
+  entity_handle?:         string;
+  status:                 'UNASSIGNED' | 'ASSIGNED' | 'ESCALATED' | 'RESOLVED';
+  priority:               'LOW' | 'NORMAL' | 'HIGH' | 'CRITICAL';
+  risk_level:             'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  assigned_operator_id?:  string;
+  assigned_operator_name?: string;
+  created_at:             string;
+  updated_at:             string;
+  last_activity:          string;
+  resolved_at?:           string | null;
+  age_seconds:            number;
+  metadata?:              Record<string, unknown>;
+}
+
+export interface ComplianceNote {
+  id:           string;
+  case_id:      string;
+  author_id?:   string;
+  author_name?: string;
+  body:         string;
+  created_at:   string;
+  updated_at?:  string | null;
 }
 
 // One persistent operator notification (Notification Center, ADR-022 s3).

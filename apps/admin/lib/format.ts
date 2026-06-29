@@ -41,6 +41,16 @@ export function timeAgo(value: string | Date | null | undefined): string {
   return formatDate(d);
 }
 
+/** SLA bucket from age in seconds (compliance cases). Color is a Tailwind class set. */
+export function slaBucket(ageSeconds: number): { label: string; cls: string } {
+  const h = ageSeconds / 3600;
+  if (h < 1) return { label: '< 1h', cls: 'bg-green-50 text-green-700' };
+  if (h < 4) return { label: '1–4h', cls: 'bg-blue-50 text-blue-700' };
+  if (h < 24) return { label: '4–24h', cls: 'bg-amber-50 text-amber-700' };
+  if (h < 48) return { label: '> 24h', cls: 'bg-orange-50 text-orange-700' };
+  return { label: 'Vencido', cls: 'bg-red-50 text-red-700' };
+}
+
 /** First 1-2 initials from a name, uppercased. */
 export function initials(name: string | null | undefined): string {
   if (!name) return '—';

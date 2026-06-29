@@ -70,6 +70,8 @@ func main() {
 	var kycReviewStaging *service.KycReviewService
 	var notif *service.NotificationService
 	var notifSandbox *service.NotificationService
+	var compliance *service.ComplianceService
+	var complianceSandbox *service.ComplianceService
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -103,6 +105,7 @@ func main() {
 		}
 		kycReview = service.NewKycReviewService(pool, kycStore)
 		notif = service.NewNotificationService(pool, "LIVE")
+		compliance = service.NewComplianceService(pool, "LIVE")
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the
 		// operator review SANDBOX consumer-KYC cases. SANDBOX evidence is signed
@@ -140,6 +143,7 @@ func main() {
 			}
 			kycReviewStaging = service.NewKycReviewService(stagingPool, sandboxStore)
 			notifSandbox = service.NewNotificationService(stagingPool, "SANDBOX")
+			complianceSandbox = service.NewComplianceService(stagingPool, "SANDBOX")
 			slog.Info("sandbox KYC review enabled (staging database)")
 		} else {
 			slog.Warn("STAGING_DATABASE_URL not set — sandbox KYC review disabled (503 on SANDBOX)")
@@ -154,7 +158,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging, notif, notifSandbox, compliance, complianceSandbox)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

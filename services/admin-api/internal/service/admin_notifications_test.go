@@ -84,7 +84,8 @@ func TestNotifications_GenerateListLifecycle(t *testing.T) {
 	if got == nil {
 		t.Fatalf("generated KYB notification not in unread list")
 	}
-	if got.Href != "/merchant-kyb" || got.Status != "UNREAD" || got.Environment != "LIVE" {
+	// Deep-links to the compliance case (Part M), focused on the merchant entity.
+	if got.Href != "/compliance/inbox?focus="+m || got.Status != "UNREAD" || got.Environment != "LIVE" {
 		t.Fatalf("notification fields wrong: %+v", got)
 	}
 

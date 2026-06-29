@@ -47,51 +47,51 @@ var generationQueries = []string{
 	// KYB document submitted / approved / rejected (merchant_kyb_events).
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
 	 SELECT gen_random_uuid(), $1, 'KYB_DOC_SUBMITTED', 'info', 'merchant', e.merchant_id::text,
-	        'Novo documento KYB', COALESCE(m.name,'Um comerciante')||' enviou um documento para revisão', '/merchant-kyb',
+	        'Novo documento KYB', COALESCE(m.name,'Um comerciante')||' enviou um documento para revisão', '/compliance/inbox?focus='||e.merchant_id::text,
 	        'kyb:'||e.id::text, e.created_at
 	   FROM merchant_kyb_events e LEFT JOIN merchants m ON m.id = e.merchant_id
 	  WHERE e.event_type = 'merchant.kyb.document.uploaded' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
 	 SELECT gen_random_uuid(), $1, 'KYB_DOC_APPROVED', 'success', 'merchant', e.merchant_id::text,
-	        'Documento KYB aprovado', COALESCE(m.name,'Um comerciante')||' — documento aprovado', '/merchant-kyb',
+	        'Documento KYB aprovado', COALESCE(m.name,'Um comerciante')||' — documento aprovado', '/compliance/inbox?focus='||e.merchant_id::text,
 	        'kyb:'||e.id::text, e.created_at
 	   FROM merchant_kyb_events e LEFT JOIN merchants m ON m.id = e.merchant_id
 	  WHERE e.event_type = 'merchant.kyb.document.approved' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
 	 SELECT gen_random_uuid(), $1, 'KYB_DOC_REJECTED', 'warning', 'merchant', e.merchant_id::text,
-	        'Documento KYB rejeitado', COALESCE(m.name,'Um comerciante')||' — documento rejeitado', '/merchant-kyb',
+	        'Documento KYB rejeitado', COALESCE(m.name,'Um comerciante')||' — documento rejeitado', '/compliance/inbox?focus='||e.merchant_id::text,
 	        'kyb:'||e.id::text, e.created_at
 	   FROM merchant_kyb_events e LEFT JOIN merchants m ON m.id = e.merchant_id
 	  WHERE e.event_type = 'merchant.kyb.document.rejected' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	// KYC submitted (case created) / approved / rejected (kyc_events).
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
-	 SELECT gen_random_uuid(), $1, 'KYC_SUBMITTED', 'info', 'kyc_case', e.case_id::text,
-	        'Novo caso KYC', 'Um consumidor iniciou verificação de identidade', '/consumer-kyc',
+	 SELECT gen_random_uuid(), $1, 'KYC_SUBMITTED', 'info', 'consumer', k.subject_id::text,
+	        'Novo caso KYC', 'Um consumidor iniciou verificação de identidade', '/compliance/inbox?focus='||k.subject_id::text,
 	        'kyc:'||e.id::text, e.created_at
-	   FROM kyc_events e
+	   FROM kyc_events e JOIN kyc_cases k ON k.id = e.case_id
 	  WHERE e.event_type = 'kyc.case.created' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
-	 SELECT gen_random_uuid(), $1, 'KYC_APPROVED', 'success', 'kyc_case', e.case_id::text,
-	        'KYC aprovado', 'Um caso KYC foi aprovado', '/consumer-kyc',
+	 SELECT gen_random_uuid(), $1, 'KYC_APPROVED', 'success', 'consumer', k.subject_id::text,
+	        'KYC aprovado', 'Um caso KYC foi aprovado', '/compliance/inbox?focus='||k.subject_id::text,
 	        'kyc:'||e.id::text, e.created_at
-	   FROM kyc_events e
+	   FROM kyc_events e JOIN kyc_cases k ON k.id = e.case_id
 	  WHERE e.event_type = 'kyc.approved' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
-	 SELECT gen_random_uuid(), $1, 'KYC_REJECTED', 'warning', 'kyc_case', e.case_id::text,
-	        'KYC rejeitado', 'Um caso KYC foi rejeitado', '/consumer-kyc',
+	 SELECT gen_random_uuid(), $1, 'KYC_REJECTED', 'warning', 'consumer', k.subject_id::text,
+	        'KYC rejeitado', 'Um caso KYC foi rejeitado', '/compliance/inbox?focus='||k.subject_id::text,
 	        'kyc:'||e.id::text, e.created_at
-	   FROM kyc_events e
+	   FROM kyc_events e JOIN kyc_cases k ON k.id = e.case_id
 	  WHERE e.event_type = 'kyc.rejected' AND e.created_at > now() - interval '120 days'
 	 ON CONFLICT (source_key) DO NOTHING`,
 	// Business application submitted (merchant_applications).
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
 	 SELECT gen_random_uuid(), $1, 'APPLICATION_SUBMITTED', 'info', 'merchant_application', a.id::text,
-	        'Nova candidatura Business', COALESCE(a.business_name,'Uma empresa')||' candidatou-se', '/merchants',
+	        'Nova candidatura Business', COALESCE(a.business_name,'Uma empresa')||' candidatou-se', '/compliance/inbox?focus='||a.id::text,
 	        'app:'||a.id::text, a.created_at
 	   FROM merchant_applications a
 	  WHERE a.status IN ('SUBMITTED','UNDER_REVIEW','PENDING','PENDING_REVIEW') AND a.created_at > now() - interval '120 days'
@@ -99,7 +99,7 @@ var generationQueries = []string{
 	// Application settlement failed (app_settlements).
 	`INSERT INTO admin_notifications (id, environment, type, severity, entity_type, entity_id, title, message, href, source_key, created_at)
 	 SELECT gen_random_uuid(), $1, 'SETTLEMENT_FAILED', 'error', 'app_settlement', s.id::text,
-	        'Liquidação falhada', 'Uma liquidação de aplicação falhou e precisa de atenção', '/application-settlements',
+	        'Liquidação falhada', 'Uma liquidação de aplicação falhou e precisa de atenção', '/compliance/inbox?focus='||s.id::text,
 	        'settle:'||s.id::text, s.created_at
 	   FROM app_settlements s
 	  WHERE s.status = 'FAILED' AND s.created_at > now() - interval '120 days'
