@@ -119,10 +119,11 @@ ambiente LIVE/SANDBOX."* instead of *"Conta não encontrada."*
 
 - While the platform is SANDBOX, the LIVE gateway **refuses** new applications and
   approvals (409). This is intended: nothing should be provisioned LIVE pre-launch.
-- Symmetric by mandate: while LIVE, the SANDBOX gateway refuses onboarding too.
-  **Trade-off:** this disables a developer sandbox during production. Revisit at
-  launch — the gate is a single policy point and can be relaxed to one-directional
-  (block LIVE-while-SANDBOX only) without touching call sites.
+- **The gate is one-directional** (decided 2026-06-30): it protects production data
+  only. A LIVE stack provisions solely while the platform is LIVE; the SANDBOX stack
+  **always** provisions, so the developer sandbox keeps working after a LIVE launch.
+  The reverse direction (a SANDBOX merchant created while LIVE) is harmless — sandbox
+  data never reaches banking rails — so it is allowed.
 - `@jrm` (provisioned in LIVE during SANDBOX) is repaired by **re-running the real
   onboarding pipeline in SANDBOX** — never by manual row inserts.
 

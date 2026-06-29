@@ -44,10 +44,12 @@ func TestEnvGate_Verify(t *testing.T) {
 		}
 	})
 
-	t.Run("SANDBOX stack while platform LIVE is refused", func(t *testing.T) {
+	t.Run("SANDBOX stack while platform LIVE is allowed (one-directional)", func(t *testing.T) {
+		// The sandbox stack cannot create production data, so it must keep working
+		// after a LIVE launch — otherwise the developer sandbox breaks.
 		g := NewEnvGate("SANDBOX", stubMode{mode: "LIVE"})
-		if _, err := g.Verify(context.Background()); !errors.Is(err, ErrEnvMismatch) {
-			t.Fatalf("err=%v want ErrEnvMismatch", err)
+		if _, err := g.Verify(context.Background()); err != nil {
+			t.Fatalf("err=%v want nil (sandbox always allowed)", err)
 		}
 	})
 

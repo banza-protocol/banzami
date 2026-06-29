@@ -23,10 +23,13 @@ type platformModeReader interface {
 // onboarding environment (BANZAMI ADR-025).
 //
 // Each gateway stack is pinned to one environment (LIVE → DB banzami, SANDBOX →
-// DB banzami_staging). Onboarding is allowed ONLY while the global Platform Mode
-// equals this stack's environment. That makes "create a LIVE merchant while the
-// platform is SANDBOX" (and the reverse) structurally impossible, server-side,
-// regardless of any client-routing bug.
+// DB banzami_staging). The gate is ONE-DIRECTIONAL — it protects production data:
+//
+//   - The LIVE stack provisions a merchant ONLY while the platform is LIVE.
+//     A LIVE stack while the platform is SANDBOX is refused — this is exactly the
+//     "@jrm" hazard (a LIVE merchant created during a SANDBOX platform).
+//   - The SANDBOX stack ALWAYS provisions, so the developer sandbox keeps working
+//     even after launch (when the platform is LIVE).
 //
 // A stack whose environment is unknown — local "development" — disables the gate:
 // local runs use a single database and have no cross-environment hazard.
@@ -67,12 +70,16 @@ func (g *EnvGate) StackEnv() string {
 // Verify returns the current platform mode and a non-nil error (ErrEnvMismatch)
 // when onboarding must be refused on this stack. A disabled gate (local dev, or
 // no reader) always allows and returns an empty mode.
+//
+// One-directional: only a LIVE stack while the platform is not LIVE is refused.
+// The SANDBOX stack always allows (it cannot create production data), so the
+// developer sandbox survives a LIVE launch.
 func (g *EnvGate) Verify(ctx context.Context) (mode string, err error) {
 	if g == nil || g.stackEnv == "" || g.platform == nil {
 		return "", nil
 	}
 	mode = g.platform.Mode(ctx)
-	if mode != g.stackEnv {
+	if g.stackEnv == "LIVE" && mode != "LIVE" {
 		return mode, ErrEnvMismatch
 	}
 	return mode, nil
