@@ -1,0 +1,126 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"os"
+	"testing"
+
+	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/banzami/banzami/services/api-gateway/internal/kybstorage"
+)
+
+func dbPoolOrSkip(t *testing.T) *pgxpool.Pool {
+	t.Helper()
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		t.Skip("DATABASE_URL not set — skipping DB-backed test")
+	}
+	pool, err := pgxpool.New(context.Background(), dbURL)
+	if err != nil {
+		t.Fatalf("connect: %v", err)
+	}
+	var reg *string
+	_ = pool.QueryRow(context.Background(), `SELECT to_regclass('public.merchant_kyb_documents')::text`).Scan(&reg)
+	if reg == nil {
+		pool.Close()
+		t.Skip("merchant_kyb_documents not migrated — skipping")
+	}
+	return pool
+}
+
+func seedKybDoc(t *testing.T, pool *pgxpool.Pool, merchantID, status string) string {
+	t.Helper()
+	id := uuid.NewString()
+	_, err := pool.Exec(context.Background(),
+		`INSERT INTO merchant_kyb_documents
+		   (id, merchant_id, document_type, status, storage_bucket, storage_key, mime_type, environment, submitted_at)
+		 VALUES ($1,$2,'COMPANY_TAX_ID',$3,'banzami-kyb-sandbox',$4,'image/jpeg','SANDBOX',NOW())`,
+		id, merchantID, status, "k/"+id)
+	if err != nil {
+		t.Fatalf("seed doc: %v", err)
+	}
+	return id
+}
+
+func TestKybAdminList_EnrichesMerchantAndFlagsOrphan(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+	svc := NewPostgresMerchantKybService(pool, kybstorage.NewFakeStorage("banzami-kyb-sandbox"), 5*1024*1024)
+
+	m := uuid.NewString()
+	orphanMerchant := uuid.NewString() // never inserted into merchants
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'Doa Sandbox',$2,'ACTIVE')`, m, m+"@test"); err != nil {
+		t.Fatalf("seed merchant: %v", err)
+	}
+	realDoc := seedKybDoc(t, pool, m, "PENDING_REVIEW")
+	orphanDoc := seedKybDoc(t, pool, orphanMerchant, "PENDING_REVIEW")
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id = ANY($1)`, []string{realDoc, orphanDoc})
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, m)
+	})
+
+	docs, err := svc.AdminList(ctx, "PENDING_REVIEW", 200)
+	if err != nil {
+		t.Fatalf("AdminList: %v", err)
+	}
+	var real, orphan *MerchantKybAdminDocument
+	for i := range docs {
+		switch docs[i].ID {
+		case realDoc:
+			real = &docs[i]
+		case orphanDoc:
+			orphan = &docs[i]
+		}
+	}
+	if real == nil || orphan == nil {
+		t.Fatalf("expected both docs in list (real=%v orphan=%v)", real != nil, orphan != nil)
+	}
+	if real.MerchantName != "Doa Sandbox" || !real.MerchantExists {
+		t.Fatalf("real doc not enriched: name=%q exists=%v", real.MerchantName, real.MerchantExists)
+	}
+	if orphan.MerchantExists || orphan.MerchantName != "" {
+		t.Fatalf("orphan doc should be flagged: name=%q exists=%v", orphan.MerchantName, orphan.MerchantExists)
+	}
+
+	// Orphan-safety: approving/rejecting an orphan document is blocked.
+	if err := svc.AdminApprove(ctx, orphanDoc, "op", nil); !errors.Is(err, ErrKybMerchantNotFound) {
+		t.Fatalf("orphan approve: want ErrKybMerchantNotFound, got %v", err)
+	}
+	if err := svc.AdminReject(ctx, orphanDoc, "op", "no"); !errors.Is(err, ErrKybMerchantNotFound) {
+		t.Fatalf("orphan reject: want ErrKybMerchantNotFound, got %v", err)
+	}
+}
+
+func TestNotificationsSummary_Counts(t *testing.T) {
+	pool := dbPoolOrSkip(t)
+	defer pool.Close()
+	ctx := context.Background()
+
+	doc := seedKybDoc(t, pool, uuid.NewString(), "PENDING_REVIEW")
+	asID := uuid.NewString()
+	_, _ = pool.Exec(ctx,
+		`INSERT INTO app_settlements (id, owner_ref, source_account_id, beneficiary_account_id,
+		   gross_amount_minor, application_fee_minor, net_amount_minor, currency, engine_version,
+		   pricing_snapshot_json, status, environment, idempotency_key)
+		 VALUES ($1,'c',$2,$3,1000,0,1000,'AOA',1,'{}'::jsonb,'FAILED','SANDBOX',$4)`,
+		asID, uuid.NewString(), uuid.NewString(), "notif-"+asID)
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE id=$1`, doc)
+		_, _ = pool.Exec(ctx, `DELETE FROM app_settlements WHERE id=$1`, asID)
+	})
+
+	sum, err := NewNotificationsService(pool).Summary(ctx)
+	if err != nil {
+		t.Fatalf("Summary: %v", err)
+	}
+	if sum.PendingKybDocuments < 1 {
+		t.Fatalf("expected >=1 pending KYB doc, got %d", sum.PendingKybDocuments)
+	}
+	if sum.FailedAppSettlements < 1 {
+		t.Fatalf("expected >=1 failed settlement, got %d", sum.FailedAppSettlements)
+	}
+}

@@ -50,6 +50,7 @@ export default function MerchantKybPage() {
   const [status, setStatus] = useState('PENDING_REVIEW');
   const [env, setEnv] = useState<Env>('LIVE');
   const [busy, setBusy] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
 
   const envParam = (e: Env) => (e === 'SANDBOX' ? 'SANDBOX' : undefined);
 
@@ -73,6 +74,14 @@ export default function MerchantKybPage() {
   }, []);
 
   useEffect(() => { void load(status, env); }, [load, status, env]);
+
+  const q = search.trim().toLowerCase();
+  const shown = (docs ?? []).filter((d) =>
+    !q ||
+    (d.merchant_name ?? '').toLowerCase().includes(q) ||
+    d.merchant_id.toLowerCase().includes(q) ||
+    (d.document_type ?? '').toLowerCase().includes(q),
+  );
 
   function openDocument(d: MerchantKybDoc) {
     // download_url is a short-TTL signed GET minted server-side; never logged.
@@ -158,7 +167,7 @@ export default function MerchantKybPage() {
         {env === 'SANDBOX' && <span className="font-bold text-amber-700"> A rever documentos de SANDBOX.</span>}
       </p>
 
-      <div className="mb-[18px] flex flex-wrap gap-2">
+      <div className="mb-[18px] flex flex-wrap items-center gap-2">
         {CHIPS.map((c) => (
           <button
             key={c.value || 'all'}
@@ -168,6 +177,12 @@ export default function MerchantKybPage() {
             {c.label}
           </button>
         ))}
+        <input
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Procurar por nome ou id"
+          className="ml-auto rounded-full border border-[#eaddde] px-4 py-2 text-sm font-semibold text-[#3a2e32] outline-none focus:border-[#B5101F]"
+        />
       </div>
 
       <Card>
@@ -175,23 +190,32 @@ export default function MerchantKybPage() {
           <ErrorState message={error} />
         ) : docs === null ? (
           <div className="px-6 py-[60px] text-center text-[15px] text-[#9a8a8e]">A carregar…</div>
-        ) : docs.length === 0 ? (
+        ) : shown.length === 0 ? (
           <EmptyMsg
             title="Nenhum documento encontrado neste ambiente."
             hint={`A rever ${env === 'LIVE' ? 'Produção' : 'Sandbox'}. Confirme se a app usada está no mesmo ambiente (use o seletor Live/Sandbox acima).`}
           />
         ) : (
           <div className="flex flex-col gap-2 p-4">
-            {docs.map((d) => {
+            {shown.map((d) => {
               const st = STATUS[d.status] ?? { label: d.status, cls: 'bg-gray-100 text-gray-500' };
               return (
-                <div key={d.id} className="flex flex-wrap items-center gap-3 rounded-lg border border-gray-100 px-4 py-3">
+                <div key={d.id} className={`flex flex-wrap items-center gap-3 rounded-lg border px-4 py-3 ${d.merchant_exists ? 'border-gray-100' : 'border-amber-300 bg-amber-50/40'}`}>
                   <FileText size={18} className="text-[#B5101F]" />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-semibold text-gray-900">{TYPE_LABEL[d.document_type] ?? d.document_type}</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-gray-900">
+                      {TYPE_LABEL[d.document_type] ?? d.document_type}
+                      {d.environment && <span className="rounded-md bg-[#f3e9e9] px-1.5 py-0.5 font-mono text-[10px] font-bold text-[#7a6a6e]">{d.environment}</span>}
+                      {!d.merchant_exists && <span className="rounded-md bg-amber-200 px-2 py-0.5 text-[10px] font-extrabold text-amber-900">Comerciante inexistente / órfão</span>}
+                    </div>
+                    <div className="mt-0.5 truncate text-xs text-gray-500">
+                      <span className="font-bold text-gray-700">{d.merchant_exists ? (d.merchant_name || 'Comerciante') : 'Comerciante removido'}</span>
+                      {d.merchant_status ? ` · ${d.merchant_status}` : ''}
+                      {d.kyb_status ? ` · KYB ${d.kyb_status}` : ''}
+                      <span className="font-mono text-gray-400"> · {d.merchant_id.slice(0, 8)}…</span>
+                    </div>
                     <div className="truncate text-xs text-gray-400">
-                      Comerciante: {d.merchant_id.slice(0, 8)}…
-                      {d.submitted_at ? ` · Enviado: ${formatDate(d.submitted_at)}` : ''}
+                      {d.submitted_at ? `Enviado: ${formatDate(d.submitted_at)}` : ''}
                       {d.valid_until ? ` · Validade: ${formatDate(d.valid_until)}` : ''}
                       {d.reviewed_at ? ` · Revisto: ${formatDate(d.reviewed_at)}` : ''}
                       {d.rejection_reason ? ` · Motivo: ${d.rejection_reason}` : ''}
@@ -203,7 +227,7 @@ export default function MerchantKybPage() {
                       Ver
                     </button>
                   )}
-                  {d.status === 'PENDING_REVIEW' && (
+                  {d.status === 'PENDING_REVIEW' && d.merchant_exists && (
                     <>
                       <button disabled={busy === d.id} onClick={() => approve(d)} className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-bold text-white disabled:opacity-50">
                         Aprovar
@@ -212,6 +236,9 @@ export default function MerchantKybPage() {
                         Rejeitar
                       </button>
                     </>
+                  )}
+                  {d.status === 'PENDING_REVIEW' && !d.merchant_exists && (
+                    <span className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">Revisão bloqueada</span>
                   )}
                 </div>
               );

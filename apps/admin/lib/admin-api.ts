@@ -895,6 +895,12 @@ export class AdminApi {
       method: 'POST', body: JSON.stringify({ rejection_reason: reason }),
     });
   }
+
+  // Operator review-queue summary for the sidebar badges.
+  getNotificationSummary(environment?: string): Promise<NotificationSummary> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/notifications/summary${q}`);
+  }
 }
 
 export type OperatorRole = 'SUPER_ADMIN' | 'OPERATIONS' | 'COMPLIANCE' | 'SUPPORT' | 'READ_ONLY';
@@ -961,6 +967,13 @@ export interface KybDocument {
 export interface MerchantKybDoc {
   id:                string;
   merchant_id:       string;
+  /** Owning merchant identity (enriched server-side). Empty for an orphan. */
+  merchant_name?:    string;
+  merchant_status?:  string;
+  kyb_status?:       string;
+  environment?:      string;
+  /** false when the merchant no longer exists (orphan) — review is blocked. */
+  merchant_exists:   boolean;
   document_type:     string;
   status:            string;
   mime_type?:        string;
@@ -970,6 +983,15 @@ export interface MerchantKybDoc {
   valid_until?:      string | null;
   rejection_reason?: string | null;
   download_url?:     string;
+}
+
+export interface NotificationSummary {
+  pending_kyb_documents:        number;
+  pending_kyc_documents:        number;
+  pending_business_applications: number;
+  failed_app_settlements:       number;
+  open_disputes:                number;
+  pending_reconciliations:      number;
 }
 
 export interface WalletPayment {

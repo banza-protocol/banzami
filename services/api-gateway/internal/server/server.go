@@ -50,6 +50,7 @@ type Dependencies struct {
 	SplitSvc            service.SplitService
 	WalletPaymentSvc    service.WalletPaymentReader
 	WalletPaymentLister service.WalletPaymentLister
+	NotificationsSvc    *service.NotificationsService
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -86,6 +87,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
+	notificationsHandler := handler.NewNotificationsHandler(deps.NotificationsSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
 	mchHandler := handler.NewMerchantHandler(deps.MerchantSvc)
@@ -149,6 +151,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Post("/documents/{id}/approve", merchantKybHandler.AdminApprove)
 			r.Post("/documents/{id}/reject", merchantKybHandler.AdminReject)
 		})
+		// Operator review-queue summary (sidebar badges).
+		r.Get("/internal/v1/notifications/summary", notificationsHandler.Summary)
 	})
 
 	r.Group(func(r chi.Router) {

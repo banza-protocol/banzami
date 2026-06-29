@@ -154,6 +154,10 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-kyb/documents/{id}/approve", merchantKybH.Approve)
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-kyb/documents/{id}/reject", merchantKybH.Reject)
 
+		// Operator review-queue summary (sidebar badges). Read-only.
+		notificationsH := handler.NewNotificationsHandler(gw, gwSandbox)
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications/summary", notificationsH.Summary)
+
 		// Consumer KYC review (ADR-020). View reuses consumer.view; decisions
 		// reuse compliance.review (the operator decides the granted level).
 		kycH := handler.NewKycReviewHandler(kycReview)

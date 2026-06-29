@@ -163,6 +163,12 @@ func (c *GatewayClient) RejectDocumentRaw(ctx context.Context, id, documentID, r
 
 // ── Merchant KYB documents (post-approval) — admin review ───────────────────
 
+// NotificationSummaryRaw returns the operator review-queue counts from the
+// gateway (live or staging, per the chosen client).
+func (c *GatewayClient) NotificationSummaryRaw(ctx context.Context) (json.RawMessage, int, error) {
+	return c.doRaw(ctx, http.MethodGet, "/internal/v1/notifications/summary", nil)
+}
+
 func (c *GatewayClient) ListMerchantKybDocumentsRaw(ctx context.Context, status, limit string) (json.RawMessage, int, error) {
 	q := url.Values{}
 	if status != "" {

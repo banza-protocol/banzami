@@ -1,13 +1,37 @@
 'use client';
 
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
   type LucideIcon,
 } from 'lucide-react';
-import { destroySession } from '@/lib/session';
+import { destroySession, getSession } from '@/lib/session';
+import { AdminApi, type NotificationSummary } from '@/lib/admin-api';
 import { BanzamiLogo } from '@/components/ui/brand';
+
+// Maps a nav href to the summary count that should badge it.
+function badgeCount(href: string, s: NotificationSummary | null): number {
+  if (!s) return 0;
+  switch (href) {
+    case '/merchant-kyb':            return s.pending_kyb_documents;
+    case '/merchants':               return s.pending_business_applications;
+    case '/disputes':                return s.open_disputes;
+    case '/reconciliation':          return s.pending_reconciliations;
+    case '/application-settlements': return s.failed_app_settlements;
+    default:                         return 0;
+  }
+}
+
+function Badge({ n }: { n: number }) {
+  if (n <= 0) return null;
+  return (
+    <span className="ml-auto flex h-[20px] min-w-[20px] items-center justify-center rounded-full bg-[#B5101F] px-[6px] text-[11px] font-extrabold text-white max-[860px]:hidden">
+      {n > 99 ? '99+' : n}
+    </span>
+  );
+}
 
 type NavItem = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
 type NavSection = { section: string; items: NavItem[] };
@@ -50,6 +74,23 @@ function isActive(pathname: string, href: string, exact?: boolean): boolean {
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const [summary, setSummary] = useState<NotificationSummary | null>(null);
+
+  // Poll the operator review-queue summary (live) so the sidebar shows real
+  // pending counts. Best-effort: failures leave the badges hidden.
+  const refresh = useCallback(async () => {
+    const s = getSession();
+    if (!s) return;
+    try {
+      setSummary(await new AdminApi(s.token).getNotificationSummary());
+    } catch { /* leave badges as-is */ }
+  }, []);
+
+  useEffect(() => {
+    void refresh();
+    const t = setInterval(() => void refresh(), 60_000);
+    return () => clearInterval(t);
+  }, [refresh]);
 
   function logout() {
     destroySession();
@@ -88,6 +129,7 @@ export function Sidebar() {
                     >
                       <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} />
                       <span className="max-[860px]:hidden">{label}</span>
+                      <Badge n={badgeCount(href, summary)} />
                     </Link>
                   );
                 })}
@@ -107,6 +149,7 @@ export function Sidebar() {
             >
               <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} />
               <span className="max-[860px]:hidden">{label}</span>
+              <Badge n={badgeCount(href, summary)} />
             </Link>
           );
         })}

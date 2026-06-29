@@ -102,11 +102,22 @@ type MerchantKybStatus struct {
 	Documents []MerchantKybDocument `json:"documents"`
 }
 
-// MerchantKybAdminDocument is the admin projection (adds merchant_id; still no key).
+// MerchantKybAdminDocument is the admin projection. It carries the owning
+// merchant's identity (name + status + KYB status) so the review inbox is
+// readable, and a MerchantExists flag so an orphan document (whose merchant was
+// removed) is clearly marked and cannot be reviewed normally. Never carries the
+// storage key.
 type MerchantKybAdminDocument struct {
 	MerchantKybDocument
-	MerchantID  string `json:"merchant_id"`
-	DownloadURL string `json:"download_url,omitempty"` // short-TTL signed GET, admin only
+	MerchantID     string `json:"merchant_id"`
+	MerchantName   string `json:"merchant_name,omitempty"`
+	MerchantStatus string `json:"merchant_status,omitempty"`
+	KybStatus      string `json:"kyb_status,omitempty"`
+	Environment    string `json:"environment,omitempty"`
+	// MerchantExists is false when the document's merchant no longer exists
+	// (orphan). The reviewer UI marks it and blocks normal approve/reject.
+	MerchantExists bool   `json:"merchant_exists"`
+	DownloadURL    string `json:"download_url,omitempty"` // short-TTL signed GET, admin only
 }
 
 // ── Merchant surface ─────────────────────────────────────────────────────────
@@ -302,12 +313,20 @@ func (s *PostgresMerchantKybService) AdminList(ctx context.Context, status strin
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
+	// LEFT JOIN so an orphan document (merchant removed) still appears, marked
+	// via merchant_exists=false. Enriched with the merchant name/status + KYB
+	// status so the inbox is readable instead of showing a bare id.
 	rows, err := s.pool.Query(ctx, `
-		SELECT id, merchant_id, document_type, status, COALESCE(mime_type,''), COALESCE(size_bytes,0),
-		       submitted_at, reviewed_at, valid_until, COALESCE(rejection_reason,''), storage_key
-		  FROM merchant_kyb_documents
-		 WHERE ($1 = '' OR status = $1) AND status <> 'REPLACED'
-		 ORDER BY submitted_at DESC NULLS LAST, created_at DESC
+		SELECT d.id, d.merchant_id, d.document_type, d.status, COALESCE(d.mime_type,''),
+		       COALESCE(d.size_bytes,0), d.submitted_at, d.reviewed_at, d.valid_until,
+		       COALESCE(d.rejection_reason,''), d.storage_key,
+		       COALESCE(m.name,''), COALESCE(m.status,''), COALESCE(mc.kyb_status,''),
+		       COALESCE(d.environment,''), (m.id IS NOT NULL) AS merchant_exists
+		  FROM merchant_kyb_documents d
+		  LEFT JOIN merchants m           ON m.id = d.merchant_id
+		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = d.merchant_id
+		 WHERE ($1 = '' OR d.status = $1) AND d.status <> 'REPLACED'
+		 ORDER BY d.submitted_at DESC NULLS LAST, d.created_at DESC
 		 LIMIT $2`, status, limit)
 	if err != nil {
 		return nil, err
@@ -318,9 +337,12 @@ func (s *PostgresMerchantKybService) AdminList(ctx context.Context, status strin
 		var d MerchantKybAdminDocument
 		var key string
 		if err := rows.Scan(&d.ID, &d.MerchantID, &d.DocumentType, &d.Status, &d.MimeType, &d.SizeBytes,
-			&d.SubmittedAt, &d.ReviewedAt, &d.ValidUntil, &d.RejectionReason, &key); err != nil {
+			&d.SubmittedAt, &d.ReviewedAt, &d.ValidUntil, &d.RejectionReason, &key,
+			&d.MerchantName, &d.MerchantStatus, &d.KybStatus, &d.Environment, &d.MerchantExists); err != nil {
 			return nil, err
 		}
+		// A signed read URL is still minted for viewing (incl. orphans) but never
+		// for a REPLACED doc; the key itself is never exposed.
 		if s.storage != nil && key != "" && (d.Status == "PENDING_REVIEW" || d.Status == "VALID") {
 			if rd, rerr := s.storage.CreateReadURL(ctx, key, ""); rerr == nil {
 				d.DownloadURL = rd.URL
@@ -368,6 +390,18 @@ func (s *PostgresMerchantKybService) decide(ctx context.Context, docID, actor, d
 	}
 	if status != "PENDING_REVIEW" {
 		return ErrKybInvalidState
+	}
+
+	// Orphan-safety: never review a document whose merchant no longer exists.
+	// The reviewer must use the administrative path (the UI marks it and disables
+	// approve/reject); we never auto-delete anything here.
+	var merchantExists bool
+	if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM merchants WHERE id=$1)`, merchantID).
+		Scan(&merchantExists); err != nil {
+		return err
+	}
+	if !merchantExists {
+		return ErrKybMerchantNotFound
 	}
 
 	if decision == "VALID" {
