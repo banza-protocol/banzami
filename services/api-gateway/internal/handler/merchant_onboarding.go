@@ -17,10 +17,11 @@ import (
 type MerchantOnboardingHandler struct {
 	apps       service.MerchantApplicationService
 	activation service.ActivationService
+	gate       *service.EnvGate
 }
 
-func NewMerchantOnboardingHandler(apps service.MerchantApplicationService, activation service.ActivationService) *MerchantOnboardingHandler {
-	return &MerchantOnboardingHandler{apps: apps, activation: activation}
+func NewMerchantOnboardingHandler(apps service.MerchantApplicationService, activation service.ActivationService, gate *service.EnvGate) *MerchantOnboardingHandler {
+	return &MerchantOnboardingHandler{apps: apps, activation: activation, gate: gate}
 }
 
 // POST /v1/merchant/applications/check-handle   {handle}
@@ -87,8 +88,24 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		return
 	}
 
+	// Platform Mode is the single source of truth for the onboarding environment
+	// (ADR-025). Refuse submission when this gateway stack does not match the
+	// current platform mode, and stamp the environment from the stack — never
+	// from the client body — so a merchant can never be created in an environment
+	// the platform is not operating in.
+	mode, gerr := h.gate.Verify(r.Context())
+	if errors.Is(gerr, service.ErrEnvMismatch) {
+		apierror.Respond(w, r, http.StatusConflict, "ENVIRONMENT_MISMATCH",
+			"onboarding is unavailable here because the platform is currently in "+mode+" mode")
+		return
+	}
+	env := body.Environment
+	if se := h.gate.StackEnv(); se != "" {
+		env = se
+	}
+
 	appID, err := h.apps.Submit(r.Context(), service.MerchantApplicationInput{
-		Environment:         body.Environment,
+		Environment:         env,
 		DesiredHandle:       body.DesiredHandle,
 		BusinessName:        body.BusinessName,
 		Category:            body.Category,

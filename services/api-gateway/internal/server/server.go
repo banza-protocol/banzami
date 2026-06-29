@@ -86,8 +86,12 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	authHandler := handler.NewAuthHandler(cfg, deps.MerchantSvc)
 	merchantAuthHandler := handler.NewMerchantAuthHandler(cfg, deps.MerchantCredSvc)
-	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc)
-	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc)
+	// Platform Mode is the single source of truth for the onboarding environment
+	// (ADR-025): this gate refuses application submission/approval when the gateway
+	// stack's environment (cfg.Environment) disagrees with the current mode.
+	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
+	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
+	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
 	notificationsHandler := handler.NewNotificationsHandler(deps.NotificationsSvc)

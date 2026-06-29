@@ -50,7 +50,7 @@ func decodeBody(rec *httptest.ResponseRecorder) map[string]any {
 
 func TestCheckHandle(t *testing.T) {
 	t.Run("available", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{available: true}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{available: true}, nil, nil)
 		rec := postJSON(h.CheckHandle, `{"handle":"cantina_alex"}`)
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status=%d want 200", rec.Code)
@@ -61,7 +61,7 @@ func TestCheckHandle(t *testing.T) {
 	})
 
 	t.Run("taken returns reason", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{available: false, reason: "TAKEN"}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{available: false, reason: "TAKEN"}, nil, nil)
 		out := decodeBody(postJSON(h.CheckHandle, `{"handle":"doa_sandbox"}`))
 		if out["available"] != false || out["reason"] != "TAKEN" {
 			t.Errorf("expected available false + reason TAKEN, got %v", out)
@@ -69,21 +69,21 @@ func TestCheckHandle(t *testing.T) {
 	})
 
 	t.Run("missing handle → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{}, nil, nil)
 		if rec := postJSON(h.CheckHandle, `{}`); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
 
 	t.Run("malformed handle → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{available: false, reason: service.HandleReasonInvalid}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{available: false, reason: service.HandleReasonInvalid}, nil, nil)
 		if rec := postJSON(h.CheckHandle, `{"handle":"ab"}`); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
 
 	t.Run("service unavailable → 503", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, nil)
+		h := NewMerchantOnboardingHandler(nil, nil, nil)
 		if rec := postJSON(h.CheckHandle, `{"handle":"x_business"}`); rec.Code != http.StatusServiceUnavailable {
 			t.Fatalf("status=%d want 503", rec.Code)
 		}
@@ -94,7 +94,7 @@ func TestSubmitApplication(t *testing.T) {
 	valid := `{"desired_handle":"cantina_alex","business_name":"Cantina","email":"a@b.co","terms_accepted":true}`
 
 	t.Run("success → 201", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{appID: "app-1"}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{appID: "app-1"}, nil, nil)
 		rec := postJSON(h.SubmitApplication, valid)
 		if rec.Code != http.StatusCreated {
 			t.Fatalf("status=%d want 201", rec.Code)
@@ -106,21 +106,21 @@ func TestSubmitApplication(t *testing.T) {
 	})
 
 	t.Run("incomplete → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrApplicationIncomplete}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrApplicationIncomplete}, nil, nil)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
 
 	t.Run("handle taken → 409", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrMerchantHandleTaken}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrMerchantHandleTaken}, nil, nil)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusConflict {
 			t.Fatalf("status=%d want 409", rec.Code)
 		}
 	})
 
 	t.Run("reserved handle → 409", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrHandleReserved}, nil)
+		h := NewMerchantOnboardingHandler(&fakeApps{submitErr: service.ErrHandleReserved}, nil, nil)
 		if rec := postJSON(h.SubmitApplication, valid); rec.Code != http.StatusConflict {
 			t.Fatalf("status=%d want 409", rec.Code)
 		}
@@ -128,7 +128,7 @@ func TestSubmitApplication(t *testing.T) {
 
 	t.Run("structured Business fields map through (no folding)", func(t *testing.T) {
 		apps := &fakeApps{appID: "app-9"}
-		h := NewMerchantOnboardingHandler(apps, nil)
+		h := NewMerchantOnboardingHandler(apps, nil, nil)
 		body := `{
 		  "environment":"SANDBOX","desired_handle":"cantina_alex","business_name":"Cantina do Alex",
 		  "category":"Alimentação e bebidas","subcategory":"Cantina","email":"geral@cantina.co.ao",
@@ -160,7 +160,7 @@ func TestSubmitApplication(t *testing.T) {
 
 	t.Run("proof_of_address is ignored, never folded into address", func(t *testing.T) {
 		apps := &fakeApps{appID: "app-1"}
-		h := NewMerchantOnboardingHandler(apps, nil)
+		h := NewMerchantOnboardingHandler(apps, nil, nil)
 		body := `{"desired_handle":"loja_x","business_name":"Loja","email":"a@b.co","terms_accepted":true,"proof_of_address":"should-be-ignored"}`
 		if rec := postJSON(h.SubmitApplication, body); rec.Code != http.StatusCreated {
 			t.Fatalf("status=%d", rec.Code)
@@ -175,7 +175,7 @@ func TestActivation(t *testing.T) {
 	t.Run("validate valid (no secret leak)", func(t *testing.T) {
 		h := NewMerchantOnboardingHandler(nil, &fakeActivation{status: service.ActivationStatus{
 			Valid: true, Reason: "VALID", BusinessName: "Cantina", Handle: "cantina_alex",
-		}})
+		}}, nil)
 		out := decodeBody(postJSON(h.ValidateActivation, `{"token":"raw"}`))
 		if out["valid"] != true || out["business_name"] != "Cantina" {
 			t.Errorf("unexpected %v", out)
@@ -186,7 +186,7 @@ func TestActivation(t *testing.T) {
 	})
 
 	t.Run("validate expired", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{status: service.ActivationStatus{Reason: "EXPIRED"}})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{status: service.ActivationStatus{Reason: "EXPIRED"}}, nil)
 		out := decodeBody(postJSON(h.ValidateActivation, `{"token":"raw"}`))
 		if out["valid"] != false || out["reason"] != "EXPIRED" {
 			t.Errorf("unexpected %v", out)
@@ -194,35 +194,35 @@ func TestActivation(t *testing.T) {
 	})
 
 	t.Run("complete success → 200", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{}, nil)
 		if rec := postJSON(h.CompleteActivation, `{"token":"raw","pin":"1234"}`); rec.Code != http.StatusOK {
 			t.Fatalf("status=%d want 200", rec.Code)
 		}
 	})
 
 	t.Run("complete expired → 410", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrActivationExpired})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrActivationExpired}, nil)
 		if rec := postJSON(h.CompleteActivation, `{"token":"raw","pin":"1234"}`); rec.Code != http.StatusGone {
 			t.Fatalf("status=%d want 410", rec.Code)
 		}
 	})
 
 	t.Run("complete used → 410", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrActivationUsed})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrActivationUsed}, nil)
 		if rec := postJSON(h.CompleteActivation, `{"token":"raw","pin":"1234"}`); rec.Code != http.StatusGone {
 			t.Fatalf("status=%d want 410", rec.Code)
 		}
 	})
 
 	t.Run("complete invalid pin → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrPinInvalid})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{completeErr: service.ErrPinInvalid}, nil)
 		if rec := postJSON(h.CompleteActivation, `{"token":"raw","pin":"12"}`); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
 	})
 
 	t.Run("complete missing fields → 400", func(t *testing.T) {
-		h := NewMerchantOnboardingHandler(nil, &fakeActivation{})
+		h := NewMerchantOnboardingHandler(nil, &fakeActivation{}, nil)
 		if rec := postJSON(h.CompleteActivation, `{"token":"raw"}`); rec.Code != http.StatusBadRequest {
 			t.Fatalf("status=%d want 400", rec.Code)
 		}
