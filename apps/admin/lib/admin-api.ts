@@ -31,6 +31,64 @@ export interface SettlementList {
   data: Settlement[];
 }
 
+/** Operator pricing rule (Banzami ADR-021). The only place a fee percentage
+ *  lives. `rate_bps` is basis points (200 = 2.00%); operator policy only. */
+export interface PricingRule {
+  id:                 string;
+  rule_key:           string;
+  version:            number;
+  environment:        'LIVE' | 'SANDBOX';
+  enabled:            boolean;
+  business_category:  string | null;
+  pricing_profile:    string | null;
+  fee_policy_ref:     string | null;
+  currency:           string | null;
+  country:            string | null;
+  rate_bps:           number;
+  flat_minor:         number;
+  min_fee_minor:      number | null;
+  max_fee_minor:      number | null;
+  rounding:           'HALF_UP' | 'HALF_EVEN' | 'FLOOR' | 'CEIL';
+  priority:           number;
+  effective_from:     string;
+  effective_to:       string | null;
+  description:        string | null;
+  /** True once the rule has priced real money — it becomes immutable (edits
+   *  create a new version instead). */
+  used:               boolean;
+  created_at:         string;
+  updated_at:         string;
+}
+
+/** Editable fields for create/update. Never includes a computed fee. */
+export interface PricingRuleInput {
+  rule_key:           string;
+  environment:        'LIVE' | 'SANDBOX';
+  business_category?: string | null;
+  pricing_profile?:   string | null;
+  fee_policy_ref?:    string | null;
+  currency?:          string | null;
+  country?:           string | null;
+  rate_bps:           number;
+  flat_minor:         number;
+  min_fee_minor?:     number | null;
+  max_fee_minor?:     number | null;
+  rounding:           'HALF_UP' | 'HALF_EVEN' | 'FLOOR' | 'CEIL';
+  priority?:          number;
+  effective_from?:    string | null;
+  effective_to?:      string | null;
+  description?:       string | null;
+}
+
+export interface PricingRuleFilters {
+  environment?:       string;
+  business_category?: string;
+  pricing_profile?:   string;
+  currency?:          string;
+  rule_key?:          string;
+  status?:            'enabled' | 'disabled';
+}
+
 export interface Payout {
   id:          string;
   merchant_id: string;
@@ -342,6 +400,38 @@ export class AdminApi {
   }
   failSettlement(id: string, reason: string):     Promise<Settlement>     {
     return this.req(`/admin/v1/settlements/${id}/fail`, { method: 'POST', body: JSON.stringify({ reason }) });
+  }
+
+  // Finance — Pricing Rules (Banzami ADR-021). View is broad; mutations are
+  // SUPER_ADMIN-only and fully audited server-side.
+  listPricingRules(filters: PricingRuleFilters = {}): Promise<{ data: PricingRule[] }> {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) q.set(k, String(v));
+    const qs = q.toString();
+    return this.req(`/admin/v1/finance/pricing-rules${qs ? `?${qs}` : ''}`);
+  }
+  getPricingRule(id: string): Promise<PricingRule> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}`);
+  }
+  getPricingRuleVersions(id: string): Promise<{ data: PricingRule[] }> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}/versions`);
+  }
+  createPricingRule(body: PricingRuleInput): Promise<PricingRule> {
+    return this.req('/admin/v1/finance/pricing-rules', { method: 'POST', body: JSON.stringify(body) });
+  }
+  updatePricingRule(id: string, body: PricingRuleInput): Promise<PricingRule> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}`, { method: 'PATCH', body: JSON.stringify(body) });
+  }
+  disablePricingRule(id: string): Promise<PricingRule> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}/disable`, { method: 'POST' });
+  }
+  enablePricingRule(id: string): Promise<PricingRule> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}/enable`, { method: 'POST' });
+  }
+  duplicatePricingRule(id: string, ruleKey: string): Promise<PricingRule> {
+    return this.req(`/admin/v1/finance/pricing-rules/${id}/duplicate`, {
+      method: 'POST', body: JSON.stringify({ rule_key: ruleKey }),
+    });
   }
 
   // Payouts

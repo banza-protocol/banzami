@@ -95,6 +95,7 @@ use banzami_merchants::{
 use banzami_app_settlement::{
     PostgresApplicationSettlementEngine, PostgresApplicationSettlementRepository,
 };
+use banzami_pricing::PostgresPricingRuleAdminRepository;
 use banzami_collections::{PostgresCollectionEngine, PostgresCollectionRepository};
 use banzami_payment_links::{PostgresPaymentLinkEngine, PostgresPaymentLinkRepository};
 use banzami_payouts::{PostgresPayoutEngine, PostgresPayoutRepository};
@@ -169,6 +170,7 @@ pub struct AppState {
     pub acquiring: Arc<AcquiringEng>,
     pub collections: Arc<CollectionsEng>,
     pub app_settlement: Arc<AppSettlementEng>,
+    pub pricing_admin: Arc<PostgresPricingRuleAdminRepository>,
 }
 
 impl AppState {
@@ -310,6 +312,9 @@ impl AppState {
             environment.as_str(),
         ));
 
+        // --- Pricing rules admin (operator-only write path; ADR-021) ---
+        let pricing_admin = Arc::new(PostgresPricingRuleAdminRepository::new(pool.clone()));
+
         Self {
             pool,
             transit_account_id,
@@ -332,6 +337,7 @@ impl AppState {
             acquiring,
             collections,
             app_settlement,
+            pricing_admin,
         }
     }
 }

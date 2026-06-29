@@ -138,6 +138,14 @@ differing only in *when* the Application Settlement fires.
    (they settle via the `transfers` path, not the operator-fee path).
 6. DOA on the architecture; then Mongo / marketplace / crowdfunding.
 
+**Admin layer (increment 5.5, part 1 — done):** BANZADMIN management of **Pricing
+Rules**, end-to-end across core-api (the only `pricing_rules` write path, with
+version-on-used-edit + never-delete), admin-api (`/admin/v1/finance/pricing-rules`,
+JWT + `pricing.view`/`pricing.manage` RBAC + audited mutations) and the BANZADMIN
+Finanças section. See [docs/admin/pricing.md](../admin/pricing.md). Pricing
+Profiles / Fee Policies CRUD, Operator Fees + Application Settlements read screens
+and dashboards are deferred to subsequent parts.
+
 Nothing is deployed/pushed without an explicit GO; each increment ships and is
 validated independently. The financial-correctness invariants (double-entry,
 integer minor units, append-only, idempotency) are non-negotiable at every step.

@@ -14,9 +14,14 @@
 //! Increment 3 wires the resolved fee into the Operator-Fee ledger leg; this
 //! increment delivers only the engine, models, config and tests.
 
+pub mod admin;
 pub mod domain;
 pub mod engine;
 pub mod repository;
+
+pub use admin::{
+    PostgresPricingRuleAdminRepository, PricingRuleFilter, PricingRuleInput, PricingRuleRecord,
+};
 
 pub use domain::{
     BusinessCategory, FeePolicyRef, FeeResolution, FeeSnapshot, PricingContext, PricingProfile,

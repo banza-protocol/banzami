@@ -3,12 +3,17 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, Tags,
+  type LucideIcon,
 } from 'lucide-react';
 import { destroySession } from '@/lib/session';
 import { BanzamiLogo } from '@/components/ui/brand';
 
-const NAV = [
+type NavItem = { href: string; label: string; Icon: LucideIcon; exact?: boolean };
+type NavSection = { section: string; items: NavItem[] };
+type NavEntry = NavItem | NavSection;
+
+const NAV: NavEntry[] = [
   { href: '/', label: 'Visão geral', Icon: LayoutGrid, exact: true },
   { href: '/merchants', label: 'Comerciantes', Icon: Building2 },
   { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck },
@@ -20,7 +25,17 @@ const NAV = [
   { href: '/disputes', label: 'Disputas', Icon: Scale },
   { href: '/risk', label: 'Risco & Audit', Icon: Shield },
   { href: '/operators', label: 'Operadores', Icon: UserCog },
+  {
+    section: 'Finanças',
+    items: [
+      { href: '/pricing-rules', label: 'Regras de preço', Icon: Tags },
+    ],
+  },
 ];
+
+function isSection(e: NavEntry): e is NavSection {
+  return (e as NavSection).section !== undefined;
+}
 
 function isActive(pathname: string, href: string, exact?: boolean): boolean {
   if (exact) return pathname === href;
@@ -48,7 +63,33 @@ export function Sidebar() {
       </div>
 
       <nav className="flex flex-1 flex-col gap-[3px] overflow-y-auto p-3">
-        {NAV.map(({ href, label, Icon, exact }) => {
+        {NAV.map((entry) => {
+          if (isSection(entry)) {
+            return (
+              <div key={entry.section} className="mt-[14px] flex flex-col gap-[3px]">
+                <span className="px-[13px] pb-[2px] text-[11px] font-extrabold uppercase tracking-[0.06em] text-[#bba6aa] max-[860px]:hidden">
+                  {entry.section}
+                </span>
+                {entry.items.map(({ href, label, Icon, exact }) => {
+                  const active = isActive(pathname, href, exact);
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
+                      aria-current={active ? 'page' : undefined}
+                      className={`flex items-center gap-3 rounded-[13px] px-[13px] py-[11px] text-[14.5px] font-extrabold transition-colors max-[860px]:justify-center ${
+                        active ? 'bg-[#FFF1F0] text-[#B5101F]' : 'text-[#5a4a4e] hover:bg-[#FFF7F6]'
+                      }`}
+                    >
+                      <Icon size={20} className="flex-none" color={active ? '#B5101F' : '#9a8a8e'} strokeWidth={1.8} />
+                      <span className="max-[860px]:hidden">{label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            );
+          }
+          const { href, label, Icon, exact } = entry;
           const active = isActive(pathname, href, exact);
           return (
             <Link

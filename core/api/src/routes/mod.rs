@@ -20,6 +20,7 @@ pub mod merchants;
 pub mod onboarding;
 pub mod payment_links;
 pub mod payment_requests;
+pub mod pricing_rules;
 pub mod payouts;
 pub mod qr;
 pub mod reconciliation;

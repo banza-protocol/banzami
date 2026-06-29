@@ -401,6 +401,56 @@ func (c *CoreAdminClient) ResolveDispute(ctx context.Context, id, outcome, notes
 }
 
 // ---------------------------------------------------------------------------
+// Pricing rules (Banzami ADR-021) — operator-only admin write path. The core
+// resolves every fee; this client only forwards references + operator policy.
+// ---------------------------------------------------------------------------
+
+// ListPricingRules forwards the (already-validated) query string verbatim.
+func (c *CoreAdminClient) ListPricingRules(ctx context.Context, query string) (map[string]any, error) {
+	path := "/internal/v1/pricing-rules"
+	if query != "" {
+		path += "?" + query
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetPricingRule(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/pricing-rules/"+id, &out)
+}
+
+func (c *CoreAdminClient) GetPricingRuleVersions(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/pricing-rules/"+id+"/versions", &out)
+}
+
+func (c *CoreAdminClient) CreatePricingRule(ctx context.Context, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/pricing-rules", body, &out)
+}
+
+func (c *CoreAdminClient) UpdatePricingRule(ctx context.Context, id string, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.patch(ctx, "/internal/v1/pricing-rules/"+id, body, &out)
+}
+
+func (c *CoreAdminClient) DisablePricingRule(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/disable", nil, &out)
+}
+
+func (c *CoreAdminClient) EnablePricingRule(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/enable", nil, &out)
+}
+
+func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/pricing-rules/"+id+"/duplicate", body, &out)
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 

@@ -189,6 +189,19 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements/{id}/confirm", settlementH.Confirm)
 		r.With(cap(auth.CapSettlementManage)).Post("/admin/v1/settlements/{id}/fail", settlementH.Fail)
 
+		// Finance — Pricing Rules (Banzami ADR-021). View is broad; manage is
+		// SUPER_ADMIN-only (CapPricingManage is in no role matrix). Every mutation
+		// is audited (action map below).
+		pricingH := handler.NewPricingRuleHandler(core)
+		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules", pricingH.List)
+		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules/{id}", pricingH.Get)
+		r.With(cap(auth.CapPricingView)).Get("/admin/v1/finance/pricing-rules/{id}/versions", pricingH.Versions)
+		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules", pricingH.Create)
+		r.With(cap(auth.CapPricingManage)).Patch("/admin/v1/finance/pricing-rules/{id}", pricingH.Update)
+		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/disable", pricingH.Disable)
+		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/enable", pricingH.Enable)
+		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/duplicate", pricingH.Duplicate)
+
 		// Payouts
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts", payoutH.List)
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts/all", payoutH.ListAll)

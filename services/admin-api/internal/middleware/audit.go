@@ -86,6 +86,11 @@ func isMutation(method string) bool {
 // auditActions maps "METHOD route-pattern" to a stable action name. A missing
 // entry falls back to "METHOD pattern" so new routes are still audited.
 var auditActions = map[string]string{
+	"POST /admin/v1/finance/pricing-rules":                  "CREATE_PRICING_RULE",
+	"PATCH /admin/v1/finance/pricing-rules/{id}":            "UPDATE_PRICING_RULE",
+	"POST /admin/v1/finance/pricing-rules/{id}/disable":     "DISABLE_PRICING_RULE",
+	"POST /admin/v1/finance/pricing-rules/{id}/enable":      "ENABLE_PRICING_RULE",
+	"POST /admin/v1/finance/pricing-rules/{id}/duplicate":   "DUPLICATE_PRICING_RULE",
 	"POST /admin/v1/auth/change-password":                 "CHANGE_PASSWORD",
 	"POST /admin/v1/auth/logout":                          "LOGOUT",
 	"POST /admin/v1/auth/terminate-sessions":              "TERMINATE_SESSIONS",

@@ -296,6 +296,39 @@ async fn main() {
             "/internal/v1/settlements/:id/fail",
             post(routes::settlements::fail),
         )
+        // Pricing Rules (Banzami ADR-021) — operator-only admin write path
+        .route(
+            "/internal/v1/pricing-rules",
+            post(routes::pricing_rules::create),
+        )
+        .route(
+            "/internal/v1/pricing-rules",
+            get(routes::pricing_rules::list),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id",
+            get(routes::pricing_rules::get),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id",
+            axum::routing::patch(routes::pricing_rules::update),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id/versions",
+            get(routes::pricing_rules::versions),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id/disable",
+            post(routes::pricing_rules::disable),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id/enable",
+            post(routes::pricing_rules::enable),
+        )
+        .route(
+            "/internal/v1/pricing-rules/:id/duplicate",
+            post(routes::pricing_rules::duplicate),
+        )
         // Application Settlements (Banzami ADR-021 / BANZA ADR-039) — operator-only
         .route(
             "/internal/v1/application-settlements",
