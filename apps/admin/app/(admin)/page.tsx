@@ -7,6 +7,7 @@ import { getSession } from '@/lib/session';
 import { AdminApi, type MerchantApplication } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, CardHeader } from '@/components/ui/table';
+import { ActivityFeed } from '@/components/layout/activity-feed';
 import { formatKz, formatDate, initials, withAt } from '@/lib/format';
 
 function getApi(): AdminApi | null {
@@ -202,6 +203,8 @@ export default function OverviewPage() {
           </div>
         </Card>
       </div>
+
+      <ActivityFeed />
     </>
   );
 }

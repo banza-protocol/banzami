@@ -25,6 +25,22 @@ export function formatDate(value: string | Date | null | undefined): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
+/** Relative time in Portuguese: "agora", "há 5 min", "há 3 h", "há 2 d", else date. */
+export function timeAgo(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  const secs = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (secs < 60) return 'agora';
+  const mins = Math.floor(secs / 60);
+  if (mins < 60) return `há ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `há ${hours} h`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `há ${days} d`;
+  return formatDate(d);
+}
+
 /** First 1-2 initials from a name, uppercased. */
 export function initials(name: string | null | undefined): string {
   if (!name) return '—';

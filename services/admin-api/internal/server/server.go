@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService, notif *service.NotificationService, notifSandbox *service.NotificationService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -160,8 +160,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-kyb/documents/{id}/reject", merchantKybH.Reject)
 
 		// Operator review-queue summary (sidebar badges). Read-only.
-		notificationsH := handler.NewNotificationsHandler(gw, gwSandbox)
+		notificationsH := handler.NewNotificationsHandler(gw, gwSandbox, notif, notifSandbox)
 		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications/summary", notificationsH.Summary)
+		r.With(cap(auth.CapDashboardView)).Get("/admin/v1/notifications", notificationsH.List)
+		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/read", notificationsH.MarkRead)
+		r.With(cap(auth.CapDashboardView)).Post("/admin/v1/notifications/{id}/dismiss", notificationsH.Dismiss)
 
 		// Consumer KYC review (ADR-020). View reuses consumer.view; decisions
 		// reuse compliance.review (the operator decides the granted level).

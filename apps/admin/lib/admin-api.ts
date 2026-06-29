@@ -935,10 +935,27 @@ export class AdminApi {
     });
   }
 
-  // Operator review-queue summary for the sidebar badges.
+  // Operator review-queue summary for the sidebar badges + bell unread count.
   getNotificationSummary(environment?: string): Promise<NotificationSummary> {
     const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
     return this.req(`/admin/v1/notifications/summary${q}`);
+  }
+  // Persistent operator notifications (bell dropdown + dashboard activity feed).
+  listNotifications(opts?: { status?: string; limit?: number; environment?: string }): Promise<{ notifications: AdminNotification[] }> {
+    const qs = new URLSearchParams();
+    if (opts?.status) qs.set('status', opts.status);
+    if (opts?.limit) qs.set('limit', String(opts.limit));
+    if (opts?.environment) qs.set('environment', opts.environment);
+    const q = qs.toString();
+    return this.req(`/admin/v1/notifications${q ? `?${q}` : ''}`);
+  }
+  markNotificationRead(id: string, environment?: string): Promise<void> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/notifications/${id}/read${q}`, { method: 'POST' });
+  }
+  dismissNotification(id: string, environment?: string): Promise<void> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/notifications/${id}/dismiss${q}`, { method: 'POST' });
   }
 
   // ── Consumer KYC review (ADR-020; admin-api-owned, no gateway hop) ──────────
@@ -1182,6 +1199,25 @@ export interface NotificationSummary {
   failed_app_settlements:       number;
   open_disputes:                number;
   pending_reconciliations:      number;
+  unread_notifications?:        number;
+}
+
+// One persistent operator notification (Notification Center, ADR-022 s3).
+export interface AdminNotification {
+  id:           string;
+  environment:  string;
+  type:         string;
+  severity:     'info' | 'success' | 'warning' | 'error';
+  entity_type?: string;
+  entity_id?:   string;
+  title:        string;
+  message?:     string;
+  href?:        string;
+  status:       'UNREAD' | 'READ' | 'DISMISSED';
+  created_at:   string;
+  read_at?:     string | null;
+  dismissed_at?: string | null;
+  metadata?:    Record<string, unknown>;
 }
 
 export interface WalletPayment {

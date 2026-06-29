@@ -7,6 +7,7 @@ import { type AdminUser, destroySession, getSession } from '@/lib/session';
 import { AdminApi } from '@/lib/admin-api';
 import { initials } from '@/lib/format';
 import { ChangePasswordModal } from '@/components/ui/change-password-modal';
+import { NotificationBell } from '@/components/layout/notification-bell';
 import { useDialog } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/toast';
 
@@ -68,6 +69,8 @@ export function Topbar({ user }: { user: AdminUser }) {
           <AlertCircle size={14} strokeWidth={1.8} />
           Uso interno
         </span>
+
+        <NotificationBell />
 
         <div className="relative">
           <button
