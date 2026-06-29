@@ -36,11 +36,32 @@ func TestMerchantKybLifecycle_RealDB(t *testing.T) {
 
 	mA := uuid.NewString()
 	mB := uuid.NewString()
+	// The stale-merchant guard requires the merchant to exist in `merchants`.
+	_, _ = pool.Exec(ctx, `CREATE TABLE IF NOT EXISTS merchants (id uuid PRIMARY KEY, name text, email text, status text, created_at timestamptz DEFAULT now(), updated_at timestamptz DEFAULT now(), verified boolean DEFAULT false)`)
+	if _, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email, status) VALUES ($1,'A','a@test','ACTIVE'),($2,'B','b@test','ACTIVE') ON CONFLICT (id) DO NOTHING`, mA, mB); err != nil {
+		t.Fatalf("seed merchants: %v", err)
+	}
 	t.Cleanup(func() {
 		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_documents WHERE merchant_id = ANY($1)`, []string{mA, mB})
 		_, _ = pool.Exec(ctx, `DELETE FROM merchant_kyb_events WHERE merchant_id = ANY($1)`, []string{mA, mB})
 		_, _ = pool.Exec(ctx, `DELETE FROM merchant_compliance WHERE merchant_id = ANY($1)`, []string{mA, mB})
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id = ANY($1)`, []string{mA, mB})
 	})
+
+	// Stale-merchant guard: a JWT for a merchant that no longer exists must NOT
+	// create an orphan document.
+	stale := uuid.NewString()
+	if _, _, err := svc.RequestUploadURL(ctx, stale, "SANDBOX", "COMPANY_TAX_ID", "image/jpeg"); !errors.Is(err, ErrKybMerchantNotFound) {
+		t.Fatalf("stale merchant upload-url: want ErrKybMerchantNotFound, got %v", err)
+	}
+	if _, err := svc.ListDocuments(ctx, stale); !errors.Is(err, ErrKybMerchantNotFound) {
+		t.Fatalf("stale merchant list: want ErrKybMerchantNotFound, got %v", err)
+	}
+	var orphan int
+	_ = pool.QueryRow(ctx, `SELECT COUNT(*) FROM merchant_kyb_documents WHERE merchant_id=$1`, stale).Scan(&orphan)
+	if orphan != 0 {
+		t.Fatalf("stale merchant created %d orphan documents", orphan)
+	}
 
 	// Fresh merchant → 3 MISSING slots.
 	docs, err := svc.ListDocuments(ctx, mA)

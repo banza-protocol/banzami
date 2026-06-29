@@ -209,6 +209,8 @@ func (h *MerchantKybHandler) merchant(w http.ResponseWriter, r *http.Request) (s
 
 func (h *MerchantKybHandler) fail(w http.ResponseWriter, r *http.Request, op string, err error) {
 	switch {
+	case errors.Is(err, service.ErrKybMerchantNotFound):
+		apierror.Respond(w, r, http.StatusUnauthorized, "INVALID_SESSION", "this merchant account no longer exists; please sign in again")
 	case errors.Is(err, service.ErrKybDocNotFound):
 		apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "document not found")
 	case errors.Is(err, service.ErrKybStorageDisabled):

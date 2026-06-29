@@ -42,6 +42,7 @@ var appToKybType = map[string]string{
 var kybAllowedMimes = map[string]bool{"application/pdf": true, "image/jpeg": true, "image/png": true}
 
 var (
+	ErrKybMerchantNotFound = errors.New("merchant no longer exists")
 	ErrKybDocNotFound      = errors.New("kyb document not found")
 	ErrKybInvalidType      = errors.New("invalid kyb document_type")
 	ErrKybInvalidMime      = errors.New("unsupported file type")
@@ -66,6 +67,18 @@ func NewPostgresMerchantKybService(pool *pgxpool.Pool, storage kybstorage.KybDoc
 }
 
 func (s *PostgresMerchantKybService) StorageConfigured() bool { return s.storage != nil }
+
+// assertMerchant rejects a stale/deleted merchant: the JWT may be valid but the
+// merchant_id no longer exists (e.g. account removed). This prevents orphan
+// merchant_kyb_documents being created under a non-existent merchant.
+func (s *PostgresMerchantKybService) assertMerchant(ctx context.Context, merchantID string) error {
+	var x int
+	err := s.pool.QueryRow(ctx, `SELECT 1 FROM merchants WHERE id = $1`, merchantID).Scan(&x)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return ErrKybMerchantNotFound
+	}
+	return err
+}
 
 // ── Projections (never carry storage_key) ───────────────────────────────────
 
@@ -101,6 +114,9 @@ type MerchantKybAdminDocument struct {
 // ListDocuments returns the 3 canonical slots for a merchant; a slot with no
 // current document is reported MISSING. Expiry is reflected as EXPIRED.
 func (s *PostgresMerchantKybService) ListDocuments(ctx context.Context, merchantID string) ([]MerchantKybDocument, error) {
+	if err := s.assertMerchant(ctx, merchantID); err != nil {
+		return nil, err
+	}
 	rows, err := s.pool.Query(ctx, `
 		SELECT DISTINCT ON (document_type)
 		       id, document_type, status, COALESCE(mime_type,''), COALESCE(size_bytes,0),
@@ -161,6 +177,9 @@ func (s *PostgresMerchantKybService) GetStatus(ctx context.Context, merchantID s
 }
 
 func (s *PostgresMerchantKybService) GetDocument(ctx context.Context, merchantID, docID string) (*MerchantKybDocument, error) {
+	if err := s.assertMerchant(ctx, merchantID); err != nil {
+		return nil, err
+	}
 	if _, err := uuid.Parse(docID); err != nil {
 		return nil, ErrKybDocNotFound
 	}
@@ -185,6 +204,9 @@ func (s *PostgresMerchantKybService) GetDocument(ctx context.Context, merchantID
 func (s *PostgresMerchantKybService) RequestUploadURL(ctx context.Context, merchantID, environment, docType, contentType string) (docID string, up kybstorage.UploadURL, err error) {
 	if s.storage == nil {
 		return "", kybstorage.UploadURL{}, ErrKybStorageDisabled
+	}
+	if err = s.assertMerchant(ctx, merchantID); err != nil {
+		return "", kybstorage.UploadURL{}, err
 	}
 	if !isKybDocType(docType) {
 		return "", kybstorage.UploadURL{}, ErrKybInvalidType
@@ -222,6 +244,9 @@ func (s *PostgresMerchantKybService) RequestUploadURL(ctx context.Context, merch
 func (s *PostgresMerchantKybService) CompleteUpload(ctx context.Context, merchantID, docID, sha256Hex string) (*MerchantKybDocument, error) {
 	if s.storage == nil {
 		return nil, ErrKybStorageDisabled
+	}
+	if err := s.assertMerchant(ctx, merchantID); err != nil {
+		return nil, err
 	}
 	var storageKey, status string
 	err := s.pool.QueryRow(ctx,
