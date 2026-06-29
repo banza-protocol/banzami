@@ -372,3 +372,48 @@ async fn rule_change_does_not_alter_completed(pool: PgPool) -> sqlx::Result<()> 
     );
     Ok(())
 }
+
+// ─── filtered admin listing (audit surface) ─────────────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn list_filtered_by_owner_status_currency(pool: PgPool) -> sqlx::Result<()> {
+    use banzami_app_settlement::ApplicationSettlementFilter;
+    use banzami_app_settlement::ApplicationSettlementRepository;
+    use banzami_app_settlement::PostgresApplicationSettlementRepository;
+
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "crowd-standard", "CROWDFUNDING", 500).await;
+    let source = account(&fx.pool, AccountType::Liability, "Campaign").await;
+    let beneficiary = account(&fx.pool, AccountType::Liability, "Beneficiary").await;
+    let app_fee = account(&fx.pool, AccountType::Liability, "AppFee").await;
+    fund(&fx, source, 98_000).await;
+
+    let created = fx
+        .engine
+        .create(req("lf1", source, beneficiary, Some(app_fee), 98_000, Some("CROWDFUNDING")))
+        .await
+        .unwrap();
+    fx.engine.complete(created.id).await.unwrap();
+
+    let repo = PostgresApplicationSettlementRepository::new(fx.pool.clone());
+    let base = ApplicationSettlementFilter { limit: 100, ..Default::default() };
+
+    assert_eq!(repo.list_filtered(&base).await.unwrap().len(), 1);
+    assert_eq!(
+        repo.list_filtered(&ApplicationSettlementFilter { owner_ref: Some("campaign_42".into()), ..base.clone() }).await.unwrap().len(),
+        1
+    );
+    assert_eq!(
+        repo.list_filtered(&ApplicationSettlementFilter { status: Some("COMPLETED".into()), ..base.clone() }).await.unwrap().len(),
+        1
+    );
+    assert_eq!(
+        repo.list_filtered(&ApplicationSettlementFilter { status: Some("CANCELLED".into()), ..base.clone() }).await.unwrap().len(),
+        0
+    );
+    assert_eq!(
+        repo.list_filtered(&ApplicationSettlementFilter { currency: Some("USD".into()), ..base.clone() }).await.unwrap().len(),
+        0
+    );
+    Ok(())
+}

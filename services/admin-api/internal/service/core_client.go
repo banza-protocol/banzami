@@ -451,6 +451,50 @@ func (c *CoreAdminClient) DuplicatePricingRule(ctx context.Context, id string, b
 }
 
 // ---------------------------------------------------------------------------
+// Operator Fees + Application Settlements (Banzami ADR-021) — read/audit.
+// Operator fees are immutable; settlements may be cancelled/failed when their
+// state permits (the core enforces the lifecycle).
+// ---------------------------------------------------------------------------
+
+func (c *CoreAdminClient) ListOperatorFees(ctx context.Context, query string) (map[string]any, error) {
+	path := "/internal/v1/operator-fees"
+	if query != "" {
+		path += "?" + query
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetOperatorFee(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/operator-fees/"+id, &out)
+}
+
+func (c *CoreAdminClient) ListApplicationSettlements(ctx context.Context, query string) (map[string]any, error) {
+	path := "/internal/v1/application-settlements"
+	if query != "" {
+		path += "?" + query
+	}
+	var out map[string]any
+	return out, c.get(ctx, path, &out)
+}
+
+func (c *CoreAdminClient) GetApplicationSettlement(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/application-settlements/"+id, &out)
+}
+
+func (c *CoreAdminClient) CancelApplicationSettlement(ctx context.Context, id string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/application-settlements/"+id+"/cancel", nil, &out)
+}
+
+func (c *CoreAdminClient) FailApplicationSettlement(ctx context.Context, id string, body any) (map[string]any, error) {
+	var out map[string]any
+	return out, c.post(ctx, "/internal/v1/application-settlements/"+id+"/fail", body, &out)
+}
+
+// ---------------------------------------------------------------------------
 // Low-level HTTP helpers
 // ---------------------------------------------------------------------------
 

@@ -18,6 +18,7 @@ pub mod kyc_data;
 pub mod merchant_profiles;
 pub mod merchants;
 pub mod onboarding;
+pub mod operator_fees;
 pub mod payment_links;
 pub mod payment_requests;
 pub mod pricing_rules;

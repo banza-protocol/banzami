@@ -202,6 +202,17 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/enable", pricingH.Enable)
 		r.With(cap(auth.CapPricingManage)).Post("/admin/v1/finance/pricing-rules/{id}/duplicate", pricingH.Duplicate)
 
+		// Finance — Operator Fees (read-only audit) + Application Settlements
+		// (read + cancel/fail). Read = finance.view (broad); cancel/fail =
+		// finance.manage (SUPER_ADMIN-only) and audited.
+		financeH := handler.NewFinanceAuditHandler(core)
+		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/operator-fees", financeH.ListOperatorFees)
+		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/operator-fees/{id}", financeH.GetOperatorFee)
+		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/application-settlements", financeH.ListSettlements)
+		r.With(cap(auth.CapFinanceView)).Get("/admin/v1/finance/application-settlements/{id}", financeH.GetSettlement)
+		r.With(cap(auth.CapFinanceManage)).Post("/admin/v1/finance/application-settlements/{id}/cancel", financeH.CancelSettlement)
+		r.With(cap(auth.CapFinanceManage)).Post("/admin/v1/finance/application-settlements/{id}/fail", financeH.FailSettlement)
+
 		// Payouts
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts", payoutH.List)
 		r.With(cap(auth.CapPayoutView)).Get("/admin/v1/payouts/all", payoutH.ListAll)

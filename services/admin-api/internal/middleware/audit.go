@@ -91,6 +91,8 @@ var auditActions = map[string]string{
 	"POST /admin/v1/finance/pricing-rules/{id}/disable":     "DISABLE_PRICING_RULE",
 	"POST /admin/v1/finance/pricing-rules/{id}/enable":      "ENABLE_PRICING_RULE",
 	"POST /admin/v1/finance/pricing-rules/{id}/duplicate":   "DUPLICATE_PRICING_RULE",
+	"POST /admin/v1/finance/application-settlements/{id}/cancel": "CANCEL_APPLICATION_SETTLEMENT",
+	"POST /admin/v1/finance/application-settlements/{id}/fail":   "FAIL_APPLICATION_SETTLEMENT",
 	"POST /admin/v1/auth/change-password":                 "CHANGE_PASSWORD",
 	"POST /admin/v1/auth/logout":                          "LOGOUT",
 	"POST /admin/v1/auth/terminate-sessions":              "TERMINATE_SESSIONS",

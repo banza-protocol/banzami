@@ -19,6 +19,7 @@ const (
 	CapRiskView        Capability = "risk.view"
 	CapAuditView       Capability = "audit.view"
 	CapPricingView     Capability = "pricing.view" // read pricing rules (ADR-021)
+	CapFinanceView     Capability = "finance.view" // read operator fees + application settlements (ADR-021)
 
 	// Operator lifecycle.
 	CapOperatorManage Capability = "operator.manage" // create/update/role/suspend/activate
@@ -44,6 +45,7 @@ const (
 	CapWalletCredit     Capability = "wallet.credit"
 	CapReconRun         Capability = "reconciliation.run"
 	CapPricingManage    Capability = "pricing.manage" // create/edit/version/disable pricing rules (ADR-021)
+	CapFinanceManage    Capability = "finance.manage" // cancel/fail application settlements (ADR-021)
 
 	// Dispute + risk operations.
 	CapDisputeResolve Capability = "dispute.resolve"
@@ -64,7 +66,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 	"OPERATIONS": capSet(
 		CapDashboardView, CapApplicationView, CapApplicationApprove, CapApplicationReject,
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
-		CapReconView, CapDisputeView, CapDisputeResolve, CapRiskView, CapPricingView,
+		CapReconView, CapDisputeView, CapDisputeResolve, CapRiskView, CapPricingView, CapFinanceView,
 	),
 
 	// COMPLIANCE — owns KYC/AML/KYB and merchant standing. Can accept/reject KYB
@@ -74,7 +76,7 @@ var roleCapabilities = map[string]map[Capability]bool{
 		CapDashboardView, CapApplicationView, CapMerchantView, CapConsumerView,
 		CapKybAccept, CapKybReject, CapMerchantSuspend, CapComplianceReview, CapAmlFlag,
 		CapConsumerSuspend, CapRiskView, CapRiskResolve, CapRiskFreeze, CapAuditView,
-		CapPricingView,
+		CapPricingView, CapFinanceView,
 	),
 
 	// SUPPORT — help desk. Read operators/merchants/consumers/payments and reset
@@ -83,14 +85,14 @@ var roleCapabilities = map[string]map[Capability]bool{
 	"SUPPORT": capSet(
 		CapDashboardView, CapOperatorRead, CapOperatorReset, CapApplicationView,
 		CapMerchantView, CapConsumerView, CapSettlementView, CapPayoutView,
-		CapReconView, CapDisputeView, CapRiskView, CapAuditView, CapPricingView,
+		CapReconView, CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
 	),
 
 	// READ_ONLY — observe everything, change nothing.
 	"READ_ONLY": capSet(
 		CapDashboardView, CapOperatorRead, CapApplicationView, CapMerchantView,
 		CapConsumerView, CapSettlementView, CapPayoutView, CapReconView,
-		CapDisputeView, CapRiskView, CapAuditView, CapPricingView,
+		CapDisputeView, CapRiskView, CapAuditView, CapPricingView, CapFinanceView,
 	),
 }
 

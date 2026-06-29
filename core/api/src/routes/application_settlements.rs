@@ -48,7 +48,14 @@ pub struct FailBody {
 
 #[derive(Deserialize)]
 pub struct ListQuery {
-    pub owner_ref: String,
+    pub owner_ref: Option<String>,
+    pub status: Option<String>,
+    pub currency: Option<String>,
+    pub business_category: Option<String>,
+    pub pricing_profile: Option<String>,
+    pub environment: Option<String>,
+    pub from: Option<chrono::DateTime<chrono::Utc>>,
+    pub to: Option<chrono::DateTime<chrono::Utc>>,
     pub limit: Option<i64>,
 }
 
@@ -167,11 +174,17 @@ pub async fn list(
     State(state): State<AppState>,
     Query(q): Query<ListQuery>,
 ) -> ApiResult<Json<serde_json::Value>> {
-    let limit = q.limit.unwrap_or(50).clamp(1, 200);
-    let items = state
-        .app_settlement
-        .list_by_owner(&q.owner_ref, state.environment.as_str(), limit)
-        .await
-        .map_err(map_err)?;
+    let filter = banzami_app_settlement::ApplicationSettlementFilter {
+        owner_ref: q.owner_ref,
+        status: q.status,
+        currency: q.currency,
+        business_category: q.business_category,
+        pricing_profile: q.pricing_profile,
+        environment: q.environment,
+        from: q.from,
+        to: q.to,
+        limit: q.limit.unwrap_or(100),
+    };
+    let items = state.app_settlement.list_filtered(&filter).await.map_err(map_err)?;
     Ok(Json(serde_json::json!({ "data": items })))
 }

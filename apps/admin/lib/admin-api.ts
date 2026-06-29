@@ -89,6 +89,86 @@ export interface PricingRuleFilters {
   status?:            'enabled' | 'disabled';
 }
 
+/** An applied operator fee (read-only audit; ADR-021). Immutable. */
+export interface OperatorFee {
+  id:                   string;
+  transaction_id:       string;
+  merchant_id:          string;
+  payment_intent_id:    string | null;
+  source_transfer_id:   string | null;
+  posting_id:           string;
+  gross_minor:          number;
+  fee_minor:            number;
+  net_minor:            number;
+  currency:             string;
+  business_category:    string | null;
+  pricing_profile:      string | null;
+  fee_policy_ref:       string | null;
+  pricing_rule_id:      string | null;
+  pricing_rule_version: number | null;
+  engine_version:       number;
+  snapshot_json:        Record<string, unknown>;
+  status:               string;
+  environment:          string;
+  created_at:           string;
+  settled_at:           string | null;
+}
+
+export interface OperatorFeeFilters {
+  environment?:       string;
+  currency?:          string;
+  business_category?: string;
+  pricing_profile?:   string;
+  pricing_rule_id?:   string;
+  transaction_id?:    string;
+  status?:            string;
+  from?:              string;
+  to?:                string;
+}
+
+interface Amount { amount_minor: number; currency: string }
+
+/** A deferred application settlement (ADR-021). */
+export interface ApplicationSettlement {
+  id:                          string;
+  owner_ref:                   string;
+  application_id:              string | null;
+  source_account_id:           string;
+  beneficiary_account_id:      string;
+  application_fee_account_id:  string | null;
+  gross_amount:                Amount;
+  application_fee:             Amount;
+  net_amount:                  Amount;
+  currency:                    string;
+  business_category:           string | null;
+  pricing_profile:             string | null;
+  fee_policy_ref:              string | null;
+  pricing_rule_id:             string | null;
+  pricing_rule_version:        number | null;
+  engine_version:              number;
+  pricing_snapshot_json:       Record<string, unknown>;
+  status:                      'CREATED' | 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+  settlement_posting_id:       string | null;
+  fee_posting_id:              string | null;
+  environment:                 string;
+  created_at:                  string;
+  completed_at:                string | null;
+  cancelled_at:                string | null;
+  failed_at:                   string | null;
+  failure_reason:              string | null;
+}
+
+export interface AppSettlementFilters {
+  owner_ref?:         string;
+  status?:            string;
+  currency?:          string;
+  business_category?: string;
+  pricing_profile?:   string;
+  environment?:       string;
+  from?:              string;
+  to?:                string;
+}
+
 export interface Payout {
   id:          string;
   merchant_id: string;
@@ -431,6 +511,36 @@ export class AdminApi {
   duplicatePricingRule(id: string, ruleKey: string): Promise<PricingRule> {
     return this.req(`/admin/v1/finance/pricing-rules/${id}/duplicate`, {
       method: 'POST', body: JSON.stringify({ rule_key: ruleKey }),
+    });
+  }
+
+  // Finance — Operator Fees (read-only audit).
+  listOperatorFees(filters: OperatorFeeFilters = {}): Promise<{ data: OperatorFee[] }> {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) q.set(k, String(v));
+    const qs = q.toString();
+    return this.req(`/admin/v1/finance/operator-fees${qs ? `?${qs}` : ''}`);
+  }
+  getOperatorFee(id: string): Promise<OperatorFee> {
+    return this.req(`/admin/v1/finance/operator-fees/${id}`);
+  }
+
+  // Finance — Application Settlements (read + cancel/fail when state permits).
+  listAppSettlements(filters: AppSettlementFilters = {}): Promise<{ data: ApplicationSettlement[] }> {
+    const q = new URLSearchParams();
+    for (const [k, v] of Object.entries(filters)) if (v) q.set(k, String(v));
+    const qs = q.toString();
+    return this.req(`/admin/v1/finance/application-settlements${qs ? `?${qs}` : ''}`);
+  }
+  getAppSettlement(id: string): Promise<ApplicationSettlement> {
+    return this.req(`/admin/v1/finance/application-settlements/${id}`);
+  }
+  cancelAppSettlement(id: string): Promise<ApplicationSettlement> {
+    return this.req(`/admin/v1/finance/application-settlements/${id}/cancel`, { method: 'POST' });
+  }
+  failAppSettlement(id: string, reason: string): Promise<ApplicationSettlement> {
+    return this.req(`/admin/v1/finance/application-settlements/${id}/fail`, {
+      method: 'POST', body: JSON.stringify({ reason }),
     });
   }
 

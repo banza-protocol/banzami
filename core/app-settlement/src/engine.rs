@@ -68,6 +68,12 @@ pub trait ApplicationSettlementEngine: Send + Sync {
         environment: &str,
         limit: i64,
     ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError>;
+
+    /// Read-only filtered listing for the operator audit surface.
+    async fn list_filtered(
+        &self,
+        filter: &crate::repository::ApplicationSettlementFilter,
+    ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError>;
 }
 
 pub struct PostgresApplicationSettlementEngine<L, P, R>
@@ -367,6 +373,13 @@ where
         limit: i64,
     ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError> {
         self.repo.list_by_owner(owner_ref, environment, limit).await
+    }
+
+    async fn list_filtered(
+        &self,
+        filter: &crate::repository::ApplicationSettlementFilter,
+    ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError> {
+        self.repo.list_filtered(filter).await
     }
 }
 

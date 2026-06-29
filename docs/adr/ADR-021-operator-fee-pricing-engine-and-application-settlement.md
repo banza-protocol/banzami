@@ -143,8 +143,17 @@ Rules**, end-to-end across core-api (the only `pricing_rules` write path, with
 version-on-used-edit + never-delete), admin-api (`/admin/v1/finance/pricing-rules`,
 JWT + `pricing.view`/`pricing.manage` RBAC + audited mutations) and the BANZADMIN
 Finanças section. See [docs/admin/pricing.md](../admin/pricing.md). Pricing
-Profiles / Fee Policies CRUD, Operator Fees + Application Settlements read screens
-and dashboards are deferred to subsequent parts.
+Profiles / Fee Policies CRUD and dashboards are deferred to subsequent parts.
+
+**Admin layer (increment 5.6, part 2 — done):** BANZADMIN **Operator Fees** (read-
+only audit, immutable, CSV) and **Application Settlements** (read + cancel/fail when
+the state permits; completed = immutable) audit screens — core-api operator-fees
+read endpoints + filtered settlement listing, admin-api `/admin/v1/finance/operator-
+fees` + `…/application-settlements` (`finance.view`/`finance.manage` RBAC, audited
+mutations), and the BANZADMIN Finanças screens. See
+[docs/admin/financial-operations.md](../admin/financial-operations.md). Pricing
+Profiles / Fee Policies CRUD, settlement reprocess and finance dashboards remain
+deferred.
 
 Nothing is deployed/pushed without an explicit GO; each increment ships and is
 validated independently. The financial-correctness invariants (double-entry,

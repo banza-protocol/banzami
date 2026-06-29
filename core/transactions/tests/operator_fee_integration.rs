@@ -20,9 +20,9 @@ use uuid::Uuid;
 use banzami_ledger::{Account, AccountType, LedgerEngine, PostgresLedgerRepository};
 use banzami_pricing::PostgresPricingRuleProvider;
 use banzami_transactions::{
-    AuthorizeRequest, CaptureRequest, CreateTransactionRequest, PostgresTransactionEngine,
-    PostgresTransactionRepository, TransactionEngine, TransactionError, TransactionStatus,
-    TransactionType,
+    AuthorizeRequest, CaptureRequest, CreateTransactionRequest, OperatorFeeFilter,
+    PostgresOperatorFeeReadRepository, PostgresTransactionEngine, PostgresTransactionRepository,
+    TransactionEngine, TransactionError, TransactionStatus, TransactionType,
 };
 use banzami_types::{AccountId, Currency, MerchantId, Money};
 use banzami_wallets::{
@@ -405,5 +405,42 @@ async fn rule_change_does_not_change_old_fee(pool: PgPool) -> sqlx::Result<()> {
     assert_eq!(snap_before, snap_after, "recorded fee snapshot is immutable");
     assert_eq!(snap_after["rate_bps"], serde_json::json!(200), "still v1's 2%");
     assert_eq!(snap_after["fee_minor"], serde_json::json!(100_00));
+    Ok(())
+}
+
+// ─── operator-fees read repository (audit surface) ──────────────────────────
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn operator_fee_read_lists_filters_and_gets(pool: PgPool) -> sqlx::Result<()> {
+    let fx = setup(pool).await;
+    seed_rule(&fx.pool, "donation-standard", "DONATION", 200).await;
+    let tx = authorize_tx(&fx, "idem-read", 5_000_00, Some("DONATION")).await;
+    fx.engine.capture(CaptureRequest { tx_id: tx.id }).await.unwrap();
+
+    let read = PostgresOperatorFeeReadRepository::new(fx.pool.clone());
+
+    let all = read.list(&OperatorFeeFilter { limit: 100, ..Default::default() }).await.unwrap();
+    assert_eq!(all.len(), 1);
+    let v = &all[0];
+    assert_eq!(v.gross_minor, 5_000_00);
+    assert_eq!(v.fee_minor, 100_00);
+    assert_eq!(v.net_minor, 4_900_00, "net = gross - fee");
+    assert_eq!(v.business_category.as_deref(), Some("DONATION"));
+    assert_eq!(v.snapshot_json["rate_bps"], serde_json::json!(200));
+
+    // filter hit + miss
+    let hit = read.list(&OperatorFeeFilter {
+        business_category: Some("DONATION".into()), limit: 100, ..Default::default()
+    }).await.unwrap();
+    assert_eq!(hit.len(), 1);
+    let miss = read.list(&OperatorFeeFilter {
+        business_category: Some("MARKETPLACE".into()), limit: 100, ..Default::default()
+    }).await.unwrap();
+    assert_eq!(miss.len(), 0);
+
+    // get by id
+    let got = read.get(v.id).await.unwrap();
+    assert_eq!(got.fee_minor, 100_00);
+    assert_eq!(got.transaction_id, tx.id.as_uuid());
     Ok(())
 }

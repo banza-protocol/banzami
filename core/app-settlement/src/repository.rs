@@ -52,6 +52,26 @@ pub trait ApplicationSettlementRepository: Send + Sync {
         environment: &str,
         limit: i64,
     ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError>;
+    /// Filtered admin listing for the audit surface (read-only). All filters
+    /// optional; every value is bound (no SQL injection).
+    async fn list_filtered(
+        &self,
+        f: &ApplicationSettlementFilter,
+    ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError>;
+}
+
+/// Audit filters for the admin application-settlement listing.
+#[derive(Debug, Default, Clone)]
+pub struct ApplicationSettlementFilter {
+    pub owner_ref: Option<String>,
+    pub status: Option<String>,
+    pub currency: Option<String>,
+    pub business_category: Option<String>,
+    pub pricing_profile: Option<String>,
+    pub environment: Option<String>,
+    pub from: Option<DateTime<Utc>>,
+    pub to: Option<DateTime<Utc>>,
+    pub limit: i64,
 }
 
 pub struct PostgresApplicationSettlementRepository {
@@ -202,6 +222,68 @@ impl ApplicationSettlementRepository for PostgresApplicationSettlementRepository
         .bind(limit)
         .fetch_all(&self.pool)
         .await?;
+        rows.into_iter().map(row_to_settlement).collect()
+    }
+
+    async fn list_filtered(
+        &self,
+        f: &ApplicationSettlementFilter,
+    ) -> Result<Vec<ApplicationSettlement>, ApplicationSettlementError> {
+        let mut sql = String::from(SELECT);
+        sql.push_str(" WHERE 1=1");
+        let mut i = 1;
+        macro_rules! clause {
+            ($opt:expr, $col:literal) => {
+                if $opt.is_some() {
+                    sql.push_str(&format!(" AND {} = ${}", $col, i));
+                    i += 1;
+                }
+            };
+        }
+        clause!(f.owner_ref, "owner_ref");
+        clause!(f.status, "status");
+        clause!(f.currency, "currency");
+        clause!(f.business_category, "business_category");
+        clause!(f.pricing_profile, "pricing_profile");
+        clause!(f.environment, "environment");
+        if f.from.is_some() {
+            sql.push_str(&format!(" AND created_at >= ${i}"));
+            i += 1;
+        }
+        if f.to.is_some() {
+            sql.push_str(&format!(" AND created_at <= ${i}"));
+            i += 1;
+        }
+        let _ = i;
+        sql.push_str(" ORDER BY created_at DESC, id DESC");
+        sql.push_str(&format!(" LIMIT {}", f.limit.clamp(1, 1000)));
+
+        let mut q = sqlx::query(&sql);
+        if let Some(v) = &f.owner_ref {
+            q = q.bind(v);
+        }
+        if let Some(v) = &f.status {
+            q = q.bind(v);
+        }
+        if let Some(v) = &f.currency {
+            q = q.bind(v);
+        }
+        if let Some(v) = &f.business_category {
+            q = q.bind(v);
+        }
+        if let Some(v) = &f.pricing_profile {
+            q = q.bind(v);
+        }
+        if let Some(v) = &f.environment {
+            q = q.bind(v);
+        }
+        if let Some(v) = f.from {
+            q = q.bind(v);
+        }
+        if let Some(v) = f.to {
+            q = q.bind(v);
+        }
+        let rows = q.fetch_all(&self.pool).await?;
         rows.into_iter().map(row_to_settlement).collect()
     }
 }

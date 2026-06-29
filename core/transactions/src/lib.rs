@@ -1,8 +1,12 @@
 pub mod engine;
+pub mod operator_fee_read;
 pub mod repository;
 pub mod transaction;
 
 pub use engine::{PostgresTransactionEngine, TransactionEngine};
+pub use operator_fee_read::{
+    OperatorFeeFilter, OperatorFeeView, PostgresOperatorFeeReadRepository,
+};
 pub use repository::{PostgresTransactionRepository, TransactionRepository};
 pub use transaction::{
     AuthorizeRequest, CaptureRequest, CreateTransactionRequest, FailRequest, ReverseRequest,

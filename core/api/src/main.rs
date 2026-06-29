@@ -296,6 +296,15 @@ async fn main() {
             "/internal/v1/settlements/:id/fail",
             post(routes::settlements::fail),
         )
+        // Operator Fees (Banzami ADR-021) — operator-only read-only audit
+        .route(
+            "/internal/v1/operator-fees",
+            get(routes::operator_fees::list),
+        )
+        .route(
+            "/internal/v1/operator-fees/:id",
+            get(routes::operator_fees::get),
+        )
         // Pricing Rules (Banzami ADR-021) — operator-only admin write path
         .route(
             "/internal/v1/pricing-rules",

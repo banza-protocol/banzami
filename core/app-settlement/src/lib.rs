@@ -20,7 +20,10 @@ pub use domain::{
     ApplicationSettlement, ApplicationSettlementStatus, CreateApplicationSettlementRequest,
 };
 pub use engine::{ApplicationSettlementEngine, PostgresApplicationSettlementEngine};
-pub use repository::{ApplicationSettlementRepository, PostgresApplicationSettlementRepository};
+pub use repository::{
+    ApplicationSettlementFilter, ApplicationSettlementRepository,
+    PostgresApplicationSettlementRepository,
+};
 
 use banzami_types::ApplicationSettlementId;
 use thiserror::Error;
