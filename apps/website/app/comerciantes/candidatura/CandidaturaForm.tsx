@@ -9,7 +9,7 @@ import {
   normalizeHandle,
   isValidHandleFormat,
   handleReasonMessage,
-  API_ENV,
+  getPlatformMode,
   type ApplicationInput,
   type KybDocumentType,
 } from '@/lib/api';
@@ -30,10 +30,10 @@ const RED = '#B5101F';
 const RED_DARK = '#9A1B22';
 const GREEN = '#1f9d57';
 
-// The environment is implied by the API host (sandbox host → SANDBOX). When the
-// onboarding page is pointed at sandbox, every step makes that unmistakable so a
-// test application is never confused with a real production Business account.
-const IS_SANDBOX = API_ENV === 'SANDBOX';
+// The sandbox notice follows the global Platform Status at runtime (ADR-025) —
+// NOT the build-time API host — so a SANDBOX platform makes every step
+// unmistakable and a test application is never confused with a real Business
+// account. Resolved once on mount (fail-safe SANDBOX, like the rest of the site).
 
 // --- Static data -----------------------------------------------------------
 
@@ -373,6 +373,13 @@ type HandleState =
 export function CandidaturaForm() {
   const [step, setStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
+  // Sandbox notice follows the global Platform Status (fail-safe SANDBOX).
+  const [isSandbox, setIsSandbox] = useState(true);
+  useEffect(() => {
+    let active = true;
+    void getPlatformMode().then((p) => { if (active) setIsSandbox(p.mode !== 'LIVE'); });
+    return () => { active = false; };
+  }, []);
 
   const [name, setName] = useState('');
   const [handle, setHandle] = useState('');
@@ -666,7 +673,7 @@ export function CandidaturaForm() {
         </div>
       </div>
 
-      {IS_SANDBOX && (
+      {isSandbox && (
         <div className="mb-[22px] flex items-start gap-3 rounded-[16px] border-[1.5px] border-amber-300 bg-amber-50 px-5 py-4">
           <span className="mt-0.5 flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-amber-500 text-[13px] font-black text-white">!</span>
           <div>
@@ -990,7 +997,7 @@ export function CandidaturaForm() {
                     </p>
                   </div>
                 </div>
-                {IS_SANDBOX && (
+                {isSandbox && (
                   <div className="mt-3 rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13px] font-bold text-amber-800">
                     Sandbox — pode enviar documentos de teste. Não serão usados para uma conta real.
                   </div>
@@ -1052,7 +1059,7 @@ export function CandidaturaForm() {
                     {Ic.check(RED, 2.4, 42)}
                   </div>
                   <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada</h2>
-                  {IS_SANDBOX && (
+                  {isSandbox && (
                     <div className="mx-auto mt-4 max-w-[420px] rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13.5px] font-bold text-amber-800">
                       Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não foi criada uma conta Business real.
                     </div>

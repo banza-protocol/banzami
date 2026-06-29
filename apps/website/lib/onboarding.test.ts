@@ -59,6 +59,11 @@ describe('submit application — structured payload', () => {
       'fetch',
       vi.fn(async (url: string, init: RequestInit) => {
         calls.push({ url, init });
+        // Onboarding now resolves the target stack from Platform Mode first
+        // (ADR-025): answer that probe, then the real submit.
+        if (String(url).includes('/v1/platform-mode')) {
+          return { ok: true, status: 200, json: async () => ({ mode: 'SANDBOX', public_banner: true, message: '' }) };
+        }
         return { ok: status >= 200 && status < 300, status, json: async () => body };
       }),
     );
@@ -93,7 +98,9 @@ describe('submit application — structured payload', () => {
     expect(r.ok).toBe(true);
     expect(r.applicationId).toBe('app-9');
 
-    const body = JSON.parse(calls[0].init.body as string);
+    const submitCall = calls.find((c) => String(c.url).includes('/v1/merchant/applications'));
+    expect(submitCall).toBeDefined();
+    const body = JSON.parse(submitCall!.init.body as string);
     for (const k of [
       'province', 'municipality', 'subcategory', 'address_reference',
       'representative_role', 'representative_email', 'representative_phone', 'estimated_volume',

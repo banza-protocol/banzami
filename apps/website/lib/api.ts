@@ -8,6 +8,37 @@ export const API_BASE =
 // The gateway environment is implied by the API host (sandbox host → SANDBOX).
 export const API_ENV: 'LIVE' | 'SANDBOX' = /sandbox/i.test(API_BASE) ? 'SANDBOX' : 'LIVE';
 
+// The two production gateway stacks. Onboarding MUST reach the stack that matches
+// the current Platform Mode (ADR-025): while the platform is SANDBOX, a merchant
+// is provisioned in the SANDBOX stack — where the SANDBOX apps look it up — and at
+// launch (LIVE) in the LIVE stack. The server EnvGate is the guarantee; this
+// routing is the ergonomics that keeps the two ends from diverging.
+const LIVE_API_BASE = 'https://api.banzami.com';
+const SANDBOX_API_BASE = 'https://sandbox-api.banzami.com';
+
+// A custom/localhost API_BASE (dev) is a single stack and is never rewritten.
+const KNOWN_PROD_BASE = API_BASE === LIVE_API_BASE || /sandbox-api\.banzami\.com$/.test(API_BASE);
+
+function baseForMode(mode: 'LIVE' | 'SANDBOX'): string {
+  if (!KNOWN_PROD_BASE) return API_BASE;
+  return mode === 'SANDBOX' ? SANDBOX_API_BASE : LIVE_API_BASE;
+}
+
+// Short-lived memo so a candidatura flow (debounced check-handle + submit +
+// uploads) doesn't refetch the mode on every call. Mode changes are rare and
+// operator-driven; a few seconds of staleness is harmless.
+let _modeMemo: { at: number; v: { base: string; env: 'LIVE' | 'SANDBOX' } } | null = null;
+
+/** Resolve the onboarding base + environment from the live Platform Mode. */
+export async function onboardingTarget(): Promise<{ base: string; env: 'LIVE' | 'SANDBOX' }> {
+  const now = Date.now();
+  if (_modeMemo && now - _modeMemo.at < 30_000) return _modeMemo.v;
+  const { mode } = await getPlatformMode();
+  const v = { base: baseForMode(mode), env: mode };
+  _modeMemo = { at: now, v };
+  return v;
+}
+
 export interface PlatformModeInfo {
   mode: 'SANDBOX' | 'LIVE';
   public_banner: boolean;
@@ -111,7 +142,8 @@ export function isValidPin(pin: string): boolean {
 export type CheckHandleResult = { available: boolean; reason?: string };
 
 export async function checkHandle(handle: string): Promise<CheckHandleResult> {
-  const res = await fetch(`${API_BASE}/v1/merchant/applications/check-handle`, {
+  const { base } = await onboardingTarget();
+  const res = await fetch(`${base}/v1/merchant/applications/check-handle`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ handle }),
@@ -145,10 +177,14 @@ export type ApplicationInput = {
 export type SubmitResult = { ok: boolean; status: number; applicationId?: string; error?: string };
 
 export async function submitApplication(input: ApplicationInput): Promise<SubmitResult> {
-  const res = await fetch(`${API_BASE}/v1/merchant/applications`, {
+  // Route to the stack matching the current Platform Mode and tag the request
+  // with that environment. The gateway stamps the environment authoritatively
+  // (ADR-025); sending the resolved env keeps the client honest too.
+  const { base, env } = await onboardingTarget();
+  const res = await fetch(`${base}/v1/merchant/applications`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ ...input, environment: API_ENV }),
+    body: JSON.stringify({ ...input, environment: env }),
   });
   if (res.ok) {
     const j = await res.json().catch(() => ({}));
@@ -195,8 +231,9 @@ async function requestUploadUrl(
   applicationId: string,
   body: { document_type: KybDocumentType; filename: string; mime_type: string; size_bytes: number },
 ): Promise<{ ok: true; data: UploadUrlResponse } | { ok: false; status: number; code?: string }> {
+  const { base } = await onboardingTarget();
   const res = await fetch(
-    `${API_BASE}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/upload-url`,
+    `${base}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/upload-url`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) },
   );
   if (res.ok) return { ok: true, data: (await res.json()) as UploadUrlResponse };
@@ -205,8 +242,9 @@ async function requestUploadUrl(
 }
 
 async function confirmUpload(applicationId: string, documentId: string): Promise<boolean> {
+  const { base } = await onboardingTarget();
   const res = await fetch(
-    `${API_BASE}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentId)}/confirm`,
+    `${base}/v1/merchant/applications/${encodeURIComponent(applicationId)}/documents/${encodeURIComponent(documentId)}/confirm`,
     { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' },
   );
   return res.ok;
@@ -255,7 +293,8 @@ export type ActivationStatus = {
 };
 
 export async function validateActivation(token: string): Promise<ActivationStatus> {
-  const res = await fetch(`${API_BASE}/v1/merchant/activation/validate`, {
+  const { base } = await onboardingTarget();
+  const res = await fetch(`${base}/v1/merchant/activation/validate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token }),
@@ -266,7 +305,8 @@ export async function validateActivation(token: string): Promise<ActivationStatu
 export type CompleteResult = { ok: boolean; status: number; error?: string };
 
 export async function completeActivation(token: string, pin: string): Promise<CompleteResult> {
-  const res = await fetch(`${API_BASE}/v1/merchant/activation/complete`, {
+  const { base } = await onboardingTarget();
+  const res = await fetch(`${base}/v1/merchant/activation/complete`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ token, pin }),
