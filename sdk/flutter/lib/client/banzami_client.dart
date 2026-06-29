@@ -132,7 +132,10 @@ class BanzamiClient {
   /// Non-secret lookup of a business @handle (unauthenticated) — used so the app
   /// only prompts for a PIN when the account exists and can sign in. Never
   /// returns a PIN/hash/key.
-  Future<({bool exists, bool canLogin, String status, String? displayName})> lookupMerchantHandle(
+  /// [otherEnvironment] is set ("LIVE"/"SANDBOX") only when the account does NOT
+  /// exist in this environment but DOES exist in the other one — so the app can
+  /// say "esta conta pertence ao ambiente X" instead of a misleading not-found.
+  Future<({bool exists, bool canLogin, String status, String? displayName, String? otherEnvironment})> lookupMerchantHandle(
     String handle,
   ) async {
     late http.Response resp;
@@ -148,10 +151,11 @@ class BanzamiClient {
     final body = jsonDecode(resp.body) as Map<String, dynamic>;
     if (resp.statusCode >= 400) throw BanzamiApiException.fromJson(resp.statusCode, body);
     return (
-      exists:      body['exists'] as bool? ?? false,
-      canLogin:    body['can_login'] as bool? ?? false,
-      status:      body['status'] as String? ?? '',
-      displayName: body['display_name'] as String?,
+      exists:           body['exists'] as bool? ?? false,
+      canLogin:         body['can_login'] as bool? ?? false,
+      status:           body['status'] as String? ?? '',
+      displayName:      body['display_name'] as String?,
+      otherEnvironment: body['other_environment'] as String?,
     );
   }
 

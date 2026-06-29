@@ -120,6 +120,10 @@ func (h *MerchantAuthHandler) Lookup(w http.ResponseWriter, r *http.Request) {
 		out["status"] = res.Status
 		out["display_name"] = res.DisplayName
 		out["verified"] = res.Verified
+	} else if res.OtherEnvironment != "" {
+		// The handle lives in the other environment — let the app say so instead of
+		// a misleading "conta não encontrada" (ADR-025).
+		out["other_environment"] = res.OtherEnvironment
 	}
 	writeJSON(w, http.StatusOK, out)
 }

@@ -133,6 +133,22 @@ func TestMerchantAuthLookup(t *testing.T) {
 		}
 	})
 
+	t.Run("handle in the other environment → other_environment, no leak", func(t *testing.T) {
+		h := NewMerchantAuthHandler(cfg, &fakeCreds{lookup: service.MerchantLookup{
+			Exists: false, CanLogin: false, OtherEnvironment: "LIVE",
+		}})
+		out := decode(postJSON(h.Lookup, `{"handle":"jrm"}`))
+		if out["exists"] != false {
+			t.Errorf("must stay exists=false, got %v", out)
+		}
+		if out["other_environment"] != "LIVE" {
+			t.Errorf("expected other_environment=LIVE, got %v", out["other_environment"])
+		}
+		if _, ok := out["display_name"]; ok {
+			t.Errorf("must not leak display_name across environments")
+		}
+	})
+
 	t.Run("suspended → exists true, can_login false", func(t *testing.T) {
 		h := NewMerchantAuthHandler(cfg, &fakeCreds{lookup: service.MerchantLookup{
 			Exists: true, CanLogin: false, Status: "SUSPENDED", DisplayName: "X",

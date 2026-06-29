@@ -92,7 +92,24 @@ func main() {
 		pgWebhook.StartWorker(ctx) // background delivery worker; stops on ctx cancel
 		webhookSvc = pgWebhook
 		teamSvc = service.NewPostgresTeamService(dbPool)
-		merchantCredSvc = service.NewPostgresMerchantCredentialService(dbPool)
+		credSvc := service.NewPostgresMerchantCredentialService(dbPool)
+		// Optional cross-environment handle detection for login UX (ADR-025): a
+		// read-only pool to the OTHER environment's DB lets a failed lookup report
+		// "esta conta pertence ao ambiente X" instead of a misleading not-found.
+		if cfg.CrossEnvDatabaseURL != "" {
+			if crossPool, cerr := pgxpool.New(ctx, cfg.CrossEnvDatabaseURL); cerr != nil {
+				slog.Warn("cross-env db connect failed — login env hint disabled", "error", cerr)
+			} else {
+				defer crossPool.Close()
+				other := "LIVE"
+				if service.NormaliseStackEnv(cfg.Environment) == "LIVE" {
+					other = "SANDBOX"
+				}
+				credSvc.WithCrossEnvLookup(crossPool, other)
+				slog.Info("cross-env handle detection enabled", "other_environment", other)
+			}
+		}
+		merchantCredSvc = credSvc
 		merchantAppSvc = service.NewPostgresMerchantApplicationService(dbPool)
 		merchantAppAdminSvc = service.NewPostgresMerchantApplicationAdminService(dbPool, coreClient)
 		activationSvc = service.NewPostgresActivationService(dbPool)

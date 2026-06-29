@@ -58,7 +58,9 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
       final r = await context.read<BanzamiClient>().lookupMerchantHandle(handle);
       if (!mounted) return;
       if (!r.exists) {
-        setState(() { _error = 'Conta Business não encontrada.'; _loading = false; });
+        // If the account lives in the other environment, say so explicitly rather
+        // than a misleading "não encontrada" (ADR-025).
+        setState(() { _error = _notFoundMessage(r.otherEnvironment); _loading = false; });
         return;
       }
       if (!r.canLogin) {
@@ -70,6 +72,19 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
       if (mounted) setState(() { _error = 'Não foi possível conectar. Tente novamente.'; _loading = false; });
     } catch (_) {
       if (mounted) setState(() { _error = 'Não foi possível conectar. Tente novamente.'; _loading = false; });
+    }
+  }
+
+  // When the handle isn't in this app's environment, name where it lives (if the
+  // gateway could tell us) instead of a flat "não encontrada" (ADR-025).
+  static String _notFoundMessage(String? otherEnvironment) {
+    switch (otherEnvironment) {
+      case 'LIVE':
+        return 'Esta conta pertence ao ambiente de produção (LIVE).';
+      case 'SANDBOX':
+        return 'Esta conta pertence ao ambiente de testes (SANDBOX).';
+      default:
+        return 'Conta Business não encontrada.';
     }
   }
 

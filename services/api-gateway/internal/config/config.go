@@ -12,7 +12,12 @@ type Config struct {
 	LogLevel     string
 	LogFormat    string
 	DatabaseURL  string
-	RedisURL     string
+	// CrossEnvDatabaseURL is an OPTIONAL read-only connection string to the OTHER
+	// environment's database (LIVE stack → banzami_staging, SANDBOX stack →
+	// banzami). Used only to detect "this @handle lives in the other environment"
+	// for the login UX (ADR-025). Empty disables cross-env detection.
+	CrossEnvDatabaseURL string
+	RedisURL            string
 	CoreAPIURL   string
 	OTLPEndpoint string // optional; tracing is a no-op when empty
 	// JWTSecret is required for protected routes.
@@ -73,6 +78,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("DATABASE_URL"); v != "" {
 		cfg.DatabaseURL = v
+	}
+	if v := os.Getenv("CROSS_ENV_DATABASE_URL"); v != "" {
+		cfg.CrossEnvDatabaseURL = v
 	}
 	if v := os.Getenv("WEBHOOK_ENCRYPTION_KEY"); v != "" {
 		cfg.WebhookEncryptionKey = v

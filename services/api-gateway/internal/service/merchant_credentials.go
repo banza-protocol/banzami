@@ -61,6 +61,11 @@ type MerchantLookup struct {
 	DisplayName string
 	Verified    bool
 	Activated   bool // false until the merchant sets a PIN via the activation link
+	// OtherEnvironment is set ("LIVE"/"SANDBOX") only when the handle does NOT
+	// exist in this stack but DOES exist in the other environment. It turns the
+	// app's silent "conta não encontrada" into "esta conta pertence ao ambiente X"
+	// (ADR-025). Empty in the normal case.
+	OtherEnvironment string
 }
 
 // MerchantCredentialService authenticates a merchant by @handle + PIN, lets an
@@ -74,10 +79,24 @@ type MerchantCredentialService interface {
 
 type PostgresMerchantCredentialService struct {
 	pool *pgxpool.Pool
+	// crossPool is an optional read-only pool to the OTHER environment's database.
+	// Used only to detect "this handle lives in the other environment" so login
+	// can report it instead of a misleading not-found (ADR-025). otherEnvName is
+	// the label of that environment ("LIVE"/"SANDBOX").
+	crossPool   *pgxpool.Pool
+	otherEnvName string
 }
 
 func NewPostgresMerchantCredentialService(pool *pgxpool.Pool) *PostgresMerchantCredentialService {
 	return &PostgresMerchantCredentialService{pool: pool}
+}
+
+// WithCrossEnvLookup enables cross-environment handle detection for login UX. A
+// nil pool is a no-op. The pool MUST be read-only (it is only ever SELECTed).
+func (s *PostgresMerchantCredentialService) WithCrossEnvLookup(crossPool *pgxpool.Pool, otherEnvName string) *PostgresMerchantCredentialService {
+	s.crossPool = crossPool
+	s.otherEnvName = otherEnvName
+	return s
 }
 
 // VerifyHandlePin checks the handle + PIN, applying a failed-attempt lockout.
@@ -228,7 +247,10 @@ func (s *PostgresMerchantCredentialService) LookupHandle(ctx context.Context, ha
 		Scan(&status, &verified, &displayName, &activated)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return MerchantLookup{Exists: false, CanLogin: false}, nil
+			// Not here — is it in the other environment? If so, tell the app which
+			// one, so it shows "esta conta pertence ao ambiente X" rather than a
+			// silent not-found (the @jrm failure mode).
+			return MerchantLookup{Exists: false, CanLogin: false, OtherEnvironment: s.lookupOtherEnv(ctx, handle)}, nil
 		}
 		return MerchantLookup{}, err
 	}
@@ -241,6 +263,22 @@ func (s *PostgresMerchantCredentialService) LookupHandle(ctx context.Context, ha
 		Verified:    verified,
 		Activated:   activated,
 	}, nil
+}
+
+// lookupOtherEnv returns the other environment's label when the handle exists
+// there, else "". Best-effort: any error (no cross pool, DB issue) yields "" so a
+// lookup never fails because of the cross-environment probe.
+func (s *PostgresMerchantCredentialService) lookupOtherEnv(ctx context.Context, handle string) string {
+	if s.crossPool == nil {
+		return ""
+	}
+	var one int
+	err := s.crossPool.QueryRow(ctx,
+		`SELECT 1 FROM merchant_app_credentials WHERE handle = $1`, handle).Scan(&one)
+	if err != nil {
+		return ""
+	}
+	return s.otherEnvName
 }
 
 func NormaliseHandle(handle string) string {
