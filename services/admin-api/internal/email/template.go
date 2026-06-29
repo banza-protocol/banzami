@@ -92,7 +92,7 @@ func RenderMerchantApproved(d MerchantApprovedData) (html, text string) {
 		"Boas notícias — a sua conta de negócio Banzami foi aprovada. Já pode aceitar pagamentos em Kwanza por QR, link de pagamento ou @banza.",
 		"Ative a sua conta para abrir o dashboard e começar a receber em segundos.",
 	}
-	const sandboxText = "Esta conta foi criada num ambiente de testes. Não representa uma conta Business real em produção."
+	const sandboxText = "Esta conta foi criada no ambiente de testes da plataforma."
 	if sandbox {
 		// The explanatory text appears in the plain-text alternative too.
 		paras = append([]string{sandboxText}, paras...)
@@ -104,7 +104,7 @@ func RenderMerchantApproved(d MerchantApprovedData) (html, text string) {
 	}
 	body := emTitle("A sua conta Business está pronta")
 	if sandbox {
-		body += emNotice("shield", "Ambiente SANDBOX — esta conta é de teste. "+sandboxText)
+		body += emNotice("shield", "Ambiente SANDBOX — "+sandboxText)
 	}
 	body += emPara(paras[0])
 	for _, p := range paras[1:] {
@@ -122,7 +122,8 @@ func RenderMerchantApproved(d MerchantApprovedData) (html, text string) {
 // ── 2. Comerciante Recusado ──────────────────────────────────────────────────
 
 type MerchantRejectedData struct {
-	Reason string // optional; defaults to the documents message
+	Reason  string // optional; defaults to the documents message
+	Sandbox bool   // platform is in SANDBOX → show a discrete test-env notice
 }
 
 func RenderMerchantRejected(d MerchantRejectedData) (html, text string) {
@@ -136,8 +137,12 @@ func RenderMerchantRejected(d MerchantRejectedData) (html, text string) {
 	}
 	body := emTitle("Sobre o seu pedido Banzami") +
 		emPara(paras[0]) + emPara(paras[1]) +
-		emNotice("doc", "Motivo — "+esc(reason)) +
-		emButton("Contactar o suporte", "mailto:"+contactEmail) +
+		emNotice("doc", "Motivo — "+esc(reason))
+	if d.Sandbox {
+		body += emNotice("shield", "Ambiente SANDBOX — este pedido foi feito no ambiente de testes da plataforma.")
+		paras = append(paras, "Este pedido foi feito no ambiente de testes da plataforma.")
+	}
+	body += emButton("Contactar o suporte", "mailto:"+contactEmail) +
 		emURLFallback("Ou contacte-nos diretamente em:", contactEmail)
 	html = renderLayout(layoutOpts{Subtitle: "Business", BadgeKind: "business", SafetyKind: "normal",
 		Preheader: "Atualização sobre o seu pedido Banzami Business.", Body: body})

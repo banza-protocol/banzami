@@ -18,8 +18,8 @@ func (s *Sender) MerchantApplicationApproved(to, businessName, handle, environme
 // MerchantApplicationRejected — "Sobre o seu pedido Banzami". The merchant may
 // reply → From contact@, Reply-To contact@. businessName is accepted for
 // interface compatibility; the dossier copy does not display it.
-func (s *Sender) MerchantApplicationRejected(to, businessName, message string) {
-	html, text := RenderMerchantRejected(MerchantRejectedData{Reason: message})
+func (s *Sender) MerchantApplicationRejected(to, businessName, message, environment string) {
+	html, text := RenderMerchantRejected(MerchantRejectedData{Reason: message, Sandbox: envIsSandbox(environment)})
 	s.deliver(s.institutional("application_rejected", to,
 		"Atualização sobre o seu pedido Banzami", html, text))
 }

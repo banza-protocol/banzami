@@ -28,7 +28,7 @@ export function PlatformBadge() {
   return (
     <div className="fixed left-1/2 top-2 z-[100] -translate-x-1/2">
       <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400 bg-amber-100 px-3 py-1 text-[11px] font-extrabold uppercase tracking-wide text-amber-900 shadow-sm">
-        🟨 Sandbox
+        🟡 SANDBOX
       </span>
     </div>
   );

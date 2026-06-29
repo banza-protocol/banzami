@@ -26,7 +26,7 @@ type GatewayApplications interface {
 // ApplicationMailer is the subset of the email sender the admin handler uses.
 type ApplicationMailer interface {
 	MerchantApplicationApproved(to, businessName, handle, environment, activationURL string)
-	MerchantApplicationRejected(to, businessName, message string)
+	MerchantApplicationRejected(to, businessName, message, environment string)
 }
 
 // PlatformModeReader reads the global Platform Status (SANDBOX/LIVE). Business
@@ -141,7 +141,7 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	h.mailer.MerchantApplicationRejected(res.Email, res.BusinessName, res.MerchantMessage)
+	h.mailer.MerchantApplicationRejected(res.Email, res.BusinessName, res.MerchantMessage, h.platformEnv(r.Context()))
 
 	auditAfter(r, "merchant_application", chi.URLParam(r, "id"), map[string]any{
 		"status":           "REJECTED",

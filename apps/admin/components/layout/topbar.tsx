@@ -80,9 +80,8 @@ export function Topbar({ user }: { user: AdminUser }) {
       </div>
       <div className="flex items-center gap-[14px]">
         {platformMode === 'SANDBOX' && (
-          <span className="inline-flex items-center gap-[7px] rounded-[30px] border border-amber-400 bg-amber-100 px-[14px] py-2 text-[12.5px] font-extrabold uppercase tracking-wide text-amber-900">
-            <AlertCircle size={14} strokeWidth={2} />
-            Sandbox Mode
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-[12px] font-extrabold text-amber-900">
+            🟡 SANDBOX
           </span>
         )}
         <span className="inline-flex items-center gap-[7px] rounded-[30px] border border-[#f6d3d1] bg-[#FFF1F0] px-[14px] py-2 text-[12.5px] font-extrabold text-[#B5101F]">

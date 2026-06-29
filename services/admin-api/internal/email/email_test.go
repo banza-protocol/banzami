@@ -129,7 +129,7 @@ func TestSenderIdentitiesAndReplyTo(t *testing.T) {
 	s.AdminOperatorInvite("u@x.test", "User", "SUPER_ADMIN", "security@banzami.com", "https://admin.banzami.com/invite/accept?token=X")
 	s.AdminPasswordReset("u@x.test", "User", "https://admin.banzami.com/reset?token=Y")
 	s.MerchantApplicationApproved("m@x.test", "Loja", "loja", "LIVE", "https://business.banzami.com/activate?token=Z")
-	s.MerchantApplicationRejected("m@x.test", "Loja", "motivo de teste")
+	s.MerchantApplicationRejected("m@x.test", "Loja", "motivo de teste", "LIVE")
 
 	if len(captured) != 4 {
 		t.Fatalf("expected 4, got %d", len(captured))
@@ -164,7 +164,7 @@ func TestSubjects(t *testing.T) {
 	var auth string
 	s := newCapturingSender(t, &captured, &auth)
 	s.MerchantApplicationApproved("m@x.test", "Loja", "loja", "LIVE", "https://x/a?token=Z")
-	s.MerchantApplicationRejected("m@x.test", "Loja", "")
+	s.MerchantApplicationRejected("m@x.test", "Loja", "", "LIVE")
 	s.AdminOperatorInvite("u@x.test", "U", "SUPER_ADMIN", "s@b.com", "https://x/i?token=X")
 	s.AdminPasswordReset("u@x.test", "U", "https://x/r?token=Y")
 	s.PaymentReceipt("m@x.test", ReceiptData{AmountText: "Kz 25.000,00", FromHandle: "a", ToHandle: "b", ReceiptURL: "https://x/r"})
@@ -224,5 +224,18 @@ func TestApprovedEmailEnvironment(t *testing.T) {
 	fs, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Loja", Handle: "loja", Environment: "", ActivateURL: "https://x/a"})
 	if strings.Contains(fs, "Produção") || !strings.Contains(fs, "Ambiente SANDBOX") {
 		t.Errorf("empty environment must fail-safe to SANDBOX")
+	}
+}
+
+// The rejection email also carries a discrete sandbox notice when the platform is
+// in SANDBOX, and none in LIVE.
+func TestRejectedEmailSandboxNotice(t *testing.T) {
+	sb, _ := RenderMerchantRejected(MerchantRejectedData{Reason: "x", Sandbox: true})
+	if !strings.Contains(sb, "Ambiente SANDBOX") {
+		t.Errorf("sandbox rejection email missing the sandbox notice")
+	}
+	lv, _ := RenderMerchantRejected(MerchantRejectedData{Reason: "x", Sandbox: false})
+	if strings.Contains(lv, "Ambiente SANDBOX") {
+		t.Errorf("live rejection email must not contain the sandbox notice")
 	}
 }

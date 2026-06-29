@@ -22,12 +22,15 @@ export function PlatformBanner() {
 
   if (!show) return null;
 
+  // A discrete system bar — thin, sticky, no card/pill/shadow/gradient. Inspired
+  // by Stripe/GitHub test-mode banners. Shown only in SANDBOX.
   return (
-    <div role="status" className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 border-b border-amber-300 bg-amber-100 px-4 py-2.5 text-center">
-      <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">🟨 Sandbox</span>
-      <span className="text-[13px] font-bold text-amber-900">
-        Esta plataforma encontra-se atualmente em ambiente de testes. Os dados e operações efetuados não representam produção.
-      </span>
+    <div
+      role="status"
+      className="sticky top-0 z-50 flex items-center justify-center gap-2 border-b border-amber-200 bg-amber-50 px-4 py-[7px] text-[12.5px] leading-none"
+    >
+      <span className="font-extrabold text-amber-900">🟡 SANDBOX</span>
+      <span className="font-semibold text-amber-800 max-[440px]:hidden">Esta plataforma encontra-se em ambiente de testes.</span>
     </div>
   );
 }
