@@ -69,6 +69,17 @@ type Config struct {
 	KycStorageRegion    string
 	KycStorageAccessKey string
 	KycStorageSecretKey string
+
+	// Sandbox KYC storage (bucket banzami-kyc-sandbox). Used ONLY to sign SANDBOX
+	// evidence — never touches the live bucket. Credentials/endpoint fall back to
+	// the live KYC values (same R2 account can read both buckets); set the
+	// KYC_SANDBOX_STORAGE_* envs to override. Optional.
+	KycSandboxStorageProvider  string
+	KycSandboxStorageBucket    string
+	KycSandboxStorageEndpoint  string
+	KycSandboxStorageRegion    string
+	KycSandboxStorageAccessKey string
+	KycSandboxStorageSecretKey string
 }
 
 // Load reads config from environment variables.
@@ -168,6 +179,14 @@ func Load() (*Config, error) {
 		KycStorageRegion:          os.Getenv("KYC_STORAGE_REGION"),
 		KycStorageAccessKey:       os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
 		KycStorageSecretKey:       os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
+
+		// Sandbox KYC storage: sandbox bucket + live creds fallback.
+		KycSandboxStorageProvider:  getenvDefault("KYC_SANDBOX_STORAGE_PROVIDER", os.Getenv("KYC_STORAGE_PROVIDER")),
+		KycSandboxStorageBucket:    getenvDefault("KYC_SANDBOX_STORAGE_BUCKET", "banzami-kyc-sandbox"),
+		KycSandboxStorageEndpoint:  getenvDefault("KYC_SANDBOX_STORAGE_ENDPOINT", os.Getenv("KYC_STORAGE_ENDPOINT")),
+		KycSandboxStorageRegion:    getenvDefault("KYC_SANDBOX_STORAGE_REGION", os.Getenv("KYC_STORAGE_REGION")),
+		KycSandboxStorageAccessKey: getenvDefault("KYC_SANDBOX_STORAGE_ACCESS_KEY_ID", os.Getenv("KYC_STORAGE_ACCESS_KEY_ID")),
+		KycSandboxStorageSecretKey: getenvDefault("KYC_SANDBOX_STORAGE_SECRET_ACCESS_KEY", os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY")),
 	}, nil
 }
 

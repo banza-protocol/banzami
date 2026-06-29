@@ -102,8 +102,9 @@ func main() {
 		kycReview = service.NewKycReviewService(pool, kycStore)
 
 		// Optional sandbox KYC review: a second pool to banzami_staging lets the
-		// operator review SANDBOX consumer-KYC cases (same KYC storage, which can
-		// read both buckets). Without STAGING_DATABASE_URL the SANDBOX toggle 503s.
+		// operator review SANDBOX consumer-KYC cases. SANDBOX evidence is signed
+		// against the sandbox bucket (banzami-kyc-sandbox) — never the live bucket.
+		// Without STAGING_DATABASE_URL the SANDBOX toggle 503s.
 		if cfg.StagingDatabaseURL != "" {
 			stagingPool, serr := pgxpool.New(ctx, cfg.StagingDatabaseURL)
 			if serr != nil {
@@ -111,7 +112,30 @@ func main() {
 				os.Exit(1)
 			}
 			defer stagingPool.Close()
-			kycReviewStaging = service.NewKycReviewService(stagingPool, kycStore)
+
+			// Dedicated sandbox KYC storage (sandbox bucket). Optional: if it cannot
+			// be configured, SANDBOX evidence downloads are disabled (503) but the
+			// rest of sandbox KYC review still works — we never fall back to live.
+			sandboxStore, sserr := kycstorage.NewFromConfig(kycstorage.Config{
+				Provider:        cfg.KycSandboxStorageProvider,
+				Bucket:          cfg.KycSandboxStorageBucket,
+				Endpoint:        cfg.KycSandboxStorageEndpoint,
+				Region:          cfg.KycSandboxStorageRegion,
+				AccessKeyID:     cfg.KycSandboxStorageAccessKey,
+				SecretAccessKey: cfg.KycSandboxStorageSecretKey,
+			})
+			if sserr != nil {
+				if errors.Is(sserr, kycstorage.ErrNotConfigured) {
+					slog.Warn("sandbox KYC storage not configured — SANDBOX evidence downloads disabled")
+					sandboxStore = nil
+				} else {
+					slog.Error("sandbox kyc storage init error", "error", sserr)
+					os.Exit(1)
+				}
+			} else {
+				slog.Info("sandbox KYC storage enabled", "bucket", cfg.KycSandboxStorageBucket)
+			}
+			kycReviewStaging = service.NewKycReviewService(stagingPool, sandboxStore)
 			slog.Info("sandbox KYC review enabled (staging database)")
 		} else {
 			slog.Warn("STAGING_DATABASE_URL not set — sandbox KYC review disabled (503 on SANDBOX)")
