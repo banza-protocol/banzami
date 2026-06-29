@@ -51,8 +51,12 @@ type Config struct {
 
 	// Operator auth (admin_users + admin JWT). DatabaseURL connects to the
 	// shared Postgres; AdminJWTSecret signs the operator JWT.
-	DatabaseURL    string
-	AdminJWTSecret string
+	DatabaseURL string
+	// StagingDatabaseURL optionally connects to the sandbox database (banzami_staging)
+	// so the operator can review SANDBOX consumer-KYC cases. Optional: when unset,
+	// the SANDBOX environment toggle for KYC responds 503 (live review still works).
+	StagingDatabaseURL string
+	AdminJWTSecret     string
 	// AdminBaseURL is the BANZADMIN front-end origin, used to build
 	// password-reset links (e.g. https://admin.banzami.com).
 	AdminBaseURL string
@@ -148,21 +152,22 @@ func Load() (*Config, error) {
 		EmailNoreplyAddress: noreplyAddress,
 
 		// Dry-run is the safe default; only EMAIL_DRY_RUN=false enables real sends.
-		EmailDryRun:        os.Getenv("EMAIL_DRY_RUN") != "false",
-		GatewayInternalURL: getenvDefault("GATEWAY_INTERNAL_URL", "http://api-gateway:8080"),
-		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
+		EmailDryRun:               os.Getenv("EMAIL_DRY_RUN") != "false",
+		GatewayInternalURL:        getenvDefault("GATEWAY_INTERNAL_URL", "http://api-gateway:8080"),
+		InternalAPIKey:            os.Getenv("INTERNAL_API_KEY"),
 		GatewayStagingInternalURL: os.Getenv("GATEWAY_STAGING_INTERNAL_URL"),
 		StagingInternalAPIKey:     os.Getenv("STAGING_INTERNAL_API_KEY"),
-		WebsiteBaseURL:     getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),
-		DatabaseURL:        os.Getenv("DATABASE_URL"),
-		AdminJWTSecret:     os.Getenv("ADMIN_JWT_SECRET"),
-		AdminBaseURL:       getenvDefault("ADMIN_BASE_URL", "https://admin.banzami.com"),
-		KycStorageProvider:  os.Getenv("KYC_STORAGE_PROVIDER"),
-		KycStorageBucket:    os.Getenv("KYC_STORAGE_BUCKET"),
-		KycStorageEndpoint:  os.Getenv("KYC_STORAGE_ENDPOINT"),
-		KycStorageRegion:    os.Getenv("KYC_STORAGE_REGION"),
-		KycStorageAccessKey: os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
-		KycStorageSecretKey: os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
+		WebsiteBaseURL:            getenvDefault("WEBSITE_BASE_URL", "https://banzami.com"),
+		DatabaseURL:               os.Getenv("DATABASE_URL"),
+		StagingDatabaseURL:        os.Getenv("STAGING_DATABASE_URL"),
+		AdminJWTSecret:            os.Getenv("ADMIN_JWT_SECRET"),
+		AdminBaseURL:              getenvDefault("ADMIN_BASE_URL", "https://admin.banzami.com"),
+		KycStorageProvider:        os.Getenv("KYC_STORAGE_PROVIDER"),
+		KycStorageBucket:          os.Getenv("KYC_STORAGE_BUCKET"),
+		KycStorageEndpoint:        os.Getenv("KYC_STORAGE_ENDPOINT"),
+		KycStorageRegion:          os.Getenv("KYC_STORAGE_REGION"),
+		KycStorageAccessKey:       os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
+		KycStorageSecretKey:       os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
 	}, nil
 }
 

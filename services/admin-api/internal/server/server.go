@@ -23,7 +23,7 @@ type Server struct {
 	httpServer *http.Server
 }
 
-func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService) *Server {
+func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender, gw *service.GatewayClient, users *service.AdminUserService, audit *service.AuditService, receiptSrc handler.ReceiptSource, walletLister handler.AdminWalletPaymentLister, kycReview *service.KycReviewService, kycReviewStaging *service.KycReviewService) *Server {
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
@@ -163,9 +163,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 		// Consumer KYC review (ADR-020). View reuses consumer.view; decisions
 		// reuse compliance.review (the operator decides the granted level).
-		kycH := handler.NewKycReviewHandler(kycReview)
+		kycH := handler.NewKycReviewHandler(kycReview, kycReviewStaging)
 		r.With(cap(auth.CapConsumerView)).Get("/admin/v1/kyc/cases", kycH.List)
 		r.With(cap(auth.CapConsumerView)).Get("/admin/v1/kyc/cases/{id}", kycH.Get)
+		r.With(cap(auth.CapConsumerView)).Get("/admin/v1/kyc/cases/{id}/timeline", kycH.Timeline)
+		r.With(cap(auth.CapConsumerView)).Post("/admin/v1/kyc/evidence/{id}/read-url", kycH.ReadURL)
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/kyc/cases/{id}/approve", kycH.Approve)
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/kyc/cases/{id}/reject", kycH.Reject)
 		r.With(cap(auth.CapComplianceReview)).Post("/admin/v1/kyc/cases/{id}/request-more-info", kycH.RequestMoreInfo)

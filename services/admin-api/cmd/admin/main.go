@@ -67,6 +67,7 @@ func main() {
 	var receiptSrc service.ReceiptSource
 	var walletLister service.AdminWalletPaymentLister
 	var kycReview *service.KycReviewService
+	var kycReviewStaging *service.KycReviewService
 	if cfg.DatabaseURL != "" {
 		pool, perr := pgxpool.New(ctx, cfg.DatabaseURL)
 		if perr != nil {
@@ -99,6 +100,23 @@ func main() {
 			}
 		}
 		kycReview = service.NewKycReviewService(pool, kycStore)
+
+		// Optional sandbox KYC review: a second pool to banzami_staging lets the
+		// operator review SANDBOX consumer-KYC cases (same KYC storage, which can
+		// read both buckets). Without STAGING_DATABASE_URL the SANDBOX toggle 503s.
+		if cfg.StagingDatabaseURL != "" {
+			stagingPool, serr := pgxpool.New(ctx, cfg.StagingDatabaseURL)
+			if serr != nil {
+				slog.Error("admin staging db connect error", "error", serr)
+				os.Exit(1)
+			}
+			defer stagingPool.Close()
+			kycReviewStaging = service.NewKycReviewService(stagingPool, kycStore)
+			slog.Info("sandbox KYC review enabled (staging database)")
+		} else {
+			slog.Warn("STAGING_DATABASE_URL not set — sandbox KYC review disabled (503 on SANDBOX)")
+		}
+
 		if cfg.AdminJWTSecret == "" {
 			slog.Warn("ADMIN_JWT_SECRET not set — operator login disabled (503)")
 		} else {
@@ -108,7 +126,7 @@ func main() {
 		slog.Warn("DATABASE_URL not set — operator login disabled (503)")
 	}
 
-	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview)
+	srv := server.New(cfg, core, mailer, gw, users, audit, receiptSrc, walletLister, kycReview, kycReviewStaging)
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()

@@ -19,10 +19,13 @@ import (
 // operator policy (BANZA ADR-038); none of this is protocol.
 
 var (
-	ErrKycCaseNotFound   = errors.New("kyc case not found")
-	ErrKycInvalidState   = errors.New("kyc case is not under review")
-	ErrKycInvalidLevel   = errors.New("granted_level must be BASIC, ENHANCED or FULL")
-	ErrKycReasonRequired = errors.New("reason_code is required")
+	ErrKycCaseNotFound      = errors.New("kyc case not found")
+	ErrKycInvalidState      = errors.New("kyc case is not under review")
+	ErrKycInvalidLevel      = errors.New("granted_level must be BASIC, ENHANCED or FULL")
+	ErrKycReasonRequired    = errors.New("reason_code is required")
+	ErrKycEvidenceNotFound  = errors.New("kyc evidence not found")
+	ErrKycStorageDisabled   = errors.New("kyc evidence storage is not configured")
+	ErrKycEvidenceNotStored = errors.New("kyc evidence has no stored object")
 )
 
 func validGrantedLevel(l string) bool {
@@ -43,15 +46,27 @@ func NewKycReviewService(pool *pgxpool.Pool, storage kycstorage.KycEvidenceStora
 // ── Projections ─────────────────────────────────────────────────────────────
 
 type KycCaseSummary struct {
-	ID           string     `json:"id"`
-	SubjectID    string     `json:"subject_id"`
-	Status       string     `json:"status"`
-	DocumentType string     `json:"document_type,omitempty"`
-	ReasonCode   string     `json:"reason_code,omitempty"`
-	Environment  string     `json:"environment"`
-	CreatedAt    time.Time  `json:"created_at"`
-	SubmittedAt  *time.Time `json:"submitted_at,omitempty"`
-	ReviewedAt   *time.Time `json:"reviewed_at,omitempty"`
+	ID              string     `json:"id"`
+	SubjectID       string     `json:"subject_id"`
+	Status          string     `json:"status"`
+	DocumentType    string     `json:"document_type,omitempty"`
+	DocumentCountry string     `json:"document_country,omitempty"`
+	ReasonCode      string     `json:"reason_code,omitempty"`
+	Environment     string     `json:"environment"`
+	CreatedAt       time.Time  `json:"created_at"`
+	SubmittedAt     *time.Time `json:"submitted_at,omitempty"`
+	ReviewedAt      *time.Time `json:"reviewed_at,omitempty"`
+	// Consumer context (enriched from consumers + customer_compliance). Empty when
+	// the consumer no longer exists (orphan case) — decisions stay blocked by the
+	// state machine, never auto-deleted.
+	ConsumerExists   bool   `json:"consumer_exists"`
+	ConsumerHandle   string `json:"consumer_handle,omitempty"`
+	ConsumerName     string `json:"consumer_name,omitempty"`
+	ConsumerStatus   string `json:"consumer_status,omitempty"`
+	ConsumerPhone    string `json:"consumer_phone,omitempty"`
+	KycLevel         string `json:"kyc_level,omitempty"`
+	ComplianceStatus string `json:"compliance_status,omitempty"`
+	EvidenceCount    int    `json:"evidence_count"`
 }
 
 type KycEvidenceDetail struct {
@@ -62,9 +77,6 @@ type KycEvidenceDetail struct {
 	MimeType     string     `json:"mime_type,omitempty"`
 	SizeBytes    int64      `json:"size_bytes,omitempty"`
 	UploadedAt   *time.Time `json:"uploaded_at,omitempty"`
-	// DownloadURL is a short-lived signed GET (admin only). The storage_key is
-	// never returned.
-	DownloadURL string `json:"download_url,omitempty"`
 }
 
 type KycReviewRecord struct {
@@ -83,6 +95,15 @@ type KycCaseDetail struct {
 	Reviews  []KycReviewRecord   `json:"reviews"`
 }
 
+// KycTimelineEvent is one immutable entry of the case history, sourced from
+// kyc_events (the operator outbox) — newest-first.
+type KycTimelineEvent struct {
+	ID        string         `json:"id"`
+	EventType string         `json:"event_type"`
+	Payload   map[string]any `json:"payload,omitempty"`
+	CreatedAt time.Time      `json:"created_at"`
+}
+
 // ── Reads ───────────────────────────────────────────────────────────────────
 
 // ListCases returns cases filtered by status/environment (most recent first).
@@ -91,12 +112,19 @@ func (s *KycReviewService) ListCases(ctx context.Context, status, environment st
 		limit = 50
 	}
 	rows, err := s.pool.Query(ctx, `
-		SELECT c.id, c.subject_id, c.status, COALESCE(d.document_type,''),
-		       COALESCE(c.reason_code,''), c.environment, c.created_at, c.submitted_at, c.reviewed_at
+		SELECT c.id, c.subject_id, c.status, COALESCE(d.document_type,''), COALESCE(d.country,''),
+		       COALESCE(c.reason_code,''), c.environment, c.created_at, c.submitted_at, c.reviewed_at,
+		       (cons.id IS NOT NULL),
+		       COALESCE(cons.handle,''), COALESCE(cons.display_name,''), COALESCE(cons.status,''),
+		       COALESCE(cons.phone_number,''), COALESCE(cc.kyc_level,''), COALESCE(cc.status,''),
+		       COALESCE(ev.n,0)
 		  FROM kyc_cases c
 		  LEFT JOIN LATERAL (
-		      SELECT document_type FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
+		      SELECT document_type, country FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
 		  ) d ON true
+		  LEFT JOIN consumers cons ON cons.id = c.subject_id
+		  LEFT JOIN customer_compliance cc ON cc.customer_id = c.subject_id
+		  LEFT JOIN LATERAL (SELECT count(*) AS n FROM kyc_evidence WHERE case_id = c.id) ev ON true
 		 WHERE ($1 = '' OR c.status = $1)
 		   AND ($2 = '' OR c.environment = $2)
 		 ORDER BY c.submitted_at DESC NULLS LAST, c.created_at DESC
@@ -108,8 +136,10 @@ func (s *KycReviewService) ListCases(ctx context.Context, status, environment st
 	var out []KycCaseSummary
 	for rows.Next() {
 		var c KycCaseSummary
-		if err := rows.Scan(&c.ID, &c.SubjectID, &c.Status, &c.DocumentType, &c.ReasonCode,
-			&c.Environment, &c.CreatedAt, &c.SubmittedAt, &c.ReviewedAt); err != nil {
+		if err := rows.Scan(&c.ID, &c.SubjectID, &c.Status, &c.DocumentType, &c.DocumentCountry, &c.ReasonCode,
+			&c.Environment, &c.CreatedAt, &c.SubmittedAt, &c.ReviewedAt,
+			&c.ConsumerExists, &c.ConsumerHandle, &c.ConsumerName, &c.ConsumerStatus,
+			&c.ConsumerPhone, &c.KycLevel, &c.ComplianceStatus, &c.EvidenceCount); err != nil {
 			return nil, err
 		}
 		out = append(out, c)
@@ -125,15 +155,22 @@ func (s *KycReviewService) GetCase(ctx context.Context, caseID string) (*KycCase
 	}
 	var d KycCaseDetail
 	err := s.pool.QueryRow(ctx, `
-		SELECT c.id, c.subject_id, c.status, COALESCE(dd.document_type,''),
-		       COALESCE(c.reason_code,''), c.environment, c.created_at, c.submitted_at, c.reviewed_at
+		SELECT c.id, c.subject_id, c.status, COALESCE(dd.document_type,''), COALESCE(dd.country,''),
+		       COALESCE(c.reason_code,''), c.environment, c.created_at, c.submitted_at, c.reviewed_at,
+		       (cons.id IS NOT NULL),
+		       COALESCE(cons.handle,''), COALESCE(cons.display_name,''), COALESCE(cons.status,''),
+		       COALESCE(cons.phone_number,''), COALESCE(cc.kyc_level,''), COALESCE(cc.status,'')
 		  FROM kyc_cases c
 		  LEFT JOIN LATERAL (
-		      SELECT document_type FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
+		      SELECT document_type, country FROM kyc_documents WHERE case_id = c.id ORDER BY created_at LIMIT 1
 		  ) dd ON true
+		  LEFT JOIN consumers cons ON cons.id = c.subject_id
+		  LEFT JOIN customer_compliance cc ON cc.customer_id = c.subject_id
 		 WHERE c.id = $1`, caseID).
-		Scan(&d.ID, &d.SubjectID, &d.Status, &d.DocumentType, &d.ReasonCode,
-			&d.Environment, &d.CreatedAt, &d.SubmittedAt, &d.ReviewedAt)
+		Scan(&d.ID, &d.SubjectID, &d.Status, &d.DocumentType, &d.DocumentCountry, &d.ReasonCode,
+			&d.Environment, &d.CreatedAt, &d.SubmittedAt, &d.ReviewedAt,
+			&d.ConsumerExists, &d.ConsumerHandle, &d.ConsumerName, &d.ConsumerStatus,
+			&d.ConsumerPhone, &d.KycLevel, &d.ComplianceStatus)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, ErrKycCaseNotFound
@@ -142,7 +179,7 @@ func (s *KycReviewService) GetCase(ctx context.Context, caseID string) (*KycCase
 	}
 
 	evRows, err := s.pool.Query(ctx, `
-		SELECT id, evidence_type, COALESCE(side,''), status, mime_type, COALESCE(size_bytes,0), uploaded_at, storage_key
+		SELECT id, evidence_type, COALESCE(side,''), status, mime_type, COALESCE(size_bytes,0), uploaded_at
 		  FROM kyc_evidence WHERE case_id = $1 ORDER BY created_at`, caseID)
 	if err != nil {
 		return nil, err
@@ -150,22 +187,19 @@ func (s *KycReviewService) GetCase(ctx context.Context, caseID string) (*KycCase
 	defer evRows.Close()
 	for evRows.Next() {
 		var e KycEvidenceDetail
-		var storageKey string
 		if err := evRows.Scan(&e.ID, &e.EvidenceType, &e.Side, &e.Status, &e.MimeType,
-			&e.SizeBytes, &e.UploadedAt, &storageKey); err != nil {
+			&e.SizeBytes, &e.UploadedAt); err != nil {
 			return nil, err
 		}
-		// Mint a signed download only for uploaded objects; never expose the key.
-		if s.storage != nil && e.Status == "UPLOADED" {
-			if rd, rerr := s.storage.CreateReadURL(ctx, storageKey, ""); rerr == nil {
-				e.DownloadURL = rd.URL
-			}
-		}
+		// Signed download URLs are NOT minted here — the operator mints one on
+		// demand per access via ReadEvidenceURL (audited as VIEW/DOWNLOAD/COPY).
+		// The storage_key never leaves the service.
 		d.Evidence = append(d.Evidence, e)
 	}
 	if err := evRows.Err(); err != nil {
 		return nil, err
 	}
+	d.EvidenceCount = len(d.Evidence)
 
 	rvRows, err := s.pool.Query(ctx, `
 		SELECT reviewer_type, COALESCE(reviewer_id,''), decision, COALESCE(reason_code,''),
@@ -184,6 +218,65 @@ func (s *KycReviewService) GetCase(ctx context.Context, caseID string) (*KycCase
 		d.Reviews = append(d.Reviews, r)
 	}
 	return &d, rvRows.Err()
+}
+
+// Timeline returns the immutable case history (kyc_events), newest-first. The
+// events themselves are the audit-grade record; reviews are also surfaced inline
+// in GetCase. Limited to 200 entries.
+func (s *KycReviewService) Timeline(ctx context.Context, caseID string) ([]KycTimelineEvent, error) {
+	if _, err := uuid.Parse(caseID); err != nil {
+		return nil, ErrKycCaseNotFound
+	}
+	rows, err := s.pool.Query(ctx, `
+		SELECT id, event_type, COALESCE(payload,'{}'::jsonb), created_at
+		  FROM kyc_events WHERE case_id = $1 ORDER BY created_at DESC LIMIT 200`, caseID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []KycTimelineEvent{}
+	for rows.Next() {
+		var e KycTimelineEvent
+		var raw []byte
+		if err := rows.Scan(&e.ID, &e.EventType, &raw, &e.CreatedAt); err != nil {
+			return nil, err
+		}
+		if len(raw) > 0 {
+			_ = json.Unmarshal(raw, &e.Payload)
+		}
+		out = append(out, e)
+	}
+	return out, rows.Err()
+}
+
+// ReadEvidenceURL mints a short-lived signed GET for one evidence object on
+// demand. The storage_key is fetched internally and never returned; only the URL
+// is. Errors when storage is unconfigured, the evidence is unknown, or no object
+// has been uploaded yet.
+func (s *KycReviewService) ReadEvidenceURL(ctx context.Context, evidenceID string) (string, error) {
+	if s.storage == nil {
+		return "", ErrKycStorageDisabled
+	}
+	if _, err := uuid.Parse(evidenceID); err != nil {
+		return "", ErrKycEvidenceNotFound
+	}
+	var storageKey, status string
+	err := s.pool.QueryRow(ctx,
+		`SELECT storage_key, status FROM kyc_evidence WHERE id = $1`, evidenceID).Scan(&storageKey, &status)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", ErrKycEvidenceNotFound
+		}
+		return "", err
+	}
+	if status != "UPLOADED" || storageKey == "" {
+		return "", ErrKycEvidenceNotStored
+	}
+	rd, err := s.storage.CreateReadURL(ctx, storageKey, "")
+	if err != nil {
+		return "", err
+	}
+	return rd.URL, nil
 }
 
 // ── Decisions ───────────────────────────────────────────────────────────────

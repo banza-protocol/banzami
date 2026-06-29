@@ -927,6 +927,51 @@ export class AdminApi {
     const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
     return this.req(`/admin/v1/notifications/summary${q}`);
   }
+
+  // ── Consumer KYC review (ADR-020; admin-api-owned, no gateway hop) ──────────
+  listKycCases(status?: string, environment?: string, limit?: number): Promise<{ cases: KycCaseSummary[] }> {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (environment) qs.set('environment', environment);
+    if (limit) qs.set('limit', String(limit));
+    const q = qs.toString();
+    return this.req(`/admin/v1/kyc/cases${q ? `?${q}` : ''}`);
+  }
+  getKycCase(id: string, environment?: string): Promise<KycCaseDetail> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/kyc/cases/${id}${q}`);
+  }
+  getKycTimeline(id: string, environment?: string): Promise<{ events: KycTimelineEvent[] }> {
+    const q = environment === 'SANDBOX' ? '?environment=SANDBOX' : '';
+    return this.req(`/admin/v1/kyc/cases/${id}/timeline${q}`);
+  }
+  // Mints a short-TTL signed GET for one evidence object on demand. Never persisted;
+  // the access (view/download/copy) is audited server-side. storage_key never returned.
+  mintKycEvidenceReadUrl(evidenceId: string, intent: 'view' | 'download' | 'copy', environment?: string): Promise<{ download_url: string }> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/kyc/evidence/${evidenceId}/read-url${q}`, {
+      method: 'POST', body: JSON.stringify({ intent }),
+    });
+  }
+  // The operator decides the granted level (BASIC|ENHANCED|FULL) — never the consumer.
+  approveKycCase(id: string, grantedLevel: string, notes?: string, environment?: string): Promise<KycCaseDetail> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/kyc/cases/${id}/approve${q}`, {
+      method: 'POST', body: JSON.stringify({ granted_level: grantedLevel, notes: notes || undefined }),
+    });
+  }
+  rejectKycCase(id: string, reasonCode: string, notes?: string, environment?: string): Promise<KycCaseDetail> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/kyc/cases/${id}/reject${q}`, {
+      method: 'POST', body: JSON.stringify({ reason_code: reasonCode, notes: notes || undefined }),
+    });
+  }
+  requestKycMoreInfo(id: string, reasonCode: string, notes?: string, environment?: string): Promise<KycCaseDetail> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/kyc/cases/${id}/request-more-info${q}`, {
+      method: 'POST', body: JSON.stringify({ reason_code: reasonCode, notes: notes || undefined }),
+    });
+  }
 }
 
 export type OperatorRole = 'SUPER_ADMIN' | 'OPERATIONS' | 'COMPLIANCE' | 'SUPPORT' | 'READ_ONLY';
@@ -1041,6 +1086,60 @@ export interface KybTimelineEvent {
   document_id?: string;
   payload?:    Record<string, unknown>;
   created_at:  string;
+}
+
+// Consumer KYC (ADR-020). Enriched server-side with consumer identity + compliance.
+export interface KycCaseSummary {
+  id:                string;
+  subject_id:        string;
+  status:            string;
+  document_type?:    string;
+  document_country?: string;
+  reason_code?:      string;
+  environment:       string;
+  created_at:        string;
+  submitted_at?:     string | null;
+  reviewed_at?:      string | null;
+  consumer_exists:   boolean;
+  consumer_handle?:  string;
+  consumer_name?:    string;
+  consumer_status?:  string;
+  consumer_phone?:   string;
+  kyc_level?:        string;
+  compliance_status?: string;
+  evidence_count:    number;
+}
+
+export interface KycEvidence {
+  id:            string;
+  evidence_type: string;
+  side?:         string;
+  status:        string;
+  mime_type?:    string;
+  size_bytes?:   number;
+  uploaded_at?:  string | null;
+}
+
+export interface KycReviewRecord {
+  reviewer_type: string;
+  reviewer_id?:  string;
+  decision:      string;
+  reason_code?:  string;
+  granted_level?: string;
+  notes?:        string;
+  created_at:    string;
+}
+
+export interface KycCaseDetail extends KycCaseSummary {
+  evidence: KycEvidence[];
+  reviews:  KycReviewRecord[];
+}
+
+export interface KycTimelineEvent {
+  id:         string;
+  event_type: string;
+  payload?:   Record<string, unknown>;
+  created_at: string;
 }
 
 export interface NotificationSummary {

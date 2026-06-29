@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
+  LayoutGrid, Building2, Users, Layers, CreditCard, ReceiptText, RefreshCw, Scale, Shield, UserCog, LogOut, FileCheck, ScanFace, Tags, Coins, HandCoins, PieChart, SlidersHorizontal, ScrollText,
   type LucideIcon,
 } from 'lucide-react';
 import { destroySession, getSession } from '@/lib/session';
@@ -16,6 +16,7 @@ function badgeCount(href: string, s: NotificationSummary | null): number {
   if (!s) return 0;
   switch (href) {
     case '/merchant-kyb':            return s.pending_kyb_documents;
+    case '/consumer-kyc':            return s.pending_kyc_documents;
     case '/merchants':               return s.pending_business_applications;
     case '/disputes':                return s.open_disputes;
     case '/reconciliation':          return s.pending_reconciliations;
@@ -41,6 +42,7 @@ const NAV: NavEntry[] = [
   { href: '/', label: 'Visão geral', Icon: LayoutGrid, exact: true },
   { href: '/merchants', label: 'Comerciantes', Icon: Building2 },
   { href: '/merchant-kyb', label: 'Documentos KYB', Icon: FileCheck },
+  { href: '/consumer-kyc', label: 'Documentos KYC', Icon: ScanFace },
   { href: '/consumers', label: 'Consumidores', Icon: Users },
   { href: '/settlements', label: 'Liquidações', Icon: Layers },
   { href: '/payments', label: 'Pagamentos', Icon: CreditCard },
