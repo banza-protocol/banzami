@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { FileText } from 'lucide-react';
 import { getSession } from '@/lib/session';
-import { AdminApi, ADMIN_API_BASE, type MerchantKybDoc } from '@/lib/admin-api';
+import { AdminApi, type MerchantKybDoc } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
@@ -14,11 +14,10 @@ function getApi(): AdminApi | null {
   return s ? new AdminApi(s.token) : null;
 }
 
-// The portal talks to one admin-api; the environment is inferred from its host.
-// Documents uploaded from a Business app in a DIFFERENT environment will not show
-// here (e.g. portal=LIVE, app=SANDBOX) — that's by design, surfaced in the empty
-// state so it isn't mistaken for a bug.
-const ENV: 'LIVE' | 'SANDBOX' = /sandbox/i.test(ADMIN_API_BASE) ? 'SANDBOX' : 'LIVE';
+// The KYB review environment is operator-selectable: LIVE reads the live gateway,
+// SANDBOX forwards (via admin-api) to the staging gateway. The selected environment
+// is shown as a strong badge so live and sandbox data are never confused.
+type Env = 'LIVE' | 'SANDBOX';
 
 const TYPE_LABEL: Record<string, string> = {
   COMMERCIAL_REGISTRATION: 'Registo Comercial',
@@ -49,28 +48,31 @@ export default function MerchantKybPage() {
   const [docs, setDocs] = useState<MerchantKybDoc[] | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('PENDING_REVIEW');
+  const [env, setEnv] = useState<Env>('LIVE');
   const [busy, setBusy] = useState<string | null>(null);
 
-  const load = useCallback(async (s: string) => {
+  const envParam = (e: Env) => (e === 'SANDBOX' ? 'SANDBOX' : undefined);
+
+  const load = useCallback(async (s: string, e: Env) => {
     const api = getApi();
     if (!api) return;
     setDocs(null);
     setError('');
     try {
-      const r = await api.listMerchantKybDocuments(s || undefined, 200);
+      const r = await api.listMerchantKybDocuments(s || undefined, 200, e === 'SANDBOX' ? 'SANDBOX' : undefined);
       setDocs(r.documents ?? []);
-    } catch (e) {
-      const code = (e as { code?: string })?.code;
+    } catch (err) {
+      const code = (err as { code?: string })?.code;
       setError(
         code === 'UNAVAILABLE' || code === 'NOT_FOUND'
-          ? 'A revisão de documentos KYB não está disponível neste ambiente.'
+          ? `A revisão de documentos KYB em ${e === 'LIVE' ? 'Produção' : 'Sandbox'} não está disponível.`
           : 'Não foi possível carregar os documentos.',
       );
       setDocs([]);
     }
   }, []);
 
-  useEffect(() => { void load(status); }, [load, status]);
+  useEffect(() => { void load(status, env); }, [load, status, env]);
 
   function openDocument(d: MerchantKybDoc) {
     // download_url is a short-TTL signed GET minted server-side; never logged.
@@ -100,9 +102,9 @@ export default function MerchantKybPage() {
     if (!a) return;
     setBusy(d.id);
     try {
-      await a.approveMerchantKybDocument(d.id, validUntil);
+      await a.approveMerchantKybDocument(d.id, validUntil, envParam(env));
       toast('success', 'Documento aprovado.');
-      await load(status);
+      await load(status, env);
     } catch {
       setError('Não foi possível aprovar o documento.');
     } finally { setBusy(null); }
@@ -121,9 +123,9 @@ export default function MerchantKybPage() {
     if (!a) return;
     setBusy(d.id);
     try {
-      await a.rejectMerchantKybDocument(d.id, reason.trim());
+      await a.rejectMerchantKybDocument(d.id, reason.trim(), envParam(env));
       toast('success', 'Documento rejeitado.');
-      await load(status);
+      await load(status, env);
     } catch {
       setError('Não foi possível rejeitar o documento.');
     } finally { setBusy(null); }
@@ -132,15 +134,28 @@ export default function MerchantKybPage() {
   return (
     <div className="p-[26px]">
       <div className="mb-[22px] flex items-center justify-between border-b border-[#f1e3e3]">
-        <div>
-          <h1 className="pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]">Documentos KYB</h1>
+        <h1 className="pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]">Documentos KYB</h1>
+        <div className="mb-3 flex items-center gap-3">
+          {/* Strong, unmissable environment badge — so live and sandbox data are never confused. */}
+          <span className={`rounded-md px-3 py-1.5 text-sm font-extrabold uppercase tracking-wide ${env === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white'}`}>
+            {env === 'LIVE' ? '● Produção (LIVE)' : '● Sandbox'}
+          </span>
+          <div className="flex overflow-hidden rounded-lg border border-[#eaddde]">
+            {(['LIVE', 'SANDBOX'] as Env[]).map((e) => (
+              <button
+                key={e}
+                onClick={() => setEnv(e)}
+                className={`px-3 py-1.5 text-sm font-bold ${env === e ? (e === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white') : 'bg-white text-[#5a4a4e]'}`}
+              >
+                {e === 'LIVE' ? 'Live' : 'Sandbox'}
+              </button>
+            ))}
+          </div>
         </div>
-        <span className={`mb-3 rounded-full px-3 py-1 text-xs font-bold ${ENV === 'LIVE' ? 'bg-[#FBE9EA] text-[#B5101F]' : 'bg-amber-50 text-amber-700'}`}>
-          Ambiente: {ENV === 'LIVE' ? 'Produção' : 'Sandbox'}
-        </span>
       </div>
       <p className="mb-4 text-[14px] text-[#9a8a8e]">
         Documentos do negócio enviados/atualizados dentro da app Business (pós-aprovação) — distintos dos documentos da candidatura.
+        {env === 'SANDBOX' && <span className="font-bold text-amber-700"> A rever documentos de SANDBOX.</span>}
       </p>
 
       <div className="mb-[18px] flex flex-wrap gap-2">
@@ -163,7 +178,7 @@ export default function MerchantKybPage() {
         ) : docs.length === 0 ? (
           <EmptyMsg
             title="Nenhum documento encontrado neste ambiente."
-            hint={`Portal em ${ENV === 'LIVE' ? 'Produção' : 'Sandbox'}. Confirme se a app usada está no mesmo ambiente do portal.`}
+            hint={`A rever ${env === 'LIVE' ? 'Produção' : 'Sandbox'}. Confirme se a app usada está no mesmo ambiente (use o seletor Live/Sandbox acima).`}
           />
         ) : (
           <div className="flex flex-col gap-2 p-4">

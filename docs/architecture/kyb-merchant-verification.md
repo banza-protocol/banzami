@@ -84,10 +84,12 @@ KYB buckets separate from KYC; no permanent public URLs.
 `apps/admin` → **Documentos KYB** (`/merchant-kyb`) lists post-approval
 `merchant_kyb_documents` (distinct from the application-doc section), filter by
 status, open via the short-TTL signed `download_url`, approve (optional
-`valid_until`) / reject (reason required). It shows an **environment badge**
-(LIVE/SANDBOX, inferred from the admin-api host) and an env-aware empty state —
-because the portal reads a single environment, a Business app in a *different*
-environment (e.g. app=SANDBOX, portal=LIVE) won't show its docs there, by design.
+`valid_until`) / reject (reason required). It has a **LIVE/SANDBOX toggle** (strong badge): LIVE reads the live gateway,
+SANDBOX makes the live admin-api forward to the **staging** gateway
+(`GATEWAY_STAGING_INTERNAL_URL` + `STAGING_INTERNAL_API_KEY`; absent → SANDBOX
+returns 503). This is operator-only internal use — it lets the single live portal
+review sandbox docs without a separate portal/DNS. The selected environment is
+always shown so live and sandbox data are never confused.
 
 ## Stale-merchant guard
 

@@ -576,20 +576,23 @@ export class AdminApi {
   // Merchant KYB documents (post-approval, maintained inside the Business app —
   // distinct from the application docs above). The list carries short-TTL signed
   // download URLs; storage_key is never exposed.
-  listMerchantKybDocuments(status?: string, limit?: number): Promise<{ documents: MerchantKybDoc[] }> {
+  listMerchantKybDocuments(status?: string, limit?: number, environment?: string): Promise<{ documents: MerchantKybDoc[] }> {
     const qs = new URLSearchParams();
     if (status) qs.set('status', status);
     if (limit) qs.set('limit', String(limit));
+    if (environment) qs.set('environment', environment);
     const q = qs.toString();
     return this.req(`/admin/v1/merchant-kyb/documents${q ? `?${q}` : ''}`);
   }
-  approveMerchantKybDocument(id: string, validUntil?: string): Promise<{ status: string }> {
-    return this.req(`/admin/v1/merchant-kyb/documents/${id}/approve`, {
+  approveMerchantKybDocument(id: string, validUntil?: string, environment?: string): Promise<{ status: string }> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/merchant-kyb/documents/${id}/approve${q}`, {
       method: 'POST', body: JSON.stringify(validUntil ? { valid_until: validUntil } : {}),
     });
   }
-  rejectMerchantKybDocument(id: string, reason: string): Promise<{ status: string }> {
-    return this.req(`/admin/v1/merchant-kyb/documents/${id}/reject`, {
+  rejectMerchantKybDocument(id: string, reason: string, environment?: string): Promise<{ status: string }> {
+    const q = environment ? `?environment=${environment}` : '';
+    return this.req(`/admin/v1/merchant-kyb/documents/${id}/reject${q}`, {
       method: 'POST', body: JSON.stringify({ rejection_reason: reason }),
     });
   }

@@ -145,7 +145,11 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/reject", applicationsH.RejectDocument)
 
 		// Merchant KYB documents (post-approval) — admin review.
-		merchantKybH := handler.NewMerchantKybHandler(gw)
+		var gwSandbox *service.GatewayClient
+		if cfg.GatewayStagingInternalURL != "" {
+			gwSandbox = service.NewGatewayClient(cfg.GatewayStagingInternalURL, cfg.StagingInternalAPIKey)
+		}
+		merchantKybH := handler.NewMerchantKybHandler(gw, gwSandbox)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/documents", merchantKybH.List)
 		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-kyb/documents/{id}/approve", merchantKybH.Approve)
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-kyb/documents/{id}/reject", merchantKybH.Reject)
