@@ -246,6 +246,65 @@ jobs:
         working-directory: sdk/typescript
         run: npm test
 
+  # ─── Migration governance ───────────────────────────────────────────────────
+  # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
+  # migration that does not apply from scratch, leftover pending migrations, a
+  # frozen (Phase 2 / ADR-036) migration leaking into the active source, or a
+  # sqlx-backfill that no longer matches real sqlx tracking. This is the gate that
+  # makes `sqlx migrate run` the single source of truth (audit Part 4).
+  migrations:
+    name: Migrations — sequence, tracking, freeze
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER:     banzami
+          POSTGRES_PASSWORD: banzami_dev
+          POSTGRES_DB:       banzami_dev
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U banzami -d banzami_dev"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install sqlx-cli
+        run: cargo install sqlx-cli --no-default-features --features postgres --locked
+
+      - name: Active sequence applies cleanly from scratch (order + completeness)
+        run: sqlx migrate run --source db/migrations
+
+      - name: No pending migrations after run
+        run: |
+          if sqlx migrate info --source db/migrations | grep -qi pending; then
+            echo "::error::pending migrations after run — sequence drift"; exit 1
+          fi
+
+      - name: Frozen migrations must NOT be in the active source
+        run: |
+          if ls db/migrations/0064_* db/migrations/0065_* db/migrations/0066_* 2>/dev/null; then
+            echo "::error::a frozen Phase-2 migration (collections/payment_intents) is in the active source"; exit 1
+          fi
+          test -d db/migrations.phase2 || { echo "::error::db/migrations.phase2 (freeze) missing"; exit 1; }
+
+      - name: sqlx-backfill matches real sqlx tracking (byte-identical)
+        run: |
+          psql "$DATABASE_URL" -c "CREATE DATABASE banzami_backfill;"
+          BF="postgres://banzami:banzami_dev@localhost:5433/banzami_backfill"
+          bash tools/sqlx-backfill.sh | psql "$BF" -q
+          psql "$DATABASE_URL" -tAc "SELECT version||'|'||description||'|'||encode(checksum,'hex') FROM _sqlx_migrations ORDER BY version" > /tmp/real.txt
+          psql "$BF"            -tAc "SELECT version||'|'||description||'|'||encode(checksum,'hex') FROM _sqlx_migrations ORDER BY version" > /tmp/bf.txt
+          if ! diff -q /tmp/real.txt /tmp/bf.txt; then
+            echo "::error::sqlx-backfill output drifted from real sqlx tracking"; diff /tmp/real.txt /tmp/bf.txt; exit 1
+          fi
+          echo "backfill matches sqlx ($(wc -l < /tmp/real.txt) migrations)"
+
   # ─── Deploy ─────────────────────────────────────────────────────────────────
   # OPT-IN, disabled by default. Production deployment is done manually with
   # `./deploy.sh` (see CLAUDE.md §19.4) — this CI job is a redundant alternative.
@@ -261,7 +320,7 @@ jobs:
   deploy:
     name: Deploy to production
     runs-on: ubuntu-latest
-    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript]
+    needs: [rust, go-gateway, go-admin, go-public, go-sandbox-operator, typescript, migrations]
     if: ${{ github.ref == 'refs/heads/main' && github.event_name == 'push' && vars.ENABLE_CI_DEPLOY == 'true' }}
     environment: production
 

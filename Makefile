@@ -141,7 +141,7 @@ dev-status:
 	$(COMPOSE_INFRA) ps
 
 # ─── Database ─────────────────────────────────────────────────────────────────
-.PHONY: db-migrate db-reset db-status db-psql db-drift-check
+.PHONY: db-migrate db-reset db-status db-psql db-drift-check db-verify
 
 db-migrate: _require-database-url _require-sqlx
 	@printf "Applying migrations → $(DATABASE_URL)\n"
@@ -161,6 +161,16 @@ db-status: _require-database-url _require-sqlx
 # documented divergences with PARITY_IGNORE. See tools/check-migration-drift.sh.
 db-drift-check:
 	bash tools/check-migration-drift.sh
+
+# Verify the active migration source against DATABASE_URL: tracked, no pending, and
+# frozen Phase-2 migrations kept out of the active source. Same gate as CI.
+db-verify: _require-database-url _require-sqlx
+	@sqlx migrate info --source $(DB_MIG) | grep -qi pending \
+	  && { printf "  ✗ pending migrations — run 'make db-migrate'\n"; exit 1; } \
+	  || printf "  ✓ no pending migrations\n"
+	@ls $(DB_MIG)/0064_* $(DB_MIG)/0065_* $(DB_MIG)/0066_* >/dev/null 2>&1 \
+	  && { printf "  ✗ a frozen Phase-2 migration is in the active source\n"; exit 1; } \
+	  || printf "  ✓ frozen Phase-2 migrations are out of the active source\n"
 
 db-psql:
 	$(COMPOSE_INFRA) exec postgres psql -U banzami -d banzami_dev

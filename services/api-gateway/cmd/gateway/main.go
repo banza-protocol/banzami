@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -81,6 +82,9 @@ func main() {
 			slog.Error("webhook db connect error", "error", err)
 			os.Exit(1)
 		}
+		// Fail fast at boot on a mis-provisioned database rather than 500-ing on the
+		// first request (startup half of migration governance — audit Part 4).
+		validateGatewaySchema(ctx, dbPool, cfg.Environment)
 		secretCipher, err := crypto.NewSecretCipher(cfg.WebhookEncryptionKey)
 		if err != nil {
 			slog.Error("webhook encryption key error", "error", err)
@@ -265,6 +269,48 @@ func initLogger(cfg *config.Config) {
 
 // proofHashSalt salts the verification ip/ua hashes. Falls back to the proof
 // signing key, then a non-secret default — raw IPs are never stored either way.
+// requiredGatewayTables are the operator tables the gateway must have to function.
+// A LIVE stack missing any of them is a mis-provisioned database, so it fails fast
+// at boot instead of 500-ing on first request; dev/sandbox warn and continue. This
+// is the startup half of migration governance (audit Part 4).
+var requiredGatewayTables = []string{
+	"merchants", "merchant_profiles", "merchant_applications", "handle_registry",
+	"merchant_app_credentials", "merchant_activation_tokens", "merchant_kyb_documents",
+	"kyc_cases", "transaction_proofs", "transaction_proof_verifications",
+	"platform_settings", "app_settlements",
+}
+
+func validateGatewaySchema(ctx context.Context, pool *pgxpool.Pool, env string) {
+	sel := make([]string, len(requiredGatewayTables))
+	for i, t := range requiredGatewayTables {
+		sel[i] = fmt.Sprintf("to_regclass('public.%s') IS NOT NULL", t)
+	}
+	exists := make([]bool, len(requiredGatewayTables))
+	dst := make([]any, len(requiredGatewayTables))
+	for i := range exists {
+		dst[i] = &exists[i]
+	}
+	if err := pool.QueryRow(ctx, "SELECT "+strings.Join(sel, ", ")).Scan(dst...); err != nil {
+		slog.Error("[SCHEMA] startup schema validation query failed", "error", err)
+		return
+	}
+	var missing []string
+	for i, ok := range exists {
+		if !ok {
+			missing = append(missing, requiredGatewayTables[i])
+		}
+	}
+	if len(missing) == 0 {
+		slog.Info("[SCHEMA] startup validation passed", "required_tables", len(requiredGatewayTables))
+		return
+	}
+	if strings.EqualFold(env, "LIVE") {
+		slog.Error("[SCHEMA] required tables missing in LIVE — refusing to start (mis-provisioned database)", "missing", missing)
+		os.Exit(1)
+	}
+	slog.Warn("[SCHEMA] required tables missing — continuing (dev/sandbox)", "missing", missing)
+}
+
 // proofKeyState classifies how main should react to a missing proof signing key.
 type proofKeyState int
 
