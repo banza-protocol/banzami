@@ -52,31 +52,7 @@ Banzami.
 This is the **official architecture** of the ecosystem. Everything in this
 repository serves the middle layer — the operator.
 
-```
-                   BANZA Protocol
-                          │
-                 defines the standards
-                          │
-                          ▼
-                 Banzami Operator
-                          │
-     executes money • ledger • compliance
-     pricing • settlement • proofs • webhooks
-                          │
-       validates • settles • audits • protects
-                          ▼
-          ┌───────────────┴───────────────┐
-          │                               │
-        DOA                           Mongo
-          │                               │
-     defines campaigns             defines deliveries
-     defines fees                  defines rules
-     defines its business          defines its business
-          │                               │
-          └───────────────┬───────────────┘
-                          │
-                  use the Banzami APIs
-```
+![BANZA ecosystem — the protocol defines, the operator executes, the applications use](docs/diagrams/banzami-ecosystem-architecture-v1.svg)
 
 Three layers, three responsibilities: **the protocol defines, the operator
 executes, the applications use.**
