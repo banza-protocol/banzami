@@ -60,4 +60,11 @@ export type {
   PaymentRequestStatus,
   CreatePaymentRequestParams,
   ListPaymentRequestsParams,
+  ApplicationSettlement,
+  ApplicationSettlementStatus,
+  CreateApplicationSettlementParams,
+  WalletAccount,
+  WalletAccountPurpose,
+  CreateWalletAccountParams,
+  CreateBusinessApplicationSettlementParams,
 } from './types.js';

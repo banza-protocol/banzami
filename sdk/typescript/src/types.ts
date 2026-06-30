@@ -439,3 +439,58 @@ export interface CreateApplicationSettlementParams {
   businessCategory?: string;
   pricingProfile?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Wallet Accounts (ADR-042) — segregated accounts within a wallet
+// ---------------------------------------------------------------------------
+
+export type WalletAccountPurpose =
+  | 'PRIMARY' | 'CAMPAIGN' | 'PROJECT' | 'EVENT'
+  | 'STORE' | 'ESCROW' | 'RESERVE' | 'SETTLEMENT' | 'CUSTOM';
+
+/** A segregated account inside a wallet. The balance is read from the operator
+ *  ledger — the app never holds or computes it. Ledger account ids are never
+ *  exposed; reference an account by `id`. */
+export interface WalletAccount {
+  id: string;
+  wallet_id: string;
+  purpose: WalletAccountPurpose;
+  reference_type: string | null;
+  reference_id: string | null;
+  label: string | null;
+  status: string;
+  available_balance_minor: number;
+  currency: string;
+  created_at: string;
+}
+
+export interface CreateWalletAccountParams {
+  walletId: string;
+  purpose: WalletAccountPurpose;
+  referenceType?: string;
+  referenceId?: string;
+  label?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Application Settlement — app-defined fee (ADR-029)
+// ---------------------------------------------------------------------------
+
+/** Close-out where the APP defines the fee rate (`applicationFeeBps`). The
+ *  operator reads the gross from the source account's real balance, computes the
+ *  fee, splits fee→fee-destination / net→beneficiary, and audits it. The app
+ *  sends no amount and never computes the fee. Beneficiary and fee destination
+ *  are given as @banza names; the operator resolves them. */
+export interface CreateBusinessApplicationSettlementParams {
+  /** A segregated wallet account id the caller owns (e.g. a CAMPAIGN account). */
+  sourceAccountId: string;
+  beneficiaryBanzaName: string;
+  /** Required when `applicationFeeBps > 0`; must be the caller's own account. */
+  feeDestinationBanzaName?: string;
+  /** App-defined fee rate in basis points (0..=5000 = 50% cap). */
+  applicationFeeBps: number;
+  reason?: string;
+  referenceType?: string;
+  referenceId?: string;
+  idempotencyKey: string;
+}

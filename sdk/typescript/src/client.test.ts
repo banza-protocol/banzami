@@ -551,3 +551,80 @@ describe('auth token exchange', () => {
     await expect(client.getTransaction('1')).rejects.toBeInstanceOf(BanzamiAuthError);
   });
 });
+
+// ---------------------------------------------------------------------------
+// Wallet Accounts (ADR-042) + app-defined settlement (ADR-029)
+// ---------------------------------------------------------------------------
+
+describe('wallet accounts', () => {
+  const wa = {
+    id: 'wa-1', wallet_id: 'w-1', purpose: 'CAMPAIGN', reference_type: 'DOA_CAMPAIGN',
+    reference_id: 'camp-1', label: 'Campanha', status: 'ACTIVE',
+    available_balance_minor: 0, currency: 'AOA', created_at: '2026-06-30T00:00:00Z',
+  };
+
+  it('createWalletAccount posts to /business/wallet-accounts with the right body', async () => {
+    mockFetch(201, wa);
+    await client.createWalletAccount({
+      walletId: 'w-1', purpose: 'CAMPAIGN',
+      referenceType: 'DOA_CAMPAIGN', referenceId: 'camp-1', label: 'Campanha',
+    });
+    const { url, init } = lastFetchCall();
+    expect(url).toContain('/business/wallet-accounts');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body as string);
+    expect(body.wallet_id).toBe('w-1');
+    expect(body.purpose).toBe('CAMPAIGN');
+    expect(body.reference_type).toBe('DOA_CAMPAIGN');
+    expect(body.reference_id).toBe('camp-1');
+  });
+
+  it('listWalletAccounts GETs with wallet_id query', async () => {
+    mockFetch(200, { data: [wa] });
+    await client.listWalletAccounts('w-1');
+    const { url, init } = lastFetchCall();
+    expect(url).toContain('/business/wallet-accounts?wallet_id=w-1');
+    expect((init.method ?? 'GET')).toBe('GET');
+  });
+
+  it('getWalletAccount GETs by id', async () => {
+    mockFetch(200, wa);
+    await client.getWalletAccount('wa-1');
+    expect(lastFetchCall().url).toContain('/business/wallet-accounts/wa-1');
+  });
+});
+
+describe('app-defined application settlement', () => {
+  const settled = {
+    id: 'set-1', owner_ref: 'camp-1', status: 'CREATED',
+    gross_amount_minor: 200000, application_fee_minor: 10000, net_amount_minor: 190000,
+    currency: 'AOA', environment: 'sandbox', created_at: '2026-06-30T00:00:00Z',
+    completed_at: null, failure_reason: null,
+  };
+
+  it('createBusinessApplicationSettlement sends bps + @names and NO amount', async () => {
+    mockFetch(201, settled);
+    await client.createBusinessApplicationSettlement({
+      idempotencyKey: 'doa-camp-1-settle',
+      sourceAccountId: 'wa-1',
+      beneficiaryBanzaName: '@maria',
+      feeDestinationBanzaName: '@doa',
+      applicationFeeBps: 500,
+      referenceType: 'DOA_CAMPAIGN',
+      referenceId: 'camp-1',
+    });
+    const { url, init } = lastFetchCall();
+    expect(url).toContain('/business/application-settlements');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body as string);
+    expect(body.source_account_id).toBe('wa-1');
+    expect(body.beneficiary_banza_name).toBe('@maria');
+    expect(body.fee_destination_banza_name).toBe('@doa');
+    expect(body.application_fee_bps).toBe(500);
+    expect(body.reason).toBe('CAMPAIGN_CLOSE');
+    // the app never sends an amount or a computed fee
+    expect(body.gross_amount_minor).toBeUndefined();
+    expect(body.amount_minor).toBeUndefined();
+    expect(body.application_fee_minor).toBeUndefined();
+  });
+});

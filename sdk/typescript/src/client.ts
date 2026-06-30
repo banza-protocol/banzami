@@ -31,6 +31,9 @@ import type {
   ListPaymentRequestsParams,
   ApplicationSettlement,
   CreateApplicationSettlementParams,
+  WalletAccount,
+  CreateWalletAccountParams,
+  CreateBusinessApplicationSettlementParams,
 } from './types.js';
 
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
@@ -597,6 +600,67 @@ export class BanzamiClient {
 
   getApplicationSettlement(id: string): Promise<ApplicationSettlement> {
     return this.request<ApplicationSettlement>(`/application-settlements/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Wallet Accounts (ADR-042) — segregated accounts within a wallet
+  // ---------------------------------------------------------------------------
+
+  /** Open a segregated account inside a wallet you own (e.g. a CAMPAIGN account
+   *  to isolate a fundraiser). Idempotent on (wallet, purpose, reference). */
+  createWalletAccount(p: CreateWalletAccountParams): Promise<WalletAccount> {
+    return this.request<WalletAccount>('/business/wallet-accounts', {
+      method: 'POST',
+      body:   JSON.stringify({
+        wallet_id:      p.walletId,
+        purpose:        p.purpose,
+        reference_type: p.referenceType ?? null,
+        reference_id:   p.referenceId ?? null,
+        label:          p.label ?? null,
+      }),
+    });
+  }
+
+  listWalletAccounts(walletId: string): Promise<{ data: WalletAccount[] }> {
+    return this.request<{ data: WalletAccount[] }>(
+      `/business/wallet-accounts${this.qs({ wallet_id: walletId })}`,
+    );
+  }
+
+  getWalletAccount(id: string): Promise<WalletAccount> {
+    return this.request<WalletAccount>(`/business/wallet-accounts/${id}`);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Application Settlement — app-defined fee (ADR-029)
+  // ---------------------------------------------------------------------------
+
+  /** Settle a segregated account: the APP defines the fee rate
+   *  (`applicationFeeBps`); the operator reads the real balance as the gross,
+   *  resolves the @banza beneficiary / fee destination, splits and audits it.
+   *  You send no amount and never compute the fee. Idempotent on `idempotencyKey`. */
+  createBusinessApplicationSettlement(
+    p: CreateBusinessApplicationSettlementParams,
+  ): Promise<ApplicationSettlement> {
+    return this.request<ApplicationSettlement>('/business/application-settlements', {
+      method: 'POST',
+      body:   JSON.stringify({
+        idempotency_key:            p.idempotencyKey,
+        source_account_id:          p.sourceAccountId,
+        beneficiary_banza_name:     p.beneficiaryBanzaName,
+        fee_destination_banza_name: p.feeDestinationBanzaName ?? null,
+        application_fee_bps:        p.applicationFeeBps,
+        reason:                     p.reason ?? 'CAMPAIGN_CLOSE',
+        reference_type:             p.referenceType ?? null,
+        reference_id:               p.referenceId ?? null,
+      }),
+    });
+  }
+
+  /** Resolve a @banza handle to confirm it exists and can receive funds (used to
+   *  validate a beneficiary before settlement). Consumer handles today. */
+  resolveHandle(handle: string): Promise<Consumer> {
+    return this.getConsumerByHandle(handle);
   }
 
   // ---------------------------------------------------------------------------
