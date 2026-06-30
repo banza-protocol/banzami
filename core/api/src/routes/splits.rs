@@ -302,6 +302,7 @@ pub async fn pay(
             currency,
             description: Some(format!("Split {session_id}")),
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .map_err(|e| match e {

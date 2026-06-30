@@ -45,6 +45,7 @@ struct QrRow {
     expires_at: Option<DateTime<Utc>>,
     used_at: Option<DateTime<Utc>>,
     reference: Option<String>,
+    wallet_account_id: Option<Uuid>,
     created_at: DateTime<Utc>,
 }
 
@@ -63,7 +64,7 @@ impl PostgresQrRepository {
 }
 
 const SELECT: &str = "SELECT id, owner_id, owner_type, qr_type, currency, amount_minor, status,
-            expires_at, used_at, reference, created_at
+            expires_at, used_at, reference, wallet_account_id, created_at
      FROM qr_codes";
 
 impl QrRepository for PostgresQrRepository {
@@ -71,8 +72,8 @@ impl QrRepository for PostgresQrRepository {
         sqlx::query(
             "INSERT INTO qr_codes
              (id, owner_id, owner_type, qr_type, currency, amount_minor, status,
-              expires_at, used_at, reference, created_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+              expires_at, used_at, reference, wallet_account_id, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         )
         .bind(qr.id.as_uuid())
         .bind(qr.owner_id)
@@ -84,6 +85,7 @@ impl QrRepository for PostgresQrRepository {
         .bind(qr.expires_at)
         .bind(qr.used_at)
         .bind(&qr.reference)
+        .bind(qr.wallet_account_id)
         .bind(qr.created_at)
         .execute(&self.pool)
         .await
@@ -134,7 +136,7 @@ impl QrRepository for PostgresQrRepository {
                 AND status = 'ACTIVE'
                 AND (expires_at IS NULL OR expires_at > now())
             RETURNING id, owner_id, owner_type, qr_type, currency, amount_minor,
-                      status, expires_at, used_at, reference, created_at",
+                      status, expires_at, used_at, reference, wallet_account_id, created_at",
         )
         .bind(id.as_uuid())
         .fetch_optional(&self.pool)
@@ -202,6 +204,7 @@ fn qr_from_row(row: QrRow) -> Result<QrCode, QrError> {
         expires_at: row.expires_at,
         used_at: row.used_at,
         reference: row.reference,
+        wallet_account_id: row.wallet_account_id,
         created_at: row.created_at,
     })
 }

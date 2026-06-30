@@ -125,6 +125,7 @@ async fn send_transfer_succeeds_and_produces_completed_status(pool: PgPool) -> s
             currency: Currency::AOA,
             description: Some("test payment".into()),
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap();
@@ -158,6 +159,7 @@ async fn get_returns_stored_transfer(pool: PgPool) -> sqlx::Result<()> {
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap();
@@ -188,6 +190,7 @@ async fn idempotent_send_returns_original_transfer(pool: PgPool) -> sqlx::Result
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     };
 
     let first = eng.send(req()).await.unwrap();
@@ -219,6 +222,7 @@ async fn zero_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap_err();
@@ -245,6 +249,7 @@ async fn negative_amount_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap_err();
@@ -270,6 +275,7 @@ async fn self_transfer_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap_err();
@@ -296,6 +302,7 @@ async fn insufficient_funds_is_rejected(pool: PgPool) -> sqlx::Result<()> {
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap_err();
@@ -323,6 +330,7 @@ async fn transfer_with_unknown_sender_is_rejected(pool: PgPool) -> sqlx::Result<
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .unwrap_err();
@@ -354,6 +362,7 @@ async fn balance_is_reduced_after_send(pool: PgPool) -> sqlx::Result<()> {
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     })
     .await
     .unwrap();
@@ -404,6 +413,7 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         }),
         e2.send(banzami_transfers::transfer::SendTransferRequest {
             idempotency_key: "t-conc-2".into(),
@@ -413,6 +423,7 @@ async fn concurrent_transfers_respect_balance(pool: PgPool) -> sqlx::Result<()> 
             currency: Currency::AOA,
             description: None,
             recipient_handle: None,
+            recipient_account_id: None,
         }),
     );
 
@@ -467,6 +478,7 @@ async fn transfer_is_zero_sum(pool: PgPool) -> sqlx::Result<()> {
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     })
     .await
     .unwrap();
@@ -523,6 +535,7 @@ async fn recipient_balance_increases_after_transfer(pool: PgPool) -> sqlx::Resul
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     })
     .await
     .unwrap();
@@ -568,6 +581,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     })
     .await
     .unwrap();
@@ -581,6 +595,7 @@ async fn chain_of_transfers_preserves_total(pool: PgPool) -> sqlx::Result<()> {
         currency: Currency::AOA,
         description: None,
         recipient_handle: None,
+        recipient_account_id: None,
     })
     .await
     .unwrap();

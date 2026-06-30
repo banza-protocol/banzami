@@ -212,6 +212,7 @@ async fn qr_payment_amount_equals_debit_equals_credit(pool: PgPool) {
             amount_minor: qr_amount,
             expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
             reference: Some("table-7".into()),
+            wallet_account_id: None,
         })
         .await
         .unwrap();
@@ -237,6 +238,7 @@ async fn qr_payment_amount_equals_debit_equals_credit(pool: PgPool) {
             currency: Currency::AOA,
             description: Some("QR payment".into()),
             recipient_handle: None,
+            recipient_account_id: None,
         })
         .await
         .expect("QR payment should settle");
@@ -289,6 +291,7 @@ async fn concurrent_dynamic_qr_claims_win_at_most_once(pool: PgPool) {
             amount_minor: 100_000,
             expires_at: chrono::Utc::now() + chrono::Duration::hours(1),
             reference: None,
+            wallet_account_id: None,
         })
         .await
         .unwrap();

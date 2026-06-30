@@ -109,7 +109,8 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         // Fetch recipient's available_account_id (no lock needed — we're only crediting).
         // Try consumer_wallets first (P2P transfers); fall back to merchant wallets
         // (payment link payments where recipient_id is the merchant wallet UUID).
-        let recipient_available_acct: uuid::Uuid = {
+        // `is_merchant_recipient` gates the ADR-042 segregated-account routing below.
+        let (recipient_available_acct, is_merchant_recipient): (uuid::Uuid, bool) = {
             let consumer_acct: Option<uuid::Uuid> = sqlx::query_scalar(
                 "SELECT available_account_id
                  FROM consumer_wallets
@@ -124,10 +125,10 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
             .map_err(TransferError::Database)?;
 
             if let Some(acct) = consumer_acct {
-                acct
+                (acct, false)
             } else {
                 // Recipient is a merchant wallet — look up by wallet UUID directly.
-                sqlx::query_scalar(
+                let acct = sqlx::query_scalar(
                     "SELECT available_account_id
                      FROM wallets
                      WHERE id = $1 AND currency = $2 AND status = 'ACTIVE'",
@@ -140,7 +141,33 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
                 .ok_or_else(|| TransferError::WalletNotFound {
                     consumer_id: req.recipient_id,
                     currency: req.currency,
-                })?
+                })?;
+                (acct, true)
+            }
+        };
+
+        // ADR-042: optionally route the CREDIT to a segregated wallet account.
+        // The account MUST belong to the recipient merchant wallet, be ACTIVE, and
+        // match the currency. Routing is rejected for consumer (P2P) recipients.
+        // `None` ⇒ credit the wallet's default available account (unchanged).
+        let recipient_credit_acct: uuid::Uuid = match req.recipient_account_id {
+            None => recipient_available_acct,
+            Some(wa_id) => {
+                if !is_merchant_recipient {
+                    return Err(TransferError::InvalidWalletAccount);
+                }
+                sqlx::query_scalar(
+                    "SELECT account_id
+                     FROM wallet_accounts
+                     WHERE id = $1 AND wallet_id = $2 AND currency = $3 AND status = 'ACTIVE'",
+                )
+                .bind(wa_id)
+                .bind(req.recipient_id.as_uuid())
+                .bind(req.currency.code())
+                .fetch_optional(&mut *db_tx)
+                .await
+                .map_err(TransferError::Database)?
+                .ok_or(TransferError::InvalidWalletAccount)?
             }
         };
 
@@ -208,7 +235,7 @@ impl<R: TransferRepository> TransferEngine for PostgresTransferEngine<R> {
         )
         .bind(LedgerEntryId::new().as_uuid())
         .bind(posting_id.as_uuid())
-        .bind(recipient_available_acct)
+        .bind(recipient_credit_acct)
         .bind(req.amount_minor)
         .bind(req.currency.code())
         .bind(now)

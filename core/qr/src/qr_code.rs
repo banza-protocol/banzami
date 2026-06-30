@@ -107,6 +107,9 @@ pub struct QrCode {
     pub used_at: Option<DateTime<Utc>>,
     /// Optional opaque merchant/consumer reference (e.g. order ID).
     pub reference: Option<String>,
+    /// ADR-042: optionally route this QR's credit to a segregated wallet account
+    /// of the owner (e.g. a DOA campaign account). `None` ⇒ default wallet account.
+    pub wallet_account_id: Option<uuid::Uuid>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -129,6 +132,9 @@ pub struct CreateDynamicQrRequest {
     pub amount_minor: i64,
     pub expires_at: DateTime<Utc>,
     pub reference: Option<String>,
+    /// ADR-042: optionally bind this dynamic QR to a segregated wallet account of
+    /// the owner so payments route there (e.g. a DOA campaign account).
+    pub wallet_account_id: Option<uuid::Uuid>,
 }
 
 // ---------------------------------------------------------------------------
@@ -165,4 +171,7 @@ pub struct ResolvedQrTarget {
     pub amount_minor: Option<i64>,
     /// Present for dynamic QR — the caller must `mark_used` it after settlement.
     pub qr_code_id: Option<QrCodeId>,
+    /// ADR-042: segregated wallet account to credit (dynamic QR only). `None` ⇒
+    /// the owner's default wallet account.
+    pub wallet_account_id: Option<uuid::Uuid>,
 }

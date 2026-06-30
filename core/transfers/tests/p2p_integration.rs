@@ -188,6 +188,7 @@ async fn p2p_send(
             currency,
             description: note.map(str::to_string),
             recipient_handle: Some(recipient.normalized_handle),
+            recipient_account_id: None,
         })
         .await
 }
@@ -586,6 +587,7 @@ async fn concurrent_sends_cannot_overdraw(pool: PgPool) {
                 currency,
                 description: None,
                 recipient_handle: Some("ana_conc".into()),
+                recipient_account_id: None,
             })
             .await
         });

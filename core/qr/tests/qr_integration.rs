@@ -116,6 +116,7 @@ async fn dynamic_qr_persists_amount_and_resolves(pool: PgPool) {
             amount_minor: 250_000, // 2,500 AOA
             expires_at: Utc::now() + Duration::hours(1),
             reference: Some("invoice-42".into()),
+            wallet_account_id: None,
         })
         .await
         .expect("create_dynamic should persist");
@@ -153,6 +154,7 @@ async fn dynamic_qr_single_use_not_reusable(pool: PgPool) {
             amount_minor: 100_000,
             expires_at: Utc::now() + Duration::hours(1),
             reference: None,
+            wallet_account_id: None,
         })
         .await
         .unwrap();
@@ -186,6 +188,7 @@ async fn dynamic_qr_rejects_past_expiry(pool: PgPool) {
             amount_minor: 100_000,
             expires_at: Utc::now() - Duration::minutes(1),
             reference: None,
+            wallet_account_id: None,
         })
         .await
         .unwrap_err();
@@ -217,6 +220,7 @@ async fn dynamic_qr_expires_by_timeout(pool: PgPool) {
         expires_at: Some(Utc::now() - Duration::minutes(5)),
         used_at: None,
         reference: None,
+        wallet_account_id: None,
         created_at: Utc::now() - Duration::hours(1),
     };
     repo.create(stale.clone()).await.expect("seed stale QR");

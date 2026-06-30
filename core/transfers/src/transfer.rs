@@ -95,4 +95,9 @@ pub struct SendTransferRequest {
     /// Normalized @banza handle of the recipient (no @). Snapshotted for audit trail.
     /// None for internal/merchant flows that route by UUID.
     pub recipient_handle: Option<String>,
+    /// ADR-042: optionally route the recipient CREDIT to a specific segregated
+    /// wallet account (must belong to the recipient MERCHANT wallet, be ACTIVE,
+    /// and match the currency). `None` ⇒ the wallet's default available account.
+    /// Ignored for consumer (P2P) recipients; supplying it there is rejected.
+    pub recipient_account_id: Option<uuid::Uuid>,
 }

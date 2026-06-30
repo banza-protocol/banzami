@@ -51,6 +51,12 @@ pub enum TransferError {
     #[error("unknown transfer status: {0}")]
     UnknownStatus(String),
 
+    /// ADR-042: the requested recipient wallet account is invalid — it does not
+    /// belong to the recipient merchant wallet, is not ACTIVE, has a different
+    /// currency, or routing was requested for a non-merchant (P2P) recipient.
+    #[error("invalid recipient wallet account")]
+    InvalidWalletAccount,
+
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),
 }

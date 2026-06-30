@@ -67,6 +67,7 @@ pub async fn send(
             currency,
             description: body.description,
             recipient_handle: None, // UUID-based internal route — no handle snapshot
+            recipient_account_id: None,
         })
         .await
         .map_err(|e| match e {
@@ -234,6 +235,7 @@ pub async fn send_p2p(
             currency,
             description: body.note,
             recipient_handle: Some(recipient_dest.normalized_handle.clone()),
+            recipient_account_id: None,
         })
         .await
         .map_err(|e| match e {

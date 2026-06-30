@@ -566,6 +566,7 @@ async fn create_surface(
                     amount_minor: share.amount_minor,
                     expires_at,
                     reference: Some(share.id.to_string()),
+                    wallet_account_id: None,
                 })
                 .await
                 .map_err(|e| ApiError::internal(e.to_string()))?;

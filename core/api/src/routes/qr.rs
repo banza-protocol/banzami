@@ -38,6 +38,9 @@ pub struct CreateDynamicQrBody {
     pub amount_minor: i64,
     pub expires_at: chrono::DateTime<chrono::Utc>,
     pub reference: Option<String>,
+    /// ADR-042: optionally bind this QR to a segregated wallet account of the
+    /// owner (e.g. a DOA campaign account) so payments route there.
+    pub wallet_account_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -136,6 +139,34 @@ pub async fn create_dynamic(
         return Err(ApiError::bad_request("amount_minor must be positive"));
     }
 
+    // ADR-042: a bound segregated account must belong to the owner MERCHANT wallet,
+    // be ACTIVE, and match the QR currency. Validated here for early feedback; the
+    // transfer engine re-checks at pay time (authoritative).
+    let wallet_account_id = match body.wallet_account_id.as_deref() {
+        None => None,
+        Some(raw) => {
+            let wa_id = uuid::Uuid::parse_str(raw)
+                .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
+            let ok: Option<uuid::Uuid> = sqlx::query_scalar(
+                "SELECT id FROM wallet_accounts
+                  WHERE id = $1 AND wallet_id = $2 AND currency = $3 AND status = 'ACTIVE'",
+            )
+            .bind(wa_id)
+            .bind(owner_id)
+            .bind(currency.code())
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?;
+            if ok.is_none() {
+                return Err(ApiError::unprocessable(
+                    "INVALID_WALLET_ACCOUNT",
+                    "wallet_account_id must be an active account of the owner wallet in this currency",
+                ));
+            }
+            Some(wa_id)
+        }
+    };
+
     let qr = state
         .qr
         .create_dynamic(CreateDynamicQrRequest {
@@ -145,6 +176,7 @@ pub async fn create_dynamic(
             amount_minor: body.amount_minor,
             expires_at: body.expires_at,
             reference: body.reference,
+            wallet_account_id,
         })
         .await
         .map_err(|e| match e {
@@ -387,6 +419,9 @@ pub async fn pay(
             currency,
             description: body.note,
             recipient_handle: None,
+            // ADR-042: a campaign-bound QR routes the credit to its segregated
+            // account; a plain QR (None) credits the wallet's default account.
+            recipient_account_id: target.wallet_account_id,
         })
         .await;
 

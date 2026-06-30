@@ -136,6 +136,9 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
             expires_at: None,
             used_at: None,
             reference: None,
+            // Static QR has no DB-bound segregated account (payer-entered amount,
+            // reusable). Account routing is a dynamic-QR feature.
+            wallet_account_id: None,
             created_at: Utc::now(),
         };
         self.repo.create(qr).await
@@ -156,6 +159,7 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
             expires_at: Some(req.expires_at),
             used_at: None,
             reference: req.reference,
+            wallet_account_id: req.wallet_account_id,
             created_at: Utc::now(),
         };
         self.repo.create(qr).await
@@ -292,6 +296,7 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     .ok_or_else(|| QrError::InvalidPayload("static QR missing currency".into()))?,
                 amount_minor: None,
                 qr_code_id: None,
+                wallet_account_id: None,
             }),
             QrCodeType::Dynamic => {
                 let qr_id = parsed
@@ -335,6 +340,9 @@ impl<R: QrRepository> QrEngine for PostgresQrEngine<R> {
                     currency: qr.currency,
                     amount_minor: Some(amount_minor),
                     qr_code_id: Some(qr.id),
+                    // Authoritative: read from the DB record (signature binds the
+                    // payload's id to this record), so it cannot be tampered.
+                    wallet_account_id: qr.wallet_account_id,
                 })
             }
         }
@@ -470,6 +478,7 @@ mod tests {
                 amount_minor: 50_000,
                 expires_at: future,
                 reference: Some("order-123".into()),
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -493,6 +502,7 @@ mod tests {
                 amount_minor: 10_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -537,6 +547,7 @@ mod tests {
                 amount_minor: 75_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -562,6 +573,7 @@ mod tests {
                 amount_minor: 50_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -594,6 +606,7 @@ mod tests {
                 amount_minor: 50_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -619,6 +632,7 @@ mod tests {
                 amount_minor: 50_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
@@ -647,6 +661,7 @@ mod tests {
                 amount_minor: 50_000,
                 expires_at: future,
                 reference: None,
+                wallet_account_id: None,
             })
             .await
             .unwrap();
