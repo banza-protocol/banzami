@@ -58,6 +58,31 @@ func (h *MerchantHandler) SetVerified(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// SetBusinessAccountType handles PATCH /admin/v1/merchants/{id}/business-account-type.
+// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa APPLICATION).
+func (h *MerchantHandler) SetBusinessAccountType(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	var body struct {
+		BusinessAccountType string `json:"business_account_type"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, "invalid body", http.StatusBadRequest)
+		return
+	}
+	if body.BusinessAccountType == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": map[string]any{"code": "MISSING_FIELD", "message": "business_account_type is required"},
+		})
+		return
+	}
+	result, err := h.core.SetMerchantBusinessAccountType(r.Context(), id, body.BusinessAccountType)
+	if err != nil {
+		handleCoreErr(w, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // Delete handles DELETE /admin/v1/merchants/{id}.
 func (h *MerchantHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")

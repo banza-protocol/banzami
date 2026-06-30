@@ -45,6 +45,7 @@ type MerchantApplication struct {
 	RepresentativePhone string     `json:"representative_phone"`
 	BusinessActivity    string     `json:"business_activity"`
 	EstimatedVolume     string     `json:"estimated_volume"`
+	BusinessAccountType string     `json:"business_account_type"`
 	AdminNotes          string     `json:"admin_notes"`
 	MerchantMessage     string     `json:"merchant_message"`
 	CreatedMerchantID   string     `json:"created_merchant_id"`
@@ -88,7 +89,7 @@ type MerchantApplicationAdminService interface {
 // needs. Extracted as an interface so the flow's forward-recovery behaviour is
 // testable without a live core-api. *CoreApiClient is the production implementation.
 type coreProvisioner interface {
-	CreateMerchant(ctx context.Context, name, email string) (string, error)
+	CreateMerchant(ctx context.Context, name, email, businessAccountType string) (string, error)
 	CreateWallet(ctx context.Context, merchantID, currency string) (string, error)
 	CreateApiKey(ctx context.Context, merchantID, name, environment string) (string, error)
 	ApproveCompliance(ctx context.Context, merchantID string) error
@@ -107,7 +108,7 @@ const appCols = `id::text, status, environment, desired_handle, business_name,
 	COALESCE(category,''), COALESCE(subcategory,''), email, COALESCE(phone,''), COALESCE(nif,''), COALESCE(country,''),
 	COALESCE(province,''), COALESCE(municipality,''), COALESCE(city,''), COALESCE(address,''), COALESCE(address_reference,''),
 	COALESCE(legal_representative,''), COALESCE(representative_role,''), COALESCE(representative_email,''), COALESCE(representative_phone,''),
-	COALESCE(business_activity,''), COALESCE(estimated_volume,''), COALESCE(admin_notes,''),
+	COALESCE(business_activity,''), COALESCE(estimated_volume,''), COALESCE(business_account_type,''), COALESCE(admin_notes,''),
 	COALESCE(merchant_message,''), COALESCE(created_merchant_id::text,''),
 	COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_api_key_prefix,''), provisioning_compliance_done,
 	COALESCE(provisioning_error,''), provisioning_attempts,
@@ -119,7 +120,7 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 		&a.Category, &a.Subcategory, &a.Email, &a.Phone, &a.Nif, &a.Country,
 		&a.Province, &a.Municipality, &a.City, &a.Address, &a.AddressReference,
 		&a.LegalRepresentative, &a.RepresentativeRole, &a.RepresentativeEmail, &a.RepresentativePhone,
-		&a.BusinessActivity, &a.EstimatedVolume, &a.AdminNotes,
+		&a.BusinessActivity, &a.EstimatedVolume, &a.BusinessAccountType, &a.AdminNotes,
 		&a.MerchantMessage, &a.CreatedMerchantID,
 		&a.ProvisioningWalletID, &a.ProvisioningApiKeyPrefix, &a.ProvisioningComplianceDone,
 		&a.ProvisioningError, &a.ProvisioningAttempts,
@@ -200,7 +201,7 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	// Step 1 — merchant.
 	merchantID := app.CreatedMerchantID
 	if merchantID == "" {
-		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email)
+		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email, app.BusinessAccountType)
 		if err != nil {
 			return fail("create merchant", err)
 		}

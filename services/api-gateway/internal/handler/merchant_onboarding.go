@@ -81,6 +81,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		RepresentativePhone string `json:"representative_phone"`
 		BusinessActivity    string `json:"business_activity"`
 		EstimatedVolume     string `json:"estimated_volume"`
+		BusinessAccountType string `json:"business_account_type"`
 		TermsAccepted       bool   `json:"terms_accepted"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
@@ -125,6 +126,7 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		RepresentativePhone: body.RepresentativePhone,
 		BusinessActivity:    body.BusinessActivity,
 		EstimatedVolume:     body.EstimatedVolume,
+		BusinessAccountType: body.BusinessAccountType,
 		TermsAccepted:       body.TermsAccepted,
 	})
 	switch {

@@ -49,6 +49,10 @@ type MerchantApplicationInput struct {
 	RepresentativePhone string
 	BusinessActivity    string
 	EstimatedVolume     string
+	// BusinessAccountType is the ADR-028 type the applicant declares (e.g.
+	// APPLICATION for an app like DOA). Confirmed at KYB; copied to the merchant
+	// on approval. Empty ⇒ treated as MERCHANT.
+	BusinessAccountType string
 	TermsAccepted       bool
 }
 
@@ -179,13 +183,13 @@ func (s *PostgresMerchantApplicationService) Submit(ctx context.Context, in Merc
 		   (id, status, environment, desired_handle, business_name, category, subcategory, email, phone,
 		    nif, country, province, municipality, city, address, address_reference,
 		    legal_representative, representative_role, representative_email, representative_phone,
-		    business_activity, estimated_volume, terms_accepted_at)
-		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21, now())`,
+		    business_activity, estimated_volume, business_account_type, terms_accepted_at)
+		 VALUES ($1,'SUBMITTED',$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22, now())`,
 		appID, env, handle, in.BusinessName, nullStr(in.Category), nullStr(in.Subcategory), in.Email, nullStr(in.Phone),
 		nullStr(in.Nif), nullStr(in.Country), nullStr(in.Province), nullStr(in.Municipality), nullStr(in.City),
 		nullStr(in.Address), nullStr(in.AddressReference),
 		nullStr(in.LegalRepresentative), nullStr(in.RepresentativeRole), nullStr(in.RepresentativeEmail), nullStr(in.RepresentativePhone),
-		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume),
+		nullStr(in.BusinessActivity), nullStr(in.EstimatedVolume), nullStr(in.BusinessAccountType),
 	); err != nil {
 		return "", err
 	}

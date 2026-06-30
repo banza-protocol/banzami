@@ -280,6 +280,14 @@ func (c *CoreAdminClient) SetMerchantVerified(ctx context.Context, id string, ve
 		map[string]any{"verified": verified}, &out)
 }
 
+// SetMerchantBusinessAccountType re-tags a Business Account's operator type
+// (ADR-028) — e.g. mark @doa APPLICATION. Core validates the value.
+func (c *CoreAdminClient) SetMerchantBusinessAccountType(ctx context.Context, id, accountType string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.patch(ctx, "/internal/v1/merchants/"+id+"/business-account-type",
+		map[string]any{"business_account_type": accountType}, &out)
+}
+
 func (c *CoreAdminClient) DeleteMerchant(ctx context.Context, id string) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodDelete, c.baseURL+"/internal/v1/merchants/"+id, nil)
 	if err != nil {

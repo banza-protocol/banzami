@@ -56,8 +56,10 @@ type MerchantRecord struct {
 	Email     string         `json:"email"`
 	Status    MerchantStatus `json:"status"`
 	Verified  bool           `json:"verified"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	// BusinessAccountType is the ADR-028 operator taxonomy (MERCHANT default).
+	BusinessAccountType string    `json:"business_account_type"`
+	CreatedAt           time.Time `json:"created_at"`
+	UpdatedAt           time.Time `json:"updated_at"`
 }
 
 type ApiKeyRecord struct {

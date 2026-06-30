@@ -150,6 +150,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/merchants/{id}", merchantH.Get)
 		r.With(cap(auth.CapMerchantManage)).Delete("/admin/v1/merchants/{id}", merchantH.Delete)
 		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/verified", merchantH.SetVerified)
+		r.With(cap(auth.CapMerchantManage)).Patch("/admin/v1/merchants/{id}/business-account-type", merchantH.SetBusinessAccountType)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/api-keys", merchantSetupH.CreateApiKey)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/resend-credentials", merchantSetupH.ResendCredentials)
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants/{id}/wallets", merchantSetupH.CreateWallet)

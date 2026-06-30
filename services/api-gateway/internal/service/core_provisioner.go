@@ -17,11 +17,16 @@ func strField(m map[string]any, key string) string {
 	return ""
 }
 
-// CreateMerchant creates a merchant and returns its id.
-func (c *CoreApiClient) CreateMerchant(ctx context.Context, name, email string) (string, error) {
+// CreateMerchant creates a merchant and returns its id. ADR-028: the declared
+// business account type is carried through from the approved application (empty ⇒
+// core defaults to MERCHANT).
+func (c *CoreApiClient) CreateMerchant(ctx context.Context, name, email, businessAccountType string) (string, error) {
 	var out map[string]any
-	if err := c.post(ctx, "/internal/v1/merchants",
-		map[string]string{"name": name, "email": email}, &out); err != nil {
+	body := map[string]string{"name": name, "email": email}
+	if businessAccountType != "" {
+		body["business_account_type"] = businessAccountType
+	}
+	if err := c.post(ctx, "/internal/v1/merchants", body, &out); err != nil {
 		return "", err
 	}
 	id := strField(out, "id")

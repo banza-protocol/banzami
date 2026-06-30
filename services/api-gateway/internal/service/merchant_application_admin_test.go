@@ -24,7 +24,7 @@ type fakeProvisioner struct {
 	approveCompliance  int
 }
 
-func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email string) (string, error) {
+func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email, businessAccountType string) (string, error) {
 	f.createMerchant++
 	return f.createMerchantHook()
 }
