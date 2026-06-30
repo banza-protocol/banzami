@@ -177,6 +177,7 @@ func main() {
 		MerchantSvc:              service.NewCoreApiMerchantService(coreClient),
 		WalletSvc:                service.NewCoreApiWalletService(coreClient),
 		ApplicationSettlementSvc: service.NewCoreApiApplicationSettlementService(coreClient),
+		WalletAccountSvc:         service.NewCoreApiWalletAccountService(coreClient),
 		PayoutSvc:                service.NewCoreApiPayoutService(coreClient),
 		ConsumerSvc:              service.NewCoreApiConsumerService(coreClient),
 		ConsumerWalletSvc:        service.NewCoreApiConsumerWalletService(coreClient),

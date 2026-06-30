@@ -28,6 +28,7 @@ type Dependencies struct {
 	MerchantSvc              service.MerchantService
 	WalletSvc                service.WalletService
 	ApplicationSettlementSvc service.ApplicationSettlementService
+	WalletAccountSvc         service.WalletAccountService
 	PayoutSvc                service.PayoutService
 	ConsumerSvc              service.ConsumerService
 	ConsumerWalletSvc        service.ConsumerWalletService
@@ -122,6 +123,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc)
+	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -271,6 +273,16 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			r.Route("/application-settlements", func(r chi.Router) {
 				r.Post("/", appSettlementHandler.Create)
 				r.Get("/{id}", appSettlementHandler.Get)
+			})
+
+			// Wallet Accounts (ADR-042) — app-facing: a Business Account opens and
+			// reads segregated accounts (CAMPAIGN/PROJECT/…) within a wallet it owns,
+			// to isolate funds without holding sub-balances. Banzami stays the source
+			// of truth; ledger account ids are never exposed. PRIMARY is not creatable.
+			r.Route("/business/wallet-accounts", func(r chi.Router) {
+				r.Post("/", walletAccountHandler.Create)
+				r.Get("/", walletAccountHandler.List)
+				r.Get("/{id}", walletAccountHandler.Get)
 			})
 
 			r.Route("/payouts", func(r chi.Router) {
