@@ -107,3 +107,18 @@ func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 		t.Fatalf("unknown ref: want ErrProofNotFound, got %v", err)
 	}
 }
+
+func TestNormalizeProofStatus(t *testing.T) {
+	cases := map[string]string{
+		"COMPLETED": "CONFIRMED", "completed": "CONFIRMED", "CONFIRMED": "CONFIRMED",
+		"CAPTURED": "CONFIRMED", "SUCCEEDED": "CONFIRMED", "": "CONFIRMED",
+		"PENDING": "PENDING", "AUTHORIZED": "PENDING",
+		"FAILED": "FAILED", "REVERSED": "REVERSED", "REFUNDED": "REVERSED",
+		"CANCELLED": "CANCELLED", "EXPIRED": "EXPIRED", "weird": "CONFIRMED",
+	}
+	for in, want := range cases {
+		if got := normalizeProofStatus(in); got != want {
+			t.Errorf("normalizeProofStatus(%q)=%q want %q", in, got, want)
+		}
+	}
+}

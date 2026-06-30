@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -145,15 +146,37 @@ func (s *ProofService) hashAndSign(ref string, in ProofInput) (proofHash, sig, a
 	return
 }
 
+// normalizeProofStatus maps any caller transaction status onto the canonical
+// proof status set enforced by the transaction_proofs CHECK constraint. Unknown
+// or empty values resolve to CONFIRMED — a proof only exists for a real, posted
+// transaction, so the safe default is "confirmed", never a failure state.
+func normalizeProofStatus(s string) string {
+	switch strings.ToUpper(strings.TrimSpace(s)) {
+	case "PENDING", "AUTHORIZED", "PROCESSING":
+		return "PENDING"
+	case "FAILED", "DECLINED", "ERROR":
+		return "FAILED"
+	case "REVERSED", "REFUNDED", "CHARGEBACK":
+		return "REVERSED"
+	case "CANCELLED", "CANCELED", "VOIDED":
+		return "CANCELLED"
+	case "EXPIRED":
+		return "EXPIRED"
+	default: // COMPLETED, CONFIRMED, CAPTURED, SUCCEEDED, SETTLED, "" …
+		return "CONFIRMED"
+	}
+}
+
 // Ensure idempotently returns the proof for a transaction, creating it on first
 // call. Concurrent callers converge on a single proof (unique on transaction_id).
 func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error) {
 	if in.Environment == "" {
 		in.Environment = "LIVE"
 	}
-	if in.Status == "" {
-		in.Status = "CONFIRMED"
-	}
+	// Normalize to the proof status vocabulary (the transaction_proofs CHECK):
+	// callers pass their own transaction status (e.g. a transfer's "COMPLETED"),
+	// which must map onto {PENDING,CONFIRMED,FAILED,REVERSED,CANCELLED,EXPIRED}.
+	in.Status = normalizeProofStatus(in.Status)
 	if existing, err := s.getByTxn(ctx, in.TransactionID, in.Environment); err == nil {
 		return existing, nil
 	} else if !errors.Is(err, ErrProofNotFound) {
