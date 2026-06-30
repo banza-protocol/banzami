@@ -122,7 +122,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
-	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc)
+	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a

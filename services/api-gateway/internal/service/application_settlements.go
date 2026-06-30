@@ -29,6 +29,12 @@ type CreateApplicationSettlementInput struct {
 	IdempotencyKey         string
 	OwnerRef               string
 	SourceWalletID         string
+	// SourceAccountID, when set, settles FROM a specific segregated wallet account
+	// (ADR-042 — e.g. a DOA campaign account) instead of the wallet's default
+	// account. The gateway resolves it from a wallet_account it has verified the
+	// caller owns; only this ledger account is debited. Takes precedence over
+	// SourceWalletID.
+	SourceAccountID        string
 	BeneficiaryWalletID    string
 	ApplicationFeeWalletID string
 	GrossAmountMinor       int64
@@ -78,10 +84,16 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 	body := map[string]any{
 		"idempotency_key":       in.IdempotencyKey,
 		"owner_ref":             in.OwnerRef,
-		"source_wallet_id":      in.SourceWalletID,
 		"beneficiary_wallet_id": in.BeneficiaryWalletID,
 		"gross_amount_minor":    in.GrossAmountMinor,
 		"currency":              in.Currency,
+	}
+	// Settle from a specific segregated account when given (ADR-042); otherwise
+	// from the wallet's default account. Core debits exactly the source account.
+	if in.SourceAccountID != "" {
+		body["source_account_id"] = in.SourceAccountID
+	} else {
+		body["source_wallet_id"] = in.SourceWalletID
 	}
 	if in.ApplicationFeeWalletID != "" {
 		body["application_fee_wallet_id"] = in.ApplicationFeeWalletID

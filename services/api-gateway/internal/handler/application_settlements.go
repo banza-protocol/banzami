@@ -19,10 +19,11 @@ import (
 type ApplicationSettlementHandler struct {
 	settlements service.ApplicationSettlementService
 	wallets     service.WalletService
+	accounts    service.WalletAccountService
 }
 
-func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService) *ApplicationSettlementHandler {
-	return &ApplicationSettlementHandler{settlements: s, wallets: w}
+func NewApplicationSettlementHandler(s service.ApplicationSettlementService, w service.WalletService, a service.WalletAccountService) *ApplicationSettlementHandler {
+	return &ApplicationSettlementHandler{settlements: s, wallets: w, accounts: a}
 }
 
 // POST /v1/application-settlements
@@ -36,6 +37,7 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		IdempotencyKey         string `json:"idempotency_key"`
 		OwnerRef               string `json:"owner_ref"`
 		SourceWalletID         string `json:"source_wallet_id"`
+		SourceWalletAccountID  string `json:"source_wallet_account_id"`
 		BeneficiaryWalletID    string `json:"beneficiary_wallet_id"`
 		ApplicationFeeWalletID string `json:"application_fee_wallet_id"`
 		FeePolicyRef           string `json:"fee_policy_ref"`
@@ -50,21 +52,67 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 	case body.IdempotencyKey == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "idempotency_key is required")
 		return
-	case body.SourceWalletID == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "source_wallet_id is required")
+	case body.SourceWalletID == "" && body.SourceWalletAccountID == "":
+		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "source_wallet_id or source_wallet_account_id is required")
 		return
 	case body.BeneficiaryWalletID == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "beneficiary_wallet_id is required")
 		return
 	}
 
-	// Ownership: an app may only settle FROM a wallet it owns, and may only direct
-	// the application fee to a wallet it owns. The beneficiary is unrestricted.
-	src, err := h.wallets.Get(r.Context(), body.SourceWalletID)
-	if err != nil || src == nil || src.MerchantID != principal.MerchantID {
-		apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "source_wallet_id is not owned by this merchant")
-		return
+	// Resolve the source: either a specific segregated account (ADR-042) or the
+	// wallet's default account. In both cases the app may only settle FROM funds
+	// it owns, and the gross is read from Banzami (never sent by the app).
+	var (
+		grossMinor      int64
+		sourceCurrency  string
+		sourceAccountID string // ledger account, set only for the segregated path
+	)
+	if body.SourceWalletAccountID != "" {
+		acc, aerr := h.accounts.Get(r.Context(), body.SourceWalletAccountID)
+		if aerr != nil || acc == nil {
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "source wallet account not found")
+			return
+		}
+		// Ownership: the account's parent wallet must belong to the caller.
+		wal, werr := h.wallets.Get(r.Context(), acc.WalletID)
+		if werr != nil || wal == nil || wal.MerchantID != principal.MerchantID {
+			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "source_wallet_account_id is not owned by this merchant")
+			return
+		}
+		if acc.AvailableBalanceMinor <= 0 {
+			apierror.Respond(w, r, http.StatusUnprocessableEntity, "NOTHING_TO_SETTLE", "source account has no available balance")
+			return
+		}
+		coreAcct, cerr := h.accounts.CoreAccountID(r.Context(), body.SourceWalletAccountID)
+		if cerr != nil || coreAcct == "" {
+			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not resolve source account")
+			return
+		}
+		grossMinor = acc.AvailableBalanceMinor
+		sourceCurrency = acc.Currency
+		sourceAccountID = coreAcct
+	} else {
+		src, err := h.wallets.Get(r.Context(), body.SourceWalletID)
+		if err != nil || src == nil || src.MerchantID != principal.MerchantID {
+			apierror.Respond(w, r, http.StatusForbidden, "FORBIDDEN", "source_wallet_id is not owned by this merchant")
+			return
+		}
+		bal, berr := h.wallets.Balance(r.Context(), body.SourceWalletID)
+		if berr != nil || bal == nil {
+			apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not read source wallet balance")
+			return
+		}
+		if bal.AvailableMinor <= 0 {
+			apierror.Respond(w, r, http.StatusUnprocessableEntity, "NOTHING_TO_SETTLE", "source wallet has no available balance")
+			return
+		}
+		grossMinor = bal.AvailableMinor
+		sourceCurrency = src.Currency
 	}
+
+	// The application fee may only be directed to a wallet the caller owns. The
+	// beneficiary is unrestricted.
 	if body.ApplicationFeeWalletID != "" {
 		fee, ferr := h.wallets.Get(r.Context(), body.ApplicationFeeWalletID)
 		if ferr != nil || fee == nil || fee.MerchantID != principal.MerchantID {
@@ -73,26 +121,15 @@ func (h *ApplicationSettlementHandler) Create(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	// Gross = the source wallet's available balance, read from Banzami (the app
-	// never computes or sends an amount).
-	bal, err := h.wallets.Balance(r.Context(), body.SourceWalletID)
-	if err != nil || bal == nil {
-		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not read source wallet balance")
-		return
-	}
-	if bal.AvailableMinor <= 0 {
-		apierror.Respond(w, r, http.StatusUnprocessableEntity, "NOTHING_TO_SETTLE", "source wallet has no available balance")
-		return
-	}
-
 	st, err := h.settlements.Create(r.Context(), service.CreateApplicationSettlementInput{
 		IdempotencyKey:         body.IdempotencyKey,
 		OwnerRef:               body.OwnerRef,
 		SourceWalletID:         body.SourceWalletID,
+		SourceAccountID:        sourceAccountID,
 		BeneficiaryWalletID:    body.BeneficiaryWalletID,
 		ApplicationFeeWalletID: body.ApplicationFeeWalletID,
-		GrossAmountMinor:       bal.AvailableMinor,
-		Currency:               src.Currency,
+		GrossAmountMinor:       grossMinor,
+		Currency:               sourceCurrency,
 		FeePolicyRef:           body.FeePolicyRef,
 		BusinessCategory:       body.BusinessCategory,
 		PricingProfile:         body.PricingProfile,

@@ -64,12 +64,13 @@ func (h *QrHandler) CreateStatic(w http.ResponseWriter, r *http.Request) {
 // Body: {"owner_id":"...","owner_type":"...","currency":"AOA","amount_minor":50000,"expires_at":"...","reference":"..."}
 func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		OwnerID     string     `json:"owner_id"`
-		OwnerType   string     `json:"owner_type"`
-		Currency    string     `json:"currency"`
-		AmountMinor int64      `json:"amount_minor"`
-		ExpiresAt   *time.Time `json:"expires_at"`
-		Reference   string     `json:"reference"`
+		OwnerID         string     `json:"owner_id"`
+		OwnerType       string     `json:"owner_type"`
+		Currency        string     `json:"currency"`
+		AmountMinor     int64      `json:"amount_minor"`
+		ExpiresAt       *time.Time `json:"expires_at"`
+		Reference       string     `json:"reference"`
+		WalletAccountID string     `json:"wallet_account_id"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")
@@ -97,12 +98,13 @@ func (h *QrHandler) CreateDynamic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	qrResp, err := h.svc.CreateDynamic(r.Context(), service.CreateDynamicQrRequest{
-		OwnerID:     body.OwnerID,
-		OwnerType:   body.OwnerType,
-		Currency:    body.Currency,
-		AmountMinor: body.AmountMinor,
-		ExpiresAt:   *body.ExpiresAt,
-		Reference:   body.Reference,
+		OwnerID:         body.OwnerID,
+		OwnerType:       body.OwnerType,
+		Currency:        body.Currency,
+		AmountMinor:     body.AmountMinor,
+		ExpiresAt:       *body.ExpiresAt,
+		Reference:       body.Reference,
+		WalletAccountID: body.WalletAccountID,
 	})
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not create QR code")

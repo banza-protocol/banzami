@@ -58,6 +58,9 @@ type CreateDynamicQrRequest struct {
 	AmountMinor int64
 	ExpiresAt   time.Time
 	Reference   string
+	// WalletAccountID optionally binds the QR to a segregated wallet account of
+	// the owner (ADR-042 — e.g. a DOA campaign account) so payments route there.
+	WalletAccountID string
 }
 
 // PayQrRequest is a scan-to-pay request. AmountMinor is required for static QR

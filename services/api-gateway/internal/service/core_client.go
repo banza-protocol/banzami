@@ -1013,6 +1013,9 @@ func (s *CoreApiQrService) CreateDynamic(
 		"expires_at":   req.ExpiresAt.UTC().Format(time.RFC3339),
 		"reference":    req.Reference,
 	}
+	if req.WalletAccountID != "" {
+		body["wallet_account_id"] = req.WalletAccountID
+	}
 	var resp coreQrResponseResp
 	if err := s.client.post(ctx, "/internal/v1/qr/dynamic", body, &resp); err != nil {
 		return nil, err

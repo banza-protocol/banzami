@@ -63,7 +63,7 @@ func postSettlement(t *testing.T, h *ApplicationSettlementHandler, principalMerc
 
 // Ownership: an app may only settle FROM a wallet it owns.
 func TestApplicationSettlement_RejectsForeignSourceWallet(t *testing.T) {
-	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant", available: 100000})
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant", available: 100000}, &fakeWalletAccounts{})
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusForbidden {
@@ -74,7 +74,7 @@ func TestApplicationSettlement_RejectsForeignSourceWallet(t *testing.T) {
 // Happy path: owned source + balance → create + complete, gross = read balance.
 func TestApplicationSettlement_CreatesAndCompletes(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000})
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 100000}, &fakeWalletAccounts{})
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben","application_fee_wallet_id":"w-fee","fee_policy_ref":"doa-5pct"}`)
 	if rec.Code != http.StatusCreated {
@@ -93,7 +93,7 @@ func TestApplicationSettlement_CreatesAndCompletes(t *testing.T) {
 // Nothing to settle: zero balance → 422, never creates a settlement.
 func TestApplicationSettlement_ZeroBalance(t *testing.T) {
 	fs := &fakeSettlements{}
-	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 0})
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant", available: 0}, &fakeWalletAccounts{})
 	rec := postSettlement(t, h, "doa-merchant",
 		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_id":"w-src","beneficiary_wallet_id":"w-ben"}`)
 	if rec.Code != http.StatusUnprocessableEntity {
@@ -101,5 +101,31 @@ func TestApplicationSettlement_ZeroBalance(t *testing.T) {
 	}
 	if fs.created != 0 {
 		t.Fatal("must not create a settlement when there is nothing to settle")
+	}
+}
+
+// ADR-042: settle FROM a specific segregated (campaign) account. Gross is the
+// account balance; the app sends no amount and never sees the ledger account id.
+func TestApplicationSettlement_FromCampaignAccount(t *testing.T) {
+	fs := &fakeSettlements{}
+	h := NewApplicationSettlementHandler(fs, &fakeWallets{merchantID: "doa-merchant"}, &fakeWalletAccounts{balance: 95000})
+	rec := postSettlement(t, h, "doa-merchant",
+		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_account_id":"wa-1","beneficiary_wallet_id":"w-ben"}`)
+	if rec.Code != http.StatusCreated {
+		t.Fatalf("expected 201, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	if fs.created != 1 || fs.completed != 1 {
+		t.Fatalf("expected create+complete, got created=%d completed=%d", fs.created, fs.completed)
+	}
+}
+
+// Ownership: a campaign account whose parent wallet belongs to another merchant
+// must be rejected.
+func TestApplicationSettlement_FromForeignCampaignAccount(t *testing.T) {
+	h := NewApplicationSettlementHandler(&fakeSettlements{}, &fakeWallets{merchantID: "other-merchant"}, &fakeWalletAccounts{balance: 95000})
+	rec := postSettlement(t, h, "doa-merchant",
+		`{"idempotency_key":"k1","owner_ref":"camp-1","source_wallet_account_id":"wa-1","beneficiary_wallet_id":"w-ben"}`)
+	if rec.Code != http.StatusForbidden {
+		t.Fatalf("foreign campaign account must be 403, got %d (%s)", rec.Code, rec.Body.String())
 	}
 }

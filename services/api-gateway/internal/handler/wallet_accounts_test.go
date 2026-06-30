@@ -11,7 +11,10 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-type fakeWalletAccounts struct{ created int }
+type fakeWalletAccounts struct {
+	created int
+	balance int64
+}
 
 func (f *fakeWalletAccounts) Create(ctx context.Context, in service.CreateWalletAccountInput) (*service.WalletAccount, error) {
 	f.created++
@@ -21,7 +24,7 @@ func (f *fakeWalletAccounts) ListForWallet(ctx context.Context, walletID string)
 	return []*service.WalletAccount{{ID: "wa-1", WalletID: walletID, Purpose: "PRIMARY", Status: "ACTIVE"}}, nil
 }
 func (f *fakeWalletAccounts) Get(ctx context.Context, id string) (*service.WalletAccount, error) {
-	return &service.WalletAccount{ID: id, WalletID: "w-src", Purpose: "CAMPAIGN", Status: "ACTIVE"}, nil
+	return &service.WalletAccount{ID: id, WalletID: "w-src", Purpose: "CAMPAIGN", Status: "ACTIVE", Currency: "AOA", AvailableBalanceMinor: f.balance}, nil
 }
 func (f *fakeWalletAccounts) Resolve(ctx context.Context, walletID, purpose, refType, refID string) (*service.WalletAccount, error) {
 	return nil, nil
