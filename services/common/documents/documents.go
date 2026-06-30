@@ -95,6 +95,11 @@ func verificationURL(ref string) string {
 // headless Chrome). Inline SVG avoids html/template URL normalization that would
 // mangle a base64 data URI. The QR carries only the public URL — no proof data,
 // no signature, no secrets.
+//
+// Styled to match the in-app Banzami QR (banzami_qr_display): pure-black data
+// modules for maximum print/scan contrast, with the three finder "eyes" painted
+// in the Banzami red (#B5101F). No centre logo — a small printed QR must scan
+// reliably, so we never occlude the matrix.
 func qrSVG(url string) template.HTML {
 	q, err := qrcode.New(url, qrcode.Medium)
 	if err != nil {
@@ -105,14 +110,48 @@ func qrSVG(url string) template.HTML {
 	if n == 0 {
 		return ""
 	}
+
+	// Locate the quiet-zone border so the three 7×7 finder patterns can be found
+	// at the symbol's corners and tinted red, exactly like the in-app QR.
+	border := 0
+	for border < n {
+		rowHasDark := false
+		for x := 0; x < n; x++ {
+			if bm[border][x] {
+				rowHasDark = true
+				break
+			}
+		}
+		if rowHasDark {
+			break
+		}
+		border++
+	}
+	sym := n - 2*border // symbol size in modules; finders are 7×7 at its corners
+	isEye := func(x, y int) bool {
+		sx, sy := x-border, y-border
+		if sx < 0 || sy < 0 || sx >= sym || sy >= sym {
+			return false
+		}
+		topLeft := sx < 7 && sy < 7
+		topRight := sx >= sym-7 && sy < 7
+		bottomLeft := sx < 7 && sy >= sym-7
+		return topLeft || topRight || bottomLeft
+	}
+
 	var b strings.Builder
 	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" shape-rendering="crispEdges" width="100%%" height="100%%">`, n, n)
 	b.WriteString(`<rect width="100%" height="100%" fill="#fff"/>`)
 	for y := 0; y < n; y++ {
 		for x := 0; x < n; x++ {
-			if bm[y][x] {
-				fmt.Fprintf(&b, `<rect x="%d" y="%d" width="1" height="1" fill="#000"/>`, x, y)
+			if !bm[y][x] {
+				continue
 			}
+			fill := "#000"
+			if isEye(x, y) {
+				fill = "#B5101F"
+			}
+			fmt.Fprintf(&b, `<rect x="%d" y="%d" width="1" height="1" fill="%s"/>`, x, y, fill)
 		}
 	}
 	b.WriteString(`</svg>`)

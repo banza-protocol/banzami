@@ -108,4 +108,9 @@ func TestReceiptQRCode(t *testing.T) {
 	if cells < 50 {
 		t.Fatalf("QR looks empty (only %d cells)", cells)
 	}
+	// Banzami-styled QR: the three finder "eyes" are painted in the brand red,
+	// matching the in-app QR. Each eye is a 7×7 finder, so there are many red cells.
+	if eyes := strings.Count(html, `fill="#B5101F"`); eyes < 30 {
+		t.Errorf("QR finder eyes not styled in Banzami red (only %d red cells)", eyes)
+	}
 }
