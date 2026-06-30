@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -141,8 +142,20 @@ func main() {
 		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		notificationsSvc = service.NewNotificationsService(dbPool)
 		platformSvc = service.NewPlatformReadService(dbPool)
+		// Transaction-proof signatures are HMAC-keyed by BZM_PROOF_SIGNING_KEY.
+		// An empty key makes signatures (and ip/ua hashes) forgeable/predictable,
+		// so a LIVE stack must refuse to start without it; dev/sandbox may run
+		// unkeyed with a loud warning.
+		proofSigningKey := os.Getenv("BZM_PROOF_SIGNING_KEY")
+		switch proofSigningKeyState(cfg.Environment, proofSigningKey) {
+		case proofKeyFatal:
+			slog.Error("[SEC-003] BZM_PROOF_SIGNING_KEY not set in LIVE — refusing to start: transaction-proof signatures would be forgeable")
+			os.Exit(1)
+		case proofKeyWarn:
+			slog.Warn("[SEC-003] BZM_PROOF_SIGNING_KEY not set — transaction-proof signatures are unkeyed (dev/sandbox only)")
+		}
 		proofSvc = service.NewProofService(dbPool,
-			os.Getenv("BZM_PROOF_SIGNING_KEY"), os.Getenv("BZM_PROOF_KEY_ID"),
+			proofSigningKey, os.Getenv("BZM_PROOF_KEY_ID"),
 			"banzami", "banza", "https://banzami.com/r/")
 		slog.Info("webhook + team services: postgres backend")
 	} else {
@@ -252,6 +265,29 @@ func initLogger(cfg *config.Config) {
 
 // proofHashSalt salts the verification ip/ua hashes. Falls back to the proof
 // signing key, then a non-secret default — raw IPs are never stored either way.
+// proofKeyState classifies how main should react to a missing proof signing key.
+type proofKeyState int
+
+const (
+	proofKeyOK    proofKeyState = iota // key present — nothing to do
+	proofKeyWarn                       // key absent in dev/sandbox — warn, continue
+	proofKeyFatal                      // key absent in LIVE — refuse to start
+)
+
+// proofSigningKeyState decides whether an empty BZM_PROOF_SIGNING_KEY is fatal.
+// LIVE (the production stack value of ENVIRONMENT) with no key is fatal because
+// unkeyed HMAC proof signatures would be forgeable; any non-LIVE environment may
+// run unkeyed with a warning.
+func proofSigningKeyState(env, key string) proofKeyState {
+	if key != "" {
+		return proofKeyOK
+	}
+	if strings.EqualFold(env, "LIVE") {
+		return proofKeyFatal
+	}
+	return proofKeyWarn
+}
+
 func proofHashSalt() string {
 	if s := os.Getenv("BZM_PROOF_SALT"); s != "" {
 		return s
