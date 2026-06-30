@@ -162,6 +162,15 @@ class BanzamiQrParser {
         return BanzamiQrSplitPayment(splitId: segs[1], isSandbox: isSandbox);
       }
 
+      // banzami://pay/link/{slug} — merchant payment link (Banzami Checkout).
+      // Mirrors the deep link emitted by the checkout-web SDK (modal.ts). The
+      // environment is implicit in the resolving gateway, so it carries no
+      // sandbox marker — consistent with the https://pay.banzami.com/pay/{slug}
+      // form above.
+      if (segs.length >= 2 && segs[0] == 'link') {
+        return BanzamiQrPaymentLink(slug: segs[1]);
+      }
+
       // banzami://pay/u/{handle}[?amount=N&note=...]
       if (segs.length >= 2 && segs[0] == 'u') {
         final amountStr = uri.queryParameters['amount'];

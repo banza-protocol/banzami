@@ -84,6 +84,25 @@ void main() {
       expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
     });
 
+    // Banzami Checkout (checkout-web modal.ts) renders its QR from the deep link
+    // `banzami://pay/link/{slug}`. The parser MUST accept it, otherwise scanning a
+    // Banzami Checkout QR in the app shows "Formato de link inválido".
+    test('checkout deep link banzami://pay/link/{slug} resolves to a payment link', () {
+      final result = BanzamiQrParser.parse('banzami://pay/link/bb48c6534c86');
+      expect(result, isA<BanzamiQrPaymentLink>());
+      expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
+    });
+
+    test('sandbox checkout deep link banzami-sandbox://pay/link/{slug} resolves to a payment link', () {
+      final result = BanzamiQrParser.parse('banzami-sandbox://pay/link/bb48c6534c86');
+      expect(result, isA<BanzamiQrPaymentLink>());
+      expect((result as BanzamiQrPaymentLink).slug, 'bb48c6534c86');
+    });
+
+    test('checkout deep link with missing slug is rejected', () {
+      expect(BanzamiQrParser.parse('banzami://pay/link/'), isA<BanzamiQrInvalid>());
+    });
+
     test('multi-segment unknown pay path is still rejected', () {
       expect(BanzamiQrParser.parse('https://pay.banzami.com/foo/bar/baz'),
           isA<BanzamiQrInvalid>());
