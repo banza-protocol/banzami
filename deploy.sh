@@ -28,6 +28,11 @@ REMOTE="root@217.160.9.248"
 REMOTE_COMPOSE_DIR="/srv/banzami"
 REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 
+# Stamp every image with the source commit so "what commit is live?" is
+# answerable from `docker inspect` instead of guessed from build timestamps.
+GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
+LABEL_ARGS="--label org.opencontainers.image.revision=$GIT_SHA"
+
 ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
@@ -80,7 +85,7 @@ deploy_core_api() {
 
   info "Building Docker image on server..."
   # shellcheck disable=SC2029
-  ssh "$REMOTE" "cd /srv/banzami/src/core && docker build $NO_CACHE -f Dockerfile -t banzami/core-api:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/src/core && docker build $NO_CACHE $LABEL_ARGS -f Dockerfile -t banzami/core-api:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
@@ -104,7 +109,7 @@ deploy_admin_api() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/admin-api-build && docker build $NO_CACHE -f admin-api/Dockerfile -t banzami/admin-api:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/admin-api-build && docker build $NO_CACHE $LABEL_ARGS -f admin-api/Dockerfile -t banzami/admin-api:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
@@ -128,7 +133,7 @@ deploy_api_gateway() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/api-gateway-build && docker build $NO_CACHE -f api-gateway/Dockerfile -t banzami/api-gateway:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/api-gateway-build && docker build $NO_CACHE $LABEL_ARGS -f api-gateway/Dockerfile -t banzami/api-gateway:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
@@ -148,7 +153,7 @@ deploy_sandbox_operator() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/sandbox-operator-build && docker build $NO_CACHE -t banzami/sandbox-operator:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/sandbox-operator-build && docker build $NO_CACHE $LABEL_ARGS -t banzami/sandbox-operator:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
@@ -172,7 +177,7 @@ deploy_public_api() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/public-api-build && docker build $NO_CACHE -f public-api/Dockerfile -t banzami/public-api:latest . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/public-api-build && docker build $NO_CACHE $LABEL_ARGS -f public-api/Dockerfile -t banzami/public-api:latest . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
@@ -232,7 +237,7 @@ _deploy_frontend() {
   ok "Sync complete"
 
   info "Building Docker image on server..."
-  ssh "$REMOTE" "cd /srv/banzami/src/apps/$app_name && docker build $NO_CACHE -t $image_tag . 2>&1" \
+  ssh "$REMOTE" "cd /srv/banzami/src/apps/$app_name && docker build $NO_CACHE $LABEL_ARGS -t $image_tag . 2>&1" \
     | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
   ok "Image built"
 
