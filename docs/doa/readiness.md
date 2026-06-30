@@ -57,10 +57,19 @@ The Application Settlement guard is fail-closed: if the 5% fee destination is no
 KYB-approved `APPLICATION`/`PLATFORM` Business Account, the settlement is **rejected**
 (`FEE_DESTINATION_*` errors). So DOA cannot take a fee until `@doa` is properly set up.
 
+## The fee is DOA's, executed by the operator (ADR-029)
+
+DOA's 5% is **app-defined**: DOA sends `application_fee_bps = 500` to
+`POST /v1/business/application-settlements`; the operator computes the fee from the
+campaign account's real balance and bypasses operator `pricing_rules` entirely. No
+`doa-5pct` pricing policy is needed (or wanted) in the operator. See the full
+[settlement contract](settlement-contract.md).
+
 ## Operator follow-ups before DOA go-live
 
 - [ ] Tag `@doa` as `APPLICATION` and ensure its KYB is APPROVED (ADR-028 guard).
-- [ ] Create the `doa-5pct` application-fee pricing policy in the operator.
 - [ ] DOA migrates its donation flow onto the campaign-account model and removes
       any local financial-logic that duplicates the operator.
+- [ ] DOA sends its own `application_fee_bps` per campaign (ADR-029) — no operator
+      pricing rule for the DOA fee.
 - [ ] Sandbox E2E sign-off (create A+B, donate into each, isolation, settle A).

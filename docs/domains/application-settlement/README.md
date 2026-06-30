@@ -112,6 +112,14 @@ recomputes the Operator Fee, never touches old PaymentIntents.
   Enforced fail-closed in `guard_application_fee_destination` before the settlement
   is created — an unvetted fee destination is rejected, never rerouted. This is the
   teeth behind "an app that takes a cut must be a Banzami Business Account."
+- **INV-APPSETTLE-008** (ADR-029) — the application fee is resolved one of two
+  mutually-exclusive ways: **app-defined** (`application_fee_bps` set ⇒ the operator
+  computes `floor(gross*bps/10000)` and the Pricing Engine / `pricing_rules` are NOT
+  consulted; the snapshot is marked `APP_DEFINED` and no pricing rule is pinned), or
+  **operator-priced** (`fee_policy_ref` ⇒ the Pricing Engine, INV-APPSETTLE-006). An
+  app-defined `bps` is bounded by `MAX_APPLICATION_FEE_BPS` (5000 = 50%), an
+  anti-abuse guardrail — not operator pricing. So the **operator never decides an
+  app's commercial rate**: it validates and executes (ADR-029). DOA's 5% is `bps=500`.
 
 ---
 
