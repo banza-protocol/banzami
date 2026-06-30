@@ -382,6 +382,23 @@ async fn main() {
             "/internal/v1/application-settlements/:id/fail",
             post(routes::application_settlements::fail),
         )
+        // Wallet Accounts (BANZA ADR-042) — segregated accounts within a wallet
+        .route(
+            "/internal/v1/wallet-accounts",
+            post(routes::wallet_accounts::create),
+        )
+        .route(
+            "/internal/v1/wallet-accounts/resolve",
+            get(routes::wallet_accounts::resolve),
+        )
+        .route(
+            "/internal/v1/wallet-accounts/:id",
+            get(routes::wallet_accounts::get),
+        )
+        .route(
+            "/internal/v1/wallets/:wallet_id/accounts",
+            get(routes::wallet_accounts::list_for_wallet),
+        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(

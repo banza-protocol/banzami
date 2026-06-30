@@ -2,8 +2,11 @@ pub mod acquiring;
 pub mod activity;
 pub mod admin;
 pub mod application_settlements;
+pub mod wallet_accounts;
 #[cfg(test)]
 mod application_settlements_tests;
+#[cfg(test)]
+mod wallet_accounts_tests;
 pub mod collections;
 pub mod analytics;
 pub mod compliance;
