@@ -124,11 +124,12 @@ type TransferPage struct {
 }
 
 type PaymentLink struct {
-	ID          string     `json:"id"`
-	Slug        string     `json:"slug"`
-	MerchantID  string     `json:"merchant_id"`
-	WalletID    string     `json:"wallet_id"`
-	AmountMinor *int64     `json:"amount_minor"`
+	ID              string     `json:"id"`
+	Slug            string     `json:"slug"`
+	MerchantID      string     `json:"merchant_id"`
+	WalletID        string     `json:"wallet_id"`
+	WalletAccountID string     `json:"wallet_account_id"`
+	AmountMinor     *int64     `json:"amount_minor"`
 	Currency    string     `json:"currency"`
 	Description *string    `json:"description"`
 	Status      string     `json:"status"`
@@ -270,6 +271,9 @@ type SendTransferRequest struct {
 	AmountMinor    int64
 	Currency       string
 	Description    string
+	// RecipientAccountID routes the merchant credit to a specific segregated
+	// account (ADR-030/042 — e.g. a campaign account behind a payment link).
+	RecipientAccountID string
 }
 
 func (c *CorePublicClient) SendTransfer(ctx context.Context, req SendTransferRequest) (*Transfer, error) {
@@ -280,6 +284,9 @@ func (c *CorePublicClient) SendTransfer(ctx context.Context, req SendTransferReq
 		"amount_minor":    req.AmountMinor,
 		"currency":        req.Currency,
 		"description":     req.Description,
+	}
+	if req.RecipientAccountID != "" {
+		body["recipient_account_id"] = req.RecipientAccountID
 	}
 	var resp coreTransferResp
 	if err := c.post(ctx, "/internal/v1/transfers", body, &resp); err != nil {

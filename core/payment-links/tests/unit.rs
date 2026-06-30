@@ -106,6 +106,7 @@ fn base_request() -> CreatePaymentLinkRequest {
     CreatePaymentLinkRequest {
         merchant_id: MerchantId::new(),
         wallet_id: WalletId::new(),
+        wallet_account_id: None,
         amount_minor: Some(50_000),
         currency: "AOA".to_string(),
         description: Some("Test payment".to_string()),
@@ -281,6 +282,7 @@ async fn mark_used_expired_link_is_rejected() {
         slug: "expiredslug01".to_string(),
         merchant_id: merchant,
         wallet_id: wallet,
+        wallet_account_id: None,
         amount_minor: Some(1000),
         currency: "AOA".to_string(),
         description: None,
@@ -313,6 +315,7 @@ async fn list_returns_only_merchant_links() {
         eng.create(CreatePaymentLinkRequest {
             merchant_id: merchant_a,
             wallet_id: wallet,
+            wallet_account_id: None,
             amount_minor: Some(1000),
             currency: "AOA".to_string(),
             description: None,
@@ -325,6 +328,7 @@ async fn list_returns_only_merchant_links() {
     eng.create(CreatePaymentLinkRequest {
         merchant_id: merchant_b,
         wallet_id: wallet,
+        wallet_account_id: None,
         amount_minor: Some(2000),
         currency: "AOA".to_string(),
         description: None,
@@ -351,6 +355,7 @@ async fn list_respects_limit() {
         eng.create(CreatePaymentLinkRequest {
             merchant_id: merchant,
             wallet_id: wallet,
+            wallet_account_id: None,
             amount_minor: Some(500),
             currency: "AOA".to_string(),
             description: None,
@@ -378,6 +383,7 @@ async fn each_link_gets_a_unique_slug() {
             .create(CreatePaymentLinkRequest {
                 merchant_id: merchant,
                 wallet_id: wallet,
+                wallet_account_id: None,
                 amount_minor: Some(1000),
                 currency: "AOA".to_string(),
                 description: None,

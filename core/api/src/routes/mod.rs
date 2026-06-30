@@ -8,6 +8,8 @@ pub mod wallet_accounts;
 mod application_settlements_tests;
 #[cfg(test)]
 mod wallet_accounts_tests;
+#[cfg(test)]
+mod transfers_routing_tests;
 pub mod collections;
 pub mod analytics;
 pub mod compliance;

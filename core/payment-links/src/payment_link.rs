@@ -42,6 +42,9 @@ pub struct PaymentLink {
     pub slug: String,
     pub merchant_id: MerchantId,
     pub wallet_id: WalletId,
+    /// ADR-030: segregated wallet account to credit when paid (Payment Session).
+    /// `None` ⇒ the wallet's default available account (legacy behaviour).
+    pub wallet_account_id: Option<uuid::Uuid>,
     /// Fixed amount in minor units. `None` means the payer sets the amount.
     pub amount_minor: Option<i64>,
     pub currency: String,
@@ -56,6 +59,8 @@ pub struct PaymentLink {
 pub struct CreatePaymentLinkRequest {
     pub merchant_id: MerchantId,
     pub wallet_id: WalletId,
+    /// ADR-030: optional segregated account to credit (Payment Session).
+    pub wallet_account_id: Option<uuid::Uuid>,
     pub amount_minor: Option<i64>,
     pub currency: String,
     pub description: Option<String>,

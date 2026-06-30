@@ -37,6 +37,7 @@ struct LinkRow {
     slug: String,
     merchant_id: Uuid,
     wallet_id: Uuid,
+    wallet_account_id: Option<Uuid>,
     amount_minor: Option<i64>,
     currency: String,
     description: Option<String>,
@@ -55,6 +56,7 @@ impl LinkRow {
             slug: self.slug,
             merchant_id: MerchantId::from_uuid(self.merchant_id),
             wallet_id: WalletId::from_uuid(self.wallet_id),
+            wallet_account_id: self.wallet_account_id,
             amount_minor: self.amount_minor,
             currency: self.currency,
             description: self.description,
@@ -68,7 +70,7 @@ impl LinkRow {
     }
 }
 
-const SELECT: &str = "SELECT id, slug, merchant_id, wallet_id, amount_minor, currency, description,
+const SELECT: &str = "SELECT id, slug, merchant_id, wallet_id, wallet_account_id, amount_minor, currency, description,
             status, expires_at, paid_at, created_at, updated_at
      FROM payment_links";
 
@@ -90,14 +92,15 @@ impl PaymentLinkRepository for PostgresPaymentLinkRepository {
     async fn insert(&self, link: &PaymentLink) -> Result<(), PaymentLinkError> {
         sqlx::query(
             "INSERT INTO payment_links
-             (id, slug, merchant_id, wallet_id, amount_minor, currency, description,
+             (id, slug, merchant_id, wallet_id, wallet_account_id, amount_minor, currency, description,
               status, expires_at, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)",
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         )
         .bind(link.id.as_uuid())
         .bind(&link.slug)
         .bind(link.merchant_id.as_uuid())
         .bind(link.wallet_id.as_uuid())
+        .bind(link.wallet_account_id)
         .bind(link.amount_minor)
         .bind(&link.currency)
         .bind(&link.description)
@@ -170,7 +173,7 @@ impl PaymentLinkRepository for PostgresPaymentLinkRepository {
             "UPDATE payment_links
              SET status = $2, paid_at = $3, updated_at = NOW()
              WHERE id = $1
-             RETURNING id, slug, merchant_id, wallet_id, amount_minor, currency,
+             RETURNING id, slug, merchant_id, wallet_id, wallet_account_id, amount_minor, currency,
                        description, status, expires_at, paid_at, created_at, updated_at",
         )
         .bind(id.as_uuid())

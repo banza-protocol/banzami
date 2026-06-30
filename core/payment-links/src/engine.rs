@@ -56,6 +56,7 @@ impl<R: PaymentLinkRepository> PaymentLinkEngine for PostgresPaymentLinkEngine<R
             slug: Self::generate_slug(),
             merchant_id: req.merchant_id,
             wallet_id: req.wallet_id,
+            wallet_account_id: req.wallet_account_id,
             amount_minor: req.amount_minor,
             currency: req.currency,
             description: req.description,

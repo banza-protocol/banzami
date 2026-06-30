@@ -19,6 +19,7 @@ type PaymentLink struct {
 	Slug        string     `json:"slug"`
 	MerchantID  string     `json:"merchant_id"`
 	WalletID    string     `json:"wallet_id"`
+	WalletAccountID string `json:"wallet_account_id"`
 	AmountMinor *int64     `json:"amount_minor"`
 	Currency    string     `json:"currency"`
 	Description *string    `json:"description"`
@@ -32,6 +33,7 @@ type PaymentLink struct {
 type CreatePaymentLinkRequest struct {
 	MerchantID  string
 	WalletID    string
+	WalletAccountID string
 	AmountMinor *int64
 	Currency    string
 	Description *string
@@ -82,6 +84,9 @@ func (s *CoreApiPaymentLinkService) Create(ctx context.Context, req CreatePaymen
 		"currency":     req.Currency,
 		"description":  req.Description,
 		"expires_at":   req.ExpiresAt,
+	}
+	if req.WalletAccountID != "" {
+		body["wallet_account_id"] = req.WalletAccountID
 	}
 	var link PaymentLink
 	return &link, s.client.post(ctx, "/internal/v1/payment-links", body, &link)

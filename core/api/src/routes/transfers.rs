@@ -26,6 +26,9 @@ pub struct SendTransferBody {
     pub amount_minor: i64,
     pub currency: String,
     pub description: Option<String>,
+    /// ADR-030/042: route the merchant credit to a specific segregated account
+    /// (e.g. a campaign account behind a Payment Session's link). `None` ⇒ default.
+    pub recipient_account_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -57,6 +60,13 @@ pub async fn send(
         .parse()
         .map_err(|_| ApiError::bad_request("invalid recipient_id"))?;
 
+    let recipient_account_id = match body.recipient_account_id.as_deref() {
+        Some(s) => Some(
+            uuid::Uuid::parse_str(s).map_err(|_| ApiError::bad_request("invalid recipient_account_id"))?,
+        ),
+        None => None,
+    };
+
     let transfer = state
         .transfer
         .send(SendTransferRequest {
@@ -67,7 +77,7 @@ pub async fn send(
             currency,
             description: body.description,
             recipient_handle: None, // UUID-based internal route — no handle snapshot
-            recipient_account_id: None,
+            recipient_account_id,
         })
         .await
         .map_err(|e| match e {

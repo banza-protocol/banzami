@@ -22,6 +22,8 @@ use crate::{
 pub struct CreateBody {
     pub merchant_id: String,
     pub wallet_id: String,
+    /// ADR-030: optional segregated account to credit (Payment Session).
+    pub wallet_account_id: Option<String>,
     pub amount_minor: Option<i64>,
     pub currency: String,
     pub description: Option<String>,
@@ -34,6 +36,7 @@ pub struct PaymentLinkResponse {
     pub slug: String,
     pub merchant_id: String,
     pub wallet_id: String,
+    pub wallet_account_id: Option<String>,
     pub amount_minor: Option<i64>,
     pub currency: String,
     pub description: Option<String>,
@@ -51,6 +54,7 @@ impl From<banzami_payment_links::PaymentLink> for PaymentLinkResponse {
             slug: l.slug,
             merchant_id: l.merchant_id.to_string(),
             wallet_id: l.wallet_id.to_string(),
+            wallet_account_id: l.wallet_account_id.map(|u| u.to_string()),
             amount_minor: l.amount_minor,
             currency: l.currency,
             description: l.description,
@@ -111,9 +115,16 @@ pub async fn create(
         return Err(ApiError::bad_request("currency is required"));
     }
 
+    let wallet_account_id = match body.wallet_account_id.as_deref() {
+        Some(s) => Some(
+            uuid::Uuid::parse_str(s).map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?,
+        ),
+        None => None,
+    };
     let req = CreatePaymentLinkRequest {
         merchant_id,
         wallet_id,
+        wallet_account_id,
         amount_minor: body.amount_minor,
         currency: body.currency,
         description: body.description,

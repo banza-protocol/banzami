@@ -578,6 +578,7 @@ async fn create_surface(
                 .create(CreatePaymentLinkRequest {
                     merchant_id: collection.merchant_id,
                     wallet_id: collection.wallet_id,
+                    wallet_account_id: None,
                     amount_minor: Some(share.amount_minor),
                     currency: share.currency.clone(),
                     description: collection.title.clone(),

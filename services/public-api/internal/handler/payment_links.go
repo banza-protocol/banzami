@@ -125,9 +125,13 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		IdempotencyKey: "pl-pay-" + link.ID,
 		SenderID:       consumer.ID,
 		RecipientID:    link.WalletID,
-		AmountMinor:    *amountMinor,
-		Currency:       link.Currency,
-		Description:    "Payment link: " + slug,
+		// ADR-030: a Payment Session's link carries the destination segregated
+		// account, so the credit lands there (e.g. a campaign account). Empty for
+		// legacy links ⇒ the wallet's default account (unchanged).
+		RecipientAccountID: link.WalletAccountID,
+		AmountMinor:        *amountMinor,
+		Currency:           link.Currency,
+		Description:        "Payment link: " + slug,
 	})
 	if err != nil {
 		switch {
