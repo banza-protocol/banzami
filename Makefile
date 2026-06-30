@@ -141,7 +141,7 @@ dev-status:
 	$(COMPOSE_INFRA) ps
 
 # ─── Database ─────────────────────────────────────────────────────────────────
-.PHONY: db-migrate db-reset db-status db-psql
+.PHONY: db-migrate db-reset db-status db-psql db-drift-check
 
 db-migrate: _require-database-url _require-sqlx
 	@printf "Applying migrations → $(DATABASE_URL)\n"
@@ -156,6 +156,12 @@ db-reset: _require-database-url _require-sqlx
 db-status: _require-database-url _require-sqlx
 	sqlx migrate info --source $(DB_MIG)
 
+# Report schema-parity drift between two databases (live vs sandbox). Set
+# REFERENCE_DATABASE_URL (e.g. sandbox) and DATABASE_URL (e.g. live). Allow-list
+# documented divergences with PARITY_IGNORE. See tools/check-migration-drift.sh.
+db-drift-check:
+	bash tools/check-migration-drift.sh
+
 db-psql:
 	$(COMPOSE_INFRA) exec postgres psql -U banzami -d banzami_dev
 
@@ -168,8 +174,12 @@ core-run: _require-database-url
 core-check:
 	cargo check --workspace --manifest-path $(CORE_DIR)/Cargo.toml
 
+# SQLX_OFFLINE=true forces the compile-time sqlx::query! checks to use the
+# committed .sqlx/ cache instead of connecting to DATABASE_URL. Without it, a plain
+# `cargo test` silently connects to the dev DB (.env) and fails to compile when that
+# DB lags the migrations (e.g. a missing `disputes` table) — see audit Part 16.
 core-test:
-	cargo test --workspace --manifest-path $(CORE_DIR)/Cargo.toml
+	SQLX_OFFLINE=true cargo test --workspace --manifest-path $(CORE_DIR)/Cargo.toml
 
 core-build:
 	cargo build --release --manifest-path $(CORE_DIR)/Cargo.toml
