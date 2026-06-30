@@ -39,7 +39,14 @@ export function Topbar({ user }: { user: AdminUser }) {
   const refreshMode = useCallback(async () => {
     const s = getSession();
     if (!s) return;
-    try { setPlatformMode((await new AdminApi(s.token).getPlatformMode()).mode); } catch { /* leave as-is */ }
+    try {
+      setPlatformMode((await new AdminApi(s.token).getPlatformMode()).mode);
+    } catch {
+      // Fail-safe to SANDBOX when the mode is still unknown (matches website/pay):
+      // never operate as if in production just because the read failed. A previously
+      // known mode is kept rather than downgraded on a transient error.
+      setPlatformMode((prev) => prev ?? 'SANDBOX');
+    }
   }, []);
   useEffect(() => {
     void refreshMode();
