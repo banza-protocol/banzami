@@ -284,6 +284,11 @@ deploy_staging() {
         /srv/banzami/docker-compose.yml > /tmp/dc.yml && mv /tmp/dc.yml /srv/banzami/docker-compose.yml
     fi
   "
+  # The sandbox stack pins core-api to the :adr021-staging tag (not :latest), so
+  # a bare recreate would resurrect a stale image. Retag the freshly-built
+  # :latest onto :adr021-staging first so staging actually runs current code.
+  info "Retagging core-api:latest -> :adr021-staging for the sandbox stack..."
+  ssh "$REMOTE" "docker tag banzami/core-api:latest banzami/core-api:adr021-staging 2>&1"
   info "Recreating staging containers..."
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d --force-recreate core-api-staging public-api-staging 2>&1"
   _wait_healthy "banzami-core-api-staging-1"
