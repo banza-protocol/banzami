@@ -42,6 +42,9 @@ pub struct CreateBody {
     pub application_fee_wallet_id: Option<String>,
     pub gross_amount_minor: i64,
     pub currency: String,
+    /// ADR-029: app-defined fee rate (basis points). When set, the operator
+    /// computes the fee from it and the Pricing Engine / pricing refs are ignored.
+    pub application_fee_bps: Option<u32>,
     // References only — never a fee/percentage. A client-supplied rate/fee field
     // is not modelled here and is therefore ignored: the client cannot set a fee.
     pub business_category: Option<String>,
@@ -216,6 +219,10 @@ fn map_err(e: ApplicationSettlementError) -> ApiError {
         E::MissingFeeAccount { .. } => {
             ApiError::bad_request("application_fee_account_id is required for this category")
         }
+        E::FeeBpsOutOfBounds { max, .. } => ApiError::unprocessable(
+            "FEE_BPS_OUT_OF_BOUNDS",
+            format!("application_fee_bps exceeds the maximum allowed ({max})"),
+        ),
         E::InsufficientFunds { .. } => {
             ApiError::unprocessable("INSUFFICIENT_FUNDS", "source account has insufficient funds")
         }
@@ -272,6 +279,7 @@ pub async fn create(
             beneficiary_account_id,
             application_fee_account_id,
             gross_amount: Money::new(body.gross_amount_minor, currency),
+            application_fee_bps: body.application_fee_bps,
             business_category: body.business_category,
             pricing_profile: body.pricing_profile,
             fee_policy_ref: body.fee_policy_ref,

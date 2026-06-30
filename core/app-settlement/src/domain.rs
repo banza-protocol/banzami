@@ -125,8 +125,15 @@ pub struct ApplicationSettlement {
     pub failure_reason: Option<String>,
 }
 
-/// Request to create a settlement. The fee is resolved by the Pricing Engine at
-/// creation time from the references below (never passed in as a number).
+/// Request to create a settlement.
+///
+/// The application fee is resolved one of two mutually-exclusive ways:
+/// - **App-defined (ADR-029):** `application_fee_bps` set ⇒ the operator computes
+///   `fee = floor(gross * bps / 10_000)`. The Pricing Engine is NOT consulted. The
+///   rate is the *app's* commercial policy; the operator only validates the bound.
+/// - **Operator-priced (ADR-021):** `application_fee_bps` is `None` ⇒ the fee is
+///   resolved by the Pricing Engine from `business_category`/`pricing_profile`/
+///   `fee_policy_ref` (never a number passed in).
 pub struct CreateApplicationSettlementRequest {
     pub idempotency_key: String,
     pub owner_ref: String,
@@ -138,8 +145,15 @@ pub struct CreateApplicationSettlementRequest {
     /// Accumulated net value to settle (already net of the operator fee charged
     /// at payment time). Must be positive.
     pub gross_amount: Money,
+    /// ADR-029: app-defined fee rate in basis points (0..=`MAX_APPLICATION_FEE_BPS`).
+    /// When set, the Pricing Engine is bypassed and the references below are ignored.
+    pub application_fee_bps: Option<u32>,
     pub business_category: Option<String>,
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }
+
+/// ADR-029 safety bound on an app-defined fee — an anti-abuse guardrail (a
+/// fat-finger 100000 bps is rejected), NOT operator pricing. 5000 bps = 50%.
+pub const MAX_APPLICATION_FEE_BPS: u32 = 5000;

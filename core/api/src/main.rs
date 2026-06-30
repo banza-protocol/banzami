@@ -403,6 +403,11 @@ async fn main() {
             "/internal/v1/wallets/:wallet_id/accounts",
             get(routes::wallet_accounts::list_for_wallet),
         )
+        // Party resolver (ADR-029) — @banza handle → settlement account
+        .route(
+            "/internal/v1/parties/resolve/:handle",
+            get(routes::parties::resolve),
+        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(

@@ -137,34 +137,67 @@ where
         }
         let currency = req.gross_amount.currency;
 
-        // --- Resolve the APPLICATION fee from the Pricing Engine ------------
-        // On the settlement gross (already net of the operator fee). Unpriced =>
-        // 0. The percentage lives only in pricing_rules; nothing is hard-coded.
-        let rules = self
-            .pricing
-            .load_rules(&self.environment)
-            .await
-            .map_err(|e| ApplicationSettlementError::Pricing(e.to_string()))?;
-        let ctx = PricingContext {
-            amount_minor: req.gross_amount.amount_minor(),
-            currency,
-            business_category: req
-                .business_category
-                .as_deref()
-                .map(BusinessCategory::from_code)
-                .unwrap_or_else(|| BusinessCategory::Other(String::new())),
-            pricing_profile: req.pricing_profile.as_deref().map(PricingProfile::from_code),
-            fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
-            country: None,
-            as_of: Utc::now(),
-        };
-        let resolution = banzami_pricing::resolve(&rules, &ctx);
-        let fee_minor = resolution.fee_minor;
+        // --- Resolve the APPLICATION fee ------------------------------------
+        // ADR-029: two mutually-exclusive paths.
+        let gross_minor = req.gross_amount.amount_minor();
+        let (fee_minor, snapshot_json, pricing_rule_id, pricing_rule_version, engine_version) =
+            if let Some(bps) = req.application_fee_bps {
+                // APP-DEFINED: the app supplies the rate; the operator validates the
+                // bound and computes the amount. The Pricing Engine is NOT consulted
+                // and pricing references are ignored (the rate is the app's policy).
+                if bps > crate::domain::MAX_APPLICATION_FEE_BPS {
+                    return Err(ApplicationSettlementError::FeeBpsOutOfBounds {
+                        bps,
+                        max: crate::domain::MAX_APPLICATION_FEE_BPS,
+                    });
+                }
+                // floor(gross * bps / 10_000) in i128 to avoid overflow.
+                let fee = ((gross_minor as i128 * bps as i128) / 10_000) as i64;
+                let snapshot = serde_json::json!({
+                    "source": "APP_DEFINED",
+                    "application_fee_bps": bps,
+                    "gross_minor": gross_minor,
+                    "fee_minor": fee,
+                });
+                (fee, snapshot, None, None, 0_i32)
+            } else {
+                // OPERATOR-PRICED: the percentage lives only in pricing_rules;
+                // nothing is hard-coded. Unpriced => 0.
+                let rules = self
+                    .pricing
+                    .load_rules(&self.environment)
+                    .await
+                    .map_err(|e| ApplicationSettlementError::Pricing(e.to_string()))?;
+                let ctx = PricingContext {
+                    amount_minor: gross_minor,
+                    currency,
+                    business_category: req
+                        .business_category
+                        .as_deref()
+                        .map(BusinessCategory::from_code)
+                        .unwrap_or_else(|| BusinessCategory::Other(String::new())),
+                    pricing_profile: req.pricing_profile.as_deref().map(PricingProfile::from_code),
+                    fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
+                    country: None,
+                    as_of: Utc::now(),
+                };
+                let resolution = banzami_pricing::resolve(&rules, &ctx);
+                let snapshot = serde_json::to_value(&resolution.snapshot).map_err(|e| {
+                    ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}"))
+                })?;
+                (
+                    resolution.fee_minor,
+                    snapshot,
+                    resolution.snapshot.rule_id,
+                    resolution.snapshot.rule_version,
+                    resolution.snapshot.engine_version as i32,
+                )
+            };
 
-        if fee_minor > req.gross_amount.amount_minor() {
+        if fee_minor > gross_minor {
             return Err(ApplicationSettlementError::FeeExceedsGross {
                 fee: fee_minor,
-                gross: req.gross_amount.amount_minor(),
+                gross: gross_minor,
             });
         }
         if fee_minor > 0 && req.application_fee_account_id.is_none() {
@@ -172,9 +205,6 @@ where
         }
         let application_fee = Money::new(fee_minor, currency);
         let net_amount = req.gross_amount.checked_sub(application_fee)?; // >= 0
-
-        let snapshot_json = serde_json::to_value(&resolution.snapshot)
-            .map_err(|e| ApplicationSettlementError::Pricing(format!("snapshot serialize: {e}")))?;
 
         let now = Utc::now();
         let settlement = ApplicationSettlement {
@@ -191,9 +221,9 @@ where
             business_category: req.business_category,
             pricing_profile: req.pricing_profile,
             fee_policy_ref: req.fee_policy_ref,
-            pricing_rule_id: resolution.snapshot.rule_id,
-            pricing_rule_version: resolution.snapshot.rule_version,
-            engine_version: resolution.snapshot.engine_version as i32,
+            pricing_rule_id,
+            pricing_rule_version,
+            engine_version,
             pricing_snapshot_json: snapshot_json,
             status: ApplicationSettlementStatus::Created,
             settlement_posting_id: None,

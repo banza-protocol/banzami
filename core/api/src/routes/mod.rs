@@ -2,6 +2,7 @@ pub mod acquiring;
 pub mod activity;
 pub mod admin;
 pub mod application_settlements;
+pub mod parties;
 pub mod wallet_accounts;
 #[cfg(test)]
 mod application_settlements_tests;
