@@ -1,4 +1,5 @@
 import { PaymentLink, formatAmount } from './api';
+import { BanzamiQrScheme } from './qrScheme';
 
 declare const QRCode: any; // loaded from CDN in browser context
 
@@ -84,7 +85,7 @@ export class CheckoutModal {
     injectStyle();
     this.cleanup();
 
-    const deepLink  = `banzami://pay/link/${link.slug}`;
+    const deepLink  = BanzamiQrScheme.payLink(link.slug);
     const amountTxt = link.amount_minor != null
       ? formatAmount(link.amount_minor, link.currency)
       : 'Valor livre';

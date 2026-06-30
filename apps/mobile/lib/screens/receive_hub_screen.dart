@@ -135,13 +135,12 @@ class _ReceiveHubScreenState extends State<ReceiveHubScreen> {
   }
 
   String _qrPayload(String handle) {
+    // Built through BanzamiQrScheme (single source of truth) so this generator can
+    // never drift from the parser; sandbox emits a distinct scheme.
     if (_activeLink != null) {
-      final scheme = AppConfig.isSandbox ? 'banzami-sandbox' : 'banzami';
-      return '$scheme://pay?request=${_activeLink!.linkCode}';
+      return BanzamiQrScheme.paymentRequest(_activeLink!.linkCode, isSandbox: AppConfig.isSandbox);
     }
-    // Sandbox QR uses a distinct scheme so it cannot be scanned as live payment.
-    final scheme = AppConfig.isSandbox ? 'banzami-sandbox' : 'banzami';
-    return '$scheme:@$handle';
+    return BanzamiQrScheme.handle(handle, isSandbox: AppConfig.isSandbox);
   }
 
   String _shareUrl(String handle) {

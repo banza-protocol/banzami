@@ -16,6 +16,8 @@ library;
 
 import 'dart:convert';
 
+import 'qr_scheme.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Result types
 // ─────────────────────────────────────────────────────────────────────────────
@@ -144,9 +146,10 @@ class BanzamiQrParser {
     }
 
     // ── Deep link: banzami:// / banzami-sandbox:// (+ legacy banza://) ─────────
-    if (raw.startsWith('banzami://') || raw.startsWith('banzami-sandbox://') ||
-        raw.startsWith('banza://') || raw.startsWith('banza-sandbox://')) {
-      final isSandbox = raw.contains('-sandbox://');
+    // Accepted schemes come from BanzamiQrScheme (the single source of truth) so
+    // the parser can never diverge from what the generators emit.
+    if (BanzamiQrScheme.deepLinkPrefixes.any(raw.startsWith)) {
+      final isSandbox = BanzamiQrScheme.isSandboxScheme(raw);
       final uri       = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('Link inválido');
 
@@ -190,11 +193,7 @@ class BanzamiQrParser {
     // what the generator (receive_hub_screen) emits today. The legacy `banza` /
     // `banza-sandbox` prefixes are also accepted so QRs already printed/shared
     // before the brand rename keep resolving. Longer (sandbox) prefixes first.
-    const handlePrefixes = [
-      'banzami-sandbox:@', 'banza-sandbox:@', // sandbox: canonical, legacy
-      'banzami:@', 'banza:@', //                 live:    canonical, legacy
-    ];
-    for (final prefix in handlePrefixes) {
+    for (final prefix in BanzamiQrScheme.handlePrefixes) {
       if (!raw.startsWith(prefix)) continue;
       final isSandbox = prefix.contains('-sandbox');
       final rest      = raw.substring(prefix.length); // 'fm65' or 'fm65?amount=5000&currency=AOA'

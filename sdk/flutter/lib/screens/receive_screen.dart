@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../client/consumer_public_client.dart';
 import '../models/consumer_pay_link.dart';
+import '../utils/qr_scheme.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../utils/banzami_toast.dart';
@@ -135,12 +136,12 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
-    // Sandbox QR uses a distinct scheme so it cannot be scanned as a live
-    // payment (mirrors receive_hub_screen._qrPayload). Always emit the canonical
-    // `banzami`/`banzami-sandbox` scheme — never the legacy `banza:@`.
-    final scheme = widget.isSandbox ? 'banzami-sandbox' : 'banzami';
-    if (_activeLink != null) return '$scheme://pay?request=${_activeLink!.linkCode}';
-    return '$scheme:@${widget.handle}';
+    // Built through BanzamiQrScheme (single source of truth) so this generator can
+    // never drift from the parser. Sandbox emits a distinct scheme; never legacy.
+    if (_activeLink != null) {
+      return BanzamiQrScheme.paymentRequest(_activeLink!.linkCode, isSandbox: widget.isSandbox);
+    }
+    return BanzamiQrScheme.handle(widget.handle, isSandbox: widget.isSandbox);
   }
 
   String get _shareUrl {

@@ -157,4 +157,64 @@ void main() {
       expect(BanzamiQrParser.parse('a' * 600), isA<BanzamiQrInvalid>());
     });
   });
+
+  // The single-source-of-truth guarantee: every link the generators emit through
+  // BanzamiQrScheme MUST be accepted by the parser as the right type. If a builder
+  // and the parser ever drift, one of these fails — the drift can't ship silently.
+  group('BanzamiQrScheme — generator output round-trips through the parser', () {
+    test('handle (live) resolves to a handle payment, not sandbox', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.handle('fm65', isSandbox: false));
+      expect(r, isA<BanzamiQrHandlePayment>());
+      final h = r as BanzamiQrHandlePayment;
+      expect(h.handle, 'fm65');
+      expect(h.isSandbox, isFalse);
+    });
+
+    test('handle (sandbox) resolves AS sandbox', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.handle('fm65', isSandbox: true));
+      expect((r as BanzamiQrHandlePayment).isSandbox, isTrue);
+    });
+
+    test('paymentRequest (live) resolves to a payment request', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.paymentRequest('REQ1', isSandbox: false));
+      expect(r, isA<BanzamiQrPaymentRequest>());
+      final p = r as BanzamiQrPaymentRequest;
+      expect(p.code, 'REQ1');
+      expect(p.isSandbox, isFalse);
+    });
+
+    test('paymentRequest (sandbox) resolves AS sandbox', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.paymentRequest('REQ1', isSandbox: true));
+      expect((r as BanzamiQrPaymentRequest).isSandbox, isTrue);
+    });
+
+    test('payLink resolves to a payment link', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.payLink('slug123'));
+      expect(r, isA<BanzamiQrPaymentLink>());
+      expect((r as BanzamiQrPaymentLink).slug, 'slug123');
+    });
+
+    test('split resolves to a split payment (matches the core emission)', () {
+      final r = BanzamiQrParser.parse(BanzamiQrScheme.split('split-7'));
+      expect(r, isA<BanzamiQrSplitPayment>());
+      expect((r as BanzamiQrSplitPayment).splitId, 'split-7');
+    });
+
+    test('emitted schemes are always canonical, never legacy', () {
+      expect(BanzamiQrScheme.handle('x', isSandbox: false), startsWith('banzami:@'));
+      expect(BanzamiQrScheme.handle('x', isSandbox: true), startsWith('banzami-sandbox:@'));
+      expect(BanzamiQrScheme.paymentRequest('c', isSandbox: false), startsWith('banzami://'));
+      expect(BanzamiQrScheme.payLink('s'), startsWith('banzami://pay/link/'));
+      for (final emitted in [
+        BanzamiQrScheme.handle('x', isSandbox: false),
+        BanzamiQrScheme.handle('x', isSandbox: true),
+        BanzamiQrScheme.paymentRequest('c', isSandbox: false),
+        BanzamiQrScheme.payLink('s'),
+        BanzamiQrScheme.split('id'),
+      ]) {
+        expect(emitted.startsWith('banza:') || emitted.startsWith('banza-sandbox:'), isFalse,
+            reason: 'generators must never emit the legacy banza scheme: $emitted');
+      }
+    });
+  });
 }

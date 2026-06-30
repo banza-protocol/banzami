@@ -52,6 +52,7 @@ export 'utils/date_formatter.dart';
 export 'utils/money_format.dart';
 export 'utils/qr_logo_utils.dart';
 export 'utils/qr_parser.dart';
+export 'utils/qr_scheme.dart';
 export 'utils/screen_security.dart';
 
 // Widgets
