@@ -48,6 +48,13 @@ type MerchantApplication struct {
 	AdminNotes          string     `json:"admin_notes"`
 	MerchantMessage     string     `json:"merchant_message"`
 	CreatedMerchantID   string     `json:"created_merchant_id"`
+	// Provisioning recovery state (0079) — each Phase-A resource is recorded so a
+	// retry resumes the step instead of duplicating it.
+	ProvisioningWalletID      string `json:"provisioning_wallet_id"`
+	ProvisioningApiKeyPrefix  string `json:"provisioning_api_key_prefix"`
+	ProvisioningComplianceDone bool  `json:"provisioning_compliance_done"`
+	ProvisioningError         string `json:"provisioning_error"`    // failure reason, for operator visibility
+	ProvisioningAttempts      int    `json:"provisioning_attempts"`
 	CreatedAt           time.Time  `json:"created_at"`
 	ReviewedAt          *time.Time `json:"reviewed_at"`
 }
@@ -101,7 +108,10 @@ const appCols = `id::text, status, environment, desired_handle, business_name,
 	COALESCE(province,''), COALESCE(municipality,''), COALESCE(city,''), COALESCE(address,''), COALESCE(address_reference,''),
 	COALESCE(legal_representative,''), COALESCE(representative_role,''), COALESCE(representative_email,''), COALESCE(representative_phone,''),
 	COALESCE(business_activity,''), COALESCE(estimated_volume,''), COALESCE(admin_notes,''),
-	COALESCE(merchant_message,''), COALESCE(created_merchant_id::text,''), created_at, reviewed_at`
+	COALESCE(merchant_message,''), COALESCE(created_merchant_id::text,''),
+	COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_api_key_prefix,''), provisioning_compliance_done,
+	COALESCE(provisioning_error,''), provisioning_attempts,
+	created_at, reviewed_at`
 
 func scanApplication(row pgx.Row) (MerchantApplication, error) {
 	var a MerchantApplication
@@ -110,7 +120,10 @@ func scanApplication(row pgx.Row) (MerchantApplication, error) {
 		&a.Province, &a.Municipality, &a.City, &a.Address, &a.AddressReference,
 		&a.LegalRepresentative, &a.RepresentativeRole, &a.RepresentativeEmail, &a.RepresentativePhone,
 		&a.BusinessActivity, &a.EstimatedVolume, &a.AdminNotes,
-		&a.MerchantMessage, &a.CreatedMerchantID, &a.CreatedAt, &a.ReviewedAt)
+		&a.MerchantMessage, &a.CreatedMerchantID,
+		&a.ProvisioningWalletID, &a.ProvisioningApiKeyPrefix, &a.ProvisioningComplianceDone,
+		&a.ProvisioningError, &a.ProvisioningAttempts,
+		&a.CreatedAt, &a.ReviewedAt)
 	return a, err
 }
 
@@ -161,96 +174,142 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 	if err != nil {
 		return ApprovalResult{}, err
 	}
-	if app.Status != "SUBMITTED" && app.Status != "UNDER_REVIEW" {
+	// PROVISIONING_FAILED is re-approvable too — that IS the reprocess path.
+	if app.Status != "SUBMITTED" && app.Status != "UNDER_REVIEW" && app.Status != "PROVISIONING_FAILED" {
 		return ApprovalResult{}, ErrApplicationNotOpen
 	}
 
-	// Phase A is not transactional with the gateway DB, so a failure after the
-	// merchant is created leaves the application SUBMITTED (re-approvable). Resume
-	// such a retry on the SAME merchant instead of minting a duplicate: reuse a
-	// previously recorded merchant id, and persist a freshly created one
-	// immediately so the next step's failure is recoverable rather than orphaning.
+	// Count the attempt and clear any prior error up front.
+	_, _ = s.pool.Exec(ctx,
+		`UPDATE merchant_applications SET provisioning_attempts=provisioning_attempts+1, provisioning_error=NULL, updated_at=now() WHERE id=$1`, id)
+
+	// fail records PROVISIONING_FAILED + the failing step so an operator sees it and
+	// can reprocess, then returns the wrapped error. The application is never left
+	// looking "approved" while the merchant cannot sign in.
+	fail := func(step string, e error) (ApprovalResult, error) {
+		_, _ = s.pool.Exec(ctx,
+			`UPDATE merchant_applications SET status='PROVISIONING_FAILED', provisioning_error=$2, updated_at=now() WHERE id=$1`,
+			id, step+": "+e.Error())
+		return ApprovalResult{}, fmt.Errorf("%s: %w", step, e)
+	}
+
+	// Phase A — non-transactional core calls. Each created resource is recorded
+	// immediately, so a retry RESUMES each step instead of duplicating it (outbox-
+	// style forward recovery; the application row is the command record).
+
+	// Step 1 — merchant.
 	merchantID := app.CreatedMerchantID
 	if merchantID == "" {
 		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email)
 		if err != nil {
-			return ApprovalResult{}, fmt.Errorf("create merchant: %w", err)
+			return fail("create merchant", err)
 		}
 		if _, err = s.pool.Exec(ctx,
-			`UPDATE merchant_applications SET created_merchant_id=$2, updated_at=now() WHERE id=$1`,
-			id, merchantID); err != nil {
-			return ApprovalResult{}, fmt.Errorf("record merchant id: %w", err)
+			`UPDATE merchant_applications SET created_merchant_id=$2, updated_at=now() WHERE id=$1`, id, merchantID); err != nil {
+			return fail("record merchant id", err)
 		}
 	}
-	walletID, err := s.core.CreateWallet(ctx, merchantID, "AOA")
-	if err != nil {
-		return ApprovalResult{}, fmt.Errorf("create wallet: %w", err)
+
+	// Step 2 — wallet.
+	walletID := app.ProvisioningWalletID
+	if walletID == "" {
+		walletID, err = s.core.CreateWallet(ctx, merchantID, "AOA")
+		if err != nil {
+			return fail("create wallet", err)
+		}
+		if _, err = s.pool.Exec(ctx,
+			`UPDATE merchant_applications SET provisioning_wallet_id=$2, updated_at=now() WHERE id=$1`, id, nullStr(walletID)); err != nil {
+			return fail("record wallet id", err)
+		}
 	}
-	apiKeyPrefix, err := s.core.CreateApiKey(ctx, merchantID, "default", app.Environment)
-	if err != nil {
-		return ApprovalResult{}, fmt.Errorf("create api key: %w", err)
+
+	// Step 3 — api key.
+	apiKeyPrefix := app.ProvisioningApiKeyPrefix
+	if apiKeyPrefix == "" {
+		apiKeyPrefix, err = s.core.CreateApiKey(ctx, merchantID, "default", app.Environment)
+		if err != nil {
+			return fail("create api key", err)
+		}
+		if _, err = s.pool.Exec(ctx,
+			`UPDATE merchant_applications SET provisioning_api_key_prefix=$2, updated_at=now() WHERE id=$1`, id, nullStr(apiKeyPrefix)); err != nil {
+			return fail("record api key", err)
+		}
 	}
-	if err := s.core.ApproveCompliance(ctx, merchantID); err != nil {
-		return ApprovalResult{}, fmt.Errorf("approve compliance: %w", err)
+
+	// Step 4 — compliance.
+	if !app.ProvisioningComplianceDone {
+		if err := s.core.ApproveCompliance(ctx, merchantID); err != nil {
+			return fail("approve compliance", err)
+		}
+		if _, err = s.pool.Exec(ctx,
+			`UPDATE merchant_applications SET provisioning_compliance_done=true, updated_at=now() WHERE id=$1`, id); err != nil {
+			return fail("record compliance", err)
+		}
 	}
 
 	rawToken, err := randomToken(32)
 	if err != nil {
-		return ApprovalResult{}, err
+		return fail("activation token", err)
 	}
 
+	// Phase B — atomic gateway DB (all-or-nothing).
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
-		return ApprovalResult{}, err
+		return fail("begin provisioning tx", err)
 	}
 	defer tx.Rollback(ctx)
 
-	if _, err := tx.Exec(ctx,
-		`INSERT INTO merchant_profiles (merchant_id, handle, display_name, category, wallet_id, public)
-		 VALUES ($1, $2, $3, $4, $5, false)
-		 ON CONFLICT (merchant_id) DO NOTHING`,
-		merchantID, app.DesiredHandle, app.BusinessName, nullStr(app.Category), nullStr(walletID)); err != nil {
-		return ApprovalResult{}, err
-	}
-	if _, err := tx.Exec(ctx,
-		`UPDATE handle_registry
-		    SET owner_type='MERCHANT', owner_id=$2, reserved_until=NULL, reserved_reason=NULL
-		  WHERE handle=$1`, app.DesiredHandle, merchantID); err != nil {
-		return ApprovalResult{}, err
-	}
-	if _, err := tx.Exec(ctx,
-		`INSERT INTO merchant_app_credentials (merchant_id, environment, handle, pin_hash, activated_at)
-		 VALUES ($1, $2, $3, NULL, NULL)
-		 ON CONFLICT (merchant_id, environment) DO UPDATE SET handle=EXCLUDED.handle`,
-		merchantID, app.Environment, app.DesiredHandle); err != nil {
-		return ApprovalResult{}, err
-	}
-	if _, err := tx.Exec(ctx,
-		`INSERT INTO merchant_activation_tokens (id, merchant_id, environment, token_hash, expires_at)
-		 VALUES ($1, $2, $3, $4, $5)`,
-		uuid.NewString(), merchantID, app.Environment, hashToken(rawToken), time.Now().Add(activationTTL)); err != nil {
-		return ApprovalResult{}, err
-	}
-	if _, err := tx.Exec(ctx,
-		`UPDATE merchant_applications
-		    SET status='APPROVED', created_merchant_id=$2, reviewed_by=$3, reviewed_at=now(), updated_at=now()
-		  WHERE id=$1`, id, merchantID, reviewedBy); err != nil {
-		return ApprovalResult{}, err
-	}
-
-	// Link the application's documents to the new merchant (history) and bridge
-	// them into the merchant-maintained KYB set (post-approval source of truth).
-	if _, err := tx.Exec(ctx,
-		`UPDATE merchant_application_documents SET merchant_id=$2, updated_at=now()
-		  WHERE application_id=$1 AND deleted_at IS NULL`, id, merchantID); err != nil {
-		return ApprovalResult{}, err
-	}
-	if err := BridgeFromApplicationTx(ctx, tx, id, merchantID, app.Environment); err != nil {
-		return ApprovalResult{}, fmt.Errorf("bridge kyb documents: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return ApprovalResult{}, err
+	// Phase B body in a closure so a failure can roll the tx back (releasing the
+	// row lock) BEFORE fail() marks PROVISIONING_FAILED on the same row — otherwise
+	// fail()'s separate connection would deadlock against the open tx.
+	pbErr := func() error {
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO merchant_profiles (merchant_id, handle, display_name, category, wallet_id, public)
+			 VALUES ($1, $2, $3, $4, $5, false)
+			 ON CONFLICT (merchant_id) DO NOTHING`,
+			merchantID, app.DesiredHandle, app.BusinessName, nullStr(app.Category), nullStr(walletID)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`UPDATE handle_registry
+			    SET owner_type='MERCHANT', owner_id=$2, reserved_until=NULL, reserved_reason=NULL
+			  WHERE handle=$1`, app.DesiredHandle, merchantID); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO merchant_app_credentials (merchant_id, environment, handle, pin_hash, activated_at)
+			 VALUES ($1, $2, $3, NULL, NULL)
+			 ON CONFLICT (merchant_id, environment) DO UPDATE SET handle=EXCLUDED.handle`,
+			merchantID, app.Environment, app.DesiredHandle); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`INSERT INTO merchant_activation_tokens (id, merchant_id, environment, token_hash, expires_at)
+			 VALUES ($1, $2, $3, $4, $5)`,
+			uuid.NewString(), merchantID, app.Environment, hashToken(rawToken), time.Now().Add(activationTTL)); err != nil {
+			return err
+		}
+		if _, err := tx.Exec(ctx,
+			`UPDATE merchant_applications
+			    SET status='APPROVED', created_merchant_id=$2, reviewed_by=$3, reviewed_at=now(), updated_at=now()
+			  WHERE id=$1`, id, merchantID, reviewedBy); err != nil {
+			return err
+		}
+		// Link the application's documents to the new merchant (history) and bridge
+		// them into the merchant-maintained KYB set (post-approval source of truth).
+		if _, err := tx.Exec(ctx,
+			`UPDATE merchant_application_documents SET merchant_id=$2, updated_at=now()
+			  WHERE application_id=$1 AND deleted_at IS NULL`, id, merchantID); err != nil {
+			return err
+		}
+		if err := BridgeFromApplicationTx(ctx, tx, id, merchantID, app.Environment); err != nil {
+			return fmt.Errorf("bridge kyb documents: %w", err)
+		}
+		return tx.Commit(ctx)
+	}()
+	if pbErr != nil {
+		_ = tx.Rollback(ctx) // release the row lock before fail() touches the row
+		return fail("provisioning (phase b)", pbErr)
 	}
 
 	return ApprovalResult{

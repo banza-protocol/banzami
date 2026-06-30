@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"os"
 	"testing"
 	"time"
@@ -16,7 +17,11 @@ import (
 type fakeProvisioner struct {
 	pool               *pgxpool.Pool
 	createMerchantHook func() (string, error)
+	walletHook         func() (string, error) // optional; default returns a fresh uuid
 	createMerchant     int
+	createWallet       int
+	createApiKey       int
+	approveCompliance  int
 }
 
 func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email string) (string, error) {
@@ -24,12 +29,20 @@ func (f *fakeProvisioner) CreateMerchant(ctx context.Context, name, email string
 	return f.createMerchantHook()
 }
 func (f *fakeProvisioner) CreateWallet(ctx context.Context, merchantID, currency string) (string, error) {
-	return "", nil // empty → NULL wallet_id, avoids a wallets FK in the test
+	f.createWallet++
+	if f.walletHook != nil {
+		return f.walletHook()
+	}
+	return uuid.NewString(), nil // wallet_id has no FK — a fake uuid is fine
 }
 func (f *fakeProvisioner) CreateApiKey(ctx context.Context, merchantID, name, environment string) (string, error) {
+	f.createApiKey++
 	return "kp_test", nil
 }
-func (f *fakeProvisioner) ApproveCompliance(ctx context.Context, merchantID string) error { return nil }
+func (f *fakeProvisioner) ApproveCompliance(ctx context.Context, merchantID string) error {
+	f.approveCompliance++
+	return nil
+}
 
 func appAdminPoolOrSkip(ctx context.Context, t *testing.T) *pgxpool.Pool {
 	t.Helper()
@@ -161,5 +174,94 @@ func TestApprove_FreshCreatesAndRecordsMerchant(t *testing.T) {
 		Scan(&status, &recorded)
 	if status != "APPROVED" || recorded != merchantID {
 		t.Fatalf("application not finalized: status=%s created_merchant_id=%s", status, recorded)
+	}
+}
+
+// Audit Part 8 / Unit 4: a provisioning failure must mark PROVISIONING_FAILED
+// (visible + reprocessable), and reprocessing must RESUME each step (no duplicate
+// merchant/wallet) and complete to APPROVED.
+func TestApprove_FailsThenResumesWithoutDuplication(t *testing.T) {
+	ctx := context.Background()
+	pool := appAdminPoolOrSkip(ctx, t)
+	defer pool.Close()
+
+	merchantID := uuid.NewString()
+	appID := uuid.NewString()
+	handle := "t_" + uuid.NewString()[:8]
+	email := handle + "@example.test"
+
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_activation_tokens WHERE merchant_id=$1`, merchantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_app_credentials WHERE merchant_id=$1`, merchantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_profiles WHERE merchant_id=$1`, merchantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchant_applications WHERE id=$1`, appID)
+		_, _ = pool.Exec(ctx, `DELETE FROM merchants WHERE id=$1`, merchantID)
+		_, _ = pool.Exec(ctx, `DELETE FROM handle_registry WHERE handle=$1`, handle)
+	})
+
+	if _, err := pool.Exec(ctx, `INSERT INTO handle_registry (handle, owner_type, owner_id, reserved_reason) VALUES ($1,'SYSTEM',NULL,'application')`, handle); err != nil {
+		t.Fatalf("seed handle: %v", err)
+	}
+	if _, err := pool.Exec(ctx,
+		`INSERT INTO merchant_applications (id, status, environment, desired_handle, business_name, email)
+		 VALUES ($1,'SUBMITTED','SANDBOX',$2,'Saga Co',$3)`, appID, handle, email); err != nil {
+		t.Fatalf("seed application: %v", err)
+	}
+
+	failWallet := true
+	fake := &fakeProvisioner{
+		pool: pool,
+		createMerchantHook: func() (string, error) {
+			_, err := pool.Exec(ctx, `INSERT INTO merchants (id, name, email) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, merchantID, "Saga Co", email)
+			return merchantID, err
+		},
+		walletHook: func() (string, error) {
+			if failWallet {
+				return "", errors.New("core wallet service unavailable")
+			}
+			return uuid.NewString(), nil
+		},
+	}
+	svc := NewPostgresMerchantApplicationAdminService(pool, fake)
+
+	// First attempt fails at the wallet step.
+	if _, err := svc.Approve(ctx, appID, "tester", time.Hour); err == nil {
+		t.Fatal("expected the wallet step to fail")
+	}
+	var status, mid, wid, perr string
+	_ = pool.QueryRow(ctx,
+		`SELECT status, COALESCE(created_merchant_id::text,''), COALESCE(provisioning_wallet_id::text,''), COALESCE(provisioning_error,'')
+		   FROM merchant_applications WHERE id=$1`, appID).Scan(&status, &mid, &wid, &perr)
+	if status != "PROVISIONING_FAILED" {
+		t.Fatalf("want PROVISIONING_FAILED, got %s", status)
+	}
+	if mid != merchantID {
+		t.Fatal("merchant step should be recorded after failure (resumable)")
+	}
+	if wid != "" {
+		t.Fatal("wallet must NOT be recorded after its failure")
+	}
+	if perr == "" {
+		t.Fatal("provisioning_error must be set for operator visibility")
+	}
+	if fake.createMerchant != 1 {
+		t.Fatalf("CreateMerchant called %d times before reprocess", fake.createMerchant)
+	}
+
+	// Reprocess — wallet now succeeds. Must resume (no duplicate merchant) → APPROVED.
+	failWallet = false
+	res, err := svc.Approve(ctx, appID, "tester", time.Hour)
+	if err != nil {
+		t.Fatalf("reprocess: %v", err)
+	}
+	if fake.createMerchant != 1 {
+		t.Fatalf("merchant DUPLICATED on reprocess: CreateMerchant=%d (want 1)", fake.createMerchant)
+	}
+	if res.MerchantID != merchantID {
+		t.Fatalf("resumed wrong merchant: %s", res.MerchantID)
+	}
+	_ = pool.QueryRow(ctx, `SELECT status FROM merchant_applications WHERE id=$1`, appID).Scan(&status)
+	if status != "APPROVED" {
+		t.Fatalf("reprocess did not finalize: status=%s", status)
 	}
 }
