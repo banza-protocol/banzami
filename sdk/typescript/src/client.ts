@@ -35,6 +35,7 @@ import type {
   CreateWalletAccountParams,
   CreateBusinessApplicationSettlementParams,
   PaymentSession,
+  PaymentSessionInterface,
   CreatePaymentSessionParams,
 } from './types.js';
 
@@ -691,6 +692,21 @@ export class BanzamiClient {
 
   getPaymentSession(id: string): Promise<PaymentSession> {
     return this.request<PaymentSession>(`/business/payment-sessions/${id}`);
+  }
+
+  /** List this merchant's payment sessions, newest first. Optional status filter. */
+  listPaymentSessions(params: { status?: string; limit?: number } = {}): Promise<{ data: PaymentSession[] }> {
+    return this.request<{ data: PaymentSession[] }>(
+      `/business/payment-sessions${this.qs({ status: params.status, limit: params.limit })}`,
+    );
+  }
+
+  /** Find one interface kind on a session (e.g. the DYNAMIC_QR payload to show). */
+  paymentSessionInterface(
+    session: PaymentSession,
+    type: PaymentSessionInterface['type'],
+  ): PaymentSessionInterface | undefined {
+    return session.interfaces.find(i => i.type === type);
   }
 
   // ---------------------------------------------------------------------------

@@ -638,10 +638,11 @@ describe('payment sessions', () => {
     session_id: 'ps-1', wallet_account_id: 'wa-1', currency: 'AOA', amount_minor: 5000,
     purpose: 'DONATION', reference_type: 'DOA_DONATION', reference_id: 'intent-1',
     status: 'ACTIVE', expires_at: null, created_at: '2026-06-30T00:00:00Z',
-    interfaces: {
-      payment_link: { type: 'PAYMENT_LINK', slug: 'abc', url: 'https://pay/abc' },
-      dynamic_qr:   { type: 'DYNAMIC_QR', payload: 'banzami://pay/abc', qr_url: '/qr' },
-    },
+    interfaces: [
+      { type: 'PAYMENT_LINK', value: 'https://pay/abc', format: 'URL' },
+      { type: 'DEEP_LINK', value: 'banzami://pay/abc', format: 'URL' },
+      { type: 'DYNAMIC_QR', value: 'banzami://pay/abc', format: 'QR_PAYLOAD', qr_url: '/qr' },
+    ],
   };
 
   it('createPaymentSession posts wallet_account_id + amount to /business/payment-sessions', async () => {
@@ -668,10 +669,21 @@ describe('payment sessions', () => {
     expect(body.amount_minor).toBeNull();
   });
 
-  it('getPaymentSession GETs by id', async () => {
+  it('getPaymentSession GETs by id and exposes the canonical interfaces array', async () => {
     mockFetch(200, session);
     const s = await client.getPaymentSession('ps-1');
     expect(lastFetchCall().url).toContain('/business/payment-sessions/ps-1');
-    expect(s.interfaces.dynamic_qr?.payload).toBe('banzami://pay/abc');
+    const qr = client.paymentSessionInterface(s, 'DYNAMIC_QR');
+    expect(qr?.value).toBe('banzami://pay/abc');
+    expect(client.paymentSessionInterface(s, 'PAYMENT_LINK')?.value).toBe('https://pay/abc');
+  });
+
+  it('listPaymentSessions GETs with status filter', async () => {
+    mockFetch(200, { data: [session] });
+    await client.listPaymentSessions({ status: 'PAID', limit: 10 });
+    const { url } = lastFetchCall();
+    expect(url).toContain('/business/payment-sessions?');
+    expect(url).toContain('status=PAID');
+    expect(url).toContain('limit=10');
   });
 });

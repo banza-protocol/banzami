@@ -499,19 +499,26 @@ export interface CreateBusinessApplicationSettlementParams {
 // Payment Sessions (BANZA ADR-043) — one financial object, many interfaces
 // ---------------------------------------------------------------------------
 
-/** The payment interfaces a session exposes. All credit the same wallet account.
- *  A fixed-amount session carries a `dynamic_qr` payload; an open-amount session
- *  exposes a `link_qr` that renders the link URL. The app DISPLAYS these — it
- *  never builds a financial payload itself. */
-export interface PaymentSessionInterfaces {
-  payment_link?: { type: string; slug: string; url: string };
-  deep_link?:    { type: string; value: string };
-  dynamic_qr?:   { type: string; payload: string; qr_url: string };
-  link_qr?:      { type: string; qr_url: string };
+export type PaymentSessionInterfaceType = 'PAYMENT_LINK' | 'DYNAMIC_QR' | 'STATIC_QR' | 'DEEP_LINK';
+
+/** One interface presenting a session (canonical ADR-043 shape). `value` is the
+ *  presentable artifact — a URL (link/deep link) or a signed QR payload — and
+ *  carries only an opaque session reference, never an account id. The app DISPLAYS
+ *  it; it never builds a financial payload itself. */
+export interface PaymentSessionInterface {
+  type: PaymentSessionInterfaceType;
+  value: string;
+  format?: 'URL' | 'QR_PAYLOAD' | 'PNG' | 'SVG' | 'PDF' | null;
+  /** Gateway path that renders a QR image (QR interfaces only). */
+  qr_url?: string;
+  expires_at?: string | null;
+  status?: string | null;
 }
 
 /** A Payment Session bound to one `wallet_account_id`. The app references it by
- *  `session_id` and shows its `interfaces`; it never sees a ledger account id. */
+ *  `session_id` and shows its `interfaces` (an array); it never sees a ledger
+ *  account id. Status: CREATED | ACTIVE | PAID | PARTIALLY_PAID | EXPIRED |
+ *  CANCELLED | FAILED. */
 export interface PaymentSession {
   session_id: string;
   wallet_account_id: string;
@@ -523,7 +530,7 @@ export interface PaymentSession {
   status: string;
   expires_at: string | null;
   created_at: string;
-  interfaces: PaymentSessionInterfaces;
+  interfaces: PaymentSessionInterface[];
 }
 
 export interface CreatePaymentSessionParams {
