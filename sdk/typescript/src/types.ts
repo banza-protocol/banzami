@@ -494,3 +494,48 @@ export interface CreateBusinessApplicationSettlementParams {
   referenceId?: string;
   idempotencyKey: string;
 }
+
+// ---------------------------------------------------------------------------
+// Payment Sessions (BANZA ADR-043) — one financial object, many interfaces
+// ---------------------------------------------------------------------------
+
+/** The payment interfaces a session exposes. All credit the same wallet account.
+ *  A fixed-amount session carries a `dynamic_qr` payload; an open-amount session
+ *  exposes a `link_qr` that renders the link URL. The app DISPLAYS these — it
+ *  never builds a financial payload itself. */
+export interface PaymentSessionInterfaces {
+  payment_link?: { type: string; slug: string; url: string };
+  deep_link?:    { type: string; value: string };
+  dynamic_qr?:   { type: string; payload: string; qr_url: string };
+  link_qr?:      { type: string; qr_url: string };
+}
+
+/** A Payment Session bound to one `wallet_account_id`. The app references it by
+ *  `session_id` and shows its `interfaces`; it never sees a ledger account id. */
+export interface PaymentSession {
+  session_id: string;
+  wallet_account_id: string;
+  currency: string;
+  amount_minor: number | null;
+  purpose: string | null;
+  reference_type: string | null;
+  reference_id: string | null;
+  status: string;
+  expires_at: string | null;
+  created_at: string;
+  interfaces: PaymentSessionInterfaces;
+}
+
+export interface CreatePaymentSessionParams {
+  /** The segregated wallet account the session credits (e.g. a CAMPAIGN account). */
+  walletAccountId: string;
+  purpose?: string;
+  referenceType?: string;
+  referenceId?: string;
+  /** Omit for an open-amount session; set (minor units) for a fixed-amount one. */
+  amountMinor?: number;
+  currency?: string;
+  description?: string;
+  expiresAt?: Date;
+  metadata?: Record<string, unknown>;
+}

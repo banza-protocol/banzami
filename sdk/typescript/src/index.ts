@@ -67,4 +67,7 @@ export type {
   WalletAccountPurpose,
   CreateWalletAccountParams,
   CreateBusinessApplicationSettlementParams,
+  PaymentSession,
+  PaymentSessionInterfaces,
+  CreatePaymentSessionParams,
 } from './types.js';

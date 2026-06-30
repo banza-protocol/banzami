@@ -628,3 +628,50 @@ describe('app-defined application settlement', () => {
     expect(body.application_fee_minor).toBeUndefined();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Payment Sessions (ADR-043) — bound to a wallet account
+// ---------------------------------------------------------------------------
+
+describe('payment sessions', () => {
+  const session = {
+    session_id: 'ps-1', wallet_account_id: 'wa-1', currency: 'AOA', amount_minor: 5000,
+    purpose: 'DONATION', reference_type: 'DOA_DONATION', reference_id: 'intent-1',
+    status: 'ACTIVE', expires_at: null, created_at: '2026-06-30T00:00:00Z',
+    interfaces: {
+      payment_link: { type: 'PAYMENT_LINK', slug: 'abc', url: 'https://pay/abc' },
+      dynamic_qr:   { type: 'DYNAMIC_QR', payload: 'banzami://pay/abc', qr_url: '/qr' },
+    },
+  };
+
+  it('createPaymentSession posts wallet_account_id + amount to /business/payment-sessions', async () => {
+    mockFetch(201, session);
+    await client.createPaymentSession({
+      walletAccountId: 'wa-1', amountMinor: 5000,
+      purpose: 'DONATION', referenceType: 'DOA_DONATION', referenceId: 'intent-1',
+      description: 'Doa',
+    });
+    const { url, init } = lastFetchCall();
+    expect(url).toContain('/business/payment-sessions');
+    expect(init.method).toBe('POST');
+    const body = JSON.parse(init.body as string);
+    expect(body.wallet_account_id).toBe('wa-1');
+    expect(body.amount_minor).toBe(5000);
+    expect(body.reference_id).toBe('intent-1');
+    expect(body.currency).toBe('AOA');
+  });
+
+  it('createPaymentSession omits amount as null for an open-amount session', async () => {
+    mockFetch(201, { ...session, amount_minor: null });
+    await client.createPaymentSession({ walletAccountId: 'wa-1' });
+    const body = JSON.parse(lastFetchCall().init.body as string);
+    expect(body.amount_minor).toBeNull();
+  });
+
+  it('getPaymentSession GETs by id', async () => {
+    mockFetch(200, session);
+    const s = await client.getPaymentSession('ps-1');
+    expect(lastFetchCall().url).toContain('/business/payment-sessions/ps-1');
+    expect(s.interfaces.dynamic_qr?.payload).toBe('banzami://pay/abc');
+  });
+});

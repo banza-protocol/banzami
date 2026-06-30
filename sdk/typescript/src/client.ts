@@ -34,6 +34,8 @@ import type {
   WalletAccount,
   CreateWalletAccountParams,
   CreateBusinessApplicationSettlementParams,
+  PaymentSession,
+  CreatePaymentSessionParams,
 } from './types.js';
 
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
@@ -661,6 +663,34 @@ export class BanzamiClient {
    *  validate a beneficiary before settlement). Consumer handles today. */
   resolveHandle(handle: string): Promise<Consumer> {
     return this.getConsumerByHandle(handle);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Payment Sessions (ADR-043) — one financial object bound to a wallet account
+  // ---------------------------------------------------------------------------
+
+  /** Create a Payment Session that credits a segregated wallet account (e.g. a
+   *  CAMPAIGN account). Returns the session with its display interfaces (link,
+   *  deep link, QR). Omit `amountMinor` for an open-amount session. */
+  createPaymentSession(p: CreatePaymentSessionParams): Promise<PaymentSession> {
+    return this.request<PaymentSession>('/business/payment-sessions', {
+      method: 'POST',
+      body:   JSON.stringify({
+        wallet_account_id: p.walletAccountId,
+        purpose:           p.purpose ?? null,
+        reference_type:    p.referenceType ?? null,
+        reference_id:      p.referenceId ?? null,
+        amount_minor:      p.amountMinor ?? null,
+        currency:          p.currency ?? 'AOA',
+        description:       p.description ?? null,
+        expires_at:        p.expiresAt ? p.expiresAt.toISOString() : null,
+        metadata:          p.metadata ?? null,
+      }),
+    });
+  }
+
+  getPaymentSession(id: string): Promise<PaymentSession> {
+    return this.request<PaymentSession>(`/business/payment-sessions/${id}`);
   }
 
   // ---------------------------------------------------------------------------
