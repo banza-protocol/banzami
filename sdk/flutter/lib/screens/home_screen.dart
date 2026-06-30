@@ -165,6 +165,7 @@ class _BanzamiHomeScreenState extends State<BanzamiHomeScreen>
       page: BanzamiReceiveScreen(
         handle:        widget.handle,
         logoAssetPath: widget.logoAssetPath,
+        isSandbox:     widget.environment.isSandbox,
       ),
     ));
   }

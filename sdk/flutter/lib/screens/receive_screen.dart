@@ -109,11 +109,17 @@ class BanzamiReceiveScreen extends StatefulWidget {
   /// When null the "Definir montante" button is hidden.
   final ConsumerPublicClient? client;
 
+  /// Whether this screen runs in the SANDBOX environment. Drives the QR scheme
+  /// so a sandbox handle QR is emitted as `banzami-sandbox:@…` and can never be
+  /// scanned as a live payment. Defaults to live.
+  final bool isSandbox;
+
   const BanzamiReceiveScreen({
     super.key,
     required this.handle,
     this.logoAssetPath,
     this.client,
+    this.isSandbox = false,
   });
 
   @override
@@ -129,13 +135,21 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
   final _shareLinkButtonKey = GlobalKey();
 
   String get _qrPayload {
-    if (_activeLink != null) return 'banzami://pay?request=${_activeLink!.linkCode}';
-    return 'banza:@${widget.handle}';
+    // Sandbox QR uses a distinct scheme so it cannot be scanned as a live
+    // payment (mirrors receive_hub_screen._qrPayload). Always emit the canonical
+    // `banzami`/`banzami-sandbox` scheme — never the legacy `banza:@`.
+    final scheme = widget.isSandbox ? 'banzami-sandbox' : 'banzami';
+    if (_activeLink != null) return '$scheme://pay?request=${_activeLink!.linkCode}';
+    return '$scheme:@${widget.handle}';
   }
 
   String get _shareUrl {
-    if (_activeLink != null) return 'https://pay.banzami.com/r/${_activeLink!.linkCode}';
-    return 'https://pay.banzami.com/u/${widget.handle}';
+    if (_activeLink != null) {
+      final base = 'https://pay.banzami.com/r/${_activeLink!.linkCode}';
+      return widget.isSandbox ? '$base?sandbox=1' : base;
+    }
+    final base = 'https://pay.banzami.com/u/${widget.handle}';
+    return widget.isSandbox ? '$base?sandbox=1' : base;
   }
 
   @override
