@@ -11,6 +11,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
+	"github.com/banzami/banzami/services/public-api/internal/apierror"
 	"github.com/banzami/banzami/services/public-api/internal/config"
 	"github.com/banzami/banzami/services/public-api/internal/handler"
 	"github.com/banzami/banzami/services/public-api/internal/middleware"
@@ -22,6 +23,12 @@ import (
 // Configurable via rate limiter constructor; exported as constant for clarity.
 const transferRateLimit = 20
 const transferRateWindow = time.Minute
+
+// authRateLimit caps unauthenticated credential attempts per client IP per minute
+// (register / token). Tight enough to blunt brute-force + account enumeration,
+// loose enough for a human's legitimate retries. In-memory + per-instance — the
+// gateway uses a Redis sliding window for its equivalent surface.
+const authRateLimit = 10
 
 // Dependencies groups all external dependencies for the server.
 type Dependencies struct {
@@ -66,9 +73,21 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	debugPushH      := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
 	kycH            := handler.NewKycHandler(deps.KycSvc)
 
-	// Public auth — no JWT required
-	r.Post("/v1/auth/register", authH.Register)
-	r.Post("/v1/auth/token",    authH.Token)
+	// Public auth — no JWT required. Rate-limited per IP against brute-force +
+	// account enumeration (the gateway throttles its equivalent endpoints too).
+	authLimiter := handler.NewTransferRateLimiter(authRateLimit, time.Minute)
+	authRL := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if !authLimiter.Allow(r.RemoteAddr) {
+				apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
+					"too many attempts — please wait before trying again")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+	r.With(authRL).Post("/v1/auth/register", authH.Register)
+	r.With(authRL).Post("/v1/auth/token",    authH.Token)
 
 	// Consumer wallet onboarding — no JWT required (consumer doesn't have one yet)
 	r.Post("/v1/consumer/onboarding/start",      onboardingH.Start)

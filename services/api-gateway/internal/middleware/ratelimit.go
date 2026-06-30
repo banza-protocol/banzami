@@ -27,6 +27,42 @@ var DefaultRateLimits = RateLimits{
 	AnonymousPerMinute:     60,
 }
 
+// CredentialPerMinute is the tight per-IP ceiling for unauthenticated credential
+// endpoints (login / handle lookup). Low enough to blunt PIN brute-force and
+// account enumeration, high enough for a human's legitimate retries.
+const CredentialPerMinute = 15
+
+// RateLimitPerIP returns a Redis-backed sliding-window limiter keyed purely by
+// client IP, under a dedicated key prefix and ceiling. Use it to throttle
+// unauthenticated credential endpoints independently of the general anonymous
+// limit. Fails open on Redis error; passes through when Redis is unavailable
+// (the public-api uses an in-memory per-instance limiter for the same surface).
+func RateLimitPerIP(rdb *redis.Client, perMinute int, prefix string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if rdb == nil {
+				next.ServeHTTP(w, r)
+				return
+			}
+			key := fmt.Sprintf("rl:%s:ip:%s", prefix, r.RemoteAddr)
+			allowed, err := slidingWindowAllow(r.Context(), rdb, key, perMinute, time.Minute)
+			if err != nil {
+				slog.WarnContext(r.Context(), "credential rate limit check failed — failing open",
+					"error", err, "key", key)
+				next.ServeHTTP(w, r)
+				return
+			}
+			if !allowed {
+				w.Header().Set("Retry-After", "60")
+				apierror.Respond(w, r, http.StatusTooManyRequests, "RATE_LIMITED",
+					"too many requests — please slow down")
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
 // RateLimit returns a Redis-backed sliding-window rate limiter middleware.
 // On Redis failure the middleware fails open — a degraded Redis must not block all traffic.
 func RateLimit(rdb *redis.Client, limits RateLimits) func(http.Handler) http.Handler {

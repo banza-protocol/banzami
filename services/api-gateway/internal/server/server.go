@@ -119,14 +119,19 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 
+	// Unauthenticated credential endpoints (login / handle lookup) are a
+	// brute-force + account-enumeration surface, so they get a dedicated tight
+	// per-IP limiter in a separate key space from the general anonymous limit.
+	credLimit := middleware.RateLimitPerIP(deps.Redis, middleware.CredentialPerMinute, "cred")
+
 	// Auth — no JWT required; the API key is the credential
-	r.Post("/v1/auth/token", authHandler.Token)
+	r.With(credLimit).Post("/v1/auth/token", authHandler.Token)
 	// Merchant app login by @handle + PIN — no JWT required; handle+PIN is the
 	// credential. Issues the same merchant JWT as the API-key flow.
-	r.Post("/v1/merchant/auth/token", merchantAuthHandler.Token)
+	r.With(credLimit).Post("/v1/merchant/auth/token", merchantAuthHandler.Token)
 	// Non-secret handle lookup — the app prompts for a PIN only when the account
 	// exists and can sign in.
-	r.Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
+	r.With(credLimit).Post("/v1/merchant/auth/lookup", merchantAuthHandler.Lookup)
 	// Public platform mode — read-only, no auth. Lets the website show a SANDBOX
 	// banner without a rebuild. Never leaks internal config.
 	r.Get("/v1/platform-mode", handler.NewPlatformHandler(deps.PlatformSvc).Mode)
