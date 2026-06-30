@@ -151,6 +151,11 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 	// Best-effort + idempotent; a plain link payment is a no-op.
 	h.core.SettleCollectionSurface(r.Context(), "LINK", link.ID, transfer.ID)
 
+	// Payment Session (BANZA ADR-043): if this link is the PAYMENT_LINK interface of
+	// a session, mark the session PAID and emit payment_session.paid. Best-effort +
+	// idempotent; a plain link payment is a no-op in core.
+	h.core.SettlePaymentSessionInterface(r.Context(), "link", link.ID, transfer.ID, "PAYMENT_LINK", *amountMinor)
+
 	// Mark the link as used — idempotent if the transfer already occurred.
 	updated, err := h.core.MarkPaymentLinkUsed(r.Context(), link.ID)
 	if err != nil {

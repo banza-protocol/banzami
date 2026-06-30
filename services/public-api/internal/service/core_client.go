@@ -311,6 +311,18 @@ func (c *CorePublicClient) SettleCollectionSurface(ctx context.Context, surface,
 	_ = c.post(ctx, "/internal/v1/collections/settle-surface", body, nil)
 }
 
+// SettlePaymentSessionInterface marks the Payment Session owning a paid interface
+// (kind = "link"|"qr") as PAID and emits payment_session.paid (ADR-043). Best-effort
+// + idempotent: a plain link/QR with no backing session is a no-op in core.
+func (c *CorePublicClient) SettlePaymentSessionInterface(ctx context.Context, kind, refID, transferID, iface string, amountMinor int64) {
+	body := map[string]any{
+		"transfer_id":  transferID,
+		"amount_minor": amountMinor,
+		"interface":    iface,
+	}
+	_ = c.post(ctx, "/internal/v1/payment-sessions/settle-by-interface/"+kind+"/"+refID, body, nil)
+}
+
 func (c *CorePublicClient) GetTransfer(ctx context.Context, id string) (*Transfer, error) {
 	var resp coreTransferResp
 	if err := c.get(ctx, "/internal/v1/transfers/"+id, &resp); err != nil {

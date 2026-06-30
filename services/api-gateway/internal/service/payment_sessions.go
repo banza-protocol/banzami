@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 )
 
 // PaymentSession is the SAFE, app-facing view of a Payment Session (ADR-043): the
@@ -42,6 +43,9 @@ type CreatePaymentSessionInput struct {
 type PaymentSessionService interface {
 	Create(ctx context.Context, in CreatePaymentSessionInput) (*PaymentSession, error)
 	Get(ctx context.Context, id string) (*PaymentSession, error)
+	// GetByInterface resolves the session owning a payment link or QR (kind =
+	// "link"|"qr"), for webhook enrichment. Returns nil when there is no session.
+	GetByInterface(ctx context.Context, kind, refID string) (*PaymentSession, error)
 }
 
 type CoreApiPaymentSessionService struct{ client *CoreApiClient }
@@ -87,6 +91,17 @@ func (s *CoreApiPaymentSessionService) Create(ctx context.Context, in CreatePaym
 func (s *CoreApiPaymentSessionService) Get(ctx context.Context, id string) (*PaymentSession, error) {
 	var sess PaymentSession
 	if err := s.client.get(ctx, "/internal/v1/payment-sessions/"+id, &sess); err != nil {
+		return nil, err
+	}
+	return &sess, nil
+}
+
+func (s *CoreApiPaymentSessionService) GetByInterface(ctx context.Context, kind, refID string) (*PaymentSession, error) {
+	var sess PaymentSession
+	if err := s.client.get(ctx, "/internal/v1/payment-sessions/by-interface/"+kind+"/"+refID, &sess); err != nil {
+		if errors.Is(err, ErrNotFound) {
+			return nil, nil
+		}
 		return nil, err
 	}
 	return &sess, nil
