@@ -55,27 +55,27 @@ repository serves the middle layer — the operator.
 ```
                    BANZA Protocol
                           │
-             define padrões universais
+                 defines the standards
                           │
                           ▼
-                Operador Banzami
+                 Banzami Operator
                           │
-     executa dinheiro • ledger • compliance
+     executes money • ledger • compliance
      pricing • settlement • proofs • webhooks
                           │
-          valida • liquida • audita • protege
+       validates • settles • audits • protects
                           ▼
           ┌───────────────┴───────────────┐
           │                               │
         DOA                           Mongo
           │                               │
-     define campanhas             define entregas
-     define taxas                 define regras
-     define negócio               define negócio
+     defines campaigns             defines deliveries
+     defines fees                  defines rules
+     defines its business          defines its business
           │                               │
           └───────────────┬───────────────┘
                           │
-                 usam APIs do Banzami
+                  use the Banzami APIs
 ```
 
 Three layers, three responsibilities: **the protocol defines, the operator
@@ -99,7 +99,7 @@ application. It defines *what is possible*, never *who uses it*.
 Owned and governed independently at
 [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
 
-### Operador Banzami — executes the money
+### Banzami Operator — executes the money
 
 The operator (**this repository**) implements the protocol and runs the
 infrastructure. It is responsible for:
@@ -125,24 +125,19 @@ financial logic belongs exclusively to the operator.
 
 ---
 
-## Princípio Fundamental
+## Fundamental Principle
 
-> ### As aplicações definem o negócio.
-> ### O operador executa o dinheiro.
-> ### O protocolo define os padrões.
->
-> *(Applications define the business. The operator executes the money. The
-> protocol defines the standards.)*
+> ### Applications define the business.
+> ### The operator executes the money.
+> ### The protocol defines the standards.
 
 This is an **official rule** of the project.
 
 ---
 
-## Regra de Ouro
+## Golden Rule
 
-> ## Nenhuma aplicação cliente pode implementar lógica financeira própria.
->
-> *(No client application may implement its own financial logic.)*
+> ## No client application may implement its own financial logic.
 
 An application must **never**:
 
