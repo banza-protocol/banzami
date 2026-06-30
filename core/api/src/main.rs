@@ -417,6 +417,14 @@ async fn main() {
             "/internal/v1/payment-sessions/:id",
             get(routes::payment_sessions::get),
         )
+        .route(
+            "/internal/v1/payment-sessions/by-interface/:kind/:ref_id",
+            get(routes::payment_sessions::get_by_interface),
+        )
+        .route(
+            "/internal/v1/payment-sessions/settle-by-interface/:kind/:ref_id",
+            post(routes::payment_sessions::settle_by_interface),
+        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(

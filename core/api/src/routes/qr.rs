@@ -485,6 +485,23 @@ pub async fn pay(
             state.environment.as_str(),
         )
         .await;
+
+        // Payment Session (BANZA ADR-043): if this QR is an interface of a session,
+        // mark the session PAID and emit payment_session.paid. Best-effort + idempotent
+        // (a plain QR with no session is a no-op; a replay transitions nothing).
+        let interface = match target.qr_type {
+            QrCodeType::Dynamic => "DYNAMIC_QR",
+            QrCodeType::Static => "STATIC_QR",
+        };
+        super::payment_sessions::settle_for_interface(
+            &state,
+            "qr",
+            qr_id.as_uuid(),
+            transfer.id.as_uuid(),
+            amount_minor,
+            interface,
+        )
+        .await;
     }
 
     Ok((

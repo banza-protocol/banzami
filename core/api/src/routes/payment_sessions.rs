@@ -227,6 +227,31 @@ pub async fn create(
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?;
 
+    // ADR-043 lifecycle: announce the session. The interfaces[] lists the kinds
+    // presenting it; every interface credits the same destination_account_ref.
+    let mut interfaces = vec!["PAYMENT_LINK"];
+    if qr_code_id.is_some() {
+        interfaces.push("DYNAMIC_QR");
+    }
+    let _ = super::webhooks::emit(
+        &state.pool,
+        merchant_id,
+        "payment_session.created",
+        &format!("payment_session.created:{id}"),
+        serde_json::json!({
+            "payment_session_id": id,
+            "payee_wallet_id": wallet_id,
+            "destination_account_ref": wa_id,
+            "amount_minor": body.amount_minor,
+            "currency": currency_code,
+            "purpose": purpose,
+            "reference_type": body.reference_type,
+            "reference_id": body.reference_id,
+            "interfaces": interfaces,
+        }),
+    )
+    .await;
+
     let mut out = fetch_session(&state.pool, id).await?;
     // Inline the QR payload on create so the gateway can render it immediately.
     if let Some(p) = qr_payload {
@@ -235,10 +260,114 @@ pub async fn create(
     Ok((StatusCode::CREATED, Json(out)))
 }
 
+/// Settle the Payment Session that owns a paid interface (ADR-043 lifecycle).
+///
+/// Called best-effort + idempotent from the link/QR pay paths once the settling
+/// Transfer is COMPLETED. Resolves the session by its link/QR id, transitions it
+/// CREATED|ACTIVE → PAID atomically (a replay updates nothing), and emits
+/// `payment_session.paid` carrying the session id, transfer, the interface used,
+/// the destination account and the app reference. A plain link/QR with no backing
+/// session is a no-op. The payment has already settled, so this never fails it.
+pub async fn settle_for_interface(
+    state: &AppState,
+    kind: &str,
+    ref_id: Uuid,
+    transfer_id: Uuid,
+    amount_minor: i64,
+    interface: &str,
+) {
+    let column = match kind {
+        "link" => "payment_link_id",
+        "qr" => "qr_code_id",
+        _ => return,
+    };
+    // Atomic transition: only CREATED/ACTIVE flips to PAID; RETURNING tells us
+    // whether THIS call performed it (so the event fires exactly once).
+    let row = sqlx::query_as::<_, (Uuid, Uuid, Uuid, Option<String>, Option<String>)>(&format!(
+        "UPDATE payment_sessions
+            SET status = 'PAID', updated_at = now()
+          WHERE {column} = $1 AND status IN ('CREATED','ACTIVE')
+        RETURNING id, merchant_id, wallet_account_id, reference_type, reference_id",
+    ))
+    .bind(ref_id)
+    .fetch_optional(&state.pool)
+    .await;
+
+    let Ok(Some((session_id, merchant_id, wallet_account_id, reference_type, reference_id))) = row
+    else {
+        return; // not found, already terminal, or a transient error — no-op
+    };
+
+    let _ = super::webhooks::emit(
+        &state.pool,
+        merchant_id,
+        "payment_session.paid",
+        &format!("payment_session.paid:{session_id}"),
+        serde_json::json!({
+            "payment_session_id": session_id,
+            "transfer_id": transfer_id,
+            "amount_minor": amount_minor,
+            "interface": interface,
+            "destination_account_ref": wallet_account_id,
+            "reference_type": reference_type,
+            "reference_id": reference_id,
+        }),
+    )
+    .await;
+}
+
+#[derive(Deserialize)]
+pub struct SettleByInterfaceBody {
+    pub transfer_id: String,
+    pub amount_minor: i64,
+    pub interface: Option<String>,
+}
+
+/// POST /internal/v1/payment-sessions/settle-by-interface/:kind/:ref_id
+/// Settle the session owning a link/QR after its payment completed (link path
+/// calls this from the public API; the QR path settles in-process).
+pub async fn settle_by_interface(
+    State(state): State<AppState>,
+    Path((kind, ref_id)): Path<(String, String)>,
+    Json(body): Json<SettleByInterfaceBody>,
+) -> ApiResult<StatusCode> {
+    let rid = Uuid::parse_str(&ref_id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    let tid = Uuid::parse_str(&body.transfer_id).map_err(|_| ApiError::bad_request("invalid transfer_id"))?;
+    let interface = body.interface.as_deref().unwrap_or(match kind.as_str() {
+        "link" => "PAYMENT_LINK",
+        _ => "DYNAMIC_QR",
+    });
+    settle_for_interface(&state, &kind, rid, tid, body.amount_minor, interface).await;
+    Ok(StatusCode::NO_CONTENT)
+}
+
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let id = Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    Ok(Json(fetch_session(&state.pool, id).await?))
+}
+
+/// Resolve the session that owns a payment link or QR (for webhook enrichment).
+/// `kind` is "link" or "qr". Returns the session JSON or 404.
+pub async fn get_by_interface(
+    State(state): State<AppState>,
+    Path((kind, ref_id)): Path<(String, String)>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let rid = Uuid::parse_str(&ref_id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    let column = match kind.as_str() {
+        "link" => "payment_link_id",
+        "qr" => "qr_code_id",
+        _ => return Err(ApiError::bad_request("kind must be 'link' or 'qr'")),
+    };
+    let id = sqlx::query_scalar::<_, Uuid>(&format!(
+        "SELECT id FROM payment_sessions WHERE {column} = $1"
+    ))
+    .bind(rid)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("no payment session for this interface"))?;
     Ok(Json(fetch_session(&state.pool, id).await?))
 }
