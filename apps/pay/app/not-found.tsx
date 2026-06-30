@@ -13,7 +13,7 @@ export default function NotFound() {
           href="banzami://open"
           className="mt-6 inline-block w-full rounded-2xl bg-banzami py-3 text-sm font-semibold text-white active:bg-banzami-medium"
         >
-          Abrir Banza
+          Abrir Banzami
         </a>
       </div>
     </main>
