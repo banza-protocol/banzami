@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -47,7 +49,7 @@ type Server struct {
 func New(cfg *config.Config, deps Dependencies) *Server {
 	r := chi.NewRouter()
 
-	r.Use(chimiddleware.RequestID)
+	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)
@@ -60,18 +62,18 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 
 	transferLimiter := handler.NewTransferRateLimiter(transferRateLimit, transferRateWindow)
 
-	authH           := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
-	consumerH       := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
-	meH             := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
-	transferH       := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
-	activityH       := handler.NewActivityHandler(deps.CoreClient)
-	receiptH        := handler.NewReceiptHandler(deps.CoreClient, deps.ProofClient, cfg.Environment)
-	paymentLinkH    := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
+	authH := handler.NewAuthHandler(cfg, deps.CoreClient, deps.CredStore)
+	consumerH := handler.NewConsumerHandler(deps.CredStore, deps.CoreClient)
+	meH := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
+	transferH := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
+	activityH := handler.NewActivityHandler(deps.CoreClient)
+	receiptH := handler.NewReceiptHandler(deps.CoreClient, deps.ProofClient, cfg.Environment)
+	paymentLinkH := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
-	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
-	onboardingH     := handler.NewOnboardingHandler(deps.CoreClient)
-	debugPushH      := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
-	kycH            := handler.NewKycHandler(deps.KycSvc)
+	sandboxH := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)
+	onboardingH := handler.NewOnboardingHandler(deps.CoreClient)
+	debugPushH := handler.NewDebugPushHandler(deps.FCMSvc, cfg.Environment)
+	kycH := handler.NewKycHandler(deps.KycSvc)
 
 	// Public auth — no JWT required. Rate-limited per IP against brute-force +
 	// account enumeration (the gateway throttles its equivalent endpoints too).
@@ -87,16 +89,16 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		})
 	}
 	r.With(authRL).Post("/v1/auth/register", authH.Register)
-	r.With(authRL).Post("/v1/auth/token",    authH.Token)
+	r.With(authRL).Post("/v1/auth/token", authH.Token)
 
 	// Consumer wallet onboarding — no JWT required (consumer doesn't have one yet)
-	r.Post("/v1/consumer/onboarding/start",      onboardingH.Start)
+	r.Post("/v1/consumer/onboarding/start", onboardingH.Start)
 	r.Post("/v1/consumer/onboarding/verify-otp", onboardingH.VerifyOtp)
-	r.Post("/v1/consumer/onboarding/complete",   onboardingH.Complete)
+	r.Post("/v1/consumer/onboarding/complete", onboardingH.Complete)
 
 	// Public consumer endpoints — no JWT required
 	// /search must be registered before /{handle} so chi matches it as a static segment
-	r.Get("/v1/consumers/search",   consumerH.Search)
+	r.Get("/v1/consumers/search", consumerH.Search)
 	r.Get("/v1/consumers/{handle}", consumerH.Lookup)
 
 	// Public payment link lookup — no JWT required
@@ -110,15 +112,15 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Use(middleware.Auth(cfg))
 
 		// Profile
-		r.Get("/v1/me",                meH.Profile)
-		r.Get("/v1/me/wallet",         meH.Wallet)
-		r.Get("/v1/me/wallet/balance",  meH.Balance)
-		r.Get("/v1/me/activity",        activityH.Activity)
+		r.Get("/v1/me", meH.Profile)
+		r.Get("/v1/me/wallet", meH.Wallet)
+		r.Get("/v1/me/wallet/balance", meH.Balance)
+		r.Get("/v1/me/activity", activityH.Activity)
 
 		// Transfers
-		r.Post("/v1/transfers",       transferH.Send)
-		r.Get("/v1/transfers",        transferH.List)
-		r.Get("/v1/transfers/{id}",   transferH.Get)
+		r.Post("/v1/transfers", transferH.Send)
+		r.Get("/v1/transfers", transferH.List)
+		r.Get("/v1/transfers/{id}", transferH.Get)
 
 		// Official transfer receipt (PDF) — Document Engine, real transfers data.
 		r.Get("/v1/consumer/transactions/{id}/receipt.pdf", receiptH.ConsumerReceipt)
@@ -127,21 +129,21 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 		r.Post("/v1/payment-links/{slug}/pay", paymentLinkH.Pay)
 
 		// Consumer pay links — create + pay
-		r.Post("/v1/consumer-pay-links",            consumerPayLinkH.Create)
+		r.Post("/v1/consumer-pay-links", consumerPayLinkH.Create)
 		r.Post("/v1/consumer-pay-links/{code}/pay", consumerPayLinkH.Pay)
 
 		// Consumer identity verification (KYC) — ADR-020. The operator decides
 		// the level; the consumer never sends `requested_level`.
-		r.Post("/v1/kyc/cases",                          kycH.CreateCase)
-		r.Get("/v1/kyc/cases/current",                   kycH.GetCurrent)
-		r.Get("/v1/kyc/cases/{id}",                      kycH.GetCase)
-		r.Get("/v1/kyc/cases/{id}/status",               kycH.GetCase)
+		r.Post("/v1/kyc/cases", kycH.CreateCase)
+		r.Get("/v1/kyc/cases/current", kycH.GetCurrent)
+		r.Get("/v1/kyc/cases/{id}", kycH.GetCase)
+		r.Get("/v1/kyc/cases/{id}/status", kycH.GetCase)
 		r.Post("/v1/kyc/cases/{id}/evidence/upload-url", kycH.RequestUploadURL)
-		r.Post("/v1/kyc/cases/{id}/evidence/complete",   kycH.CompleteEvidence)
-		r.Post("/v1/kyc/cases/{id}/submit",              kycH.Submit)
+		r.Post("/v1/kyc/cases/{id}/evidence/complete", kycH.CompleteEvidence)
+		r.Post("/v1/kyc/cases/{id}/submit", kycH.Submit)
 
 		// Sandbox utilities — 403 when not in SANDBOX environment
-		r.Post("/v1/sandbox/fund",           sandboxH.FundWallet)
+		r.Post("/v1/sandbox/fund", sandboxH.FundWallet)
 
 		// Debug utilities — 403 in PRODUCTION, no-op when FCM not configured
 		r.Post("/v1/debug/push-test", debugPushH.PushTest)

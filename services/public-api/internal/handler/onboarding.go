@@ -164,9 +164,9 @@ func validatePin(pin string) string {
 // it lets integration tests drive the full onboarding flow without an SMS gateway.
 func (h *OnboardingHandler) Start(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		PhoneNumber       string  `json:"phone_number"`
-		Currency          string  `json:"currency"`
-		OtpPlaintextTest  *string `json:"otp_plaintext_for_test"`
+		PhoneNumber      string  `json:"phone_number"`
+		Currency         string  `json:"currency"`
+		OtpPlaintextTest *string `json:"otp_plaintext_for_test"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")

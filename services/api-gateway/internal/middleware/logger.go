@@ -15,13 +15,13 @@ func Logger(next http.Handler) http.Handler {
 
 		next.ServeHTTP(rw, r)
 
+		// correlation_id + request_id are injected by obs.NewContextHandler.
 		slog.InfoContext(r.Context(), "request",
-			"method",      r.Method,
-			"path",        r.URL.Path,
-			"status",      rw.status,
+			"method", r.Method,
+			"path", r.URL.Path,
+			"status", rw.status,
 			"duration_ms", time.Since(start).Milliseconds(),
-			"request_id",  GetRequestID(r.Context()),
-			"remote_ip",   r.RemoteAddr,
+			"remote_ip", r.RemoteAddr,
 		)
 	})
 }

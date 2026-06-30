@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-var ErrConsumerNotFound        = errors.New("consumer not found")
-var ErrHandleNotFound          = errors.New("handle not found")
-var ErrHandleTaken             = errors.New("handle already taken")
-var ErrInvalidHandle           = errors.New("invalid handle")
+var ErrConsumerNotFound = errors.New("consumer not found")
+var ErrHandleNotFound = errors.New("handle not found")
+var ErrHandleTaken = errors.New("handle already taken")
+var ErrInvalidHandle = errors.New("invalid handle")
 var ErrConsumerStatusTransition = errors.New("invalid status transition")
 
 // ---------------------------------------------------------------------------
@@ -17,12 +17,12 @@ var ErrConsumerStatusTransition = errors.New("invalid status transition")
 // ---------------------------------------------------------------------------
 
 type ConsumerRecord struct {
-	ID          string     `json:"id"`
-	Handle      string     `json:"handle"`
-	DisplayName *string    `json:"display_name"`
-	Status      string     `json:"status"`
-	CreatedAt   time.Time  `json:"created_at"`
-	UpdatedAt   time.Time  `json:"updated_at"`
+	ID          string    `json:"id"`
+	Handle      string    `json:"handle"`
+	DisplayName *string   `json:"display_name"`
+	Status      string    `json:"status"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
 }
 
 // ---------------------------------------------------------------------------

@@ -172,8 +172,8 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
 		slog.Info("[FCM] event created",
-			"event",        "payment_link_paid",
-			"merchant_id",  merchantID,
+			"event", "payment_link_paid",
+			"merchant_id", merchantID,
 			"amount_minor", amount,
 		)
 		h.fcm.SendPaymentLinkPaid(ctx, merchantID, amount, currency)

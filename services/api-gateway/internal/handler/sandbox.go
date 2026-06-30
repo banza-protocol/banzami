@@ -147,11 +147,11 @@ func (h *SandboxHandler) SimulatePayment(w http.ResponseWriter, r *http.Request)
 	}
 
 	validScenarios := map[string]string{
-		"success":           "CAPTURED",
+		"success":            "CAPTURED",
 		"insufficient_funds": "FAILED",
-		"fraud_blocked":     "FAILED",
-		"expired_card":      "FAILED",
-		"auth_challenge":    "PENDING",
+		"fraud_blocked":      "FAILED",
+		"expired_card":       "FAILED",
+		"auth_challenge":     "PENDING",
 	}
 	finalStatus, ok := validScenarios[body.Scenario]
 	if !ok {
@@ -253,12 +253,12 @@ func (h *SandboxHandler) FundWallet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"funded":          true,
-		"wallet_id":       wallet.ID,
-		"currency":        body.Currency,
-		"credited_minor":  body.AmountMinor,
-		"new_balance":     balance,
-		"note":            "Sandbox wallet credited via ledger. Virtual balance — no real funds moved.",
+		"funded":         true,
+		"wallet_id":      wallet.ID,
+		"currency":       body.Currency,
+		"credited_minor": body.AmountMinor,
+		"new_balance":    balance,
+		"note":           "Sandbox wallet credited via ledger. Virtual balance — no real funds moved.",
 	})
 }
 

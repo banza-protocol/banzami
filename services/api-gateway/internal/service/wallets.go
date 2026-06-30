@@ -10,9 +10,9 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrWalletNotFound         = errors.New("wallet not found")
-var ErrDuplicateWallet        = errors.New("wallet already exists for this merchant and currency")
-var ErrUnsupportedCurrency    = errors.New("unsupported currency")
+var ErrWalletNotFound = errors.New("wallet not found")
+var ErrDuplicateWallet = errors.New("wallet already exists for this merchant and currency")
+var ErrUnsupportedCurrency = errors.New("unsupported currency")
 
 // Currencies accepted on the platform.
 var supportedCurrencies = map[string]bool{

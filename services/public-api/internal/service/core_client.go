@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"net/url"
 	"strconv"
 	"time"
@@ -21,28 +23,28 @@ var ErrNotFound = errors.New("resource not found")
 
 // Sentinel domain errors used by handlers for specific error responses.
 var (
-	ErrConsumerNotFound          = errors.New("consumer not found")
-	ErrHandleTaken               = errors.New("handle already taken")
-	ErrConsumerWalletNotFound    = errors.New("consumer wallet not found")
-	ErrTransferNotFound          = errors.New("transfer not found")
-	ErrTransferSelfTransfer      = errors.New("cannot transfer to yourself")
-	ErrTransferInvalidAmount     = errors.New("amount must be positive")
-	ErrTransferInsufficientFunds = errors.New("insufficient funds")
-	ErrTransferWalletNotFound    = errors.New("sender or recipient wallet not found")
-	ErrTransferWalletLocked      = errors.New("sender wallet is locked — PIN reset required")
-	ErrTransferRecipientNotFound = errors.New("recipient handle not found")
+	ErrConsumerNotFound             = errors.New("consumer not found")
+	ErrHandleTaken                  = errors.New("handle already taken")
+	ErrConsumerWalletNotFound       = errors.New("consumer wallet not found")
+	ErrTransferNotFound             = errors.New("transfer not found")
+	ErrTransferSelfTransfer         = errors.New("cannot transfer to yourself")
+	ErrTransferInvalidAmount        = errors.New("amount must be positive")
+	ErrTransferInsufficientFunds    = errors.New("insufficient funds")
+	ErrTransferWalletNotFound       = errors.New("sender or recipient wallet not found")
+	ErrTransferWalletLocked         = errors.New("sender wallet is locked — PIN reset required")
+	ErrTransferRecipientNotFound    = errors.New("recipient handle not found")
 	ErrTransferRecipientUnavailable = errors.New("recipient cannot receive funds")
-	ErrPaymentLinkNotFound       = errors.New("payment link not found")
-	ErrPaymentLinkNotActive      = errors.New("payment link is no longer active")
+	ErrPaymentLinkNotFound          = errors.New("payment link not found")
+	ErrPaymentLinkNotActive         = errors.New("payment link is no longer active")
 
 	// Onboarding domain errors
-	ErrOtpInvalid          = errors.New("OTP is invalid or expired")
-	ErrOtpExpired          = errors.New("onboarding session has expired")
-	ErrOnboardingNotFound  = errors.New("onboarding session not found")
-	ErrInvalidHandle       = errors.New("handle format is invalid")
-	ErrDuplicateWallet     = errors.New("consumer already has an active wallet in this currency")
-	ErrPinPolicyFailed     = errors.New("PIN does not meet policy requirements")
-	ErrInvalidLifecycle    = errors.New("invalid lifecycle state transition")
+	ErrOtpInvalid         = errors.New("OTP is invalid or expired")
+	ErrOtpExpired         = errors.New("onboarding session has expired")
+	ErrOnboardingNotFound = errors.New("onboarding session not found")
+	ErrInvalidHandle      = errors.New("handle format is invalid")
+	ErrDuplicateWallet    = errors.New("consumer already has an active wallet in this currency")
+	ErrPinPolicyFailed    = errors.New("PIN does not meet policy requirements")
+	ErrInvalidLifecycle   = errors.New("invalid lifecycle state transition")
 )
 
 // CorePublicClient is a thin HTTP client over the Rust core-api internal endpoints.
@@ -55,7 +57,8 @@ func NewCorePublicClient(baseURL string) *CorePublicClient {
 	return &CorePublicClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: obs.NewPropagationTransport(nil),
 		},
 	}
 }
@@ -65,13 +68,13 @@ func NewCorePublicClient(baseURL string) *CorePublicClient {
 // ---------------------------------------------------------------------------
 
 type ConsumerRecord struct {
-	ID                 string    `json:"id"`
-	Handle             string    `json:"handle"`
-	DisplayName        *string   `json:"display_name"`
-	Status             string    `json:"status"`
-	VerificationBadge  *string   `json:"verification_badge"`
-	CreatedAt          time.Time `json:"created_at"`
-	UpdatedAt          time.Time `json:"updated_at"`
+	ID                string    `json:"id"`
+	Handle            string    `json:"handle"`
+	DisplayName       *string   `json:"display_name"`
+	Status            string    `json:"status"`
+	VerificationBadge *string   `json:"verification_badge"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
 }
 
 type ConsumerWalletRecord struct {
@@ -219,13 +222,13 @@ func (c *CorePublicClient) GetOrCreateWallet(ctx context.Context, consumerID, cu
 
 func (c *CorePublicClient) GetWalletBalance(ctx context.Context, walletID string) (*ConsumerWalletBalance, error) {
 	var resp struct {
-		WalletID   string        `json:"wallet_id"`
-		ConsumerID string        `json:"consumer_id"`
-		Currency   string        `json:"currency"`
-		Available  moneyResp     `json:"available"`
-		Reserved   moneyResp     `json:"reserved"`
-		Total      moneyResp     `json:"total"`
-		ComputedAt time.Time     `json:"computed_at"`
+		WalletID   string    `json:"wallet_id"`
+		ConsumerID string    `json:"consumer_id"`
+		Currency   string    `json:"currency"`
+		Available  moneyResp `json:"available"`
+		Reserved   moneyResp `json:"reserved"`
+		Total      moneyResp `json:"total"`
+		ComputedAt time.Time `json:"computed_at"`
 	}
 	if err := c.get(ctx, "/internal/v1/consumer-wallets/"+walletID+"/balance", &resp); err != nil {
 		if errors.Is(err, ErrNotFound) {
@@ -493,10 +496,10 @@ type OnboardingSession struct {
 
 // OnboardingVerifyResponse is returned by VerifyOtp.
 type OnboardingVerifyResponse struct {
-	SessionID                       string `json:"session_id"`
-	Status                          string `json:"status"`
-	ProvisionalAvailableAccountID   string `json:"provisional_available_account_id"`
-	ProvisionalReservedAccountID    string `json:"provisional_reserved_account_id"`
+	SessionID                     string `json:"session_id"`
+	Status                        string `json:"status"`
+	ProvisionalAvailableAccountID string `json:"provisional_available_account_id"`
+	ProvisionalReservedAccountID  string `json:"provisional_reserved_account_id"`
 }
 
 // OnboardingWallet is returned by CompleteOnboarding.
@@ -612,11 +615,11 @@ type ActivityPage struct {
 // GetActivity returns the consumer's merged activity feed.
 // cursor, typeFilter, and directionFilter are optional (pass "" to omit).
 func (c *CorePublicClient) GetActivity(
-	ctx             context.Context,
-	consumerID      string,
-	limit           int,
-	cursor          string,
-	typeFilter      string,
+	ctx context.Context,
+	consumerID string,
+	limit int,
+	cursor string,
+	typeFilter string,
 	directionFilter string,
 ) (*ActivityPage, error) {
 	p := url.Values{}
@@ -649,18 +652,18 @@ type moneyResp struct {
 }
 
 type coreTransferResp struct {
-	ID              string     `json:"id"`
-	IdempotencyKey  string     `json:"idempotency_key"`
-	SenderID        string     `json:"sender_id"`
-	RecipientID     string     `json:"recipient_id"`
-	Amount          moneyResp  `json:"amount"`
-	Currency        string     `json:"currency"`
-	Status          string     `json:"status"`
-	Description     *string    `json:"description"`
-	FailureReason   *string    `json:"failure_reason"`
-	LedgerPostingID *string    `json:"ledger_posting_id"`
-	CreatedAt       time.Time  `json:"created_at"`
-	UpdatedAt       time.Time  `json:"updated_at"`
+	ID              string    `json:"id"`
+	IdempotencyKey  string    `json:"idempotency_key"`
+	SenderID        string    `json:"sender_id"`
+	RecipientID     string    `json:"recipient_id"`
+	Amount          moneyResp `json:"amount"`
+	Currency        string    `json:"currency"`
+	Status          string    `json:"status"`
+	Description     *string   `json:"description"`
+	FailureReason   *string   `json:"failure_reason"`
+	LedgerPostingID *string   `json:"ledger_posting_id"`
+	CreatedAt       time.Time `json:"created_at"`
+	UpdatedAt       time.Time `json:"updated_at"`
 }
 
 func (r *coreTransferResp) toTransfer() *Transfer {
@@ -743,9 +746,9 @@ type CreateConsumerPayLinkRequest struct {
 }
 
 type PayConsumerPayLinkRequest struct {
-	PayerConsumerID string  `json:"payer_consumer_id"`
-	AmountMinor     *int64  `json:"amount_minor,omitempty"`
-	IdempotencyKey  string  `json:"idempotency_key"`
+	PayerConsumerID string `json:"payer_consumer_id"`
+	AmountMinor     *int64 `json:"amount_minor,omitempty"`
+	IdempotencyKey  string `json:"idempotency_key"`
 }
 
 func (c *CorePublicClient) CreateConsumerPayLink(ctx context.Context, req CreateConsumerPayLinkRequest) (*ConsumerPayLink, error) {

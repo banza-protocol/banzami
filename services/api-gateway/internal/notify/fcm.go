@@ -107,15 +107,15 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, consumerID, sender
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForConsumer(consumerID)
-	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+	topic := s.topicForConsumer(consumerID)
+	body := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
 
 	slog.Info("[FCM] sending payment_received",
-		"topic",        topic,
-		"consumer_id",  consumerID,
-		"sender",       senderHandle,
+		"topic", topic,
+		"consumer_id", consumerID,
+		"sender", senderHandle,
 		"amount_minor", amountMinor,
-		"transfer_id",  transferID,
+		"transfer_id", transferID,
 	)
 
 	_, err := s.client.Send(ctx, &messaging.Message{
@@ -156,7 +156,7 @@ func (s *FCMService) SendToMerchant(ctx context.Context, merchantID, title, body
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForMerchant(merchantID)
+	topic := s.topicForMerchant(merchantID)
 	slog.Info("[FCM] sending to merchant", "topic", topic, "title", title)
 	_, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{
@@ -195,9 +195,9 @@ func (s *FCMService) SendPaymentToMerchant(ctx context.Context, merchantID, paye
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForMerchant(merchantID)
+	topic := s.topicForMerchant(merchantID)
 	amount := formatAmount(amountMinor, currency)
-	body   := "Recebeu " + amount
+	body := "Recebeu " + amount
 	if payerHandle != "" {
 		body += " de @" + strings.TrimPrefix(payerHandle, "@")
 	}
@@ -227,7 +227,7 @@ func (s *FCMService) SendPaymentToMerchant(ctx context.Context, merchantID, paye
 // formatAmount formats a minor-unit amount for notification body text.
 func formatAmount(minor int64, currency string) string {
 	whole := minor / 100
-	frac  := minor % 100
+	frac := minor % 100
 	if currency == "AOA" {
 		if frac == 0 {
 			return fmt.Sprintf("%s Kz", insertSep(whole))
@@ -238,7 +238,7 @@ func formatAmount(minor int64, currency string) string {
 }
 
 func insertSep(n int64) string {
-	s   := strconv.FormatInt(n, 10)
+	s := strconv.FormatInt(n, 10)
 	out := make([]byte, 0, len(s)+len(s)/3)
 	for i, c := range []byte(s) {
 		if i > 0 && (len(s)-i)%3 == 0 {

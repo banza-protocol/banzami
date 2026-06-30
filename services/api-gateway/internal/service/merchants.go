@@ -12,11 +12,11 @@ import (
 )
 
 var ErrMerchantNotFound = errors.New("merchant not found")
-var ErrApiKeyNotFound   = errors.New("API key not found")
-var ErrDuplicateEmail   = errors.New("email already registered")
+var ErrApiKeyNotFound = errors.New("API key not found")
+var ErrDuplicateEmail = errors.New("email already registered")
 var ErrMerchantInactive = errors.New("merchant is not active")
-var ErrKeyRevoked       = errors.New("API key has been revoked")
-var ErrInvalidApiKey    = errors.New("invalid API key")
+var ErrKeyRevoked = errors.New("API key has been revoked")
+var ErrInvalidApiKey = errors.New("invalid API key")
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -174,7 +174,7 @@ func (s *StubMerchantService) Suspend(_ context.Context, id string) (*MerchantRe
 	if !ok {
 		return nil, ErrMerchantNotFound
 	}
-	m.Status    = MerchantStatusSuspended
+	m.Status = MerchantStatusSuspended
 	m.UpdatedAt = time.Now().UTC()
 	cp := *m
 	return &cp, nil
@@ -197,9 +197,9 @@ func (s *StubMerchantService) CreateApiKey(_ context.Context, merchantID, name s
 	// therefore cryptographically bound to the environment.
 	a := uuid.NewString()
 	b := uuid.NewString()
-	raw    := fmt.Sprintf("%s%s%s", env.keySecretPrefix(), removeHyphens(a), removeHyphens(b))
+	raw := fmt.Sprintf("%s%s%s", env.keySecretPrefix(), removeHyphens(a), removeHyphens(b))
 	prefix := raw[len(env.keySecretPrefix()) : len(env.keySecretPrefix())+8]
-	hash   := hashKey(raw)
+	hash := hashKey(raw)
 
 	rec := ApiKeyRecord{
 		ID:          uuid.NewString(),

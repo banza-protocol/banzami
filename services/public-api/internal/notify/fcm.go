@@ -39,9 +39,9 @@ func NewFCMService(ctx context.Context, credentialsJSON, environment string) (*F
 		slog.Warn("[FCM] could not parse credentials for logging", "error", err)
 	} else {
 		slog.Info("[FCM] credentials loaded",
-			"project_id",    sa.ProjectID,
-			"client_email",  sa.ClientEmail,
-			"environment",   environment,
+			"project_id", sa.ProjectID,
+			"client_email", sa.ClientEmail,
+			"environment", environment,
 		)
 	}
 
@@ -111,16 +111,16 @@ func (s *FCMService) SendPaymentReceived(ctx context.Context, recipientConsumerI
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForConsumer(recipientConsumerID)
-	title  := prefix + "Pagamento recebido"
-	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+	topic := s.topicForConsumer(recipientConsumerID)
+	title := prefix + "Pagamento recebido"
+	body := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
 
 	slog.Info("[FCM] sending payment_received",
-		"topic",        topic,
-		"consumer_id",  recipientConsumerID,
-		"sender",       senderHandle,
+		"topic", topic,
+		"consumer_id", recipientConsumerID,
+		"sender", senderHandle,
 		"amount_minor", amountMinor,
-		"transfer_id",  transferID,
+		"transfer_id", transferID,
 	)
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
@@ -155,16 +155,16 @@ func (s *FCMService) SendPaymentLinkPaid(ctx context.Context, merchantID string,
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForMerchant(merchantID)
+	topic := s.topicForMerchant(merchantID)
 
 	slog.Info("[FCM] sending payment_link_paid",
-		"topic",        topic,
-		"merchant_id",  merchantID,
+		"topic", topic,
+		"merchant_id", merchantID,
 		"amount_minor", amountMinor,
 	)
 
-	title  := prefix + "Pagamento recebido"
-	body   := formatAmount(amountMinor, currency)
+	title := prefix + "Pagamento recebido"
+	body := formatAmount(amountMinor, currency)
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{Title: title, Body: body},
@@ -197,18 +197,18 @@ func (s *FCMService) SendPaymentRequestPaid(ctx context.Context, recipientConsum
 		return
 	}
 	prefix := s.sandboxPrefix()
-	topic  := s.topicForConsumer(recipientConsumerID)
-	body   := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
+	topic := s.topicForConsumer(recipientConsumerID)
+	body := fmt.Sprintf("Recebeu %s de %s", formatAmount(amountMinor, currency), senderHandle)
 
 	slog.Info("[FCM] sending payment_request_paid",
-		"topic",        topic,
-		"consumer_id",  recipientConsumerID,
-		"sender",       senderHandle,
+		"topic", topic,
+		"consumer_id", recipientConsumerID,
+		"sender", senderHandle,
 		"amount_minor", amountMinor,
-		"transfer_id",  transferID,
+		"transfer_id", transferID,
 	)
 
-	title  := prefix + "Pagamento recebido"
+	title := prefix + "Pagamento recebido"
 
 	msgID, err := s.client.Send(ctx, &messaging.Message{
 		Notification: &messaging.Notification{Title: title, Body: body},
@@ -244,7 +244,7 @@ func (s *FCMService) SendDebugPush(ctx context.Context, recipientConsumerID stri
 	}
 	topic = s.topicForConsumer(recipientConsumerID)
 	title := s.sandboxPrefix() + "Debug: Push funcionando ✓"
-	body  := "Notificações estão a funcionar correctamente."
+	body := "Notificações estão a funcionar correctamente."
 
 	slog.Info("[FCM] sending debug push (topic)", "topic", topic, "consumer_id", recipientConsumerID)
 
@@ -276,7 +276,7 @@ func (s *FCMService) SendDebugPushToToken(ctx context.Context, fcmToken string) 
 		return "", fmt.Errorf("FCM not initialized — FIREBASE_CREDENTIALS_JSON not set")
 	}
 	title := s.sandboxPrefix() + "Debug (token): Push funcionando ✓"
-	body  := "Entrega directa via token — tópico não necessário."
+	body := "Entrega directa via token — tópico não necessário."
 
 	slog.Info("[FCM] sending debug push (token)", "token_prefix", fcmToken[:min(len(fcmToken), 8)])
 
@@ -309,7 +309,7 @@ func min(a, b int) int {
 // formatAmount formats a minor-unit amount for notification body text.
 func formatAmount(minor int64, currency string) string {
 	whole := minor / 100
-	frac  := minor % 100
+	frac := minor % 100
 	if currency == "AOA" {
 		if frac == 0 {
 			return fmt.Sprintf("%s Kz", insertSep(whole))
@@ -320,7 +320,7 @@ func formatAmount(minor int64, currency string) string {
 }
 
 func insertSep(n int64) string {
-	s   := strconv.FormatInt(n, 10)
+	s := strconv.FormatInt(n, 10)
 	out := make([]byte, 0, len(s)+len(s)/3)
 	for i, c := range []byte(s) {
 		if i > 0 && (len(s)-i)%3 == 0 {

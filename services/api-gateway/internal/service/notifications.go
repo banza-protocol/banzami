@@ -11,12 +11,12 @@ import (
 // NotificationSummary holds the per-section pending counts that drive the
 // BANZADMIN sidebar badges. Counts only — no PII, no row detail.
 type NotificationSummary struct {
-	PendingKybDocuments        int `json:"pending_kyb_documents"`
-	PendingKycDocuments        int `json:"pending_kyc_documents"`
+	PendingKybDocuments         int `json:"pending_kyb_documents"`
+	PendingKycDocuments         int `json:"pending_kyc_documents"`
 	PendingBusinessApplications int `json:"pending_business_applications"`
-	FailedAppSettlements       int `json:"failed_app_settlements"`
-	OpenDisputes               int `json:"open_disputes"`
-	PendingReconciliations     int `json:"pending_reconciliations"`
+	FailedAppSettlements        int `json:"failed_app_settlements"`
+	OpenDisputes                int `json:"open_disputes"`
+	PendingReconciliations      int `json:"pending_reconciliations"`
 }
 
 // NotificationsService computes the review-queue summary from the gateway's

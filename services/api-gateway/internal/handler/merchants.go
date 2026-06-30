@@ -149,7 +149,7 @@ func (h *MerchantHandler) ListApiKeys(w http.ResponseWriter, r *http.Request) {
 // DELETE /v1/merchants/{id}/api-keys/{keyID}
 func (h *MerchantHandler) RevokeApiKey(w http.ResponseWriter, r *http.Request) {
 	merchantID := chi.URLParam(r, "id")
-	keyID      := chi.URLParam(r, "keyID")
+	keyID := chi.URLParam(r, "keyID")
 
 	if err := h.svc.RevokeApiKey(r.Context(), merchantID, keyID); err != nil {
 		if errors.Is(err, service.ErrApiKeyNotFound) {

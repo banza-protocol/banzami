@@ -13,11 +13,11 @@ import (
 // activityFetcher is satisfied by *service.CorePublicClient and by test fakes.
 type activityFetcher interface {
 	GetActivity(
-		ctx             context.Context,
-		consumerID      string,
-		limit           int,
-		cursor          string,
-		typeFilter      string,
+		ctx context.Context,
+		consumerID string,
+		limit int,
+		cursor string,
+		typeFilter string,
 		directionFilter string,
 	) (*service.ActivityPage, error)
 }
@@ -47,7 +47,7 @@ func newActivityHandlerWithFakes(core activityFetcher) *ActivityHandler {
 //   - cursor  — opaque pagination token from previous response
 //   - limit   — page size (1–100, default 20)
 //   - type    — filter: P2P_SENT | P2P_RECEIVED | MERCHANT_PAYMENT_SENT |
-//               WALLET_FUNDED | WALLET_REVERSED
+//     WALLET_FUNDED | WALLET_REVERSED
 //   - direction — filter: OUTGOING | INCOMING
 func (h *ActivityHandler) Activity(w http.ResponseWriter, r *http.Request) {
 	consumer, ok := middleware.GetConsumer(r.Context())
@@ -66,9 +66,9 @@ func (h *ActivityHandler) Activity(w http.ResponseWriter, r *http.Request) {
 		limit = parsed
 	}
 
-	cursor      := r.URL.Query().Get("cursor")
-	typeFilter  := r.URL.Query().Get("type")
-	dirFilter   := r.URL.Query().Get("direction")
+	cursor := r.URL.Query().Get("cursor")
+	typeFilter := r.URL.Query().Get("type")
+	dirFilter := r.URL.Query().Get("direction")
 
 	page, err := h.core.GetActivity(r.Context(), consumer.ID, limit, cursor, typeFilter, dirFilter)
 	if err != nil {

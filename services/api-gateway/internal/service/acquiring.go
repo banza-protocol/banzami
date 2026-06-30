@@ -12,7 +12,7 @@ import (
 )
 
 var ErrAcquiringPaymentNotFound = errors.New("acquiring payment not found")
-var ErrProviderError            = errors.New("provider error")
+var ErrProviderError = errors.New("provider error")
 
 // ---------------------------------------------------------------------------
 // Domain types
@@ -69,10 +69,10 @@ func NewCoreApiAcquiringService(client *CoreApiClient) *CoreApiAcquiringService 
 }
 
 func (s *CoreApiAcquiringService) InitiatePay(
-	ctx           context.Context,
+	ctx context.Context,
 	paymentLinkID string,
-	amountMinor   int64,
-	currency      string,
+	amountMinor int64,
+	currency string,
 ) (*AcquiringPayment, error) {
 	body := map[string]any{
 		"payment_link_id": paymentLinkID,
@@ -89,8 +89,8 @@ func (s *CoreApiAcquiringService) InitiatePay(
 // ProcessCallback forwards the raw provider callback bytes and HMAC signature
 // to the Rust core-api, which validates and processes them.
 func (s *CoreApiAcquiringService) ProcessCallback(
-	ctx       context.Context,
-	rawBody   []byte,
+	ctx context.Context,
+	rawBody []byte,
 	signature string,
 ) (*AcquiringPayment, error) {
 	reqURL := s.client.baseURL + "/internal/v1/acquiring/callbacks/emis"
@@ -122,9 +122,9 @@ func (s *CoreApiAcquiringService) ProcessCallback(
 }
 
 func (s *CoreApiAcquiringService) TestConfirm(
-	ctx         context.Context,
+	ctx context.Context,
 	externalRef string,
-	currency    string,
+	currency string,
 ) (*AcquiringPayment, error) {
 	if currency == "" {
 		currency = "AOA"

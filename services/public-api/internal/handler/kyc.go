@@ -35,7 +35,7 @@ type createCaseRequest struct {
 }
 
 type uploadURLRequest struct {
-	EvidenceType string `json:"evidence_type"` // DOCUMENT_IMAGE | SELFIE
+	EvidenceType string `json:"evidence_type"`  // DOCUMENT_IMAGE | SELFIE
 	Side         string `json:"side,omitempty"` // FRONT | BACK | MAIN_PAGE | SELFIE
 	ContentType  string `json:"content_type,omitempty"`
 }

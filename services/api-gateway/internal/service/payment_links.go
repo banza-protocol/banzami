@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-var ErrPaymentLinkNotFound  = errors.New("payment link not found")
+var ErrPaymentLinkNotFound = errors.New("payment link not found")
 var ErrPaymentLinkNotActive = errors.New("payment link is not active")
 
 // ---------------------------------------------------------------------------

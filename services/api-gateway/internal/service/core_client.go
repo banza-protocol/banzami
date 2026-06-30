@@ -13,6 +13,8 @@ import (
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/banzami/banzami/services/common/obs"
 )
 
 // ErrNotFound is returned by CoreApi* services when the resource does not exist.
@@ -37,6 +39,9 @@ func NewCoreApiClient(baseURL string) *CoreApiClient {
 		baseURL: baseURL,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
+			// Propagate the flow's correlation_id to core-api so Go and Rust logs
+			// can be joined end-to-end.
+			Transport: obs.NewPropagationTransport(nil),
 		},
 	}
 }

@@ -5,6 +5,7 @@ use (
 	./services/admin-api
 	./services/api-gateway
 	./services/common/documents
+	./services/common/obs
 	./services/public-api
 	./services/sandbox-operator
 )

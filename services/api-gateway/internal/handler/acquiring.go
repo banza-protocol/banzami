@@ -30,7 +30,7 @@ func NewAcquiringHandler(svc service.AcquiringService, pl service.PaymentLinkSer
 // e.g. 1500000 AOA → "15.000 Kz"
 func notifAmount(amountMinor int64, currency string) string {
 	whole := amountMinor / 100
-	frac  := amountMinor % 100
+	frac := amountMinor % 100
 	symbol := currency
 	if currency == "AOA" {
 		symbol = "Kz"

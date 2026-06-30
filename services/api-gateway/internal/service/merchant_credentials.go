@@ -18,7 +18,7 @@ var (
 	ErrHandleInvalid        = errors.New("handle format is invalid")
 	ErrPinInvalid           = errors.New("pin must be 4-8 digits")
 	ErrHandleReserved       = errors.New("handle is reserved")
-	ErrMerchantHandleTaken          = errors.New("handle is already taken")
+	ErrMerchantHandleTaken  = errors.New("handle is already taken")
 	ErrMerchantCredsInvalid = errors.New("invalid handle or pin") // non-enumerating
 	ErrMerchantLocked       = errors.New("too many attempts; try again later")
 )
@@ -83,7 +83,7 @@ type PostgresMerchantCredentialService struct {
 	// Used only to detect "this handle lives in the other environment" so login
 	// can report it instead of a misleading not-found (ADR-025). otherEnvName is
 	// the label of that environment ("LIVE"/"SANDBOX").
-	crossPool   *pgxpool.Pool
+	crossPool    *pgxpool.Pool
 	otherEnvName string
 }
 

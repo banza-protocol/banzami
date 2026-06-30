@@ -66,18 +66,18 @@ func activityItem(
 ) service.ActivityItem {
 	now := time.Now().UTC()
 	return service.ActivityItem{
-		ActivityID:  activityID,
-		Type:        itemType,
-		Direction:   direction,
-		AmountMinor: amountMinor,
-		Currency:    currency,
-		Status:      status,
-		CreatedAt:   now,
-		CompletedAt: &now,
+		ActivityID:         activityID,
+		Type:               itemType,
+		Direction:          direction,
+		AmountMinor:        amountMinor,
+		Currency:           currency,
+		Status:             status,
+		CreatedAt:          now,
+		CompletedAt:        &now,
 		CounterpartyHandle: counterpartyHandle,
-		Note:        note,
-		TransferID:  transferID,
-		FundingID:   fundingID,
+		Note:               note,
+		TransferID:         transferID,
+		FundingID:          fundingID,
 	}
 }
 

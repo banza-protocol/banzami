@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	documents "github.com/banzami/banzami/services/common/documents"
 	"github.com/banzami/banzami/services/admin-api/internal/service"
+	documents "github.com/banzami/banzami/services/common/documents"
 )
 
 // ReceiptSource loads official ReceiptData for a transaction (read-only).

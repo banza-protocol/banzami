@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"time"
 )
 
@@ -49,7 +51,7 @@ func NewProofClient(baseURL, internalKey string) *ProofClient {
 	return &ProofClient{
 		baseURL:     baseURL,
 		internalKey: internalKey,
-		http:        &http.Client{Timeout: 8 * time.Second},
+		http:        &http.Client{Timeout: 8 * time.Second, Transport: obs.NewPropagationTransport(nil)},
 	}
 }
 

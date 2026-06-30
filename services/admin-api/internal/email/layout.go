@@ -7,11 +7,11 @@ package email
 // safetyKind: "normal" | "security" | "receipt" — selects the footer safety line.
 
 type layoutOpts struct {
-	Subtitle  string // header subtitle: Business | BANZADMIN | Carteira
-	BadgeKind string // business | security | receipt
+	Subtitle   string // header subtitle: Business | BANZADMIN | Carteira
+	BadgeKind  string // business | security | receipt
 	SafetyKind string // normal | security | receipt
-	Preheader string
-	Body      string // composed inner HTML
+	Preheader  string
+	Body       string // composed inner HTML
 }
 
 func footerSafety(kind string) string {

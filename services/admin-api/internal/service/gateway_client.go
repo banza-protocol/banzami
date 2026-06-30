@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"net/url"
 	"time"
 )
@@ -24,7 +26,7 @@ func NewGatewayClient(baseURL, internalKey string) *GatewayClient {
 	return &GatewayClient{
 		baseURL:     baseURL,
 		internalKey: internalKey,
-		httpClient:  &http.Client{Timeout: 25 * time.Second},
+		httpClient:  &http.Client{Timeout: 25 * time.Second, Transport: obs.NewPropagationTransport(nil)},
 	}
 }
 

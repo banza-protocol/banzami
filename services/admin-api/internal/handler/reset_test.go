@@ -153,7 +153,9 @@ func TestReset_CompleteUsedOrExpired(t *testing.T) {
 
 type captureAudit struct{ entries []service.AuditEntry }
 
-func (c *captureAudit) Write(_ context.Context, e service.AuditEntry) { c.entries = append(c.entries, e) }
+func (c *captureAudit) Write(_ context.Context, e service.AuditEntry) {
+	c.entries = append(c.entries, e)
+}
 
 func auditJSON(e service.AuditEntry) string {
 	b, _ := json.Marshal(map[string]any{"before": e.Before, "after": e.After})

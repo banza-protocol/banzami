@@ -82,8 +82,12 @@ func (h *PricingCatalogHandler) Update(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
-func (h *PricingCatalogHandler) Disable(w http.ResponseWriter, r *http.Request) { h.setEnabled(w, r, false) }
-func (h *PricingCatalogHandler) Enable(w http.ResponseWriter, r *http.Request)  { h.setEnabled(w, r, true) }
+func (h *PricingCatalogHandler) Disable(w http.ResponseWriter, r *http.Request) {
+	h.setEnabled(w, r, false)
+}
+func (h *PricingCatalogHandler) Enable(w http.ResponseWriter, r *http.Request) {
+	h.setEnabled(w, r, true)
+}
 
 func (h *PricingCatalogHandler) setEnabled(w http.ResponseWriter, r *http.Request, enabled bool) {
 	id := chi.URLParam(r, "id")

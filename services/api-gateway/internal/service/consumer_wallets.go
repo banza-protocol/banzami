@@ -6,8 +6,8 @@ import (
 	"time"
 )
 
-var ErrConsumerWalletNotFound    = errors.New("consumer wallet not found")
-var ErrNoWalletForConsumer       = errors.New("no wallet for consumer in that currency")
+var ErrConsumerWalletNotFound = errors.New("consumer wallet not found")
+var ErrNoWalletForConsumer = errors.New("no wallet for consumer in that currency")
 
 // ---------------------------------------------------------------------------
 // Domain types

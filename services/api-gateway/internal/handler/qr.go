@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -190,9 +191,13 @@ func (h *QrHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		DeviceID: cmp.Or(body.DeviceID, r.Header.Get("X-Device-Id")),
 	})
 	if err != nil {
+		slog.WarnContext(r.Context(), "qr.pay.failed", "idempotency_key", body.IdempotencyKey, "error", err)
 		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "payment could not be processed")
 		return
 	}
+
+	// Flow log — operational ids only, no payer PII (correlation_id added by obs).
+	slog.InfoContext(r.Context(), "qr.pay", "http_status", status, "idempotency_key", body.IdempotencyKey)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)

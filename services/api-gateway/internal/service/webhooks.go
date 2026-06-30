@@ -71,13 +71,13 @@ type DispatchRequest struct {
 
 // EndpointHealth summarises delivery reliability for a single endpoint.
 type EndpointHealth struct {
-	EndpointID       string  `json:"endpoint_id"`
-	TotalLast24h     int     `json:"total_last_24h"`
-	SuccessLast24h   int     `json:"success_last_24h"`
-	FailedLast24h    int     `json:"failed_last_24h"`
-	SuccessRatePct   float64 `json:"success_rate_pct"`
-	LastDeliveredAt  *time.Time `json:"last_delivered_at,omitempty"`
-	LastFailedAt     *time.Time `json:"last_failed_at,omitempty"`
+	EndpointID      string     `json:"endpoint_id"`
+	TotalLast24h    int        `json:"total_last_24h"`
+	SuccessLast24h  int        `json:"success_last_24h"`
+	FailedLast24h   int        `json:"failed_last_24h"`
+	SuccessRatePct  float64    `json:"success_rate_pct"`
+	LastDeliveredAt *time.Time `json:"last_delivered_at,omitempty"`
+	LastFailedAt    *time.Time `json:"last_failed_at,omitempty"`
 }
 
 // WebhookService manages endpoint registration and reliable event delivery.

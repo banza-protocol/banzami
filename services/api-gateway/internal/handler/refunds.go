@@ -30,10 +30,10 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		TransactionID  string  `json:"transaction_id"`
-		AmountMinor    int64   `json:"amount_minor"`
-		Reason         string  `json:"reason"`
-		IdempotencyKey string  `json:"idempotency_key"`
+		TransactionID  string `json:"transaction_id"`
+		AmountMinor    int64  `json:"amount_minor"`
+		Reason         string `json:"reason"`
+		IdempotencyKey string `json:"idempotency_key"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_BODY", "request body must be valid JSON")

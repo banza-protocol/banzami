@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -27,7 +29,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 	r := chi.NewRouter()
 
 	r.Use(middleware.CORS)
-	r.Use(chimiddleware.RequestID)
+	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(chimiddleware.RealIP)
 	r.Use(middleware.Logger)
 	r.Use(chimiddleware.Recoverer)

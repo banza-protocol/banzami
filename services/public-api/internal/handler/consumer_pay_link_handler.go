@@ -180,9 +180,9 @@ func (h *ConsumerPayLinkHandler) notifyPaymentRequestPaid(link *service.Consumer
 	}
 
 	slog.Info("[FCM] event created",
-		"event",        "payment_request_paid",
+		"event", "payment_request_paid",
 		"recipient_id", link.ReceiverConsumerID,
-		"sender",       senderHandle,
+		"sender", senderHandle,
 		"amount_minor", amountMinor,
 	)
 

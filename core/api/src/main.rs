@@ -745,6 +745,9 @@ async fn main() {
         )
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
+        // Outermost: enter the correlation span first so request_id + handlers log
+        // under it and Go↔Rust logs join on correlation_id.
+        .layer(axum_middleware::from_fn(middleware::correlation_id))
         .layer(TraceLayer::new_for_http());
 
     let addr = format!("0.0.0.0:{port}");

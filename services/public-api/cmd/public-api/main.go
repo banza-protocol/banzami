@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -48,7 +50,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	core  := service.NewCorePublicClient(cfg.CoreAPIURL)
+	core := service.NewCorePublicClient(cfg.CoreAPIURL)
 	creds := service.NewCredentialStore(pool)
 
 	// Consumer KYC evidence storage (R2). Optional: a nil storage makes upload
@@ -92,9 +94,9 @@ func main() {
 	// Boot summary — makes environment visible in every deployment log.
 	sandboxRoutes := cfg.Environment == "SANDBOX"
 	slog.Info("boot: environment",
-		"environment",    cfg.Environment,
+		"environment", cfg.Environment,
 		"sandbox_routes", sandboxRoutes,
-		"core_api_url",   cfg.CoreAPIURL,
+		"core_api_url", cfg.CoreAPIURL,
 	)
 	if cfg.Environment == "SANDBOX" {
 		slog.Warn("SANDBOX mode — fake funding enabled, no real rails, no real settlement")
@@ -104,8 +106,8 @@ func main() {
 
 	go func() {
 		slog.Info("public-api starting",
-			"port",         cfg.Port,
-			"log_level",    cfg.LogLevel,
+			"port", cfg.Port,
+			"log_level", cfg.LogLevel,
 			"otlp_enabled", cfg.OTLPEndpoint != "",
 		)
 		if err := srv.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -152,5 +154,5 @@ func initLogger(cfg *config.Config) {
 	} else {
 		h = slog.NewJSONHandler(os.Stdout, opts)
 	}
-	slog.SetDefault(slog.New(h))
+	slog.SetDefault(slog.New(obs.NewContextHandler(h)))
 }

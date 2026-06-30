@@ -11,6 +11,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"strings"
 	"time"
 )
@@ -25,7 +27,8 @@ func NewCoreAdminClient(baseURL string) *CoreAdminClient {
 	return &CoreAdminClient{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout:   30 * time.Second,
+			Transport: obs.NewPropagationTransport(nil),
 		},
 	}
 }

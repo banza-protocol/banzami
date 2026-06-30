@@ -680,7 +680,7 @@ func TestPayLink_Pay_ConcurrentRace_OnlyOneSucceeds(t *testing.T) {
 	r2 := <-results
 
 	codes := []int{r1.code, r2.code}
-	okCount  := 0
+	okCount := 0
 	nopCount := 0
 	for _, c := range codes {
 		switch c {

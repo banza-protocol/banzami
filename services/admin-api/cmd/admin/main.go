@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"os"
 	"os/signal"
 	"syscall"
@@ -223,5 +225,5 @@ func initLogger(cfg *config.Config) {
 	} else {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	}
-	slog.SetDefault(slog.New(handler))
+	slog.SetDefault(slog.New(obs.NewContextHandler(handler)))
 }

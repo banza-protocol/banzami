@@ -8,14 +8,14 @@ import (
 
 // Config holds all runtime configuration for the public-api service.
 type Config struct {
-	Port                    int
-	CoreAPIURL              string
-	DatabaseURL             string
-	JWTSecret               string
-	LogLevel                string
-	LogFormat               string
-	OTLPEndpoint            string // optional; tracing is a no-op when empty
-	Environment             string // "PRODUCTION" or "SANDBOX"
+	Port         int
+	CoreAPIURL   string
+	DatabaseURL  string
+	JWTSecret    string
+	LogLevel     string
+	LogFormat    string
+	OTLPEndpoint string // optional; tracing is a no-op when empty
+	Environment  string // "PRODUCTION" or "SANDBOX"
 	// FirebaseCredentialsJSON holds the Firebase service-account JSON (minified).
 	// When empty, push notifications are silently disabled.
 	FirebaseCredentialsJSON string
@@ -80,21 +80,21 @@ func Load() (*Config, error) {
 
 	return &Config{
 		FirebaseCredentialsJSON: os.Getenv("FIREBASE_CREDENTIALS_JSON"),
-		KycStorageProvider:  os.Getenv("KYC_STORAGE_PROVIDER"),
-		KycStorageBucket:    os.Getenv("KYC_STORAGE_BUCKET"),
-		KycStorageEndpoint:  os.Getenv("KYC_STORAGE_ENDPOINT"),
-		KycStorageRegion:    os.Getenv("KYC_STORAGE_REGION"),
-		KycStorageAccessKey: os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
-		KycStorageSecretKey: os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
-		Port:         port,
-		CoreAPIURL:   coreURL,
-		DatabaseURL:  dbURL,
-		JWTSecret:    jwtSecret,
-		LogLevel:     logLevel,
-		LogFormat:    logFormat,
-		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
-		Environment:  env,
-		GatewayInternalURL: os.Getenv("GATEWAY_INTERNAL_URL"),
-		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
+		KycStorageProvider:      os.Getenv("KYC_STORAGE_PROVIDER"),
+		KycStorageBucket:        os.Getenv("KYC_STORAGE_BUCKET"),
+		KycStorageEndpoint:      os.Getenv("KYC_STORAGE_ENDPOINT"),
+		KycStorageRegion:        os.Getenv("KYC_STORAGE_REGION"),
+		KycStorageAccessKey:     os.Getenv("KYC_STORAGE_ACCESS_KEY_ID"),
+		KycStorageSecretKey:     os.Getenv("KYC_STORAGE_SECRET_ACCESS_KEY"),
+		Port:                    port,
+		CoreAPIURL:              coreURL,
+		DatabaseURL:             dbURL,
+		JWTSecret:               jwtSecret,
+		LogLevel:                logLevel,
+		LogFormat:               logFormat,
+		OTLPEndpoint:            os.Getenv("OTLP_ENDPOINT"),
+		Environment:             env,
+		GatewayInternalURL:      os.Getenv("GATEWAY_INTERNAL_URL"),
+		InternalAPIKey:          os.Getenv("INTERNAL_API_KEY"),
 	}, nil
 }

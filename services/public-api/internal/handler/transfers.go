@@ -20,8 +20,8 @@ import (
 )
 
 const (
-	transferNoteMaxRunes   = 140
-	transferRateLimit      = 20 // per window
+	transferNoteMaxRunes = 140
+	transferRateLimit    = 20 // per window
 )
 
 // p2pTransferSender is satisfied by *service.CorePublicClient and by test fakes.
@@ -252,9 +252,9 @@ func (h *TransferHandler) notifyRecipient(t *service.P2pTransferResponse) {
 	}
 
 	slog.Info("[FCM] event created",
-		"event",        "payment_received",
+		"event", "payment_received",
 		"recipient_id", consumer.ID,
-		"sender",       t.Sender,
+		"sender", t.Sender,
 		"amount_minor", t.AmountMinor,
 	)
 

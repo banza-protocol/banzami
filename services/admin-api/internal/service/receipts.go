@@ -101,8 +101,8 @@ func (s *PostgresReceiptSource) walletPayment(ctx context.Context, id string) (w
 
 type transferRow struct {
 	id, senderID, recipientID, currency, status, description string
-	amountMinor                                             int64
-	createdAt, updatedAt                                    time.Time
+	amountMinor                                              int64
+	createdAt, updatedAt                                     time.Time
 }
 
 func (s *PostgresReceiptSource) transfer(ctx context.Context, id string) (transferRow, bool, error) {

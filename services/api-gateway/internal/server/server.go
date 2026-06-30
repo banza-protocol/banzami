@@ -7,6 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
+
+	"github.com/banzami/banzami/services/common/obs"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/redis/go-redis/v9"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -67,7 +69,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// ---------------------------------------------------------------------------
 	r.Use(middleware.CORS)
 	r.Use(chimw.RealIP)
-	r.Use(middleware.RequestID)
+	r.Use(obs.Correlation) // single source: correlation_id (flow) + request_id (local)
 	r.Use(middleware.Logger)
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.Timeout(60 * time.Second))

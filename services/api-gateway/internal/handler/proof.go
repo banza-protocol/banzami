@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net"
 	"net/http"
 	"strings"
@@ -70,6 +71,9 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	}
 	// Record the verification (hashed ip/ua only) and bump the counter.
 	h.svc.RecordVerification(r.Context(), proof.ID, h.hash(clientIP(r)), h.hash(r.UserAgent()), "")
+
+	// Flow log — public proof status, no PII (correlation_id added by obs).
+	slog.InfoContext(r.Context(), "proof.verify", "reference", ref, "status", proof.Status)
 
 	w.Header().Set("Cache-Control", "public, max-age=15")
 	resp := h.svc.Public(proof)

@@ -6,9 +6,9 @@ import (
 	"time"
 )
 
-var ErrTransferNotFound       = errors.New("transfer not found")
-var ErrTransferSelfTransfer   = errors.New("cannot transfer to yourself")
-var ErrTransferInvalidAmount  = errors.New("amount must be positive")
+var ErrTransferNotFound = errors.New("transfer not found")
+var ErrTransferSelfTransfer = errors.New("cannot transfer to yourself")
+var ErrTransferInvalidAmount = errors.New("amount must be positive")
 var ErrTransferInsufficientFunds = errors.New("insufficient funds")
 var ErrTransferWalletNotFound = errors.New("sender or recipient wallet not found")
 var ErrTransferWalletInactive = errors.New("wallet is not active")

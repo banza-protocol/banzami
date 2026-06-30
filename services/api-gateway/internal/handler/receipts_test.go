@@ -10,9 +10,9 @@ import (
 
 	"github.com/go-chi/chi/v5"
 
-	documents "github.com/banzami/banzami/services/common/documents"
 	"github.com/banzami/banzami/services/api-gateway/internal/middleware"
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
+	documents "github.com/banzami/banzami/services/common/documents"
 )
 
 type fakePayments struct {

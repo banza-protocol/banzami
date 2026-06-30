@@ -7,19 +7,19 @@ import (
 )
 
 type Config struct {
-	Port         int
-	Environment  string
-	LogLevel     string
-	LogFormat    string
-	DatabaseURL  string
+	Port        int
+	Environment string
+	LogLevel    string
+	LogFormat   string
+	DatabaseURL string
 	// CrossEnvDatabaseURL is an OPTIONAL read-only connection string to the OTHER
 	// environment's database (LIVE stack → banzami_staging, SANDBOX stack →
 	// banzami). Used only to detect "this @handle lives in the other environment"
 	// for the login UX (ADR-025). Empty disables cross-env detection.
 	CrossEnvDatabaseURL string
 	RedisURL            string
-	CoreAPIURL   string
-	OTLPEndpoint string // optional; tracing is a no-op when empty
+	CoreAPIURL          string
+	OTLPEndpoint        string // optional; tracing is a no-op when empty
 	// JWTSecret is required for protected routes.
 	// Deliberately left optional here so the gateway starts for health-check
 	// purposes even before auth is fully wired.

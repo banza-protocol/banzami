@@ -138,10 +138,10 @@ func TestSenderIdentitiesAndReplyTo(t *testing.T) {
 		idx           int
 		from, replyTo string
 	}{
-		{0, "Banzami <noreply@banzami.com>", ""},                       // invite
-		{1, "Banzami <noreply@banzami.com>", ""},                       // reset
-		{2, "Banzami <noreply@banzami.com>", "contact@banzami.com"},    // approved
-		{3, "Banzami <contact@banzami.com>", "contact@banzami.com"},    // rejected
+		{0, "Banzami <noreply@banzami.com>", ""},                    // invite
+		{1, "Banzami <noreply@banzami.com>", ""},                    // reset
+		{2, "Banzami <noreply@banzami.com>", "contact@banzami.com"}, // approved
+		{3, "Banzami <contact@banzami.com>", "contact@banzami.com"}, // rejected
 	}
 	for _, c := range cases {
 		if captured[c.idx].From != c.from {

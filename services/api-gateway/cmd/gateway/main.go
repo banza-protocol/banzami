@@ -15,6 +15,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/banzami/banzami/services/common/obs"
+
 	"github.com/banzami/banzami/services/api-gateway/internal/config"
 	"github.com/banzami/banzami/services/api-gateway/internal/crypto"
 	"github.com/banzami/banzami/services/api-gateway/internal/kybstorage"
@@ -264,7 +266,8 @@ func initLogger(cfg *config.Config) {
 	} else {
 		handler = slog.NewJSONHandler(os.Stdout, opts)
 	}
-	slog.SetDefault(slog.New(handler))
+	// Wrap so every slog.*Context call carries correlation_id + request_id.
+	slog.SetDefault(slog.New(obs.NewContextHandler(handler)))
 }
 
 // proofHashSalt salts the verification ip/ua hashes. Falls back to the proof
