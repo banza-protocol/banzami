@@ -89,4 +89,53 @@ void main() {
           isA<BanzamiQrInvalid>());
     });
   });
+
+  // Regression lock for the banza→banzami brand rename: the generator
+  // (receive_hub_screen._qrPayload) emits `banzami:@` / `banzami-sandbox:@` /
+  // `banzami(-sandbox)://pay?request=`. The parser MUST resolve exactly those,
+  // and the scanner delegates to the parser, so these are what scan-to-pay sees.
+  group('BanzamiQrParser — canonical generator output (P2P regression)', () {
+    test('live handle QR banzami:@handle resolves (NOT sandbox)', () {
+      final r = BanzamiQrParser.parse('banzami:@fm65?amount=5000&currency=AOA');
+      expect(r, isA<BanzamiQrHandlePayment>());
+      final h = r as BanzamiQrHandlePayment;
+      expect(h.handle, 'fm65');
+      expect(h.amountMinor, 5000);
+      expect(h.isSandbox, isFalse);
+    });
+
+    test('sandbox handle QR banzami-sandbox:@handle resolves AS sandbox', () {
+      final r = BanzamiQrParser.parse('banzami-sandbox:@fm65');
+      expect(r, isA<BanzamiQrHandlePayment>());
+      final h = r as BanzamiQrHandlePayment;
+      expect(h.handle, 'fm65');
+      expect(h.isSandbox, isTrue);
+    });
+
+    test('live payment-request QR banzami://pay?request resolves', () {
+      final r = BanzamiQrParser.parse('banzami://pay?request=REQ123');
+      expect(r, isA<BanzamiQrPaymentRequest>());
+      final p = r as BanzamiQrPaymentRequest;
+      expect(p.code, 'REQ123');
+      expect(p.isSandbox, isFalse);
+    });
+
+    test('sandbox payment-request QR banzami-sandbox://pay?request resolves AS sandbox', () {
+      final r = BanzamiQrParser.parse('banzami-sandbox://pay?request=REQ123');
+      expect(r, isA<BanzamiQrPaymentRequest>());
+      expect((r as BanzamiQrPaymentRequest).isSandbox, isTrue);
+    });
+
+    test('legacy banza-sandbox:@handle still resolves (printed QRs in circulation)', () {
+      final r = BanzamiQrParser.parse('banza-sandbox:@fm65');
+      expect(r, isA<BanzamiQrHandlePayment>());
+      expect((r as BanzamiQrHandlePayment).isSandbox, isTrue);
+    });
+
+    test('malformed/unknown QR is safely rejected (no crash, no payment)', () {
+      expect(BanzamiQrParser.parse('garbage://nope'), isA<BanzamiQrInvalid>());
+      expect(BanzamiQrParser.parse(''), isA<BanzamiQrInvalid>());
+      expect(BanzamiQrParser.parse('a' * 600), isA<BanzamiQrInvalid>());
+    });
+  });
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../theme/banzami_theme.dart';
+import '../utils/qr_parser.dart';
 
 /// Full-screen QR scanner widget.
 ///
@@ -40,15 +41,15 @@ class _BanzamiQrScannerState extends State<BanzamiQrScanner> {
     super.dispose();
   }
 
-  // Accept all known Banzami QR payload formats. Size-limit prevents crash from
-  // pathologically large QR data. BanzamiQrParser does the detailed validation.
+  // Accept anything BanzamiQrParser can resolve — the parser is the SINGLE source
+  // of truth for "is this a Banzami QR". A previous hardcoded prefix list here
+  // drifted out of sync with the parser/generator during the banza→banzami brand
+  // rename and silently rejected valid payloads (P2P + structured merchant QR).
+  // Delegating removes that whole class of regression. The size guard prevents a
+  // crash from pathologically large QR data before the parser runs.
   static bool _isValidPayload(String value) {
     if (value.length > 512) return false;
-    return value.startsWith('https://pay.banzami.com/') ||
-           value.startsWith('banzami://') ||
-           value.startsWith('banza-sandbox://') ||
-           value.startsWith('banza:@') ||
-           value.startsWith('banza-sandbox:@');
+    return BanzamiQrParser.parse(value) is! BanzamiQrInvalid;
   }
 
   void _onDetect(BarcodeCapture capture) {

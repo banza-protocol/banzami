@@ -5,12 +5,13 @@
 ///  • https://pay.banzami.com/pay/{slug}        (merchant payment link)
 ///  • https://pay.banzami.com/r/{code}[?sandbox=1]
 ///  • https://pay.banzami.com/u/{handle}[?amount=N&note=...&sandbox=1]
-///  • banzami://pay?request={code}
-///  • banzami-sandbox://pay?request={code}
+///  • banzami://pay?request={code}              (+ legacy banza://)
+///  • banzami-sandbox://pay?request={code}       (+ legacy banza-sandbox://)
 ///  • banzami://pay/u/{handle}[?amount=N&note=...]
 ///  • banzami-sandbox://pay/u/{handle}[?amount=N&note=...]
-///  • banza:@{handle}[?amount=N&currency=AOA]
-///  • banzami-sandbox:@{handle}[?amount=N&currency=AOA]
+///  • banzami:@{handle}[?amount=N&currency=AOA]          (+ legacy banza:@)
+///  • banzami-sandbox:@{handle}[?amount=N&currency=AOA]  (+ legacy banza-sandbox:@)
+///  • <base64url(JSON {"t":"S"|"D",...})>        structured static/dynamic QR
 library;
 
 import 'dart:convert';
@@ -142,9 +143,10 @@ class BanzamiQrParser {
       }
     }
 
-    // ── Deep link: banzami:// or banzami-sandbox:// ───────────────────────────────
-    if (raw.startsWith('banzami://') || raw.startsWith('banzami-sandbox://')) {
-      final isSandbox = raw.startsWith('banzami-sandbox://');
+    // ── Deep link: banzami:// / banzami-sandbox:// (+ legacy banza://) ─────────
+    if (raw.startsWith('banzami://') || raw.startsWith('banzami-sandbox://') ||
+        raw.startsWith('banza://') || raw.startsWith('banza-sandbox://')) {
+      final isSandbox = raw.contains('-sandbox://');
       final uri       = Uri.tryParse(raw);
       if (uri == null) return const BanzamiQrInvalid('Link inválido');
 
@@ -174,13 +176,19 @@ class BanzamiQrParser {
       return const BanzamiQrInvalid('Formato de link inválido');
     }
 
-    // ── Handle QR: banza:@{handle} or banzami-sandbox:@{handle} ────────────────
-    if (raw.startsWith('banza:@') || raw.startsWith('banzami-sandbox:@')) {
-      final isSandbox = raw.startsWith('banzami-sandbox:');
-      final rest      = isSandbox
-          ? raw.substring('banzami-sandbox:@'.length)
-          : raw.substring('banza:@'.length);
-      // rest = 'fm65' or 'fm65?amount=5000&currency=AOA'
+    // ── Handle QR: <scheme>:@{handle} ─────────────────────────────────────────
+    // The OS/app scheme is `banzami` (live) / `banzami-sandbox` (sandbox); that is
+    // what the generator (receive_hub_screen) emits today. The legacy `banza` /
+    // `banza-sandbox` prefixes are also accepted so QRs already printed/shared
+    // before the brand rename keep resolving. Longer (sandbox) prefixes first.
+    const handlePrefixes = [
+      'banzami-sandbox:@', 'banza-sandbox:@', // sandbox: canonical, legacy
+      'banzami:@', 'banza:@', //                 live:    canonical, legacy
+    ];
+    for (final prefix in handlePrefixes) {
+      if (!raw.startsWith(prefix)) continue;
+      final isSandbox = prefix.contains('-sandbox');
+      final rest      = raw.substring(prefix.length); // 'fm65' or 'fm65?amount=5000&currency=AOA'
       final qIdx      = rest.indexOf('?');
       final handle    = qIdx >= 0 ? rest.substring(0, qIdx) : rest;
       if (handle.isEmpty) return const BanzamiQrInvalid('Endereço inválido');
