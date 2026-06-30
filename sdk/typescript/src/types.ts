@@ -410,3 +410,32 @@ export interface WebhookEvent {
   data:       unknown;
   created_at: string;
 }
+
+// Application Settlement (Banzami ADR-021) — an app settles accumulated net value
+// from one of its wallets to a beneficiary, splitting off an application fee.
+export type ApplicationSettlementStatus = 'CREATED' | 'PENDING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface ApplicationSettlement {
+  id: string;
+  owner_ref: string;
+  status: ApplicationSettlementStatus;
+  gross_amount_minor: number;
+  application_fee_minor: number;
+  net_amount_minor: number;
+  currency: string;
+  environment: string;
+  created_at: string;
+  completed_at: string | null;
+  failure_reason: string | null;
+}
+
+export interface CreateApplicationSettlementParams {
+  idempotencyKey: string;
+  ownerRef: string;
+  sourceWalletId: string;
+  beneficiaryWalletId: string;
+  applicationFeeWalletId?: string;
+  feePolicyRef?: string;
+  businessCategory?: string;
+  pricingProfile?: string;
+}

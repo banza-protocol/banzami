@@ -22,40 +22,41 @@ import (
 
 // Dependencies holds the runtime dependencies injected into the server.
 type Dependencies struct {
-	Redis               *redis.Client
-	TransactionSvc      service.TransactionService
-	WebhookSvc          service.WebhookService
-	MerchantSvc         service.MerchantService
-	WalletSvc           service.WalletService
-	PayoutSvc           service.PayoutService
-	ConsumerSvc         service.ConsumerService
-	ConsumerWalletSvc   service.ConsumerWalletService
-	TransferSvc         service.TransferService
-	QrSvc               service.QrService
-	PaymentLinkSvc      service.PaymentLinkService
-	CollectionSvc       service.CollectionService
-	AcquiringSvc        service.AcquiringService
-	RefundSvc           service.RefundService
-	DisputeSvc          service.DisputeService
-	PaymentRequestSvc   service.PaymentRequestService
-	MerchantProfileSvc  service.MerchantProfileService
-	ConsumerPayLinkSvc  service.ConsumerPayLinkService
-	FCMSvc              *notify.FCMService
-	TeamSvc             service.TeamService
-	MerchantCredSvc     service.MerchantCredentialService
-	MerchantAppSvc      service.MerchantApplicationService
-	MerchantAppAdminSvc service.MerchantApplicationAdminService
-	MerchantDocumentSvc service.MerchantDocumentService
-	MerchantKybSvc      *service.PostgresMerchantKybService
-	ActivationSvc       service.ActivationService
-	ComplianceSvc       service.ComplianceService
-	SplitSvc            service.SplitService
-	WalletPaymentSvc    service.WalletPaymentReader
-	WalletPaymentLister service.WalletPaymentLister
-	NotificationsSvc    *service.NotificationsService
-	PlatformSvc         *service.PlatformReadService
-	ProofSvc            *service.ProofService
-	ProofHashSalt       string
+	Redis                    *redis.Client
+	TransactionSvc           service.TransactionService
+	WebhookSvc               service.WebhookService
+	MerchantSvc              service.MerchantService
+	WalletSvc                service.WalletService
+	ApplicationSettlementSvc service.ApplicationSettlementService
+	PayoutSvc                service.PayoutService
+	ConsumerSvc              service.ConsumerService
+	ConsumerWalletSvc        service.ConsumerWalletService
+	TransferSvc              service.TransferService
+	QrSvc                    service.QrService
+	PaymentLinkSvc           service.PaymentLinkService
+	CollectionSvc            service.CollectionService
+	AcquiringSvc             service.AcquiringService
+	RefundSvc                service.RefundService
+	DisputeSvc               service.DisputeService
+	PaymentRequestSvc        service.PaymentRequestService
+	MerchantProfileSvc       service.MerchantProfileService
+	ConsumerPayLinkSvc       service.ConsumerPayLinkService
+	FCMSvc                   *notify.FCMService
+	TeamSvc                  service.TeamService
+	MerchantCredSvc          service.MerchantCredentialService
+	MerchantAppSvc           service.MerchantApplicationService
+	MerchantAppAdminSvc      service.MerchantApplicationAdminService
+	MerchantDocumentSvc      service.MerchantDocumentService
+	MerchantKybSvc           *service.PostgresMerchantKybService
+	ActivationSvc            service.ActivationService
+	ComplianceSvc            service.ComplianceService
+	SplitSvc                 service.SplitService
+	WalletPaymentSvc         service.WalletPaymentReader
+	WalletPaymentLister      service.WalletPaymentLister
+	NotificationsSvc         *service.NotificationsService
+	PlatformSvc              *service.PlatformReadService
+	ProofSvc                 *service.ProofService
+	ProofHashSalt            string
 }
 
 // New constructs the HTTP server with the full middleware stack and route table.
@@ -120,6 +121,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
+	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -261,6 +263,14 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Get("/{id}", wltHandler.Get)
 				r.Get("/{id}/balance", wltHandler.Balance)
 				r.Get("/{id}/analytics", wltHandler.Analytics)
+			})
+
+			// Application Settlement (ADR-021) — app-facing: settle a campaign/app
+			// wallet to a beneficiary, splitting off an app fee. Money moves in the
+			// operator; the app never sees account ids or computes the fee.
+			r.Route("/application-settlements", func(r chi.Router) {
+				r.Post("/", appSettlementHandler.Create)
+				r.Get("/{id}", appSettlementHandler.Get)
 			})
 
 			r.Route("/payouts", func(r chi.Router) {

@@ -29,6 +29,8 @@ import type {
   PaymentRequest,
   CreatePaymentRequestParams,
   ListPaymentRequestsParams,
+  ApplicationSettlement,
+  CreateApplicationSettlementParams,
 } from './types.js';
 
 const DEFAULT_BASE_URLS: Record<BanzamiEnvironment, string> = {
@@ -567,6 +569,34 @@ export class BanzamiClient {
       method: 'POST',
       body:   JSON.stringify({ wallet_id: walletId, amount_minor: amountMinor, currency }),
     });
+  }
+
+  /**
+   * Settle accumulated net value from one of YOUR wallets to a beneficiary,
+   * splitting off an application fee. The operator moves the money: it reads the
+   * gross from the source wallet's available balance and resolves the fee from
+   * `feePolicyRef` (you never send an amount or a fee). Idempotent on
+   * `idempotencyKey`. Completion is also delivered as an
+   * `application_settlement.completed` webhook. Account ids are never exposed.
+   */
+  createApplicationSettlement(p: CreateApplicationSettlementParams): Promise<ApplicationSettlement> {
+    return this.request<ApplicationSettlement>('/application-settlements', {
+      method: 'POST',
+      body:   JSON.stringify({
+        idempotency_key:           p.idempotencyKey,
+        owner_ref:                 p.ownerRef,
+        source_wallet_id:          p.sourceWalletId,
+        beneficiary_wallet_id:     p.beneficiaryWalletId,
+        application_fee_wallet_id: p.applicationFeeWalletId,
+        fee_policy_ref:            p.feePolicyRef,
+        business_category:         p.businessCategory,
+        pricing_profile:           p.pricingProfile,
+      }),
+    });
+  }
+
+  getApplicationSettlement(id: string): Promise<ApplicationSettlement> {
+    return this.request<ApplicationSettlement>(`/application-settlements/${id}`);
   }
 
   // ---------------------------------------------------------------------------
