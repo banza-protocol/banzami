@@ -414,6 +414,10 @@ async fn main() {
             post(routes::payment_sessions::create),
         )
         .route(
+            "/internal/v1/payment-sessions",
+            get(routes::payment_sessions::list),
+        )
+        .route(
             "/internal/v1/payment-sessions/:id",
             get(routes::payment_sessions::get),
         )

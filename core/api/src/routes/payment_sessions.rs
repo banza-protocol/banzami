@@ -5,7 +5,7 @@
 //! (internal boundary). The gateway adds auth + ownership + the safe DTO.
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     Json,
 };
@@ -370,4 +370,41 @@ pub async fn get_by_interface(
     .map_err(|e| ApiError::internal(e.to_string()))?
     .ok_or_else(|| ApiError::not_found("no payment session for this interface"))?;
     Ok(Json(fetch_session(&state.pool, id).await?))
+}
+
+#[derive(Deserialize)]
+pub struct ListQuery {
+    pub merchant_id: String,
+    pub status: Option<String>,
+    pub limit: Option<i64>,
+}
+
+/// GET /internal/v1/payment-sessions?merchant_id=&status=&limit=
+/// Lists a merchant's sessions, newest first. The gateway enforces ownership.
+pub async fn list(
+    State(state): State<AppState>,
+    Query(q): Query<ListQuery>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let merchant_id =
+        Uuid::parse_str(&q.merchant_id).map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let limit = q.limit.unwrap_or(50).clamp(1, 200);
+    let ids: Vec<Uuid> = sqlx::query_scalar(
+        "SELECT id FROM payment_sessions
+          WHERE merchant_id = $1
+            AND ($2::text IS NULL OR status = $2)
+          ORDER BY created_at DESC
+          LIMIT $3",
+    )
+    .bind(merchant_id)
+    .bind(&q.status)
+    .bind(limit)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let mut out = Vec::with_capacity(ids.len());
+    for id in ids {
+        out.push(fetch_session(&state.pool, id).await?);
+    }
+    Ok(Json(serde_json::json!({ "data": out })))
 }

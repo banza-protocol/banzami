@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"net/url"
+	"strconv"
 )
 
 // PaymentSession is the SAFE, app-facing view of a Payment Session (ADR-043): the
@@ -43,6 +45,8 @@ type CreatePaymentSessionInput struct {
 type PaymentSessionService interface {
 	Create(ctx context.Context, in CreatePaymentSessionInput) (*PaymentSession, error)
 	Get(ctx context.Context, id string) (*PaymentSession, error)
+	// List returns a merchant's sessions, newest first (optional status filter).
+	List(ctx context.Context, merchantID, status string, limit int) ([]PaymentSession, error)
 	// GetByInterface resolves the session owning a payment link or QR (kind =
 	// "link"|"qr"), for webhook enrichment. Returns nil when there is no session.
 	GetByInterface(ctx context.Context, kind, refID string) (*PaymentSession, error)
@@ -94,6 +98,25 @@ func (s *CoreApiPaymentSessionService) Get(ctx context.Context, id string) (*Pay
 		return nil, err
 	}
 	return &sess, nil
+}
+
+func (s *CoreApiPaymentSessionService) List(ctx context.Context, merchantID, status string, limit int) ([]PaymentSession, error) {
+	if limit <= 0 || limit > 200 {
+		limit = 50
+	}
+	q := url.Values{}
+	q.Set("merchant_id", merchantID)
+	q.Set("limit", strconv.Itoa(limit))
+	if status != "" {
+		q.Set("status", status)
+	}
+	var resp struct {
+		Data []PaymentSession `json:"data"`
+	}
+	if err := s.client.get(ctx, "/internal/v1/payment-sessions?"+q.Encode(), &resp); err != nil {
+		return nil, err
+	}
+	return resp.Data, nil
 }
 
 func (s *CoreApiPaymentSessionService) GetByInterface(ctx context.Context, kind, refID string) (*PaymentSession, error) {

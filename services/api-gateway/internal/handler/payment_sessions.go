@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -36,32 +37,30 @@ func publicURL(r *http.Request, slug string) string {
 	return scheme + "://" + r.Host + "/public/pay/" + slug
 }
 
-// safeDTO shapes the session for the app: interfaces, never ledger ids.
+// safeDTO shapes the session for the app per the canonical ADR-043 schema:
+// interfaces is an ARRAY of {type, value, format, expires_at, status}; never a
+// ledger/account id. Every interface resolves to the same session + destination.
 func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSession) map[string]any {
-	interfaces := map[string]any{}
+	qrURL := "/v1/business/payment-sessions/" + s.SessionID + "/qr"
+	interfaces := []map[string]any{}
 	if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
-		interfaces["payment_link"] = map[string]any{
-			"type": "PAYMENT_LINK",
-			"slug": *s.PaymentLinkSlug,
-			"url":  publicURL(r, *s.PaymentLinkSlug),
-		}
-		interfaces["deep_link"] = map[string]any{
-			"type":  "DEEP_LINK",
-			"value": "banzami://pay/" + *s.PaymentLinkSlug,
-		}
+		interfaces = append(interfaces,
+			map[string]any{"type": "PAYMENT_LINK", "value": publicURL(r, *s.PaymentLinkSlug), "format": "URL", "expires_at": s.ExpiresAt},
+			map[string]any{"type": "DEEP_LINK", "value": "banzami://pay/" + *s.PaymentLinkSlug, "format": "URL", "expires_at": s.ExpiresAt},
+		)
 	}
 	if s.QrPayload != nil && *s.QrPayload != "" {
-		interfaces["dynamic_qr"] = map[string]any{
-			"type":    "DYNAMIC_QR",
-			"payload": *s.QrPayload,
-			"qr_url":  "/v1/business/payment-sessions/" + s.SessionID + "/qr",
-		}
+		// Fixed-amount session: a dynamic QR carrying the signed payload.
+		interfaces = append(interfaces, map[string]any{
+			"type": "DYNAMIC_QR", "value": *s.QrPayload, "format": "QR_PAYLOAD",
+			"qr_url": qrURL, "expires_at": s.ExpiresAt,
+		})
 	} else if s.PaymentLinkSlug != nil && *s.PaymentLinkSlug != "" {
-		// Open-amount session: the QR interface renders the link URL.
-		interfaces["link_qr"] = map[string]any{
-			"type":   "STATIC_QR",
-			"qr_url": "/v1/business/payment-sessions/" + s.SessionID + "/qr",
-		}
+		// Open-amount session: a static QR rendering the link URL.
+		interfaces = append(interfaces, map[string]any{
+			"type": "STATIC_QR", "value": publicURL(r, *s.PaymentLinkSlug), "format": "QR_PAYLOAD",
+			"qr_url": qrURL, "expires_at": s.ExpiresAt,
+		})
 	}
 	return map[string]any{
 		"session_id":        s.SessionID,
@@ -134,6 +133,26 @@ func (h *PaymentSessionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(w, http.StatusCreated, h.safeDTO(r, sess))
+}
+
+// GET /v1/business/payment-sessions?status=&limit=
+func (h *PaymentSessionHandler) List(w http.ResponseWriter, r *http.Request) {
+	merchantID, ok := h.authedActiveMerchant(w, r)
+	if !ok {
+		return
+	}
+	status := strings.ToUpper(strings.TrimSpace(r.URL.Query().Get("status")))
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	sessions, err := h.sessions.List(r.Context(), merchantID, status, limit)
+	if err != nil {
+		apierror.Respond(w, r, http.StatusBadGateway, "UPSTREAM_ERROR", "could not list payment sessions")
+		return
+	}
+	out := make([]map[string]any, 0, len(sessions))
+	for i := range sessions {
+		out = append(out, h.safeDTO(r, &sessions[i]))
+	}
+	respond(w, http.StatusOK, map[string]any{"data": out})
 }
 
 func (h *PaymentSessionHandler) load(w http.ResponseWriter, r *http.Request) (*service.PaymentSession, bool) {

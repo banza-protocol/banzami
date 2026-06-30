@@ -300,6 +300,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			// interfaces, all crediting one wallet_account. The app displays them.
 			r.Route("/business/payment-sessions", func(r chi.Router) {
 				r.Post("/", paymentSessionHandler.Create)
+				r.Get("/", paymentSessionHandler.List)
 				r.Get("/{id}", paymentSessionHandler.Get)
 				r.Get("/{id}/link", paymentSessionHandler.Link)
 				r.Get("/{id}/qr", paymentSessionHandler.Qr)
