@@ -30,6 +30,7 @@ type Dependencies struct {
 	ApplicationSettlementSvc service.ApplicationSettlementService
 	WalletAccountSvc         service.WalletAccountService
 	PartyResolverSvc         service.PartyResolver
+	PaymentSessionSvc        service.PaymentSessionService
 	PayoutSvc                service.PayoutService
 	ConsumerSvc              service.ConsumerService
 	ConsumerWalletSvc        service.ConsumerWalletService
@@ -125,6 +126,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
 	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
+	paymentSessionHandler := handler.NewPaymentSessionHandler(deps.PaymentSessionSvc, deps.MerchantSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
 	// brute-force + account-enumeration surface, so they get a dedicated tight
@@ -292,6 +294,15 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/", walletAccountHandler.Create)
 				r.Get("/", walletAccountHandler.List)
 				r.Get("/{id}", walletAccountHandler.Get)
+			})
+
+			// Payment Sessions (BANZA ADR-043) — one financial object, link + QR
+			// interfaces, all crediting one wallet_account. The app displays them.
+			r.Route("/business/payment-sessions", func(r chi.Router) {
+				r.Post("/", paymentSessionHandler.Create)
+				r.Get("/{id}", paymentSessionHandler.Get)
+				r.Get("/{id}/link", paymentSessionHandler.Link)
+				r.Get("/{id}/qr", paymentSessionHandler.Qr)
 			})
 
 			r.Route("/payouts", func(r chi.Router) {
