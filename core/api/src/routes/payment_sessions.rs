@@ -1,0 +1,244 @@
+//! Payment Sessions (BANZA ADR-043 · Banzami ADR-030). A session binds a
+//! destination wallet_account and provisions interfaces — a payment link and, for
+//! fixed-amount sessions, a dynamic QR — that ALL credit the same account. The
+//! session stores no balance; payment resolves against the destination. OPERATOR-ONLY
+//! (internal boundary). The gateway adds auth + ownership + the safe DTO.
+
+use axum::{
+    extract::{Path, State},
+    http::StatusCode,
+    Json,
+};
+use chrono::{Duration, Utc};
+use serde::Deserialize;
+use uuid::Uuid;
+
+use banzami_payment_links::{CreatePaymentLinkRequest, PaymentLinkEngine};
+use banzami_qr::{CreateDynamicQrRequest, QrEngine, QrOwnerType};
+use banzami_types::{Currency, MerchantId, WalletId};
+
+use crate::{
+    error::{ApiError, ApiResult},
+    state::AppState,
+};
+
+const PURPOSES: &[&str] = &[
+    "GENERIC", "DONATION", "ORDER", "TICKET", "STORE", "EVENT", "CAMPAIGN", "CUSTOM",
+];
+
+#[derive(Deserialize)]
+pub struct CreateBody {
+    pub merchant_id: String,
+    pub wallet_account_id: String,
+    pub purpose: Option<String>,
+    pub reference_type: Option<String>,
+    pub reference_id: Option<String>,
+    pub amount_minor: Option<i64>,
+    pub currency: Option<String>,
+    pub description: Option<String>,
+    pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+#[derive(sqlx::FromRow)]
+struct SessionRow {
+    id: Uuid,
+    merchant_id: Uuid,
+    wallet_id: Uuid,
+    wallet_account_id: Uuid,
+    currency: String,
+    amount_minor: Option<i64>,
+    purpose: String,
+    reference_type: Option<String>,
+    reference_id: Option<String>,
+    status: String,
+    payment_link_id: Option<Uuid>,
+    qr_code_id: Option<Uuid>,
+    deep_link: Option<String>,
+    public_url: Option<String>,
+    expires_at: Option<chrono::DateTime<chrono::Utc>>,
+    metadata: serde_json::Value,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+async fn fetch_session(pool: &sqlx::PgPool, id: Uuid) -> Result<serde_json::Value, ApiError> {
+    let r = sqlx::query_as::<_, SessionRow>(
+        "SELECT id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose,
+                reference_type, reference_id, status, payment_link_id, qr_code_id, deep_link,
+                public_url, expires_at, metadata, created_at
+         FROM payment_sessions WHERE id = $1",
+    )
+    .bind(id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| ApiError::not_found("payment session not found"))?;
+
+    // Resolve the link slug (the presentable link interface).
+    let link_slug: Option<String> = match r.payment_link_id {
+        Some(lid) => sqlx::query_scalar("SELECT slug FROM payment_links WHERE id = $1")
+            .bind(lid)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?,
+        None => None,
+    };
+
+    Ok(serde_json::json!({
+        "session_id": r.id,
+        "merchant_id": r.merchant_id,
+        "wallet_id": r.wallet_id,
+        "wallet_account_id": r.wallet_account_id,
+        "currency": r.currency,
+        "amount_minor": r.amount_minor,
+        "purpose": r.purpose,
+        "reference_type": r.reference_type,
+        "reference_id": r.reference_id,
+        "status": r.status,
+        "payment_link_id": r.payment_link_id,
+        "payment_link_slug": link_slug,
+        "qr_code_id": r.qr_code_id,
+        "deep_link": r.deep_link,
+        "public_url": r.public_url,
+        "expires_at": r.expires_at,
+        "metadata": r.metadata,
+        "created_at": r.created_at,
+    }))
+}
+
+pub async fn create(
+    State(state): State<AppState>,
+    Json(body): Json<CreateBody>,
+) -> ApiResult<(StatusCode, Json<serde_json::Value>)> {
+    let merchant_id = Uuid::parse_str(&body.merchant_id)
+        .map_err(|_| ApiError::bad_request("invalid merchant_id"))?;
+    let wa_id = Uuid::parse_str(&body.wallet_account_id)
+        .map_err(|_| ApiError::bad_request("invalid wallet_account_id"))?;
+    let purpose = body.purpose.clone().unwrap_or_else(|| "GENERIC".into()).to_uppercase();
+    if !PURPOSES.contains(&purpose.as_str()) {
+        return Err(ApiError::bad_request("invalid purpose"));
+    }
+
+    // Validate the destination: a wallet_account the merchant owns, ACTIVE, with a
+    // matching currency. Also yields the parent wallet + currency.
+    let (wallet_id, wa_currency, wa_status, wa_merchant): (Uuid, String, String, Uuid) =
+        sqlx::query_as("SELECT wallet_id, currency, status, merchant_id FROM wallet_accounts WHERE id = $1")
+            .bind(wa_id)
+            .fetch_optional(&state.pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+            .ok_or_else(|| ApiError::not_found("wallet account not found"))?;
+    if wa_merchant != merchant_id {
+        return Err(ApiError::forbidden("wallet account is not owned by this merchant"));
+    }
+    if wa_status != "ACTIVE" {
+        return Err(ApiError::conflict("WALLET_ACCOUNT_INACTIVE", "wallet account is not active"));
+    }
+    let currency_code = body.currency.clone().unwrap_or_else(|| wa_currency.clone());
+    if currency_code != wa_currency {
+        return Err(ApiError::bad_request("currency does not match the wallet account"));
+    }
+    let currency = Currency::from_code(&currency_code)
+        .ok_or_else(|| ApiError::bad_request("unsupported currency"))?;
+
+    // Idempotency: one session per (merchant, purpose, reference).
+    if body.reference_id.is_some() {
+        if let Some(existing) = sqlx::query_scalar::<_, Uuid>(
+            "SELECT id FROM payment_sessions
+              WHERE merchant_id = $1 AND purpose = $2
+                AND reference_type IS NOT DISTINCT FROM $3
+                AND reference_id   IS NOT DISTINCT FROM $4",
+        )
+        .bind(merchant_id)
+        .bind(&purpose)
+        .bind(&body.reference_type)
+        .bind(&body.reference_id)
+        .fetch_optional(&state.pool)
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?
+        {
+            return Ok((StatusCode::OK, Json(fetch_session(&state.pool, existing).await?)));
+        }
+    }
+
+    // Interface 1 — a payment link bound to the wallet_account (credits it on pay).
+    let link = state
+        .payment_links
+        .create(CreatePaymentLinkRequest {
+            merchant_id: MerchantId::from_uuid(merchant_id),
+            wallet_id: WalletId::from_uuid(wallet_id),
+            wallet_account_id: Some(wa_id),
+            amount_minor: body.amount_minor,
+            currency: currency_code.clone(),
+            description: body.description.clone(),
+            expires_at: body.expires_at,
+        })
+        .await
+        .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    // Interface 2 — a dynamic QR bound to the same wallet_account, when the amount
+    // is fixed (a dynamic QR requires a positive amount + expiry). Open-amount
+    // sessions present the link (a QR image of the public URL is rendered by the
+    // gateway). Both interfaces credit the same wallet_account.
+    let (qr_code_id, qr_payload): (Option<Uuid>, Option<String>) = match body.amount_minor {
+        Some(amt) if amt > 0 => {
+            let qr_expiry = body.expires_at.unwrap_or_else(|| Utc::now() + Duration::days(90));
+            let qr = state
+                .qr
+                .create_dynamic(CreateDynamicQrRequest {
+                    owner_id: wallet_id,
+                    owner_type: QrOwnerType::Merchant,
+                    currency,
+                    amount_minor: amt,
+                    expires_at: qr_expiry,
+                    reference: body.reference_id.clone(),
+                    wallet_account_id: Some(wa_id),
+                })
+                .await
+                .map_err(|e| ApiError::internal(e.to_string()))?;
+            let payload = state.qr.encode(&qr).map_err(|e| ApiError::internal(e.to_string()))?;
+            (Some(qr.id.as_uuid()), Some(payload))
+        }
+        _ => (None, None),
+    };
+
+    let id = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO payment_sessions
+            (id, merchant_id, wallet_id, wallet_account_id, currency, amount_minor, purpose,
+             reference_type, reference_id, status, payment_link_id, qr_code_id, public_url, expires_at, metadata)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'ACTIVE',$10,$11,$12,$13,$14)",
+    )
+    .bind(id)
+    .bind(merchant_id)
+    .bind(wallet_id)
+    .bind(wa_id)
+    .bind(&currency_code)
+    .bind(body.amount_minor)
+    .bind(&purpose)
+    .bind(&body.reference_type)
+    .bind(&body.reference_id)
+    .bind(link.id.as_uuid())
+    .bind(qr_code_id)
+    .bind(Option::<String>::None) // public_url filled by the gateway from pay base
+    .bind(body.expires_at)
+    .bind(body.metadata.clone().unwrap_or_else(|| serde_json::json!({})))
+    .execute(&state.pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?;
+
+    let mut out = fetch_session(&state.pool, id).await?;
+    // Inline the QR payload on create so the gateway can render it immediately.
+    if let Some(p) = qr_payload {
+        out["qr_payload"] = serde_json::Value::String(p);
+    }
+    Ok((StatusCode::CREATED, Json(out)))
+}
+
+pub async fn get(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let id = Uuid::parse_str(&id).map_err(|_| ApiError::bad_request("invalid id"))?;
+    Ok(Json(fetch_session(&state.pool, id).await?))
+}

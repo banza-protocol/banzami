@@ -408,6 +408,15 @@ async fn main() {
             "/internal/v1/parties/resolve/:handle",
             get(routes::parties::resolve),
         )
+        // Payment Sessions (BANZA ADR-043) — link + QR interfaces, one wallet_account
+        .route(
+            "/internal/v1/payment-sessions",
+            post(routes::payment_sessions::create),
+        )
+        .route(
+            "/internal/v1/payment-sessions/:id",
+            get(routes::payment_sessions::get),
+        )
         // Payouts
         .route("/internal/v1/payouts", post(routes::payouts::initiate))
         .route(

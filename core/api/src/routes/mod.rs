@@ -3,6 +3,7 @@ pub mod activity;
 pub mod admin;
 pub mod application_settlements;
 pub mod parties;
+pub mod payment_sessions;
 pub mod wallet_accounts;
 #[cfg(test)]
 mod application_settlements_tests;
@@ -10,6 +11,8 @@ mod application_settlements_tests;
 mod wallet_accounts_tests;
 #[cfg(test)]
 mod transfers_routing_tests;
+#[cfg(test)]
+mod payment_sessions_tests;
 pub mod collections;
 pub mod analytics;
 pub mod compliance;
