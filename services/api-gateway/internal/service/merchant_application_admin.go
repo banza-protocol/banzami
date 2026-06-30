@@ -77,12 +77,22 @@ type MerchantApplicationAdminService interface {
 	Reject(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (RejectionResult, error)
 }
 
-type PostgresMerchantApplicationAdminService struct {
-	pool *pgxpool.Pool
-	core *CoreApiClient
+// coreProvisioner is the slice of core-api provisioning calls the approval flow
+// needs. Extracted as an interface so the flow's forward-recovery behaviour is
+// testable without a live core-api. *CoreApiClient is the production implementation.
+type coreProvisioner interface {
+	CreateMerchant(ctx context.Context, name, email string) (string, error)
+	CreateWallet(ctx context.Context, merchantID, currency string) (string, error)
+	CreateApiKey(ctx context.Context, merchantID, name, environment string) (string, error)
+	ApproveCompliance(ctx context.Context, merchantID string) error
 }
 
-func NewPostgresMerchantApplicationAdminService(pool *pgxpool.Pool, core *CoreApiClient) *PostgresMerchantApplicationAdminService {
+type PostgresMerchantApplicationAdminService struct {
+	pool *pgxpool.Pool
+	core coreProvisioner
+}
+
+func NewPostgresMerchantApplicationAdminService(pool *pgxpool.Pool, core coreProvisioner) *PostgresMerchantApplicationAdminService {
 	return &PostgresMerchantApplicationAdminService{pool: pool, core: core}
 }
 
@@ -138,11 +148,14 @@ func (s *PostgresMerchantApplicationAdminService) Get(ctx context.Context, id st
 // handle APPLICATION→MERCHANT, creates a PIN-less credential + activation token,
 // and marks the application APPROVED. Returns the raw activation token ONCE.
 //
-// Compensation: core resources cannot share the gateway DB transaction. If a
-// core step fails, the application stays SUBMITTED (re-approvable; any partial
-// core resource is an orphan an admin can clean — a saga/outbox is the
-// production follow-up). The application only flips to APPROVED after the
-// gateway transaction commits, so it is never left half-approved.
+// Recovery: core resources cannot share the gateway DB transaction. If a core
+// step fails, the application stays SUBMITTED (re-approvable). The merchant id is
+// recorded as soon as it is created, so a retry RESUMES on the same merchant
+// rather than minting a duplicate (forward recovery). The application only flips
+// to APPROVED after the gateway transaction commits, so it is never left
+// half-approved. A residual wallet/api-key created just before a failure can still
+// be re-created on retry — full multi-resource compensation (saga/outbox) plus the
+// orphan-reconciliation query (tools/) are the tracked follow-up.
 func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, id, reviewedBy string, activationTTL time.Duration) (ApprovalResult, error) {
 	app, err := s.Get(ctx, id)
 	if err != nil {
@@ -152,9 +165,22 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		return ApprovalResult{}, ErrApplicationNotOpen
 	}
 
-	merchantID, err := s.core.CreateMerchant(ctx, app.BusinessName, app.Email)
-	if err != nil {
-		return ApprovalResult{}, fmt.Errorf("create merchant: %w", err)
+	// Phase A is not transactional with the gateway DB, so a failure after the
+	// merchant is created leaves the application SUBMITTED (re-approvable). Resume
+	// such a retry on the SAME merchant instead of minting a duplicate: reuse a
+	// previously recorded merchant id, and persist a freshly created one
+	// immediately so the next step's failure is recoverable rather than orphaning.
+	merchantID := app.CreatedMerchantID
+	if merchantID == "" {
+		merchantID, err = s.core.CreateMerchant(ctx, app.BusinessName, app.Email)
+		if err != nil {
+			return ApprovalResult{}, fmt.Errorf("create merchant: %w", err)
+		}
+		if _, err = s.pool.Exec(ctx,
+			`UPDATE merchant_applications SET created_merchant_id=$2, updated_at=now() WHERE id=$1`,
+			id, merchantID); err != nil {
+			return ApprovalResult{}, fmt.Errorf("record merchant id: %w", err)
+		}
 	}
 	walletID, err := s.core.CreateWallet(ctx, merchantID, "AOA")
 	if err != nil {
