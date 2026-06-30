@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -40,13 +41,34 @@ type PlatformModeReader interface {
 // is used ONLY to build the email link and is never returned to the admin UI.
 type MerchantApplicationHandler struct {
 	gw             GatewayApplications
+	gwStaging      GatewayApplications // SANDBOX stack (banzami_staging); nil when unconfigured
 	mailer         ApplicationMailer
 	websiteBaseURL string
 	platform       PlatformModeReader
 }
 
-func NewMerchantApplicationHandler(gw GatewayApplications, mailer ApplicationMailer, websiteBaseURL string, platform PlatformModeReader) *MerchantApplicationHandler {
-	return &MerchantApplicationHandler{gw: gw, mailer: mailer, websiteBaseURL: websiteBaseURL, platform: platform}
+func NewMerchantApplicationHandler(gw, gwStaging GatewayApplications, mailer ApplicationMailer, websiteBaseURL string, platform PlatformModeReader) *MerchantApplicationHandler {
+	return &MerchantApplicationHandler{gw: gw, gwStaging: gwStaging, mailer: mailer, websiteBaseURL: websiteBaseURL, platform: platform}
+}
+
+// gatewayFor selects the stack for an environment-qualified request (ADR-025):
+// SANDBOX → staging gateway (banzami_staging) when configured; otherwise live.
+func (h *MerchantApplicationHandler) gatewayFor(environment string) GatewayApplications {
+	if h.gwStaging != nil && strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
+		return h.gwStaging
+	}
+	return h.gw
+}
+
+// rawAcrossStacks runs a raw gateway call against the live stack and, on 404,
+// retries the sandbox stack — so an id-addressed request resolves wherever the
+// application lives, without the admin UI having to pass the environment.
+func (h *MerchantApplicationHandler) rawAcrossStacks(call func(GatewayApplications) (json.RawMessage, int, error)) (json.RawMessage, int, error) {
+	raw, code, err := call(h.gw)
+	if code == http.StatusNotFound && h.gwStaging != nil {
+		return call(h.gwStaging)
+	}
+	return raw, code, err
 }
 
 // platformEnv returns the global platform environment for emails. Fail-safe: any
@@ -79,7 +101,10 @@ func writeErr(w http.ResponseWriter, code int, msg string) {
 }
 
 func (h *MerchantApplicationHandler) List(w http.ResponseWriter, r *http.Request) {
-	raw, code, err := h.gw.ListApplicationsRaw(r.Context(), r.URL.Query().Get("status"), r.URL.Query().Get("environment"))
+	// Route the listing to the stack matching the requested environment (ADR-025):
+	// SANDBOX applications live in banzami_staging, LIVE in banzami.
+	environment := r.URL.Query().Get("environment")
+	raw, code, err := h.gatewayFor(environment).ListApplicationsRaw(r.Context(), r.URL.Query().Get("status"), environment)
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not list applications")
 		return
@@ -88,7 +113,10 @@ func (h *MerchantApplicationHandler) List(w http.ResponseWriter, r *http.Request
 }
 
 func (h *MerchantApplicationHandler) Get(w http.ResponseWriter, r *http.Request) {
-	raw, code, err := h.gw.GetApplicationRaw(r.Context(), chi.URLParam(r, "id"))
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.GetApplicationRaw(r.Context(), id)
+	})
 	if err != nil {
 		writeErr(w, code, "could not load application")
 		return
@@ -98,7 +126,13 @@ func (h *MerchantApplicationHandler) Get(w http.ResponseWriter, r *http.Request)
 
 func (h *MerchantApplicationHandler) Approve(w http.ResponseWriter, r *http.Request) {
 	// Attribution comes from the authenticated operator, never the client.
-	res, code, err := h.gw.ApproveApplication(r.Context(), chi.URLParam(r, "id"), actorOf(r))
+	// Try the live stack; if the application isn't there (404), it belongs to the
+	// SANDBOX stack — approve it there (ADR-025).
+	id := chi.URLParam(r, "id")
+	res, code, err := h.gw.ApproveApplication(r.Context(), id, actorOf(r))
+	if code == http.StatusNotFound && h.gwStaging != nil {
+		res, code, err = h.gwStaging.ApproveApplication(r.Context(), id, actorOf(r))
+	}
 	if err != nil {
 		writeErr(w, code, "could not approve application")
 		return
@@ -135,7 +169,11 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 	}
 	_ = json.NewDecoder(r.Body).Decode(&body)
 
-	res, code, err := h.gw.RejectApplication(r.Context(), chi.URLParam(r, "id"), actorOf(r), body.AdminNotes, body.MerchantMessage)
+	id := chi.URLParam(r, "id")
+	res, code, err := h.gw.RejectApplication(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
+	if code == http.StatusNotFound && h.gwStaging != nil {
+		res, code, err = h.gwStaging.RejectApplication(r.Context(), id, actorOf(r), body.AdminNotes, body.MerchantMessage)
+	}
 	if err != nil {
 		writeErr(w, code, "could not reject application")
 		return
@@ -163,7 +201,10 @@ func (h *MerchantApplicationHandler) Reject(w http.ResponseWriter, r *http.Reque
 // -------------------------------------------------------------------------
 
 func (h *MerchantApplicationHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
-	raw, code, err := h.gw.ListApplicationDocumentsRaw(r.Context(), chi.URLParam(r, "id"))
+	id := chi.URLParam(r, "id")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.ListApplicationDocumentsRaw(r.Context(), id)
+	})
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not list documents")
 		return
@@ -172,7 +213,10 @@ func (h *MerchantApplicationHandler) ListDocuments(w http.ResponseWriter, r *htt
 }
 
 func (h *MerchantApplicationHandler) DocumentReadURL(w http.ResponseWriter, r *http.Request) {
-	raw, code, err := h.gw.CreateDocumentReadURLRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"))
+	id, docID := chi.URLParam(r, "id"), chi.URLParam(r, "documentId")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.CreateDocumentReadURLRaw(r.Context(), id, docID)
+	})
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not create read url")
 		return
@@ -181,7 +225,10 @@ func (h *MerchantApplicationHandler) DocumentReadURL(w http.ResponseWriter, r *h
 }
 
 func (h *MerchantApplicationHandler) AcceptDocument(w http.ResponseWriter, r *http.Request) {
-	raw, code, err := h.gw.AcceptDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), actorOf(r))
+	id, docID := chi.URLParam(r, "id"), chi.URLParam(r, "documentId")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.AcceptDocumentRaw(r.Context(), id, docID, actorOf(r))
+	})
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not accept document")
 		return
@@ -203,7 +250,10 @@ func (h *MerchantApplicationHandler) RejectDocument(w http.ResponseWriter, r *ht
 		writeErr(w, http.StatusBadRequest, "reason is required")
 		return
 	}
-	raw, code, err := h.gw.RejectDocumentRaw(r.Context(), chi.URLParam(r, "id"), chi.URLParam(r, "documentId"), actorOf(r), body.Reason)
+	id, docID := chi.URLParam(r, "id"), chi.URLParam(r, "documentId")
+	raw, code, err := h.rawAcrossStacks(func(gw GatewayApplications) (json.RawMessage, int, error) {
+		return gw.RejectDocumentRaw(r.Context(), id, docID, actorOf(r), body.Reason)
+	})
 	if err != nil {
 		writeErr(w, http.StatusBadGateway, "could not reject document")
 		return

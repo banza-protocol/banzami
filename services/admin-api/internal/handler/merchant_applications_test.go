@@ -17,6 +17,7 @@ type fakeGW struct {
 	approval   service.ApprovalResult
 	rejection  service.RejectionResult
 	approveErr error
+	notFound   bool // when set, id-keyed ops return 404 (application lives in the other stack)
 }
 
 func (f *fakeGW) ListApplicationsRaw(_ context.Context, _, _ string) (json.RawMessage, int, error) {
@@ -26,6 +27,9 @@ func (f *fakeGW) GetApplicationRaw(_ context.Context, _ string) (json.RawMessage
 	return json.RawMessage(`{"id":"app-1"}`), 200, nil
 }
 func (f *fakeGW) ApproveApplication(_ context.Context, _, _ string) (service.ApprovalResult, int, error) {
+	if f.notFound {
+		return service.ApprovalResult{}, http.StatusNotFound, errBoom
+	}
 	if f.approveErr != nil {
 		return service.ApprovalResult{}, 409, f.approveErr
 	}
@@ -69,13 +73,35 @@ func route(h *MerchantApplicationHandler) *chi.Mux {
 	return r
 }
 
+// When the application isn't in the LIVE stack (404), approval must fall back to
+// the SANDBOX stack so BANZADMIN can approve SANDBOX applications (ADR-025).
+func TestApproveFallsBackToStagingOn404(t *testing.T) {
+	live := &fakeGW{notFound: true}
+	staging := &fakeGW{approval: service.ApprovalResult{
+		MerchantID: "m-sb", Email: "s@x.co", Handle: "jrm",
+		Environment: "SANDBOX", ActivationToken: "SB-TOKEN",
+	}}
+	h := NewMerchantApplicationHandler(live, staging, &fakeMailer{}, "https://banzami.com", nil)
+
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-x/approve", nil)
+	route(h).ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("status=%d want 200 (approved via staging), body=%s", rec.Code, rec.Body.String())
+	}
+	if !strings.Contains(rec.Body.String(), "m-sb") {
+		t.Errorf("expected the SANDBOX stack's approval result, got %s", rec.Body.String())
+	}
+}
+
 func TestApproveEmailsActivationLinkAndHidesToken(t *testing.T) {
 	gw := &fakeGW{approval: service.ApprovalResult{
 		MerchantID: "m1", Email: "lojista@x.co", BusinessName: "Loja",
 		Handle: "loja_alex", ApiKeyPrefix: "bz_test_ab", ActivationToken: "RAW-SECRET-123",
 	}}
 	mailer := &fakeMailer{}
-	h := NewMerchantApplicationHandler(gw, mailer, "https://banzami.com", nil)
+	h := NewMerchantApplicationHandler(gw, nil, mailer, "https://banzami.com", nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{"reviewed_by":"admin@x"}`))
 	rec := httptest.NewRecorder()
@@ -101,7 +127,7 @@ func TestApproveEmailsActivationLinkAndHidesToken(t *testing.T) {
 }
 
 func TestApproveGatewayErrorPropagates(t *testing.T) {
-	h := NewMerchantApplicationHandler(&fakeGW{approveErr: errBoom}, &fakeMailer{}, "https://banzami.com", nil)
+	h := NewMerchantApplicationHandler(&fakeGW{approveErr: errBoom}, nil, &fakeMailer{}, "https://banzami.com", nil)
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{}`))
 	rec := httptest.NewRecorder()
 	route(h).ServeHTTP(rec, req)
@@ -114,7 +140,7 @@ func TestRejectEmailsApplicant(t *testing.T) {
 	mailer := &fakeMailer{}
 	h := NewMerchantApplicationHandler(&fakeGW{rejection: service.RejectionResult{
 		Email: "r@x.co", BusinessName: "Loja", MerchantMessage: "Falta NIF",
-	}}, mailer, "https://banzami.com", nil)
+	}}, nil, mailer, "https://banzami.com", nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/reject", strings.NewReader(`{"merchant_message":"Falta NIF"}`))
 	rec := httptest.NewRecorder()
@@ -162,7 +188,7 @@ func TestApproveEmailEnvironmentFollowsPlatformStatus(t *testing.T) {
 				Email: "x@y.co", BusinessName: "Loja", Handle: "loja", Environment: "LIVE", ActivationToken: "T",
 			}}
 			mailer := &fakeMailer{}
-			h := NewMerchantApplicationHandler(gw, mailer, "https://banzami.com", c.platform)
+			h := NewMerchantApplicationHandler(gw, nil, mailer, "https://banzami.com", c.platform)
 			rec := httptest.NewRecorder()
 			route(h).ServeHTTP(rec, httptest.NewRequest(http.MethodPost, "/admin/v1/merchant-applications/app-1/approve", strings.NewReader(`{"reviewed_by":"a"}`)))
 			if rec.Code != http.StatusOK {

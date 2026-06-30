@@ -116,7 +116,19 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		payoutH := handler.NewPayoutHandler(core)
 		merchantH := handler.NewMerchantHandler(core)
 		merchantSetupH := handler.NewMerchantSetupHandler(core, mailer)
-		applicationsH := handler.NewMerchantApplicationHandler(gw, mailer, cfg.WebsiteBaseURL, platform)
+		// Sandbox gateway client (banzami_staging) for environment-aware routing of
+		// Business applications + KYB (ADR-025). Nil when staging is unconfigured;
+		// the guard below keeps it a true nil interface (not a typed-nil) so the
+		// handler's `!= nil` checks behave.
+		var gwSandbox *service.GatewayClient
+		if cfg.GatewayStagingInternalURL != "" {
+			gwSandbox = service.NewGatewayClient(cfg.GatewayStagingInternalURL, cfg.StagingInternalAPIKey)
+		}
+		var appStaging handler.GatewayApplications
+		if gwSandbox != nil {
+			appStaging = gwSandbox
+		}
+		applicationsH := handler.NewMerchantApplicationHandler(gw, appStaging, mailer, cfg.WebsiteBaseURL, platform)
 		reconciliationH := handler.NewReconciliationHandler(core)
 		consumerH := handler.NewConsumerHandler(core)
 		walletH := handler.NewWalletHandler(core)
@@ -144,11 +156,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		r.With(cap(auth.CapKybAccept)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/accept", applicationsH.AcceptDocument)
 		r.With(cap(auth.CapKybReject)).Post("/admin/v1/merchant-applications/{id}/documents/{documentId}/reject", applicationsH.RejectDocument)
 
-		// Merchant KYB documents (post-approval) — admin review.
-		var gwSandbox *service.GatewayClient
-		if cfg.GatewayStagingInternalURL != "" {
-			gwSandbox = service.NewGatewayClient(cfg.GatewayStagingInternalURL, cfg.StagingInternalAPIKey)
-		}
+		// Merchant KYB documents (post-approval) — admin review. Reuses gwSandbox.
 		merchantKybH := handler.NewMerchantKybHandler(gw, gwSandbox)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/documents", merchantKybH.List)
 		r.With(cap(auth.CapApplicationView)).Get("/admin/v1/merchant-kyb/merchants", merchantKybH.Merchants)

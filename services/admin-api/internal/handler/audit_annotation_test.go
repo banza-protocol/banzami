@@ -55,7 +55,7 @@ func TestAudit_ApproveApplicationAnnotated(t *testing.T) {
 		MerchantID: "m1", Email: "lojista@x.co", BusinessName: "Loja", Handle: "loja_alex",
 		ApiKeyPrefix: "bz_test_ab", ActivationToken: "RAW-SECRET-123",
 	}}
-	h := NewMerchantApplicationHandler(gw, &fakeMailer{}, "https://banzami.com", nil)
+	h := NewMerchantApplicationHandler(gw, nil, &fakeMailer{}, "https://banzami.com", nil)
 	sink := &annSink{}
 	w := httptest.NewRecorder()
 	auditedRoute(sink, http.MethodPost, "/admin/v1/merchant-applications/{id}/approve", h.Approve).
@@ -77,7 +77,7 @@ func TestAudit_ApproveApplicationAnnotated(t *testing.T) {
 
 func TestAudit_RejectKybAnnotated(t *testing.T) {
 	gw := &fakeGW{}
-	h := NewMerchantApplicationHandler(gw, &fakeMailer{}, "https://banzami.com", nil)
+	h := NewMerchantApplicationHandler(gw, nil, &fakeMailer{}, "https://banzami.com", nil)
 	sink := &annSink{}
 	w := httptest.NewRecorder()
 	auditedRoute(sink, http.MethodPost, "/admin/v1/merchant-applications/{id}/documents/{documentId}/reject", h.RejectDocument).
