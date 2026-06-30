@@ -108,6 +108,125 @@ func TestProof_EnsureIdempotentHashAndPublic(t *testing.T) {
 	}
 }
 
+// Audit Part 7 / bug #2: a reversed transaction must not keep showing a green
+// "verified" proof. Exercises the lazy re-sync (Ensure), the explicit MarkReversed
+// hook, idempotency, and the monotonic no-downgrade guarantee.
+func TestProof_ReversalLifecycle(t *testing.T) {
+	ctx := context.Background()
+	pool := proofPoolOrSkip(ctx, t)
+	defer pool.Close()
+	svc := NewProofService(pool, "test-key", "op-hmac-v1", "banzami", "banza", "https://banzami.com/r/")
+
+	confirmed := time.Now().UTC().Truncate(time.Second)
+	mkInput := func(txn, status string) ProofInput {
+		return ProofInput{
+			TransactionID: txn, Environment: "SANDBOX",
+			PayerSubjectType: "consumer", PayerSubjectID: uuid.NewString(), PayerHandle: "joao",
+			PayeeSubjectType: "consumer", PayeeSubjectID: uuid.NewString(), PayeeHandle: "ana",
+			AmountMinor: 1000, Currency: "AOA", Status: status,
+			Method: "Transfer", LedgerReference: txn, ConfirmedAt: &confirmed,
+		}
+	}
+
+	t.Run("Ensure re-syncs an existing CONFIRMED proof to REVERSED", func(t *testing.T) {
+		txn := uuid.NewString()
+		t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM transaction_proofs WHERE transaction_id=$1`, txn) })
+
+		p1, err := svc.Ensure(ctx, mkInput(txn, "COMPLETED"))
+		if err != nil {
+			t.Fatalf("ensure confirmed: %v", err)
+		}
+		if p1.Status != "CONFIRMED" || p1.ReversedAt != nil {
+			t.Fatalf("want CONFIRMED/no reversed_at, got %s/%v", p1.Status, p1.ReversedAt)
+		}
+		// Record a verification so we can prove the count survives the transition.
+		svc.RecordVerification(ctx, p1.ID, "ip", "ua", "")
+
+		p2, err := svc.Ensure(ctx, mkInput(txn, "REFUNDED")) // REFUNDED → REVERSED
+		if err != nil {
+			t.Fatalf("ensure reversed: %v", err)
+		}
+		if p2.ProofReference != p1.ProofReference {
+			t.Fatalf("reference changed on re-sync: %s -> %s", p1.ProofReference, p2.ProofReference)
+		}
+		if p2.Status != "REVERSED" {
+			t.Fatalf("status not re-synced: got %s", p2.Status)
+		}
+		if p2.ReversedAt == nil {
+			t.Fatal("reversed_at not stamped")
+		}
+		if p2.VerificationCount != 1 {
+			t.Fatalf("verification_count not preserved across reversal: got %d", p2.VerificationCount)
+		}
+	})
+
+	t.Run("REVERSED is never downgraded back to CONFIRMED", func(t *testing.T) {
+		txn := uuid.NewString()
+		t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM transaction_proofs WHERE transaction_id=$1`, txn) })
+
+		if _, err := svc.Ensure(ctx, mkInput(txn, "REVERSED")); err != nil {
+			t.Fatalf("ensure reversed: %v", err)
+		}
+		// A later (stale) Ensure with a positive status must NOT resurrect a green proof.
+		p, err := svc.Ensure(ctx, mkInput(txn, "COMPLETED"))
+		if err != nil {
+			t.Fatalf("ensure confirmed-after-reversed: %v", err)
+		}
+		if p.Status != "REVERSED" {
+			t.Fatalf("REVERSED was downgraded to %s", p.Status)
+		}
+	})
+
+	t.Run("MarkReversed is idempotent and preserves the proof", func(t *testing.T) {
+		txn := uuid.NewString()
+		t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM transaction_proofs WHERE transaction_id=$1`, txn) })
+
+		p, err := svc.Ensure(ctx, mkInput(txn, "COMPLETED"))
+		if err != nil {
+			t.Fatalf("ensure: %v", err)
+		}
+		if err := svc.MarkReversed(ctx, txn, "SANDBOX"); err != nil {
+			t.Fatalf("mark reversed: %v", err)
+		}
+		if err := svc.MarkReversed(ctx, txn, "SANDBOX"); err != nil { // idempotent
+			t.Fatalf("mark reversed again: %v", err)
+		}
+		got, err := svc.GetByReference(ctx, p.ProofReference)
+		if err != nil {
+			t.Fatalf("get: %v", err)
+		}
+		if got.Status != "REVERSED" || got.ReversedAt == nil {
+			t.Fatalf("want REVERSED with reversed_at, got %s/%v", got.Status, got.ReversedAt)
+		}
+		var n int
+		_ = pool.QueryRow(ctx, `SELECT count(*) FROM transaction_proofs WHERE transaction_id=$1`, txn).Scan(&n)
+		if n != 1 {
+			t.Fatalf("proof row count changed: %d", n)
+		}
+	})
+
+	t.Run("MarkReversed is a safe no-op when no proof exists", func(t *testing.T) {
+		if err := svc.MarkReversed(ctx, uuid.NewString(), "SANDBOX"); err != nil {
+			t.Fatalf("no-op mark reversed errored: %v", err)
+		}
+	})
+}
+
+func TestStatusIsTerminalNegative(t *testing.T) {
+	neg := []string{"REVERSED", "CANCELLED", "FAILED", "EXPIRED"}
+	pos := []string{"CONFIRMED", "PENDING", ""}
+	for _, s := range neg {
+		if !statusIsTerminalNegative(s) {
+			t.Errorf("%q should be terminal-negative", s)
+		}
+	}
+	for _, s := range pos {
+		if statusIsTerminalNegative(s) {
+			t.Errorf("%q should NOT be terminal-negative", s)
+		}
+	}
+}
+
 func TestNormalizeProofStatus(t *testing.T) {
 	cases := map[string]string{
 		"COMPLETED": "CONFIRMED", "completed": "CONFIRMED", "CONFIRMED": "CONFIRMED",

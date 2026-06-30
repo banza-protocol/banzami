@@ -126,9 +126,15 @@ func proofInputFromPayment(wp *service.WalletPayment, payer *service.ConsumerRec
 		TransactionID: wp.ID, Environment: wp.Environment,
 		PayerSubjectType: "consumer", PayerSubjectID: wp.ConsumerID,
 		PayeeSubjectType: "merchant", PayeeSubjectID: wp.MerchantID,
-		AmountMinor: wp.AmountMinor, Currency: wp.Currency, Status: "CONFIRMED",
-		Method: "Pagamento por QR · @banza", LedgerReference: wp.ID,
-		ConfirmedAt: &wp.CreatedAt,
+		AmountMinor: wp.AmountMinor, Currency: wp.Currency,
+		// Pass the real transaction status through — Ensure's normalizeProofStatus
+		// maps it onto the proof vocabulary (COMPLETED→CONFIRMED, REFUNDED→REVERSED,
+		// …). Hardcoding CONFIRMED here is what kept a reversed payment showing a
+		// green "verified" proof.
+		Status:          wp.Status,
+		Method:          "Pagamento por QR · @banza",
+		LedgerReference: wp.ID,
+		ConfirmedAt:     &wp.CreatedAt,
 	}
 	if payer != nil {
 		in.PayerHandle = payer.Handle
@@ -136,9 +142,6 @@ func proofInputFromPayment(wp *service.WalletPayment, payer *service.ConsumerRec
 	}
 	if merchant != nil {
 		in.PayeeDisplayName = merchant.Name
-	}
-	if !strings.EqualFold(wp.Status, "COMPLETED") && !strings.EqualFold(wp.Status, "CONFIRMED") {
-		in.Status = "PENDING"
 	}
 	return in
 }

@@ -167,8 +167,55 @@ func normalizeProofStatus(s string) string {
 	}
 }
 
+// statusIsTerminalNegative reports whether a normalized proof status means the
+// transaction did not stand, so the public verification page must not show the
+// green "verified" state. Ensure only ever moves a proof INTO this set, never out,
+// so a reversal can never be silently downgraded back to CONFIRMED.
+func statusIsTerminalNegative(s string) bool {
+	switch s {
+	case "REVERSED", "CANCELLED", "FAILED", "EXPIRED":
+		return true
+	}
+	return false
+}
+
+// updateStatus changes a materialized proof's status, stamping reversed_at the
+// first time it becomes REVERSED. The proof row is never deleted.
+func (s *ProofService) updateStatus(ctx context.Context, id, status string) (*Proof, error) {
+	if _, err := s.pool.Exec(ctx, `
+		UPDATE transaction_proofs
+		   SET status = $2,
+		       reversed_at = CASE WHEN $2 = 'REVERSED' AND reversed_at IS NULL THEN now() ELSE reversed_at END,
+		       updated_at = now()
+		 WHERE id = $1`, id, status); err != nil {
+		return nil, err
+	}
+	return scanProof(s.pool.QueryRow(ctx, `SELECT `+proofCols+` FROM transaction_proofs WHERE id=$1`, id))
+}
+
+// MarkReversed moves a transaction's proof to REVERSED (idempotent; never deletes;
+// preserves verification_count). Call it from the reversal / refund-completed /
+// dispute-resolved flow. It is a no-op when no proof exists yet — Ensure will then
+// materialize the proof as REVERSED the next time a receipt is requested with the
+// reversed transaction status.
+func (s *ProofService) MarkReversed(ctx context.Context, transactionID, environment string) error {
+	if environment == "" {
+		environment = "LIVE"
+	}
+	_, err := s.pool.Exec(ctx, `
+		UPDATE transaction_proofs
+		   SET status = 'REVERSED',
+		       reversed_at = COALESCE(reversed_at, now()),
+		       updated_at = now()
+		 WHERE transaction_id = $1 AND environment = $2 AND status <> 'REVERSED'`,
+		transactionID, environment)
+	return err
+}
+
 // Ensure idempotently returns the proof for a transaction, creating it on first
 // call. Concurrent callers converge on a single proof (unique on transaction_id).
+// A subsequent call with a terminal-negative status (e.g. REVERSED) updates the
+// stored proof forward — see the status re-sync in the body.
 func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error) {
 	if in.Environment == "" {
 		in.Environment = "LIVE"
@@ -178,6 +225,13 @@ func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error
 	// which must map onto {PENDING,CONFIRMED,FAILED,REVERSED,CANCELLED,EXPIRED}.
 	in.Status = normalizeProofStatus(in.Status)
 	if existing, err := s.getByTxn(ctx, in.TransactionID, in.Environment); err == nil {
+		// A proof is minted lazily from the then-current transaction status, but the
+		// transaction may later be reversed/cancelled. Move a materialized proof
+		// FORWARD into a terminal-negative status (never back to CONFIRMED) so the
+		// public page stops showing "verified"; reversed_at is stamped on REVERSED.
+		if in.Status != existing.Status && statusIsTerminalNegative(in.Status) {
+			return s.updateStatus(ctx, existing.ID, in.Status)
+		}
 		return existing, nil
 	} else if !errors.Is(err, ErrProofNotFound) {
 		return nil, err
