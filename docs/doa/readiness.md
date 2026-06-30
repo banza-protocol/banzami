@@ -26,10 +26,12 @@ operator-side readiness checklist.
                           reference_id:<campaign_id>}        (idempotent)
 2. collect donations  → dynamic QR / link bound to the campaign account
                          → each donation credits ONLY that account
-3. close campaign     → POST /v1/application-settlements
-                         {source_wallet_account_id:<account>, beneficiary_wallet_id:<ngo>,
-                          application_fee_wallet_id:<doa wallet>, fee_policy_ref:"doa-5pct"}
-                         → 5% to DOA, net to the beneficiary, only the campaign account debited
+3. close campaign     → POST /v1/business/application-settlements
+                         {source_account_id:<campaign account>, beneficiary_banza_name:"@ngo",
+                          fee_destination_banza_name:"@doa", application_fee_bps:500,
+                          reference_type:"DOA_CAMPAIGN", reference_id:<campaign_id>,
+                          idempotency_key:<...>}
+                         → 5% to @doa, net to the beneficiary, only the campaign account debited
 4. mark SETTLED       → on application_settlement.completed webhook
 ```
 
@@ -39,8 +41,9 @@ operator-side readiness checklist.
 - **No sub-balances in DOA.** Balances live in Banzami; DOA reads them, never
   computes them.
 - **No amounts on settlement.** The gross is the campaign account's balance, read
-  by the operator. DOA never sends an amount; the fee is resolved by the Pricing
-  Engine from `fee_policy_ref`, never a hardcoded number.
+  by the operator. DOA never sends an amount. DOA defines its own fee rate
+  (`application_fee_bps`, e.g. 500 = 5%, ADR-029); the operator computes the fee
+  from the real balance and **never** uses an operator `pricing_rule` for it.
 - **DOA never sees ledger account ids.** It references `wallet_id` /
   `wallet_account_id` only.
 

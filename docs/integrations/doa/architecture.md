@@ -1,10 +1,19 @@
-# Doa × Banza — Integration Architecture
+# Doa × Banzami — Integration Architecture
+
+> **⚠️ This integration set predates ADR-027/028/029 and is being reconciled.**
+> The canonical, current contract is [docs/doa/settlement-contract.md](../../doa/settlement-contract.md)
+> and [docs/doa/readiness.md](../../doa/readiness.md); where this set differs, the
+> canonical docs win. In particular: **receipts and transaction proofs are generated
+> by the Banzami operator, never by DOA** (Golden Rule — an app never generates
+> receipts/proofs). DOA only *requests* a receipt and *displays/forwards* the
+> operator-issued artifact. "Banza" below means the **Banzami operator** built on the
+> BANZA protocol; SDK imports should use `@banzami/sdk` / `BanzamiClient` (ADR-025 §15.5).
 
 ---
 
 ## System Boundaries
 
-The Doa integration sits entirely within the **merchant application** tier. Doa is the merchant. Banza is the payment infrastructure. The boundary between them is the Banza API.
+The Doa integration sits entirely within the **merchant application** tier. Doa is the merchant; the **Banzami operator** is the payment infrastructure. The boundary between them is the operator API.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐

@@ -43,9 +43,12 @@ the recipient wallet, ACTIVE, currency match) and credits it instead of the defa
 account. Plain QRs and P2P are unaffected.
 
 ### Settle out of an account
-`POST /v1/application-settlements {source_wallet_account_id, beneficiary_wallet_id,
-fee_policy_ref}` → gross = the account's balance → only that account is debited →
-fee resolved by the Pricing Engine → `application_settlement.completed` webhook.
+`POST /v1/business/application-settlements {source_account_id, beneficiary_banza_name,
+fee_destination_banza_name, application_fee_bps}` → gross = the account's balance →
+only that account is debited → the fee is **app-defined** (`application_fee_bps`,
+ADR-029; operator `pricing_rules` are not used) → `application_settlement.completed`
+webhook. (The operator-priced `/v1/application-settlements` + `fee_policy_ref` path
+remains for operator-priced settlements.)
 
 ## Invariants
 - Exactly one `PRIMARY` per wallet (partial unique index).
