@@ -114,6 +114,62 @@ async fn merchant_for_account(pool: &PgPool, account_id: AccountId) -> Option<Uu
     .flatten()
 }
 
+/// ADR-028: enforce that an application-fee destination is a validated Business
+/// Account — it resolves to a merchant, that merchant is KYB-approved, has an
+/// active wallet (it owns the destination account), and is of a type permitted to
+/// take an application fee (APPLICATION/PLATFORM). Fail-closed.
+pub(crate) async fn guard_application_fee_destination(
+    pool: &PgPool,
+    fee_account: AccountId,
+) -> Result<(), ApiError> {
+    let merchant_id = merchant_for_account(pool, fee_account).await.ok_or_else(|| {
+        ApiError::unprocessable(
+            "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+            "application fee destination is not a Banzami Business Account",
+        )
+    })?;
+
+    // The fee destination's merchant must be a validated, permitted Business
+    // Account. One row read of its type + KYB status.
+    let row = sqlx::query_as::<_, (String, String, Option<String>)>(
+        "SELECT m.business_account_type, m.status, c.kyb_status
+           FROM merchants m
+           LEFT JOIN merchant_compliance c ON c.merchant_id = m.id
+          WHERE m.id = $1",
+    )
+    .bind(merchant_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    .ok_or_else(|| {
+        ApiError::unprocessable(
+            "FEE_DESTINATION_NOT_BUSINESS_ACCOUNT",
+            "application fee destination is not a Banzami Business Account",
+        )
+    })?;
+    let (account_type, status, kyb_status) = row;
+
+    if status != "ACTIVE" {
+        return Err(ApiError::unprocessable(
+            "FEE_DESTINATION_NOT_ACTIVE",
+            "application fee destination business account is not active",
+        ));
+    }
+    if kyb_status.as_deref() != Some("APPROVED") {
+        return Err(ApiError::unprocessable(
+            "FEE_DESTINATION_KYB_NOT_APPROVED",
+            "application fee destination is not KYB-approved",
+        ));
+    }
+    if !banzami_merchants::allows_application_fee(&account_type) {
+        return Err(ApiError::unprocessable(
+            "FEE_DESTINATION_TYPE_NOT_ALLOWED",
+            "application fee destination must be an APPLICATION or PLATFORM business account",
+        ));
+    }
+    Ok(())
+}
+
 /// Emit an application_settlement.* webhook (idempotent on the settlement id).
 async fn emit_settlement_event(pool: &PgPool, event: &str, s: &serde_json::Value) {
     let (Some(id), Some(src)) = (
@@ -198,6 +254,13 @@ pub async fn create(
         (None, None) => None,
         (a, w) => Some(account_or_wallet(&state.pool, a, w, "application_fee").await?),
     };
+
+    // ADR-028: an application fee may only be paid to a validated Business Account
+    // — KYB-approved, active wallet, and of a permitted type (APPLICATION/PLATFORM).
+    // Fail-closed: a fee to an unvetted destination is rejected, not rerouted.
+    if let Some(fee_acct) = application_fee_account_id {
+        guard_application_fee_destination(&state.pool, fee_acct).await?;
+    }
 
     let settlement = state
         .app_settlement

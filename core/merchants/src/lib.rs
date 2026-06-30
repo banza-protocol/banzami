@@ -5,7 +5,10 @@ pub mod repository;
 
 pub use api_key::{ApiKey, ApiKeyEnvironment, ApiKeySecret};
 pub use engine::{MerchantEngine, PostgresMerchantEngine};
-pub use merchant::{CreateMerchantRequest, Merchant, MerchantStatus};
+pub use merchant::{
+    allows_application_fee, is_valid_business_account_type, CreateMerchantRequest, Merchant,
+    MerchantStatus, APPLICATION_FEE_TYPES, BUSINESS_ACCOUNT_TYPES,
+};
 pub use repository::{
     ApiKeyRepository, MerchantRepository, PostgresApiKeyRepository, PostgresMerchantRepository,
 };
@@ -35,6 +38,10 @@ pub enum MerchantError {
 
     #[error("unknown merchant status: {0}")]
     UnknownStatus(String),
+
+    /// ADR-028: not one of the valid operator business account types.
+    #[error("invalid business account type: {0}")]
+    InvalidBusinessAccountType(String),
 
     #[error("database error: {0}")]
     Database(#[from] sqlx::Error),

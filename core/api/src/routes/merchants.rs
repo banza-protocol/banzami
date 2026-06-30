@@ -21,6 +21,8 @@ use crate::{
 pub struct CreateMerchantBody {
     pub name: String,
     pub email: String,
+    /// ADR-028: optional business account type (defaults to MERCHANT in core).
+    pub business_account_type: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -71,6 +73,7 @@ pub async fn create_merchant(
         .create(CreateMerchantRequest {
             name: body.name,
             email: body.email,
+            business_account_type: body.business_account_type.clone(),
         })
         .await
         .map_err(|e| match e {
@@ -277,6 +280,35 @@ pub async fn set_verified(
         .await
         .map_err(|e| match e {
             MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+            other => ApiError::internal(other.to_string()),
+        })?;
+
+    Ok(Json(serde_json::to_value(&merchant).unwrap()))
+}
+
+/// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa APPLICATION).
+pub async fn set_business_account_type(
+    State(state): State<AppState>,
+    Path(id): Path<String>,
+    Json(body): Json<serde_json::Value>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let merchant_id: MerchantId = id
+        .parse()
+        .map_err(|_| ApiError::bad_request("invalid merchant id"))?;
+    let account_type = body
+        .get("business_account_type")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| ApiError::bad_request("'business_account_type' is required"))?;
+
+    let merchant = state
+        .merchant
+        .set_business_account_type(merchant_id, account_type)
+        .await
+        .map_err(|e| match e {
+            MerchantError::NotFound(_) => ApiError::not_found("merchant not found"),
+            MerchantError::InvalidBusinessAccountType(t) => {
+                ApiError::bad_request(format!("invalid business_account_type: {t}"))
+            }
             other => ApiError::internal(other.to_string()),
         })?;
 

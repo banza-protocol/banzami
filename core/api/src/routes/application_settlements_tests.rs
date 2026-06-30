@@ -70,6 +70,47 @@ async fn fund(pool: &PgPool, funding_asset: Uuid, account_id: Uuid, amount: i64)
     }
 }
 
+/// ADR-028: seed a Business Account — a merchant of `account_type` with `kyb`
+/// status and an ACTIVE wallet. Returns (merchant_id, wallet available account),
+/// the latter being a candidate application-fee destination.
+async fn seed_business_account(pool: &PgPool, account_type: &str, kyb: &str) -> (Uuid, Uuid) {
+    let mid = Uuid::new_v4();
+    sqlx::query(
+        "INSERT INTO merchants (id, name, email, status, business_account_type)
+         VALUES ($1, $2, $3, 'ACTIVE', $4)",
+    )
+    .bind(mid)
+    .bind(format!("BA {}", &mid.to_string()[..8]))
+    .bind(format!("ba-{mid}@example.ao"))
+    .bind(account_type)
+    .execute(pool)
+    .await
+    .unwrap();
+    sqlx::query(
+        "INSERT INTO merchant_compliance (merchant_id, kyb_status, aml_status)
+         VALUES ($1, $2, 'APPROVED')",
+    )
+    .bind(mid)
+    .bind(kyb)
+    .execute(pool)
+    .await
+    .unwrap();
+    let avail = account(pool, "LIABILITY", "ba-available").await;
+    let reserved = account(pool, "LIABILITY", "ba-reserved").await;
+    sqlx::query(
+        "INSERT INTO wallets (id, merchant_id, currency, status, available_account_id, reserved_account_id)
+         VALUES ($1, $2, 'AOA', 'ACTIVE', $3, $4)",
+    )
+    .bind(Uuid::new_v4())
+    .bind(mid)
+    .bind(avail)
+    .bind(reserved)
+    .execute(pool)
+    .await
+    .unwrap();
+    (mid, avail)
+}
+
 async fn seed_rule(pool: &PgPool, category: &str, bps: i32) {
     sqlx::query(
         "INSERT INTO pricing_rules (id, rule_key, business_category, rate_bps, environment)
@@ -90,7 +131,9 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     let funding = account(&pool, "ASSET", "Funding").await;
     let source = account(&pool, "LIABILITY", "Campaign").await;
     let beneficiary = account(&pool, "LIABILITY", "Beneficiary").await;
-    let app_fee = account(&pool, "LIABILITY", "AppFee").await;
+    // ADR-028: the application-fee destination must be a validated Business Account
+    // (KYB-approved, APPLICATION type) — model @doa.
+    let (_doa, app_fee) = seed_business_account(&pool, "APPLICATION", "APPROVED").await;
     fund(&pool, funding, source, 98_000).await;
 
     let state = build_state(pool.clone()).await;
@@ -134,4 +177,44 @@ async fn create_then_complete_via_api(pool: PgPool) -> sqlx::Result<()> {
     .unwrap();
     assert_eq!(net, 93_100);
     Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// ADR-028 — application-fee destination guard
+// ---------------------------------------------------------------------------
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fee_guard_accepts_approved_application(pool: PgPool) {
+    let (_m, fee) = seed_business_account(&pool, "APPLICATION", "APPROVED").await;
+    routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+        .await
+        .expect("approved APPLICATION business account is a valid fee destination");
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fee_guard_rejects_plain_merchant_type(pool: PgPool) {
+    let (_m, fee) = seed_business_account(&pool, "MERCHANT", "APPROVED").await;
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+        .await
+        .unwrap_err();
+    assert!(format!("{e:?}").contains("TYPE_NOT_ALLOWED"), "got {e:?}");
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fee_guard_rejects_unapproved_kyb(pool: PgPool) {
+    let (_m, fee) = seed_business_account(&pool, "APPLICATION", "PENDING").await;
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(fee))
+        .await
+        .unwrap_err();
+    assert!(format!("{e:?}").contains("KYB_NOT_APPROVED"), "got {e:?}");
+}
+
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn fee_guard_rejects_non_business_account(pool: PgPool) {
+    // A bare ledger account that belongs to no Business Account.
+    let orphan = account(&pool, "LIABILITY", "orphan").await;
+    let e = routes::guard_application_fee_destination(&pool, AccountId::from_uuid(orphan))
+        .await
+        .unwrap_err();
+    assert!(format!("{e:?}").contains("NOT_BUSINESS_ACCOUNT"), "got {e:?}");
 }

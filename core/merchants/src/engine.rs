@@ -35,6 +35,13 @@ pub trait MerchantEngine: Send + Sync {
     async fn set_verified(&self, id: MerchantId, verified: bool)
         -> Result<Merchant, MerchantError>;
 
+    /// ADR-028: re-tag a Business Account's operator type (validated).
+    async fn set_business_account_type(
+        &self,
+        id: MerchantId,
+        business_account_type: &str,
+    ) -> Result<Merchant, MerchantError>;
+
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 
     /// Verifies a raw API key and returns the associated key record and merchant.
@@ -71,6 +78,9 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
             email: req.email,
             status: MerchantStatus::Active,
             verified: false,
+            // Default taxonomy (ADR-028); apps are re-tagged via the admin set-type
+            // path (or copied from the approved application).
+            business_account_type: req.business_account_type.clone().unwrap_or_else(|| "MERCHANT".into()),
             created_at: now,
             updated_at: now,
         };
@@ -95,6 +105,18 @@ impl<MR: MerchantRepository, KR: ApiKeyRepository> MerchantEngine
 
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError> {
         self.merchant_repo.delete(id).await
+    }
+
+    async fn set_business_account_type(
+        &self,
+        id: MerchantId,
+        business_account_type: &str,
+    ) -> Result<Merchant, MerchantError> {
+        let t = business_account_type.to_uppercase();
+        if !crate::merchant::is_valid_business_account_type(&t) {
+            return Err(MerchantError::InvalidBusinessAccountType(t));
+        }
+        self.merchant_repo.set_business_account_type(id, &t).await
     }
 
     async fn suspend(&self, id: MerchantId) -> Result<Merchant, MerchantError> {
@@ -287,6 +309,21 @@ mod tests {
             m.updated_at = Utc::now();
             Ok(m.clone())
         }
+
+        async fn set_business_account_type(
+            &self,
+            id: MerchantId,
+            business_account_type: &str,
+        ) -> Result<Merchant, MerchantError> {
+            let mut rows = self.rows.lock().unwrap();
+            let m = rows
+                .iter_mut()
+                .find(|r| r.id == id)
+                .ok_or(MerchantError::NotFound(id))?;
+            m.business_account_type = business_account_type.to_string();
+            m.updated_at = Utc::now();
+            Ok(m.clone())
+        }
     }
 
     struct MockApiKeyRepo {
@@ -373,6 +410,7 @@ mod tests {
             .create(CreateMerchantRequest {
                 name: "Acme Lda".into(),
                 email: "acme@example.ao".into(),
+                business_account_type: None,
             })
             .await
             .unwrap()
@@ -407,6 +445,7 @@ mod tests {
             .create(CreateMerchantRequest {
                 name: "Acme 2".into(),
                 email: "acme@example.ao".into(),
+                business_account_type: None,
             })
             .await;
         assert!(matches!(result, Err(MerchantError::DuplicateEmail(_))));

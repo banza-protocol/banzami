@@ -215,6 +215,10 @@ async fn main() {
             axum::routing::patch(routes::merchants::set_verified),
         )
         .route(
+            "/internal/v1/merchants/:id/business-account-type",
+            axum::routing::patch(routes::merchants::set_business_account_type),
+        )
+        .route(
             "/internal/v1/auth/verify-key",
             post(routes::merchants::verify_api_key),
         )

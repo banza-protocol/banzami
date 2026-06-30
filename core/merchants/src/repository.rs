@@ -29,6 +29,14 @@ pub trait MerchantRepository: Send + Sync {
     async fn set_verified(&self, id: MerchantId, verified: bool)
         -> Result<Merchant, MerchantError>;
 
+    /// ADR-028: re-tag a Business Account's operator type (e.g. mark @doa as
+    /// APPLICATION). The value is validated by the DB CHECK constraint.
+    async fn set_business_account_type(
+        &self,
+        id: MerchantId,
+        business_account_type: &str,
+    ) -> Result<Merchant, MerchantError>;
+
     async fn delete(&self, id: MerchantId) -> Result<(), MerchantError>;
 }
 
@@ -56,6 +64,7 @@ struct MerchantRow {
     email: String,
     status: String,
     verified: bool,
+    business_account_type: String,
     created_at: DateTime<Utc>,
     updated_at: DateTime<Utc>,
 }
@@ -98,7 +107,7 @@ impl PostgresApiKeyRepository {
 }
 
 const MERCHANT_SELECT: &str =
-    "SELECT id, name, email, status, verified, created_at, updated_at FROM merchants";
+    "SELECT id, name, email, status, verified, business_account_type, created_at, updated_at FROM merchants";
 
 const API_KEY_SELECT: &str =
     "SELECT id, merchant_id, name, key_prefix, key_hash, environment, created_at, last_used_at, revoked_at
@@ -107,13 +116,14 @@ const API_KEY_SELECT: &str =
 impl MerchantRepository for PostgresMerchantRepository {
     async fn create(&self, m: Merchant) -> Result<Merchant, MerchantError> {
         let result = sqlx::query(
-            "INSERT INTO merchants (id, name, email, status, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO merchants (id, name, email, status, business_account_type, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)",
         )
         .bind(m.id.as_uuid())
         .bind(&m.name)
         .bind(&m.email)
         .bind(m.status.as_str())
+        .bind(&m.business_account_type)
         .bind(m.created_at)
         .bind(m.updated_at)
         .execute(&self.pool)
@@ -201,6 +211,25 @@ impl MerchantRepository for PostgresMerchantRepository {
             .execute(&self.pool)
             .await
             .map_err(MerchantError::Database)?;
+
+        self.get(id).await
+    }
+
+    async fn set_business_account_type(
+        &self,
+        id: MerchantId,
+        business_account_type: &str,
+    ) -> Result<Merchant, MerchantError> {
+        let now = chrono::Utc::now();
+        sqlx::query(
+            "UPDATE merchants SET business_account_type = $1, updated_at = $2 WHERE id = $3",
+        )
+        .bind(business_account_type)
+        .bind(now)
+        .bind(id.as_uuid())
+        .execute(&self.pool)
+        .await
+        .map_err(MerchantError::Database)?;
 
         self.get(id).await
     }
@@ -353,6 +382,7 @@ fn merchant_from_row(row: MerchantRow) -> Result<Merchant, MerchantError> {
         email: row.email,
         status,
         verified: row.verified,
+        business_account_type: row.business_account_type,
         created_at: row.created_at,
         updated_at: row.updated_at,
     })
