@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -50,7 +51,16 @@ func (h *ComplianceCasesHandler) List(w http.ResponseWriter, r *http.Request) {
 		h.unavailable(w)
 		return
 	}
-	_ = svc.Sync(r.Context())
+	// Sync is a best-effort refresh before listing: on failure we still serve the
+	// last-known cases (stale rather than empty), but the failure must be visible
+	// — a silently dropped error hid sync outages entirely. No PII in the log.
+	env := "LIVE"
+	if r.URL.Query().Get("environment") == "SANDBOX" {
+		env = "SANDBOX"
+	}
+	if err := svc.Sync(r.Context()); err != nil {
+		slog.ErrorContext(r.Context(), "compliance.sync.failed", "environment", env, "error", err)
+	}
 	q := r.URL.Query()
 	page, _ := strconv.Atoi(q.Get("page"))
 	pageSize, _ := strconv.Atoi(q.Get("page_size"))
