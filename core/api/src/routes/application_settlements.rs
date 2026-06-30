@@ -11,6 +11,8 @@ use axum::{
     Json,
 };
 use serde::Deserialize;
+use sqlx::PgPool;
+use uuid::Uuid;
 
 use banzami_app_settlement::{
     ApplicationSettlementEngine, ApplicationSettlementError, CreateApplicationSettlementRequest,
@@ -27,10 +29,17 @@ pub struct CreateBody {
     pub idempotency_key: String,
     pub owner_ref: String,
     pub application_id: Option<String>,
-    pub source_account_id: String,
-    pub beneficiary_account_id: String,
+    // Each party may be given as a ledger account_id (internal callers) OR a
+    // wallet_id (app-facing callers via the gateway). When a wallet_id is given,
+    // the core resolves its `available_account_id` itself — so account ids never
+    // leave the core and an external app never has to handle them.
+    pub source_account_id: Option<String>,
+    pub source_wallet_id: Option<String>,
+    pub beneficiary_account_id: Option<String>,
+    pub beneficiary_wallet_id: Option<String>,
     /// Required only when a non-zero application fee is resolved.
     pub application_fee_account_id: Option<String>,
+    pub application_fee_wallet_id: Option<String>,
     pub gross_amount_minor: i64,
     pub currency: String,
     // References only — never a fee/percentage. A client-supplied rate/fee field
@@ -39,6 +48,78 @@ pub struct CreateBody {
     pub pricing_profile: Option<String>,
     pub fee_policy_ref: Option<String>,
     pub metadata: Option<serde_json::Value>,
+}
+
+/// Resolves a wallet_id (merchant OR consumer wallet) to its available ledger
+/// account. Account ids are encapsulated here and never exposed externally.
+async fn resolve_available_account(pool: &PgPool, wallet_id: Uuid) -> Result<AccountId, ApiError> {
+    if let Some(acc) =
+        sqlx::query_scalar::<_, Uuid>("SELECT available_account_id FROM wallets WHERE id = $1")
+            .bind(wallet_id)
+            .fetch_optional(pool)
+            .await
+            .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Ok(AccountId::from_uuid(acc));
+    }
+    if let Some(acc) = sqlx::query_scalar::<_, Uuid>(
+        "SELECT available_account_id FROM consumer_wallets WHERE id = $1",
+    )
+    .bind(wallet_id)
+    .fetch_optional(pool)
+    .await
+    .map_err(|e| ApiError::internal(e.to_string()))?
+    {
+        return Ok(AccountId::from_uuid(acc));
+    }
+    Err(ApiError::bad_request("wallet not found"))
+}
+
+/// account_id wins if present; otherwise resolve from wallet_id; otherwise error.
+async fn account_or_wallet(
+    pool: &PgPool,
+    account_id: Option<String>,
+    wallet_id: Option<String>,
+    field: &str,
+) -> Result<AccountId, ApiError> {
+    match (account_id, wallet_id) {
+        (Some(a), _) => parse_account(&a, field),
+        (None, Some(w)) => {
+            let wid = Uuid::parse_str(&w)
+                .map_err(|_| ApiError::bad_request(format!("invalid {field}_wallet_id")))?;
+            resolve_available_account(pool, wid).await
+        }
+        (None, None) => Err(ApiError::bad_request(format!(
+            "{field}_account_id or {field}_wallet_id is required"
+        ))),
+    }
+}
+
+/// The merchant a settlement notifies = the owner of its source wallet. Used to
+/// route the application_settlement.* webhook to the right merchant's endpoints.
+async fn merchant_for_account(pool: &PgPool, account_id: AccountId) -> Option<Uuid> {
+    sqlx::query_scalar::<_, Uuid>("SELECT merchant_id FROM wallets WHERE available_account_id = $1")
+        .bind(account_id.as_uuid())
+        .fetch_optional(pool)
+        .await
+        .ok()
+        .flatten()
+}
+
+/// Emit an application_settlement.* webhook (idempotent on the settlement id).
+async fn emit_settlement_event(pool: &PgPool, event: &str, s: &serde_json::Value) {
+    let (Some(id), Some(src)) = (
+        s.get("id").and_then(|v| v.as_str()),
+        s.get("source_account_id").and_then(|v| v.as_str()),
+    ) else {
+        return;
+    };
+    let Ok(acc) = src.parse::<AccountId>() else {
+        return;
+    };
+    if let Some(mid) = merchant_for_account(pool, acc).await {
+        let _ = super::webhooks::emit(pool, mid, event, &format!("{event}:{id}"), s.clone()).await;
+    }
 }
 
 #[derive(Deserialize)]
@@ -95,14 +176,20 @@ pub async fn create(
     if body.gross_amount_minor <= 0 {
         return Err(ApiError::bad_request("gross_amount_minor must be positive"));
     }
-    let source_account_id = parse_account(&body.source_account_id, "source_account_id")?;
-    let beneficiary_account_id =
-        parse_account(&body.beneficiary_account_id, "beneficiary_account_id")?;
-    let application_fee_account_id = body
-        .application_fee_account_id
-        .as_deref()
-        .map(|s| parse_account(s, "application_fee_account_id"))
-        .transpose()?;
+    let source_account_id =
+        account_or_wallet(&state.pool, body.source_account_id, body.source_wallet_id, "source")
+            .await?;
+    let beneficiary_account_id = account_or_wallet(
+        &state.pool,
+        body.beneficiary_account_id,
+        body.beneficiary_wallet_id,
+        "beneficiary",
+    )
+    .await?;
+    let application_fee_account_id = match (body.application_fee_account_id, body.application_fee_wallet_id) {
+        (None, None) => None,
+        (a, w) => Some(account_or_wallet(&state.pool, a, w, "application_fee").await?),
+    };
 
     let settlement = state
         .app_settlement
@@ -138,7 +225,9 @@ pub async fn complete(
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let s = state.app_settlement.complete(parse_id(&id)?).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(&s).unwrap()))
+    let v = serde_json::to_value(&s).unwrap();
+    emit_settlement_event(&state.pool, "application_settlement.completed", &v).await;
+    Ok(Json(v))
 }
 
 pub async fn cancel(
@@ -146,7 +235,9 @@ pub async fn cancel(
     Path(id): Path<String>,
 ) -> ApiResult<Json<serde_json::Value>> {
     let s = state.app_settlement.cancel(parse_id(&id)?).await.map_err(map_err)?;
-    Ok(Json(serde_json::to_value(&s).unwrap()))
+    let v = serde_json::to_value(&s).unwrap();
+    emit_settlement_event(&state.pool, "application_settlement.cancelled", &v).await;
+    Ok(Json(v))
 }
 
 pub async fn fail(
@@ -159,7 +250,9 @@ pub async fn fail(
         .fail(parse_id(&id)?, body.reason)
         .await
         .map_err(map_err)?;
-    Ok(Json(serde_json::to_value(&s).unwrap()))
+    let v = serde_json::to_value(&s).unwrap();
+    emit_settlement_event(&state.pool, "application_settlement.failed", &v).await;
+    Ok(Json(v))
 }
 
 pub async fn get(
