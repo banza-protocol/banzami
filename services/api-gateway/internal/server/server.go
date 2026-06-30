@@ -29,6 +29,7 @@ type Dependencies struct {
 	WalletSvc                service.WalletService
 	ApplicationSettlementSvc service.ApplicationSettlementService
 	WalletAccountSvc         service.WalletAccountService
+	PartyResolverSvc         service.PartyResolver
 	PayoutSvc                service.PayoutService
 	ConsumerSvc              service.ConsumerService
 	ConsumerWalletSvc        service.ConsumerWalletService
@@ -122,7 +123,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
 	consumerPayLinkPubH := handler.NewConsumerPayLinkHandler(deps.ConsumerPayLinkSvc)
-	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc)
+	appSettlementHandler := handler.NewApplicationSettlementHandler(deps.ApplicationSettlementSvc, deps.WalletSvc, deps.WalletAccountSvc, deps.PartyResolverSvc)
 	walletAccountHandler := handler.NewWalletAccountHandler(deps.WalletAccountSvc, deps.WalletSvc, deps.MerchantSvc)
 
 	// Unauthenticated credential endpoints (login / handle lookup) are a
@@ -272,6 +273,14 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 			// operator; the app never sees account ids or computes the fee.
 			r.Route("/application-settlements", func(r chi.Router) {
 				r.Post("/", appSettlementHandler.Create)
+				r.Get("/{id}", appSettlementHandler.Get)
+			})
+
+			// ADR-029 — app-defined settlement: the app names the source campaign
+			// account, beneficiary/fee-destination @banza, and its OWN fee bps; the
+			// operator validates + executes. Distinct from the operator-priced path.
+			r.Route("/business/application-settlements", func(r chi.Router) {
+				r.Post("/", appSettlementHandler.CreateBusiness)
 				r.Get("/{id}", appSettlementHandler.Get)
 			})
 

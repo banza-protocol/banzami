@@ -36,7 +36,14 @@ type CreateApplicationSettlementInput struct {
 	// SourceWalletID.
 	SourceAccountID        string
 	BeneficiaryWalletID    string
-	ApplicationFeeWalletID string
+	// BeneficiaryAccountID / ApplicationFeeAccountID are resolved ledger accounts
+	// (ADR-029, e.g. from a @banza handle). Take precedence over the wallet ids.
+	BeneficiaryAccountID    string
+	ApplicationFeeAccountID string
+	ApplicationFeeWalletID  string
+	// ApplicationFeeBps is the app-defined fee rate (ADR-029). When > 0 the
+	// operator computes the fee from it and ignores any pricing reference.
+	ApplicationFeeBps      int
 	GrossAmountMinor       int64
 	Currency               string
 	FeePolicyRef           string
@@ -82,11 +89,16 @@ func NewCoreApiApplicationSettlementService(c *CoreApiClient) *CoreApiApplicatio
 
 func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in CreateApplicationSettlementInput) (*ApplicationSettlement, error) {
 	body := map[string]any{
-		"idempotency_key":       in.IdempotencyKey,
-		"owner_ref":             in.OwnerRef,
-		"beneficiary_wallet_id": in.BeneficiaryWalletID,
-		"gross_amount_minor":    in.GrossAmountMinor,
-		"currency":              in.Currency,
+		"idempotency_key":    in.IdempotencyKey,
+		"owner_ref":          in.OwnerRef,
+		"gross_amount_minor": in.GrossAmountMinor,
+		"currency":           in.Currency,
+	}
+	// Beneficiary: a resolved account (ADR-029 @handle) wins over a wallet id.
+	if in.BeneficiaryAccountID != "" {
+		body["beneficiary_account_id"] = in.BeneficiaryAccountID
+	} else {
+		body["beneficiary_wallet_id"] = in.BeneficiaryWalletID
 	}
 	// Settle from a specific segregated account when given (ADR-042); otherwise
 	// from the wallet's default account. Core debits exactly the source account.
@@ -95,8 +107,15 @@ func (s *CoreApiApplicationSettlementService) Create(ctx context.Context, in Cre
 	} else {
 		body["source_wallet_id"] = in.SourceWalletID
 	}
-	if in.ApplicationFeeWalletID != "" {
+	// Application fee destination: a resolved account wins over a wallet id.
+	if in.ApplicationFeeAccountID != "" {
+		body["application_fee_account_id"] = in.ApplicationFeeAccountID
+	} else if in.ApplicationFeeWalletID != "" {
 		body["application_fee_wallet_id"] = in.ApplicationFeeWalletID
+	}
+	// ADR-029: app-defined fee rate. When set, core ignores pricing references.
+	if in.ApplicationFeeBps > 0 {
+		body["application_fee_bps"] = in.ApplicationFeeBps
 	}
 	if in.FeePolicyRef != "" {
 		body["fee_policy_ref"] = in.FeePolicyRef

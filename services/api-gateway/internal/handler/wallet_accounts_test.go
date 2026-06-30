@@ -14,6 +14,14 @@ import (
 type fakeWalletAccounts struct {
 	created int
 	balance int64
+	purpose string // default CAMPAIGN
+}
+
+func (f *fakeWalletAccounts) purposeOr() string {
+	if f.purpose == "" {
+		return "CAMPAIGN"
+	}
+	return f.purpose
 }
 
 func (f *fakeWalletAccounts) Create(ctx context.Context, in service.CreateWalletAccountInput) (*service.WalletAccount, error) {
@@ -24,7 +32,7 @@ func (f *fakeWalletAccounts) ListForWallet(ctx context.Context, walletID string)
 	return []*service.WalletAccount{{ID: "wa-1", WalletID: walletID, Purpose: "PRIMARY", Status: "ACTIVE"}}, nil
 }
 func (f *fakeWalletAccounts) Get(ctx context.Context, id string) (*service.WalletAccount, error) {
-	return &service.WalletAccount{ID: id, WalletID: "w-src", Purpose: "CAMPAIGN", Status: "ACTIVE", Currency: "AOA", AvailableBalanceMinor: f.balance}, nil
+	return &service.WalletAccount{ID: id, WalletID: "w-src", Purpose: f.purposeOr(), Status: "ACTIVE", Currency: "AOA", AvailableBalanceMinor: f.balance}, nil
 }
 func (f *fakeWalletAccounts) Resolve(ctx context.Context, walletID, purpose, refType, refID string) (*service.WalletAccount, error) {
 	return nil, nil
