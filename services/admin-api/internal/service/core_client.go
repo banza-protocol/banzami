@@ -311,6 +311,13 @@ func (c *CoreAdminClient) GetWallet(ctx context.Context, merchantID, currency st
 	return out, c.get(ctx, "/internal/v1/wallets?merchant_id="+merchantID+"&currency="+currency, &out)
 }
 
+// ListWalletAccounts returns the segregated accounts of a wallet (ADR-042),
+// read-only for operator visibility (BANZADMIN).
+func (c *CoreAdminClient) ListWalletAccounts(ctx context.Context, walletID string) (map[string]any, error) {
+	var out map[string]any
+	return out, c.get(ctx, "/internal/v1/wallets/"+walletID+"/accounts", &out)
+}
+
 func (c *CoreAdminClient) AdminCreditWallet(ctx context.Context, walletID string, amountMinor int64, currency, reason string) (map[string]any, error) {
 	var out map[string]any
 	return out, c.post(ctx, "/internal/v1/wallets/"+walletID+"/admin-credit",

@@ -44,6 +44,33 @@ func (h *WalletHandler) GetForMerchant(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, result)
 }
 
+// GET /admin/v1/wallets/{id}/accounts — read-only operator visibility into a
+// wallet's segregated accounts (ADR-042). Balances are read from the ledger; the
+// operator never mutates them here.
+func (h *WalletHandler) ListAccounts(w http.ResponseWriter, r *http.Request) {
+	walletID := chi.URLParam(r, "id")
+	if walletID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": map[string]any{"code": "MISSING_FIELD", "message": "wallet id is required"},
+		})
+		return
+	}
+	result, err := h.core.ListWalletAccounts(r.Context(), walletID)
+	if err != nil {
+		if errors.Is(err, service.ErrNotFound) {
+			writeJSON(w, http.StatusNotFound, map[string]any{
+				"error": map[string]any{"code": "NOT_FOUND", "message": "wallet not found"},
+			})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": map[string]any{"code": "INTERNAL_ERROR", "message": err.Error()},
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 // POST /admin/v1/wallets/{id}/credit
 func (h *WalletHandler) AdminCredit(w http.ResponseWriter, r *http.Request) {
 	walletID := chi.URLParam(r, "id")

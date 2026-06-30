@@ -196,6 +196,7 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 
 		// Wallets
 		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/wallets", walletH.GetForMerchant)
+		r.With(cap(auth.CapMerchantView)).Get("/admin/v1/wallets/{id}/accounts", walletH.ListAccounts)
 		r.With(cap(auth.CapWalletCredit)).Post("/admin/v1/wallets/{id}/credit", walletH.AdminCredit)
 
 		// Consumers
