@@ -16,9 +16,23 @@ pub async fn correlation_id(mut req: Request, next: Next) -> Response {
 
     req.extensions_mut().insert(CorrelationId(cid.clone()));
 
-    let span = tracing::info_span!("request", correlation_id = %cid);
     let header_val = cid.parse().ok();
-    let mut response = next.run(req).instrument(span).await;
+    let span = tracing::info_span!("request", correlation_id = %cid);
+    let method = req.method().clone();
+    let path = req.uri().path().to_owned();
+
+    // Emit exactly one request event inside the correlation span (skipping infra
+    // probes) so core logs carry correlation_id and join the Go services' logs.
+    let mut response = async move {
+        let resp = next.run(req).await;
+        if path != "/health" && path != "/metrics" {
+            tracing::info!(method = %method, path = %path, status = resp.status().as_u16(), "request");
+        }
+        resp
+    }
+    .instrument(span)
+    .await;
+
     if let Some(val) = header_val {
         response.headers_mut().insert("X-Correlation-ID", val);
     }
