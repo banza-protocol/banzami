@@ -106,6 +106,12 @@ recomputes the Operator Fee, never touches old PaymentIntents.
   debit total equals the gross.
 - **INV-APPSETTLE-006** — the application fee is resolved only by the Pricing
   Engine; no percentage exists in this crate.
+- **INV-APPSETTLE-007** (ADR-028) — an application fee may only be paid to a
+  **validated Business Account**: the fee destination must resolve to a merchant
+  that is KYB-approved, active, and of a permitted type (`APPLICATION`/`PLATFORM`).
+  Enforced fail-closed in `guard_application_fee_destination` before the settlement
+  is created — an unvetted fee destination is rejected, never rerouted. This is the
+  teeth behind "an app that takes a cut must be a Banzami Business Account."
 
 ---
 

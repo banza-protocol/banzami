@@ -44,8 +44,22 @@ operator-side readiness checklist.
 - **DOA never sees ledger account ids.** It references `wallet_id` /
   `wallet_account_id` only.
 
+## @doa must be a validated Business Account (ADR-028)
+
+DOA is a monetised application, so it MUST exist as a Banzami Business Account:
+
+- `@doa` Business Account with `business_account_type = APPLICATION` (operator tags
+  it via `PATCH /admin/v1/merchants/{id}/business-account-type`, or it is declared
+  at onboarding and copied on KYB approval).
+- **KYB approved** and an **active wallet** — this is the fee destination.
+
+The Application Settlement guard is fail-closed: if the 5% fee destination is not a
+KYB-approved `APPLICATION`/`PLATFORM` Business Account, the settlement is **rejected**
+(`FEE_DESTINATION_*` errors). So DOA cannot take a fee until `@doa` is properly set up.
+
 ## Operator follow-ups before DOA go-live
 
+- [ ] Tag `@doa` as `APPLICATION` and ensure its KYB is APPROVED (ADR-028 guard).
 - [ ] Create the `doa-5pct` application-fee pricing policy in the operator.
 - [ ] DOA migrates its donation flow onto the campaign-account model and removes
       any local financial-logic that duplicates the operator.
