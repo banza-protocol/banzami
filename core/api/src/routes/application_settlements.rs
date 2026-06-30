@@ -98,12 +98,20 @@ async fn account_or_wallet(
 /// The merchant a settlement notifies = the owner of its source wallet. Used to
 /// route the application_settlement.* webhook to the right merchant's endpoints.
 async fn merchant_for_account(pool: &PgPool, account_id: AccountId) -> Option<Uuid> {
-    sqlx::query_scalar::<_, Uuid>("SELECT merchant_id FROM wallets WHERE available_account_id = $1")
-        .bind(account_id.as_uuid())
-        .fetch_optional(pool)
-        .await
-        .ok()
-        .flatten()
+    // The source may be a wallet's default available account OR a segregated
+    // wallet account (ADR-042 — e.g. a DOA campaign account). Resolve the owning
+    // merchant from either, so a campaign settlement still routes its webhook.
+    sqlx::query_scalar::<_, Uuid>(
+        "SELECT merchant_id FROM wallets WHERE available_account_id = $1
+         UNION ALL
+         SELECT merchant_id FROM wallet_accounts WHERE account_id = $1
+         LIMIT 1",
+    )
+    .bind(account_id.as_uuid())
+    .fetch_optional(pool)
+    .await
+    .ok()
+    .flatten()
 }
 
 /// Emit an application_settlement.* webhook (idempotent on the settlement id).

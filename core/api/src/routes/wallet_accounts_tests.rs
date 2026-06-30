@@ -171,6 +171,32 @@ async fn inactive_wallet_rejected(pool: PgPool) {
     assert!(routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_Y")))).await.is_err());
 }
 
+/// ADR-042 (Unit 6): the settlement webhook routing resolves the owning merchant
+/// from a segregated account too — not only a wallet's default available account.
+/// Without this, a campaign-account settlement would emit no webhook.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn merchant_resolves_from_campaign_account(pool: PgPool) {
+    let merchant = Uuid::new_v4();
+    let (wid, _) = seed_wallet(&pool, merchant).await;
+    let state = build_state(pool.clone()).await;
+    let (_, Json(a)) =
+        routes::create(State(state), Json(body(wid, "CAMPAIGN", Some("camp_W")))).await.unwrap();
+    let camp_acct: Uuid = a["account_id"].as_str().unwrap().parse().unwrap();
+
+    // Mirror the webhook routing query: resolve merchant from either source.
+    let resolved: Option<Uuid> = sqlx::query_scalar(
+        "SELECT merchant_id FROM wallets WHERE available_account_id = $1
+         UNION ALL
+         SELECT merchant_id FROM wallet_accounts WHERE account_id = $1
+         LIMIT 1",
+    )
+    .bind(camp_acct)
+    .fetch_optional(&pool)
+    .await
+    .unwrap();
+    assert_eq!(resolved, Some(merchant), "campaign account must resolve to its merchant");
+}
+
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn resolve_and_list(pool: PgPool) {
     let (wid, _) = seed_wallet(&pool, Uuid::new_v4()).await;
