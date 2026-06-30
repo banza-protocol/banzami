@@ -1,4 +1,13 @@
-# Banza — System Architecture
+# Banzami Operator — System Architecture
+
+> **Ecosystem first (canonical reference: the [root README](../../README.md)).**
+> **BANZA** is the protocol — it defines the standards. **Banzami** is the
+> operator — it executes the money (ledger, wallets, compliance, settlement,
+> proofs, webhooks). **Applications** (DOA, Mongo, …) define their business and
+> consume the operator's APIs. No client application implements its own financial
+> logic. The sections below describe the **operator's** internal architecture;
+> where this document says "Banza" as a network identity, read it as the **Banzami
+> operator** built on the BANZA protocol.
 
 ## Network Identity
 

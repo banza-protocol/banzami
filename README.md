@@ -1,41 +1,335 @@
-![Banzami — Angola's Wallet-Native Payment Network](docs/diagrams/banzami-hero-v1.svg)
+![Banzami — a BANZA Operator](docs/diagrams/banzami-hero-v1.svg)
 
-**Angola's wallet-native payment network.** Banzami is the **first operator
-built on the open BANZA protocol** — an independent Angolan startup building the
-network that moves Kwanza at internet speed, where every account is a wallet,
-every payment is an instant transfer, and money settles in seconds without cash,
-cards, terminals, or proof-of-payment screenshots.
+# Banzami is a BANZA Operator
 
-> **Money moves at internet speed.**
+**Banzami is an operator of the open [BANZA](#the-banza-ecosystem) protocol** — the
+financial infrastructure that executes money for applications in Angola. It is the
+layer that runs the ledger, the wallets, compliance, settlement, proofs and
+webhooks, so that applications never have to.
+
+> **Read this first.** Banzami is **not** an application, a wallet, a fintech for
+> end users, a crowdfunding app, or a delivery app. Those are *applications* that
+> sit on top of the operator. **Banzami is the financial operator they run on.**
 
 ![Status](https://img.shields.io/badge/status-active%20development-blue)
-![Role](https://img.shields.io/badge/role-Payment%20Network-red)
+![Role](https://img.shields.io/badge/role-BANZA%20Operator-red)
 ![Model](https://img.shields.io/badge/model-Wallet--Native-darkred)
 ![Currency](https://img.shields.io/badge/currency-AOA%20Kwanza-lightgrey)
 ![Built on](https://img.shields.io/badge/built%20on-BANZA-darkred)
 
 | | |
 |---|---|
-| Network | Angola's wallet-native payment network |
+| Role | Reference operator of the BANZA protocol |
 | Website | [banzami.com](https://banzami.com) |
 | Contact | contact@banzami.com |
 | Repository | [github.com/banzami/banzami](https://github.com/banzami/banzami) — this repository |
-| Built on | [BANZA](https://github.com/banza-protocol/banza) — the open financial protocol |
+| Protocol | [BANZA](https://github.com/banza-protocol/banza) — the open financial protocol |
 
 ---
 
-## Overview
+## What is Banzami?
 
-Banzami is **infrastructure first**. It is not a wallet app, a QR app, or a
-payment-link app — those are products that sit on top of the network. Banzami
-is the network itself: a real-time, wallet-native settlement layer for Kwanza,
-addressable by a human-readable **`@banza`** — accessible through QR codes,
-payment links, and developer SDKs.
+**Banzami is a BANZA Operator.** It implements the BANZA protocol and runs the
+financial infrastructure — the ledger, wallets, pricing, settlement, compliance,
+proofs and webhooks — that applications consume through APIs and SDKs.
 
-> **What is a `@banza`?** It is the Banzami handle — the name we give to a user's
-> username. We call it `@banza` because it is short, easy to pronounce, and easy
-> to remember (you pay `@maria`, not an IBAN). It is **not** the BANZA protocol:
+What Banzami **is not**:
+
+- ❌ a payments application
+- ❌ a wallet
+- ❌ a fintech for end users
+- ❌ a crowdfunding application
+- ❌ a delivery application
+
+It is a **financial operator that implements the BANZA protocol**. Applications
+like **DOA** (donations) and **Mongo** (commerce) run *on* Banzami; they are not
+Banzami.
+
+---
+
+## The BANZA ecosystem
+
+This is the **official architecture** of the ecosystem. Everything in this
+repository serves the middle layer — the operator.
+
+```
+                   BANZA Protocol
+                          │
+             define padrões universais
+                          │
+                          ▼
+                Operador Banzami
+                          │
+     executa dinheiro • ledger • compliance
+     pricing • settlement • proofs • webhooks
+                          │
+          valida • liquida • audita • protege
+                          ▼
+          ┌───────────────┴───────────────┐
+          │                               │
+        DOA                           Mongo
+          │                               │
+     define campanhas             define entregas
+     define taxas                 define regras
+     define negócio               define negócio
+          │                               │
+          └───────────────┬───────────────┘
+                          │
+                 usam APIs do Banzami
+```
+
+Three layers, three responsibilities: **the protocol defines, the operator
+executes, the applications use.**
+
+---
+
+## The three layers
+
+### BANZA Protocol — defines the standards
+
+The protocol is the open specification. It defines:
+
+- standards and contracts · interoperability · wallets · wallet accounts ·
+  settlements · proofs · webhooks · security.
+
+The protocol **never knows about**: DOA · Mongo · Marketplace · Delivery ·
+Ticketing · Crowdfunding · campaigns · commercial rules · commercial fees · any
+application. It defines *what is possible*, never *who uses it*.
+
+Owned and governed independently at
+[github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
+
+### Operador Banzami — executes the money
+
+The operator (**this repository**) implements the protocol and runs the
+infrastructure. It is responsible for:
+
+- Ledger · Wallets · Wallet Accounts · Pricing Engine · Operator Fees ·
+  Application Settlement · Compliance · KYC · KYB · Receipts · Transaction Proofs ·
+  QR Payments · Notifications · Audit · Webhooks · SDKs · APIs.
+
+The operator **never defines**: campaigns · commercial rules · application prices ·
+an application's business model. It validates, settles, audits and protects — it
+does not invent the business.
+
+### Applications — define the business
+
+DOA · Mongo · Marketplace · Delivery · Ticketing · and any future app. Applications:
+
+- define their business · define campaigns · define rules · define the user
+  experience · define their commercial fees · consume the operator's APIs.
+
+An application **never**: implements a ledger · implements proofs · implements
+receipts · implements compliance · implements settlement · moves money. All
+financial logic belongs exclusively to the operator.
+
+---
+
+## Princípio Fundamental
+
+> ### As aplicações definem o negócio.
+> ### O operador executa o dinheiro.
+> ### O protocolo define os padrões.
+>
+> *(Applications define the business. The operator executes the money. The
+> protocol defines the standards.)*
+
+This is an **official rule** of the project.
+
+---
+
+## Regra de Ouro
+
+> ## Nenhuma aplicação cliente pode implementar lógica financeira própria.
+>
+> *(No client application may implement its own financial logic.)*
+
+An application must **never**:
+
+- calculate balances
+- move money
+- execute settlement
+- generate receipts
+- generate proofs
+- validate payments
+- hold sub-balances
+- keep its own ledger
+
+**All financial logic belongs exclusively to the Banzami operator.**
+
+---
+
+## Every monetised application is a Business Account
+
+Any application that **receives money** through the operator must exist as a
+**Business Account** inside Banzami (see
+[ADR-028](docs/adr/ADR-028-application-business-account-requirement.md) and
+[docs/architecture/business-accounts.md](docs/architecture/business-accounts.md)).
+
+Examples: **DOA · Mongo · Marketplace · Delivery · Ticketing · NGO · Crowdfunding.**
+
+Each one has, inside the operator:
+
+- a **`@banza`** handle
+- a **Business Account**
+- a **Wallet** (per currency)
+- **Wallet Accounts** (segregated balances)
+- **KYB** approval
+- **API keys**
+- **Webhooks**
+- **Application Settlement**
+
+> **What is a `@banza`?** It is the Banzami handle — the name we give to a
+> username (you pay `@maria`, not an IBAN). It is **not** the BANZA protocol;
 > `@banza` is simply Banzami's word for "handle".
+
+---
+
+## Wallet Accounts
+
+A Business Account holds **one Wallet per currency**. Inside a Wallet there are
+several **Wallet Accounts** — segregated balances, each with its own ledger
+account (see [ADR-027](docs/adr/ADR-027-wallet-accounts-operator-implementation.md)
+and [docs/domains/wallet-accounts/](docs/domains/wallet-accounts/README.md)).
+
+```
+Wallet (Kz)
+├── PRIMARY        ← the default account
+├── CAMPAIGN A     ← isolated balance (e.g. a DOA campaign)
+├── CAMPAIGN B
+├── ESCROW
+├── STORE
+└── PROJECT
+```
+
+A Wallet Account is **not** a person, a merchant, or a consumer. It is **only a
+financial segregation**. The operator keeps **all** balances; **applications never
+hold sub-balances.** An app references a wallet account by id and asks the operator
+for the balance — it never computes one.
+
+---
+
+## Operator Fee vs Application Fee
+
+Two different fees, never confused (see
+[ADR-029](docs/adr/ADR-029-application-defined-settlement-fees.md)).
+
+| | **Operator Fee** | **Application Fee** |
+|---|---|---|
+| Defined by | the **operator** (Banzami) | the **application** |
+| Configured in | Pricing Rules / BANZADMIN | the app's admin (DOA Admin, Mongo Admin, …) |
+| Applied | on **every payment** | when it makes sense for that app (e.g. at settlement) |
+| Operator's role | sets and charges it | **validates · executes · audits** — never sets the rate |
+
+Application fees are the **app's** commercial policy:
+
+| App | Application fee |
+|-----|-----------------|
+| DOA | 5% |
+| Mongo | 12% |
+| Marketplace | 15% |
+| Ticketing | 8% |
+
+The operator **validates, executes and audits** the fee. It **never decides an
+application's commercial rate.**
+
+---
+
+## The financial flow
+
+The only correct way value moves for an application:
+
+```
+Application
+   ↓  POST Application Settlement   (names accounts + its own fee; no amount)
+Operator validates                 (auth · Business Account · KYB · ownership · bounds)
+   ↓
+Ledger                             (double-entry, atomic, balanced)
+   ↓
+Settlement                         (fee → app, net → beneficiary)
+   ↓
+Webhook                            (signed application_settlement.completed)
+   ↓
+Application updates its state      (mark SETTLED)
+```
+
+This is **never** allowed:
+
+```
+Application
+   ↓  UPDATE balance
+   ↓  manual transfer
+```
+
+An application **requests**; the operator **executes**.
+
+---
+
+## DOA — a worked example
+
+```
+Campaign
+   ↓  create a CAMPAIGN Wallet Account
+Donations
+   ↓  credit ONLY the campaign account
+Campaign account balance  (kept by the operator — DOA never computes it)
+   ↓  DOA requests: "execute this settlement" (application_fee_bps = 500)
+Settlement
+   ├── 5%  → @doa          (the application fee — DOA's policy)
+   └── 95% → beneficiary   (the net)
+```
+
+DOA **never** calculates the balance and **never** distributes money. DOA only
+asks the operator: *"execute this settlement."* The operator reads the real
+balance, computes the split, posts the balanced ledger entries, and emits the
+webhook. Full contract:
+[docs/doa/settlement-contract.md](docs/doa/settlement-contract.md) ·
+[docs/doa/readiness.md](docs/doa/readiness.md).
+
+---
+
+## Protocol-first
+
+New **structural** financial/protocolar concepts originate in the protocol and
+flow **downward**, never the other way:
+
+```
+BANZA Protocol  →  Banzami Operator  →  SDK  →  Applications
+```
+
+Apps own UX and consume capabilities; the operator implements what the protocol
+defines; the SDKs expose it. Apps and SDKs never invent new financial behaviour on
+their own. See [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md),
+Banzami ADR-019, and BANZA ADR-035.
+
+---
+
+## Engineering architecture
+
+Strict language boundaries enforce the rule that all financial logic lives in the
+operator: **Rust** owns financial correctness, **Go** owns the API surface,
+**PostgreSQL** is the single source of truth. The Rust core is the only writer of
+financial state — no service above it can violate a financial invariant.
+
+![Architecture — apps, Go services, Rust core, PostgreSQL](docs/diagrams/banzami-architecture-v1.svg)
+
+Every posting is double-entry and atomic, every balance is derived from the
+ledger, and every operation is idempotent and replay-safe.
+
+---
+
+## What the operator enables
+
+Because the operator runs all the financial infrastructure, applications get
+instant Kwanza payments by calling one API and five SDKs — integration in hours,
+not weeks.
+
+| For | What the operator provides |
+|-----|----------------------------|
+| **Consumers** | a free Kwanza wallet with a human `@banza`; send/receive instantly; pay by QR |
+| **Merchants** | accept payment with no terminal hardware; instant settlement; one dashboard |
+| **Developers** | one API + five SDKs; typed clients, idempotency, signed webhooks, full sandbox |
+| **Applications** | wallet-native payments, segregated funds, and app-defined settlement — without building any financial infrastructure |
 
 ```
 Pix      → Brazil
@@ -44,147 +338,28 @@ UPI      → India
 Banzami  → Angola
 ```
 
-Banzami is the first operator built on the open [BANZA](#ecosystem) protocol.
-
 ---
 
-## The Problem
-
-Today, paying another person or a merchant in Angola is slow, manual, and built
-on trust in a photo of a receipt. Cash fills the gap, with all its cost and risk.
-Banzami replaces the entire flow with one motion: **scan, confirm, paid.**
-
-![The problem Banzami solves](docs/diagrams/banzami-problem-v1.svg)
-
----
-
-## The Banzami Network
-
-Consumers, merchants, and developers connect to a single wallet-native network.
-Money never leaves the ledger; it moves between wallets in real time. Every
-participant holds a wallet, and QR codes, payment links, and SDKs are simply
-different ways to initiate the same transfer.
-
-![The Banzami network](docs/diagrams/banzami-network-v1.svg)
-
----
-
-## Core Products
-
-![Core products — consumer app, merchant app, business dashboard, SDK platform](docs/diagrams/banzami-products-v1.svg)
-
----
-
-## How Money Moves
-
-Banzami is **wallet-native**. There are no card rails and no dependency on
-physical POS terminals (TPA). A payment is a ledger movement between two wallets,
-and the merchant is credited the moment the transfer commits.
-
-![How money moves — consumer wallet to instant transfer to merchant wallet](docs/diagrams/banzami-money-flow-v1.svg)
-
-The financial core enforces correctness: every posting is double-entry and
-atomic, every balance is derived from the ledger, and every operation is
-idempotent and replay-safe.
-
----
-
-## Developer Platform
-
-Any Angolan application — a taxi app, a delivery platform, an e-commerce store,
-a donation platform — accepts instant Kwanza through one API and five official
-SDKs. Integration takes hours, not weeks.
-
-![Developer platform — SDKs to Banzami API to the payment network](docs/diagrams/banzami-developer-platform-v1.svg)
-
----
-
-## Architecture
-
-Strict language boundaries: Rust owns financial correctness, Go owns the API
-surface, PostgreSQL is the single source of truth. The Rust core is the only
-writer of financial state — no service above it can violate a financial invariant.
-
-![Architecture — apps, Go services, Rust core, PostgreSQL](docs/diagrams/banzami-architecture-v1.svg)
-
-### Protocol-first
-
-Banzami is the **reference operator** of BANZA — an implementation and a product,
-not the source of the protocol's concepts. New structural financial/protocolar
-concepts originate in the protocol and flow **downward**, never the other way:
-
-```
-BANZA Protocol  →  Banzami Operator  →  SDK  →  Consumer / Merchant / Admin Apps
-```
-
-Apps own UX and consume capabilities; the operator implements what the protocol
-defines; the SDKs expose it. Apps and SDKs never invent new financial behaviour
-on their own. See [docs/architecture/protocol-integration.md](docs/architecture/protocol-integration.md),
-Banzami ADR-019, and BANZA ADR-035.
-
----
-
-## Why Banzami
-
-### For consumers
-A free Kwanza wallet with a human `@banza` (your Banzami handle). Send and receive
-money instantly, pay any merchant by scanning a QR — no cash, no IBAN, no card.
-
-### For merchants
-Accept payments with zero terminal hardware. Print a QR or share a link, receive
-money in seconds, and manage everything from one dashboard with instant settlement.
-
-### For developers
-One API and five SDKs to accept Kwanza natively inside any app. Typed clients,
-idempotency, signed webhooks, and a full sandbox — from `install` to first
-payment in minutes.
-
-### For platforms
-Marketplaces, delivery apps, and e-commerce platforms embed wallet-native
-payments and instant settlement directly into their product, in Kwanza, without
-building payment infrastructure.
-
----
-
-## National Impact
-
-Banzami exists to make digital Kwanza payments the default in Angola.
-
-| Lever | Effect |
-|-------|--------|
-| **Financial inclusion** | A wallet for anyone with a phone — no bank branch, no card |
-| **Digital commerce** | Any merchant accepts digital payment without a terminal |
-| **Instant payments** | Settlement in seconds replaces manual transfers and cash |
-| **QR economy** | A printed QR turns any counter into a point of sale |
-| **SDK economy** | Local developers build payment-native apps on shared rails |
-
-Less cash in circulation, fewer manual confirmations, and a payment surface
-every Angolan application can build on.
-
----
-
-## Ecosystem
+## The BANZA ecosystem (repositories)
 
 Banzami is the first commercial operator built on the BANZA protocol. BANZA
-defines the open protocol; Banzami implements it as a wallet-native payment
-network. BanzAI is an adjacent protocol knowledge system that helps developers
-and operators understand the protocol — it does not operate payments and is not
-part of the Banzami operator.
+defines the open protocol; Banzami implements it. BanzAI is an adjacent protocol
+knowledge system — it does not operate payments and is not part of the operator.
 
 ![Ecosystem — BANZA defines, Banzami operates, BanzAI explains](docs/diagrams/banzami-ecosystem-v1.svg)
 
-**BANZA** — the open financial protocol, owned and governed independently at
-[github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
-**BanzAI** — the protocol's knowledge system, at
-[github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai).
+- **BANZA** — the open financial protocol, governed independently at
+  [github.com/banza-protocol/banza](https://github.com/banza-protocol/banza).
+- **BanzAI** — the protocol's knowledge system, at
+  [github.com/banza-protocol/banzai](https://github.com/banza-protocol/banzai).
 
 ---
 
-## Repository Structure
+## Repository structure
 
 | Directory | Contents |
 |-----------|----------|
-| `core/` | Rust financial core — ledger, wallets, transfers, QR, settlement, payouts |
+| `core/` | Rust financial core — ledger, wallets, wallet accounts, transfers, QR, settlement, payouts |
 | `services/` | Go services — `api-gateway`, `public-api`, `admin-api`, and `common/documents` (shared [Document Engine](docs/document-engine.md)). A root `go.work` ties them together. |
 | `apps/` | Product apps — mobile, merchant, dashboard, admin, pay, checkout, website |
 | `sdk/` | Banzami integration SDKs — TypeScript, Flutter, Python, PHP, Go |
@@ -213,18 +388,33 @@ configuration: [docs/](docs/).
 
 ## Documentation
 
-All technical documentation lives in [docs/](docs/) — architecture, domains,
-runbooks, security, sandbox, and integration guides. Start at
-[docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md).
+All technical documentation lives in [docs/](docs/). Start at
+[docs/DOCUMENTATION_MAP.md](docs/DOCUMENTATION_MAP.md). The architecture above is
+the reference; these documents must never contradict it.
+
+**Architecture & rules**
+- [Business Accounts (the rule)](docs/architecture/business-accounts.md) · [ADR-028](docs/adr/ADR-028-application-business-account-requirement.md)
+- [Protocol integration](docs/architecture/protocol-integration.md)
+- [All ADRs](docs/adr/)
+
+**Financial domains**
+- [Wallet Accounts](docs/domains/wallet-accounts/README.md) · [ADR-027](docs/adr/ADR-027-wallet-accounts-operator-implementation.md)
+- [Application Settlement](docs/domains/application-settlement/README.md) · [ADR-021](docs/adr/ADR-021-operator-fee-pricing-engine-and-application-settlement.md) · [ADR-029](docs/adr/ADR-029-application-defined-settlement-fees.md)
+- [Pricing](docs/domains/pricing/README.md) · [Compliance](docs/domains/compliance/) · [Ledger](docs/domains/ledger/) · [Wallets](docs/domains/wallets/)
+
+**Platform & operations**
+- [Platform Status (ADR-024)](docs/adr/ADR-024-platform-status.md) · [Environment router (ADR-025)](docs/adr/ADR-025-platform-mode-environment-router.md)
+- [Notifications (FCM)](docs/playbooks/fcm-push-notifications-flutter-ios.md)
+
+**Applications**
+- [DOA readiness](docs/doa/readiness.md) · [DOA ↔ Banzami settlement contract](docs/doa/settlement-contract.md)
 
 ---
 
 ## Status
 
-Banzami is an **operator-side payment product and sandbox implementation aligned
-with the BANZA protocol**. BANZA is the protocol; Banzami is a candidate
-operator/product implementation built to consume BANZA conformance tooling — it
-does not own or govern the protocol (see [Ecosystem](#ecosystem)).
+Banzami is an **operator-side implementation aligned with the BANZA protocol**. It
+does not own or govern the protocol (see [the ecosystem](#the-banza-ecosystem)).
 
 It is in active development and **not yet launch-ready**. The financial core —
 double-entry ledger, atomic postings, consumer wallets, balance derivation, P2P
@@ -247,7 +437,7 @@ Production federation:          not live
 
 | Horizon | Focus |
 |---------|-------|
-| **Now** | Wallets, transfers, QR, payment links, SDKs, sandbox |
+| **Now** | Wallets, wallet accounts, transfers, QR, payment links, application settlement, SDKs, sandbox |
 | **Next** | Real Kwanza funding via an approved rail (EMIS or partner bank) · automated bank/rail payouts · PHP SDK v1 · production observability |
 | **Later** | Broader merchant tooling, platform integrations, and network growth |
 
@@ -258,8 +448,7 @@ Production federation:          not live
 The **Validation Studio** is Banzami's readiness control room. It tracks every
 implementation domain, launch blocker, external dependency, roadmap item, and
 piece of validation evidence — and it deliberately keeps "implemented" separate
-from "launch-ready". It separates internal engineering readiness from external
-dependencies, and it is the source of truth for current Banzami readiness.
+from "launch-ready". It is the source of truth for current Banzami readiness.
 
 - Source of truth: [`docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json`](docs/validation/BANZAMI_IMPLEMENTATION_MATRIX.json)
 - App: [`apps/validation-studio/`](apps/validation-studio/) — `make studio` (local-only)
@@ -283,20 +472,18 @@ What the figures mean:
 - **Internal blockers** — not launch-ready for reasons still under Banzami's own engineering control.
 - **External blockers** — blocked by a dependency outside Banzami's engineering control (KYC/KYB vendor, money-in/out rails, BNA / regulatory).
 - **Roadmap** — tracked future scope (e.g. BANZA L1–L4); **not** a launch blocker.
-- **Baseline** — an achieved capability shown for context (e.g. the L0 baseline) without double-counting the evidence it points to.
 
 ---
 
 ## Why the matrix matters
 
-The matrix is not a marketing dashboard. It is a governance and readiness
-instrument. It answers: what is implemented, what is validated, what is blocked,
-what is external, and what must not yet be claimed. Concretely, it:
+The matrix is a governance and readiness instrument, not a marketing dashboard. It
+answers: what is implemented, what is validated, what is blocked, what is external,
+and what must not yet be claimed. It:
 
 - prevents false readiness claims;
 - shows what is done, blocked, or future;
 - documents evidence for each validated item;
-- protects against subjective "we are ready" assertions;
 - creates an auditable governance trail (every VALIDATED status carries a fingerprint, approver, and commit);
 - separates code completion from business launch readiness.
 
@@ -305,8 +492,8 @@ what is external, and what must not yet be claimed. Concretely, it:
 ## BANZA protocol conformance
 
 Banzami runs the **official BANZA conformance suite** against its sandbox
-(`https://sandbox-operator.banzami.com`) as an **operator candidate**. The current result
-is **Level 0, 5/5 passed**, cross-validated on two distribution channels:
+(`https://sandbox-operator.banzami.com`) as an **operator candidate**. The current
+result is **Level 0, 5/5 passed**, cross-validated on two distribution channels:
 
 - PyPI: `banza-conformance==0.1.0`
 - GHCR: `ghcr.io/banza-protocol/banza-conformance:v0.1.0`
@@ -318,8 +505,8 @@ The report is archived at
 **PASS means conformance evidence, not certification.** The BANZA protocol owns
 the certification framework; no production certificate is issued or served
 (`/.well-known/banza/certificate.json` is intentionally absent), and Banzami is
-not in any production operator registry. Production certification is gated on
-later operator milestones (real rails, KYC/KYB, production keys), none complete.
+not in any production operator registry. Production certification is gated on later
+operator milestones (real rails, KYC/KYB, production keys), none complete.
 
 Reproduce the L0 run:
 
@@ -333,13 +520,6 @@ banza-conformance \
   --url https://sandbox-operator.banzami.com \
   --level 0 \
   --output evidence/banza-conformance/l0/banzami-sandbox-l0-report.json
-
-# Pinned Docker image (GHCR)
-docker run --rm -v "$PWD/reports:/reports" \
-  ghcr.io/banza-protocol/banza-conformance:v0.1.0 \
-  --url https://sandbox-operator.banzami.com \
-  --level 0 \
-  --output /reports/banzami-sandbox-l0-report.json
 ```
 
 ### BANZA Level Roadmap
@@ -353,24 +533,8 @@ docker run --rm -v "$PWD/reports:/reports" \
 | **L4** | External interoperability | FUTURE | profile-defined |
 
 Levels and rules are defined by BANZA, not by Banzami — see the protocol's
-`BANZA_CERTIFICATION.md` and [docs/certification.md](docs/certification.md).
-L1–L4 are roadmap; none are validated and none imply certification.
-
----
-
-## Launch readiness
-
-Banzami has **no current internal engineering blockers** in the launch scope, but
-it is **not launch-ready** because external dependencies remain unresolved. The
-10 external blockers include:
-
-- KYC/KYB provider (vendor decision pending);
-- money-in rails (funding through an approved provider);
-- money-out rails (withdrawals / settlement through an approved provider);
-- BNA / regulatory / licensing dependencies.
-
-Until those are resolved, launch status remains **NOT YET**, regardless of how
-much internal engineering is complete.
+`BANZA_CERTIFICATION.md` and [docs/certification.md](docs/certification.md). L1–L4
+are roadmap; none are validated and none imply certification.
 
 ---
 
@@ -381,7 +545,6 @@ much internal engineering is complete.
 - L0 PASS is **not** certification — it is dry-run conformance evidence.
 - L1 / L2 / L3 / L4 are **not** validated.
 - Production federation is **not** live.
-- M2 / M3 are **not** complete.
 - Conformance does **not** replace legal, regulatory, KYC/KYB, AML-CFT, banking, or licensing obligations.
 
 ---
