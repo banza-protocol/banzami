@@ -147,9 +147,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	r.Post("/v1/merchant/applications/{id}/documents/{document_id}/confirm", merchantDocumentHandler.ConfirmUpload)
 	r.Get("/v1/merchant/applications/{id}/documents", merchantDocumentHandler.ListDocuments)
 
-	// Internal service-to-service endpoints — admin-api only (shared secret).
+	// Internal service-to-service endpoints — admin-api / public-api only (shared secret).
 	r.Group(func(r chi.Router) {
 		r.Use(middleware.InternalAuth(cfg.InternalAPIKey))
+		// Idempotent proof minting for services that render receipts (public-api).
+		r.Post("/internal/v1/proofs/ensure", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).EnsureProof)
 		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
 			r.Get("/", merchantAppAdminHandler.List)
 			r.Get("/{id}", merchantAppAdminHandler.Get)

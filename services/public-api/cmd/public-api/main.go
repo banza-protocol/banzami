@@ -79,10 +79,11 @@ func main() {
 	}
 
 	srv := server.New(cfg, server.Dependencies{
-		CoreClient: core,
-		CredStore:  creds,
-		FCMSvc:     fcmSvc,
-		KycSvc:     kycSvc,
+		CoreClient:  core,
+		CredStore:   creds,
+		FCMSvc:      fcmSvc,
+		KycSvc:      kycSvc,
+		ProofClient: service.NewProofClient(cfg.GatewayInternalURL, cfg.InternalAPIKey),
 	})
 
 	sigCtx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

@@ -27,12 +27,18 @@ type pdfGenerator func(context.Context, documents.ReceiptData) ([]byte, error)
 // ReceiptHandler serves the official Consumer transfer receipt (PDF) generated
 // server-side by the shared Document Engine from real `transfers` data.
 type ReceiptHandler struct {
-	core ReceiptCore
-	gen  pdfGenerator
+	core   ReceiptCore
+	gen    pdfGenerator
+	proofs *service.ProofClient // optional; mints the verifiable proof reference
+	env    string               // "LIVE" | "SANDBOX" (gateway proof vocabulary)
 }
 
-func NewReceiptHandler(core ReceiptCore) *ReceiptHandler {
-	return &ReceiptHandler{core: core, gen: documents.GeneratePDF}
+func NewReceiptHandler(core ReceiptCore, proofs *service.ProofClient, environment string) *ReceiptHandler {
+	env := "LIVE"
+	if strings.EqualFold(strings.TrimSpace(environment), "SANDBOX") {
+		env = "SANDBOX"
+	}
+	return &ReceiptHandler{core: core, gen: documents.GeneratePDF, proofs: proofs, env: env}
 }
 
 func nameOf(c *service.ConsumerRecord) string {
@@ -91,7 +97,18 @@ func (h *ReceiptHandler) ConsumerReceipt(w http.ResponseWriter, r *http.Request)
 	sender, _ := h.core.GetConsumer(r.Context(), t.SenderID)
 	recipient, _ := h.core.GetConsumer(r.Context(), t.RecipientID)
 
-	data := buildConsumerReceipt(t, sender, recipient)
+	// Mint (idempotently) the verifiable transaction proof so the receipt QR
+	// resolves to a GREEN verification page at banzami.com/r/<ref>. Fall back to
+	// the derived reference if the gateway is unreachable — the QR still renders
+	// (it just won't resolve until a proof exists), never blocking the receipt.
+	ref := reference(t.ID)
+	if h.proofs != nil {
+		if pref, perr := h.proofs.EnsureReference(r.Context(), proofInputFromTransfer(t, sender, recipient, h.env)); perr == nil && pref != "" {
+			ref = pref
+		}
+	}
+
+	data := buildConsumerReceipt(t, sender, recipient, ref)
 
 	pdf, err := h.gen(r.Context(), data)
 	if err != nil {
@@ -106,9 +123,38 @@ func (h *ReceiptHandler) ConsumerReceipt(w http.ResponseWriter, r *http.Request)
 	_, _ = w.Write(pdf)
 }
 
+// proofInputFromTransfer builds the gateway ensure-proof payload from a canonical
+// transfer. Both parties are consumers (P2P).
+func proofInputFromTransfer(t *service.Transfer, sender, recipient *service.ConsumerRecord, env string) service.ProofEnsureInput {
+	desc := ""
+	if t.Description != nil {
+		desc = *t.Description
+	}
+	confirmed := t.UpdatedAt
+	return service.ProofEnsureInput{
+		TransactionID:    t.ID,
+		TransferID:       t.ID,
+		Environment:      env,
+		PayerSubjectType: "consumer",
+		PayerSubjectID:   t.SenderID,
+		PayerDisplayName: nameOf(sender),
+		PayerHandle:      handleOf(sender),
+		PayeeSubjectType: "consumer",
+		PayeeSubjectID:   t.RecipientID,
+		PayeeDisplayName: nameOf(recipient),
+		PayeeHandle:      handleOf(recipient),
+		AmountMinor:      t.Amount.AmountMinor,
+		Currency:         t.Currency,
+		Status:           t.Status,
+		Description:      desc,
+		Method:           "Transferência Banzami · @banza",
+		LedgerReference:  t.ID,
+		ConfirmedAt:      &confirmed,
+	}
+}
+
 // buildConsumerReceipt maps a real transfer + parties into ReceiptData. Pure.
-func buildConsumerReceipt(t *service.Transfer, sender, recipient *service.ConsumerRecord) documents.ReceiptData {
-	ref := reference(t.ID)
+func buildConsumerReceipt(t *service.Transfer, sender, recipient *service.ConsumerRecord, ref string) documents.ReceiptData {
 	desc := ""
 	if t.Description != nil {
 		desc = *t.Description

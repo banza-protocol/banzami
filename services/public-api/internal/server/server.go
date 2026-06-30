@@ -29,6 +29,7 @@ type Dependencies struct {
 	CredStore   *service.CredentialStore
 	FCMSvc      *notify.FCMService
 	KycSvc      *service.KycService
+	ProofClient *service.ProofClient // optional; mints receipt proof references
 }
 
 // Server wraps the HTTP server lifecycle.
@@ -57,7 +58,7 @@ func New(cfg *config.Config, deps Dependencies) *Server {
 	meH             := handler.NewMeHandler(deps.CoreClient, cfg.Environment)
 	transferH       := handler.NewTransferHandler(deps.CoreClient, deps.CredStore, transferLimiter, deps.FCMSvc)
 	activityH       := handler.NewActivityHandler(deps.CoreClient)
-	receiptH        := handler.NewReceiptHandler(deps.CoreClient)
+	receiptH        := handler.NewReceiptHandler(deps.CoreClient, deps.ProofClient, cfg.Environment)
 	paymentLinkH    := handler.NewPaymentLinkHandler(deps.CoreClient, deps.FCMSvc)
 	consumerPayLinkH := handler.NewConsumerPayLinkHandler(deps.CoreClient, deps.CredStore, deps.FCMSvc)
 	sandboxH        := handler.NewSandboxHandler(deps.CoreClient, cfg.Environment)

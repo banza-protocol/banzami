@@ -29,6 +29,13 @@ type Config struct {
 	KycStorageRegion    string
 	KycStorageAccessKey string
 	KycStorageSecretKey string
+
+	// GatewayInternalURL + InternalAPIKey let public-api ask the gateway to mint a
+	// transaction proof for a receipt (the gateway owns proof generation + the
+	// signing key — ADR-040/ADR-025). When empty, receipts fall back to a derived
+	// reference (the QR still renders, but resolves only once a proof exists).
+	GatewayInternalURL string
+	InternalAPIKey     string
 }
 
 // Load reads config from environment variables.
@@ -87,5 +94,7 @@ func Load() (*Config, error) {
 		LogFormat:    logFormat,
 		OTLPEndpoint: os.Getenv("OTLP_ENDPOINT"),
 		Environment:  env,
+		GatewayInternalURL: os.Getenv("GATEWAY_INTERNAL_URL"),
+		InternalAPIKey:     os.Getenv("INTERNAL_API_KEY"),
 	}, nil
 }

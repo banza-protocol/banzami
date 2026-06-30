@@ -121,7 +121,8 @@ func TestConsumerReceipt_GenFailure503(t *testing.T) {
 
 func TestBuildConsumerReceipt(t *testing.T) {
 	p := sampleParties()
-	d := buildConsumerReceipt(sampleTransfer(), p["s1"], p["r1"])
+	tx := sampleTransfer()
+	d := buildConsumerReceipt(tx, p["s1"], p["r1"], reference(tx.ID))
 	if d.Perspective != documents.PerspectiveConsumer {
 		t.Error("wrong perspective")
 	}

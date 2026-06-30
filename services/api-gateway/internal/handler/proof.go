@@ -3,10 +3,12 @@ package handler
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -73,4 +75,55 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	resp := h.svc.Public(proof)
 	resp["verification_count"] = proof.VerificationCount + 1 // include this hit
 	writeJSON(w, http.StatusOK, resp)
+}
+
+// POST /internal/v1/proofs/ensure — INTERNAL (admin-api / public-api only, behind
+// InternalAuth). Idempotently ensures the verifiable transaction proof and returns
+// its public reference. The gateway owns proof generation (it holds the signing
+// key + hash salt), so other services ask it to mint the reference rather than
+// duplicating the logic — e.g. public-api when it serves a consumer receipt so the
+// printed QR resolves at banzami.com/r/<ref> (ADR-040).
+func (h *ProofHandler) EnsureProof(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "proofs unavailable"})
+		return
+	}
+	var in struct {
+		TransactionID    string     `json:"transaction_id"`
+		TransferID       string     `json:"transfer_id"`
+		PaymentIntentID  string     `json:"payment_intent_id"`
+		Environment      string     `json:"environment"`
+		PayerSubjectType string     `json:"payer_subject_type"`
+		PayerSubjectID   string     `json:"payer_subject_id"`
+		PayerDisplayName string     `json:"payer_display_name"`
+		PayerHandle      string     `json:"payer_handle"`
+		PayeeSubjectType string     `json:"payee_subject_type"`
+		PayeeSubjectID   string     `json:"payee_subject_id"`
+		PayeeDisplayName string     `json:"payee_display_name"`
+		PayeeHandle      string     `json:"payee_handle"`
+		AmountMinor      int64      `json:"amount_minor"`
+		Currency         string     `json:"currency"`
+		Status           string     `json:"status"`
+		Description      string     `json:"description"`
+		Method           string     `json:"method"`
+		LedgerReference  string     `json:"ledger_reference"`
+		ConfirmedAt      *time.Time `json:"confirmed_at"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.TransactionID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "transaction_id is required"})
+		return
+	}
+	proof, err := h.svc.Ensure(r.Context(), service.ProofInput{
+		TransactionID: in.TransactionID, TransferID: in.TransferID, PaymentIntentID: in.PaymentIntentID,
+		Environment:      in.Environment,
+		PayerSubjectType: in.PayerSubjectType, PayerSubjectID: in.PayerSubjectID, PayerDisplayName: in.PayerDisplayName, PayerHandle: in.PayerHandle,
+		PayeeSubjectType: in.PayeeSubjectType, PayeeSubjectID: in.PayeeSubjectID, PayeeDisplayName: in.PayeeDisplayName, PayeeHandle: in.PayeeHandle,
+		AmountMinor: in.AmountMinor, Currency: in.Currency, Status: in.Status, Description: in.Description,
+		Method: in.Method, LedgerReference: in.LedgerReference, ConfirmedAt: in.ConfirmedAt,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not ensure proof"})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"proof_reference": proof.ProofReference})
 }
