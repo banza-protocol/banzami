@@ -8,7 +8,7 @@ import { AdminApi, type MerchantApplication } from '@/lib/admin-api';
 import { Badge, statusLabelPt } from '@/components/ui/badge';
 import { Card, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
-import { formatDate, initials, withAt } from '@/lib/format';
+import { formatDate, initials, withAt, accountTypeLabel } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -153,6 +153,7 @@ export default function MerchantsPage() {
           <thead>
             <tr className="bg-[#FFF7F6]">
               <Th>Comerciante</Th>
+              <Th>Tipo</Th>
               <Th>Categoria</Th>
               <Th>Província</Th>
               <Th>NIF</Th>
@@ -178,6 +179,7 @@ export default function MerchantsPage() {
                     </div>
                   </div>
                 </Td>
+                <Td className="font-semibold text-[#5a4a4e]">{accountTypeLabel(m.business_account_type)}</Td>
                 <Td className="font-semibold text-[#5a4a4e]">{m.category || '—'}</Td>
                 <Td className="font-semibold text-[#5a4a4e]">{m.country || m.city || '—'}</Td>
                 <Td mono className="font-bold">{m.nif || '—'}</Td>

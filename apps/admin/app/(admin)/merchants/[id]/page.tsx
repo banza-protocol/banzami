@@ -10,7 +10,7 @@ import { Card, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { KybDocumentsSection } from '@/components/applications/KybDocumentsSection';
-import { formatDate, initials, withAt } from '@/lib/format';
+import { formatDate, initials, withAt, accountTypeLabel } from '@/lib/format';
 
 function getApi(): AdminApi | null {
   const s = getSession();
@@ -216,6 +216,7 @@ export default function MerchantDetailPage() {
               ['Nome legal', m.business_name],
               ['@negócio', withAt(m.desired_handle), true],
               ['NIF', m.nif || '—', true],
+              ['Tipo de conta', accountTypeLabel(m.business_account_type)],
               ['Categoria', m.category || '—'],
               ['Subcategoria', m.subcategory || '—'],
               ['Atividade', m.business_activity || '—'],

@@ -65,3 +65,18 @@ export function withAt(handle: string | null | undefined): string {
   if (!handle) return '—';
   return handle.startsWith('@') ? handle : `@${handle}`;
 }
+
+/** ADR-028 business account type → human label (pt). Empty ⇒ plain merchant. */
+const ACCOUNT_TYPE_LABELS: Record<string, string> = {
+  MERCHANT: 'Comerciante',
+  APPLICATION: 'Aplicação',
+  PLATFORM: 'Plataforma',
+  NGO: 'ONG',
+  MARKETPLACE: 'Marketplace',
+  DELIVERY: 'Delivery',
+  OTHER: 'Outro',
+};
+export function accountTypeLabel(t: string | null | undefined): string {
+  if (!t) return 'Comerciante';
+  return ACCOUNT_TYPE_LABELS[t] ?? t;
+}

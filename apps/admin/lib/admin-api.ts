@@ -1106,6 +1106,7 @@ export interface MerchantApplication {
   representative_phone: string;
   business_activity:    string;
   estimated_volume:     string;
+  business_account_type: string;
   admin_notes:          string;
   merchant_message:     string;
   created_merchant_id:  string;
