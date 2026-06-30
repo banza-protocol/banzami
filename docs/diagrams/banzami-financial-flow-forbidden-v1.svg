@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 196" role="img" aria-label="Forbidden financial pattern" font-family="system-ui,-apple-system,sans-serif">
+  <title>Never allowed — an application moving money itself</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A0A14"/><stop offset="100%" stop-color="#B5101F"/></linearGradient>
+  </defs>
+  <rect width="900" height="196" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#7A0A14"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-012 · NEVER ALLOWED</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">This is never allowed</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">No app moves money itself</text>
+
+  <rect x="120" y="86" width="660" height="86" rx="12" fill="#FFF1F0" stroke="#E8434B" stroke-width="1.5" stroke-dasharray="6 4"/>
+
+  <!-- prohibition mark -->
+  <circle cx="176" cy="129" r="24" fill="none" stroke="#B5101F" stroke-width="3.5"/>
+  <line x1="160" y1="113" x2="192" y2="145" stroke="#B5101F" stroke-width="3.5"/>
+
+  <text x="232" y="120" font-size="13" font-weight="800" fill="#9A1B22">Application  →  UPDATE balance</text>
+  <text x="232" y="148" font-size="13" font-weight="800" fill="#9A1B22">Application  →  manual transfer</text>
+
+  <rect x="636" y="112" width="118" height="34" rx="17" fill="#B5101F"/>
+  <text x="695" y="134" text-anchor="middle" font-size="12" font-weight="800" fill="#FFFFFF" letter-spacing="1">FORBIDDEN</text>
+</svg>

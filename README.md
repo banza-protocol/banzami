@@ -163,15 +163,7 @@ several **Wallet Accounts** — segregated balances, each with its own ledger
 account (see [ADR-027](docs/adr/ADR-027-wallet-accounts-operator-implementation.md)
 and [docs/domains/wallet-accounts/](docs/domains/wallet-accounts/README.md)).
 
-```
-Wallet (Kz)
-├── PRIMARY        ← the default account
-├── CAMPAIGN A     ← isolated balance (e.g. a DOA campaign)
-├── CAMPAIGN B
-├── ESCROW
-├── STORE
-└── PROJECT
-```
+![Wallet Accounts — one wallet per currency, several segregated accounts inside](docs/diagrams/banzami-wallet-accounts-v1.svg)
 
 A Wallet Account is **not** a person, a merchant, or a consumer. It is **only a
 financial segregation**. The operator keeps **all** balances; **applications never
@@ -210,27 +202,11 @@ application's commercial rate.**
 
 The only correct way value moves for an application:
 
-```
-Application
-   ↓  POST Application Settlement   (names accounts + its own fee; no amount)
-Operator validates                 (auth · Business Account · KYB · ownership · bounds)
-   ↓
-Ledger                             (double-entry, atomic, balanced)
-   ↓
-Settlement                         (fee → app, net → beneficiary)
-   ↓
-Webhook                            (signed application_settlement.completed)
-   ↓
-Application updates its state      (mark SETTLED)
-```
+![The financial flow — application requests, operator executes](docs/diagrams/banzami-financial-flow-v1.svg)
 
 This is **never** allowed:
 
-```
-Application
-   ↓  UPDATE balance
-   ↓  manual transfer
-```
+![Never allowed — an application moving money itself](docs/diagrams/banzami-financial-flow-forbidden-v1.svg)
 
 An application **requests**; the operator **executes**.
 
@@ -238,17 +214,7 @@ An application **requests**; the operator **executes**.
 
 ## DOA — a worked example
 
-```
-Campaign
-   ↓  create a CAMPAIGN Wallet Account
-Donations
-   ↓  credit ONLY the campaign account
-Campaign account balance  (kept by the operator — DOA never computes it)
-   ↓  DOA requests: "execute this settlement" (application_fee_bps = 500)
-Settlement
-   ├── 5%  → @doa          (the application fee — DOA's policy)
-   └── 95% → beneficiary   (the net)
-```
+![DOA worked example — campaign donations settle 5% to @doa, 95% to the beneficiary](docs/diagrams/banzami-doa-example-v1.svg)
 
 DOA **never** calculates the balance and **never** distributes money. DOA only
 asks the operator: *"execute this settlement."* The operator reads the real
@@ -264,9 +230,7 @@ webhook. Full contract:
 New **structural** financial/protocolar concepts originate in the protocol and
 flow **downward**, never the other way:
 
-```
-BANZA Protocol  →  Banzami Operator  →  SDK  →  Applications
-```
+![Protocol-first — BANZA to Banzami to SDK to Applications](docs/diagrams/banzami-protocol-first-v1.svg)
 
 Apps own UX and consume capabilities; the operator implements what the protocol
 defines; the SDKs expose it. Apps and SDKs never invent new financial behaviour on
@@ -302,12 +266,7 @@ not weeks.
 | **Developers** | one API + five SDKs; typed clients, idempotency, signed webhooks, full sandbox |
 | **Applications** | wallet-native payments, segregated funds, and app-defined settlement — without building any financial infrastructure |
 
-```
-Pix      → Brazil
-M-Pesa   → Kenya
-UPI      → India
-Banzami  → Angola
-```
+![Instant payment networks — Pix Brazil, M-Pesa Kenya, UPI India, Banzami Angola](docs/diagrams/banzami-payment-networks-v1.svg)
 
 ---
 

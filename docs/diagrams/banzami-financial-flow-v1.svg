@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 452" role="img" aria-label="The financial flow" font-family="system-ui,-apple-system,sans-serif">
+  <title>The financial flow — the only correct way value moves for an application</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <linearGradient id="banza" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#7A0A14"/><stop offset="100%" stop-color="#A01020"/></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+  <rect width="900" height="452" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-011 · FINANCIAL FLOW</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">An application requests · the operator executes</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">The only correct way value moves</text>
+
+  <!-- 1 Application -->
+  <rect x="180" y="84" width="380" height="40" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="370" y="109" text-anchor="middle" font-size="13" font-weight="800" fill="#374151">Application</text>
+  <line x1="370" y1="124" x2="370" y2="142" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+  <text x="580" y="118" font-size="9.5" fill="#6B7280">POST Application Settlement — names accounts + its own fee, no amount</text>
+
+  <!-- 2 Operator validates -->
+  <rect x="180" y="142" width="380" height="40" rx="10" fill="url(#hg)"/>
+  <text x="370" y="167" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Operator validates</text>
+  <text x="580" y="166" font-size="9.5" fill="#6B7280">auth · Business Account · KYB · ownership · bounds</text>
+  <line x1="370" y1="182" x2="370" y2="200" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- 3 Ledger -->
+  <rect x="180" y="200" width="380" height="40" rx="10" fill="url(#banza)"/>
+  <text x="370" y="225" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Ledger</text>
+  <text x="580" y="224" font-size="9.5" fill="#6B7280">double-entry · atomic · balanced</text>
+  <line x1="370" y1="240" x2="370" y2="258" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- 4 Settlement -->
+  <rect x="180" y="258" width="380" height="40" rx="10" fill="url(#hg)"/>
+  <text x="370" y="283" text-anchor="middle" font-size="13" font-weight="800" fill="#FFFFFF">Settlement</text>
+  <text x="580" y="282" font-size="9.5" fill="#6B7280">fee → app · net → beneficiary</text>
+  <line x1="370" y1="298" x2="370" y2="316" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- 5 Webhook -->
+  <rect x="180" y="316" width="380" height="40" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="370" y="341" text-anchor="middle" font-size="13" font-weight="800" fill="#374151">Webhook</text>
+  <text x="580" y="340" font-size="9.5" fill="#6B7280">signed application_settlement.completed</text>
+  <line x1="370" y1="356" x2="370" y2="374" stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)"/>
+
+  <!-- 6 Application updates state -->
+  <rect x="180" y="374" width="380" height="40" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="370" y="399" text-anchor="middle" font-size="13" font-weight="800" fill="#374151">Application updates its state</text>
+  <text x="580" y="398" font-size="9.5" fill="#6B7280">mark SETTLED</text>
+</svg>

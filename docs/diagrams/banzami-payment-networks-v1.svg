@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 158" role="img" aria-label="Instant payment networks by country" font-family="system-ui,-apple-system,sans-serif">
+  <title>Instant payment networks — Pix (Brazil), M-Pesa (Kenya), UPI (India), Banzami (Angola)</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+  </defs>
+  <rect width="900" height="158" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-015 · PAYMENT NETWORKS</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">A national instant-payment network — for Angola</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">one country · one network</text>
+
+  <rect x="30" y="92" width="190" height="50" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="125" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="#374151">Pix</text>
+  <text x="125" y="131" text-anchor="middle" font-size="10" fill="#6B7280">Brazil</text>
+
+  <rect x="245" y="92" width="190" height="50" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="340" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="#374151">M-Pesa</text>
+  <text x="340" y="131" text-anchor="middle" font-size="10" fill="#6B7280">Kenya</text>
+
+  <rect x="460" y="92" width="190" height="50" rx="10" fill="#FFFFFF" stroke="#D1D5DB" stroke-width="1.5"/>
+  <text x="555" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="#374151">UPI</text>
+  <text x="555" y="131" text-anchor="middle" font-size="10" fill="#6B7280">India</text>
+
+  <rect x="675" y="92" width="195" height="50" rx="10" fill="url(#hg)"/>
+  <text x="772" y="114" text-anchor="middle" font-size="14" font-weight="800" fill="#FFFFFF">Banzami</text>
+  <text x="772" y="131" text-anchor="middle" font-size="10" fill="#FBD2D0">Angola</text>
+</svg>
