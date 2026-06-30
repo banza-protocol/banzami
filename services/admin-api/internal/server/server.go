@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/banzami/banzami/services/common/obs"
 	"time"
@@ -135,7 +136,13 @@ func New(cfg *config.Config, core *service.CoreAdminClient, mailer *email.Sender
 		consumerH := handler.NewConsumerHandler(core)
 		walletH := handler.NewWalletHandler(core)
 		riskH := handler.NewRiskHandler(core)
-		disputeH := handler.NewDisputeHandler(core)
+		// This admin instance's environment (live admin → LIVE, admin-api-staging →
+		// SANDBOX) selects which gateway's proof to reverse on WON_BY_CONSUMER.
+		adminEnv := os.Getenv("ENVIRONMENT")
+		if adminEnv == "" {
+			adminEnv = "LIVE"
+		}
+		disputeH := handler.NewDisputeHandler(core, gw, adminEnv)
 
 		// Merchants
 		r.With(cap(auth.CapMerchantManage)).Post("/admin/v1/merchants", merchantSetupH.Create)

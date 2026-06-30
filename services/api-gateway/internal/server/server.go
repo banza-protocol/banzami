@@ -115,7 +115,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
-	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
+	refundHandler := handler.NewRefundHandler(deps.RefundSvc, deps.ProofSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
 	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)
@@ -159,6 +159,9 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Use(middleware.InternalAuth(cfg.InternalAPIKey))
 		// Idempotent proof minting for services that render receipts (public-api).
 		r.Post("/internal/v1/proofs/ensure", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).EnsureProof)
+		// Proactive proof reversal — admin-api on dispute WON_BY_CONSUMER (and any
+		// future core reversal event). Flips the public proof to REVERSED.
+		r.Post("/internal/v1/proofs/reverse", handler.NewProofHandler(deps.ProofSvc, deps.ProofHashSalt).Reverse)
 		r.Route("/internal/v1/merchant-applications", func(r chi.Router) {
 			r.Get("/", merchantAppAdminHandler.List)
 			r.Get("/{id}", merchantAppAdminHandler.Get)

@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -14,11 +15,12 @@ import (
 )
 
 type RefundHandler struct {
-	svc service.RefundService
+	svc    service.RefundService
+	proofs *service.ProofService // optional; flips the transaction proof to REVERSED
 }
 
-func NewRefundHandler(svc service.RefundService) *RefundHandler {
-	return &RefundHandler{svc: svc}
+func NewRefundHandler(svc service.RefundService, proofs *service.ProofService) *RefundHandler {
+	return &RefundHandler{svc: svc, proofs: proofs}
 }
 
 // POST /v1/refunds
@@ -62,6 +64,18 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
 		return
+	}
+
+	// Proactively flip the transaction's public proof to REVERSED: a refunded
+	// payment must not keep showing a green "verified" proof. Best-effort +
+	// idempotent (MarkReversed is a no-op if there is no proof yet; Ensure will
+	// then materialize it as REVERSED on the next receipt). Audit Part 7 / Unit 3.
+	if h.proofs != nil {
+		if err := h.proofs.MarkReversed(r.Context(), body.TransactionID, principal.Environment); err != nil {
+			slog.ErrorContext(r.Context(), "proof.mark_reversed.failed", "transaction_id", body.TransactionID, "error", err)
+		} else {
+			slog.InfoContext(r.Context(), "proof.reversed", "transaction_id", body.TransactionID, "cause", "refund")
+		}
 	}
 
 	respond(w, http.StatusCreated, refund)

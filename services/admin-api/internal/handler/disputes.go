@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 
@@ -13,10 +14,12 @@ import (
 
 type DisputeHandler struct {
 	core *service.CoreAdminClient
+	gw   *service.GatewayClient // owns transaction proofs; flips them to REVERSED
+	env  string                 // "LIVE" | "SANDBOX" — this admin instance's environment
 }
 
-func NewDisputeHandler(core *service.CoreAdminClient) *DisputeHandler {
-	return &DisputeHandler{core: core}
+func NewDisputeHandler(core *service.CoreAdminClient, gw *service.GatewayClient, env string) *DisputeHandler {
+	return &DisputeHandler{core: core, gw: gw, env: env}
 }
 
 // GET /admin/v1/disputes?merchant_id=&consumer_id=&status=&limit=
@@ -93,5 +96,18 @@ func (h *DisputeHandler) Resolve(w http.ResponseWriter, r *http.Request) {
 		"resolution_notes": body.ResolutionNotes,
 		"status":           "RESOLVED",
 	})
+
+	// WON_BY_CONSUMER reverses the transaction (a dispute-refund ledger movement in
+	// core), so its public proof must go REVERSED too. Best-effort + idempotent.
+	if body.Outcome == "WON_BY_CONSUMER" && h.gw != nil {
+		if txnID, _ := result["transaction_id"].(string); txnID != "" {
+			if err := h.gw.ReverseProof(r.Context(), txnID, h.env); err != nil {
+				slog.ErrorContext(r.Context(), "proof.reverse.failed", "transaction_id", txnID, "dispute_id", id, "error", err)
+			} else {
+				slog.InfoContext(r.Context(), "proof.reversed", "transaction_id", txnID, "cause", "dispute_won_by_consumer")
+			}
+		}
+	}
+
 	writeJSON(w, http.StatusOK, result)
 }

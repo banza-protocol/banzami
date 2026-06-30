@@ -131,3 +131,30 @@ func (h *ProofHandler) EnsureProof(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"proof_reference": proof.ProofReference})
 }
+
+// POST /internal/v1/proofs/reverse — INTERNAL (behind InternalAuth). Proactively
+// flips a transaction's proof to REVERSED on a refund / dispute-won-by-consumer /
+// reversal, so the public page goes red immediately instead of waiting for a
+// receipt re-fetch. Idempotent; a no-op when no proof exists yet (Ensure will then
+// materialize it as REVERSED). Audit Part 7 / Unit 3.
+func (h *ProofHandler) Reverse(w http.ResponseWriter, r *http.Request) {
+	if h.svc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"error": "proofs unavailable"})
+		return
+	}
+	var in struct {
+		TransactionID string `json:"transaction_id"`
+		Environment   string `json:"environment"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&in); err != nil || in.TransactionID == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "transaction_id is required"})
+		return
+	}
+	if err := h.svc.MarkReversed(r.Context(), in.TransactionID, in.Environment); err != nil {
+		slog.ErrorContext(r.Context(), "proof.mark_reversed.failed", "transaction_id", in.TransactionID, "error", err)
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "could not reverse proof"})
+		return
+	}
+	slog.InfoContext(r.Context(), "proof.reversed", "transaction_id", in.TransactionID, "cause", "internal")
+	writeJSON(w, http.StatusOK, map[string]any{"reversed": true})
+}

@@ -84,6 +84,15 @@ func (c *GatewayClient) do(ctx context.Context, method, path string, body, out a
 	return resp.StatusCode, nil
 }
 
+// ReverseProof asks the gateway (which owns transaction proofs) to flip a
+// transaction's public proof to REVERSED — e.g. after a dispute resolved
+// WON_BY_CONSUMER. Idempotent on the gateway; a no-op when no proof exists yet.
+func (c *GatewayClient) ReverseProof(ctx context.Context, transactionID, environment string) error {
+	_, err := c.do(ctx, http.MethodPost, "/internal/v1/proofs/reverse",
+		map[string]string{"transaction_id": transactionID, "environment": environment}, nil)
+	return err
+}
+
 // ListApplicationsRaw / GetApplicationRaw forward the gateway JSON verbatim to
 // the admin UI (no secrets in these payloads).
 func (c *GatewayClient) ListApplicationsRaw(ctx context.Context, status, environment string) (json.RawMessage, int, error) {
