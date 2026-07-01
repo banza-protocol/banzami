@@ -62,6 +62,7 @@ export 'widgets/banzami_amount_input.dart';
 export 'widgets/money_amount.dart';
 export 'widgets/money_input.dart';
 export 'widgets/banzami_logo.dart';
+export 'widgets/banzami_qr.dart';
 export 'widgets/banzami_qr_display.dart';
 export 'widgets/banzami_qr_scanner.dart';
 export 'widgets/banzami_sandbox_banner.dart';

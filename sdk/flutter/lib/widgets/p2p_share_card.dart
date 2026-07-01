@@ -4,10 +4,10 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import 'banzami_qr.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/money_format.dart';
 import '../utils/banzami_toast.dart';
@@ -539,24 +539,11 @@ class _P2PShareCardBuilderState extends State<P2PShareCardBuilder> {
                           ),
                           child: CustomPaint(
                             size: const Size(120, 120),
-                            painter: QrPainter(
-                              data:                 qrPayload,
-                              version:              QrVersions.auto,
-                              errorCorrectionLevel: QrErrorCorrectLevel.H,
-                              eyeStyle: const QrEyeStyle(
-                                eyeShape: QrEyeShape.square,
-                                color:    BanzamiColors.primary,
-                              ),
-                              dataModuleStyle: const QrDataModuleStyle(
-                                dataModuleShape: QrDataModuleShape.square,
-                                color:           BanzamiColors.gray900,
-                              ),
-                              embeddedImage:      _loadedImage,
-                              embeddedImageStyle: _loadedImage != null
-                                  ? const QrEmbeddedImageStyle(
-                                      size: Size(120 * kQrEmbeddedBoxFraction,
-                                                 120 * kQrEmbeddedBoxFraction))
-                                  : null,
+                            // Canonical QR painter (shared across the ecosystem).
+                            painter: banzamiQrPainter(
+                              payload: qrPayload,
+                              logo: _loadedImage,
+                              renderSize: 120,
                             ),
                           ),
                         ),

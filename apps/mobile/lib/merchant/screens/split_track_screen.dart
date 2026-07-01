@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../../branding_assets.dart';
 import '../config.dart';
 
 /// Acompanha uma cobrança dividida (BANZA ADR-036 Collection).
@@ -345,12 +345,10 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
                     blurRadius: 16, offset: const Offset(0, 4)),
               ],
             ),
-            child: QrImageView(
-              data: payUrl,
+            child: BanzamiQr(
+              payload: payUrl,
               size: 200,
-              backgroundColor: BanzamiColors.white,
-              eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square, color: BanzamiColors.primary),
+              logo: AssetImage(BrandingAssets.businessLogo),
             ),
           ),
           const SizedBox(height: BanzamiSpacing.lg),

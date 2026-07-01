@@ -1,9 +1,5 @@
-import 'dart:ui' as ui;
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
@@ -56,30 +52,16 @@ class _ChargeScreenState extends State<ChargeScreen> {
   bool         _sharing  = false;
   String?      _error;
   PaymentLink? _link;          // simple result
-  ui.Image?    _logoUiImage;
 
   @override
   void initState() {
     super.initState();
-    _loadLogo();
   }
 
   @override
   void dispose() {
     _descCtrl.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadLogo() async {
-    final data  = await rootBundle.load(BrandingAssets.businessLogo);
-    final codec = await ui.instantiateImageCodec(
-      data.buffer.asUint8List(),
-      targetWidth:  160,
-      targetHeight: 160,
-    );
-    final frame    = await codec.getNextFrame();
-    final composed = await composeQrCenterLogo(frame.image);
-    if (mounted) setState(() => _logoUiImage = composed);
   }
 
   // Amounts are entered/shown as human money ("50 000,50 Kz") and stored as
@@ -440,26 +422,10 @@ class _ChargeScreenState extends State<ChargeScreen> {
               ),
             ],
           ),
-          child: CustomPaint(
-            size: const Size(220, 220),
-            painter: QrPainter(
-              data:                 _payUrl,
-              version:              QrVersions.auto,
-              errorCorrectionLevel: QrErrorCorrectLevel.H,
-              eyeStyle: const QrEyeStyle(
-                eyeShape: QrEyeShape.square,
-                color:    BanzamiColors.primary,
-              ),
-              dataModuleStyle: const QrDataModuleStyle(
-                dataModuleShape: QrDataModuleShape.square,
-                color:           BanzamiColors.gray900,
-              ),
-              embeddedImage:      _logoUiImage,
-              embeddedImageStyle: _logoUiImage != null
-                  ? const QrEmbeddedImageStyle(
-                      size: Size(220 * kQrEmbeddedBoxFraction, 220 * kQrEmbeddedBoxFraction))
-                  : null,
-            ),
+          child: BanzamiQr(
+            payload: _payUrl,
+            size: 220,
+            logo: AssetImage(BrandingAssets.businessLogo),
           ),
         ),
 

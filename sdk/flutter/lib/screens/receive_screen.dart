@@ -3,7 +3,6 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../client/consumer_public_client.dart';
@@ -15,6 +14,7 @@ import '../utils/banzami_toast.dart';
 import '../utils/qr_logo_utils.dart';
 import '../widgets/banzami_amount_input.dart';
 import '../widgets/banzami_components.dart';
+import '../widgets/banzami_qr.dart';
 import '../widgets/banzami_qr_display.dart';
 
 // ---------------------------------------------------------------------------
@@ -210,22 +210,11 @@ class _BanzamiReceiveScreenState extends State<BanzamiReceiveScreen> {
     HapticFeedback.lightImpact();
     setState(() => _sharing = true);
     try {
-      final painter = QrPainter(
-        data:                 _qrPayload,
-        version:              QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.H,
-        eyeStyle: const QrEyeStyle(
-          eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.primary,
-        ),
-        dataModuleStyle: const QrDataModuleStyle(
-          dataModuleShape: QrDataModuleShape.square,
-          color:           BanzamiColors.gray900,
-        ),
-        embeddedImage:      _logoUiImage,
-        embeddedImageStyle: _logoUiImage != null
-            ? const QrEmbeddedImageStyle(size: Size(80, 80))
-            : null,
+      // Canonical QR painter (shared with the on-screen widget) → PNG.
+      final painter = banzamiQrPainter(
+        payload: _qrPayload,
+        logo: _logoUiImage,
+        renderSize: 512,
       );
 
       final byteData = await painter.toImageData(512);

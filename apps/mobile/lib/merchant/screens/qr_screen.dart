@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
@@ -77,21 +76,11 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
     if (_sharing) return;
     setState(() => _sharing = true);
     try {
-      final painter = QrPainter(
-        data:                 _qrPayload!,
-        version:              QrVersions.auto,
-        errorCorrectionLevel: QrErrorCorrectLevel.H,
-        eyeStyle:        const QrEyeStyle(
-          eyeShape: QrEyeShape.square,
-          color:    BanzamiColors.primary,
-        ),
-        dataModuleStyle: const QrDataModuleStyle(
-          dataModuleShape: QrDataModuleShape.square,
-          color:           BanzamiColors.gray900,
-        ),
-        embeddedImage:      _logoImage,
-        embeddedImageStyle: const QrEmbeddedImageStyle(
-          size: Size(512 * kQrEmbeddedBoxFraction, 512 * kQrEmbeddedBoxFraction)),
+      // Canonical QR painter (shared with the on-screen widget) rasterized to PNG.
+      final painter = banzamiQrPainter(
+        payload: _qrPayload!,
+        logo: _logoImage,
+        renderSize: 512,
       );
 
       final byteData = await painter.toImageData(512);
@@ -193,23 +182,11 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
           child: Column(children: [
             CustomPaint(
               size: const Size(256, 256),
-              painter: QrPainter(
-                data:                 _qrPayload!,
-                version:              QrVersions.auto,
-                errorCorrectionLevel: QrErrorCorrectLevel.H,
-                eyeStyle: const QrEyeStyle(
-                  eyeShape: QrEyeShape.square,
-                  color:    BanzamiColors.primary,
-                ),
-                dataModuleStyle: const QrDataModuleStyle(
-                  dataModuleShape: QrDataModuleShape.square,
-                  color:           BanzamiColors.gray900,
-                ),
-                embeddedImage:      _logoImage,
-                embeddedImageStyle: _logoImage != null
-                    ? const QrEmbeddedImageStyle(
-                        size: Size(256 * kQrEmbeddedBoxFraction, 256 * kQrEmbeddedBoxFraction))
-                    : null,
+              // Canonical QR (shared painter) — reuses the already-loaded logo.
+              painter: banzamiQrPainter(
+                payload: _qrPayload!,
+                logo: _logoImage,
+                renderSize: 256,
               ),
             ),
             const SizedBox(height: BanzamiSpacing.lg),
