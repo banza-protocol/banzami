@@ -418,6 +418,10 @@ export function CandidaturaForm() {
 
   // KYB document upload (Track 3) — runs after the application is created.
   const [applicationId, setApplicationId] = useState<string | null>(null);
+  // SANDBOX assisted onboarding: the application is auto-approved on submit and
+  // the raw activation token is returned so the tester can activate immediately.
+  const [autoApproved, setAutoApproved] = useState(false);
+  const [activationToken, setActivationToken] = useState<string | null>(null);
   const [storageNotConfigured, setStorageNotConfigured] = useState(false);
   const [docUpload, setDocUpload] = useState<Record<DocKey, { status: UploadStatus; message?: string }>>({
     docCertidao: { status: 'pending' },
@@ -558,6 +562,8 @@ export function CandidaturaForm() {
     if (r.ok) {
       if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
       setSubmitted(true);
+      setAutoApproved(!!r.sandboxAutoApproved);
+      setActivationToken(r.activationToken ?? null);
       if (r.applicationId) {
         setApplicationId(r.applicationId);
         void uploadAllDocs(r.applicationId);
@@ -1081,7 +1087,7 @@ export function CandidaturaForm() {
                 </div>
                 {show2 && !docsComplete && (
                   <p className="mt-3 text-[13px] font-semibold text-[#B5101F]">
-                    Envie os 3 documentos obrigatórios para continuar.
+                    Envie os documentos obrigatórios para continuar.
                   </p>
                 )}
               </section>
@@ -1096,17 +1102,37 @@ export function CandidaturaForm() {
                   <div className="mx-auto mb-6 flex h-[84px] w-[84px] items-center justify-center rounded-full bg-[#FFF1F0]">
                     {Ic.check(RED, 2.4, 42)}
                   </div>
-                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">Candidatura enviada</h2>
+                  <h2 className="m-0 text-[28px] font-black tracking-[-0.02em]">
+                    {autoApproved ? 'Conta de teste criada' : 'Candidatura enviada'}
+                  </h2>
                   {isSandbox && (
-                    <div className="mx-auto mt-4 max-w-[420px] rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13.5px] font-bold text-amber-800">
-                      Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não foi criada uma conta Business real.
+                    <div className="mx-auto mt-4 max-w-[440px] rounded-[12px] border-[1.5px] border-amber-300 bg-amber-50 px-4 py-2.5 text-[13.5px] font-bold text-amber-800">
+                      {autoApproved ? (
+                        <>Aprovada automaticamente em <span className="font-black">SANDBOX</span> — ambiente de teste. Não é uma conta Business real.</>
+                      ) : (
+                        <>Candidatura enviada para <span className="font-black">SANDBOX</span> — ambiente de teste. Não foi criada uma conta Business real.</>
+                      )}
                     </div>
                   )}
-                  <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
-                    A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for
-                    aprovado, receberá um link de ativação no email indicado para definir o PIN de
-                    acesso à sua Conta Business.
-                  </p>
+                  {autoApproved && activationToken ? (
+                    <>
+                      <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
+                        A sua conta de teste foi aprovada e provisionada. Ativa agora para definir o PIN e começar a testar.
+                      </p>
+                      <a
+                        href={`/comerciantes/activar?token=${encodeURIComponent(activationToken)}`}
+                        className="mt-6 inline-flex items-center justify-center gap-2 rounded-[14px] bg-[#B5101F] px-6 py-3.5 text-[15.5px] font-extrabold text-white no-underline transition-[background,transform] duration-150 hover:-translate-y-px hover:bg-[#9A1B22]"
+                      >
+                        Ativar conta de teste
+                      </a>
+                    </>
+                  ) : (
+                    <p className="m-0 mt-[14px] text-[16px] font-semibold leading-[1.55] text-[#6a5a5e]">
+                      A equipa Banzami vai analisar os dados e documentos do seu negócio. Se for
+                      aprovado, receberá um link de ativação no email indicado para definir o PIN de
+                      acesso à sua Conta Business.
+                    </p>
+                  )}
 
                   <div className="mx-auto mt-7 max-w-[400px] rounded-[16px] border-[1.5px] border-[#f4e6e6] bg-white p-5 text-left">
                     <div className="flex items-center justify-between gap-3 text-[14px] font-bold text-[#5a4a4e]">

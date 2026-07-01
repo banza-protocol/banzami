@@ -174,7 +174,16 @@ export type ApplicationInput = {
   terms_accepted: boolean;
 };
 
-export type SubmitResult = { ok: boolean; status: number; applicationId?: string; error?: string };
+export type SubmitResult = {
+  ok: boolean;
+  status: number;
+  applicationId?: string;
+  /** SANDBOX assisted onboarding: true when the application was auto-approved. */
+  sandboxAutoApproved?: boolean;
+  /** SANDBOX only: raw activation token so the tester can activate immediately. */
+  activationToken?: string;
+  error?: string;
+};
 
 export async function submitApplication(input: ApplicationInput): Promise<SubmitResult> {
   // Route to the stack matching the current Platform Mode and tag the request
@@ -188,7 +197,13 @@ export async function submitApplication(input: ApplicationInput): Promise<Submit
   });
   if (res.ok) {
     const j = await res.json().catch(() => ({}));
-    return { ok: true, status: res.status, applicationId: j.application_id };
+    return {
+      ok: true,
+      status: res.status,
+      applicationId: j.application_id,
+      sandboxAutoApproved: j.sandbox_auto_approved === true,
+      activationToken: typeof j.activation_token === 'string' ? j.activation_token : undefined,
+    };
   }
   const j = await res.json().catch(() => ({}));
   return { ok: false, status: res.status, error: j.message || j.code };
