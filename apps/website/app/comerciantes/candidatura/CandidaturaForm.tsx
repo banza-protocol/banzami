@@ -15,6 +15,13 @@ import {
 } from '@/lib/api';
 import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
 import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
+import {
+  sandboxBusinessData,
+  sandboxSeed,
+  makeSandboxDoc,
+  SANDBOX_DOC_FILENAMES,
+  type SandboxBusiness,
+} from '@/lib/sandbox-autofill';
 
 // ===========================================================================
 // Banzami Business — onboarding (Crie a sua conta Business em minutos).
@@ -59,7 +66,7 @@ const DOC_DEFS: DocDef[] = [
 
 type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
 
-type DocState = { file: File | null; name: string; error: string | null };
+type DocState = { file: File | null; name: string; error: string | null; sandbox?: boolean };
 const emptyDoc: DocState = { file: null, name: '', error: null };
 
 // --- Icons (inline SVG, from the dossier) ----------------------------------
@@ -303,17 +310,51 @@ function PhoneField({
   );
 }
 
-function SectionHead({ icon, title, subtitle }: { icon: ReactNode; title: string; subtitle: string }) {
+function SectionHead({ icon, title, subtitle, action }: { icon: ReactNode; title: string; subtitle: string; action?: ReactNode }) {
   return (
-    <div className="mb-6 flex items-center gap-[14px]">
-      <span className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-[14px] bg-[#FFF1F0]">
-        {icon}
-      </span>
-      <div>
-        <h2 className="m-0 text-[20px] font-black tracking-[-0.01em]">{title}</h2>
-        <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#9a8a8e]">{subtitle}</p>
+    <div className="mb-6 flex items-start justify-between gap-3">
+      <div className="flex items-center gap-[14px]">
+        <span className="flex h-[46px] w-[46px] flex-none items-center justify-center rounded-[14px] bg-[#FFF1F0]">
+          {icon}
+        </span>
+        <div>
+          <h2 className="m-0 text-[20px] font-black tracking-[-0.01em]">{title}</h2>
+          <p className="m-0 mt-0.5 text-[14px] font-semibold text-[#9a8a8e]">{subtitle}</p>
+        </div>
       </div>
+      {action}
     </div>
+  );
+}
+
+// Small sandbox spark icon for the fill controls.
+const SparkIc = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
+    <path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3z" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
+  </svg>
+);
+
+// Tiny "Sandbox" badge for generated documents.
+function SandboxBadge() {
+  return (
+    <span className="inline-flex flex-none items-center rounded-md bg-amber-500 px-1.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-white">
+      Sandbox
+    </span>
+  );
+}
+
+// SANDBOX-only per-section fill button — ghost/outline, small, right-aligned in
+// the section header. Never the big cherry primary; deliberately unobtrusive.
+function SbxFillButton({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex flex-none items-center gap-1.5 rounded-[10px] border-[1.5px] border-amber-300 bg-amber-50/70 px-3 py-[7px] text-[12.5px] font-extrabold text-amber-700 transition-colors hover:bg-amber-100"
+    >
+      {SparkIc}
+      {label}
+    </button>
   );
 }
 
@@ -429,30 +470,77 @@ export function CandidaturaForm() {
     docExtra: { status: 'pending' },
   });
 
-  // SANDBOX-only: one-click fill with realistic Angolan test data so the KYB
-  // flow can be exercised end-to-end quickly. Never rendered in LIVE.
-  function fillSandbox() {
-    const s = Math.floor(1000 + Math.random() * 9000);
-    setName('Cantina do Kilamba');
-    setHandle(`cantina_teste_${s}`);
-    setCategory('Alimentação e bebidas');
+  // Transient sandbox toast ("Formulário preenchido…" / "Secção preenchida…").
+  const [toast, setToast] = useState<{ id: number; msg: string } | null>(null);
+  const showToast = (msg: string) => setToast({ id: Date.now(), msg });
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2600);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // SANDBOX-only autofill. Each applier fills ONLY its own section (never
+  // touches or clears other sections); the global button composes them all and
+  // also generates the sandbox documents + accepts the terms. Values come from
+  // lib/sandbox-autofill (unit-tested). Set the raw state directly (not via the
+  // onChange* handlers) so cascading parents don't wipe the children we set.
+  function applyNegocio(d: SandboxBusiness) {
+    setName(d.name);
+    setHandle(d.handle);
+    setCategory(d.category);
     setCategoryOther('');
-    setSubcategory('Cantina');
-    setPhone('923456789');
-    setEmail(`negocio.teste${s}@exemplo.co.ao`);
-    setProvincia('Luanda');
-    setMunicipio('Talatona');
-    setCidade('Talatona');
-    setEndereco('Rua Direita do Kilamba, Bairro Talatona');
-    setReferencia('Próximo ao supermercado Kero');
-    setRepNome('João da Silva');
-    setNif('5001234567');
-    setCargo('Proprietário(a)');
-    setEmailPessoal(`joao.teste${s}@exemplo.co.ao`);
-    setTelPessoal('923000111');
-    setDescricao('Cantina com refeições e bebidas para levar');
-    setVolume(VOLUME_FAIXAS[0] ?? '');
+    setSubcategory(d.subcategory);
+    setPhone(d.phone);
+    setEmail(d.email);
+  }
+  function applyLocalizacao(d: SandboxBusiness) {
+    setProvincia(d.provincia);
+    setMunicipio(d.municipio);
+    setCidade(d.cidade);
+    setEndereco(d.endereco);
+    setReferencia(d.referencia);
+  }
+  function applyResponsavel(d: SandboxBusiness) {
+    setRepNome(d.repNome);
+    setNif(d.nif);
+    setCargo(d.cargo);
+    setEmailPessoal(d.emailPessoal);
+    setTelPessoal(d.telPessoal);
+  }
+  function applyAtividade(d: SandboxBusiness) {
+    setDescricao(d.descricao);
+    setVolume(d.volume);
+  }
+  // Generate the sandbox documents as real Files so they upload through the
+  // normal presigned-URL path (into the environment's own bucket) after submit.
+  function generateSandboxDocs() {
+    setDocs({
+      docCertidao: { file: makeSandboxDoc(SANDBOX_DOC_FILENAMES.docCertidao, 'Registo Comercial'), name: SANDBOX_DOC_FILENAMES.docCertidao, error: null, sandbox: true },
+      docBi: { file: makeSandboxDoc(SANDBOX_DOC_FILENAMES.docBi, 'Documento de identidade do representante'), name: SANDBOX_DOC_FILENAMES.docBi, error: null, sandbox: true },
+      docExtra: { file: makeSandboxDoc(SANDBOX_DOC_FILENAMES.docExtra, 'Documento adicional'), name: SANDBOX_DOC_FILENAMES.docExtra, error: null, sandbox: true },
+    });
+  }
+
+  // Section handlers (fresh seed each) — fill one section + confirm with a toast.
+  const fillNegocioSection = () => { applyNegocio(sandboxBusinessData()); showToast('Secção preenchida com dados sandbox.'); };
+  const fillLocalizacaoSection = () => { applyLocalizacao(sandboxBusinessData()); showToast('Secção preenchida com dados sandbox.'); };
+  const fillResponsavelSection = () => { applyResponsavel(sandboxBusinessData()); showToast('Secção preenchida com dados sandbox.'); };
+  const fillAtividadeSection = () => { applyAtividade(sandboxBusinessData()); showToast('Secção preenchida com dados sandbox.'); };
+  const fillDocumentosSection = () => { generateSandboxDocs(); showToast('Documentos sandbox gerados.'); };
+
+  // Global: fill the ENTIRE form (one shared seed) so the tester can reach the
+  // review step without touching anything else. In SANDBOX we also pre-accept
+  // the terms (test flow); a real LIVE account never reaches this code.
+  function fillAll() {
+    const d = sandboxBusinessData(sandboxSeed());
+    applyNegocio(d);
+    applyLocalizacao(d);
+    applyResponsavel(d);
+    applyAtividade(d);
+    generateSandboxDocs();
     setAccepted(true);
+    setTried({});
+    showToast('Formulário preenchido com dados sandbox.');
   }
 
   // Dependências Angola/categorias: município depende da província, cidade do
@@ -516,7 +604,7 @@ export function CandidaturaForm() {
     else if (file.size > MAX_DOC_BYTES) error = 'Ficheiro demasiado grande (máx. 5MB).';
     setDocs((d) => ({
       ...d,
-      [key]: error ? { file: null, name: '', error } : { file, name: file.name, error: null },
+      [key]: error ? { file: null, name: '', error } : { file, name: file.name, error: null, sandbox: false },
     }));
   }
 
@@ -719,11 +807,15 @@ export function CandidaturaForm() {
             </p>
             <button
               type="button"
-              onClick={fillSandbox}
-              className="mt-3 inline-flex items-center gap-2 rounded-[12px] bg-amber-500 px-4 py-2 text-[13.5px] font-extrabold text-white transition-colors hover:bg-amber-600"
+              onClick={fillAll}
+              className="mt-3 inline-flex items-center gap-2 rounded-[12px] bg-amber-500 px-5 py-2.5 text-[14px] font-extrabold text-white shadow-[0_8px_20px_-10px_rgba(217,119,6,0.7)] transition-colors hover:bg-amber-600"
             >
-              Preencher com dados de teste
+              {SparkIc}
+              Preencher tudo com dados de teste
             </button>
+            <p className="m-0 mt-2 text-[12px] font-semibold text-amber-700/90">
+              Preenche todas as secções e gera os documentos sandbox. Só precisa de rever e submeter.
+            </p>
           </div>
         </div>
       )}
@@ -804,7 +896,12 @@ export function CandidaturaForm() {
           {step === 1 && (
             <div className="px-[38px] pt-2">
               <section className="border-b-[1.5px] border-[#f6eded] py-[18px] pb-[30px]">
-                <SectionHead icon={Ic.store} title="Sobre o seu negócio" subtitle="Informações básicas da sua empresa." />
+                <SectionHead
+                  icon={Ic.store}
+                  title="Sobre o seu negócio"
+                  subtitle="Informações básicas da sua empresa."
+                  action={isSandbox ? <SbxFillButton label="Usar dados de teste" onClick={fillNegocioSection} /> : undefined}
+                />
                 <div className="grid grid-cols-2 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
                   <Field label="Nome do negócio" error={show1 ? errors.name : null}>
                     <input className={inputClass(show1 && !!errors.name)} value={name} onChange={(e) => setName(e.target.value)} placeholder="Ex: Cantina do Alex" />
@@ -853,7 +950,12 @@ export function CandidaturaForm() {
               </section>
 
               <section className="border-b-[1.5px] border-[#f6eded] py-[28px] pb-[30px]">
-                <SectionHead icon={Ic.pin} title="Localização" subtitle="Onde o seu negócio está localizado." />
+                <SectionHead
+                  icon={Ic.pin}
+                  title="Localização"
+                  subtitle="Onde o seu negócio está localizado."
+                  action={isSandbox ? <SbxFillButton label="Usar dados de teste" onClick={fillLocalizacaoSection} /> : undefined}
+                />
                 <div className="grid grid-cols-3 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
                   <Field label="Província" error={show1 ? errors.provincia : null}>
                     <Select value={provincia} onChange={onChangeProvincia} placeholder="Selecione" options={PROVINCIAS} error={show1 && !!errors.provincia} />
@@ -896,7 +998,12 @@ export function CandidaturaForm() {
               </section>
 
               <section className="py-[28px] pb-[30px]">
-                <SectionHead icon={Ic.personLg} title="Responsável legal" subtitle="Pessoa responsável pelo negócio." />
+                <SectionHead
+                  icon={Ic.personLg}
+                  title="Responsável legal"
+                  subtitle="Pessoa responsável pelo negócio."
+                  action={isSandbox ? <SbxFillButton label="Usar dados de teste" onClick={fillResponsavelSection} /> : undefined}
+                />
                 <div className="grid grid-cols-2 gap-x-5 gap-y-[18px] max-[980px]:grid-cols-1">
                   <Field label="Nome completo" error={show1 ? errors.repNome : null}>
                     <input className={inputClass(show1 && !!errors.repNome)} value={repNome} onChange={(e) => setRepNome(e.target.value)} placeholder="Ex: João da Silva" />
@@ -919,7 +1026,12 @@ export function CandidaturaForm() {
               </section>
 
               <section className="border-b-[1.5px] border-[#f6eded] py-[28px] pb-[30px]">
-                <SectionHead icon={Ic.card} title="Atividade do negócio" subtitle="Ajuda-nos a conhecer o seu negócio." />
+                <SectionHead
+                  icon={Ic.card}
+                  title="Atividade do negócio"
+                  subtitle="Ajuda-nos a conhecer o seu negócio."
+                  action={isSandbox ? <SbxFillButton label="Usar dados de teste" onClick={fillAtividadeSection} /> : undefined}
+                />
                 <div className="grid grid-cols-1 gap-x-5 gap-y-[18px]">
                   <Field label="Descrição curta do negócio" error={show1 ? errors.descricao : null}>
                     <input className={inputClass(show1 && !!errors.descricao)} value={descricao} onChange={(e) => setDescricao(e.target.value)} placeholder="Ex: Cantina com refeições e bebidas para levar" />
@@ -932,16 +1044,19 @@ export function CandidaturaForm() {
 
               {/* DOCUMENTOS */}
               <section className="mb-2 scroll-mt-24 rounded-[20px] bg-[#FFF7F6] p-[26px]" data-invalid={show1 && !!errors.docs ? 'true' : undefined}>
-                <div className="mb-5 flex items-center gap-[14px]">
-                  <span className="flex h-[44px] w-[44px] flex-none items-center justify-center rounded-[13px] bg-white">
-                    {Ic.docLg}
-                  </span>
-                  <div>
-                    <h2 className="m-0 text-[19px] font-black tracking-[-0.01em]">Documentos necessários</h2>
-                    <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-[#9a8a8e]">
-                      Para analisar a candidatura, precisamos apenas dos documentos essenciais da empresa.
-                    </p>
+                <div className="mb-5 flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-[14px]">
+                    <span className="flex h-[44px] w-[44px] flex-none items-center justify-center rounded-[13px] bg-white">
+                      {Ic.docLg}
+                    </span>
+                    <div>
+                      <h2 className="m-0 text-[19px] font-black tracking-[-0.01em]">Documentos necessários</h2>
+                      <p className="m-0 mt-0.5 text-[13.5px] font-semibold text-[#9a8a8e]">
+                        Para analisar a candidatura, precisamos apenas dos documentos essenciais da empresa.
+                      </p>
+                    </div>
                   </div>
+                  {isSandbox && <SbxFillButton label="Gerar documentos sandbox" onClick={fillDocumentosSection} />}
                 </div>
                 <div className="grid grid-cols-3 gap-[14px] max-[980px]:grid-cols-2 max-[560px]:grid-cols-1">
                   {DOC_DEFS.map((d) => {
@@ -970,9 +1085,14 @@ export function CandidaturaForm() {
                         {st.error ? (
                           <span className="text-[12.5px] font-bold text-[#B5101F]">{st.error}</span>
                         ) : up ? (
-                          <span className="inline-flex max-w-full items-center gap-[6px] overflow-hidden text-[12.5px] font-extrabold text-[#1f9d57]">
-                            {Ic.circleCheck(GREEN, 15)}
-                            <span className="overflow-hidden text-ellipsis whitespace-nowrap">{st.name}</span>
+                          <span className="flex flex-col gap-1">
+                            <span className="inline-flex max-w-full items-center gap-[6px] overflow-hidden text-[12.5px] font-extrabold text-[#1f9d57]">
+                              {Ic.circleCheck(GREEN, 15)}
+                              <span className="overflow-hidden text-ellipsis whitespace-nowrap">
+                                {st.sandbox ? 'Documento sandbox pronto' : st.name}
+                              </span>
+                            </span>
+                            {st.sandbox && <SandboxBadge />}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-[6px] text-[13px] font-extrabold text-[#B5101F]">
@@ -1067,8 +1187,11 @@ export function CandidaturaForm() {
                             {d.label}
                             {d.optional && <span className="ml-2 text-[12px] font-bold text-[#b09498]">Opcional</span>}
                           </div>
-                          <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
-                            {st.error || (up ? st.name : (d.hint ?? 'Toque para enviar (PDF, JPG ou PNG)'))}
+                          <div className="mt-0.5 flex items-center gap-2 text-[13px] font-bold text-[#9a8a8e]">
+                            <span className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap">
+                              {st.error || (up ? (st.sandbox ? 'Documento sandbox pronto' : st.name) : (d.hint ?? 'Toque para enviar (PDF, JPG ou PNG)'))}
+                            </span>
+                            {st.sandbox && <SandboxBadge />}
                           </div>
                         </div>
                         {up ? (
@@ -1305,6 +1428,16 @@ export function CandidaturaForm() {
           )}
         </main>
       </div>
+
+      {/* SANDBOX autofill toast */}
+      {toast && (
+        <div className="fixed inset-x-0 bottom-6 z-50 flex justify-center px-4" role="status" aria-live="polite">
+          <div className="inline-flex items-center gap-2 rounded-[14px] bg-[#2a2024] px-5 py-3 text-[13.5px] font-extrabold text-white shadow-[0_16px_40px_-12px_rgba(0,0,0,0.5)]">
+            <span className="text-amber-300">{SparkIc}</span>
+            {toast.msg}
+          </div>
+        </div>
+      )}
     </>
   );
 }
