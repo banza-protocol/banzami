@@ -82,6 +82,7 @@ type receiptView struct {
 	VerifyShort                            string
 	VerifyURL                              string        // full https URL the QR encodes
 	QRSVG                                  template.HTML // inline SVG of the QR
+	IsSandbox                              bool          // SANDBOX → diagonal watermark + note
 }
 
 // verificationURL returns the canonical public verification URL the QR encodes.
@@ -286,6 +287,7 @@ func toView(d ReceiptData) receiptView {
 		VerifyShort: verify,
 		VerifyURL:   qrURL,
 		QRSVG:       qrSVG(qrURL),
+		IsSandbox:   strings.EqualFold(strings.TrimSpace(d.Environment), "SANDBOX"),
 	}
 }
 

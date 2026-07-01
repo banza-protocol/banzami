@@ -108,7 +108,7 @@ func (h *ReceiptHandler) ConsumerReceipt(w http.ResponseWriter, r *http.Request)
 		}
 	}
 
-	data := buildConsumerReceipt(t, sender, recipient, ref)
+	data := buildConsumerReceipt(t, sender, recipient, ref, h.env)
 
 	pdf, err := h.gen(r.Context(), data)
 	if err != nil {
@@ -154,7 +154,7 @@ func proofInputFromTransfer(t *service.Transfer, sender, recipient *service.Cons
 }
 
 // buildConsumerReceipt maps a real transfer + parties into ReceiptData. Pure.
-func buildConsumerReceipt(t *service.Transfer, sender, recipient *service.ConsumerRecord, ref string) documents.ReceiptData {
+func buildConsumerReceipt(t *service.Transfer, sender, recipient *service.ConsumerRecord, ref, env string) documents.ReceiptData {
 	desc := ""
 	if t.Description != nil {
 		desc = *t.Description
@@ -163,6 +163,7 @@ func buildConsumerReceipt(t *service.Transfer, sender, recipient *service.Consum
 		ReceiptID:             t.ID,
 		TransactionID:         t.ID,
 		Reference:             ref,
+		Environment:           env,
 		Perspective:           documents.PerspectiveConsumer,
 		AmountMinor:           t.Amount.AmountMinor,
 		Currency:              t.Currency,

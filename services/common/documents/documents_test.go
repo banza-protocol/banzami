@@ -114,3 +114,28 @@ func TestReceiptQRCode(t *testing.T) {
 		t.Errorf("QR finder eyes not styled in Banzami red (only %d red cells)", eyes)
 	}
 }
+
+func TestSandboxWatermark(t *testing.T) {
+	sb := baseData(PerspectiveConsumer)
+	sb.Environment = "SANDBOX"
+	html, err := RenderHTML(sb)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if !strings.Contains(html, `class="watermark"`) || !strings.Contains(html, ">SANDBOX<") {
+		t.Error("sandbox receipt must show the SANDBOX watermark")
+	}
+	if !strings.Contains(html, "Ambiente de testes") {
+		t.Error("sandbox receipt must carry the test-environment note")
+	}
+
+	live := baseData(PerspectiveConsumer)
+	live.Environment = "LIVE"
+	lh, err := RenderHTML(live)
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	if strings.Contains(lh, `class="watermark"`) {
+		t.Error("live receipt must NOT show a watermark")
+	}
+}

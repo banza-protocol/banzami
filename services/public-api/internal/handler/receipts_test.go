@@ -122,9 +122,12 @@ func TestConsumerReceipt_GenFailure503(t *testing.T) {
 func TestBuildConsumerReceipt(t *testing.T) {
 	p := sampleParties()
 	tx := sampleTransfer()
-	d := buildConsumerReceipt(tx, p["s1"], p["r1"], reference(tx.ID))
+	d := buildConsumerReceipt(tx, p["s1"], p["r1"], reference(tx.ID), "SANDBOX")
 	if d.Perspective != documents.PerspectiveConsumer {
 		t.Error("wrong perspective")
+	}
+	if d.Environment != "SANDBOX" {
+		t.Errorf("environment not propagated: %q", d.Environment)
 	}
 	if d.Reference != "BZM-1111-2222" {
 		t.Errorf("reference = %q", d.Reference)
