@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import QRCode from 'qrcode';
+import { banzamiQrSvgDataUri, QR_SIZE } from '@/lib/banzami-qr';
 import { getPaymentLink } from '@/lib/api';
 import { formatAmount } from '@/lib/format';
 import CheckoutShell from '@/components/checkout-shell';
@@ -70,14 +70,10 @@ export default async function CheckoutPage({ params }: Props) {
     );
   }
 
-  // Generate QR server-side — no client-side flash, no CDN script loading
+  // Canonical Banzami QR Engine (server-side) — one spec across the ecosystem:
+  // ECC H, quiet zone 4, red finders, #111111 data, centre logo.
   const deepLink  = `banzami://pay/link/${link.slug}`;
-  const qrDataUrl = await QRCode.toDataURL(deepLink, {
-    width:                220,
-    margin:               2,
-    color:                { dark: '#B5101F', light: '#ffffff' },
-    errorCorrectionLevel: 'M',
-  });
+  const qrDataUrl = banzamiQrSvgDataUri(deepLink, { size: QR_SIZE.MD });
 
   const amountDisplay = link.amount_minor != null
     ? formatAmount(link.amount_minor, link.currency)

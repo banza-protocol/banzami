@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import QRCode from 'react-qr-code';
+import { banzamiQrSvgDataUri } from '@/lib/banzami-qr';
 import { AcquiringPayment, getPaymentLinkStatus, initiatePay } from '@/lib/api';
 
 interface Props {
@@ -187,12 +187,13 @@ export default function PayClient({
           {/* Floating QR frame */}
           <div className="flex justify-center">
             <div className="bz-qr-frame animate-float">
-              <QRCode
-                value={deepLink}
-                size={172}
-                fgColor="#B5101F"
-                bgColor="#ffffff"
-                level="M"
+              {/* Canonical Banzami QR Engine — ECC H, red finders, centre logo. */}
+              <img
+                src={banzamiQrSvgDataUri(deepLink)}
+                width={172}
+                height={172}
+                alt="QR de pagamento Banzami"
+                className="block"
               />
             </div>
           </div>

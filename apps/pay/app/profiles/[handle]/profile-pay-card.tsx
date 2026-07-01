@@ -1,6 +1,6 @@
 'use client';
 
-import QRCode from 'react-qr-code';
+import { banzamiQrSvgDataUri } from '@/lib/banzami-qr';
 import { useState } from 'react';
 
 /**
@@ -57,7 +57,14 @@ export default function ProfilePayCard({
       {/* Static QR */}
       <div className="bg-white rounded-2xl shadow-sm p-6 flex flex-col items-center gap-3">
         <div className="bg-white p-3 rounded-xl border border-gray-100">
-          <QRCode value={qrValue} size={176} fgColor="#B5101F" />
+          {/* Canonical Banzami QR Engine — ECC H, red finders, centre logo. */}
+          <img
+            src={banzamiQrSvgDataUri(qrValue)}
+            width={176}
+            height={176}
+            alt="QR de pagamento Banzami"
+            className="block"
+          />
         </div>
         <p className="text-sm text-gray-500 text-center">
           Aponta a câmara do Banzami para pagar a{' '}

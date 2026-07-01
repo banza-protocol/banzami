@@ -1,4 +1,4 @@
-import QRCode from 'qrcode';
+import { banzamiQrSvgDataUri, QR_SIZE } from '@/lib/banzami-qr';
 import { formatAmount } from '@/lib/format';
 import HandlePayClient from './handle-client';
 
@@ -20,12 +20,8 @@ export default async function HandlePayPage({ params, searchParams }: Props) {
     ? `https://pay.banzami.com/u/${handle}?amount=${validAmount}`
     : `https://pay.banzami.com/u/${handle}`;
 
-  const qrDataUrl = await QRCode.toDataURL(qrPayload, {
-    width:                220,
-    margin:               2,
-    color:                { dark: '#B5101F', light: '#ffffff' },
-    errorCorrectionLevel: 'M',
-  });
+  // Canonical Banzami QR Engine — ECC H, quiet zone 4, red finders, centre logo.
+  const qrDataUrl = banzamiQrSvgDataUri(qrPayload, { size: QR_SIZE.MD });
 
   const amountLabel = validAmount ? formatAmount(validAmount, 'AOA') : null;
 
