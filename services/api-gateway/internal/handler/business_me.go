@@ -84,6 +84,10 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if res.CategoryLabel != "" {
 		category = res.CategoryLabel
 	}
+	var subcategory any
+	if res.Subcategory != "" {
+		subcategory = res.Subcategory
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"environment":           env,
@@ -100,7 +104,7 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		"wallet_ready":     res.WalletReady,
 		"settlement_ready": res.SettlementReady,
 		"pricing_category": pricingCategory,
-		"subcategory":      nil, // not modelled in the operator yet
+		"subcategory":      subcategory,
 
 		"pricing": map[string]any{
 			"category": pricingCategory,

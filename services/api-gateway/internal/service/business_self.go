@@ -33,6 +33,7 @@ type BusinessResolution struct {
 	Verified            bool
 
 	CategoryLabel   string
+	Subcategory     string // captured at onboarding (merchant_applications)
 	PricingCategory string // derived: DONATION | MARKETPLACE | … | ""
 
 	// Pricing rule the OPERATOR would apply for this category (its own fee), if
@@ -135,6 +136,22 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 		r.CategoryLabel = *category
 	}
 	r.PricingCategory = pricingCategoryFromLabel(r.CategoryLabel)
+
+	// Subcategory is captured at onboarding but not copied to the public profile;
+	// resolve it from the approved application (linked by the desired handle).
+	if r.Handle != "" {
+		var sub *string
+		serr := s.pool.QueryRow(ctx, `
+			SELECT subcategory FROM merchant_applications
+			 WHERE desired_handle = $1 AND status = 'APPROVED'
+			   AND subcategory IS NOT NULL AND subcategory <> ''
+			 ORDER BY created_at DESC LIMIT 1`, r.Handle).Scan(&sub)
+		if serr == nil && sub != nil {
+			r.Subcategory = *sub
+		} else if serr != nil && !errors.Is(serr, pgx.ErrNoRows) {
+			return nil, serr
+		}
+	}
 
 	r.KybStatus = "PENDING"
 	if kybStatus != nil && strings.TrimSpace(*kybStatus) != "" {
