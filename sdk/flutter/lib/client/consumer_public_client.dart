@@ -373,48 +373,11 @@ class ConsumerPublicClient {
     return _call(method: 'POST', path: '/v1/qr/pay', body: body);
   }
 
-  // ---------------------------------------------------------------------------
-  // Split payments (P2P-002)
-  // ---------------------------------------------------------------------------
-
-  /// Open a split session for a group total (the authenticated consumer is the
-  /// owner/recipient). Returns the session including a `qr_payload` to display.
-  Future<Map<String, dynamic>> createSplit({
-    required String ownerId,
-    required int totalMinor,
-    String ownerType = 'CONSUMER',
-    String currency = 'AOA',
-    String? reference,
-  }) {
-    return _call(method: 'POST', path: '/v1/splits', body: {
-      'owner_id': ownerId,
-      'owner_type': ownerType,
-      'currency': currency,
-      'total_minor': totalMinor,
-      if (reference != null) 'reference': reference,
-    });
-  }
-
-  /// Fetch a split session: total, paid, remaining, status, contributions.
-  Future<Map<String, dynamic>> getSplit(String id) =>
-      _call(method: 'GET', path: '/v1/splits/$id');
-
-  /// Contribute [amountMinor] to a split session as [payer] (own @banza handle).
-  /// Throws [BanzamiApiException] carrying the outcome code on refusal
-  /// (`AMOUNT_EXCEEDS_REMAINING`, `SPLIT_NOT_OPEN`, `INSUFFICIENT_FUNDS`,
-  /// `KYC_REQUIRED`, …).
-  Future<Map<String, dynamic>> paySplit({
-    required String id,
-    required String payer,
-    required int amountMinor,
-    String? idempotencyKey,
-  }) {
-    return _call(method: 'POST', path: '/v1/splits/$id/pay', body: {
-      'idempotency_key': idempotencyKey ?? _uuid.v4(),
-      'payer': payer,
-      'amount_minor': amountMinor,
-    });
-  }
+  // Pre-protocol P2P bill-division (P2P-002) was retired in favour of BANZA
+  // Collections (ADR-036). Dividing a bill is a merchant feature now
+  // (BanzamiClient.createEqualSplitCollection); a consumer simply pays a share
+  // through the normal payment-link / QR surfaces — no bill-division client
+  // methods or screens on the consumer side.
 
   // ---------------------------------------------------------------------------
   // KYC — consumer identity verification (Banzami ADR-020)

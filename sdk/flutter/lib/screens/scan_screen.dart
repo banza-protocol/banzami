@@ -10,7 +10,6 @@ import '../widgets/banzami_qr_scanner.dart';
 import 'payment_link_screen.dart';
 import 'payment_request_screen.dart';
 import 'send_screen.dart';
-import 'split_pay_screen.dart';
 import 'structured_qr_pay_screen.dart';
 
 enum _ScanStep { scanning, resolving, error }
@@ -127,10 +126,18 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         debugPrint('[QR-SCAN] route=StructuredQrPay static=$isStatic');
         await _openStructuredPayment(payload: payload, isStatic: isStatic);
 
-      case BanzamiQrSplitPayment(:final splitId, :final isSandbox):
-        debugPrint('[QR-SCAN] route=SplitPay split=$splitId');
-        if (_sandboxMismatch(isSandbox)) return;
-        await _openSplitPayment(splitId);
+      case BanzamiQrSplitPayment():
+        // Pre-protocol P2P split (/v1/splits) was retired in favour of BANZA
+        // Collections (ADR-036). Split bills are now a merchant feature; each
+        // share is surfaced as a normal payment link/QR, so a legacy split QR
+        // no longer has a consumer screen.
+        debugPrint('[QR-SCAN] route=SplitPay (unsupported — legacy)');
+        if (mounted) {
+          setState(() {
+            _error = 'Este QR de divisão de conta já não é suportado.';
+            _step  = _ScanStep.error;
+          });
+        }
 
       case BanzamiQrPaymentLink(:final slug):
         debugPrint('[QR-SCAN] route=PaymentLink slug=$slug');
@@ -147,20 +154,6 @@ class _BanzamiScanScreenState extends State<BanzamiScanScreen> {
         ownHandle: widget.ownHandle,
         isSandbox: widget.isSandbox,
         onSuccess: (transfer) => widget.onSuccess(transfer),
-      ),
-    ));
-    if (mounted) _rescan();
-  }
-
-  Future<void> _openSplitPayment(String splitId) async {
-    if (!mounted) return;
-    await Navigator.of(context).push(BanzamiPageRoute(
-      page: BanzamiSplitPayScreen(
-        client:      widget.client,
-        splitId:     splitId,
-        payerHandle: widget.ownHandle ?? '',
-        isSandbox:   widget.isSandbox,
-        onSuccess:   widget.onSuccess,
       ),
     ));
     if (mounted) _rescan();
