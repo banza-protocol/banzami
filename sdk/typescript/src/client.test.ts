@@ -687,3 +687,19 @@ describe('payment sessions', () => {
     expect(url).toContain('limit=10');
   });
 });
+
+describe('getBusinessMe', () => {
+  it('GETs /v1/business/me and returns the typed self profile', async () => {
+    mockFetch(200, {
+      environment: 'SANDBOX', id: 'm-1', handle: 'doa', business_name: 'Doa',
+      business_account_type: 'MERCHANT', status: 'ACTIVE', kyb_status: 'APPROVED',
+      verified: true, category: 'Doações e causas', wallet_ready: true, settlement_ready: true,
+    });
+    const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
+    const me = await c.getBusinessMe();
+    expect(lastFetchCall().url).toContain('/v1/business/me');
+    expect(me.handle).toBe('doa');
+    expect(me.kyb_status).toBe('APPROVED');
+    expect(me.settlement_ready).toBe(true);
+  });
+});

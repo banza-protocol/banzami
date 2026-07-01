@@ -15,6 +15,7 @@ import type {
   QrResponse,
   ParsedQr,
   Merchant,
+  BusinessProfile,
   ApiKey,
   NewApiKey,
   PaymentLink,
@@ -715,6 +716,17 @@ export class BanzamiClient {
 
   getMerchant(id: string): Promise<Merchant> {
     return this.request<Merchant>(`/merchants/${id}`);
+  }
+
+  /**
+   * Resolve the authenticated Business account's own consolidated profile —
+   * handle, account type, category, wallet + KYB readiness — so an integrating
+   * application can render an accurate "Integration Health" view instead of
+   * inferring from local env vars. Self-scoped to the key's business; returns
+   * only non-secret fields.
+   */
+  getBusinessMe(): Promise<BusinessProfile> {
+    return this.request<BusinessProfile>('/business/me');
   }
 
   listApiKeys(merchantId: string): Promise<ApiKey[]> {

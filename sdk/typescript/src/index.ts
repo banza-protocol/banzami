@@ -39,6 +39,7 @@ export type {
   QrResponse,
   ParsedQr,
   Merchant,
+  BusinessProfile,
   MerchantStatus,
   ApiKey,
   NewApiKey,

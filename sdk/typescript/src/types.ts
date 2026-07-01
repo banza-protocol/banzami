@@ -204,6 +204,26 @@ export interface Merchant {
   created_at: string;
 }
 
+/**
+ * The authenticated Business account's own consolidated profile, returned by
+ * `getBusinessMe()` (GET /v1/business/me). Non-secret fields only — safe to
+ * render in an "Integration Health" surface. `settlement_ready` is derived by
+ * the operator (ACTIVE + KYB APPROVED + a wallet exists).
+ */
+export interface BusinessProfile {
+  environment:           'LIVE' | 'SANDBOX';
+  id:                    string;
+  handle:                string;
+  business_name:         string;
+  business_account_type: string;
+  status:                string;
+  kyb_status:            string;
+  verified:              boolean;
+  category:              string | null;
+  wallet_ready:          boolean;
+  settlement_ready:      boolean;
+}
+
 export interface ApiKey {
   id:            string;
   prefix:        string;
