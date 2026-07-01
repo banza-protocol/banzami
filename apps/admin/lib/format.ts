@@ -1,17 +1,29 @@
-// Banzami Admin formatting helpers (PT-PT / Kwanza). README §Formatação:
-// moeda "Kz" + milhares com ponto; datas DD/MM/YYYY; IDs/valores em mono.
+// Banzami Admin formatting helpers (Kwanza). Global rule: space-grouped
+// thousands, currency word at the END, no dot/comma, no cêntimos: "4 250 000 Kz".
+// Datas DD/MM/YYYY; IDs/valores em mono.
 
-/** Format minor units (cêntimos) as "Kz 4.250.000" (pt-PT thousands). */
-export function formatKz(amountMinor: number | null | undefined): string {
-  if (amountMinor == null) return '—';
-  const major = amountMinor / 100;
-  return `Kz ${major.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+/** Group an integer's thousands with a regular space: 4250000 → "4 250 000". */
+function groupThousands(n: number): string {
+  const neg = n < 0;
+  const s = Math.abs(Math.trunc(n)).toString();
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    if (i > 0 && (s.length - i) % 3 === 0) out += ' ';
+    out += s[i];
+  }
+  return (neg ? '-' : '') + out;
 }
 
-/** Format a major-unit number as "Kz 4.250.000". */
+/** Format minor units (cêntimos) as "4 250 000 Kz". */
+export function formatKz(amountMinor: number | null | undefined): string {
+  if (amountMinor == null) return '—';
+  return `${groupThousands(Math.round(amountMinor / 100))} Kz`;
+}
+
+/** Format a major-unit number as "4 250 000 Kz". */
 export function formatKzMajor(major: number | null | undefined): string {
   if (major == null) return '—';
-  return `Kz ${major.toLocaleString('pt-PT', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  return `${groupThousands(Math.round(major))} Kz`;
 }
 
 /** Format an ISO timestamp / Date as DD/MM/YYYY. Returns '—' on invalid. */

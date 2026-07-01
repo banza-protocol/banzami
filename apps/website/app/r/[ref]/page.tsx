@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { getProof, type ProofResult } from '@/lib/api';
 import { BrandMark } from '@/components/site/BrandMark';
+import { MoneyAmount } from '@/components/MoneyAmount';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,11 +12,6 @@ export const metadata: Metadata = {
   robots: { index: false },
 };
 
-function fmtKz(minor?: number, currency?: string): string {
-  if (minor == null) return '—';
-  const v = (minor / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  return `${currency === 'AOA' || !currency ? 'Kz' : currency} ${v}`;
-}
 function fmtDate(s?: string | null): string {
   if (!s) return '—';
   const d = new Date(s);
@@ -73,7 +69,12 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
 
           {p.exists && (
             <div style={{ padding: '8px 26px 4px' }}>
-              <Row label="Valor" value={fmtKz(p.amount, p.currency)} />
+              <div style={{ padding: '10px 0 12px' }}>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: '#9a8a8e', letterSpacing: '0.04em' }}>Valor</div>
+                <div style={{ marginTop: 2 }}>
+                  <MoneyAmount amountMinor={p.amount ?? null} currency={p.currency} size="xl" />
+                </div>
+              </div>
               <Row label="De" value={p.payer_display ? `${p.payer_display}${p.payer_handle ? ` · @${p.payer_handle}` : ''}` : (p.payer_handle ? `@${p.payer_handle}` : '—')} />
               <Row label="Para" value={p.payee_display ? `${p.payee_display}${p.payee_handle ? ` · @${p.payee_handle}` : ''}` : (p.payee_handle ? `@${p.payee_handle}` : '—')} />
               <Row label="Referência" value={ref.toUpperCase()} mono />
