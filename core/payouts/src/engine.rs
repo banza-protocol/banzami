@@ -135,12 +135,14 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         Ok(self.ledger.balance(available_account_id).await?.negate())
     }
 
-    /// Post the initiation entry, splitting the operator withdrawal fee out of
-    /// the gross in ONE balanced posting (ADR-031):
-    ///   DR merchant_available (LIABILITY) gross
-    ///   CR bank (ASSET)                    net  = gross − fee
-    ///   CR operator_fee (REVENUE)          fee  (only when fee > 0)
-    /// gross = net + fee keeps the posting balanced and `INV-STL-001` intact.
+    /// Post the initiation, splitting the operator withdrawal fee out of the gross.
+    /// The ledger is strictly one DR + one CR per posting (like `wallet.settle`),
+    /// so the fee is its OWN paired posting, never a third leg (ADR-031):
+    ///   Posting 1 (net): DR merchant_available (LIABILITY) net / CR bank (ASSET) net
+    ///   Posting 2 (fee): DR merchant_available (LIABILITY) fee / CR operator_fee (REVENUE) fee
+    /// Net effect: available −gross, bank +net, operator_fee +fee → gross = net + fee
+    /// (`INV-STL-001`). The NET posting is returned + stored as the payout's
+    /// `ledger_posting_id`; the fee posting has a derived `:fee` key (idempotent).
     async fn post_initiation(
         &self,
         payout: &Payout,
@@ -150,44 +152,103 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleP
         let fee_minor = self.resolve_withdrawal_fee(gross).await?;
         let net = Money::new(gross.amount_minor() - fee_minor, gross.currency);
 
-        let mut builder = PostingBuilder::new(
-            format!("Payout {} — initiation", payout.id),
+        // Posting 1 — net to bank. (net == gross when fee == 0.)
+        let net_posting = PostingBuilder::new(
+            format!("Payout {} — initiation (net)", payout.id),
             format!("{}:process", payout.idempotency_key),
         )
-        .debit(available_account_id, gross) // LIABILITY ↓ reduce obligation by gross
-        .credit(self.bank_account_id, net); // ASSET ↓ net earmarked to leave bank
-        if fee_minor > 0 {
-            builder = builder.credit(
-                self.operator_fee_account_id,
-                Money::new(fee_minor, gross.currency), // REVENUE ↑ operator fee
-            );
-        }
-        let posting = builder.build().map_err(|_| {
+        .debit(available_account_id, net) // LIABILITY ↓ by net
+        .credit(self.bank_account_id, net) // ASSET ↓ net leaves to bank
+        .build()
+        .map_err(|_| {
             PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
-                debits_minor: gross.amount_minor(),
-                credits_minor: net.amount_minor() + fee_minor,
+                debits_minor: net.amount_minor(),
+                credits_minor: net.amount_minor(),
                 currency: gross.currency,
             })
         })?;
-        Ok(self.ledger.post(posting).await?)
+        let posted = self.ledger.post(net_posting).await?;
+
+        // Posting 2 — operator fee (separate paired posting; idempotent :fee key).
+        if fee_minor > 0 {
+            let fee = Money::new(fee_minor, gross.currency);
+            let fee_posting = PostingBuilder::new(
+                format!("Payout {} — operator withdrawal fee", payout.id),
+                format!("{}:process:fee", payout.idempotency_key),
+            )
+            .debit(available_account_id, fee) // LIABILITY ↓ by fee
+            .credit(self.operator_fee_account_id, fee) // REVENUE ↑ operator fee
+            .build()
+            .map_err(|_| {
+                PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
+                    debits_minor: fee_minor,
+                    credits_minor: fee_minor,
+                    currency: gross.currency,
+                })
+            })?;
+            self.ledger.post(fee_posting).await?;
+        }
+
+        Ok(posted)
     }
 
-    /// Reverse a previously posted initiation entry EXACTLY — every leg (gross,
-    /// net, fee) is flipped by reversing the stored posting, so nothing is ever
-    /// stranded on the fee account and a rule change between process and reversal
-    /// can never unbalance it. Idempotent on the reversal idempotency key.
+    /// Reverse a processed payout — BOTH the net posting and (if any) the fee
+    /// posting. The net posting is reversed exactly via `ledger.reverse`. The fee
+    /// is derived from the actual posted amounts (fee = gross − net) — never
+    /// re-resolved — so a rule change between process and reversal can never
+    /// unbalance it, and nothing strands on the fee account. Idempotent on the
+    /// reversal keys (a second call re-posts nothing).
     async fn post_reversal(&self, payout: &Payout, reason: &str) -> Result<(), PayoutError> {
         let Some(posting_id) = payout.ledger_posting_id else {
-            return Ok(()); // nothing was posted (never processed) — nothing to reverse
+            return Ok(()); // never processed — nothing to reverse
         };
-        let original = self.ledger.get_posting(posting_id).await?;
+        let net_posting = self.ledger.get_posting(posting_id).await?;
+
+        // Reverse the net posting exactly (flips DR available / CR bank).
         self.ledger
             .reverse(
-                &original,
-                format!("Payout {} — {} reversal", payout.id, reason),
+                &net_posting,
+                format!("Payout {} — {} reversal (net)", payout.id, reason),
                 format!("{}:reverse:{}", payout.idempotency_key, reason),
             )
             .await?;
+
+        // Derive the fee from what was actually posted: net = the credit leg of
+        // the net posting; fee = gross − net. Reverse the fee posting if any.
+        let net_minor: i64 = net_posting
+            .entries
+            .iter()
+            .find(|e| e.entry_type == banzami_ledger::EntryType::Credit)
+            .map(|e| e.amount.amount_minor())
+            .unwrap_or(payout.amount.amount_minor());
+        let available_account_id = net_posting
+            .entries
+            .iter()
+            .find(|e| e.entry_type == banzami_ledger::EntryType::Debit)
+            .map(|e| e.account_id);
+        let fee_minor = payout.amount.amount_minor() - net_minor;
+
+        if fee_minor > 0 {
+            if let Some(available_account_id) = available_account_id {
+                let fee = Money::new(fee_minor, payout.amount.currency);
+                // Reverse of (DR available fee / CR operator_fee fee).
+                let fee_reversal = PostingBuilder::new(
+                    format!("Payout {} — {} reversal (fee)", payout.id, reason),
+                    format!("{}:reverse:fee:{}", payout.idempotency_key, reason),
+                )
+                .debit(self.operator_fee_account_id, fee) // REVENUE ↓ give the fee back
+                .credit(available_account_id, fee) // LIABILITY ↑ restore to merchant
+                .build()
+                .map_err(|_| {
+                    PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
+                        debits_minor: fee_minor,
+                        credits_minor: fee_minor,
+                        currency: payout.amount.currency,
+                    })
+                })?;
+                self.ledger.post(fee_reversal).await?;
+            }
+        }
         Ok(())
     }
 }
@@ -401,6 +462,14 @@ mod tests {
             &self,
             p: LedgerPosting,
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            // Enforce the real ledger's UNIQUE(posting_id, entry_type): exactly one
+            // DEBIT and one CREDIT per posting (no third leg). Catches invalid
+            // multi-leg postings in tests, exactly as Postgres would.
+            let debits = p.entries.iter().filter(|e| e.entry_type == EntryType::Debit).count();
+            let credits = p.entries.iter().filter(|e| e.entry_type == EntryType::Credit).count();
+            if debits > 1 || credits > 1 {
+                return Err(banzami_ledger::LedgerError::InsufficientEntries);
+            }
             // Idempotent on idempotency_key, mirroring the real ledger: a replay
             // returns the existing posting and never double-applies entries.
             let mut postings = self.postings.lock().unwrap();
