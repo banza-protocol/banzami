@@ -272,11 +272,6 @@ class _BanzamiAppState extends State<BanzamiApp> {
       return;
     }
 
-    // banzami://pay/split/{id} — pay into a split session (P2P-002)
-    if (segs.isNotEmpty && segs[0] == 'split' && segs.length >= 2) {
-      _openSplit(segs[1]);
-      return;
-    }
 
     // banzami://pay?request={code}
     if (segs.isEmpty) {
@@ -342,23 +337,6 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }).catchError((e) {
       debugPrint('[deep-link] error fetching pay link: $e');
     });
-  }
-
-  void _openSplit(String splitId) {
-    final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-    final session = ctx.read<SessionService>().session;
-    if (session == null) return;
-    final client = ctx.read<ConsumerPublicClient>();
-    _navigatorKey.currentState?.push(MaterialPageRoute(
-      builder: (_) => BanzamiSplitPayScreen(
-        client:      client,
-        splitId:     splitId,
-        payerHandle: session.handle,
-        isSandbox:   AppConfig.isSandbox,
-        onSuccess:   (_) => _signalBalanceRefresh(),
-      ),
-    ));
   }
 
   void _openHandlePay(Uri uri, String handle) {
