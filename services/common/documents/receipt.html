@@ -8,6 +8,10 @@
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; }
   body { font-family: 'Nunito', Arial, Helvetica, sans-serif; color: #221c1e; -webkit-font-smoothing: antialiased; background: #fff; }
+  /* Interactive Financial Documents (BANZA ADR-044): links are invisible +
+     additive — inherit colour, no underline — so the layout never changes.
+     Chromium print-to-PDF turns these anchors into native PDF link annotations. */
+  a { color: inherit; text-decoration: none; }
   .page { width: 794px; min-height: 1123px; margin: 0 auto; background: #fff; display: flex; flex-direction: column; position: relative; }
   .accent { height: 6px; background: linear-gradient(90deg,#B5101F,#D7242E,#E8434B); }
   .pad { padding: 46px 54px 40px; flex: 1; display: flex; flex-direction: column; position: relative; z-index: 1; }
@@ -43,7 +47,7 @@
       <!-- HEADER -->
       <div class="header">
         <div class="brand">
-          <span class="logo"><svg width="26" height="26" viewBox="0 0 100 100" fill="none" role="img" aria-label="Banzami"><rect x="6" y="6" width="42" height="42" rx="13" fill="#fff"></rect><rect x="56" y="10" width="32" height="32" rx="10" fill="#FBD2D0"></rect><rect x="10" y="56" width="38" height="38" rx="11" fill="#FBD2D0"></rect><rect x="58" y="60" width="28" height="28" rx="9" fill="#fff"></rect></svg></span>
+          <a href="https://banzami.com"><span class="logo"><svg width="26" height="26" viewBox="0 0 100 100" fill="none" role="img" aria-label="Banzami"><rect x="6" y="6" width="42" height="42" rx="13" fill="#fff"></rect><rect x="56" y="10" width="32" height="32" rx="10" fill="#FBD2D0"></rect><rect x="10" y="56" width="38" height="38" rx="11" fill="#FBD2D0"></rect><rect x="58" y="60" width="28" height="28" rx="9" fill="#fff"></rect></svg></span></a>
           <div style="line-height:1.2">
             <div style="font-size:22px;font-weight:900;letter-spacing:-.02em">Banzami</div>
             <div style="font-size:12.5px;font-weight:700;color:#9a8a8e">O novo caminho do Kwanza.</div>
@@ -51,7 +55,7 @@
         </div>
         <div style="text-align:right">
           <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#b09a9e">{{.DocLabel}}</div>
-          <div class="mono" style="font-size:13px;font-weight:700;color:#7a6a6e;margin-top:5px">Nº {{.Reference}}</div>
+          <div class="mono" style="font-size:13px;font-weight:700;color:#7a6a6e;margin-top:5px">Nº <a href="{{.VerifyURL}}">{{.Reference}}</a></div>
           <div style="font-size:12.5px;font-weight:600;color:#9a8a8e;margin-top:2px">Emitido a {{.IssuedDate}}</div>
         </div>
       </div>
@@ -65,9 +69,9 @@
           <div style="font-size:13.5px;font-weight:600;color:#7a6a6e;margin-top:10px">{{if .AmountWords}}{{.AmountWords}} · {{end}}liquidado em segundos dentro da rede</div>
         </div>
         <div class="verify">
-          <div style="width:82px;height:82px">{{.QRSVG}}</div>
+          <a href="{{.VerifyURL}}" style="display:block;width:82px;height:82px">{{.QRSVG}}</a>
           <div style="font-size:8.5px;font-weight:700;color:#9a8a8e;line-height:1.25">Digitalize para verificar</div>
-          <div style="font-size:8.5px;font-weight:800;color:#9A1B22;line-height:1.25;word-break:break-all">{{.VerifyShort}}</div>
+          <div style="font-size:8.5px;font-weight:800;color:#9A1B22;line-height:1.25;word-break:break-all"><a href="{{.VerifyURL}}">{{.VerifyShort}}</a></div>
         </div>
       </div>
 
@@ -87,7 +91,7 @@
 
       <!-- DETAILS -->
       <div class="details">
-        <div class="drow"><span class="dlabel">Referência da transação</span><span class="dvalue mono">{{.Reference}}</span></div>
+        <div class="drow"><span class="dlabel">Referência da transação</span><span class="dvalue mono"><a href="{{.VerifyURL}}">{{.Reference}}</a></span></div>
         <div class="drow"><span class="dlabel">Data e hora</span><span class="dvalue">{{.DateTime}}</span></div>
         <div class="drow"><span class="dlabel">Método</span><span class="dvalue">{{.Method}}</span></div>
         <div class="drow"><span class="dlabel">Descrição</span><span class="dvalue">{{.Description}}</span></div>
@@ -97,7 +101,7 @@
       <!-- VERIFICATION NOTE -->
       <div class="note">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style="flex:none;margin-top:1px"><path d="M12 3l7 3v5c0 4.2-2.9 7.5-7 8.5-4.1-1-7-4.3-7-8.5V6l7-3z" stroke="#9A1B22" stroke-width="1.7" stroke-linejoin="round"></path><path d="M9 11.5l2 2 4-4" stroke="#9A1B22" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"></path></svg>
-        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada do Banzami (imutável e auditável); confirme em <span class="mono" style="font-weight:800;color:#9A1B22">{{.VerifyShort}}</span>.</div>
+        <div style="font-size:13px;line-height:1.55;font-weight:600;color:#7a5a5e"><strong style="color:#9A1B22">Este documento não é a fonte da verdade.</strong> Digitalize o código QR para verificar a autenticidade deste comprovativo. Não confie apenas em PDFs ou capturas de ecrã. Registado no ledger de dupla entrada do Banzami (imutável e auditável); confirme em <a class="mono" style="font-weight:800;color:#9A1B22" href="{{.VerifyURL}}">{{.VerifyShort}}</a>.</div>
       </div>
 
       <div style="flex:1"></div>
@@ -108,7 +112,7 @@
         <p style="margin:0 0 12px;font-size:11.5px;line-height:1.6;font-weight:600;color:#a8979b">A liquidação descrita é uma transferência de carteira para carteira dentro da rede Banzami, em Kwanza. Este documento serve como comprovativo da transação e dispensa o envio de capturas de ecrã. O Banzami é construído sobre o protocolo aberto BANZA.</p>
         <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
           <div style="font-size:12.5px;font-weight:800;color:#221c1e">Banzami</div>
-          <div class="mono" style="font-size:12.5px;font-weight:600;color:#9a8a8e">contact@banzami.com&nbsp;&nbsp;·&nbsp;&nbsp;banzami.com</div>
+          <div class="mono" style="font-size:12.5px;font-weight:600;color:#9a8a8e"><a href="mailto:contact@banzami.com">contact@banzami.com</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="https://banzami.com">banzami.com</a></div>
         </div>
       </div>
 

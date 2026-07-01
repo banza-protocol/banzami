@@ -143,3 +143,36 @@ func TestSandboxWatermark(t *testing.T) {
 		t.Error("live receipt must NOT show a watermark")
 	}
 }
+
+// ADR-044 — Interactive Financial Documents: the receipt must carry additive,
+// invisible hyperlinks; verification links must contain ONLY the reference
+// (never amount/wallet/party/signature), and the layout links must be present.
+func TestInteractiveLinks(t *testing.T) {
+	html, err := RenderHTML(baseData(PerspectiveConsumer))
+	if err != nil {
+		t.Fatalf("render: %v", err)
+	}
+	// Links exist, invisible styling present.
+	if !strings.Contains(html, "<a href=") {
+		t.Fatal("no hyperlinks in the document")
+	}
+	if !strings.Contains(html, "text-decoration: none") {
+		t.Error("links are not styled invisible")
+	}
+	// Verification link → /r/<ref>, and the identity/contact links.
+	for _, must := range []string{
+		"/r/BZM-7F3A-92K1",                     // verification (reference only)
+		`href="https://banzami.com"`,           // logo + website → home
+		`href="mailto:contact@banzami.com"`,    // email
+	} {
+		if !strings.Contains(html, must) {
+			t.Errorf("missing interactive link %q", must)
+		}
+	}
+	// Security: no financial data must ever appear in a URL/query.
+	for _, forbidden := range []string{"?amount=", "?wallet=", "?from=", "?to=", "?signature=", "amount=", "signature="} {
+		if strings.Contains(html, forbidden) {
+			t.Errorf("document URL leaks financial data: %q", forbidden)
+		}
+	}
+}
