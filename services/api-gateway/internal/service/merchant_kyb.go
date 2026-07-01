@@ -384,26 +384,37 @@ func (s *PostgresMerchantKybService) AdminListMerchants(ctx context.Context, lim
 	if limit <= 0 || limit > 200 {
 		limit = 100
 	}
+	// Merchant-driven: every merchant appears — even one that was auto-approved
+	// with no uploaded documents (SANDBOX assisted onboarding) — plus any orphan
+	// document whose merchant was removed. Aggregates count real documents only
+	// (count(d.id), so a doc-less merchant is total=0/pending=0, not 1).
 	rows, err := s.pool.Query(ctx, `
-		SELECT d.merchant_id,
+		WITH ids AS (
+		  SELECT id AS merchant_id FROM merchants
+		  UNION
+		  SELECT DISTINCT merchant_id FROM merchant_kyb_documents
+		)
+		SELECT ids.merchant_id,
 		       COALESCE(m.name,''), COALESCE(p.handle,''), COALESCE(m.status,''),
-		       COALESCE(mc.kyb_status,''), COALESCE(max(d.environment),''),
-		       COALESCE(max(a.country),''), COALESCE(max(a.email),''),
+		       COALESCE(mc.kyb_status,''), COALESCE(max(d.environment), max(a.environment), ''),
+		       COALESCE(max(a.country),''), COALESCE(max(a.email), m.email, ''),
 		       (m.id IS NOT NULL) AS merchant_exists,
-		       count(*) FILTER (WHERE d.status <> 'REPLACED') AS total,
-		       count(*) FILTER (WHERE d.status = 'PENDING_REVIEW') AS pending,
-		       count(*) FILTER (WHERE d.status = 'VALID') AS approved,
-		       count(*) FILTER (WHERE d.status = 'REJECTED') AS rejected,
-		       count(*) FILTER (WHERE d.status = 'EXPIRED') AS expired,
+		       count(d.id) FILTER (WHERE d.status <> 'REPLACED') AS total,
+		       count(d.id) FILTER (WHERE d.status = 'PENDING_REVIEW') AS pending,
+		       count(d.id) FILTER (WHERE d.status = 'VALID') AS approved,
+		       count(d.id) FILTER (WHERE d.status = 'REJECTED') AS rejected,
+		       count(d.id) FILTER (WHERE d.status = 'EXPIRED') AS expired,
 		       max(d.submitted_at) AS last_submission
-		  FROM merchant_kyb_documents d
-		  LEFT JOIN merchants m            ON m.id = d.merchant_id
-		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = d.merchant_id
-		  LEFT JOIN merchant_profiles p    ON p.merchant_id = d.merchant_id
-		  LEFT JOIN merchant_applications a ON a.created_merchant_id = d.merchant_id
-		 GROUP BY d.merchant_id, m.id, m.name, p.handle, m.status, mc.kyb_status
-		HAVING count(*) FILTER (WHERE d.status <> 'REPLACED') > 0
-		 ORDER BY (count(*) FILTER (WHERE d.status = 'PENDING_REVIEW')) DESC, max(d.submitted_at) DESC NULLS LAST
+		  FROM ids
+		  LEFT JOIN merchants m            ON m.id = ids.merchant_id
+		  LEFT JOIN merchant_compliance mc ON mc.merchant_id = ids.merchant_id
+		  LEFT JOIN merchant_profiles p    ON p.merchant_id = ids.merchant_id
+		  LEFT JOIN merchant_applications a ON a.created_merchant_id = ids.merchant_id
+		  LEFT JOIN merchant_kyb_documents d ON d.merchant_id = ids.merchant_id
+		 GROUP BY ids.merchant_id, m.id, m.name, p.handle, m.status, mc.kyb_status, m.email
+		 ORDER BY (count(d.id) FILTER (WHERE d.status = 'PENDING_REVIEW')) DESC,
+		          max(d.submitted_at) DESC NULLS LAST,
+		          m.name ASC
 		 LIMIT $1`, limit)
 	if err != nil {
 		return nil, err
