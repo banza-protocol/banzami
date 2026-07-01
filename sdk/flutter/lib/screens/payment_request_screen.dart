@@ -141,7 +141,10 @@ class _BanzamiPaymentRequestScreenState extends State<BanzamiPaymentRequestScree
           idempotencyKey: _idem,
         );
         transfer = Transfer(
-          transferId:  paid.id,
+          // The receipt keys on the transaction id, not the link id. The pay
+          // response carries transaction_id; fall back to the link id only if
+          // an older backend omitted it.
+          transferId:  paid.transferId ?? paid.id,
           sender:      widget.ownHandle ?? '',
           recipient:   paid.merchantName ?? widget.recipientDisplayName ?? paid.slug,
           amountMinor: paid.amountMinor ?? amount,

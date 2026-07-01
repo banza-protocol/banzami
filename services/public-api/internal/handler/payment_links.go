@@ -22,6 +22,10 @@ import (
 type paymentLinkView struct {
 	*service.PaymentLink
 	MerchantName *string `json:"merchant_name"`
+	// TransactionID is the resulting transfer's id, set only on the pay response.
+	// The receipt endpoint keys on the transaction id (not the link id), so the
+	// client needs it to fetch the comprovativo. Nil on GET (no transfer yet).
+	TransactionID *string `json:"transaction_id,omitempty"`
 }
 
 // PaymentLinkHandler handles consumer-facing payment link operations.
@@ -188,5 +192,7 @@ func (h *PaymentLinkHandler) Pay(w http.ResponseWriter, r *http.Request) {
 		h.fcm.SendPaymentLinkPaid(ctx, merchantID, amount, currency)
 	}(link.MerchantID, *amountMinor, link.Currency)
 
-	respond(w, http.StatusOK, h.withMerchantName(r.Context(), final))
+	view := h.withMerchantName(r.Context(), final)
+	view.TransactionID = &transfer.ID // so the client can fetch the receipt by transaction id
+	respond(w, http.StatusOK, view)
 }

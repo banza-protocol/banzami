@@ -12,6 +12,10 @@ class PaymentLink {
   final DateTime? paidAt;
   final DateTime createdAt;
   final DateTime updatedAt;
+  /// The resulting transfer's id, present only on the pay response. The receipt
+  /// (comprovativo) endpoint keys on the transaction id, not the link id, so the
+  /// receipt MUST be fetched by this when available.
+  final String? transferId;
 
   const PaymentLink({
     required this.id,
@@ -27,6 +31,7 @@ class PaymentLink {
     this.paidAt,
     required this.createdAt,
     required this.updatedAt,
+    this.transferId,
   });
 
   factory PaymentLink.fromJson(Map<String, dynamic> json) => PaymentLink(
@@ -39,6 +44,7 @@ class PaymentLink {
         currency:     json['currency'] as String,
         description:  json['description'] as String?,
         status:       PaymentLinkStatus.fromString(json['status'] as String),
+        transferId:   json['transaction_id'] as String?,
         expiresAt:    json['expires_at'] != null
             ? DateTime.parse(json['expires_at'] as String)
             : null,
