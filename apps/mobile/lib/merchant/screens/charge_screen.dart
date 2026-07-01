@@ -10,22 +10,23 @@ import 'package:banzami_flutter/banzami_flutter.dart';
 import '../../branding_assets.dart';
 import '../config.dart';
 import '../services/merchant_session_service.dart';
+import 'split_track_screen.dart';
 
 /// Cria uma cobrança (link de pagamento) e exibe o QR + link para partilhar.
 ///
 /// Dois modos:
 ///  • Simples   — uma cobrança, um QR/link (comportamento original).
-///  • Dividida  — o valor total é dividido igualmente por N pessoas e geramos
-///                N links de pagamento independentes (um por pessoa). Não há
-///                agrupamento persistido no backend — cada link é uma cobrança
-///                normal; o "grupo" é apenas visual nesta app. Nenhum movimento
-///                financeiro acontece até cada pessoa pagar o seu link.
+///  • Dividida  — o valor total é dividido igualmente por N pessoas como uma
+///                Collection do protocolo (BANZA ADR-036): um único objeto
+///                financeiro com N partes (shares) que se pagam de forma
+///                independente e liquidam direto na carteira do comerciante.
+///                O acompanhamento (quem pagou / o que falta) fica no
+///                `SplitTrackScreen`.
 ///
-/// ⚠ PRÉ-PROTOCOLAR: o modo "Dividida" antecipa o conceito BANZA Collections
-/// (BANZA ADR-036, *Proposed*) e NÃO é uma feature oficial — está atrás de
-/// `AppConfig.splitChargeEnabled` (disabled por default). Por BANZA ADR-035
-/// (protocol-first) um conceito estrutural nasce no protocolo e desce
-/// protocolo → operador → SDK → app. Classificação operador: Banzami ADR-019.
+/// Fluxo protocol-first (BANZA ADR-035): o conceito nasce no protocolo
+/// (Collections), é implementado pelo operador, exposto pelo SDK
+/// (`createEqualSplitCollection`) e só aqui consumido pela app. `AppConfig.
+/// splitChargeEnabled` controla apenas a visibilidade do modo na UI.
 class ChargeScreen extends StatefulWidget {
   const ChargeScreen({super.key});
 
@@ -50,7 +51,6 @@ class _ChargeScreenState extends State<ChargeScreen> {
   bool         _sharing  = false;
   String?      _error;
   PaymentLink? _link;          // simple result
-  List<PaymentLink>? _splitLinks; // split result
   ui.Image?    _logoUiImage;
 
   @override
@@ -153,28 +153,33 @@ class _ChargeScreenState extends State<ChargeScreen> {
   // ── Split charge ─────────────────────────────────────────────────────────────
 
   Future<void> _createSplit() async {
-    final per = _perPersonMinor;
-    if (per == null) return; // guarded by button state, defensive here
+    final total = _totalMinor;
+    if (total == null || _people < _kMinPeople) return; // guarded by button state
     setState(() { _creating = true; _error = null; });
 
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
     final desc    = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
 
-    // N independent payment links — same amount + description, one per person.
-    // Sequential so a failure stops cleanly and we can report it; each link is
-    // a plain intent (no money moves until the payer pays).
+    // One protocol Collection (BANZA ADR-036) with N equal shares. The core
+    // generates the shares; each is a real financial object that settles into
+    // the merchant wallet when paid. No money moves until each share is paid.
     try {
-      final links = <PaymentLink>[];
-      for (var i = 0; i < _people; i++) {
-        links.add(await client.createPaymentLink(
-          merchantId:  session.merchantId,
-          walletId:    session.walletId,
-          amountMinor: per,
-          description: desc,
-        ));
-      }
-      setState(() => _splitLinks = links);
+      final result = await client.createEqualSplitCollection(
+        walletId:          session.walletId,
+        totalAmountMinor:  total,
+        participantsCount: _people,
+        title:             desc,
+      );
+      if (!mounted) return;
+      _reset();
+      await Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => SplitTrackScreen(
+          collectionId:      result.collection.id,
+          initialCollection: result.collection,
+          initialShares:     result.shares,
+        ),
+      ));
     } on BanzamiApiException catch (e) {
       setState(() => _error = e.message);
     } on BanzamiNetworkException {
@@ -188,7 +193,6 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   // ── Sharing ──────────────────────────────────────────────────────────────────
 
-  String _urlFor(PaymentLink link) => '${AppConfig.payBaseUrl}/${link.slug}';
   String get _payUrl => '${AppConfig.payBaseUrl}/${_link?.slug ?? ''}';
 
   Future<void> _shareLink(PaymentLink link) async {
@@ -210,39 +214,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
     }
   }
 
-  Future<void> _shareSplitLink(PaymentLink link, Rect? origin) async {
-    try {
-      final subject = 'Pagamento Banzami — ${formatMinor(link.amountMinor!, link.currency)}';
-      await Share.share(_urlFor(link), subject: subject, sharePositionOrigin: origin);
-    } catch (e) {
-      if (mounted) BanzamiToast.showError(context, 'Erro ao partilhar: $e');
-    }
-  }
-
-  Future<void> _shareAll(Rect? origin) async {
-    final links = _splitLinks;
-    if (links == null || _sharing) return;
-    setState(() => _sharing = true);
-    try {
-      final lines = [
-        for (var i = 0; i < links.length; i++)
-          'Pessoa ${i + 1}: ${_urlFor(links[i])}',
-      ].join('\n');
-      final per = links.first.amountMinor;
-      final head = per != null
-          ? 'Cobrança dividida Banzami — ${formatMinor(per, links.first.currency)} por pessoa'
-          : 'Cobrança dividida Banzami';
-      await Share.share('$head\n\n$lines', sharePositionOrigin: origin);
-    } catch (e) {
-      if (mounted) BanzamiToast.showError(context, 'Erro ao partilhar: $e');
-    } finally {
-      if (mounted) setState(() => _sharing = false);
-    }
-  }
-
   void _reset() => setState(() {
         _link       = null;
-        _splitLinks = null;
         _error      = null;
         _amountCtrl.clear();
         _descCtrl.clear();
@@ -255,8 +228,6 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final Widget body;
     if (_link != null) {
       body = _buildResult();
-    } else if (_splitLinks != null) {
-      body = _buildSplitResult();
     } else {
       body = _buildForm();
     }
@@ -430,8 +401,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
       const SizedBox(height: BanzamiSpacing.md),
       Text(
-        'Este valor será dividido igualmente. Cada pessoa recebe o seu próprio '
-        'link de pagamento. O pagamento só é confirmado quando cada pessoa pagar.',
+        'O valor será dividido igualmente numa cobrança com uma parte por pessoa. '
+        'Cada pessoa paga a sua parte e o dinheiro entra na sua carteira '
+        'imediatamente. Vai poder acompanhar quem já pagou.',
         style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
       ),
       const SizedBox(height: BanzamiSpacing.lg),
@@ -535,79 +507,6 @@ class _ChargeScreenState extends State<ChargeScreen> {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Resultado — cobrança dividida (lista de links)
-  // ---------------------------------------------------------------------------
-
-  Widget _buildSplitResult() {
-    final links   = _splitLinks!;
-    final session = context.read<MerchantSessionService>().session!;
-    final per     = links.first.amountMinor;
-    final total   = per != null ? per * links.length : null;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(BanzamiSpacing.xl),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-        const SizedBox(height: BanzamiSpacing.sm),
-        Center(
-          child: Text(
-            session.merchantName,
-            style: BanzamiTextStyles.label.copyWith(
-              color: BanzamiColors.gray400, letterSpacing: 0.5),
-          ),
-        ),
-        const SizedBox(height: BanzamiSpacing.xs),
-        if (total != null)
-          Center(
-            child: Text(
-              formatMinor(total, links.first.currency),
-              style: BanzamiTextStyles.displayMd.copyWith(
-                color: BanzamiColors.primary, fontWeight: FontWeight.w700),
-            ),
-          ),
-        Center(
-          child: Text(
-            'dividido por ${links.length} pessoas'
-            '${per != null ? ' · ${formatMinor(per, links.first.currency)} cada' : ''}',
-            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
-          ),
-        ),
-        const SizedBox(height: BanzamiSpacing.xl),
-
-        for (var i = 0; i < links.length; i++) ...[
-          _SplitLinkRow(
-            index:  i + 1,
-            link:   links[i],
-            onShare: (origin) => _shareSplitLink(links[i], origin),
-          ),
-          const SizedBox(height: BanzamiSpacing.sm),
-        ],
-
-        const SizedBox(height: BanzamiSpacing.lg),
-
-        Builder(builder: (ctx) {
-          return BanzamiPrimaryButton(
-            label:     'Partilhar todos',
-            isLoading: _sharing,
-            onPressed: _sharing
-                ? null
-                : () {
-                    final box = ctx.findRenderObject() as RenderBox?;
-                    final origin = box != null
-                        ? box.localToGlobal(Offset.zero) & box.size
-                        : null;
-                    _shareAll(origin);
-                  },
-          );
-        }),
-        const SizedBox(height: BanzamiSpacing.md),
-        BanzamiSecondaryButton(
-          label:     'Nova cobrança',
-          onPressed: _reset,
-        ),
-      ]),
-    );
-  }
 }
 
 // =============================================================================
@@ -700,81 +599,6 @@ class _StepButton extends StatelessWidget {
         child: Icon(icon, size: 20,
             color: enabled ? BanzamiColors.primary : BanzamiColors.gray400),
       ),
-    );
-  }
-}
-
-// =============================================================================
-// Split result row — one person, their amount, pending state, share button
-// =============================================================================
-
-class _SplitLinkRow extends StatelessWidget {
-  final int index;
-  final PaymentLink link;
-  final ValueChanged<Rect?> onShare;
-
-  const _SplitLinkRow({
-    required this.index,
-    required this.link,
-    required this.onShare,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final shareKey = GlobalKey();
-    return Container(
-      padding: const EdgeInsets.all(BanzamiSpacing.md),
-      decoration: BoxDecoration(
-        color:        BanzamiColors.white,
-        borderRadius: BanzamiRadius.lgAll,
-        border:       Border.all(color: BanzamiColors.gray200),
-      ),
-      child: Row(children: [
-        Container(
-          width: 36, height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: BanzamiColors.primary.withValues(alpha: 0.10),
-            shape: BoxShape.circle,
-          ),
-          child: Text('$index',
-              style: BanzamiTextStyles.label.copyWith(
-                color: BanzamiColors.primary, fontWeight: FontWeight.w700)),
-        ),
-        const SizedBox(width: BanzamiSpacing.sm),
-        Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Pessoa $index', style: BanzamiTextStyles.bodyMd),
-            const SizedBox(height: 2),
-            Text(
-              link.amountMinor != null
-                  ? formatMinor(link.amountMinor!, link.currency)
-                  : '—',
-              style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.primary),
-            ),
-            const SizedBox(height: 4),
-            Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.schedule_rounded, size: 13, color: BanzamiColors.gray400),
-              const SizedBox(width: 4),
-              Text('A aguardar pagamento',
-                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-            ]),
-          ]),
-        ),
-        IconButton(
-          key:     shareKey,
-          icon:    const Icon(Icons.ios_share_rounded, size: 20),
-          color:   BanzamiColors.primary,
-          tooltip: 'Partilhar link',
-          onPressed: () {
-            final box = shareKey.currentContext?.findRenderObject() as RenderBox?;
-            final origin = box != null
-                ? box.localToGlobal(Offset.zero) & box.size
-                : null;
-            onShare(origin);
-          },
-        ),
-      ]),
     );
   }
 }
