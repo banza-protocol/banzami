@@ -179,6 +179,7 @@ where
                     pricing_profile: req.pricing_profile.as_deref().map(PricingProfile::from_code),
                     fee_policy_ref: req.fee_policy_ref.clone().map(FeePolicyRef::new),
                     country: None,
+                    transaction_type: None,
                     as_of: Utc::now(),
                 };
                 let resolution = banzami_pricing::resolve(&rules, &ctx);

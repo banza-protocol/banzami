@@ -108,6 +108,12 @@ fn rule_matches(rule: &PricingRule, ctx: &PricingContext) -> bool {
             _ => return false,
         }
     }
+    if let Some(tx) = &rule.transaction_type {
+        match &ctx.transaction_type {
+            Some(t) if t == tx => {}
+            _ => return false,
+        }
+    }
     true
 }
 
@@ -225,6 +231,7 @@ mod tests {
             fee_policy_ref: None,
             currency: None,
             country: None,
+            transaction_type: None,
             rate_bps: 0,
             flat_minor: 0,
             min_fee_minor: None,
@@ -244,8 +251,47 @@ mod tests {
             pricing_profile: None,
             fee_policy_ref: None,
             country: Some("AO".into()),
+            transaction_type: None,
             as_of: t(2026, 6, 29),
         }
+    }
+
+    // ---- transaction-type dimension (ADR-031) ---------------------------
+
+    #[test]
+    fn transaction_type_matcher_is_specific_and_scoped() {
+        // A withdrawal rule (0.75%) matches ONLY a withdrawal context.
+        let mut r = rule("wallet-withdrawal-standard");
+        r.transaction_type = Some("wallet_withdrawal".into());
+        r.rate_bps = 75;
+        let rules = [r];
+
+        let mut wdraw = ctx(100_000, BusinessCategory::P2p);
+        wdraw.transaction_type = Some("wallet_withdrawal".into());
+        assert_eq!(resolve(&rules, &wdraw).fee_minor, 750); // 0.75% of 100_000
+
+        // No transaction type on the context → the specific rule does not match → free.
+        let bare = ctx(100_000, BusinessCategory::P2p);
+        assert_eq!(resolve(&rules, &bare).fee_minor, 0);
+
+        // A different transaction type → no match → free.
+        let mut other = ctx(100_000, BusinessCategory::P2p);
+        other.transaction_type = Some("wallet_transfer".into());
+        assert_eq!(resolve(&rules, &other).fee_minor, 0);
+    }
+
+    #[test]
+    fn transaction_type_rule_outranks_a_wildcard() {
+        // A tx-specific rule (0%) beats a generic catch-all (2%) by specificity.
+        let mut generic = rule("catch-all");
+        generic.rate_bps = 200;
+        let mut free_transfer = rule("wallet-transfer-standard");
+        free_transfer.transaction_type = Some("wallet_transfer".into());
+        free_transfer.rate_bps = 0;
+
+        let mut c = ctx(100_000, BusinessCategory::P2p);
+        c.transaction_type = Some("wallet_transfer".into());
+        assert_eq!(resolve(&[generic, free_transfer], &c).fee_minor, 0);
     }
 
     // ---- documented worked examples -------------------------------------

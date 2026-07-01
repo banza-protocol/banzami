@@ -35,6 +35,7 @@ pub struct PricingRuleRecord {
     pub fee_policy_ref: Option<String>,
     pub currency: Option<String>,
     pub country: Option<String>,
+    pub transaction_type: Option<String>,
     pub rate_bps: i32,
     pub flat_minor: i64,
     pub min_fee_minor: Option<i64>,
@@ -61,6 +62,7 @@ pub struct PricingRuleInput {
     pub fee_policy_ref: Option<String>,
     pub currency: Option<String>,
     pub country: Option<String>,
+    pub transaction_type: Option<String>,
     pub rate_bps: i32,
     pub flat_minor: i64,
     pub min_fee_minor: Option<i64>,
@@ -163,7 +165,7 @@ impl PostgresPricingRuleAdminRepository {
         format!(
             "SELECT pr.id, pr.rule_key, pr.version, pr.environment, pr.enabled,
                     pr.business_category, pr.pricing_profile, pr.fee_policy_ref, pr.currency,
-                    pr.country, pr.rate_bps, pr.flat_minor, pr.min_fee_minor, pr.max_fee_minor,
+                    pr.country, pr.transaction_type, pr.rate_bps, pr.flat_minor, pr.min_fee_minor, pr.max_fee_minor,
                     pr.rounding, pr.priority, pr.effective_from, pr.effective_to, pr.description,
                     {USED_EXPR} AS used, pr.created_at, pr.updated_at
                FROM pricing_rules pr"
@@ -202,10 +204,10 @@ impl PostgresPricingRuleAdminRepository {
         sqlx::query(
             "INSERT INTO pricing_rules
                (id, rule_key, version, environment, enabled, business_category, pricing_profile,
-                fee_policy_ref, currency, country, rate_bps, flat_minor, min_fee_minor,
+                fee_policy_ref, currency, country, transaction_type, rate_bps, flat_minor, min_fee_minor,
                 max_fee_minor, rounding, priority, effective_from, effective_to, description)
-             VALUES ($1,$2,$3,$4,TRUE,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
-                     COALESCE($16, NOW()),$17,$18)",
+             VALUES ($1,$2,$3,$4,TRUE,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,
+                     COALESCE($17, NOW()),$18,$19)",
         )
         .bind(id.as_uuid())
         .bind(&input.rule_key)
@@ -216,6 +218,7 @@ impl PostgresPricingRuleAdminRepository {
         .bind(&input.fee_policy_ref)
         .bind(&input.currency)
         .bind(&input.country)
+        .bind(&input.transaction_type)
         .bind(input.rate_bps)
         .bind(input.flat_minor)
         .bind(input.min_fee_minor)
@@ -394,6 +397,7 @@ impl PostgresPricingRuleAdminRepository {
             fee_policy_ref: src.fee_policy_ref,
             currency: src.currency,
             country: src.country,
+            transaction_type: src.transaction_type,
             rate_bps: src.rate_bps,
             flat_minor: src.flat_minor,
             min_fee_minor: src.min_fee_minor,
@@ -443,6 +447,7 @@ fn row_to_record(row: PgRow) -> Result<PricingRuleRecord, PricingError> {
         fee_policy_ref: row.try_get("fee_policy_ref")?,
         currency: row.try_get("currency")?,
         country: row.try_get("country")?,
+        transaction_type: row.try_get("transaction_type")?,
         rate_bps: row.try_get("rate_bps")?,
         flat_minor: row.try_get("flat_minor")?,
         min_fee_minor: row.try_get("min_fee_minor")?,

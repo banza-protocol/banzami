@@ -149,9 +149,9 @@ func idOf(m map[string]any) string {
 // for accountability.
 func pricingAudit(body, result map[string]any) map[string]any {
 	out := map[string]any{}
-	for _, k := range []string{"rule_key", "environment", "business_category", "pricing_profile",
-		"fee_policy_ref", "currency", "rate_bps", "flat_minor", "min_fee_minor", "max_fee_minor",
-		"rounding", "priority"} {
+	for _, k := range []string{"rule_key", "environment", "business_category", "transaction_type",
+		"pricing_profile", "fee_policy_ref", "currency", "rate_bps", "flat_minor", "min_fee_minor",
+		"max_fee_minor", "rounding", "priority"} {
 		if v, ok := body[k]; ok {
 			out[k] = v
 		}

@@ -185,6 +185,9 @@ pub struct PricingContext {
     pub fee_policy_ref: Option<FeePolicyRef>,
     /// ISO 3166-1 alpha-2 country, e.g. "AO". Optional.
     pub country: Option<String>,
+    /// Operator transaction-type label (e.g. "wallet_transfer", "merchant_payment",
+    /// "wallet_withdrawal"). Reference only — never a price (ADR-031). Optional.
+    pub transaction_type: Option<String>,
     /// The instant resolution is "as of" — caller-supplied so the result is
     /// reproducible. Drives the effective-window match; never `Utc::now()` inside
     /// the engine.
@@ -238,6 +241,8 @@ pub struct PricingRule {
     pub fee_policy_ref: Option<String>,
     pub currency: Option<Currency>,
     pub country: Option<String>,
+    /// Operator transaction-type matcher (ADR-031). None = wildcard.
+    pub transaction_type: Option<String>,
 
     // --- fee components (operator policy) ---
     /// Percentage in basis points. 200 = 2.00%. May be 0.
@@ -268,6 +273,7 @@ impl PricingRule {
             + self.fee_policy_ref.is_some() as u8
             + self.currency.is_some() as u8
             + self.country.is_some() as u8
+            + self.transaction_type.is_some() as u8
     }
 }
 

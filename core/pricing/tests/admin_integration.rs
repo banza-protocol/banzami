@@ -20,6 +20,7 @@ fn input(key: &str, env: &str, category: &str, bps: i32) -> PricingRuleInput {
         fee_policy_ref: None,
         currency: Some("AOA".into()),
         country: None,
+        transaction_type: None,
         rate_bps: bps,
         flat_minor: 0,
         min_fee_minor: None,

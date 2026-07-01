@@ -54,6 +54,7 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
             r#"
             SELECT id, rule_key, version,
                    business_category, pricing_profile, fee_policy_ref, currency, country,
+                   transaction_type,
                    rate_bps, flat_minor, min_fee_minor, max_fee_minor, rounding,
                    priority, effective_from, effective_to
               FROM pricing_rules
@@ -88,6 +89,7 @@ impl PricingRuleProvider for PostgresPricingRuleProvider {
                     None => None,
                 },
                 country: row.try_get("country")?,
+                transaction_type: row.try_get("transaction_type")?,
                 rate_bps: rate_bps as u32,
                 flat_minor: row.try_get("flat_minor")?,
                 min_fee_minor: row.try_get("min_fee_minor")?,

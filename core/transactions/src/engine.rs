@@ -204,6 +204,7 @@ impl<W: WalletEngine + 'static, R: TransactionRepository, P: PricingRuleProvider
             pricing_profile: tx.pricing_profile.as_deref().map(PricingProfile::from_code),
             fee_policy_ref: tx.fee_policy_ref.clone().map(FeePolicyRef::new),
             country: None,
+            transaction_type: None,
             as_of: Utc::now(),
         };
         let resolution = banzami_pricing::resolve(&rules, &ctx);
