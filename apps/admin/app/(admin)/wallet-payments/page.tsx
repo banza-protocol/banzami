@@ -22,7 +22,7 @@ export default function WalletPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
-  const [environment, setEnvironment] = useState('');
+  const [environment, setEnvironment] = useState('SANDBOX');
   const [busy, setBusy] = useState<string | null>(null);
 
   const load = useCallback(async () => {

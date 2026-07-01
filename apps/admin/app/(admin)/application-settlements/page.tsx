@@ -32,7 +32,7 @@ export default function ApplicationSettlementsPage() {
   const [rows, setRows] = useState<ApplicationSettlement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<AppSettlementFilters>({ environment: 'LIVE' });
+  const [filters, setFilters] = useState<AppSettlementFilters>({ environment: 'SANDBOX' });
   const [selected, setSelected] = useState<ApplicationSettlement | null>(null);
   const [snapOpen, setSnapOpen] = useState(false);
   const [busy, setBusy] = useState(false);

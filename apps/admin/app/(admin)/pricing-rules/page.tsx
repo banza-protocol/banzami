@@ -9,6 +9,7 @@ import { Card, CardHeader, TableWrap, Th, Td, EmptyMsg, ErrorState } from '@/com
 import { useToast } from '@/components/ui/toast';
 import { useDialog } from '@/components/ui/dialog';
 import { formatKz, formatDate } from '@/lib/format';
+import { useAdminEnv } from '@/lib/admin-env';
 
 const CATEGORIES = [
   'DONATION', 'CROWDFUNDING', 'MARKETPLACE', 'ECOMMERCE', 'DELIVERY', 'FOOD_DELIVERY',
@@ -31,7 +32,7 @@ function pct(bps: number): string {
 
 function emptyForm(): PricingRuleInput {
   return {
-    rule_key: '', environment: 'LIVE', business_category: '', pricing_profile: '',
+    rule_key: '', environment: 'SANDBOX', business_category: '', pricing_profile: '',
     fee_policy_ref: '', currency: 'AOA', country: '', rate_bps: 0, flat_minor: 0,
     min_fee_minor: null, max_fee_minor: null, rounding: 'HALF_UP', priority: 0,
     effective_from: null, effective_to: null, description: '',
@@ -58,7 +59,8 @@ export default function PricingRulesPage() {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
 
-  const [filters, setFilters] = useState<PricingRuleFilters>({ environment: 'LIVE' });
+  const { liveAvailable } = useAdminEnv();
+  const [filters, setFilters] = useState<PricingRuleFilters>({ environment: 'SANDBOX' });
   const [mode, setMode] = useState<Mode>({ kind: 'none' });
   const [form, setForm] = useState<PricingRuleInput>(emptyForm());
   const [versions, setVersions] = useState<PricingRule[]>([]);
@@ -220,7 +222,7 @@ export default function PricingRulesPage() {
         </p>
       </header>
 
-      <Filters value={filters} onChange={setFilters} />
+      <Filters value={filters} onChange={setFilters} liveAvailable={liveAvailable} />
 
       <div className={`grid gap-5 ${panelOpen ? 'grid-cols-1 xl:grid-cols-[1fr_minmax(380px,440px)]' : 'grid-cols-1'}`}>
         <Card>
@@ -307,7 +309,7 @@ export default function PricingRulesPage() {
                   Esta regra já priçou pagamentos reais. Guardar criará a versão {mode.kind === 'edit' ? mode.rule.version + 1 : ''} e desativará a atual — o histórico permanece intacto.
                 </p>
               )}
-              <RuleForm form={form} setForm={setForm} lockKey={mode.kind === 'edit'} profileCodes={profileCodes} policyCodes={policyCodes} />
+              <RuleForm form={form} setForm={setForm} lockKey={mode.kind === 'edit'} profileCodes={profileCodes} policyCodes={policyCodes} liveAvailable={liveAvailable} />
               <div className="flex justify-end gap-2 pt-1">
                 <button onClick={closePanel} className="rounded-[11px] border border-[#f1e3e3] px-[15px] py-[9px] text-[13px] font-bold text-[#5a4a4e] hover:bg-[#FFF7F6]">
                   Cancelar
@@ -366,7 +368,7 @@ function IconBtn({ title, onClick, Icon, danger, disabled }: {
   );
 }
 
-function Filters({ value, onChange }: { value: PricingRuleFilters; onChange: (f: PricingRuleFilters) => void }) {
+function Filters({ value, onChange, liveAvailable }: { value: PricingRuleFilters; onChange: (f: PricingRuleFilters) => void; liveAvailable: boolean }) {
   function set<K extends keyof PricingRuleFilters>(k: K, v: string) {
     onChange({ ...value, [k]: v || undefined });
   }
@@ -374,9 +376,9 @@ function Filters({ value, onChange }: { value: PricingRuleFilters; onChange: (f:
   return (
     <div className="flex flex-wrap items-center gap-2">
       <select className={selClass} value={value.environment ?? ''} onChange={(e) => set('environment', e.target.value)}>
-        <option value="">Todos os ambientes</option>
-        <option value="LIVE">LIVE</option>
         <option value="SANDBOX">SANDBOX</option>
+        <option value="LIVE" disabled={!liveAvailable}>{liveAvailable ? 'LIVE' : 'LIVE (indisponível)'}</option>
+        <option value="">Todos os ambientes</option>
       </select>
       <select className={selClass} value={value.business_category ?? ''} onChange={(e) => set('business_category', e.target.value)}>
         <option value="">Todas as categorias</option>
@@ -395,9 +397,9 @@ function Filters({ value, onChange }: { value: PricingRuleFilters; onChange: (f:
   );
 }
 
-function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes }: {
+function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes, liveAvailable }: {
   form: PricingRuleInput; setForm: (f: PricingRuleInput) => void; lockKey: boolean;
-  profileCodes: string[]; policyCodes: string[];
+  profileCodes: string[]; policyCodes: string[]; liveAvailable: boolean;
 }) {
   // Catalog codes (enabled) merged with the static fallbacks; manual entry is
   // still allowed via the free-text input, so old string refs never break.
@@ -419,8 +421,8 @@ function RuleForm({ form, setForm, lockKey, profileCodes, policyCodes }: {
       <Field label="Ambiente" labelClass={labelClass}>
         <select className={inputClass} value={form.environment} disabled={lockKey}
           onChange={(e) => set('environment', e.target.value as PricingRuleInput['environment'])}>
-          <option value="LIVE">LIVE</option>
           <option value="SANDBOX">SANDBOX</option>
+          <option value="LIVE" disabled={!liveAvailable}>{liveAvailable ? 'LIVE' : 'LIVE (indisponível)'}</option>
         </select>
       </Field>
       <Field label="Moeda (vazio = qualquer)" labelClass={labelClass}>

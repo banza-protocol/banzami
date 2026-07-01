@@ -8,13 +8,14 @@ import { AdminApi, type ComplianceCase } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { CaseDrawer, CASE_TYPE_LABEL, STATUS_LABEL, PRIORITY_LABEL, RISK_LABEL } from '@/components/compliance/case-drawer';
 import { timeAgo, slaBucket } from '@/lib/format';
+import { useAdminEnv } from '@/lib/admin-env';
+import { EnvToggle } from '@/components/layout/env-toggle';
 
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
 }
 
-type Env = 'LIVE' | 'SANDBOX';
 const PAGE_SIZE = 25;
 
 const TYPE_CHIPS = [
@@ -32,7 +33,7 @@ export default function ComplianceInboxPage() {
   const [cases, setCases] = useState<ComplianceCase[] | null>(null);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState('');
-  const [env, setEnv] = useState<Env>('LIVE');
+  const { env, setEnv, liveAvailable } = useAdminEnv();
   const [caseType, setCaseType] = useState('');
   const [status, setStatus] = useState('');
   const [priority, setPriority] = useState('');
@@ -77,17 +78,8 @@ export default function ComplianceInboxPage() {
     <div className="p-[26px]">
       <div className="mb-[22px] flex items-center justify-between border-b border-[#f1e3e3]">
         <h1 className="flex items-center gap-2 pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]"><InboxIcon size={24} className="text-[#B5101F]" /> Compliance Inbox</h1>
-        <div className="mb-3 flex items-center gap-3">
-          <span className={`rounded-md px-3 py-1.5 text-sm font-extrabold uppercase tracking-wide ${env === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white'}`}>
-            {env === 'LIVE' ? '● Produção (LIVE)' : '● Sandbox'}
-          </span>
-          <div className="flex overflow-hidden rounded-lg border border-[#eaddde]">
-            {(['LIVE', 'SANDBOX'] as Env[]).map((e) => (
-              <button key={e} onClick={() => { setEnv(e); setPage(1); }} className={`px-3 py-1.5 text-sm font-bold ${env === e ? (e === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white') : 'bg-white text-[#5a4a4e]'}`}>
-                {e === 'LIVE' ? 'Live' : 'Sandbox'}
-              </button>
-            ))}
-          </div>
+        <div className="mb-3">
+          <EnvToggle env={env} setEnv={(e) => { const ok = setEnv(e); if (ok) setPage(1); return ok; }} liveAvailable={liveAvailable} />
         </div>
       </div>
       <p className="mb-4 text-[14px] text-[#9a8a8e]">Todos os casos de compliance num só lugar — candidaturas, KYB, KYC e liquidações. Trabalhe por caso, não por módulo.</p>

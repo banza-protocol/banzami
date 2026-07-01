@@ -7,13 +7,14 @@ import { AdminApi, type AdminProof, type ProofVerification } from '@/lib/admin-a
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { useToast } from '@/components/ui/toast';
 import { formatKz, formatDate } from '@/lib/format';
+import { useAdminEnv, type Env } from '@/lib/admin-env';
+import { EnvToggle } from '@/components/layout/env-toggle';
 
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
 }
 
-type Env = 'LIVE' | 'SANDBOX';
 
 const STATUS: Record<string, string> = {
   CONFIRMED: 'bg-green-50 text-green-700',
@@ -28,7 +29,7 @@ export default function ProofsPage() {
   const toast = useToast();
   const [proofs, setProofs] = useState<AdminProof[] | null>(null);
   const [error, setError] = useState('');
-  const [env, setEnv] = useState<Env>('LIVE');
+  const { env, setEnv, liveAvailable } = useAdminEnv();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<{ proof: AdminProof; verifications: ProofVerification[] } | null>(null);
 
@@ -62,11 +63,7 @@ export default function ProofsPage() {
     <div className="p-[26px]">
       <div className="mb-[22px] flex items-center justify-between border-b border-[#f1e3e3]">
         <h1 className="flex items-center gap-2 pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]"><ShieldCheck size={24} className="text-[#B5101F]" /> Comprovativos</h1>
-        <div className="mb-3 flex overflow-hidden rounded-lg border border-[#eaddde]">
-          {(['LIVE', 'SANDBOX'] as Env[]).map((e) => (
-            <button key={e} onClick={() => setEnv(e)} className={`px-3 py-1.5 text-sm font-bold ${env === e ? (e === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white') : 'bg-white text-[#5a4a4e]'}`}>{e === 'LIVE' ? 'Live' : 'Sandbox'}</button>
-          ))}
-        </div>
+        <div className="mb-3"><EnvToggle env={env} setEnv={setEnv} liveAvailable={liveAvailable} /></div>
       </div>
       <p className="mb-4 text-[14px] text-[#9a8a8e]">Verificação pública de comprovativos (ADR-040) — apenas leitura. Os comprovativos são imutáveis e nunca são editados ou apagados aqui.</p>
 

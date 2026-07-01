@@ -28,7 +28,7 @@ export default function FinanceDashboardPage() {
   const [data, setData] = useState<FinanceDashboard | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<FinanceDashboardFilters>({ environment: 'LIVE' });
+  const [filters, setFilters] = useState<FinanceDashboardFilters>({ environment: 'SANDBOX' });
 
   const load = useCallback(async (f: FinanceDashboardFilters) => {
     const api = getApi();

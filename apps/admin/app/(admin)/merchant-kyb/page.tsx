@@ -7,13 +7,13 @@ import { AdminApi, type MerchantKybSummary } from '@/lib/admin-api';
 import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { MerchantKybDrawer } from '@/components/merchant-kyb/review-drawer';
 import { formatDate } from '@/lib/format';
+import { useAdminEnv, type Env } from '@/lib/admin-env';
+import { EnvToggle } from '@/components/layout/env-toggle';
 
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
 }
-
-type Env = 'LIVE' | 'SANDBOX';
 
 // Entity-level badge derived from the document aggregates — describes the whole
 // merchant's KYB state, not a single document.
@@ -30,7 +30,7 @@ function merchantBadge(m: MerchantKybSummary): { label: string; cls: string } {
 export default function MerchantKybPage() {
   const [merchants, setMerchants] = useState<MerchantKybSummary[] | null>(null);
   const [error, setError] = useState('');
-  const [env, setEnv] = useState<Env>('LIVE');
+  const { env, setEnv, liveAvailable } = useAdminEnv();
   const [search, setSearch] = useState('');
   const [onlyPending, setOnlyPending] = useState(true);
   const [selected, setSelected] = useState<MerchantKybSummary | null>(null);
@@ -72,21 +72,8 @@ export default function MerchantKybPage() {
     <div className="p-[26px]">
       <div className="mb-[22px] flex items-center justify-between border-b border-[#f1e3e3]">
         <h1 className="pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]">Documentos KYB</h1>
-        <div className="mb-3 flex items-center gap-3">
-          <span className={`rounded-md px-3 py-1.5 text-sm font-extrabold uppercase tracking-wide ${env === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white'}`}>
-            {env === 'LIVE' ? '● Produção (LIVE)' : '● Sandbox'}
-          </span>
-          <div className="flex overflow-hidden rounded-lg border border-[#eaddde]">
-            {(['LIVE', 'SANDBOX'] as Env[]).map((e) => (
-              <button
-                key={e}
-                onClick={() => setEnv(e)}
-                className={`px-3 py-1.5 text-sm font-bold ${env === e ? (e === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white') : 'bg-white text-[#5a4a4e]'}`}
-              >
-                {e === 'LIVE' ? 'Live' : 'Sandbox'}
-              </button>
-            ))}
-          </div>
+        <div className="mb-3">
+          <EnvToggle env={env} setEnv={setEnv} liveAvailable={liveAvailable} />
         </div>
       </div>
       <p className="mb-4 text-[14px] text-[#9a8a8e]">
@@ -119,8 +106,8 @@ export default function MerchantKybPage() {
           <div className="px-6 py-[60px] text-center text-[15px] text-[#9a8a8e]">A carregar…</div>
         ) : shown.length === 0 ? (
           <EmptyMsg
-            title="Nenhum comerciante encontrado neste ambiente."
-            hint={`A rever ${env === 'LIVE' ? 'Produção' : 'Sandbox'}. ${onlyPending ? 'Mostrando apenas pendentes — desligue o filtro para ver todos.' : 'Confirme o ambiente no seletor Live/Sandbox.'}`}
+            title={env === 'SANDBOX' ? 'Nenhum comerciante sandbox encontrado.' : 'Nenhum comerciante encontrado neste ambiente.'}
+            hint={onlyPending ? 'Mostrando apenas pendentes — desligue o filtro para ver todos.' : 'Ainda não há comerciantes neste ambiente.'}
           />
         ) : (
           <div className="flex flex-col gap-2 p-4">

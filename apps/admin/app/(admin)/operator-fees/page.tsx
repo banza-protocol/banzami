@@ -24,7 +24,7 @@ export default function OperatorFeesPage() {
   const [rows, setRows] = useState<OperatorFee[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [filters, setFilters] = useState<OperatorFeeFilters>({ environment: 'LIVE' });
+  const [filters, setFilters] = useState<OperatorFeeFilters>({ environment: 'SANDBOX' });
   const [selected, setSelected] = useState<OperatorFee | null>(null);
   const [snapOpen, setSnapOpen] = useState(false);
 

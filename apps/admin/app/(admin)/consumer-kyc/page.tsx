@@ -8,13 +8,14 @@ import { Card, EmptyMsg, ErrorState } from '@/components/ui/table';
 import { KycReviewDrawer } from '@/components/consumer-kyc/review-drawer';
 import { KYC_STATUS, KYC_DOC_LABEL } from '@/components/consumer-kyc/labels';
 import { formatDate } from '@/lib/format';
+import { useAdminEnv, type Env } from '@/lib/admin-env';
+import { EnvToggle } from '@/components/layout/env-toggle';
 
 function getApi(): AdminApi | null {
   const s = getSession();
   return s ? new AdminApi(s.token) : null;
 }
 
-type Env = 'LIVE' | 'SANDBOX';
 
 const CHIPS: { label: string; value: string }[] = [
   { label: 'Em análise', value: 'UNDER_REVIEW' },
@@ -28,7 +29,7 @@ export default function ConsumerKycPage() {
   const [cases, setCases] = useState<KycCaseSummary[] | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('UNDER_REVIEW');
-  const [env, setEnv] = useState<Env>('LIVE');
+  const { env, setEnv, liveAvailable } = useAdminEnv();
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<KycCaseSummary | null>(null);
 
@@ -69,21 +70,8 @@ export default function ConsumerKycPage() {
     <div className="p-[26px]">
       <div className="mb-[22px] flex items-center justify-between border-b border-[#f1e3e3]">
         <h1 className="pb-[14px] text-[26px] font-extrabold text-[#1a1a1a]">Documentos KYC</h1>
-        <div className="mb-3 flex items-center gap-3">
-          <span className={`rounded-md px-3 py-1.5 text-sm font-extrabold uppercase tracking-wide ${env === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white'}`}>
-            {env === 'LIVE' ? '● Produção (LIVE)' : '● Sandbox'}
-          </span>
-          <div className="flex overflow-hidden rounded-lg border border-[#eaddde]">
-            {(['LIVE', 'SANDBOX'] as Env[]).map((e) => (
-              <button
-                key={e}
-                onClick={() => setEnv(e)}
-                className={`px-3 py-1.5 text-sm font-bold ${env === e ? (e === 'LIVE' ? 'bg-[#B5101F] text-white' : 'bg-amber-500 text-white') : 'bg-white text-[#5a4a4e]'}`}
-              >
-                {e === 'LIVE' ? 'Live' : 'Sandbox'}
-              </button>
-            ))}
-          </div>
+        <div className="mb-3">
+          <EnvToggle env={env} setEnv={setEnv} liveAvailable={liveAvailable} />
         </div>
       </div>
       <p className="mb-4 text-[14px] text-[#9a8a8e]">
