@@ -32,7 +32,9 @@ func renderQR(w http.ResponseWriter, r *http.Request, value, format string) bool
 		_, _ = w.Write(png)
 		return true
 	case "svg":
-		svg, err := documents.QRCodeSVG(value, documents.QROptions{Size: documents.QRSizeLG, ShowLogo: true})
+		// The /qr endpoints are business-facing (payment sessions, merchant QR),
+		// so they carry the Banzami Business mark.
+		svg, err := documents.QRCodeSVG(value, documents.QROptions{Size: documents.QRSizeLG, ShowLogo: true, Logo: documents.QRLogoMerchant})
 		if err != nil {
 			apierror.Respond(w, r, http.StatusInternalServerError, "QR_RENDER_FAILED", "could not render QR")
 			return true

@@ -27,9 +27,10 @@ func TestQRCodeSVG_CanonicalStyle(t *testing.T) {
 			t.Errorf("SVG missing token %q", want)
 		}
 	}
-	// Centre logo present.
-	if !strings.Contains(svg, "translate(") {
-		t.Error("logo group missing when ShowLogo=true")
+	// Centre logo present — the real embedded Banzami mark (an <image>), not a
+	// hand-drawn recreation.
+	if !strings.Contains(svg, "<image ") || !strings.Contains(svg, "data:image/png;base64,") {
+		t.Error("embedded centre logo missing when ShowLogo=true")
 	}
 }
 
@@ -38,7 +39,7 @@ func TestQRCodeSVG_NoLogoOption(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(svg, "translate(") {
+	if strings.Contains(svg, "<image ") {
 		t.Error("logo rendered despite ShowLogo=false")
 	}
 	// Still branded (finders + data), still has a symbol.
@@ -109,5 +110,17 @@ func TestQRCodePNG(t *testing.T) {
 func TestQRPresets(t *testing.T) {
 	if QRSizeSM != 96 || QRSizeMD != 160 || QRSizeLG != 256 || QRSizeXL != 512 || QRSizePrint != 1024 {
 		t.Error("canonical size presets changed unexpectedly")
+	}
+}
+
+func TestQRLogoVariants(t *testing.T) {
+	con, _ := QRCodeSVG(qrTestPayload, QROptions{ShowLogo: true, Logo: QRLogoConsumer})
+	mer, _ := QRCodeSVG(qrTestPayload, QROptions{ShowLogo: true, Logo: QRLogoMerchant})
+	// Both embed a real PNG mark, and the two marks differ.
+	if !strings.Contains(con, "data:image/png;base64,") || !strings.Contains(mer, "data:image/png;base64,") {
+		t.Fatal("variant QR missing embedded logo")
+	}
+	if con == mer {
+		t.Error("consumer and merchant QR embed the same logo")
 	}
 }

@@ -1,11 +1,44 @@
 package documents
 
 import (
+	_ "embed"
+	"encoding/base64"
 	"fmt"
 	"strings"
 
 	qrcode "github.com/skip2/go-qrcode"
 )
+
+// The official Banzami marks embedded at the centre of the QR — the SAME assets
+// the apps use (apps/mobile/assets/banzami/icon.png and business/business_logo.png,
+// downscaled), NOT a recreation. Consumer = the Banzami app icon; merchant = the
+// Banzami Business logo.
+//
+//go:embed qr_logo_consumer.png
+var qrLogoConsumerPNG []byte
+
+//go:embed qr_logo_merchant.png
+var qrLogoMerchantPNG []byte
+
+var (
+	qrLogoConsumerURI = "data:image/png;base64," + base64.StdEncoding.EncodeToString(qrLogoConsumerPNG)
+	qrLogoMerchantURI = "data:image/png;base64," + base64.StdEncoding.EncodeToString(qrLogoMerchantPNG)
+)
+
+// QRLogo selects which official mark is embedded at the centre.
+type QRLogo int
+
+const (
+	QRLogoConsumer QRLogo = iota // Banzami app icon (default)
+	QRLogoMerchant               // Banzami Business logo
+)
+
+func (l QRLogo) dataURI() string {
+	if l == QRLogoMerchant {
+		return qrLogoMerchantURI
+	}
+	return qrLogoConsumerURI
+}
 
 // Canonical Banzami QR Engine (server-side, SVG-first).
 //
@@ -53,6 +86,8 @@ const (
 type QROptions struct {
 	Size     int
 	ShowLogo bool
+	// Logo selects which official mark to embed (default QRLogoConsumer).
+	Logo QRLogo
 }
 
 // QRCodeSVG renders payload as the canonical branded Banzami QR (SVG string).
@@ -111,41 +146,36 @@ func QRCodeSVG(payload string, opts QROptions) (string, error) {
 	fmt.Fprintf(&b, `<g fill="%s">%s</g>`, QRColorFinder, finder.String())
 
 	if opts.ShowLogo {
-		b.WriteString(qrLogoGroup(sym, total))
+		b.WriteString(qrLogoGroup(sym, total, opts.Logo))
 	}
 
 	b.WriteString(`</svg>`)
 	return b.String(), nil
 }
 
-// qrLogoGroup renders the white logo box + the official Banzami mark centred on
-// the symbol. Coordinates are in module units (the SVG viewBox unit).
-func qrLogoGroup(sym, total int) string {
+// qrLogoGroup renders the white logo box + the official Banzami mark (the real
+// embedded asset, not a recreation) centred on the symbol. Coordinates are in
+// module units (the SVG viewBox unit).
+func qrLogoGroup(sym, total int, logo QRLogo) string {
 	box := float64(sym) * qrLogoBoxFraction
-	cx := float64(total) / 2
-	cy := float64(total) / 2
-	x := cx - box/2
-	y := cy - box/2
+	c := float64(total) / 2
+	x := c - box/2
+	y := c - box/2
 	rx := box * 0.2
 
-	// The mark is a 4-rounded-square glyph on a 100×100 grid (same geometry as the
-	// receipt header mark), painted in Hero Red, inset within the white box.
-	markPad := box * 0.16
-	markSize := box - 2*markPad
-	scale := markSize / 100.0
+	// The mark sits inside the white box with a small uniform margin.
+	pad := box * 0.12
+	img := box - 2*pad
 
 	var b strings.Builder
 	// White padded box (with a faint border so it reads on busy symbols).
 	fmt.Fprintf(&b,
 		`<rect x="%.3f" y="%.3f" width="%.3f" height="%.3f" rx="%.3f" fill="%s" stroke="#F2E7E7" stroke-width="%.3f"/>`,
 		x, y, box, box, rx, QRColorBg, box*0.02)
-	fmt.Fprintf(&b, `<g transform="translate(%.3f,%.3f) scale(%.4f)" fill="%s">`,
-		x+markPad, y+markPad, scale, QRColorFinder)
-	b.WriteString(`<rect x="6" y="6" width="42" height="42" rx="13"/>`)
-	b.WriteString(`<rect x="56" y="10" width="32" height="32" rx="10"/>`)
-	b.WriteString(`<rect x="10" y="56" width="38" height="38" rx="11"/>`)
-	b.WriteString(`<rect x="58" y="60" width="28" height="28" rx="9"/>`)
-	b.WriteString(`</g>`)
+	// The official mark, embedded as an image (identical to the app asset).
+	fmt.Fprintf(&b,
+		`<image x="%.3f" y="%.3f" width="%.3f" height="%.3f" href="%s" preserveAspectRatio="xMidYMid meet"/>`,
+		x+pad, y+pad, img, img, logo.dataURI())
 	return b.String()
 }
 

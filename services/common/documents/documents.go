@@ -104,8 +104,14 @@ func verificationURL(ref string) string {
 // serves and the apps display: ECC H, red finders, #111111 data, centre logo,
 // quiet zone 4. The receipt CSS scales the SVG to its 82px box (see receipt.html
 // `.verify svg`), so the intrinsic size is immaterial here.
-func qrSVG(url string) template.HTML {
-	svg, err := QRCodeSVG(url, QROptions{Size: QRSizeLG, ShowLogo: true})
+func qrSVG(url string, perspective Perspective) template.HTML {
+	// Merchant receipts carry the Banzami Business mark; everything else uses the
+	// consumer Banzami app icon — matching which app produced the transaction.
+	logo := QRLogoConsumer
+	if perspective == PerspectiveMerchant {
+		logo = QRLogoMerchant
+	}
+	svg, err := QRCodeSVG(url, QROptions{Size: QRSizeLG, ShowLogo: true, Logo: logo})
 	if err != nil {
 		return ""
 	}
@@ -239,7 +245,7 @@ func toView(d ReceiptData) receiptView {
 		State:       statePT(d.Status),
 		VerifyShort: verify,
 		VerifyURL:   qrURL,
-		QRSVG:       qrSVG(qrURL),
+		QRSVG:       qrSVG(qrURL, d.Perspective),
 		IsSandbox:   strings.EqualFold(strings.TrimSpace(d.Environment), "SANDBOX"),
 	}
 }
