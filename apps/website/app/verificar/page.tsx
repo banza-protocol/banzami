@@ -42,7 +42,7 @@ export default function VerificarPage() {
         <div style={{ borderRadius: 20, border: '1px solid #f1e3e3', background: '#fff', padding: 28, boxShadow: '0 20px 60px -30px rgba(0,0,0,0.2)' }}>
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 900, color: '#1a1a1a' }}>Verificar comprovativo</h1>
           <p style={{ margin: '10px 0 20px', fontSize: 14.5, fontWeight: 600, lineHeight: 1.55, color: '#6a5a5e' }}>
-            Introduza o código de verificação do comprovativo (ou cole o link). Confirmamos o registo real no ledger imutável do Banzami — não confie apenas em screenshots ou PDFs.
+            Introduza o código de verificação do comprovativo (ou cole o link). Confirmamos o registo oficial no sistema seguro do Banzami — não confie apenas em screenshots ou PDFs.
           </p>
           <form onSubmit={submit}>
             <input

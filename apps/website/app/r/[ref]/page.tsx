@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
   title: 'Verificação de comprovativo',
-  description: 'Confirme a autenticidade de um comprovativo Banzami contra o ledger imutável.',
+  description: 'Confirme a autenticidade de um comprovativo Banzami no sistema oficial.',
   robots: { index: false },
 };
 
@@ -50,7 +50,7 @@ function opLabel(o?: string | null): string {
 function verdict(p: ProofResult): { tone: 'green' | 'yellow' | 'red'; title: string; sub: string } {
   if (!p.exists) return { tone: 'red', title: 'Comprovativo inválido', sub: p.message || 'Este comprovativo não existe ou pode ter sido falsificado.' };
   switch (p.status) {
-    case 'CONFIRMED': return { tone: 'green', title: 'Pagamento verificado', sub: 'Esta transação existe no ledger imutável do Banzami.' };
+    case 'CONFIRMED': return { tone: 'green', title: 'Pagamento verificado', sub: 'Esta transação existe no sistema oficial do Banzami.' };
     case 'PENDING': return { tone: 'yellow', title: 'Pagamento pendente', sub: 'A transação existe mas ainda não foi confirmada.' };
     case 'REVERSED': return { tone: 'red', title: 'Pagamento revertido', sub: 'Esta transação foi revertida — não representa um pagamento válido.' };
     default: return { tone: 'red', title: 'Comprovativo inválido', sub: `Estado: ${p.status}. Não representa um pagamento confirmado.` };
@@ -122,9 +122,9 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
           )}
 
           <div style={{ margin: '14px 26px', borderRadius: 12, border: `1.5px solid ${t.border}`, background: t.bg, padding: '12px 14px' }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: t.text }}>🔒 Não confie apenas em screenshots ou PDFs.</div>
+            <div style={{ fontSize: 13, fontWeight: 800, color: t.text }}>🔒 Não confie apenas em screenshots ou PDFs. Confirme sempre nesta página oficial.</div>
             <div style={{ fontSize: 12.5, fontWeight: 600, color: t.text, marginTop: 3 }}>
-              Confirme sempre o comprovativo nesta página oficial. O documento pode ser alterado; esta verificação mostra o registo real no ledger imutável.
+              O documento pode ser alterado; esta verificação mostra o registo oficial no sistema seguro do Banzami.
             </div>
           </div>
 
@@ -139,7 +139,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
                 </div>
               )}
               <div style={{ fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>
-                Registado no ledger imutável BANZA · Verificado agora · {nowWAT()} (WAT)
+                Registado no sistema oficial BANZA · Verificado agora · {nowWAT()} (WAT)
               </div>
             </div>
           )}
@@ -149,7 +149,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
         <div style={{ marginTop: 16, borderRadius: 16, border: '1px solid #f1e3e3', background: '#fff', padding: '16px 18px', boxShadow: '0 10px 30px -22px rgba(0,0,0,0.18)' }}>
           <div style={{ fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>Fonte da verdade</div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: '#6b5a5e', lineHeight: 1.55 }}>
-            Esta página consulta diretamente o ledger imutável do protocolo BANZA. PDFs, capturas de ecrã e imagens nunca são considerados prova — a prova oficial é sempre esta página.
+            Esta página consulta diretamente o sistema oficial do Banzami/BANZA. PDFs, capturas de ecrã e imagens nunca são considerados prova — a prova oficial é sempre esta página.
           </div>
         </div>
 
