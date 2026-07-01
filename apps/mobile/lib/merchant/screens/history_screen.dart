@@ -600,33 +600,26 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     if (_busyReceipt) return;
     setState(() => _busyReceipt = true);
     final client = context.read<BanzamiClient>();
-    // Try the official PDF; on any failure fall back to a verifiable text
-    // receipt so sharing never dead-ends.
+    // Share the official Banzami PDF only (Document Engine: dados + QR de
+    // verificação). Never plain text. On failure show a clear error — tocar de
+    // novo tenta outra vez.
+    File? file;
     try {
       final bytes = await client.fetchMerchantReceiptPdf(p.id);
       final dir   = await getTemporaryDirectory();
-      final file  = File('${dir.path}/banzami-comprovativo-${p.reference}.pdf');
+      file        = File('${dir.path}/Banzami-Comprovativo-${p.reference}.pdf');
       await file.writeAsBytes(bytes, flush: true);
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
         subject: 'Comprovativo Banzami · ${p.reference}',
       );
     } catch (_) {
-      try {
-        await Share.share(
-          'Comprovativo Banzami\n'
-          'Ref: ${p.reference}\n'
-          'Montante: ${formatMinor(p.amountMinor, p.currency)}\n'
-          'De: ${p.payerName}\n'
-          'Data: ${BanzamiDateFormatter.formatReceiptDate(p.createdAt)}\n'
-          'Método: Saldo Banzami\n'
-          'Verificar: https://banzami.com/r/${p.reference}',
-          subject: 'Comprovativo Banzami · ${p.reference}',
-        );
-      } catch (_) {
-        if (mounted) _snack('Não foi possível partilhar.');
-      }
+      if (mounted) _snack('Não foi possível obter o comprovativo.');
     } finally {
+      // Never accumulate PDFs — delete the temp file after sharing.
+      if (file != null) {
+        try { await file.delete(); } catch (_) {}
+      }
       if (mounted) setState(() => _busyReceipt = false);
     }
   }

@@ -95,6 +95,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
   // Key used to compute the share button's on-screen position for iOS
   // UIActivityViewController anchor (required on iPad, good practice on iPhone).
   final _shareKey = GlobalKey();
+  bool _sharing = false;
 
   @override
   void initState() {
@@ -192,45 +193,53 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         ? null
         : box.localToGlobal(Offset.zero) & box.size;
 
-    // Official PDF comes from the backend Document Engine — never built locally.
-    // If it can't be fetched (offline, engine unavailable, transient error), we
-    // never dead-end: we fall back to sharing a verifiable text receipt so
-    // "Partilhar comprovativo" always works.
-    if (widget.fetchReceiptPdf != null) {
-      try {
-        final bytes = await widget.fetchReceiptPdf!();
-        final dir   = await getTemporaryDirectory();
-        final file  = File('${dir.path}/banzami-comprovativo-$_ref.pdf');
-        await file.writeAsBytes(bytes, flush: true);
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'application/pdf')],
-          subject:             'Comprovativo Banzami · Ref $_ref',
-          sharePositionOrigin: origin,
-        );
-        return;
-      } catch (_) {
-        // Fall through to the text receipt below (no error toast, no dead-end).
+    // The official Banzami PDF (Document Engine: logo, dados, QR de verificação,
+    // watermark SANDBOX) is the ONLY thing shared — never a locally-built PDF and
+    // never plain text. On failure we show a clear error; tocar de novo tenta
+    // outra vez. O texto existe apenas como "Copiar detalhes".
+    if (widget.fetchReceiptPdf == null || _sharing) {
+      if (mounted && widget.fetchReceiptPdf == null) {
+        BanzamiToast.showError(context, 'Não foi possível obter o comprovativo.');
       }
+      return;
     }
-
-    // Text receipt with the public verification link — always available.
+    setState(() => _sharing = true);
+    File? file;
     try {
-      await Share.share(
-        'Comprovativo Banzami\n'
-        'Ref: $_ref\n'
-        'Montante: $_amount\n'
-        'De: @$_from\n'
-        'Para: @${widget.transfer.recipient}\n'
-        'Data: $_dateShort\n'
-        'Método: Saldo Banzami\n'
-        'Verificar: https://banzami.com/r/$_ref',
+      final bytes = await widget.fetchReceiptPdf!();
+      final dir   = await getTemporaryDirectory();
+      file        = File('${dir.path}/Banzami-Comprovativo-$_ref.pdf');
+      await file.writeAsBytes(bytes, flush: true);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
         subject:             'Comprovativo Banzami · Ref $_ref',
         sharePositionOrigin: origin,
       );
     } catch (_) {
-      if (!mounted) return;
-      BanzamiToast.showError(context, 'Não foi possível partilhar.');
+      if (mounted) BanzamiToast.showError(context, 'Não foi possível obter o comprovativo.');
+    } finally {
+      // Never accumulate PDFs — delete the temp file after sharing.
+      if (file != null) {
+        try { await file.delete(); } catch (_) {}
+      }
+      if (mounted) setState(() => _sharing = false);
     }
+  }
+
+  // Secondary action — copies the transaction details + verification link as
+  // plain text. Not the primary share (that is the official PDF).
+  Future<void> _copyDetails() async {
+    await Clipboard.setData(ClipboardData(
+      text: 'Comprovativo Banzami\n'
+          'Ref: $_ref\n'
+          'Montante: $_amount\n'
+          'De: @$_from\n'
+          'Para: @${widget.transfer.recipient}\n'
+          'Data: $_dateShort\n'
+          'Método: Saldo Banzami\n'
+          'Verificar: https://banzami.com/r/$_ref',
+    ));
+    if (mounted) BanzamiToast.showSuccess(context, 'Detalhes copiados.');
   }
 
   // ── Security overlays ──────────────────────────────────────────────────────
@@ -544,7 +553,7 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                             width:  double.infinity,
                             height: 58,
                             child: OutlinedButton(
-                              onPressed: _share,
+                              onPressed: _sharing ? null : _share,
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: Colors.white,
                                 backgroundColor: Colors.white.withValues(alpha: 0.08),
@@ -556,12 +565,30 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
                                   borderRadius: BorderRadius.circular(22),
                                 ),
                               ),
-                              child: Text(
-                                'Partilhar comprovativo',
-                                style: BanzamiTextStyles.bodyMd.copyWith(
-                                  color:      Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              child: _sharing
+                                  ? const SizedBox(
+                                      width: 20, height: 20,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                  : Text(
+                                      'Partilhar comprovativo',
+                                      style: BanzamiTextStyles.bodyMd.copyWith(
+                                        color:      Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                            ),
+                          ),
+
+                          const SizedBox(height: BanzamiSpacing.xs),
+
+                          // ── Copiar detalhes (secondary) ────────────────
+                          TextButton(
+                            onPressed: _copyDetails,
+                            child: Text(
+                              'Copiar detalhes',
+                              style: BanzamiTextStyles.bodySm.copyWith(
+                                color:      Colors.white.withValues(alpha: 0.75),
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                           ),
