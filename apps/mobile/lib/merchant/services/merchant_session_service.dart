@@ -125,6 +125,7 @@ class MerchantSessionService extends ChangeNotifier {
   // ---------------------------------------------------------------------------
 
   Future<void> initialize() async {
+    final started = DateTime.now();
     final merchantId    = await _store.read(key: _kMerchantId);
     final merchantName  = await _store.read(key: _kMerchantName);
     final merchantEmail = await _store.read(key: _kMerchantEmail);
@@ -167,6 +168,14 @@ class MerchantSessionService extends ChangeNotifier {
         verified:          verified   == 'true',
       );
     }
+    // Keep the animated welcome (splash) up for at least the animation duration
+    // (1200ms), matching the consumer app, so it plays fully and never flashes.
+    final elapsed = DateTime.now().difference(started);
+    const minSplash = Duration(milliseconds: 1200);
+    if (elapsed < minSplash) {
+      await Future<void>.delayed(minSplash - elapsed);
+    }
+
     _initialized = true;
     notifyListeners();
   }
