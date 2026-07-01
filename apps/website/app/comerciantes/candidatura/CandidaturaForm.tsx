@@ -15,6 +15,7 @@ import {
 } from '@/lib/api';
 import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
 import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
+import { resolvePricing } from '@/lib/business-taxonomy';
 import {
   sandboxBusinessData,
   makeSandboxDoc,
@@ -606,11 +607,18 @@ export function CandidaturaForm() {
     // "Outros" category sends the typed description as the category.
     const finalCategory = category === OUTROS ? (categoryOther.trim() || OUTROS) : category;
 
+    // Automatic classification: the chosen category (the selected taxonomy name,
+    // even for "Outros") determines the canonical business_category + operator
+    // pricing_category. Never picked by hand in BANZADMIN. DOA → donation/DONATION.
+    const pricing = resolvePricing(category);
+
     const input: ApplicationInput = {
       desired_handle: handleClean,
       business_name: name.trim(),
       category: finalCategory || undefined,
       subcategory: subcategory || undefined,
+      business_category: pricing?.businessCategory,
+      pricing_category:  pricing?.pricingCategory,
       email: email.trim(),
       phone: phone.trim() ? `+244 ${phone.trim()}` : undefined,
       nif: nif.trim() || undefined,
@@ -883,6 +891,13 @@ export function CandidaturaForm() {
                   </Field>
                   <Field label="Categoria do negócio" error={show1 ? errors.category : null}>
                     <Select value={category} onChange={onChangeCategoria} placeholder="Selecione uma categoria" options={CATEGORIES} error={show1 && !!errors.category} />
+                    {category && resolvePricing(category) && (
+                      <p className="mt-1.5 text-[12.5px] font-semibold text-[#9a8a8e]">
+                        Categoria de preço do operador:{' '}
+                        <span className="font-extrabold text-[#B5101F]">{resolvePricing(category)!.pricingCategory}</span>
+                        {' '}· definida automaticamente pela categoria escolhida.
+                      </p>
+                    )}
                   </Field>
                   {category === OUTROS ? (
                     <Field label="Descreva a categoria" error={show1 ? errors.categoryOther : null}>

@@ -156,6 +156,10 @@ export type ApplicationInput = {
   business_name: string;
   category?: string;
   subcategory?: string;
+  /** Canonical business_category derived from the taxonomy (e.g. 'donation'). */
+  business_category?: string;
+  /** Operator pricing category derived from the taxonomy (e.g. 'DONATION'). */
+  pricing_category?: string;
   email: string;
   phone?: string;
   nif?: string;
