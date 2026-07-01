@@ -18,8 +18,9 @@ import (
 // email; the gateway does the orchestration.
 
 var (
-	ErrApplicationNotFound = errors.New("application not found")
-	ErrApplicationNotOpen  = errors.New("application is not open for review")
+	ErrApplicationNotFound   = errors.New("application not found")
+	ErrApplicationNotOpen    = errors.New("application is not open for review")
+	ErrAutoApproveNotSandbox = errors.New("auto-approval is only available for sandbox applications")
 )
 
 type MerchantApplication struct {
@@ -82,6 +83,7 @@ type MerchantApplicationAdminService interface {
 	List(ctx context.Context, status, environment string) ([]MerchantApplication, error)
 	Get(ctx context.Context, id string) (MerchantApplication, error)
 	Approve(ctx context.Context, id, reviewedBy string, activationTTL time.Duration) (ApprovalResult, error)
+	AutoApproveSandbox(ctx context.Context, id string, activationTTL time.Duration) (ApprovalResult, error)
 	Reject(ctx context.Context, id, reviewedBy, adminNotes, merchantMessage string) (RejectionResult, error)
 }
 
@@ -323,6 +325,37 @@ func (s *PostgresMerchantApplicationAdminService) Approve(ctx context.Context, i
 		ActivationToken: rawToken,
 		ApiKeyPrefix:    apiKeyPrefix,
 	}, nil
+}
+
+// AutoApproveSandbox provisions a SANDBOX application immediately, without manual
+// review — the assisted onboarding flow so a tester gets a usable Business Account
+// in seconds. It reuses the exact same Approve provisioning (merchant + wallet +
+// api-key + compliance + activation), records reviewed_by='SANDBOX_AUTO_APPROVE',
+// and marks sandbox_auto_approved=true for audit.
+//
+// HARD GUARD: this refuses any non-SANDBOX application. A LIVE application is never
+// auto-approved here — it always goes through manual review. Callers additionally
+// gate on the stack environment, so a LIVE stack never reaches this path.
+func (s *PostgresMerchantApplicationAdminService) AutoApproveSandbox(ctx context.Context, id string, activationTTL time.Duration) (ApprovalResult, error) {
+	app, err := s.Get(ctx, id)
+	if err != nil {
+		return ApprovalResult{}, err
+	}
+	if app.Environment != "SANDBOX" {
+		return ApprovalResult{}, ErrAutoApproveNotSandbox
+	}
+
+	res, err := s.Approve(ctx, id, "SANDBOX_AUTO_APPROVE", activationTTL)
+	if err != nil {
+		return ApprovalResult{}, err
+	}
+
+	// Provisioning already succeeded; the flag is best-effort audit metadata.
+	if _, e := s.pool.Exec(ctx,
+		`UPDATE merchant_applications SET sandbox_auto_approved=true, updated_at=now() WHERE id=$1`, id); e != nil {
+		return res, nil
+	}
+	return res, nil
 }
 
 // Reject marks the application REJECTED and releases its APPLICATION-reserved

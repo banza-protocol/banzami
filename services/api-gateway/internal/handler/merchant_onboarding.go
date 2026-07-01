@@ -18,10 +18,24 @@ type MerchantOnboardingHandler struct {
 	apps       service.MerchantApplicationService
 	activation service.ActivationService
 	gate       *service.EnvGate
+	// admin is used ONLY for SANDBOX assisted onboarding (auto-approve). Optional:
+	// when nil, applications are simply created SUBMITTED (manual review).
+	admin service.MerchantApplicationAdminService
 }
+
+// sandboxAutoApproveTTL is the activation-link lifetime for a sandbox auto-approved
+// account — generous, since sandbox accounts are for extended testing.
+const sandboxAutoApproveTTL = 30 * 24 * time.Hour
 
 func NewMerchantOnboardingHandler(apps service.MerchantApplicationService, activation service.ActivationService, gate *service.EnvGate) *MerchantOnboardingHandler {
 	return &MerchantOnboardingHandler{apps: apps, activation: activation, gate: gate}
+}
+
+// WithAutoApprove enables SANDBOX assisted onboarding (auto-approve + provision).
+// Left unset in tests / environments that shouldn't auto-approve.
+func (h *MerchantOnboardingHandler) WithAutoApprove(admin service.MerchantApplicationAdminService) *MerchantOnboardingHandler {
+	h.admin = admin
+	return h
 }
 
 // POST /v1/merchant/applications/check-handle   {handle}
@@ -142,6 +156,37 @@ func (h *MerchantOnboardingHandler) SubmitApplication(w http.ResponseWriter, r *
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not submit application")
 	default:
 		slog.InfoContext(r.Context(), "merchant.application.submitted", "application_id", appID)
+
+		// SANDBOX assisted onboarding: auto-approve + provision immediately so the
+		// account is testable without manual review. Best-effort — if provisioning
+		// fails the application stays SUBMITTED and can be approved manually.
+		//
+		// NEVER in LIVE: `env` is stamped from the stack (StackEnv), not the client,
+		// and the service itself refuses any non-SANDBOX application — a LIVE stack
+		// can never reach or trigger auto-approval.
+		if env == "SANDBOX" && h.admin != nil {
+			res, aerr := h.admin.AutoApproveSandbox(r.Context(), appID, sandboxAutoApproveTTL)
+			if aerr != nil {
+				slog.WarnContext(r.Context(), "merchant.application.sandbox_auto_approve_failed",
+					"application_id", appID, "error", aerr.Error())
+				writeJSON(w, http.StatusCreated, map[string]any{"application_id": appID, "status": "SUBMITTED"})
+				return
+			}
+			slog.InfoContext(r.Context(), "merchant.application.sandbox_auto_approved",
+				"application_id", appID, "merchant_id", res.MerchantID)
+			// The raw activation token is returned ONLY in sandbox, so the tester can
+			// self-activate (set a PIN) without waiting for the email — the applicant
+			// owns this test account and no real money is involved.
+			writeJSON(w, http.StatusCreated, map[string]any{
+				"application_id":        appID,
+				"status":                "APPROVED",
+				"sandbox_auto_approved": true,
+				"merchant_id":           res.MerchantID,
+				"activation_token":      res.ActivationToken,
+			})
+			return
+		}
+
 		writeJSON(w, http.StatusCreated, map[string]any{"application_id": appID, "status": "SUBMITTED"})
 	}
 }

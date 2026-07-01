@@ -37,6 +37,10 @@ func (f *fakeAppAdmin) Approve(_ context.Context, _, _ string, _ time.Duration) 
 	f.approveCalls++
 	return f.approval, f.approveErr
 }
+func (f *fakeAppAdmin) AutoApproveSandbox(_ context.Context, _ string, _ time.Duration) (service.ApprovalResult, error) {
+	f.approveCalls++
+	return f.approval, f.approveErr
+}
 func (f *fakeAppAdmin) Reject(_ context.Context, _, _, _, _ string) (service.RejectionResult, error) {
 	return f.rejection, f.rejectErr
 }

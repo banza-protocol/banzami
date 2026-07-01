@@ -96,7 +96,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	// (ADR-025): this gate refuses application submission/approval when the gateway
 	// stack's environment (cfg.Environment) disagrees with the current mode.
 	envGate := service.NewEnvGate(cfg.Environment, deps.PlatformSvc)
-	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate)
+	merchantOnboardingHandler := handler.NewMerchantOnboardingHandler(deps.MerchantAppSvc, deps.ActivationSvc, envGate).WithAutoApprove(deps.MerchantAppAdminSvc)
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
