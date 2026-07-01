@@ -37,8 +37,12 @@ class ChargeScreen extends StatefulWidget {
 class _ChargeScreenState extends State<ChargeScreen> {
   final _formKey        = GlobalKey<FormState>();
   final _shareButtonKey = GlobalKey();
-  final _amountCtrl     = TextEditingController();
   final _descCtrl       = TextEditingController();
+
+  // Amount in integer MINOR UNITS (cêntimos), or null when empty/invalid. The
+  // MoneyInput reports it via onChanged; a reset token clears the field.
+  int? _amountMinor;
+  int  _amountResetToken = 0;
 
   // Charge type — false = simple (one link), true = split (N links).
   bool _split  = false;
@@ -46,6 +50,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   static const int _kMinPeople = 2;
   static const int _kMaxPeople = 20;
+  static const int _kMaxMinor  = 1000000000; // 10 000 000 Kz sanity cap (minor)
 
   bool         _creating = false;
   bool         _sharing  = false;
@@ -57,12 +62,10 @@ class _ChargeScreenState extends State<ChargeScreen> {
   void initState() {
     super.initState();
     _loadLogo();
-    _amountCtrl.addListener(() => setState(() {})); // live per-person preview
   }
 
   @override
   void dispose() {
-    _amountCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
   }
@@ -79,23 +82,21 @@ class _ChargeScreenState extends State<ChargeScreen> {
     if (mounted) setState(() => _logoUiImage = composed);
   }
 
-  // Amounts are entered and displayed in WHOLE kwanzas (cêntimos are not used in
-  // practice) with a space thousands separator: "50 000 Kz". `parseAmountInput`
-  // strips the spaces; the ledger stores minor units (× 100).
-  static const int _maxKz = 10000000; // 10 million Kz sanity cap
+  // Amounts are entered/shown as human money ("50 000,50 Kz") and stored as
+  // integer MINOR UNITS via the Money Engine. Split arithmetic is minor-only.
 
-  /// The typed total in whole kwanzas (0 when empty/invalid).
-  int get _amountKz => parseAmountInput(_amountCtrl.text);
+  /// Parsed total in minor units (0 when empty/invalid).
+  int get _amountMinorOrZero => _amountMinor ?? 0;
 
-  /// Per-person parts in whole kwanzas, distributing any remainder across the
-  /// first participants so the sum is ALWAYS exactly the total. Empty until a
-  /// valid total + people count exist.
-  List<int> get _splitParts => (_amountKz > 0 && _amountKz <= _maxKz && _people >= _kMinPeople)
-      ? splitEvenly(_amountKz, _people)
-      : const [];
+  /// Per-person parts in MINOR UNITS, distributing the remainder (cêntimos)
+  /// across the first participants so the sum is ALWAYS exactly the total.
+  List<int> get _splitParts =>
+      (_amountMinorOrZero > 0 && _amountMinorOrZero <= _kMaxMinor && _people >= _kMinPeople)
+          ? splitEvenlyMinor(_amountMinorOrZero, _people)
+          : const [];
 
-  /// Kwanzas left over after an even division (0 when it divides exactly).
-  int get _splitRemainder => _amountKz % _people;
+  /// Minor units left over after an even division (0 when it divides exactly).
+  int get _splitRemainder => _amountMinorOrZero % _people;
 
   // ── Simple charge ────────────────────────────────────────────────────────────
 
@@ -106,9 +107,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
 
-    // Whole kwanzas → minor units. Empty ⇒ free amount (null).
-    final kz = _amountKz;
-    final int? amountMinor = kz > 0 ? kz * 100 : null;
+    // Minor units directly from the Money Engine. Empty ⇒ free amount (null).
+    final int? amountMinor = _amountMinorOrZero > 0 ? _amountMinorOrZero : null;
 
     try {
       final link = await client.createPaymentLink(
@@ -148,8 +148,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
     try {
       final result = await client.createFixedAmountsCollection(
         walletId:         session.walletId,
-        totalAmountMinor: _amountKz * 100,
-        amountsMinor:     parts.map((p) => p * 100).toList(),
+        totalAmountMinor: _amountMinorOrZero,
+        amountsMinor:     parts,
         title:            desc,
       );
       if (!mounted) return;
@@ -196,9 +196,10 @@ class _ChargeScreenState extends State<ChargeScreen> {
   }
 
   void _reset() => setState(() {
-        _link       = null;
-        _error      = null;
-        _amountCtrl.clear();
+        _link            = null;
+        _error           = null;
+        _amountMinor     = null;
+        _amountResetToken++; // rebuilds MoneyInput empty
         _descCtrl.clear();
         _people = _kMinPeople;
         _split  = false;
@@ -251,27 +252,12 @@ class _ChargeScreenState extends State<ChargeScreen> {
           ),
           const SizedBox(height: BanzamiSpacing.xl),
 
-          TextFormField(
-            controller:  _amountCtrl,
-            keyboardType: TextInputType.number,
-            inputFormatters: const [_ThousandsSpaceFormatter()],
-            decoration: InputDecoration(
-              labelText:  _split ? 'Valor total em Kz (ex: 50 000)' : 'Valor em Kz (ex: 250)',
-              hintText:   _split ? null : 'Deixe em branco para valor livre',
-              prefixIcon: const Icon(Icons.payments_outlined),
-              suffixText: 'Kz',
-            ),
-            validator: (v) {
-              final kz = parseAmountInput(v ?? '');
-              if (kz == 0) {
-                // Total is required for split; free amount is allowed for simple.
-                return _split ? 'Indique o valor total' : null;
-              }
-              if (kz > _maxKz) {
-                return 'Valor demasiado alto.';
-              }
-              return null;
-            },
+          MoneyInput(
+            key: ValueKey('amount-$_amountResetToken'),
+            label: _split ? 'Valor total (ex: 50 000,50)' : 'Valor (ex: 250,00)',
+            hint:  _split ? null : 'Deixe em branco para valor livre',
+            initialMinor: _amountMinor,
+            onChanged: (m) => setState(() => _amountMinor = m),
           ),
           const SizedBox(height: BanzamiSpacing.lg),
 
@@ -367,7 +353,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Total',
                   style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-              MoneyAmount.kwanza(_amountKz, size: MoneySize.md),
+              MoneyAmount(_amountMinorOrZero, size: MoneySize.md),
             ]),
             const SizedBox(height: BanzamiSpacing.sm),
             const Divider(height: 1, color: BanzamiColors.gray200),
@@ -377,7 +363,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('Pessoa ${i + 1}', style: BanzamiTextStyles.bodyMd),
-                  MoneyAmount.kwanza(parts[i], size: MoneySize.sm, tone: MoneyTone.brand),
+                  MoneyAmount(parts[i], size: MoneySize.sm, tone: MoneyTone.brand),
                 ]),
               ),
           ]),
@@ -385,8 +371,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
         const SizedBox(height: BanzamiSpacing.sm),
         if (_splitRemainder != 0)
           Text(
-            'Este valor não divide exatamente. Ajustámos automaticamente a diferença '
-            'de ${formatKwanza(_splitRemainder)} entre os primeiros participantes.',
+            'Este valor não divide exatamente. Ajustámos os cêntimos '
+            'automaticamente. A soma das partes é sempre igual ao total.',
             style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
         const SizedBox(height: 2),
@@ -592,25 +578,6 @@ class _StepButton extends StatelessWidget {
         child: Icon(icon, size: 20,
             color: enabled ? BanzamiColors.primary : BanzamiColors.gray400),
       ),
-    );
-  }
-}
-
-// =============================================================================
-// Live thousands-space input formatter — "50000" shows as "50 000" while typing.
-// Whole kwanzas only (cêntimos are not used in practice); the ' Kz' suffix is
-// rendered by the field decoration, not stored in the value.
-// =============================================================================
-
-class _ThousandsSpaceFormatter extends TextInputFormatter {
-  const _ThousandsSpaceFormatter();
-
-  @override
-  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
-    final formatted = formatAmountInput(newValue.text);
-    return TextEditingValue(
-      text: formatted,
-      selection: TextSelection.collapsed(offset: formatted.length),
     );
   }
 }

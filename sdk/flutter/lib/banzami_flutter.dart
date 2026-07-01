@@ -60,6 +60,7 @@ export 'utils/screen_security.dart';
 export 'widgets/banzami_button.dart';
 export 'widgets/banzami_amount_input.dart';
 export 'widgets/money_amount.dart';
+export 'widgets/money_input.dart';
 export 'widgets/banzami_logo.dart';
 export 'widgets/banzami_qr_display.dart';
 export 'widgets/banzami_qr_scanner.dart';
