@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../client/api_exception.dart';
 import '../models/transfer.dart';
 import '../theme/banzami_theme.dart';
 import '../utils/banzami_toast.dart';
@@ -194,6 +193,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         : box.localToGlobal(Offset.zero) & box.size;
 
     // Official PDF comes from the backend Document Engine — never built locally.
+    // If it can't be fetched (offline, engine unavailable, transient error), we
+    // never dead-end: we fall back to sharing a verifiable text receipt so
+    // "Partilhar comprovativo" always works.
     if (widget.fetchReceiptPdf != null) {
       try {
         final bytes = await widget.fetchReceiptPdf!();
@@ -206,22 +208,12 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
           sharePositionOrigin: origin,
         );
         return;
-      } on BanzamiApiException catch (e) {
-        if (!mounted) return;
-        BanzamiToast.showError(
-          context,
-          e.isNotFound ? 'Comprovativo indisponível.' : 'Não foi possível obter o comprovativo.',
-        );
-        return;
       } catch (_) {
-        // Network/offline or share failure → clear message, no local PDF.
-        if (!mounted) return;
-        BanzamiToast.showError(context, 'Sem ligação. Tente novamente para partilhar o comprovativo.');
-        return;
+        // Fall through to the text receipt below (no error toast, no dead-end).
       }
     }
 
-    // Fallback (no backend fetcher wired): plain text — never a local PDF.
+    // Text receipt with the public verification link — always available.
     try {
       await Share.share(
         'Comprovativo Banzami\n'
@@ -230,7 +222,9 @@ class _BanzamiReceiptScreenState extends State<BanzamiReceiptScreen>
         'De: @$_from\n'
         'Para: @${widget.transfer.recipient}\n'
         'Data: $_dateShort\n'
-        'Método: Saldo Banzami',
+        'Método: Saldo Banzami\n'
+        'Verificar: https://banzami.com/r/$_ref',
+        subject:             'Comprovativo Banzami · Ref $_ref',
         sharePositionOrigin: origin,
       );
     } catch (_) {

@@ -600,6 +600,8 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
     if (_busyReceipt) return;
     setState(() => _busyReceipt = true);
     final client = context.read<BanzamiClient>();
+    // Try the official PDF; on any failure fall back to a verifiable text
+    // receipt so sharing never dead-ends.
     try {
       final bytes = await client.fetchMerchantReceiptPdf(p.id);
       final dir   = await getTemporaryDirectory();
@@ -609,10 +611,21 @@ class _ReceivedPaymentsTabState extends State<_ReceivedPaymentsTab>
         [XFile(file.path, mimeType: 'application/pdf')],
         subject: 'Comprovativo Banzami · ${p.reference}',
       );
-    } on BanzamiApiException catch (e) {
-      if (mounted) _snack(e.isNotFound ? 'Comprovativo indisponível.' : 'Não foi possível obter o comprovativo.');
     } catch (_) {
-      if (mounted) _snack('Sem ligação. Tente novamente.');
+      try {
+        await Share.share(
+          'Comprovativo Banzami\n'
+          'Ref: ${p.reference}\n'
+          'Montante: ${formatMinor(p.amountMinor, p.currency)}\n'
+          'De: ${p.payerName}\n'
+          'Data: ${BanzamiDateFormatter.formatReceiptDate(p.createdAt)}\n'
+          'Método: Saldo Banzami\n'
+          'Verificar: https://banzami.com/r/${p.reference}',
+          subject: 'Comprovativo Banzami · ${p.reference}',
+        );
+      } catch (_) {
+        if (mounted) _snack('Não foi possível partilhar.');
+      }
     } finally {
       if (mounted) setState(() => _busyReceipt = false);
     }
