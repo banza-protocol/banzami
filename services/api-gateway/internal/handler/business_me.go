@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -11,13 +12,13 @@ import (
 )
 
 // BusinessMeHandler serves the authenticated Business account its own
-// consolidated profile — identity, account type, category, wallet readiness and
-// KYB status — so an integrating application (e.g. DOA) can render an accurate
-// "Integration Health" surface instead of guessing from local env vars.
+// consolidated resolution — identity, KYB, category/pricing, wallet and
+// settlement readiness (with machine-readable blockers) — so an integrating
+// application (e.g. DOA) renders an accurate "Integration Health" surface
+// instead of guessing from local env vars.
 //
-// This is deliberately a SELF endpoint: the merchant id comes from the token,
-// never from the path or a query. It is not a handle-enumeration oracle and it
-// returns only non-secret fields.
+// Self-scoped: the merchant id comes from the token, never from path/query.
+// Not a handle-enumeration oracle; returns only non-secret fields.
 type BusinessMeHandler struct {
 	svc *service.BusinessSelfService
 }
@@ -39,38 +40,88 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := h.svc.Self(r.Context(), principal.MerchantID)
-	if err != nil {
-		if errors.Is(err, service.ErrMerchantNotFound) {
-			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "business account not found")
-			return
-		}
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not load business profile")
-		return
-	}
-
 	env := "LIVE"
 	if strings.EqualFold(strings.TrimSpace(principal.Environment), "SANDBOX") {
 		env = "SANDBOX"
 	}
 
-	// settlement_ready = the account can actually receive money and be settled:
-	// active + KYB approved + a wallet exists. This mirrors the ACTIVE+KYB gate
-	// the settlement/wallet-account handlers enforce, surfaced for the UI.
-	settlementReady := strings.EqualFold(p.Status, string(service.MerchantStatusActive)) &&
-		p.Verified && p.WalletReady
+	slog.InfoContext(r.Context(), "business_resolution_started",
+		"merchant_id", principal.MerchantID, "environment", env)
+
+	res, err := h.svc.Self(r.Context(), principal.MerchantID, env)
+	if err != nil {
+		if errors.Is(err, service.ErrMerchantNotFound) {
+			slog.WarnContext(r.Context(), "business_resolution_failed",
+				"merchant_id", principal.MerchantID, "reason", "not_found")
+			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "business account not found")
+			return
+		}
+		slog.ErrorContext(r.Context(), "business_resolution_failed",
+			"merchant_id", principal.MerchantID, "error", err.Error())
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not load business profile")
+		return
+	}
+
+	if res.SettlementReady {
+		slog.InfoContext(r.Context(), "business_resolution_success",
+			"merchant_id", res.MerchantID, "handle", res.Handle, "kyb", res.KybStatus)
+	} else {
+		slog.InfoContext(r.Context(), "business_resolution_blocked",
+			"merchant_id", res.MerchantID, "handle", res.Handle, "blockers", strings.Join(res.Blockers, ","))
+	}
+
+	// Empty slices must serialise as [] not null.
+	blockers := res.Blockers
+	if blockers == nil {
+		blockers = []string{}
+	}
+
+	var pricingCategory any
+	if res.PricingCategory != "" {
+		pricingCategory = res.PricingCategory
+	}
+	var category any
+	if res.CategoryLabel != "" {
+		category = res.CategoryLabel
+	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"environment":           env,
-		"id":                    p.MerchantID,
-		"handle":                p.Handle,
-		"business_name":         p.BusinessName,
-		"business_account_type": p.BusinessAccountType,
-		"status":                p.Status,
-		"kyb_status":            p.KybStatus,
-		"verified":              p.Verified,
-		"category":              p.Category,
-		"wallet_ready":          p.WalletReady,
-		"settlement_ready":      settlementReady,
+		"id":                    res.MerchantID,
+		"handle":                res.Handle,
+		"business_name":         res.BusinessName,
+		"business_account_type": res.BusinessAccountType,
+		"status":                res.Status,
+		"kyb_status":            res.KybStatus,
+		"verified":              res.Verified,
+
+		// Flat fields (back-compat with earlier clients).
+		"category":         category,
+		"wallet_ready":     res.WalletReady,
+		"settlement_ready": res.SettlementReady,
+		"pricing_category": pricingCategory,
+		"subcategory":      nil, // not modelled in the operator yet
+
+		"pricing": map[string]any{
+			"category": pricingCategory,
+			"profile":  res.PricingProfile,
+			"rule_key": res.PricingRuleKey,
+			"fee_bps":  res.PricingRuleBps,
+			"found":    res.PricingFound,
+		},
+		"wallet": map[string]any{
+			"ready":                  res.WalletReady,
+			"wallet_id":              res.WalletID,
+			"currency":               res.WalletCurrency,
+			"status":                 res.WalletStatus,
+			"primary_account_id":     res.PrimaryAccountID,
+			"application_account_id": res.ApplicationAccountID,
+		},
+		"settlement": map[string]any{
+			"ready":    res.SettlementReady,
+			"enabled":  true,
+			"blockers": blockers,
+		},
+		"blockers": blockers,
 	})
 }

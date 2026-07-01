@@ -31,11 +31,18 @@ func TestBusinessMe_ContractCarriesNoSecrets(t *testing.T) {
 		"kyb_status":            "APPROVED",
 		"verified":              true,
 		"category":              "Doações e causas",
+		"pricing_category":      "DONATION",
 		"wallet_ready":          true,
 		"settlement_ready":      true,
+		"pricing":               map[string]any{"category": "DONATION", "fee_bps": 50, "found": true},
+		"wallet":                map[string]any{"ready": true, "wallet_id": "w-1", "currency": "AOA", "primary_account_id": "pa-1"},
+		"settlement":            map[string]any{"ready": true, "enabled": true, "blockers": []string{}},
+		"blockers":              []string{},
 	}
 	raw, _ := json.Marshal(body)
-	for _, secret := range []string{"api_key", "\"secret\"", "pin", "bz_test", "bz_live", "wallet_id", "account_id"} {
+	// True secrets only. Opaque wallet/account ids are the owner's own
+	// operational identifiers and are intentionally part of the resolution.
+	for _, secret := range []string{"api_key", "\"secret\"", "\"pin\"", "bz_test", "bz_live", "key_hash", "storage_key"} {
 		if strings.Contains(string(raw), secret) {
 			t.Errorf("self profile must not carry %q", secret)
 		}
