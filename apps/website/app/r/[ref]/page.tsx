@@ -139,7 +139,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
                 </div>
               )}
               <div style={{ fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>
-                Registado no sistema oficial BANZA · Verificado agora · {nowWAT()} (WAT)
+                Registado no sistema oficial do Banzami · Verificado agora · {nowWAT()} (WAT)
               </div>
             </div>
           )}
@@ -149,7 +149,7 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
         <div style={{ marginTop: 16, borderRadius: 16, border: '1px solid #f1e3e3', background: '#fff', padding: '16px 18px', boxShadow: '0 10px 30px -22px rgba(0,0,0,0.18)' }}>
           <div style={{ fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>Fonte da verdade</div>
           <div style={{ fontSize: 12.5, fontWeight: 600, color: '#6b5a5e', lineHeight: 1.55 }}>
-            Esta página consulta diretamente o sistema oficial do Banzami/BANZA. PDFs, capturas de ecrã e imagens nunca são considerados prova — a prova oficial é sempre esta página.
+            Esta página consulta diretamente o sistema oficial do Banzami. PDFs, capturas de ecrã e imagens nunca são considerados prova — a prova oficial é sempre esta página.
           </div>
         </div>
 
