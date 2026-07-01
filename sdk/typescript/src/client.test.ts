@@ -693,7 +693,12 @@ describe('getBusinessMe', () => {
     mockFetch(200, {
       environment: 'SANDBOX', id: 'm-1', handle: 'doa', business_name: 'Doa',
       business_account_type: 'MERCHANT', status: 'ACTIVE', kyb_status: 'APPROVED',
-      verified: true, category: 'Doações e causas', wallet_ready: true, settlement_ready: true,
+      verified: true, category: 'Doações e causas', pricing_category: 'DONATION',
+      subcategory: null, wallet_ready: true, settlement_ready: true,
+      pricing: { category: 'DONATION', profile: '', rule_key: 'donation-standard', fee_bps: 50, found: true },
+      wallet: { ready: true, wallet_id: 'w-1', currency: 'AOA', status: 'ACTIVE', primary_account_id: 'pa-1', application_account_id: '' },
+      settlement: { ready: true, enabled: true, blockers: [] },
+      blockers: [],
     });
     const c = new BanzamiClient({ apiKey: 'bz_test_sk_x' });
     const me = await c.getBusinessMe();
@@ -701,5 +706,8 @@ describe('getBusinessMe', () => {
     expect(me.handle).toBe('doa');
     expect(me.kyb_status).toBe('APPROVED');
     expect(me.settlement_ready).toBe(true);
+    expect(me.pricing_category).toBe('DONATION');
+    expect(me.wallet.primary_account_id).toBe('pa-1');
+    expect(me.settlement.blockers).toEqual([]);
   });
 });

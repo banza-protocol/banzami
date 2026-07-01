@@ -222,6 +222,48 @@ export interface BusinessProfile {
   category:              string | null;
   wallet_ready:          boolean;
   settlement_ready:      boolean;
+  /** Derived pricing category (e.g. DONATION); null when unmapped. */
+  pricing_category:      string | null;
+  /** Not modelled in the operator yet — always null for now. */
+  subcategory:           string | null;
+  pricing:               BusinessPricing;
+  wallet:                BusinessWallet;
+  settlement:            BusinessSettlement;
+  /** Machine-readable settlement blockers (empty when settlement-ready). */
+  blockers:              BusinessBlocker[];
+}
+
+/** Settlement-readiness blocker reason codes returned by the operator. */
+export type BusinessBlocker =
+  | 'BUSINESS_NOT_ACTIVE'
+  | 'KYB_NOT_APPROVED'
+  | 'WALLET_MISSING'
+  | 'WALLET_ACCOUNT_MISSING'
+  | 'PRICING_MISSING'
+  | string;
+
+export interface BusinessPricing {
+  category: string | null;
+  profile:  string;
+  rule_key: string;
+  /** Operator's own fee for this category, in basis points (informational). */
+  fee_bps:  number;
+  found:    boolean;
+}
+
+export interface BusinessWallet {
+  ready:                  boolean;
+  wallet_id:              string;
+  currency:               string;
+  status:                 string;
+  primary_account_id:     string;
+  application_account_id: string;
+}
+
+export interface BusinessSettlement {
+  ready:    boolean;
+  enabled:  boolean;
+  blockers: BusinessBlocker[];
 }
 
 export interface ApiKey {
