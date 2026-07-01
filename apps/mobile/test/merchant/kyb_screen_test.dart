@@ -7,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:provider/provider.dart';
+import 'package:banzami_mobile/merchant/services/merchant_session_service.dart';
 
 final _jwt = jsonEncode({
   'token': 't',
@@ -23,17 +24,23 @@ final _status = {
   ],
 };
 
-Widget _app() => Provider<BanzamiClient>(
-      create: (_) => BanzamiClient(
-        apiKey: 'bz_test_key',
-        baseUrl: 'https://api.test',
-        httpClient: MockClient((req) async {
-          if (req.url.path.endsWith('/auth/token')) {
-            return http.Response(_jwt, 200, headers: {'content-type': 'application/json'});
-          }
-          return http.Response(jsonEncode(_status), 200, headers: {'content-type': 'application/json'});
-        }),
-      ),
+Widget _app() => MultiProvider(
+      providers: [
+        Provider<BanzamiClient>(
+          create: (_) => BanzamiClient(
+            apiKey: 'bz_test_key',
+            baseUrl: 'https://api.test',
+            httpClient: MockClient((req) async {
+              if (req.url.path.endsWith('/auth/token')) {
+                return http.Response(_jwt, 200, headers: {'content-type': 'application/json'});
+              }
+              return http.Response(jsonEncode(_status), 200, headers: {'content-type': 'application/json'});
+            }),
+          ),
+        ),
+        // The KYB screen reads the session to show the negócio + @banza header.
+        ChangeNotifierProvider<MerchantSessionService>(create: (_) => MerchantSessionService()),
+      ],
       child: const MaterialApp(home: KybScreen()),
     );
 

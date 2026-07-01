@@ -59,10 +59,10 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             const SizedBox(height: BanzamiSpacing.sm),
 
-            _MerchantIdCard(
-              merchantId: session.merchantId,
-              copied:     _copied,
-              onCopy:     _copyId,
+            _PaymentAddressCard(
+              address: session.banzaAddress,
+              copied:  _copied,
+              onCopy:  _copyHandle,
             ),
 
             const SizedBox(height: BanzamiSpacing.sm),
@@ -168,6 +168,11 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
 
             const SizedBox(height: BanzamiSpacing.sm),
 
+            // Advanced: internal Merchant UUID for support (collapsed).
+            _TechnicalIdsCard(merchantId: session.merchantId, onCopy: _copyUuid),
+
+            const SizedBox(height: BanzamiSpacing.sm),
+
             _ActionTile(
               icon:  Icons.logout_rounded,
               label: 'Terminar sessão',
@@ -205,12 +210,21 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
     return 'Expira em ${local.day}/${pad(local.month)}/${local.year} às ${pad(local.hour)}:${pad(local.minute)}';
   }
 
-  Future<void> _copyId() async {
-    final svc = context.read<MerchantSessionService>();
-    await Clipboard.setData(ClipboardData(text: svc.session!.merchantId));
+  Future<void> _copyHandle() async {
+    final address = context.read<MerchantSessionService>().session!.banzaAddress;
+    if (address == null) return; // nothing to copy until the @banza is known
+    await Clipboard.setData(ClipboardData(text: address));
+    if (mounted) BanzamiToast.showSuccess(context, 'Endereço @banza copiado.');
     setState(() => _copied = true);
     await Future.delayed(const Duration(seconds: 2));
     if (mounted) setState(() => _copied = false);
+  }
+
+  // Copy the internal merchant UUID from the advanced/technical area.
+  Future<void> _copyUuid() async {
+    final svc = context.read<MerchantSessionService>();
+    await Clipboard.setData(ClipboardData(text: svc.session!.merchantId));
+    if (mounted) BanzamiToast.showSuccess(context, 'Merchant UUID copiado.');
   }
 
   Future<void> _toggleBio(MerchantSessionService svc, bool enable) async {
@@ -301,9 +315,12 @@ class _MerchantProfileHeader extends StatelessWidget {
                     ),
                     const SizedBox(height: 1),
                     Text(
-                      session.merchantEmail,
-                      style: BanzamiTextStyles.bodySm.copyWith(
-                        color: BanzamiColors.white.withValues(alpha: 0.60),
+                      // @banza is the identity; fall back to email only when the
+                      // handle isn't known (legacy API-key session).
+                      session.banzaAddress ?? session.merchantEmail,
+                      style: BanzamiTextStyles.bodyMd.copyWith(
+                        color:      BanzamiColors.white.withValues(alpha: 0.85),
+                        fontWeight: session.banzaAddress != null ? FontWeight.w700 : FontWeight.w400,
                       ),
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -420,22 +437,23 @@ class _AppVersionLabelState extends State<_AppVersionLabel> {
 }
 
 // =============================================================================
-// 2. Merchant ID card
+// 2. @banza payment address card (primary public identifier)
 // =============================================================================
 
-class _MerchantIdCard extends StatelessWidget {
-  final String       merchantId;
+class _PaymentAddressCard extends StatelessWidget {
+  final String?      address; // e.g. "@doa"; null when not set yet
   final bool         copied;
   final VoidCallback onCopy;
 
-  const _MerchantIdCard({
-    required this.merchantId,
+  const _PaymentAddressCard({
+    required this.address,
     required this.copied,
     required this.onCopy,
   });
 
   @override
   Widget build(BuildContext context) {
+    final hasAddress = address != null;
     return Container(
       decoration: const BoxDecoration(
         color:        BanzamiColors.white,
@@ -450,15 +468,15 @@ class _MerchantIdCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Row(children: [
-            _IconBox(icon: Icons.badge_outlined),
+            _IconBox(icon: Icons.alternate_email_rounded),
             SizedBox(width: BanzamiSpacing.md),
-            Text('Merchant ID', style: BanzamiTextStyles.headingSm),
+            Text('Endereço @banza', style: BanzamiTextStyles.headingSm),
           ]),
 
           const SizedBox(height: BanzamiSpacing.sm),
 
           GestureDetector(
-            onTap: onCopy,
+            onTap: hasAddress ? onCopy : null,
             child: Container(
               width:   double.infinity,
               padding: const EdgeInsets.symmetric(
@@ -472,33 +490,27 @@ class _MerchantIdCard extends StatelessWidget {
               child: Row(children: [
                 Expanded(
                   child: Text(
-                    merchantId,
-                    style: BanzamiTextStyles.mono.copyWith(
-                      fontSize: 12,
-                      color:    BanzamiColors.gray900,
-                    ),
+                    address ?? '@banza ainda não definido',
+                    style: hasAddress
+                        ? BanzamiTextStyles.headingSm.copyWith(
+                            color: BanzamiColors.primary, fontWeight: FontWeight.w800)
+                        : BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: BanzamiSpacing.md),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 220),
-                  transitionBuilder: (child, anim) =>
-                      ScaleTransition(scale: anim, child: child),
-                  child: copied
-                      ? const Icon(
-                          Icons.check_rounded,
-                          key:   ValueKey('check'),
-                          size:  20,
-                          color: BanzamiColors.success,
-                        )
-                      : const Icon(
-                          Icons.copy_rounded,
-                          key:   ValueKey('copy'),
-                          size:  20,
-                          color: BanzamiColors.gray400,
-                        ),
-                ),
+                if (hasAddress) ...[
+                  const SizedBox(width: BanzamiSpacing.md),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 220),
+                    transitionBuilder: (child, anim) =>
+                        ScaleTransition(scale: anim, child: child),
+                    child: copied
+                        ? const Icon(Icons.check_rounded,
+                            key: ValueKey('check'), size: 20, color: BanzamiColors.success)
+                        : const Icon(Icons.copy_rounded,
+                            key: ValueKey('copy'), size: 20, color: BanzamiColors.gray400),
+                  ),
+                ],
               ]),
             ),
           ),
@@ -506,9 +518,90 @@ class _MerchantIdCard extends StatelessWidget {
           const SizedBox(height: BanzamiSpacing.sm),
 
           Text(
-            'Toque para copiar o seu identificador único',
+            hasAddress
+                ? 'Partilhe este endereço para receber pagamentos.'
+                : 'Defina o seu @banza para receber pagamentos.',
             style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// =============================================================================
+// 2b. Technical identifiers (advanced) — internal Merchant UUID for support.
+//     Collapsed by default; never the primary identity.
+// =============================================================================
+
+class _TechnicalIdsCard extends StatefulWidget {
+  final String       merchantId;
+  final VoidCallback onCopy;
+  const _TechnicalIdsCard({required this.merchantId, required this.onCopy});
+
+  @override
+  State<_TechnicalIdsCard> createState() => _TechnicalIdsCardState();
+}
+
+class _TechnicalIdsCardState extends State<_TechnicalIdsCard> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        color:        BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow:    BanzamiShadows.card,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: BanzamiSpacing.lg,
+        vertical:   BanzamiSpacing.sm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => setState(() => _open = !_open),
+            child: Row(children: [
+              const _IconBox(icon: Icons.tune_rounded),
+              const SizedBox(width: BanzamiSpacing.md),
+              const Expanded(
+                child: Text('Identificadores técnicos', style: BanzamiTextStyles.bodyMd),
+              ),
+              Icon(_open ? Icons.expand_less_rounded : Icons.expand_more_rounded,
+                  color: BanzamiColors.gray400),
+            ]),
+          ),
+          if (_open) ...[
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text('Merchant UUID',
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+            const SizedBox(height: 4),
+            GestureDetector(
+              onTap: widget.onCopy,
+              child: Container(
+                width:   double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzamiSpacing.md, vertical: BanzamiSpacing.sm),
+                decoration: const BoxDecoration(
+                  color: BanzamiColors.gray100, borderRadius: BanzamiRadius.lgAll),
+                child: Row(children: [
+                  Expanded(
+                    child: Text(widget.merchantId,
+                        style: BanzamiTextStyles.mono.copyWith(fontSize: 12, color: BanzamiColors.gray900),
+                        overflow: TextOverflow.ellipsis),
+                  ),
+                  const SizedBox(width: BanzamiSpacing.md),
+                  const Icon(Icons.copy_rounded, size: 18, color: BanzamiColors.gray400),
+                ]),
+              ),
+            ),
+            const SizedBox(height: BanzamiSpacing.sm),
+            Text('Uso interno para suporte.',
+                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+          ],
         ],
       ),
     );

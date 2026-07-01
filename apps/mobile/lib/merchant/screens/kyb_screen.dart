@@ -7,6 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:banzami_flutter/banzami_flutter.dart';
 
+import '../services/merchant_session_service.dart';
+
 /// Max KYB document size accepted by the app (matches the operator default).
 const int kKybMaxBytes = 5 * 1024 * 1024;
 
@@ -217,6 +219,9 @@ class _KybScreenState extends State<KybScreen> {
                       style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray600)),
                   const SizedBox(height: BanzamiSpacing.lg),
 
+                  _BusinessIdentity(session: context.read<MerchantSessionService>().session),
+                  const SizedBox(height: BanzamiSpacing.lg),
+
                   _StatusCard(view: _overall()),
                   const SizedBox(height: BanzamiSpacing.lg),
 
@@ -315,6 +320,50 @@ String _fmtDate(DateTime? d) =>
     d == null ? '' : '${d.day.toString().padLeft(2, '0')}/${d.month.toString().padLeft(2, '0')}/${d.year}';
 
 // ── Cards ────────────────────────────────────────────────────────────────────
+
+// Business identity header — the negócio's name + @banza (the primary public
+// identifier). The internal merchant UUID is never shown here.
+class _BusinessIdentity extends StatelessWidget {
+  final MerchantSession? session;
+  const _BusinessIdentity({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final session = this.session;
+    if (session == null) return const SizedBox.shrink();
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(BanzamiSpacing.lg),
+      decoration: const BoxDecoration(
+        color: BanzamiColors.white,
+        borderRadius: BanzamiRadius.xlAll,
+        boxShadow: BanzamiShadows.card,
+      ),
+      child: Row(children: [
+        Container(
+          width: 46, height: 46, alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: BanzamiColors.primary.withValues(alpha: 0.10), shape: BoxShape.circle),
+          child: Text(
+            session.merchantName.isNotEmpty ? session.merchantName[0].toUpperCase() : '?',
+            style: BanzamiTextStyles.headingSm.copyWith(color: BanzamiColors.primary)),
+        ),
+        const SizedBox(width: BanzamiSpacing.md),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Negócio', style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+            Text(session.merchantName,
+                style: BanzamiTextStyles.headingSm, overflow: TextOverflow.ellipsis),
+            if (session.banzaAddress != null)
+              Text(session.banzaAddress!,
+                  style: BanzamiTextStyles.bodyMd.copyWith(
+                    color: BanzamiColors.primary, fontWeight: FontWeight.w700)),
+          ]),
+        ),
+      ]),
+    );
+  }
+}
 
 class _StatusCard extends StatelessWidget {
   final _OverallView view;

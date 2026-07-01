@@ -110,7 +110,7 @@ void main() {
       await t.enterText(find.byType(TextFormField), 'ab'); // too short
       await t.tap(find.text('Continuar'));
       await t.pumpAndSettle();
-      expect(find.text('Identificador inválido.'), findsWidgets);
+      expect(find.text('@banza inválido.'), findsWidgets);
       expect(find.text('Digite o PIN Business'), findsNothing); // stayed on handle step
     });
 

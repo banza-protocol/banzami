@@ -52,6 +52,12 @@ class MerchantSession {
   bool get isSandbox     => environment == 'SANDBOX';
   bool get isHandleLogin => loginMethod == MerchantLoginMethod.handlePin;
 
+  /// The merchant's @banza payment address (e.g. "@doa"), or null when the
+  /// handle isn't known (legacy API-key sessions). This is the primary public
+  /// identifier — the merchant UUID is internal and never the display identity.
+  String? get banzaAddress =>
+      (handle != null && handle!.trim().isNotEmpty) ? '@${handle!.trim()}' : null;
+
   /// Identity used to decide if a cached BanzamiClient can be reused — never for
   /// display. The API key (legacy) or the JWT (handle login).
   String get authIdentity => apiKey ?? jwt ?? '';

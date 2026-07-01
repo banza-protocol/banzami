@@ -218,6 +218,15 @@ class _MerchantQrScreenState extends State<MerchantQrScreen> {
               style:     BanzamiTextStyles.headingSm,
               textAlign: TextAlign.center,
             ),
+            if (session.banzaAddress != null) ...[
+              const SizedBox(height: 2),
+              Text(
+                'Receber em ${session.banzaAddress}',
+                style: BanzamiTextStyles.bodyMd.copyWith(
+                  color: BanzamiColors.primary, fontWeight: FontWeight.w700),
+                textAlign: TextAlign.center,
+              ),
+            ],
             const SizedBox(height: 4),
             Text(
               'Qualquer valor · AOA',

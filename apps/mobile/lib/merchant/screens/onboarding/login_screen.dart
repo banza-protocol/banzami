@@ -221,7 +221,7 @@ class _MerchantLoginScreenState extends State<MerchantLoginScreen> {
               onFieldSubmitted: (_) => _continueToPin(),
               validator: (v) {
                 final h = (v ?? '').trim().toLowerCase().replaceFirst(RegExp(r'^@'), '');
-                if (h.isEmpty || !_handleRe.hasMatch(h)) return 'Identificador inválido.';
+                if (h.isEmpty || !_handleRe.hasMatch(h)) return '@banza inválido.';
                 return null;
               },
             ),
