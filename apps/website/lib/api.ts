@@ -201,14 +201,15 @@ export async function submitApplication(input: ApplicationInput): Promise<Submit
 export type KybDocumentType =
   | 'BUSINESS_REGISTRATION'
   | 'TAX_ID'
-  | 'REPRESENTATIVE_ID';
+  | 'REPRESENTATIVE_ID'
+  | 'OTHER';
 
-/** Required company documents for a Business application — exactly three, no
- *  more. No proof-of-address and no bank proof: banking/settlement details are
- *  collected later (payout configuration), not in the initial application. */
+/** Required company documents for a Business application. The company NIF is a
+ *  form field (text), NOT a document upload, so TAX_ID is not required here.
+ *  An optional "additional document" (OTHER) may be attached. No proof-of-address
+ *  and no bank proof: banking/settlement details are collected later. */
 export const REQUIRED_KYB_DOCUMENTS: KybDocumentType[] = [
   'BUSINESS_REGISTRATION',
-  'TAX_ID',
   'REPRESENTATIVE_ID',
 ];
 

@@ -453,10 +453,28 @@ export class AdminApi {
       },
     });
     if (!res.ok) {
-      // Expired/invalid operator token → clear session and bounce to login.
+      // A 401 must only end the session when the session is ACTUALLY dead — not
+      // because one (possibly misconfigured/degraded) endpoint returned 401. A
+      // single failing badge endpoint (e.g. notifications/summary proxying to a
+      // gateway) previously logged the operator straight back out. So: for the
+      // session-check endpoint itself, trust the 401 and log out; for any other
+      // endpoint, re-validate the token via /auth/me first and only log out if
+      // THAT also returns 401. Network errors never force a logout.
       if (res.status === 401 && typeof window !== 'undefined') {
-        try { localStorage.removeItem('banzami_admin_session'); } catch { /* ignore */ }
-        if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
+        const logout = () => {
+          try { localStorage.removeItem('banzami_admin_session'); } catch { /* ignore */ }
+          if (!window.location.pathname.startsWith('/login')) window.location.href = '/login';
+        };
+        if (path.startsWith('/admin/v1/auth/me')) {
+          logout();
+        } else {
+          try {
+            const check = await fetch(`${this.base}/admin/v1/auth/me`, {
+              headers: { 'Authorization': `Bearer ${this.token}` },
+            });
+            if (check.status === 401) logout();
+          } catch { /* network hiccup — keep the session */ }
+        }
       }
       let code = 'UNKNOWN', message = res.statusText;
       try {

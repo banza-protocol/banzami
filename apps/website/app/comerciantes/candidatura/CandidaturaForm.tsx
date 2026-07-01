@@ -46,14 +46,15 @@ const MAX_DOC_BYTES = 5 * 1024 * 1024;
 const DOC_ACCEPT = '.pdf,.jpg,.jpeg,.png';
 const DOC_MIME = ['application/pdf', 'image/jpeg', 'image/png'];
 
-type DocKey = 'docCertidao' | 'docNif' | 'docBi';
-type DocDef = { key: DocKey; label: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType };
-// Exatamente 3 documentos obrigatórios da empresa. Sem prova de residência e
-// sem dados de banco (estes pertencem a uma fase posterior de payout).
+type DocKey = 'docCertidao' | 'docBi' | 'docExtra';
+type DocDef = { key: DocKey; label: string; hint?: string; icon: 'doc' | 'person' | 'home'; type: KybDocumentType; optional?: boolean };
+// Dois documentos obrigatórios + um opcional. O NIF da empresa NÃO é documento:
+// é um campo de texto no formulário. Sem prova de residência e sem dados de
+// banco (estes pertencem a uma fase posterior de payout).
 const DOC_DEFS: DocDef[] = [
   { key: 'docCertidao', label: 'Registo Comercial', icon: 'doc', type: 'BUSINESS_REGISTRATION' },
-  { key: 'docNif', label: 'NIF da Empresa', icon: 'doc', type: 'TAX_ID' },
-  { key: 'docBi', label: 'Documento do Representante', icon: 'person', type: 'REPRESENTATIVE_ID' },
+  { key: 'docBi', label: 'Documento de identidade do representante', hint: 'BI ou Passaporte', icon: 'person', type: 'REPRESENTATIVE_ID' },
+  { key: 'docExtra', label: 'Documento adicional', hint: 'Comprovativo, licença, declaração ou outro documento relevante', icon: 'doc', type: 'OTHER', optional: true },
 ];
 
 type UploadStatus = 'pending' | 'uploading' | 'done' | 'error';
@@ -406,8 +407,8 @@ export function CandidaturaForm() {
 
   const [docs, setDocs] = useState<Record<DocKey, DocState>>({
     docCertidao: { ...emptyDoc },
-    docNif: { ...emptyDoc },
     docBi: { ...emptyDoc },
+    docExtra: { ...emptyDoc },
   });
 
   const [accepted, setAccepted] = useState(false);
@@ -420,9 +421,35 @@ export function CandidaturaForm() {
   const [storageNotConfigured, setStorageNotConfigured] = useState(false);
   const [docUpload, setDocUpload] = useState<Record<DocKey, { status: UploadStatus; message?: string }>>({
     docCertidao: { status: 'pending' },
-    docNif: { status: 'pending' },
     docBi: { status: 'pending' },
+    docExtra: { status: 'pending' },
   });
+
+  // SANDBOX-only: one-click fill with realistic Angolan test data so the KYB
+  // flow can be exercised end-to-end quickly. Never rendered in LIVE.
+  function fillSandbox() {
+    const s = Math.floor(1000 + Math.random() * 9000);
+    setName('Cantina do Kilamba');
+    setHandle(`cantina_teste_${s}`);
+    setCategory('Alimentação e bebidas');
+    setCategoryOther('');
+    setSubcategory('Cantina');
+    setPhone('923456789');
+    setEmail(`negocio.teste${s}@exemplo.co.ao`);
+    setProvincia('Luanda');
+    setMunicipio('Talatona');
+    setCidade('Talatona');
+    setEndereco('Rua Direita do Kilamba, Bairro Talatona');
+    setReferencia('Próximo ao supermercado Kero');
+    setRepNome('João da Silva');
+    setNif('5001234567');
+    setCargo('Proprietário(a)');
+    setEmailPessoal(`joao.teste${s}@exemplo.co.ao`);
+    setTelPessoal('923000111');
+    setDescricao('Cantina com refeições e bebidas para levar');
+    setVolume(VOLUME_FAIXAS[0] ?? '');
+    setAccepted(true);
+  }
 
   // Dependências Angola/categorias: município depende da província, cidade do
   // município, subcategoria da categoria. Mudar o pai limpa os filhos.
@@ -575,7 +602,7 @@ export function CandidaturaForm() {
   const emailOk = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
   const phoneOk = (s: string) => /^\d{9}$/.test(s.replace(/\D/g, ''));
   const nifOk = (s: string) => /^\d{9,14}$/.test(s.replace(/\D/g, ''));
-  const docsComplete = DOC_DEFS.every((d) => !!docs[d.key].name);
+  const docsComplete = DOC_DEFS.filter((d) => !d.optional).every((d) => !!docs[d.key].name);
 
   const errors = {
     name: name.trim() ? null : 'Indique o nome do negócio.',
@@ -605,7 +632,7 @@ export function CandidaturaForm() {
     telPessoal: !telPessoal.trim() || phoneOk(telPessoal) ? null : 'Telefone pessoal inválido.',
     descricao: descricao.trim() ? null : 'Descreva brevemente a atividade do negócio.',
     volume: volume ? null : 'Selecione o volume mensal estimado.',
-    docs: docsComplete ? null : 'Envie os 3 documentos obrigatórios.',
+    docs: docsComplete ? null : 'Envie os documentos obrigatórios.',
     accepted: accepted ? null : 'Tem de aceitar os termos e condições.',
   };
   const step1Valid = Object.values(errors).every((e) => e === null);
@@ -682,8 +709,15 @@ export function CandidaturaForm() {
               <span className="text-[15px] font-extrabold text-amber-900">Ambiente SANDBOX — candidatura de teste</span>
             </div>
             <p className="m-0 mt-1 text-[13.5px] font-semibold leading-[1.5] text-amber-800">
-              Os dados e documentos enviados nesta página são usados apenas para testes. Não criam uma conta Business real em produção.
+              Pode preencher com dados de teste. Os dados e documentos enviados são usados apenas para testes — não criam uma conta Business real em produção.
             </p>
+            <button
+              type="button"
+              onClick={fillSandbox}
+              className="mt-3 inline-flex items-center gap-2 rounded-[12px] bg-amber-500 px-4 py-2 text-[13.5px] font-extrabold text-white transition-colors hover:bg-amber-600"
+            >
+              Preencher com dados de teste
+            </button>
           </div>
         </div>
       )}
@@ -725,7 +759,7 @@ export function CandidaturaForm() {
           <div className="rounded-[18px] border-[1.5px] border-[#f4e6e6] bg-white p-5">
             <div className="mb-[13px] text-[13.5px] font-black text-[#2a2024]">Vai precisar de:</div>
             <div className="flex flex-col gap-[9px]">
-              {['Registo Comercial', 'NIF da empresa', 'Documento do representante'].map((t) => (
+              {['Registo Comercial', 'Documento de identidade (BI ou Passaporte)', 'NIF da empresa'].map((t) => (
                 <div key={t} className="flex items-center gap-[9px] text-[13.5px] font-bold text-[#5a4a4e]">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
                     <path d="M20 6L9 17l-5-5" stroke={RED} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" />
@@ -861,7 +895,7 @@ export function CandidaturaForm() {
                   <Field label="Nome completo" error={show1 ? errors.repNome : null}>
                     <input className={inputClass(show1 && !!errors.repNome)} value={repNome} onChange={(e) => setRepNome(e.target.value)} placeholder="Ex: João da Silva" />
                   </Field>
-                  <Field label="NIF" error={show1 ? errors.nif : null}>
+                  <Field label="NIF da Empresa" error={show1 ? errors.nif : null}>
                     <input className={inputClass(show1 && !!errors.nif)} value={nif} onChange={(e) => setNif(e.target.value)} placeholder="Ex: 5001234567" inputMode="numeric" />
                   </Field>
                 </div>
@@ -911,7 +945,7 @@ export function CandidaturaForm() {
                       <label
                         key={d.key}
                         className="flex cursor-pointer flex-col gap-[10px] rounded-[16px] border-[1.5px] bg-white p-4 transition-[border-color,box-shadow] duration-150 hover:border-[#f0c9c9] hover:shadow-[0_8px_22px_-14px_rgba(181,16,31,0.3)]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show1 ? '#e8a3a3' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : (show1 && !d.optional) ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -924,7 +958,8 @@ export function CandidaturaForm() {
                         </span>
                         <div>
                           <div className="text-[13.5px] font-extrabold leading-[1.25]">{d.label}</div>
-                          <div className="mt-0.5 text-[12px] font-bold text-[#b09498]">Obrigatório</div>
+                          <div className="mt-0.5 text-[12px] font-bold text-[#b09498]">{d.optional ? 'Opcional' : 'Obrigatório'}</div>
+                          {d.hint && <div className="mt-0.5 text-[11.5px] font-semibold leading-[1.3] text-[#b09498]">{d.hint}</div>}
                         </div>
                         {st.error ? (
                           <span className="text-[12.5px] font-bold text-[#B5101F]">{st.error}</span>
@@ -1010,7 +1045,7 @@ export function CandidaturaForm() {
                       <label
                         key={d.key}
                         className="flex cursor-pointer items-center gap-4 rounded-[16px] border-[1.5px] bg-[#FFF7F6] px-[18px] py-4 transition-[border-color] duration-150 hover:border-[#f0c9c9]"
-                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : show2 ? '#e8a3a3' : '#f1e3e3' }}
+                        style={{ borderColor: st.error ? '#e8a3a3' : up ? '#bfe6cd' : (show2 && !d.optional) ? '#e8a3a3' : '#f1e3e3' }}
                       >
                         <input
                           type="file"
@@ -1022,9 +1057,12 @@ export function CandidaturaForm() {
                           {docTileIcon(d.icon)}
                         </span>
                         <div className="min-w-0 flex-1">
-                          <div className="text-[15px] font-extrabold">{d.label}</div>
+                          <div className="text-[15px] font-extrabold">
+                            {d.label}
+                            {d.optional && <span className="ml-2 text-[12px] font-bold text-[#b09498]">Opcional</span>}
+                          </div>
                           <div className="mt-0.5 text-[13px] font-bold text-[#9a8a8e]">
-                            {st.error || (up ? st.name : 'Toque para enviar (PDF, JPG ou PNG)')}
+                            {st.error || (up ? st.name : (d.hint ?? 'Toque para enviar (PDF, JPG ou PNG)'))}
                           </div>
                         </div>
                         {up ? (
@@ -1170,7 +1208,7 @@ export function CandidaturaForm() {
                       <ReviewRow label="Cidade / zona" value={dash(cidade)} />
                       <ReviewRow label="Endereço" value={dash(endereco)} />
                       <ReviewRow label="Responsável" value={dash(repNome)} />
-                      <ReviewRow label="NIF" value={dash(nif)} />
+                      <ReviewRow label="NIF da Empresa" value={dash(nif)} />
                       <ReviewRow label="Cargo" value={dash(cargo)} />
                     </ReviewCard>
                   </div>

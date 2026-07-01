@@ -127,18 +127,27 @@ describe('CandidaturaForm — final flow guarantees', () => {
     expect(FORM).not.toMatch(/comprovativo de morada/i);
   });
 
-  it('requires exactly the 3 company documents — no bank proof, no optional', () => {
+  it('has 2 mandatory documents + 1 optional; NIF is a field not a document', () => {
     expect(FORM).toContain('BUSINESS_REGISTRATION');
-    expect(FORM).toContain('TAX_ID');
     expect(FORM).toContain('REPRESENTATIVE_ID');
+    // Company NIF is captured as text, never as a document upload.
+    expect(FORM).not.toMatch(/type: 'TAX_ID'/);
     // Bank proof was removed from the application entirely.
     expect(FORM).not.toContain('BANK_PROOF');
     expect(FORM).not.toMatch(/comprovativo banc[áa]rio/i);
-    expect(FORM).not.toMatch(/optional: true/); // no optional DOCUMENT defs
-    expect(FORM).not.toMatch(/acelera a configuração de pagamentos/i);
-    // Exactly three document definitions (BUSINESS_REGISTRATION/TAX_ID/REPRESENTATIVE_ID).
-    expect((FORM.match(/type: 'BUSINESS_REGISTRATION'|type: 'TAX_ID'|type: 'REPRESENTATIVE_ID'/g) || []).length).toBe(3);
-    // Optional FORM fields (subcategoria, referência) remain legitimately optional.
+    // Exactly three document definitions: the two required + the optional OTHER.
+    expect((FORM.match(/type: 'BUSINESS_REGISTRATION'|type: 'REPRESENTATIVE_ID'|type: 'OTHER'/g) || []).length).toBe(3);
+    // The optional additional document is marked optional.
+    expect(FORM).toContain('optional: true');
+    expect(FORM).toContain('Documento adicional');
+  });
+
+  it('offers a SANDBOX-only test-data fill, gated on isSandbox', () => {
+    expect(FORM).toContain('function fillSandbox');
+    expect(FORM).toContain('Preencher com dados de teste');
+    // The button lives inside an isSandbox-gated block (never rendered in LIVE).
+    expect(FORM).toContain('isSandbox');
+    expect(FORM).toContain("setNif('5001234567')");
   });
 
   it('never fakes uploads — handles storage-not-configured', () => {

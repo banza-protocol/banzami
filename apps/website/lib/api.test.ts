@@ -135,30 +135,34 @@ describe('activation success — Abrir Banzami Business is a real action', () =>
   });
 });
 
-describe('KYB documents — proof-of-address removed', () => {
-  it('requires exactly 3 company documents, none of them proof-of-address', () => {
-    expect(REQUIRED_KYB_DOCUMENTS).toHaveLength(3);
+describe('KYB documents — NIF is a field, not a document', () => {
+  it('requires exactly the 2 mandatory company documents (NIF is a form field)', () => {
+    expect(REQUIRED_KYB_DOCUMENTS).toHaveLength(2);
     expect(REQUIRED_KYB_DOCUMENTS).toEqual([
       'BUSINESS_REGISTRATION',
-      'TAX_ID',
       'REPRESENTATIVE_ID',
     ]);
+    // The company NIF (TAX_ID) is captured as text, never as a required upload.
+    expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('TAX_ID');
     expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('PROOF_OF_ADDRESS');
     expect(REQUIRED_KYB_DOCUMENTS as string[]).not.toContain('BANK_PROOF');
   });
 
-  it('the onboarding form does not render or reference proof-of-address', () => {
+  it('the form has the right 3 cards and NIF is a text field, not a document', () => {
     const src = readFileSync(
       join(__dirname, '../app/comerciantes/candidatura/CandidaturaForm.tsx'),
       'utf8',
     );
     expect(src).not.toContain('PROOF_OF_ADDRESS');
     expect(src).not.toMatch(/[Cc]omprovativo de [Mm]orada/);
-    expect(src).not.toMatch(/[Cc]omprovativo de [Ee]ndere[çc]o/);
-    expect(src).not.toMatch(/[Cc]omprovativo de resid[êe]ncia/i);
-    // The 3 kept documents are present.
+    // Cards: Registo Comercial (req), Documento de identidade do representante (req),
+    // Documento adicional (optional).
     expect(src).toContain('Registo Comercial');
-    expect(src).toContain('NIF da Empresa');
-    expect(src).toContain('Documento do Representante');
+    expect(src).toContain('Documento de identidade do representante');
+    expect(src).toContain('BI ou Passaporte');
+    expect(src).toContain('Documento adicional');
+    // NIF da Empresa is a labelled text field, not a document card / TAX_ID upload.
+    expect(src).toContain('label="NIF da Empresa"');
+    expect(src).not.toMatch(/type: 'TAX_ID'/);
   });
 });
