@@ -121,8 +121,12 @@ pub type TxEng =
     PostgresTransactionEngine<WalletEng, PostgresTransactionRepository, PostgresPricingRuleProvider>;
 pub type MerchantEng = PostgresMerchantEngine<PostgresMerchantRepository, PostgresApiKeyRepository>;
 pub type SettlementEng = PostgresSettlementEngine<LedgerRepo, PostgresSettlementRepository>;
-pub type PayoutEng =
-    PostgresPayoutEngine<PostgresWalletRepository, LedgerRepo, PostgresPayoutRepository>;
+pub type PayoutEng = PostgresPayoutEngine<
+    PostgresWalletRepository,
+    LedgerRepo,
+    PostgresPayoutRepository,
+    PostgresPricingRuleProvider,
+>;
 pub type ComplianceEng = PostgresComplianceEngine<PostgresComplianceRepository>;
 pub type ReconEng = StaticReconciliationEngine<PostgresReconciliationRepository>;
 pub type IdentityEng = PostgresIdentityEngine<PostgresIdentityRepository>;
@@ -237,6 +241,9 @@ impl AppState {
             Arc::new(payout_ledger),
             payout_repo,
             bank_account_id,
+            Arc::new(PostgresPricingRuleProvider::new(pool.clone())),
+            operator_fee_account_id,
+            environment.as_str(),
         ));
 
         // --- Compliance engine ---

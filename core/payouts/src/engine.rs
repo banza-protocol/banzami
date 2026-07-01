@@ -3,10 +3,14 @@ use std::sync::Arc;
 use chrono::Utc;
 
 use banzami_ledger::{LedgerEngine, PostingBuilder};
-use banzami_types::{AccountId, MerchantId, PayoutId};
+use banzami_pricing::{resolve, BusinessCategory, PricingContext, PricingRuleProvider};
+use banzami_types::{AccountId, MerchantId, Money, PayoutId};
 use banzami_wallets::WalletRepository;
 
 use crate::{repository::PayoutRepository, CreatePayoutRequest, Payout, PayoutError, PayoutStatus};
+
+/// The operator transaction-type this engine prices against (Banzami ADR-031).
+const WITHDRAWAL_TX_TYPE: &str = "wallet_withdrawal";
 
 // ---------------------------------------------------------------------------
 // Trait
@@ -49,23 +53,77 @@ pub trait PayoutEngine: Send + Sync {
 // Production implementation
 // ---------------------------------------------------------------------------
 
-pub struct PostgresPayoutEngine<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> {
+pub struct PostgresPayoutEngine<
+    WR: WalletRepository,
+    L: LedgerEngine,
+    R: PayoutRepository,
+    P: PricingRuleProvider,
+> {
     wallet_repo: WR,
     ledger: Arc<L>,
     repo: R,
     /// System ASSET account representing our bank balance. Credited at process,
     /// debited on reversal.
     bank_account_id: AccountId,
+    /// Operator Pricing Engine (ADR-021/031) — the ONLY place the withdrawal fee
+    /// is resolved. Never hard-codes a percentage.
+    pricing: Arc<P>,
+    /// Internal REVENUE account the withdrawal fee is credited to.
+    operator_fee_account_id: AccountId,
+    /// Environment (LIVE/SANDBOX) — scopes rule loading.
+    environment: String,
 }
 
-impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PostgresPayoutEngine<WR, L, R> {
-    pub fn new(wallet_repo: WR, ledger: Arc<L>, repo: R, bank_account_id: AccountId) -> Self {
+impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleProvider>
+    PostgresPayoutEngine<WR, L, R, P>
+{
+    pub fn new(
+        wallet_repo: WR,
+        ledger: Arc<L>,
+        repo: R,
+        bank_account_id: AccountId,
+        pricing: Arc<P>,
+        operator_fee_account_id: AccountId,
+        environment: impl Into<String>,
+    ) -> Self {
         Self {
             wallet_repo,
             ledger,
             repo,
             bank_account_id,
+            pricing,
+            operator_fee_account_id,
+            environment: environment.into(),
         }
+    }
+
+    /// Resolve the operator withdrawal fee for `gross` from the Pricing Engine
+    /// (transaction_type = wallet_withdrawal). No matching/enabled rule → 0 (free,
+    /// fail-safe). Guards: fee is non-negative (u32 rate) and never exceeds gross.
+    async fn resolve_withdrawal_fee(&self, gross: Money) -> Result<i64, PayoutError> {
+        let rules = self
+            .pricing
+            .load_rules(&self.environment)
+            .await
+            .map_err(|e| PayoutError::Pricing(e.to_string()))?;
+        let ctx = PricingContext {
+            amount_minor: gross.amount_minor(),
+            currency: gross.currency,
+            business_category: BusinessCategory::Other(String::new()),
+            pricing_profile: None,
+            fee_policy_ref: None,
+            country: None,
+            transaction_type: Some(WITHDRAWAL_TX_TYPE.to_string()),
+            as_of: Utc::now(),
+        };
+        let fee = resolve(&rules, &ctx).fee_minor;
+        if fee > gross.amount_minor() {
+            return Err(PayoutError::FeeExceedsGross {
+                fee,
+                gross: gross.amount_minor(),
+            });
+        }
+        Ok(fee)
     }
 
     /// Compute merchant-facing available balance from the ledger.
@@ -77,59 +135,71 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PostgresPayoutE
         Ok(self.ledger.balance(available_account_id).await?.negate())
     }
 
-    /// Post the initiation entry: DR merchant_available (LIABILITY) / CR bank (ASSET).
+    /// Post the initiation entry, splitting the operator withdrawal fee out of
+    /// the gross in ONE balanced posting (ADR-031):
+    ///   DR merchant_available (LIABILITY) gross
+    ///   CR bank (ASSET)                    net  = gross − fee
+    ///   CR operator_fee (REVENUE)          fee  (only when fee > 0)
+    /// gross = net + fee keeps the posting balanced and `INV-STL-001` intact.
     async fn post_initiation(
         &self,
         payout: &Payout,
         available_account_id: banzami_types::AccountId,
     ) -> Result<banzami_ledger::LedgerPosting, PayoutError> {
-        let posting = PostingBuilder::new(
+        let gross = payout.amount;
+        let fee_minor = self.resolve_withdrawal_fee(gross).await?;
+        let net = Money::new(gross.amount_minor() - fee_minor, gross.currency);
+
+        let mut builder = PostingBuilder::new(
             format!("Payout {} — initiation", payout.id),
             format!("{}:process", payout.idempotency_key),
         )
-        .debit(available_account_id, payout.amount) // LIABILITY ↓ reduce obligation
-        .credit(self.bank_account_id, payout.amount) // ASSET ↓ earmarked to leave bank
-        .build()
-        .map_err(|_| {
+        .debit(available_account_id, gross) // LIABILITY ↓ reduce obligation by gross
+        .credit(self.bank_account_id, net); // ASSET ↓ net earmarked to leave bank
+        if fee_minor > 0 {
+            builder = builder.credit(
+                self.operator_fee_account_id,
+                Money::new(fee_minor, gross.currency), // REVENUE ↑ operator fee
+            );
+        }
+        let posting = builder.build().map_err(|_| {
             PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
-                debits_minor: payout.amount.amount_minor(),
-                credits_minor: 0,
-                currency: payout.amount.currency,
+                debits_minor: gross.amount_minor(),
+                credits_minor: net.amount_minor() + fee_minor,
+                currency: gross.currency,
             })
         })?;
         Ok(self.ledger.post(posting).await?)
     }
 
-    /// Reverse a previously posted initiation entry.
-    async fn post_reversal(
-        &self,
-        payout: &Payout,
-        available_account_id: banzami_types::AccountId,
-        reason: &str,
-    ) -> Result<(), PayoutError> {
-        let posting = PostingBuilder::new(
-            format!("Payout {} — {} reversal", payout.id, reason),
-            format!("{}:reverse:{}", payout.idempotency_key, reason),
-        )
-        .debit(self.bank_account_id, payout.amount) // ASSET ↑ money comes back
-        .credit(available_account_id, payout.amount) // LIABILITY ↑ restore obligation
-        .build()
-        .map_err(|_| {
-            PayoutError::Ledger(banzami_ledger::LedgerError::UnbalancedPosting {
-                debits_minor: payout.amount.amount_minor(),
-                credits_minor: 0,
-                currency: payout.amount.currency,
-            })
-        })?;
-        self.ledger.post(posting).await?;
+    /// Reverse a previously posted initiation entry EXACTLY — every leg (gross,
+    /// net, fee) is flipped by reversing the stored posting, so nothing is ever
+    /// stranded on the fee account and a rule change between process and reversal
+    /// can never unbalance it. Idempotent on the reversal idempotency key.
+    async fn post_reversal(&self, payout: &Payout, reason: &str) -> Result<(), PayoutError> {
+        let Some(posting_id) = payout.ledger_posting_id else {
+            return Ok(()); // nothing was posted (never processed) — nothing to reverse
+        };
+        let original = self.ledger.get_posting(posting_id).await?;
+        self.ledger
+            .reverse(
+                &original,
+                format!("Payout {} — {} reversal", payout.id, reason),
+                format!("{}:reverse:{}", payout.idempotency_key, reason),
+            )
+            .await?;
         Ok(())
     }
 }
 
-impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PayoutEngine
-    for PostgresPayoutEngine<WR, L, R>
+impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository, P: PricingRuleProvider> PayoutEngine
+    for PostgresPayoutEngine<WR, L, R, P>
 {
     async fn initiate(&self, req: CreatePayoutRequest) -> Result<Payout, PayoutError> {
+        // A payout must move a positive amount — a zero/negative withdrawal is rejected.
+        if req.amount.amount_minor() <= 0 {
+            return Err(PayoutError::InvalidAmount);
+        }
         // Idempotency: return existing payout if key already exists.
         if let Some(existing) = self
             .repo
@@ -236,13 +306,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PayoutEngine
 
         // Reverse the ledger posting if it was already made (i.e., we reached Processing/Sent).
         if payout.ledger_posting_id.is_some() {
-            let wallet = self
-                .wallet_repo
-                .get(payout.wallet_id)
-                .await
-                .map_err(|e| PayoutError::Wallet(e.to_string()))?;
-            self.post_reversal(&payout, wallet.available_account_id, "fail")
-                .await?;
+            self.post_reversal(&payout, "fail").await?;
         }
 
         self.repo
@@ -259,13 +323,7 @@ impl<WR: WalletRepository, L: LedgerEngine, R: PayoutRepository> PayoutEngine
             });
         }
 
-        let wallet = self
-            .wallet_repo
-            .get(payout.wallet_id)
-            .await
-            .map_err(|e| PayoutError::Wallet(e.to_string()))?;
-        self.post_reversal(&payout, wallet.available_account_id, "return")
-            .await?;
+        self.post_reversal(&payout, "return").await?;
 
         self.repo
             .update_status(id, PayoutStatus::Returned, None, None)
@@ -308,6 +366,8 @@ mod tests {
         AccountId, Currency, LedgerEntryId, LedgerPostingId, MerchantId, Money, PayoutId, WalletId,
     };
     use banzami_wallets::{Wallet, WalletError, WalletRepository, WalletStatus};
+    use banzami_pricing::{PricingError, PricingRule, PricingRuleProvider, RoundingMode};
+    use banzami_types::PricingRuleId;
 
     use super::*;
     use crate::{BankDestination, CreatePayoutRequest, PayoutError, PayoutStatus};
@@ -319,6 +379,7 @@ mod tests {
     struct MockLedger {
         accounts: Mutex<Vec<Account>>,
         entries: Mutex<Vec<LedgerEntry>>,
+        postings: Mutex<Vec<LedgerPosting>>,
     }
 
     impl MockLedger {
@@ -326,6 +387,7 @@ mod tests {
             Self {
                 accounts: Mutex::new(vec![account]),
                 entries: Mutex::new(vec![]),
+                postings: Mutex::new(vec![]),
             }
         }
     }
@@ -339,22 +401,50 @@ mod tests {
             &self,
             p: LedgerPosting,
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
+            // Idempotent on idempotency_key, mirroring the real ledger: a replay
+            // returns the existing posting and never double-applies entries.
+            let mut postings = self.postings.lock().unwrap();
+            if let Some(existing) = postings
+                .iter()
+                .find(|x| x.idempotency_key == p.idempotency_key)
+                .cloned()
+            {
+                return Ok(existing);
+            }
             self.entries.lock().unwrap().extend(p.entries.clone());
+            postings.push(p.clone());
             Ok(p)
         }
         async fn reverse(
             &self,
-            _original: &LedgerPosting,
-            _description: impl Into<String> + Send,
-            _new_idempotency_key: impl Into<String> + Send,
+            original: &LedgerPosting,
+            description: impl Into<String> + Send,
+            new_idempotency_key: impl Into<String> + Send,
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
-            unimplemented!("reverse not needed in payout unit tests")
+            // Flip every leg (DEBIT↔CREDIT) and post — idempotent via `post`.
+            let mut builder = PostingBuilder::new(description.into(), new_idempotency_key.into());
+            for e in &original.entries {
+                builder = match e.entry_type {
+                    EntryType::Debit => builder.credit(e.account_id, e.amount),
+                    EntryType::Credit => builder.debit(e.account_id, e.amount),
+                };
+            }
+            let reversal = builder
+                .build()
+                .map_err(|_| banzami_ledger::LedgerError::InsufficientEntries)?;
+            self.post(reversal).await
         }
         async fn get_posting(
             &self,
-            _posting_id: LedgerPostingId,
+            posting_id: LedgerPostingId,
         ) -> Result<LedgerPosting, banzami_ledger::LedgerError> {
-            unimplemented!("get_posting not needed in payout unit tests")
+            self.postings
+                .lock()
+                .unwrap()
+                .iter()
+                .find(|p| p.id == posting_id)
+                .cloned()
+                .ok_or(banzami_ledger::LedgerError::PostingNotFound(posting_id))
         }
         async fn balance(
             &self,
@@ -513,6 +603,44 @@ mod tests {
     }
 
     // -----------------------------------------------------------------------
+    // Mock pricing provider (ADR-031)
+    // -----------------------------------------------------------------------
+
+    struct MockPricing {
+        rules: Vec<PricingRule>,
+    }
+
+    impl PricingRuleProvider for MockPricing {
+        async fn load_rules(&self, _environment: &str) -> Result<Vec<PricingRule>, PricingError> {
+            Ok(self.rules.clone())
+        }
+    }
+
+    /// A wallet_withdrawal rule at `bps`, FLOOR rounding (matches the documented
+    /// `floor(gross*bps/10000)`), AOA, effective since 2020, no version bounds.
+    fn withdrawal_rule(bps: u32) -> PricingRule {
+        PricingRule {
+            id: PricingRuleId::new(),
+            key: "wallet-withdrawal-standard".into(),
+            version: 1,
+            business_category: None,
+            pricing_profile: None,
+            fee_policy_ref: None,
+            currency: Some(Currency::AOA),
+            country: None,
+            transaction_type: Some("wallet_withdrawal".into()),
+            rate_bps: bps,
+            flat_minor: 0,
+            min_fee_minor: None,
+            max_fee_minor: None,
+            rounding: RoundingMode::Floor,
+            priority: 0,
+            effective_from: chrono::DateTime::from_timestamp(1_600_000_000, 0).unwrap(),
+            effective_to: None,
+        }
+    }
+
+    // -----------------------------------------------------------------------
     // Helpers
     // -----------------------------------------------------------------------
 
@@ -520,17 +648,25 @@ mod tests {
         Money::new(minor, Currency::AOA)
     }
 
-    fn make_engine(
+    type PayoutEngineT = PostgresPayoutEngine<MockWalletRepo, MockLedger, MockPayoutRepo, MockPricing>;
+
+    /// No-fee engine (empty rule set) — preserves the pre-ADR-031 behaviour used
+    /// by the lifecycle tests.
+    fn make_engine(available_balance_minor: i64) -> (PayoutEngineT, WalletId, AccountId) {
+        let (e, w, a, _bank, _opfee) = make_engine_with(available_balance_minor, vec![]);
+        (e, w, a)
+    }
+
+    /// Full engine with a configurable pricing rule set. Returns the extra
+    /// account ids (bank, operator-fee) so fee tests can assert on the ledger.
+    fn make_engine_with(
         available_balance_minor: i64,
-    ) -> (
-        PostgresPayoutEngine<MockWalletRepo, MockLedger, MockPayoutRepo>,
-        WalletId,
-        AccountId, // available_account_id (so tests can assert on ledger)
-    ) {
+        rules: Vec<PricingRule>,
+    ) -> (PayoutEngineT, WalletId, AccountId, AccountId, AccountId) {
         let avail_id = AccountId::new();
         let bank_id = AccountId::new();
+        let opfee_id = AccountId::new();
 
-        // Pre-credit the available account to simulate existing merchant balance.
         let avail_account = Account {
             id: avail_id,
             account_type: AccountType::Liability,
@@ -545,9 +681,17 @@ mod tests {
             currency: Currency::AOA,
             created_at: Utc::now(),
         };
+        let opfee_account = Account {
+            id: opfee_id,
+            account_type: AccountType::Revenue,
+            name: "Operator — Fee Revenue".into(),
+            currency: Currency::AOA,
+            created_at: Utc::now(),
+        };
 
-        let ledger = MockLedger::with_account(avail_account.clone());
+        let ledger = MockLedger::with_account(avail_account);
         ledger.accounts.lock().unwrap().push(bank_account);
+        ledger.accounts.lock().unwrap().push(opfee_account);
 
         // Simulate available balance: LIABILITY account with credit balance = negative net.
         // Credit on LIABILITY → signed_minor_units() = -amount → balance().negate() = +amount.
@@ -576,8 +720,11 @@ mod tests {
             Arc::new(ledger),
             MockPayoutRepo::new(),
             bank_id,
+            Arc::new(MockPricing { rules }),
+            opfee_id,
+            "SANDBOX",
         );
-        (engine, wallet_id, avail_id)
+        (engine, wallet_id, avail_id, bank_id, opfee_id)
     }
 
     fn dest() -> BankDestination {
@@ -804,5 +951,172 @@ mod tests {
             result,
             Err(PayoutError::InvalidStatusTransition { .. })
         ));
+    }
+
+    // -----------------------------------------------------------------------
+    // Withdrawal fee — ADR-031 (0,75%)
+    // -----------------------------------------------------------------------
+
+    /// Signed net of an account from the mock ledger (credits +, debits −).
+    async fn net_of(engine: &PayoutEngineT, id: AccountId) -> i64 {
+        engine
+            .ledger
+            .entries_for_account(id)
+            .await
+            .unwrap()
+            .iter()
+            .map(|e| match e.entry_type {
+                EntryType::Credit => e.amount.amount_minor(),
+                EntryType::Debit => -e.amount.amount_minor(),
+            })
+            .sum()
+    }
+
+    async fn init_process(
+        engine: &PayoutEngineT,
+        wallet_id: WalletId,
+        key: &str,
+        amount: i64,
+    ) -> Payout {
+        let p = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: key.into(),
+                merchant_id: MerchantId::new(),
+                wallet_id,
+                amount: kz(amount),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        engine.process(p.id).await.unwrap()
+    }
+
+    #[tokio::test]
+    async fn payout_without_rule_is_free() {
+        let (engine, wallet_id, avail_id, bank_id, opfee_id) = make_engine_with(200_000, vec![]);
+        init_process(&engine, wallet_id, "w-free", 100_000).await;
+        // No rule → fee 0: bank gets the full gross, operator fee untouched.
+        assert_eq!(net_of(&engine, opfee_id).await, 0);
+        assert_eq!(net_of(&engine, bank_id).await, 100_000); // ASSET credited full gross
+        assert_eq!(net_of(&engine, avail_id).await, 100_000); // LIABILITY: 200k cr − 100k dr
+    }
+
+    #[tokio::test]
+    async fn withdrawal_charges_075_percent() {
+        let (engine, wallet_id, avail_id, bank_id, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        init_process(&engine, wallet_id, "w-fee", 100_000).await;
+        // gross 100000 → fee 750 → net 99250
+        assert_eq!(net_of(&engine, opfee_id).await, 750, "operator fee = 0,75%");
+        assert_eq!(net_of(&engine, bank_id).await, 99_250, "bank receives net");
+        // merchant available reduced by the full gross (200k − 100k)
+        assert_eq!(net_of(&engine, avail_id).await, 100_000);
+    }
+
+    #[tokio::test]
+    async fn ledger_balanced_gross_equals_net_plus_fee() {
+        let (engine, wallet_id, _avail, bank_id, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        init_process(&engine, wallet_id, "w-bal", 100_000).await;
+        // Balanced posting: DR available gross == CR bank net + CR operator_fee fee.
+        assert_eq!(
+            net_of(&engine, bank_id).await + net_of(&engine, opfee_id).await,
+            100_000
+        );
+    }
+
+    #[tokio::test]
+    async fn failed_payout_reverses_gross_and_fee() {
+        let (engine, wallet_id, avail_id, bank_id, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let p = init_process(&engine, wallet_id, "w-fail", 100_000).await;
+        engine.fail(p.id, "bank rejected".into()).await.unwrap();
+        // Everything back to square one — nothing stranded on the fee account.
+        assert_eq!(net_of(&engine, opfee_id).await, 0, "fee reversed");
+        assert_eq!(net_of(&engine, bank_id).await, 0, "bank reversed");
+        assert_eq!(net_of(&engine, avail_id).await, 200_000, "merchant restored");
+    }
+
+    #[tokio::test]
+    async fn returned_payout_reverses_gross_and_fee() {
+        let (engine, wallet_id, avail_id, _bank, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let p = init_process(&engine, wallet_id, "w-ret", 100_000).await;
+        engine.mark_sent(p.id).await.unwrap();
+        engine.mark_returned(p.id).await.unwrap();
+        assert_eq!(net_of(&engine, opfee_id).await, 0);
+        assert_eq!(net_of(&engine, avail_id).await, 200_000);
+    }
+
+    #[tokio::test]
+    async fn double_reversal_is_prevented() {
+        let (engine, wallet_id, avail_id, _bank, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let p = init_process(&engine, wallet_id, "w-dbl", 100_000).await;
+        engine.fail(p.id, "x".into()).await.unwrap();
+        // A second terminal transition is refused → no second reversal.
+        assert!(matches!(
+            engine.fail(p.id, "again".into()).await,
+            Err(PayoutError::InvalidStatusTransition { .. })
+        ));
+        assert_eq!(net_of(&engine, opfee_id).await, 0);
+        assert_eq!(net_of(&engine, avail_id).await, 200_000);
+    }
+
+    #[tokio::test]
+    async fn zero_amount_is_rejected() {
+        let (engine, wallet_id, ..) = make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        let r = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "w-zero".into(),
+                merchant_id: MerchantId::new(),
+                wallet_id,
+                amount: kz(0),
+                destination: dest(),
+            })
+            .await;
+        assert!(matches!(r, Err(PayoutError::InvalidAmount)));
+    }
+
+    #[tokio::test]
+    async fn fee_uses_floor_rounding() {
+        // 13333 * 75 / 10000 = 99.9975 → floor = 99, net = 13234.
+        let (engine, wallet_id, _avail, bank_id, opfee_id) =
+            make_engine_with(200_000, vec![withdrawal_rule(75)]);
+        init_process(&engine, wallet_id, "w-floor", 13_333).await;
+        assert_eq!(net_of(&engine, opfee_id).await, 99);
+        assert_eq!(net_of(&engine, bank_id).await, 13_234);
+    }
+
+    #[tokio::test]
+    async fn fee_exceeding_gross_is_rejected() {
+        // A pathological 200% rule (2000000... > gross) must fail loudly, never
+        // produce a negative net.
+        let (engine, wallet_id, ..) = make_engine_with(500_000, vec![withdrawal_rule(20_000)]);
+        let p = engine
+            .initiate(CreatePayoutRequest {
+                idempotency_key: "w-exceed".into(),
+                merchant_id: MerchantId::new(),
+                wallet_id,
+                amount: kz(100_000),
+                destination: dest(),
+            })
+            .await
+            .unwrap();
+        assert!(matches!(
+            engine.process(p.id).await,
+            Err(PayoutError::FeeExceedsGross { .. })
+        ));
+    }
+
+    #[tokio::test]
+    async fn future_dated_rule_is_not_applied() {
+        // A rule effective only in the future must not price today → free.
+        let mut future = withdrawal_rule(75);
+        future.effective_from = Utc::now() + chrono::Duration::days(365);
+        let (engine, wallet_id, _avail, _bank, opfee_id) =
+            make_engine_with(200_000, vec![future]);
+        init_process(&engine, wallet_id, "w-future", 100_000).await;
+        assert_eq!(net_of(&engine, opfee_id).await, 0);
     }
 }

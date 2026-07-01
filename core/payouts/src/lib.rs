@@ -142,6 +142,15 @@ pub enum PayoutError {
     #[error("wallet error: {0}")]
     Wallet(String),
 
+    #[error("amount must be positive")]
+    InvalidAmount,
+
+    #[error("pricing error: {0}")]
+    Pricing(String),
+
+    #[error("resolved fee {fee} exceeds gross {gross}")]
+    FeeExceedsGross { fee: i64, gross: i64 },
+
     #[error("ledger error: {0}")]
     Ledger(#[from] banzami_ledger::LedgerError),
 

@@ -38,6 +38,7 @@ struct TestFixture {
         PostgresWalletRepository,
         PostgresLedgerRepository,
         PostgresPayoutRepository,
+        banzami_pricing::PostgresPricingRuleProvider,
     >,
     ledger: Arc<PostgresLedgerRepository>,
     merchant_id: MerchantId,
@@ -100,11 +101,20 @@ async fn setup(pool: PgPool) -> TestFixture {
         .await
         .unwrap();
 
-    // Payout engine.
+    // Payout engine. No wallet_withdrawal rule exists in the test DB, so the fee
+    // resolves to 0 (2-leg posting) — these lifecycle tests are fee-agnostic.
     let wallet_repo_for_payout = PostgresWalletRepository::new(pool.clone());
+    let pricing = std::sync::Arc::new(banzami_pricing::PostgresPricingRuleProvider::new(pool.clone()));
     let payout_repo = PostgresPayoutRepository::new(pool);
-    let payout_engine =
-        PostgresPayoutEngine::new(wallet_repo_for_payout, ledger.clone(), payout_repo, bank.id);
+    let payout_engine = PostgresPayoutEngine::new(
+        wallet_repo_for_payout,
+        ledger.clone(),
+        payout_repo,
+        bank.id,
+        pricing,
+        AccountId::new(), // operator-fee account (unused while fee == 0)
+        "SANDBOX",
+    );
 
     TestFixture {
         payout_engine,
