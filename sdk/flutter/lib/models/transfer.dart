@@ -35,7 +35,10 @@ class Transfer {
 
   factory Transfer.fromConsumerPayLink(ConsumerPayLink link, {String? ownHandle}) {
     return Transfer(
-      transferId:  link.id,
+      // The receipt endpoint resolves by the underlying `transfers` id, not the
+      // pay-link id. Once paid, `link.transferId` carries it; fall back to the
+      // link id only if the server did not surface a transfer id.
+      transferId:  link.transferId ?? link.id,
       sender:      ownHandle ?? '',
       recipient:   link.receiverHandle,
       amountMinor: link.amountMinor ?? 0,
