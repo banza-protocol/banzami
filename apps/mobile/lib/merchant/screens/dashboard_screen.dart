@@ -172,9 +172,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: BanzamiSpacing.lg),
               ],
 
-              // KYB status badge (tap to verify when pending)
-              _KybRow(verified: verified, onVerify: () => _open(const KybScreen())),
-              const SizedBox(height: BanzamiSpacing.lg),
+              // KYB banner — only shown while NOT verified (nothing to nudge
+              // once the business is verified).
+              if (!verified) ...[
+                _KybRow(onVerify: () => _open(const KybScreen())),
+                const SizedBox(height: BanzamiSpacing.lg),
+              ],
 
               // Quick actions
               _QuickActions(
@@ -382,22 +385,13 @@ class _HeaderChip extends StatelessWidget {
 // =============================================================================
 
 class _KybRow extends StatelessWidget {
-  final bool verified;
   final VoidCallback onVerify;
-  const _KybRow({required this.verified, required this.onVerify});
+  const _KybRow({required this.onVerify});
 
+  // Only the pending state is shown — the verified badge is intentionally
+  // hidden (the caller renders this only while not verified).
   @override
   Widget build(BuildContext context) {
-    if (verified) {
-      return const Align(
-        alignment: Alignment.centerLeft,
-        child: MerchantStatusBadge(
-          label: 'Negócio verificado',
-          icon: Icons.verified_rounded,
-          tone: MerchantBadgeTone.success,
-        ),
-      );
-    }
     return GestureDetector(
       onTap: onVerify,
       child: const Align(
