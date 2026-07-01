@@ -30,6 +30,18 @@ func (f *fakePaymentSessions) Create(ctx context.Context, in service.CreatePayme
 		Currency: "AOA", Status: "ACTIVE", PaymentLinkSlug: &slug, QrPayload: qr, CreatedAt: "2026-06-30T00:00:00Z",
 	}, nil
 }
+func (f *fakePaymentSessions) GetByInterface(ctx context.Context, kind, refID string) (*service.PaymentSession, error) {
+	return f.Get(ctx, refID)
+}
+
+func (f *fakePaymentSessions) List(ctx context.Context, merchantID, status string, limit int) ([]service.PaymentSession, error) {
+	s, err := f.Get(ctx, "sess-1")
+	if err != nil {
+		return nil, err
+	}
+	return []service.PaymentSession{*s}, nil
+}
+
 func (f *fakePaymentSessions) Get(ctx context.Context, id string) (*service.PaymentSession, error) {
 	slug := "abc123"
 	var qr *string

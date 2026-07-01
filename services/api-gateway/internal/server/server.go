@@ -59,6 +59,7 @@ type Dependencies struct {
 	NotificationsSvc         *service.NotificationsService
 	PlatformSvc              *service.PlatformReadService
 	ProofSvc                 *service.ProofService
+	BusinessSelfSvc          *service.BusinessSelfService
 	ProofHashSalt            string
 }
 
@@ -100,6 +101,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	merchantAppAdminHandler := handler.NewMerchantApplicationAdminHandler(deps.MerchantAppAdminSvc, envGate)
 	merchantDocumentHandler := handler.NewMerchantDocumentHandler(deps.MerchantDocumentSvc)
 	merchantKybHandler := handler.NewMerchantKybHandler(deps.MerchantKybSvc)
+	businessMeHandler := handler.NewBusinessMeHandler(deps.BusinessSelfSvc)
 	notificationsHandler := handler.NewNotificationsHandler(deps.NotificationsSvc)
 	txHandler := handler.NewTransactionHandler(deps.TransactionSvc)
 	wbhHandler := handler.NewWebhookHandler(deps.WebhookSvc)
@@ -203,6 +205,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 		r.Route("/v1", func(r chi.Router) {
 			// Claim/update the merchant @handle + PIN (already authenticated).
 			r.Post("/merchant/auth/claim", merchantAuthHandler.Claim)
+
+			// The authenticated Business account's own consolidated profile
+			// (identity, type, category, wallet + KYB readiness) — for an
+			// integrating app's "Integration Health" view. Self-scoped.
+			r.Get("/business/me", businessMeHandler.Me)
 
 			r.Post("/transactions", txHandler.Create)
 			r.Get("/transactions", txHandler.List)

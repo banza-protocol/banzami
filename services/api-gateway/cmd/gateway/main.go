@@ -75,6 +75,7 @@ func main() {
 	var notificationsSvc *service.NotificationsService
 	var platformSvc *service.PlatformReadService
 	var proofSvc *service.ProofService
+	var businessSelfSvc *service.BusinessSelfService
 	var activationSvc service.ActivationService
 	var walletPaymentSvc service.WalletPaymentReader
 	var walletPaymentLister service.WalletPaymentLister
@@ -148,6 +149,7 @@ func main() {
 		merchantKybSvc = service.NewPostgresMerchantKybService(dbPool, kybStore, cfg.KYBMaxFileSizeBytes)
 		notificationsSvc = service.NewNotificationsService(dbPool)
 		platformSvc = service.NewPlatformReadService(dbPool)
+		businessSelfSvc = service.NewBusinessSelfService(dbPool)
 		// Transaction-proof signatures are HMAC-keyed by BZM_PROOF_SIGNING_KEY.
 		// An empty key makes signatures (and ip/ua hashes) forgeable/predictable,
 		// so a LIVE stack must refuse to start without it; dev/sandbox may run
@@ -203,6 +205,7 @@ func main() {
 		NotificationsSvc:         notificationsSvc,
 		PlatformSvc:              platformSvc,
 		ProofSvc:                 proofSvc,
+		BusinessSelfSvc:          businessSelfSvc,
 		ProofHashSalt:            proofHashSalt(),
 		ActivationSvc:            activationSvc,
 		ComplianceSvc:            service.NewCoreApiComplianceService(coreClient),
