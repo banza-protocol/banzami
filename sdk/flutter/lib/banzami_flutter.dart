@@ -40,6 +40,7 @@ export 'models/wallet_balance.dart';
 export 'models/transfer.dart';
 export 'models/payment_link.dart';
 export 'models/payment_request.dart';
+export 'models/collection.dart';
 export 'models/qr_code.dart';
 
 // Theme
@@ -76,6 +77,4 @@ export 'screens/payment_link_screen.dart';
 export 'screens/receipt_screen.dart';
 export 'screens/receive_screen.dart';
 export 'screens/scan_screen.dart';
-export 'screens/split_create_screen.dart';
-export 'screens/split_pay_screen.dart';
 export 'screens/structured_qr_pay_screen.dart';

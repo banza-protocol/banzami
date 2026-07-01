@@ -9,6 +9,7 @@ import '../models/merchant_kyb.dart';
 import '../models/merchant_wallet_payment.dart';
 import '../models/payment_link.dart';
 import '../models/payment_request.dart';
+import '../models/collection.dart';
 import '../models/qr_code.dart';
 import '../models/wallet_balance.dart';
 import 'api_exception.dart';
@@ -372,6 +373,109 @@ class BanzamiClient {
   Future<PaymentLink> cancelPaymentLink(String id) async {
     final json = await _delete('/v1/payment-links/$id');
     return PaymentLink.fromJson(json);
+  }
+
+  Future<PaymentLink> getPaymentLink(String id) async {
+    final json = await _get('/v1/payment-links/$id');
+    return PaymentLink.fromJson(json);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Collections (BANZA ADR-036) — split a single total into N shares that each
+  // settle independently into the merchant wallet. merchant_id/environment are
+  // derived from the merchant principal by the gateway; the client only sends
+  // the wallet and the split rule.
+  // ---------------------------------------------------------------------------
+
+  /// Create an EQUAL_SPLIT collection: `totalAmountMinor` divided across
+  /// `participantsCount` shares. Remainder (when not evenly divisible) is added
+  /// to the first share, so any total/count is accepted.
+  Future<CollectionWithShares> createEqualSplitCollection({
+    required String walletId,
+    required int totalAmountMinor,
+    required int participantsCount,
+    String currency = 'AOA',
+    String? title,
+    String? description,
+    DateTime? expiresAt,
+    String? idempotencyKey,
+  }) async {
+    final json = await _postWithRetry('/v1/collections', {
+      'wallet_id':          walletId,
+      'currency':           currency,
+      'total_amount_minor': totalAmountMinor,
+      'rule': {
+        'type':               'EQUAL_SPLIT',
+        'participants_count': participantsCount,
+        'divisibility':       'REMAINDER_TO_FIRST',
+      },
+      if (title != null)       'title':       title,
+      if (description != null) 'description': description,
+      if (expiresAt != null)   'expires_at':  expiresAt.toUtc().toIso8601String(),
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+    }, idempotencyKey: idempotencyKey);
+    return CollectionWithShares.fromJson(json);
+  }
+
+  /// Create a FIXED_AMOUNTS collection: one share per amount. The amounts must
+  /// sum to `totalAmountMinor` (enforced server-side).
+  Future<CollectionWithShares> createFixedAmountsCollection({
+    required String walletId,
+    required int totalAmountMinor,
+    required List<int> amountsMinor,
+    String currency = 'AOA',
+    String? title,
+    String? description,
+    DateTime? expiresAt,
+    String? idempotencyKey,
+  }) async {
+    final json = await _postWithRetry('/v1/collections', {
+      'wallet_id':          walletId,
+      'currency':           currency,
+      'total_amount_minor': totalAmountMinor,
+      'rule': {
+        'type':   'FIXED_AMOUNTS',
+        'shares': [for (final a in amountsMinor) {'amount_minor': a}],
+      },
+      if (title != null)       'title':       title,
+      if (description != null) 'description': description,
+      if (expiresAt != null)   'expires_at':  expiresAt.toUtc().toIso8601String(),
+      'idempotency_key': idempotencyKey ?? _uuid.v4(),
+    }, idempotencyKey: idempotencyKey);
+    return CollectionWithShares.fromJson(json);
+  }
+
+  /// Read a collection with derived progress (collected / remaining).
+  Future<CollectionDetail> getCollection(String id) async {
+    final json = await _get('/v1/collections/$id');
+    return CollectionDetail.fromJson(json);
+  }
+
+  /// List the shares of a collection.
+  Future<List<CollectionShare>> listCollectionShares(String id) async {
+    final json = await _get('/v1/collections/$id/shares');
+    return ((json['data'] as List?) ?? const [])
+        .map((e) => CollectionShare.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Surface a share as a payable artifact (a payment link by default, or a
+  /// dynamic QR). Returns the PaymentIntent + updated share; the concrete
+  /// artifact id is `surfaceRef`.
+  Future<ShareSurface> surfaceCollectionShare(
+    String shareId, {
+    String surface = 'LINK',
+  }) async {
+    final json = await _post('/v1/collection-shares/$shareId/surface', {
+      'surface': surface,
+    });
+    return ShareSurface.fromJson(json);
+  }
+
+  /// Cancel an open collection (only allowed while nothing/partly paid).
+  Future<Collection> cancelCollection(String id) async {
+    final json = await _post('/v1/collections/$id/cancel', null);
+    return Collection.fromJson(json);
   }
 
   // ---------------------------------------------------------------------------
