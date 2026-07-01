@@ -367,8 +367,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
               Text('Total',
                   style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-              Text(formatKwanza(_amountKz),
-                  style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700)),
+              MoneyAmount.kwanza(_amountKz, size: MoneySize.md),
             ]),
             const SizedBox(height: BanzamiSpacing.sm),
             const Divider(height: 1, color: BanzamiColors.gray200),
@@ -378,9 +377,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
                   Text('Pessoa ${i + 1}', style: BanzamiTextStyles.bodyMd),
-                  Text(formatKwanza(parts[i]),
-                      style: BanzamiTextStyles.bodyMd.copyWith(
-                        color: BanzamiColors.primary, fontWeight: FontWeight.w700)),
+                  MoneyAmount.kwanza(parts[i], size: MoneySize.sm, tone: MoneyTone.brand),
                 ]),
               ),
           ]),
@@ -433,13 +430,8 @@ class _ChargeScreenState extends State<ChargeScreen> {
         const SizedBox(height: BanzamiSpacing.xs),
 
         if (link.amountMinor != null)
-          Text(
-            formatMinor(link.amountMinor!, link.currency),
-            style: BanzamiTextStyles.displayLg.copyWith(
-              color:      BanzamiColors.primary,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+          MoneyAmount(link.amountMinor!, currency: link.currency,
+              size: MoneySize.xl, tone: MoneyTone.brand, align: TextAlign.center),
         if (link.description != null) ...[
           const SizedBox(height: 4),
           Text(link.description!,

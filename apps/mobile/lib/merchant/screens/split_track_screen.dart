@@ -255,11 +255,7 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
             color: _statusColor(c.status), letterSpacing: 0.5),
         ),
         const SizedBox(height: BanzamiSpacing.xs),
-        Text(
-          formatMinor(total, c.currency),
-          style: BanzamiTextStyles.displayMd.copyWith(
-            color: BanzamiColors.primary, fontWeight: FontWeight.w700),
-        ),
+        MoneyAmount(total, currency: c.currency, size: MoneySize.xl, tone: MoneyTone.brand),
         if (c.title != null) ...[
           const SizedBox(height: 2),
           Text(c.title!, style: BanzamiTextStyles.bodyMd.copyWith(color: BanzamiColors.gray400)),
@@ -336,9 +332,7 @@ class _SplitTrackScreenState extends State<SplitTrackScreen> {
           Text('Pessoa ${i + 1}',
               style: BanzamiTextStyles.label.copyWith(color: BanzamiColors.gray400)),
           const SizedBox(height: 2),
-          Text(formatMinor(share.amountMinor, share.currency),
-              style: BanzamiTextStyles.headingMd.copyWith(
-                color: BanzamiColors.primary, fontWeight: FontWeight.w700)),
+          MoneyAmount(share.amountMinor, currency: share.currency, size: MoneySize.lg, tone: MoneyTone.brand),
           const SizedBox(height: BanzamiSpacing.lg),
           Container(
             padding: const EdgeInsets.all(BanzamiSpacing.md),
@@ -452,9 +446,8 @@ class _ShareRow extends StatelessWidget {
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               Text('Pessoa $index', style: BanzamiTextStyles.bodyMd),
               const SizedBox(height: 2),
-              Text(formatMinor(share.amountMinor, share.currency),
-                  style: BanzamiTextStyles.headingSm.copyWith(
-                      color: paid ? BanzamiColors.success : BanzamiColors.primary)),
+              MoneyAmount(share.amountMinor, currency: share.currency,
+                  size: MoneySize.md, tone: paid ? MoneyTone.success : MoneyTone.brand),
               const SizedBox(height: 4),
               Row(mainAxisSize: MainAxisSize.min, children: [
                 Icon(paid ? Icons.check_circle_rounded : Icons.schedule_rounded,
