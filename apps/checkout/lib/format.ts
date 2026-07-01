@@ -12,12 +12,15 @@ function groupThousands(n: number): string {
 }
 
 export function formatAmount(amountMinor: number, currency: string): string {
-  const major = amountMinor / 100;
-  if ((currency || 'AOA').toUpperCase() === 'AOA') {
-    return `${groupThousands(Math.round(major))} Kz`;
-  }
-  const v = major.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/,/g, ' ');
-  return `${v} ${currency.toUpperCase()}`;
+  const ccy = (currency || 'AOA').toUpperCase();
+  // Integer minor units → "50 000,50 Kz" (cêntimos only when present).
+  const abs = Math.abs(Math.trunc(amountMinor));
+  const major = Math.trunc(abs / 100);
+  const frac = abs % 100;
+  let out = groupThousands(major);
+  if (frac !== 0) out += ',' + String(frac).padStart(2, '0');
+  if (amountMinor < 0) out = '-' + out;
+  return `${out} ${ccy === 'AOA' ? 'Kz' : ccy}`;
 }
 
 export function formatCountdown(ms: number): string {

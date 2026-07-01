@@ -14,16 +14,22 @@ function groupThousands(n: number): string {
   return (neg ? '-' : '') + out;
 }
 
-/** Format minor units (cêntimos) as "4 250 000 Kz". */
+/** Format minor units (cêntimos) as "4 250 000 Kz" / "4 250 000,50 Kz". */
 export function formatKz(amountMinor: number | null | undefined): string {
   if (amountMinor == null) return '—';
-  return `${groupThousands(Math.round(amountMinor / 100))} Kz`;
+  const abs = Math.abs(Math.trunc(amountMinor));
+  const major = Math.trunc(abs / 100);
+  const frac = abs % 100;
+  let out = groupThousands(major);
+  if (frac !== 0) out += ',' + String(frac).padStart(2, '0');
+  if (amountMinor < 0) out = '-' + out;
+  return `${out} Kz`;
 }
 
-/** Format a major-unit number as "4 250 000 Kz". */
+/** Format a major-unit number as "4 250 000 Kz" (cêntimos when present). */
 export function formatKzMajor(major: number | null | undefined): string {
   if (major == null) return '—';
-  return `${groupThousands(Math.round(major))} Kz`;
+  return formatKz(Math.round(major * 100));
 }
 
 /** Format an ISO timestamp / Date as DD/MM/YYYY. Returns '—' on invalid. */
