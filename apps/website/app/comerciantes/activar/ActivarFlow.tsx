@@ -95,7 +95,7 @@ export function ActivarFlow() {
   if (phase.kind === 'done') {
     return (
       <div className={`${cardCls} text-center`}>
-        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-cherry/10 text-[26px]">✓</div>
+        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-[#e7f7ee] text-[26px] font-black text-[#1f9d57]">✓</div>
         <h2 className="m-0 text-[22px] font-black text-ink">Conta Business ativada</h2>
         <p className="mx-auto mt-3 max-w-[420px] text-[15px] leading-relaxed text-ink-secondary">
           Já pode entrar na app Banzami Business com o seu @negócio e PIN.
