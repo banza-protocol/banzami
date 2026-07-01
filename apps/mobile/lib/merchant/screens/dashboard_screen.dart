@@ -33,6 +33,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   List<MerchantTransaction> _recent = const [];
   bool _loading = false;
   String? _error;
+  // Live KYB-verified state (null until loaded). Overrides the stale login-time
+  // session.verified so a sandbox auto-approval reflects immediately.
+  bool? _kybVerified;
 
   @override
   void initState() {
@@ -44,7 +47,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (_loading) return;
     setState(() { _loading = true; _error = null; });
 
-    final session = context.read<MerchantSessionService>().session!;
+    final sessionService = context.read<MerchantSessionService>();
+    final session = sessionService.session!;
     final client = context.read<BanzamiClient>();
     String? err;
 
@@ -61,7 +65,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
         })
         .catchError((_) { err ??= 'Não foi possível carregar os dados.'; });
 
-    await Future.wait([balanceFuture, statsFuture]);
+    // Live KYB status — best-effort. In SANDBOX the application is auto-approved,
+    // so the login-time session.verified snapshot can be stale; reconcile it here
+    // (and persist) so the dashboard banner + payout gating match the KYB screen.
+    final kybFuture = client.getMerchantKybStatus().then((st) async {
+      final verified = st.verified || st.kybStatus == 'APPROVED';
+      if (mounted) setState(() => _kybVerified = verified);
+      await sessionService.setVerified(verified);
+    }).catchError((_) { /* leave banner as-is on a transient failure */ });
+
+    await Future.wait([balanceFuture, statsFuture, kybFuture]);
     if (mounted) setState(() { _loading = false; _error = err; });
   }
 
@@ -136,6 +149,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final currency = _balance?.currency ?? 'AOA';
     final isSandbox = session.isSandbox;
     final stats = _stats;
+    // Prefer the live KYB status once loaded; fall back to the session snapshot.
+    final verified = _kybVerified ?? session.verified;
 
     return CustomScrollView(
       slivers: [
@@ -158,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ],
 
               // KYB status badge (tap to verify when pending)
-              _KybRow(verified: session.verified, onVerify: () => _open(const KybScreen())),
+              _KybRow(verified: verified, onVerify: () => _open(const KybScreen())),
               const SizedBox(height: BanzamiSpacing.lg),
 
               // Quick actions
@@ -179,7 +194,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
               // Settlement / payout summary (no merchant settlement endpoint yet)
               _SettlementCard(
-                verified: session.verified,
+                verified: verified,
                 onVerify: () => _open(const KybScreen()),
                 onPayout: () => _open(const PayoutScreen()),
               ),

@@ -236,6 +236,18 @@ class MerchantSessionService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Update the cached KYB-verified flag from the live status (e.g. after the
+  /// dashboard fetches getMerchantKybStatus). Persists + notifies so the whole
+  /// app reflects a sandbox auto-approval without needing a re-login. No-op when
+  /// unchanged or when there is no session.
+  Future<void> setVerified(bool verified) async {
+    final s = _session;
+    if (s == null || s.verified == verified) return;
+    _session = s.copyWith(verified: verified);
+    await _store.write(key: _kVerified, value: verified ? 'true' : 'false');
+    notifyListeners();
+  }
+
   Future<void> _persistIdentity(String merchantId, String name, String email,
       String walletId, String env, bool verified, String pin) async {
     await _store.write(key: _kMerchantId,    value: merchantId);
