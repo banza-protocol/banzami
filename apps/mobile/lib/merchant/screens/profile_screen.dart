@@ -100,18 +100,25 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
             Container(
               decoration: const BoxDecoration(
                 color:        BanzamiColors.white,
-                borderRadius: BanzamiRadius.lgAll,
+                borderRadius: BanzamiRadius.xlAll,
+                boxShadow:    BanzamiShadows.card,
               ),
-              child: SwitchListTile(
-                value: _soundOn ?? true,
-                activeThumbColor: BanzamiColors.primary,
-                secondary: const Icon(Icons.volume_up_outlined, color: BanzamiColors.primary),
-                title:    const Text('Som de notificação'),
-                subtitle: const Text('Tocar som ao receber um pagamento'),
-                onChanged: (v) async {
-                  await MerchantSessionService.setNotifSoundEnabled(v);
-                  if (mounted) setState(() => _soundOn = v);
-                },
+              // Clip the SwitchListTile's Material/ink to the rounded corners so
+              // the card matches the others (without this the tile paints square
+              // corners over the rounded background).
+              child: ClipRRect(
+                borderRadius: BanzamiRadius.xlAll,
+                child: SwitchListTile(
+                  value: _soundOn ?? true,
+                  activeThumbColor: BanzamiColors.primary,
+                  secondary: const Icon(Icons.volume_up_outlined, color: BanzamiColors.primary),
+                  title:    const Text('Som de notificação'),
+                  subtitle: const Text('Tocar som ao receber um pagamento'),
+                  onChanged: (v) async {
+                    await MerchantSessionService.setNotifSoundEnabled(v);
+                    if (mounted) setState(() => _soundOn = v);
+                  },
+                ),
               ),
             ),
             const SizedBox(height: BanzamiSpacing.sm),
