@@ -96,30 +96,51 @@ class _MerchantProfileScreenState extends State<MerchantProfileScreen> {
               },
             ),
 
-            // Configurable confirmation sound for payment notifications.
+            // Configurable confirmation sound for payment notifications. Built
+            // with the same plain Container + Row + Switch as the Biometria card
+            // so the rounded corners match (a SwitchListTile's Material paints
+            // square corners over the rounded card).
             Container(
               decoration: const BoxDecoration(
                 color:        BanzamiColors.white,
                 borderRadius: BanzamiRadius.xlAll,
                 boxShadow:    BanzamiShadows.card,
               ),
-              // Clip the SwitchListTile's Material/ink to the rounded corners so
-              // the card matches the others (without this the tile paints square
-              // corners over the rounded background).
-              child: ClipRRect(
-                borderRadius: BanzamiRadius.xlAll,
-                child: SwitchListTile(
-                  value: _soundOn ?? true,
+              padding: const EdgeInsets.symmetric(
+                horizontal: BanzamiSpacing.lg,
+                vertical:   BanzamiSpacing.md,
+              ),
+              child: Row(children: [
+                const _IconBox(icon: Icons.volume_up_outlined),
+                const SizedBox(width: BanzamiSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Som de notificação',
+                          style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w500)),
+                      Text('Tocar som ao receber um pagamento',
+                          style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+                    ],
+                  ),
+                ),
+                Switch(
+                  value:            _soundOn ?? true,
                   activeThumbColor: BanzamiColors.primary,
-                  secondary: const Icon(Icons.volume_up_outlined, color: BanzamiColors.primary),
-                  title:    const Text('Som de notificação'),
-                  subtitle: const Text('Tocar som ao receber um pagamento'),
+                  trackColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? BanzamiColors.primary.withValues(alpha: 0.25)
+                        : BanzamiColors.gray200),
+                  thumbColor: WidgetStateProperty.resolveWith((states) =>
+                    states.contains(WidgetState.selected)
+                        ? BanzamiColors.primary
+                        : BanzamiColors.white),
                   onChanged: (v) async {
                     await MerchantSessionService.setNotifSoundEnabled(v);
                     if (mounted) setState(() => _soundOn = v);
                   },
                 ),
-              ),
+              ]),
             ),
             const SizedBox(height: BanzamiSpacing.sm),
 
