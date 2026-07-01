@@ -59,8 +59,6 @@ export interface ProofResult {
   confirmed_at?: string | null;
   issued_at?: string;
   verification_url?: string;
-  verification_count?: number;
-  proof_hash_short?: string;
   network?: string;
   operator?: string;
   message?: string;

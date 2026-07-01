@@ -76,9 +76,9 @@ func (h *ProofHandler) Verify(w http.ResponseWriter, r *http.Request) {
 	slog.InfoContext(r.Context(), "proof.verify", "reference", ref, "status", proof.Status)
 
 	w.Header().Set("Cache-Control", "public, max-age=15")
-	resp := h.svc.Public(proof)
-	resp["verification_count"] = proof.VerificationCount + 1 // include this hit
-	writeJSON(w, http.StatusOK, resp)
+	// The verification is still recorded above (operator analytics), but the
+	// counter is never exposed publicly (ADR-033 §5).
+	writeJSON(w, http.StatusOK, h.svc.Public(proof))
 }
 
 // POST /internal/v1/proofs/ensure — INTERNAL (admin-api / public-api only, behind

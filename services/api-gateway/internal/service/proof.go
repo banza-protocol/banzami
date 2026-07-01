@@ -81,8 +81,10 @@ type Proof struct {
 	Environment       string
 	PayerDisplayName  string
 	PayerHandle       string
+	PayerSubjectType  string
 	PayeeDisplayName  string
 	PayeeHandle       string
+	PayeeSubjectType  string
 	AmountMinor       int64
 	Currency          string
 	Status            string
@@ -265,8 +267,8 @@ func (s *ProofService) Ensure(ctx context.Context, in ProofInput) (*Proof, error
 }
 
 const proofCols = `id, proof_reference, transaction_id, environment,
-	COALESCE(payer_display_name,''), COALESCE(payer_handle,''),
-	COALESCE(payee_display_name,''), COALESCE(payee_handle,''),
+	COALESCE(payer_display_name,''), COALESCE(payer_handle,''), COALESCE(payer_subject_type,''),
+	COALESCE(payee_display_name,''), COALESCE(payee_handle,''), COALESCE(payee_subject_type,''),
 	amount_minor, currency, status, COALESCE(description,''), COALESCE(method,''),
 	COALESCE(proof_hash,''), COALESCE(signature_key_id,''), COALESCE(signature_algorithm,''),
 	verification_count, issued_at, confirmed_at, reversed_at`
@@ -274,7 +276,8 @@ const proofCols = `id, proof_reference, transaction_id, environment,
 func scanProof(row pgx.Row) (*Proof, error) {
 	var p Proof
 	err := row.Scan(&p.ID, &p.ProofReference, &p.TransactionID, &p.Environment,
-		&p.PayerDisplayName, &p.PayerHandle, &p.PayeeDisplayName, &p.PayeeHandle,
+		&p.PayerDisplayName, &p.PayerHandle, &p.PayerSubjectType,
+		&p.PayeeDisplayName, &p.PayeeHandle, &p.PayeeSubjectType,
 		&p.AmountMinor, &p.Currency, &p.Status, &p.Description, &p.Method,
 		&p.ProofHash, &p.SignatureKeyID, &p.SignatureAlg,
 		&p.VerificationCount, &p.IssuedAt, &p.ConfirmedAt, &p.ReversedAt)
@@ -309,28 +312,27 @@ func (s *ProofService) RecordVerification(ctx context.Context, proofID, ipHash, 
 }
 
 // Public returns the safe, ADR-040-shaped public payload (no sensitive fields).
+// Public builds the ADR-033 public ViewModel: an allow-list of non-secret,
+// ledger-derived fields only. It deliberately omits the proof hash and the
+// verification counter (§4/§5), every internal id/signature, and — by the
+// privacy default (§7) — a party's display name unless that party is a public
+// entity (a business); consumers are shown by @handle only.
 func (s *ProofService) Public(p *Proof) map[string]any {
-	short := p.ProofHash
-	if len(short) > 12 {
-		short = short[:12]
-	}
 	out := map[string]any{
-		"exists":             true,
-		"status":             p.Status,
-		"amount":             p.AmountMinor,
-		"currency":           p.Currency,
-		"payer_display":      p.PayerDisplayName,
-		"payer_handle":       p.PayerHandle,
-		"payee_display":      p.PayeeDisplayName,
-		"payee_handle":       p.PayeeHandle,
-		"method":             p.Method,
-		"description":        p.Description,
-		"issued_at":          p.IssuedAt.UTC().Format(time.RFC3339),
-		"verification_url":   s.publicBase + p.ProofReference,
-		"verification_count": p.VerificationCount,
-		"proof_hash_short":   short,
-		"network":            s.network,
-		"operator":           s.operatorID,
+		"exists":           true,
+		"status":           p.Status,
+		"amount":           p.AmountMinor,
+		"currency":         p.Currency,
+		"payer_display":    publicDisplayName(p.PayerSubjectType, p.PayerDisplayName),
+		"payer_handle":     p.PayerHandle,
+		"payee_display":    publicDisplayName(p.PayeeSubjectType, p.PayeeDisplayName),
+		"payee_handle":     p.PayeeHandle,
+		"method":           p.Method,
+		"description":      p.Description,
+		"issued_at":        p.IssuedAt.UTC().Format(time.RFC3339),
+		"verification_url": s.publicBase + p.ProofReference,
+		"network":          s.network,
+		"operator":         s.operatorID,
 	}
 	if p.ConfirmedAt != nil {
 		out["confirmed_at"] = p.ConfirmedAt.UTC().Format(time.RFC3339)
@@ -338,6 +340,23 @@ func (s *ProofService) Public(p *Proof) map[string]any {
 		out["confirmed_at"] = nil
 	}
 	return out
+}
+
+// publicDisplayName applies the ADR-033 §7 name-privacy default: a person's full
+// name is private, so consumers (and unknown/empty subject types) resolve to nil
+// (the page then shows only the @handle). Public entities — businesses — show
+// their name. A future per-user "show my name publicly" opt-in would flip a
+// consumer to public at proof time.
+func publicDisplayName(subjectType, name string) any {
+	switch strings.ToLower(strings.TrimSpace(subjectType)) {
+	case "", "consumer", "customer", "user", "person":
+		return nil
+	default:
+		if strings.TrimSpace(name) == "" {
+			return nil
+		}
+		return name
+	}
 }
 
 // Reference exposes the public reference for a transaction without leaking how it

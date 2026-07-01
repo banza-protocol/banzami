@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { getProof, type ProofResult } from '@/lib/api';
+import { getProof, type ProofResult, API_ENV } from '@/lib/api';
 import { BrandMark } from '@/components/site/BrandMark';
 import { MoneyAmount } from '@/components/MoneyAmount';
 
@@ -16,6 +16,34 @@ function fmtDate(s?: string | null): string {
   if (!s) return '—';
   const d = new Date(s);
   return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('pt-PT', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+// Query timestamp (Africa/Luanda, UTC+1). Rendered server-side per request so the
+// reader knows the verification is live, not cached from a document (ADR-033 §9).
+function nowWAT(): string {
+  return new Date().toLocaleString('pt-PT', {
+    timeZone: 'Africa/Luanda', dateStyle: 'short', timeStyle: 'short',
+  });
+}
+
+// Technical status → localized label (ADR-033 §6). Internal states stay internal.
+function statusPT(status: string): string {
+  switch (status) {
+    case 'CONFIRMED': return 'Confirmado';
+    case 'PENDING':   return 'Pendente';
+    case 'REVERSED':  return 'Revertido';
+    case 'FAILED':    return 'Falhado';
+    case 'CANCELLED': return 'Cancelado';
+    case 'EXPIRED':   return 'Expirado';
+    default:          return status;
+  }
+}
+
+// Display transforms: network is the protocol (BANZA), operator is title-cased.
+function netLabel(n?: string | null): string { return (n || '').trim() ? (n as string).toUpperCase() : '—'; }
+function opLabel(o?: string | null): string {
+  const s = (o || '').trim();
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : '—';
 }
 
 // Maps the proof status to the public verdict (green/yellow/red).
@@ -60,6 +88,12 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
           Banzami
         </Link>
 
+        {API_ENV === 'SANDBOX' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, padding: '8px 14px', borderRadius: 12, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 12.5, fontWeight: 800 }}>
+            🟡 SANDBOX · sem valor financeiro real
+          </div>
+        )}
+
         <div style={{ borderRadius: 20, overflow: 'hidden', border: '1px solid #f1e3e3', background: '#fff', boxShadow: '0 20px 60px -30px rgba(0,0,0,0.2)' }}>
           <div style={{ background: t.bar, color: '#fff', padding: '22px 26px' }}>
             <div style={{ fontSize: 12, fontWeight: 800, letterSpacing: '0.08em', opacity: 0.85 }}>VERIFICAÇÃO OFICIAL · {ref.toUpperCase()}</div>
@@ -81,9 +115,9 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
               <Row label="Método" value={p.method} />
               {p.description && <Row label="Descrição" value={p.description} />}
               <Row label="Confirmado em" value={fmtDate(p.confirmed_at)} />
-              <Row label="Estado" value={p.status} />
-              <Row label="Rede" value={p.network} />
-              <Row label="Operador" value={p.operator} />
+              <Row label="Estado" value={statusPT(p.status)} />
+              <Row label="Rede" value={netLabel(p.network)} />
+              <Row label="Operador" value={opLabel(p.operator)} />
             </div>
           )}
 
@@ -95,12 +129,28 @@ export default async function ProofPage({ params }: { params: Promise<{ ref: str
           </div>
 
           {p.exists && (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 14, padding: '0 26px 22px', fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>
-              <span>Registado no ledger imutável</span>
-              {p.proof_hash_short && <span>· hash {p.proof_hash_short}</span>}
-              {typeof p.verification_count === 'number' && <span>· verificado {p.verification_count}×</span>}
+            <div style={{ padding: '0 26px 22px' }}>
+              {/* Integridade — plain assurance, never a hash or internal detail (ADR-033 §13). */}
+              {p.status === 'CONFIRMED' && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 16px', fontSize: 12.5, fontWeight: 800, color: '#166534', marginBottom: 8 }}>
+                  <span>✓ Registado</span>
+                  <span>✓ Não alterado</span>
+                  <span>✓ Confirmado pelo operador</span>
+                </div>
+              )}
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#9a8a8e' }}>
+                Registado no ledger imutável BANZA · Verificado agora · {nowWAT()} (WAT)
+              </div>
             </div>
           )}
+        </div>
+
+        {/* Fonte da verdade (ADR-033 §12) */}
+        <div style={{ marginTop: 16, borderRadius: 16, border: '1px solid #f1e3e3', background: '#fff', padding: '16px 18px', boxShadow: '0 10px 30px -22px rgba(0,0,0,0.18)' }}>
+          <div style={{ fontSize: 13, fontWeight: 900, color: '#2a2024', marginBottom: 6 }}>Fonte da verdade</div>
+          <div style={{ fontSize: 12.5, fontWeight: 600, color: '#6b5a5e', lineHeight: 1.55 }}>
+            Esta página consulta diretamente o ledger imutável do protocolo BANZA. PDFs, capturas de ecrã e imagens nunca são considerados prova — a prova oficial é sempre esta página.
+          </div>
         </div>
 
         <div style={{ textAlign: 'center', marginTop: 18 }}>
