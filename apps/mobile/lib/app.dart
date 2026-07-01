@@ -48,8 +48,11 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
   // ── Cold-start deferred link ───────────────────────────────────────────────
   // On cold start the deep link fires before SplashScreen has bootstrapped the
-  // session. We park the code here and process it as soon as the session loads.
+  // session. We park the code/slug here and process it as soon as the session
+  // loads. _pendingRequestCode is a payment-request code (banzami://pay?request);
+  // _pendingLinkSlug is a payment-link slug (pay.banzami.com/pay/{slug}).
   String?   _pendingRequestCode;
+  String?   _pendingLinkSlug;
 
   // ── Locked deep link ───────────────────────────────────────────────────────
   // When a Universal Link arrives while the session is locked, we park the URI
@@ -242,14 +245,33 @@ class _BanzamiAppState extends State<BanzamiApp> {
   /// link and owns the confirmation + receipt.
   void _openPaymentLink(String slug) {
     final ctx = _navigatorKey.currentContext;
-    if (ctx == null) return;
-    final session = ctx.read<SessionService>().session;
-    final client  = ctx.read<ConsumerPublicClient>();
+    if (ctx == null) {
+      // Cold start: navigator not mounted yet — park and retry when session loads.
+      debugPrint('[deep-link] ctxNull=true slug=$slug — deferred');
+      _pendingLinkSlug = slug;
+      return;
+    }
+    final svc     = ctx.read<SessionService>();
+    final session = svc.session;
+    if (session == null) {
+      // Cold start: session not ready yet — park and retry when session loads.
+      debugPrint('[deep-link] sessionNull=true slug=$slug — deferred');
+      _pendingLinkSlug = slug;
+      return;
+    }
+    if (svc.isLocked) {
+      // Security gate: should not reach here — _handleLink catches this first.
+      debugPrint('[deep-link] SECURITY appLocked=true — rejecting payment link open');
+      return;
+    }
+    _pendingLinkSlug = null; // clear any stale pending
+    final client = ctx.read<ConsumerPublicClient>();
+    debugPrint('[deep-link] pushing BanzamiPaymentLinkScreen slug=$slug');
     _navigatorKey.currentState?.push(MaterialPageRoute(
       builder: (_) => BanzamiPaymentLinkScreen(
         client:        client,
         slug:          slug,
-        ownHandle:     session?.handle,
+        ownHandle:     session.handle,
         onSuccess:     (_) => _signalBalanceRefresh(),
         isSandbox:     AppConfig.isSandbox,
         logoAssetPath: BrandingAssets.icon,
@@ -410,6 +432,25 @@ class _BanzamiAppState extends State<BanzamiApp> {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   debugPrint('[deep-link] processingDeferred=true code=$pending');
                   _openPaymentRequest(pending);
+                });
+              }
+            }
+            // Cold-start deep link (payment link): session now ready — process
+            // any deferred slug the same way as a deferred request code.
+            final pendingSlug = _pendingLinkSlug;
+            if (pendingSlug != null) {
+              if (session.isLocked && _pendingDeepLinkUri == null) {
+                _pendingDeepLinkUri = Uri.parse('banzami://pay/link/$pendingSlug');
+                _pendingLinkSlug = null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  debugPrint('[deep-link] coldStart+locked → triggering unlock slug=$pendingSlug');
+                  _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
+                });
+              } else if (!session.isLocked) {
+                _pendingLinkSlug = null;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  debugPrint('[deep-link] processingDeferred=true slug=$pendingSlug');
+                  _openPaymentLink(pendingSlug);
                 });
               }
             }
