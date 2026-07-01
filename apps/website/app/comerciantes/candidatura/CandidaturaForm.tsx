@@ -17,7 +17,6 @@ import { PROVINCIAS, municipiosDe, cidadesDe } from '@/lib/angola';
 import { CATEGORIES, OUTROS, subcategoriasDe, VOLUME_FAIXAS } from '@/lib/business-categories';
 import {
   sandboxBusinessData,
-  sandboxSeed,
   makeSandboxDoc,
   SANDBOX_DOC_FILENAMES,
   type SandboxBusiness,
@@ -528,21 +527,6 @@ export function CandidaturaForm() {
   const fillAtividadeSection = () => { applyAtividade(sandboxBusinessData()); showToast('Secção preenchida com dados sandbox.'); };
   const fillDocumentosSection = () => { generateSandboxDocs(); showToast('Documentos sandbox gerados.'); };
 
-  // Global: fill the ENTIRE form (one shared seed) so the tester can reach the
-  // review step without touching anything else. In SANDBOX we also pre-accept
-  // the terms (test flow); a real LIVE account never reaches this code.
-  function fillAll() {
-    const d = sandboxBusinessData(sandboxSeed());
-    applyNegocio(d);
-    applyLocalizacao(d);
-    applyResponsavel(d);
-    applyAtividade(d);
-    generateSandboxDocs();
-    setAccepted(true);
-    setTried({});
-    showToast('Formulário preenchido com dados sandbox.');
-  }
-
   // Dependências Angola/categorias: município depende da província, cidade do
   // município, subcategoria da categoria. Mudar o pai limpa os filhos.
   const municipiosDisponiveis = municipiosDe(provincia);
@@ -793,32 +777,6 @@ export function CandidaturaForm() {
           </div>
         </div>
       </div>
-
-      {isSandbox && (
-        <div className="mb-[22px] flex items-start gap-3 rounded-[16px] border-[1.5px] border-amber-300 bg-amber-50 px-5 py-4">
-          <span className="mt-0.5 flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-amber-500 text-[13px] font-black text-white">!</span>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-md bg-amber-500 px-2 py-0.5 text-[11px] font-extrabold uppercase tracking-wide text-white">Sandbox</span>
-              <span className="text-[15px] font-extrabold text-amber-900">Ambiente SANDBOX — candidatura de teste</span>
-            </div>
-            <p className="m-0 mt-1 text-[13.5px] font-semibold leading-[1.5] text-amber-800">
-              Pode preencher com dados de teste. Os dados e documentos enviados são usados apenas para testes — não criam uma conta Business real em produção.
-            </p>
-            <button
-              type="button"
-              onClick={fillAll}
-              className="mt-3 inline-flex items-center gap-2 rounded-[12px] bg-amber-500 px-5 py-2.5 text-[14px] font-extrabold text-white shadow-[0_8px_20px_-10px_rgba(217,119,6,0.7)] transition-colors hover:bg-amber-600"
-            >
-              {SparkIc}
-              Preencher tudo com dados de teste
-            </button>
-            <p className="m-0 mt-2 text-[12px] font-semibold text-amber-700/90">
-              Preenche todas as secções e gera os documentos sandbox. Só precisa de rever e submeter.
-            </p>
-          </div>
-        </div>
-      )}
 
       <div className="grid grid-cols-[330px_1fr] items-start gap-[30px] max-[980px]:grid-cols-1">
         {/* SIDEBAR */}

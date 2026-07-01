@@ -79,15 +79,11 @@ describe('sandbox documents', () => {
 });
 
 describe('CandidaturaForm — autofill wiring (source guards)', () => {
-  it('global button says "Preencher tudo com dados de teste" and calls fillAll', () => {
-    expect(FORM).toContain('Preencher tudo com dados de teste');
-    expect(FORM).toContain('onClick={fillAll}');
-  });
-
-  it('the global fill composes every section + docs + terms', () => {
-    for (const fn of ['applyNegocio(d)', 'applyLocalizacao(d)', 'applyResponsavel(d)', 'applyAtividade(d)', 'generateSandboxDocs()', 'setAccepted(true)']) {
-      expect(FORM, `fillAll must call ${fn}`).toContain(fn);
-    }
+  it('has NO global "fill everything at once" control', () => {
+    // Product decision: section-by-section only, no all-at-once fill.
+    expect(FORM).not.toContain('Preencher tudo com dados de teste');
+    expect(FORM).not.toContain('function fillAll');
+    expect(FORM).not.toContain('onClick={fillAll}');
   });
 
   it('has a per-section fill button on all five sections', () => {
@@ -97,14 +93,13 @@ describe('CandidaturaForm — autofill wiring (source guards)', () => {
   });
 
   it('gates every fill control behind isSandbox (never rendered in LIVE)', () => {
-    // Global button lives inside the `isSandbox && (...)` notice; each section
-    // button is rendered `isSandbox ? <SbxFillButton .../> : undefined`.
+    // Each section button is rendered `isSandbox ? <SbxFillButton .../> : undefined`;
+    // the documents generator is `{isSandbox && <SbxFillButton .../>}`.
     expect(FORM).toContain('isSandbox ? <SbxFillButton');
     expect(FORM).toContain('{isSandbox && <SbxFillButton');
   });
 
-  it('shows sandbox toasts for global + per-section fills', () => {
-    expect(FORM).toContain('Formulário preenchido com dados sandbox.');
+  it('shows a sandbox toast for per-section fills', () => {
     expect(FORM).toContain('Secção preenchida com dados sandbox.');
   });
 

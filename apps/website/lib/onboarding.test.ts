@@ -142,13 +142,11 @@ describe('CandidaturaForm — final flow guarantees', () => {
     expect(FORM).toContain('Documento adicional');
   });
 
-  it('offers a SANDBOX-only test-data fill, gated on isSandbox', () => {
-    // Global fill + per-section fills (see sandbox-autofill.test.ts for the data).
-    expect(FORM).toContain('function fillAll');
-    expect(FORM).toContain('Preencher tudo com dados de teste');
+  it('offers SANDBOX-only per-section test-data fills, gated on isSandbox', () => {
+    // Section-by-section only — no all-at-once fill (see sandbox-autofill.test.ts).
+    expect(FORM).not.toContain('Preencher tudo com dados de teste');
     expect(FORM).toContain('<SbxFillButton');
     // The controls live inside isSandbox-gated blocks (never rendered in LIVE).
-    expect(FORM).toContain('isSandbox');
     expect(FORM).toContain('isSandbox ? <SbxFillButton');
   });
 
