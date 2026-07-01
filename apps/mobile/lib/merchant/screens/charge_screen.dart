@@ -79,41 +79,23 @@ class _ChargeScreenState extends State<ChargeScreen> {
     if (mounted) setState(() => _logoUiImage = composed);
   }
 
-  // Converts a user-typed Kz string (e.g. "250" or "250,50") to minor units
-  // (cêntimos). Accepts comma or period as decimal separator but NOT as
-  // thousands separator — "2.500" is rejected to avoid 1000× mistakes.
-  // Returns null if the input is invalid.
-  static int? _parseKzToMinor(String raw) {
-    // Normalise decimal separator, then reject anything with > 1 separator
-    final normalised = raw.replaceAll(',', '.');
-    if (normalised.split('.').length > 2) return null;    // multiple separators
-    final value = double.tryParse(normalised);
-    if (value == null || value <= 0) return null;
-    const int maxKz = 10000000; // 10 million Kz sanity cap
-    if (value > maxKz) return null;
-    return (value * 100).round();
-  }
+  // Amounts are entered and displayed in WHOLE kwanzas (cêntimos are not used in
+  // practice) with a space thousands separator: "50 000 Kz". `parseAmountInput`
+  // strips the spaces; the ledger stores minor units (× 100).
+  static const int _maxKz = 10000000; // 10 million Kz sanity cap
 
-  // ── Split maths ────────────────────────────────────────────────────────────
-  // All in integer minor units — never any silent rounding.
+  /// The typed total in whole kwanzas (0 when empty/invalid).
+  int get _amountKz => parseAmountInput(_amountCtrl.text);
 
-  /// Parsed total in minor units, or null when the amount field is empty/invalid.
-  int? get _totalMinor {
-    final raw = _amountCtrl.text.trim();
-    return raw.isEmpty ? null : _parseKzToMinor(raw);
-  }
+  /// Per-person parts in whole kwanzas, distributing any remainder across the
+  /// first participants so the sum is ALWAYS exactly the total. Empty until a
+  /// valid total + people count exist.
+  List<int> get _splitParts => (_amountKz > 0 && _amountKz <= _maxKz && _people >= _kMinPeople)
+      ? splitEvenly(_amountKz, _people)
+      : const [];
 
-  /// True when the total divides equally by the number of people.
-  bool get _splitDivisible {
-    final t = _totalMinor;
-    return t != null && _people >= _kMinPeople && t % _people == 0;
-  }
-
-  /// Amount each person pays, or null when not evenly divisible.
-  int? get _perPersonMinor {
-    if (!_splitDivisible) return null;
-    return _totalMinor! ~/ _people;
-  }
+  /// Kwanzas left over after an even division (0 when it divides exactly).
+  int get _splitRemainder => _amountKz % _people;
 
   // ── Simple charge ────────────────────────────────────────────────────────────
 
@@ -124,12 +106,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
 
-    // Parse Kz input → minor units (centimos). Reject comma/period as
-    // thousands separator — only accept a single decimal part.
-    final raw = _amountCtrl.text.trim();
-    final int? amountMinor = raw.isEmpty
-        ? null
-        : _parseKzToMinor(raw);
+    // Whole kwanzas → minor units. Empty ⇒ free amount (null).
+    final kz = _amountKz;
+    final int? amountMinor = kz > 0 ? kz * 100 : null;
 
     try {
       final link = await client.createPaymentLink(
@@ -153,23 +132,25 @@ class _ChargeScreenState extends State<ChargeScreen> {
   // ── Split charge ─────────────────────────────────────────────────────────────
 
   Future<void> _createSplit() async {
-    final total = _totalMinor;
-    if (total == null || _people < _kMinPeople) return; // guarded by button state
+    final parts = _splitParts;
+    if (parts.isEmpty) return; // guarded by button state
     setState(() { _creating = true; _error = null; });
 
     final session = context.read<MerchantSessionService>().session!;
     final client  = context.read<BanzamiClient>();
     final desc    = _descCtrl.text.trim().isEmpty ? null : _descCtrl.text.trim();
 
-    // One protocol Collection (BANZA ADR-036) with N equal shares. The core
-    // generates the shares; each is a real financial object that settles into
-    // the merchant wallet when paid. No money moves until each share is paid.
+    // One protocol Collection (BANZA ADR-036) with a fixed share per person.
+    // We send the exact per-person amounts (remainder already distributed) so
+    // the preview matches the created shares and the core validates that the
+    // parts sum to the total. Each share settles into the merchant wallet when
+    // paid; no money moves until then.
     try {
-      final result = await client.createEqualSplitCollection(
-        walletId:          session.walletId,
-        totalAmountMinor:  total,
-        participantsCount: _people,
-        title:             desc,
+      final result = await client.createFixedAmountsCollection(
+        walletId:         session.walletId,
+        totalAmountMinor: _amountKz * 100,
+        amountsMinor:     parts.map((p) => p * 100).toList(),
+        title:            desc,
       );
       if (!mounted) return;
       _reset();
@@ -272,21 +253,22 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
           TextFormField(
             controller:  _amountCtrl,
-            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-            inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9,.]'))],
+            keyboardType: TextInputType.number,
+            inputFormatters: const [_ThousandsSpaceFormatter()],
             decoration: InputDecoration(
-              labelText:  _split ? 'Valor total em Kz (ex: 30000)' : 'Valor em Kz (ex: 250)',
+              labelText:  _split ? 'Valor total em Kz (ex: 50 000)' : 'Valor em Kz (ex: 250)',
               hintText:   _split ? null : 'Deixe em branco para valor livre',
               prefixIcon: const Icon(Icons.payments_outlined),
               suffixText: 'Kz',
             ),
             validator: (v) {
-              if (v == null || v.trim().isEmpty) {
+              final kz = parseAmountInput(v ?? '');
+              if (kz == 0) {
                 // Total is required for split; free amount is allowed for simple.
                 return _split ? 'Indique o valor total' : null;
               }
-              if (_parseKzToMinor(v.trim()) == null) {
-                return 'Valor inválido. Insira o montante em Kz (ex: 250)';
+              if (kz > _maxKz) {
+                return 'Valor demasiado alto.';
               }
               return null;
             },
@@ -318,7 +300,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
               label:     _split ? 'Gerar cobrança dividida' : 'Gerar cobrança',
               onPressed: _creating
                   ? null
-                  : (_split ? (_splitDivisible ? _createSplit : null) : _create),
+                  : (_split ? (_splitParts.isNotEmpty ? _createSplit : null) : _create),
               isLoading: _creating,
             ),
           ),
@@ -329,9 +311,7 @@ class _ChargeScreenState extends State<ChargeScreen> {
 
   // Split-only fields: people stepper + per-person preview + helper copy.
   List<Widget> _buildSplitFields() {
-    final total       = _totalMinor;
-    final per         = _perPersonMinor;
-    final indivisible = total != null && _people >= _kMinPeople && per == null;
+    final parts = _splitParts;
 
     return [
       // People stepper
@@ -373,8 +353,9 @@ class _ChargeScreenState extends State<ChargeScreen> {
       ),
       const SizedBox(height: BanzamiSpacing.lg),
 
-      // Per-person preview / divisibility error
-      if (per != null)
+      // Division preview — one line per person. The remainder is distributed
+      // across the first participants, so the sum is always exactly the total.
+      if (parts.isNotEmpty) ...[
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(BanzamiSpacing.lg),
@@ -382,26 +363,46 @@ class _ChargeScreenState extends State<ChargeScreen> {
             color:        BanzamiColors.primary.withValues(alpha: 0.06),
             borderRadius: BanzamiRadius.lgAll,
           ),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text('Valor por pessoa',
-                style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
-            const SizedBox(height: 2),
-            Text(
-              formatMinor(per, 'AOA'),
-              style: BanzamiTextStyles.headingMd.copyWith(
-                color: BanzamiColors.primary, fontWeight: FontWeight.w700),
-            ),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+              Text('Total',
+                  style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+              Text(formatKwanza(_amountKz),
+                  style: BanzamiTextStyles.bodyMd.copyWith(fontWeight: FontWeight.w700)),
+            ]),
+            const SizedBox(height: BanzamiSpacing.sm),
+            const Divider(height: 1, color: BanzamiColors.gray200),
+            const SizedBox(height: BanzamiSpacing.sm),
+            for (var i = 0; i < parts.length; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 3),
+                child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                  Text('Pessoa ${i + 1}', style: BanzamiTextStyles.bodyMd),
+                  Text(formatKwanza(parts[i]),
+                      style: BanzamiTextStyles.bodyMd.copyWith(
+                        color: BanzamiColors.primary, fontWeight: FontWeight.w700)),
+                ]),
+              ),
           ]),
-        )
-      else if (indivisible)
-        const _ErrorBox(
-          message:
-              'Este valor não pode ser dividido igualmente. Ajuste o valor ou o número de pessoas.',
         ),
+        const SizedBox(height: BanzamiSpacing.sm),
+        if (_splitRemainder != 0)
+          Text(
+            'Este valor não divide exatamente. Ajustámos automaticamente a diferença '
+            'de ${formatKwanza(_splitRemainder)} entre os primeiros participantes.',
+            style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
+          ),
+        const SizedBox(height: 2),
+        Row(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.check_circle_rounded, size: 14, color: BanzamiColors.success),
+          const SizedBox(width: 4),
+          Text('A soma das partes é sempre igual ao valor total.',
+              style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400)),
+        ]),
+      ],
 
       const SizedBox(height: BanzamiSpacing.md),
       Text(
-        'O valor será dividido igualmente numa cobrança com uma parte por pessoa. '
         'Cada pessoa paga a sua parte e o dinheiro entra na sua carteira '
         'imediatamente. Vai poder acompanhar quem já pagou.',
         style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.gray400),
@@ -604,7 +605,26 @@ class _StepButton extends StatelessWidget {
 }
 
 // =============================================================================
-// Inline error box (reused for API errors and the divisibility error)
+// Live thousands-space input formatter — "50000" shows as "50 000" while typing.
+// Whole kwanzas only (cêntimos are not used in practice); the ' Kz' suffix is
+// rendered by the field decoration, not stored in the value.
+// =============================================================================
+
+class _ThousandsSpaceFormatter extends TextInputFormatter {
+  const _ThousandsSpaceFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(TextEditingValue oldValue, TextEditingValue newValue) {
+    final formatted = formatAmountInput(newValue.text);
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
+}
+
+// =============================================================================
+// Inline error box (reused for API errors)
 // =============================================================================
 
 class _ErrorBox extends StatelessWidget {

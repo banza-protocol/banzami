@@ -3,73 +3,104 @@ import 'package:flutter_test/flutter_test.dart' hide isZero;
 import 'package:banzami_flutter/banzami_flutter.dart';
 
 void main() {
-  group('formatMinor — AOA (Kwanza)', () {
-    test('whole amounts — no decimal part', () {
-      // 50000 minor units = 500 Kz
-      final result = formatMinor(50000, 'AOA');
-      expect(result, contains('Kz'));
-      expect(result, contains('500'));
+  group('formatMinor — AOA (Kwanza), space-grouped, no cêntimos', () {
+    test('500 Kz (50000 minor)', () {
+      expect(formatMinor(50000, 'AOA'), '500 Kz');
     });
 
-    test('large amounts — thousands separator applied', () {
-      // 10_000_000 minor = 100 000 Kz
-      final result = formatMinor(10000000, 'AOA');
-      expect(result, contains('Kz'));
-      // pt_PT uses a period as thousands separator: 100.000
-      expect(result, contains('100'));
+    test('100 000 Kz uses a SPACE separator (never a dot/comma)', () {
+      final r = formatMinor(10000000, 'AOA');
+      expect(r, '100 000 Kz');
+      expect(r, isNot(contains('.')));
+      expect(r, isNot(contains(',')));
     });
 
-    test('zero amount', () {
-      final result = formatMinor(0, 'AOA');
-      expect(result, contains('0'));
-      expect(result, contains('Kz'));
+    test('1 000 000 Kz', () {
+      expect(formatMinor(100000000, 'AOA'), '1 000 000 Kz');
     });
 
-    test('one kwanza', () {
-      // 100 minor = 1 Kz
-      final result = formatMinor(100, 'AOA');
-      expect(result, contains('1'));
-      expect(result, contains('Kz'));
+    test('zero', () {
+      expect(formatMinor(0, 'AOA'), '0 Kz');
     });
 
-    test('large balance — 1 000 000 Kz', () {
-      // 100_000_000 minor = 1 000 000 Kz
-      final result = formatMinor(100000000, 'AOA');
-      expect(result, contains('Kz'));
-      expect(result, contains('000'));
+    test('one kwanza (100 minor)', () {
+      expect(formatMinor(100, 'AOA'), '1 Kz');
+    });
+
+    test('a split share of 16 667 Kz (1 666 700 minor)', () {
+      expect(formatMinor(1666700, 'AOA'), '16 667 Kz');
     });
   });
 
-  group('formatMinor — USD', () {
-    test('happy path — uses USD symbol and 2 decimals', () {
-      // 1050 minor = 10.50 USD
-      final result = formatMinor(1050, 'USD');
-      expect(result, contains('USD'));
-      expect(result, contains('10'));
+  group('formatKwanza — whole kwanzas', () {
+    test('spec examples', () {
+      expect(formatKwanza(0), '0 Kz');
+      expect(formatKwanza(500), '500 Kz');
+      expect(formatKwanza(50000), '50 000 Kz');
+      expect(formatKwanza(1250000), '1 250 000 Kz');
     });
+  });
 
-    test('zero USD', () {
-      final result = formatMinor(0, 'USD');
-      expect(result, contains('0'));
-      expect(result, contains('USD'));
+  group('parseAmountInput', () {
+    test('strips the space grouping we render', () {
+      expect(parseAmountInput('50 000'), 50000);
+      expect(parseAmountInput('1 250 000'), 1250000);
+      expect(parseAmountInput('50000'), 50000);
     });
+    test('empty / non-numeric → 0', () {
+      expect(parseAmountInput(''), 0);
+      expect(parseAmountInput('Kz'), 0);
+    });
+  });
 
-    test('large USD — thousands separator', () {
-      // 1_000_000 minor = 10,000.00 USD
-      final result = formatMinor(1000000, 'USD');
-      expect(result, contains('USD'));
-      expect(result, contains('10'));
+  group('formatAmountInput — live input display', () {
+    test('groups the integer with spaces, no suffix', () {
+      expect(formatAmountInput('50000'), '50 000');
+      expect(formatAmountInput('1250000'), '1 250 000');
+      expect(formatAmountInput('28525'), '28 525');
+      expect(formatAmountInput(''), '');
+    });
+  });
+
+  group('splitEvenly — remainder distributed, sum always == total', () {
+    test('50000 / 3 → [16667, 16667, 16666]', () {
+      expect(splitEvenly(50000, 3), [16667, 16667, 16666]);
+    });
+    test('10000 / 4 → [2500, 2500, 2500, 2500]', () {
+      expect(splitEvenly(10000, 4), [2500, 2500, 2500, 2500]);
+    });
+    test('10001 / 4 → [2501, 2500, 2500, 2500]', () {
+      expect(splitEvenly(10001, 4), [2501, 2500, 2500, 2500]);
+    });
+    test('sum is always exactly the total (many cases)', () {
+      for (final total in [1, 7, 100, 999, 50000, 10001, 1234567]) {
+        for (final people in [2, 3, 4, 5, 7, 20]) {
+          final parts = splitEvenly(total, people);
+          expect(parts.length, people);
+          expect(parts.fold<int>(0, (a, b) => a + b), total,
+              reason: 'sum($total/$people) must equal total');
+          expect(parts.every((p) => p >= 0), isTrue);
+          // parts differ by at most 1
+          expect(parts.first - parts.last, lessThanOrEqualTo(1));
+        }
+      }
+    });
+    test('people <= 0 → empty', () {
+      expect(splitEvenly(100, 0), isEmpty);
+    });
+  });
+
+  group('formatMinor — USD (unchanged 2-decimal convention)', () {
+    test('10.50 USD', () {
+      expect(formatMinor(1050, 'USD'), contains('10.50'));
+      expect(formatMinor(1050, 'USD'), contains('USD'));
     });
   });
 
   group('isZero', () {
-    test('returns true for 0 minor units', () {
+    test('true for 0, false otherwise', () {
       expect(isZero(0), isTrue);
-    });
-
-    test('returns false for non-zero', () {
       expect(isZero(1), isFalse);
-      expect(isZero(100), isFalse);
     });
   });
 }
