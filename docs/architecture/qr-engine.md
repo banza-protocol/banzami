@@ -1,6 +1,6 @@
 # Banzami QR Engine — the canonical QR of the ecosystem
 
-**Status:** Phase 1 shipped (server engine) · **Version:** 1.0 · **Owner:** Banzami design system
+**Status:** All phases shipped (server + Flutter + web + DOA) · **Version:** 1.0 · **Owner:** Banzami design system
 
 A Banzami QR must look **identical** everywhere it appears — merchant app, consumer
 app, PDF receipts, BANZADMIN, the pay/checkout web pages, DOA. Historically each
@@ -128,24 +128,27 @@ asserts the receipt embeds the canonical (grouped `#111111` + `#B5101F`) QR.
 
 ---
 
-## 7. Roadmap — the rest of the ecosystem
+## 7. Per-platform implementations (all shipped)
 
-Phase 1 (this doc) makes the **server** the single renderer and unifies the two
-Go surfaces (PDF + gateway). Remaining phases make every other surface consume
-that same output or match the same spec:
+Each language has ONE implementation of the spec; nothing renders a QR any other
+way.
 
-- **Phase 2 — Flutter.** One `BanzamiQr` widget in `sdk/flutter` (ECC H, red
-  finders, `#111111` data, logo, presets). Migrate the merchant screens
-  (`charge_screen`, `split_track_screen`) off raw `qr_flutter`, and align
-  `BanzamiQrDisplay`. Consumer already routes through `BanzamiQrScheme`.
-- **Phase 3 — Web (pay / checkout).** Replace `qrcode` / `react-qr-code` usages
-  with the gateway SVG (`/qr?format=svg`) or a thin `<BanzamiQr>` React wrapper
-  bound to the same tokens.
-- **Phase 4 — DOA.** Campaign QR (`lib/campaigns/qr.ts`, `BanzamiQrCard.tsx`)
-  consumes the gateway SVG instead of rendering its own PNG.
+- **Go (server)** — `services/common/documents/qrengine.go` (`QRCodeSVG` /
+  `QRCodePNG`). Used by PDF receipts + the gateway `/qr` endpoint.
+- **Flutter** — `sdk/flutter/lib/widgets/banzami_qr.dart`: the `BanzamiQr`
+  widget + the `banzamiQrPainter` factory (the single painter config for both
+  on-screen rendering and share-to-PNG rasterization). `BanzamiQrDisplay` and
+  every SDK/app screen route through it; **no app imports `qr_flutter`
+  directly**. Tokens: ECC H, red finder eyes, `gray900` (#111111-class) data,
+  centre logo.
+- **Web (TypeScript)** — `banzami-qr.ts` (`banzamiQrSvg` / `banzamiQrSvgDataUri`,
+  `qrcode` matrix → the identical SVG). Present verbatim in `apps/checkout`,
+  `apps/pay`, and DOA (`lib/payments/banzami-qr.ts`) because those builds are
+  isolated (no shared package); keep the copies byte-identical. `apps/pay`
+  dropped `react-qr-code`; `apps/checkout` dropped plain `QRCode.toDataURL`;
+  DOA's `BanzamiQrCard` + campaign share QR use it.
 
-Until a surface is migrated it still produces a scannable QR — only the styling
-lags. Each phase is independently shippable.
+Only the QR **payload** stays platform-specific (it's data, not rendering).
 
 ---
 
