@@ -21,6 +21,8 @@
   .badge { display:inline-flex; align-items:center; gap:7px; padding:7px 14px; border-radius:30px; background:#FFF1F0; color:#9A1B22; font-weight:800; font-size:12.5px; margin-bottom:16px; }
   .amount { font-size:52px; font-weight:900; letter-spacing:-.03em; color:#B5101F; line-height:1; margin-top:4px; }
   .verify { flex:none; width:122px; border-radius:18px; border:1.5px solid #f2e7e7; background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; text-align:center; padding:11px 10px; }
+  /* The canonical QR Engine SVG carries an intrinsic px size; scale it to the box. */
+  .verify svg { width:100%; height:100%; display:block; }
   .parties { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin:38px 0 0; }
   .party { border:1.5px solid #f2e7e7; border-radius:16px; padding:20px 22px; }
   .details { margin:24px 0 0; border:1.5px solid #f2e7e7; border-radius:16px; overflow:hidden; }

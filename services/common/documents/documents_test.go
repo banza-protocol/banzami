@@ -103,15 +103,19 @@ func TestReceiptQRCode(t *testing.T) {
 		}
 	}
 
-	// The QR is a non-trivial matrix (many black cells) — not an empty placeholder.
-	cells := strings.Count(html, `fill="#000"`)
-	if cells < 50 {
-		t.Fatalf("QR looks empty (only %d cells)", cells)
+	// The QR is a non-trivial matrix (many modules) — not an empty placeholder.
+	// The canonical engine groups modules under <g fill=…>, so count the module
+	// rects rather than per-cell fills.
+	if cells := strings.Count(html, `width="1" height="1"`); cells < 50 {
+		t.Fatalf("QR looks empty (only %d module cells)", cells)
 	}
-	// Banzami-styled QR: the three finder "eyes" are painted in the brand red,
-	// matching the in-app QR. Each eye is a 7×7 finder, so there are many red cells.
-	if eyes := strings.Count(html, `fill="#B5101F"`); eyes < 30 {
-		t.Errorf("QR finder eyes not styled in Banzami red (only %d red cells)", eyes)
+	// Canonical Banzami QR: data in #111111, the three finder "eyes" in brand red,
+	// and a centre logo — the exact style served by the gateway and shown in-app.
+	if !strings.Contains(html, `<g fill="`+QRColorData+`">`) {
+		t.Error("QR data modules not in canonical #111111 group")
+	}
+	if !strings.Contains(html, `<g fill="`+QRColorFinder+`">`) {
+		t.Error("QR finder eyes not styled in Banzami red")
 	}
 }
 

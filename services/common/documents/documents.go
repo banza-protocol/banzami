@@ -26,8 +26,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	qrcode "github.com/skip2/go-qrcode"
 )
 
 //go:embed receipt.html
@@ -101,62 +99,17 @@ func verificationURL(ref string) string {
 // modules for maximum print/scan contrast, with the three finder "eyes" painted
 // in the Banzami red (#B5101F). No centre logo — a small printed QR must scan
 // reliably, so we never occlude the matrix.
+// qrSVG renders the receipt's verification QR through the canonical Banzami QR
+// Engine (QRCodeSVG) so the PDF QR is byte-for-byte the same style the gateway
+// serves and the apps display: ECC H, red finders, #111111 data, centre logo,
+// quiet zone 4. The receipt CSS scales the SVG to its 82px box (see receipt.html
+// `.verify svg`), so the intrinsic size is immaterial here.
 func qrSVG(url string) template.HTML {
-	q, err := qrcode.New(url, qrcode.Medium)
+	svg, err := QRCodeSVG(url, QROptions{Size: QRSizeLG, ShowLogo: true})
 	if err != nil {
 		return ""
 	}
-	bm := q.Bitmap()
-	n := len(bm)
-	if n == 0 {
-		return ""
-	}
-
-	// Locate the quiet-zone border so the three 7×7 finder patterns can be found
-	// at the symbol's corners and tinted red, exactly like the in-app QR.
-	border := 0
-	for border < n {
-		rowHasDark := false
-		for x := 0; x < n; x++ {
-			if bm[border][x] {
-				rowHasDark = true
-				break
-			}
-		}
-		if rowHasDark {
-			break
-		}
-		border++
-	}
-	sym := n - 2*border // symbol size in modules; finders are 7×7 at its corners
-	isEye := func(x, y int) bool {
-		sx, sy := x-border, y-border
-		if sx < 0 || sy < 0 || sx >= sym || sy >= sym {
-			return false
-		}
-		topLeft := sx < 7 && sy < 7
-		topRight := sx >= sym-7 && sy < 7
-		bottomLeft := sx < 7 && sy >= sym-7
-		return topLeft || topRight || bottomLeft
-	}
-
-	var b strings.Builder
-	fmt.Fprintf(&b, `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 %d %d" shape-rendering="crispEdges" width="100%%" height="100%%">`, n, n)
-	b.WriteString(`<rect width="100%" height="100%" fill="#fff"/>`)
-	for y := 0; y < n; y++ {
-		for x := 0; x < n; x++ {
-			if !bm[y][x] {
-				continue
-			}
-			fill := "#000"
-			if isEye(x, y) {
-				fill = "#B5101F"
-			}
-			fmt.Fprintf(&b, `<rect x="%d" y="%d" width="1" height="1" fill="%s"/>`, x, y, fill)
-		}
-	}
-	b.WriteString(`</svg>`)
-	return template.HTML(b.String())
+	return template.HTML(svg)
 }
 
 var ptMonths = [...]string{"jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"}
