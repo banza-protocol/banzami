@@ -167,15 +167,24 @@ func qrLogoGroup(sym, total int, logo QRLogo) string {
 	pad := box * 0.12
 	img := box - 2*pad
 
+	// Round the embedded mark's corners (≈ app icon rounding) so it matches the
+	// polished look of the in-app QR, via a clip-path.
+	imgX, imgY := x+pad, y+pad
+	imgRx := img * 0.22
+
 	var b strings.Builder
+	fmt.Fprintf(&b,
+		`<clipPath id="bzqr-logo"><rect x="%.3f" y="%.3f" width="%.3f" height="%.3f" rx="%.3f"/></clipPath>`,
+		imgX, imgY, img, img, imgRx)
 	// White padded box (with a faint border so it reads on busy symbols).
 	fmt.Fprintf(&b,
 		`<rect x="%.3f" y="%.3f" width="%.3f" height="%.3f" rx="%.3f" fill="%s" stroke="#F2E7E7" stroke-width="%.3f"/>`,
 		x, y, box, box, rx, QRColorBg, box*0.02)
-	// The official mark, embedded as an image (identical to the app asset).
+	// The official mark, embedded as an image (identical to the app asset), with
+	// rounded corners clipped in.
 	fmt.Fprintf(&b,
-		`<image x="%.3f" y="%.3f" width="%.3f" height="%.3f" href="%s" preserveAspectRatio="xMidYMid meet"/>`,
-		x+pad, y+pad, img, img, logo.dataURI())
+		`<image x="%.3f" y="%.3f" width="%.3f" height="%.3f" href="%s" preserveAspectRatio="xMidYMid slice" clip-path="url(#bzqr-logo)"/>`,
+		imgX, imgY, img, img, logo.dataURI())
 	return b.String()
 }
 

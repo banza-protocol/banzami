@@ -85,8 +85,13 @@ function logoGroup(sym: number, total: number): string {
   const rx = box * 0.2;
   const pad = box * 0.12;
   const img = box - 2 * pad;
+  const imgX = x + pad;
+  const imgY = y + pad;
+  // Round the mark's corners (≈ app icon rounding) to match the in-app QR.
+  const imgRx = img * 0.22;
   return (
+    `<clipPath id="bzqr-logo"><rect x="${imgX.toFixed(3)}" y="${imgY.toFixed(3)}" width="${img.toFixed(3)}" height="${img.toFixed(3)}" rx="${imgRx.toFixed(3)}"/></clipPath>` +
     `<rect x="${x.toFixed(3)}" y="${y.toFixed(3)}" width="${box.toFixed(3)}" height="${box.toFixed(3)}" rx="${rx.toFixed(3)}" fill="${QR_COLOR_BG}" stroke="#F2E7E7" stroke-width="${(box * 0.02).toFixed(3)}"/>` +
-    `<image x="${(x + pad).toFixed(3)}" y="${(y + pad).toFixed(3)}" width="${img.toFixed(3)}" height="${img.toFixed(3)}" href="${BANZAMI_QR_LOGO_URI}" preserveAspectRatio="xMidYMid meet"/>`
+    `<image x="${imgX.toFixed(3)}" y="${imgY.toFixed(3)}" width="${img.toFixed(3)}" height="${img.toFixed(3)}" href="${BANZAMI_QR_LOGO_URI}" preserveAspectRatio="xMidYMid slice" clip-path="url(#bzqr-logo)"/>`
   );
 }
