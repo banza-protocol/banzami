@@ -144,7 +144,7 @@ export default function DocsPage() {
                 <p style={{ margin: '3px 0 0', fontSize: 13, color: '#a08a8c', fontWeight: 600 }}>A nossa equipa de suporte está disponível.</p>
               </div>
               <a
-                href="/developers/suporte"
+                href="/suporte"
                 className="bz-cta"
                 style={{ padding: '11px 18px', border: 'none', borderRadius: 12, background: ctaGradient, color: '#fff', fontWeight: 800, fontSize: 13.5, cursor: 'pointer', textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)' }}
               >

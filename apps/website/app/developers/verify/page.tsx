@@ -74,7 +74,7 @@ function VerifyInner() {
       // On success the API sets the host-only session cookie; the portal restores
       // the session (and a fresh CSRF token) via /auth/me on load.
       await developerApi.verify(email, digits.join(''));
-      router.push('/developers/dashboard');
+      router.push('/');
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
       setError(
@@ -113,7 +113,7 @@ function VerifyInner() {
       }}
     >
       <Link
-        href="/developers/login"
+        href="/login"
         className="bz-icobtn"
         aria-label="Voltar"
         style={{
@@ -252,7 +252,7 @@ function VerifyInner() {
         )}
       </div>
       <p style={{ margin: '14px 0 0', textAlign: 'center' }}>
-        <Link href="/developers/login" style={{ fontSize: 14, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
+        <Link href="/login" style={{ fontSize: 14, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
           Usar outro email
         </Link>
       </p>

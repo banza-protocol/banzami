@@ -24,8 +24,9 @@ export const mailto = (subject?: string) =>
 // authenticated API reached only via fetch() from the loaded Console. The
 // absolute host is deliberate: the Console must load on developers.banzami.com
 // (the only origin the developer-api allows via CORS), so a relative
-// "/developers/login" from banzami.com would land it on the wrong origin.
-export const DEVELOPERS_LOGIN_URL = 'https://developers.banzami.com/developers/login';
+// "/login" from banzami.com would land it on the wrong origin. The console
+// lives at the host root (no /developers segment); see lib/console-routing.ts.
+export const DEVELOPERS_LOGIN_URL = 'https://developers.banzami.com/login';
 
 // ---------------------------------------------------------------------------
 // Navigation taxonomy (README §"Sistema de navegação").

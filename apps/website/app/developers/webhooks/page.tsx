@@ -109,7 +109,7 @@ export default function WebhooksPage() {
             <Card style={{ overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 22px', borderBottom: '1px solid #F5E9E7' }}>
                 <h3 style={{ margin: 0, fontSize: 15, fontWeight: 900 }}>Entregas recentes</h3>
-                <a href="/developers/logs" style={{ fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
+                <a href="/logs" style={{ fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
                   Ver todos os eventos →
                 </a>
               </div>

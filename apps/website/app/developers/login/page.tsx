@@ -25,7 +25,7 @@ export default function DevelopersLoginPage() {
     try {
       await developerApi.requestOtp(email);
       // Uniform response — always advance to the code screen.
-      router.push(`/developers/verify?email=${encodeURIComponent(email)}`);
+      router.push(`/verify?email=${encodeURIComponent(email)}`);
     } catch (e) {
       const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
       setError(
@@ -156,7 +156,7 @@ export default function DevelopersLoginPage() {
         </p>
         <p style={{ margin: '16px 0 0', textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#7a6a6e' }}>
           Já tem uma conta?{' '}
-          <Link href="/developers/login" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>
+          <Link href="/login" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>
             Entrar
           </Link>
         </p>

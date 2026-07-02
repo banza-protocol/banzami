@@ -52,7 +52,7 @@ export function MembersManager() {
       const inv = await developerApi.invite(wsID, inviteEmail, inviteRole, csrf);
       setInviteEmail('');
       // Show the invite link once so the manager can share it.
-      void copyText(`${window.location.origin}/developers/accept-invite?token=${inv.token}`);
+      void copyText(`${window.location.origin}/invites/accept?token=${inv.token}`);
       flash('Convite criado — link copiado');
       await loadMembers();
     } catch (e) {

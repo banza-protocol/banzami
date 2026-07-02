@@ -115,7 +115,7 @@ export default function OnboardingProjectPage() {
             </div>
           </div>
           <button
-            onClick={() => router.push('/developers/dashboard')}
+            onClick={() => router.push('/')}
             className="bz-cta"
             style={{
               width: '100%',

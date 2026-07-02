@@ -20,7 +20,7 @@ export function StubContent({ label }: { label: string }) {
         Esta secção está a ser preparada. Enquanto isso, explore a Visão geral do seu projeto Sandbox.
       </p>
       <Link
-        href="/developers/dashboard"
+        href="/"
         className="bz-cta"
         style={{ padding: '11px 20px', border: 'none', borderRadius: 12, background: ctaGradient, color: '#fff', fontWeight: 800, fontSize: 14, cursor: 'pointer', textDecoration: 'none', boxShadow: '0 12px 24px -12px rgba(181,16,31,.5)' }}
       >

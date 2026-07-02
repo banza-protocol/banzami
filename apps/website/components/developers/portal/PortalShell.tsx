@@ -47,15 +47,15 @@ type PortalKey =
   | 'status';
 
 const NAV: { key: PortalKey; label: string; href: string; icon: (p: { size?: number }) => ReactNode }[] = [
-  { key: 'dashboard', label: 'Visão geral', href: '/developers/dashboard', icon: IconGrid },
-  { key: 'saldos', label: 'Saldos', href: '/developers/saldos', icon: IconWallet },
-  { key: 'transacoes', label: 'Transações', href: '/developers/transacoes', icon: IconSwap },
-  { key: 'clientes', label: 'Clientes', href: '/developers/clientes', icon: IconUsers },
-  { key: 'apikeys', label: 'API Keys', href: '/developers/api-keys', icon: IconKey },
-  { key: 'webhooks', label: 'Webhooks', href: '/developers/webhooks', icon: IconWebhook },
-  { key: 'logs', label: 'Logs / Eventos', href: '/developers/logs', icon: IconList },
-  { key: 'docs', label: 'Documentação', href: '/developers/docs', icon: IconDoc },
-  { key: 'settings', label: 'Configurações', href: '/developers/settings', icon: IconGear },
+  { key: 'dashboard', label: 'Visão geral', href: '/', icon: IconGrid },
+  { key: 'saldos', label: 'Saldos', href: '/saldos', icon: IconWallet },
+  { key: 'transacoes', label: 'Transações', href: '/transacoes', icon: IconSwap },
+  { key: 'clientes', label: 'Clientes', href: '/clientes', icon: IconUsers },
+  { key: 'apikeys', label: 'API Keys', href: '/api-keys', icon: IconKey },
+  { key: 'webhooks', label: 'Webhooks', href: '/webhooks', icon: IconWebhook },
+  { key: 'logs', label: 'Logs / Eventos', href: '/logs', icon: IconList },
+  { key: 'docs', label: 'Documentação', href: '/docs', icon: IconDoc },
+  { key: 'settings', label: 'Configurações', href: '/settings', icon: IconGear },
 ];
 
 function NavItem({
@@ -156,8 +156,8 @@ function Sidebar({ active }: { active: PortalKey }) {
           gap: 2,
         }}
       >
-        <NavItem href="/developers/suporte" label="Suporte" active={active === 'suporte'} icon={IconHelp} />
-        <NavItem href="/developers/status" active={active === 'status'}>
+        <NavItem href="/suporte" label="Suporte" active={active === 'suporte'} icon={IconHelp} />
+        <NavItem href="/status" active={active === 'status'}>
           <span style={{ width: 18, display: 'inline-flex', justifyContent: 'center' }}>
             <span
               style={{
@@ -191,7 +191,7 @@ function TopBar() {
   const router = useRouter();
   const onLogout = async () => {
     await logout();
-    router.push('/developers/login');
+    router.push('/login');
   };
   return (
     <header
@@ -252,7 +252,7 @@ function TopBar() {
       </div>
       <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 10 }}>
         <Link
-          href="/developers/go-live"
+          href="/go-live"
           className="bz-cta"
           style={{
             display: 'inline-flex',
@@ -303,7 +303,7 @@ function TopBar() {
           />
         </button>
         <Link
-          href="/developers/suporte"
+          href="/suporte"
           className="bz-icobtn"
           aria-label="Suporte"
           style={{
@@ -397,7 +397,7 @@ function SandboxBanner() {
         </p>
       </div>
       <Link
-        href="/developers/go-live"
+        href="/go-live"
         className="bz-cta"
         style={{
           flex: 'none',
@@ -452,7 +452,7 @@ function PortalGuard({ active, showBanner, children }: PortalPageProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (status === 'anon') router.replace('/developers/login');
+    if (status === 'anon') router.replace('/login');
   }, [status, router]);
 
   if (status !== 'authed') {

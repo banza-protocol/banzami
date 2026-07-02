@@ -64,7 +64,7 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
         <Link
-          href="/developers/docs"
+          href="/docs"
           style={{ fontSize: 14, fontWeight: 800, color: '#7a6a6e', textDecoration: 'none' }}
         >
           Documentação →

@@ -26,7 +26,7 @@ function AcceptInner() {
       try {
         await developerApi.acceptInvite(token, csrf);
         setState('ok');
-        setTimeout(() => router.push('/developers/settings'), 1200);
+        setTimeout(() => router.push('/settings'), 1200);
       } catch (e) {
         const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
         setMessage(

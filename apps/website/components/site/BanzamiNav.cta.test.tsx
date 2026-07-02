@@ -25,7 +25,7 @@ vi.mock('next/link', () => ({
 
 afterEach(cleanup);
 
-const CONSOLE_LOGIN = 'https://developers.banzami.com/developers/login';
+const CONSOLE_LOGIN = 'https://developers.banzami.com/login';
 
 describe('Homepage "Começar" CTA → Developer Console login', () => {
   it('exposes the exact Console frontend login route as the single source of truth', () => {

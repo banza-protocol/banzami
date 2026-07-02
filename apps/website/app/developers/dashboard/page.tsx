@@ -125,7 +125,7 @@ export default function DashboardPage() {
             <Card style={{ overflow: 'hidden' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '18px 22px', borderBottom: '1px solid #F5E9E7' }}>
                 <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>Atividade recente</h3>
-                <Link href="/developers/logs" style={{ fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
+                <Link href="/logs" style={{ fontSize: 12.5, fontWeight: 800, color: '#B5101F', textDecoration: 'none' }}>
                   Ver logs →
                 </Link>
               </div>
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                 Está num ambiente de testes. Conclua a verificação KYB para processar pagamentos reais.
               </p>
               <Link
-                href="/developers/go-live"
+                href="/go-live"
                 className="bz-cta"
                 style={{
                   display: 'block',
