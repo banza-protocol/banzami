@@ -257,11 +257,12 @@ export function BanzamiNav() {
           ))}
         </div>
 
-        {/* Desktop CTA */}
+        {/* Desktop CTA — entry point to the Developers portal (dossier §Ponto de
+            entrada): pill unchanged apart from a soft ring + white arrow. */}
         <div className="bz-ctas-desktop" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <a
+          <NavA
             className="bz-start"
-            href={mailto()}
+            href="/developers/login"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -273,12 +274,15 @@ export function BanzamiNav() {
               fontWeight: 800,
               fontSize: 14,
               textDecoration: 'none',
-              boxShadow: '0 8px 18px -6px rgba(181,16,31,.5)',
+              boxShadow: '0 8px 18px -6px rgba(181,16,31,.5), 0 0 0 4px rgba(181,16,31,.12)',
               transition: 'transform .2s',
             }}
           >
             Começar
-          </a>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </NavA>
         </div>
 
         {/* Burger */}
