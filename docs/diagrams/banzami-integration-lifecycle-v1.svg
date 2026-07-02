@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 300" role="img" aria-label="Integration lifecycle" font-family="system-ui,-apple-system,sans-serif">
+  <title>Integration lifecycle — from creating a business to receiving payments and settling</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+
+  <rect width="900" height="300" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-020 · INTEGRATION LIFECYCLE</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">Create business → KYB → wallet → pricing → receive → settle</text>
+
+  <g font-size="10.5" font-weight="700" fill="#FFFFFF" text-anchor="middle">
+    <rect x="26" y="120" width="118" height="64" rx="12" fill="#374151"/>
+    <text x="85" y="148">Criar</text><text x="85" y="164">Business</text>
+    <rect x="164" y="120" width="118" height="64" rx="12" fill="url(#hg)"/>
+    <text x="223" y="156">KYB</text>
+    <rect x="302" y="120" width="118" height="64" rx="12" fill="url(#hg)"/>
+    <text x="361" y="148">Wallet</text><text x="361" y="164">+ accounts</text>
+    <rect x="440" y="120" width="118" height="64" rx="12" fill="url(#hg)"/>
+    <text x="499" y="148">Pricing</text><text x="499" y="164">(category)</text>
+    <rect x="578" y="120" width="118" height="64" rx="12" fill="#374151"/>
+    <text x="637" y="148">Receber</text><text x="637" y="164">pagamentos</text>
+    <rect x="716" y="120" width="158" height="64" rx="12" fill="#065F46"/>
+    <text x="795" y="148">Settlement</text><text x="795" y="164">→ beneficiário</text>
+  </g>
+
+  <g stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)">
+    <line x1="144" y1="152" x2="162" y2="152"/>
+    <line x1="282" y1="152" x2="300" y2="152"/>
+    <line x1="420" y1="152" x2="438" y2="152"/>
+    <line x1="558" y1="152" x2="576" y2="152"/>
+    <line x1="696" y1="152" x2="714" y2="152"/>
+  </g>
+
+  <text x="223" y="205" text-anchor="middle" font-size="8.5" fill="#6B7280">operator approves</text>
+  <text x="499" y="205" text-anchor="middle" font-size="8.5" fill="#6B7280">category → fee</text>
+
+  <text x="450" y="250" text-anchor="middle" font-size="10" fill="#374151">Every step is gated by Business Resolution: the app polls GET /v1/business/me and renders the blockers until the business is ready.</text>
+  <text x="450" y="270" text-anchor="middle" font-size="9.5" fill="#6B7280">The app owns none of these steps' money logic — it triggers them via the SDK and reflects the operator's state.</text>
+</svg>

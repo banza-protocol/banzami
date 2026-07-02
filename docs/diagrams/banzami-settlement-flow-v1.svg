@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 340" role="img" aria-label="Settlement flow" font-family="system-ui,-apple-system,sans-serif">
+  <title>Settlement — the app requests, the operator computes fees, posts the ledger and pays the beneficiary</title>
+  <defs>
+    <linearGradient id="hg" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#B5101F"/><stop offset="100%" stop-color="#E03A43"/></linearGradient>
+    <marker id="ar" markerWidth="9" markerHeight="9" refX="4.5" refY="3" orient="auto"><path d="M0,0 L0,6 L7,3 z" fill="#9CA3AF"/></marker>
+  </defs>
+
+  <rect width="900" height="340" fill="#FFF7F6" rx="16"/>
+  <rect x="0" y="0" width="900" height="64" fill="url(#hg)" rx="16"/>
+  <rect x="0" y="48" width="900" height="16" fill="#B5101F"/>
+  <text x="32" y="28" font-family="ui-monospace,'Courier New',monospace" font-size="9" fill="#FBD2D0" letter-spacing="2">SVG-BZ-019 · SETTLEMENT RESOLUTION ENGINE</text>
+  <text x="32" y="50" font-size="17" font-weight="800" fill="#FFFFFF">The app asks · the operator settles (ADR-029)</text>
+  <text x="868" y="50" text-anchor="end" font-size="10.5" fill="#FBD2D0">request → payout</text>
+
+  <!-- steps -->
+  <g font-size="11" font-weight="700" fill="#FFFFFF">
+    <rect x="30" y="150" width="120" height="70" rx="12" fill="#374151"/>
+    <text x="90" y="182" text-anchor="middle">Application</text>
+    <text x="90" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#D1D5DB">pede fecho + app fee</text>
+
+    <rect x="192" y="150" width="120" height="70" rx="12" fill="url(#hg)"/>
+    <text x="252" y="182" text-anchor="middle">Operator</text>
+    <text x="252" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#FBD2D0">valida · calcula fees</text>
+
+    <rect x="354" y="150" width="120" height="70" rx="12" fill="#111827"/>
+    <text x="414" y="182" text-anchor="middle">Ledger</text>
+    <text x="414" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#D1D5DB">postings imutáveis</text>
+
+    <rect x="516" y="150" width="120" height="70" rx="12" fill="url(#hg)"/>
+    <text x="576" y="182" text-anchor="middle">Settlement</text>
+    <text x="576" y="200" text-anchor="middle" font-size="8.5" font-weight="400" fill="#FBD2D0">orquestração</text>
+
+    <rect x="678" y="150" width="90" height="70" rx="12" fill="#374151"/>
+    <text x="723" y="186" text-anchor="middle">Bank</text>
+    <text x="723" y="202" text-anchor="middle" font-size="8.5" font-weight="400" fill="#D1D5DB">rails / EMIS</text>
+
+    <rect x="792" y="150" width="80" height="70" rx="12" fill="#065F46"/>
+    <text x="832" y="182" text-anchor="middle" font-size="10">Benefi-</text>
+    <text x="832" y="197" text-anchor="middle" font-size="10">ciário</text>
+  </g>
+
+  <g stroke="#9CA3AF" stroke-width="1.5" marker-end="url(#ar)">
+    <line x1="150" y1="185" x2="188" y2="185"/>
+    <line x1="312" y1="185" x2="350" y2="185"/>
+    <line x1="474" y1="185" x2="512" y2="185"/>
+    <line x1="636" y1="185" x2="674" y2="185"/>
+    <line x1="768" y1="185" x2="788" y2="185"/>
+  </g>
+
+  <text x="450" y="260" text-anchor="middle" font-size="10.5" font-weight="700" fill="#9A1B22">Campaign / sub-account funds are held (segregated) until close, then settle to the beneficiary.</text>
+  <text x="450" y="284" text-anchor="middle" font-size="9.5" fill="#6B7280">The application supplies the reference + application fee (bps). The operator owns the money, the fee math, the ledger and the payout.</text>
+  <text x="450" y="304" text-anchor="middle" font-size="9.5" fill="#6B7280">Terminal states are driven by the operator via application_settlement.* webhooks (completed / failed / cancelled).</text>
+</svg>
