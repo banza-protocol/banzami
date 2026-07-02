@@ -340,6 +340,16 @@ class BanzamiClient {
     return MerchantBalance.fromJson(json);
   }
 
+  /// Lists the merchant wallet's sub-accounts (PRIMARY + segregated CAMPAIGN/…)
+  /// with their balances. Used to break down funds held in campaigns.
+  Future<List<MerchantWalletAccount>> listWalletAccounts(String walletId) async {
+    final json = await _get('/v1/business/wallet-accounts?wallet_id=$walletId');
+    final data = (json['data'] as List<dynamic>?) ?? const [];
+    return data
+        .map((e) => MerchantWalletAccount.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
   Future<PaymentLink> createPaymentLink({
     required String merchantId,
     required String walletId,

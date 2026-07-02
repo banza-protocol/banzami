@@ -138,3 +138,43 @@ class MerchantBalance {
         computedAt:     DateTime.parse(json['computed_at'] as String),
       );
 }
+
+/// A segregated sub-account within a merchant wallet (BANZA ADR-042): PRIMARY is
+/// the spendable balance; CAMPAIGN/PROJECT/EVENT/… hold funds for a purpose.
+class MerchantWalletAccount {
+  final String  id;
+  final String  purpose;
+  final String? label;
+  final String? referenceType;
+  final String? referenceId;
+  final String  status;
+  final int     availableBalanceMinor;
+  final String  currency;
+  final DateTime createdAt;
+
+  const MerchantWalletAccount({
+    required this.id,
+    required this.purpose,
+    this.label,
+    this.referenceType,
+    this.referenceId,
+    required this.status,
+    required this.availableBalanceMinor,
+    required this.currency,
+    required this.createdAt,
+  });
+
+  bool get isPrimary => purpose == 'PRIMARY';
+
+  factory MerchantWalletAccount.fromJson(Map<String, dynamic> json) => MerchantWalletAccount(
+        id:                    json['id'] as String,
+        purpose:               json['purpose'] as String,
+        label:                 json['label'] as String?,
+        referenceType:         json['reference_type'] as String?,
+        referenceId:           json['reference_id'] as String?,
+        status:                json['status'] as String,
+        availableBalanceMinor: (json['available_balance_minor'] as num?)?.toInt() ?? 0,
+        currency:              json['currency'] as String? ?? 'AOA',
+        createdAt:             DateTime.parse(json['created_at'] as String),
+      );
+}

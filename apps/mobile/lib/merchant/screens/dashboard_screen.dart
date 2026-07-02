@@ -7,6 +7,7 @@ import '../widgets/merchant_dashboard_stats.dart';
 import '../widgets/merchant_kpi_grid.dart';
 import '../widgets/merchant_status_badge.dart';
 import '../widgets/merchant_volume_chart.dart';
+import 'campaign_accounts_screen.dart';
 import 'charge_screen.dart';
 import 'kyb_screen.dart';
 import 'payment_requests_screen.dart';
@@ -347,33 +348,49 @@ class _DashboardHeader extends StatelessWidget {
           ],
           if (balance != null && balance!.heldMinor > 0) ...[
             const SizedBox(height: BanzamiSpacing.sm),
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: BanzamiSpacing.md,
-                vertical: 7,
+            GestureDetector(
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const CampaignAccountsScreen()),
               ),
-              decoration: BoxDecoration(
-                color: BanzamiColors.white.withValues(alpha: 0.16),
-                borderRadius: BanzamiRadius.fullAll,
-                border: Border.all(color: BanzamiColors.white.withValues(alpha: 0.28)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: BanzamiSpacing.md,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  // Solid warm-white pill → high contrast on the red header,
+                  // reads as tappable (distinct from the flat balance text).
+                  color: BanzamiColors.white,
+                  borderRadius: BanzamiRadius.fullAll,
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF7A0D16).withValues(alpha: 0.22),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  const Icon(Icons.savings_rounded, size: 18, color: BanzamiColors.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Retido em campanhas ',
+                    style: BanzamiTextStyles.bodySm.copyWith(
+                      color: BanzamiColors.primaryDark,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    formatMinor(balance!.heldMinor, balance!.currency),
+                    style: BanzamiTextStyles.bodyMd.copyWith(
+                      color: BanzamiColors.primary,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right_rounded, size: 18, color: BanzamiColors.primary),
+                ]),
               ),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.savings_rounded, size: 15, color: BanzamiColors.white),
-                const SizedBox(width: 7),
-                Text(
-                  'Retido em campanhas ',
-                  style: BanzamiTextStyles.bodySm.copyWith(
-                    color: BanzamiColors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-                Text(
-                  formatMinor(balance!.heldMinor, balance!.currency),
-                  style: BanzamiTextStyles.bodySm.copyWith(
-                    color: BanzamiColors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ]),
             ),
           ],
         ],
