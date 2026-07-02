@@ -36,7 +36,25 @@ type Config struct {
 
 	SessionTTLHours int
 	OTLPEndpoint    string // optional; tracing no-op when empty
+
+	// Email (OTP delivery) — automated identity is used for OTP (noreply@).
+	EmailProvider       string
+	ResendAPIKey        string
+	SMTPHost            string
+	SMTPPort            int
+	SMTPUser            string
+	SMTPPassword        string
+	EmailFromName       string
+	EmailFromAddress    string
+	EmailReplyTo        string
+	EmailNoreplyName    string
+	EmailNoreplyAddress string
+	EmailDryRun         bool
 }
+
+// SecureCookies reports whether session cookies must be Secure + __Host- (any
+// non-development environment, which is served over https).
+func (c *Config) SecureCookies() bool { return c.Environment != "development" }
 
 func Load() (*Config, error) {
 	cfg := &Config{
@@ -89,6 +107,45 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("OTLP_ENDPOINT"); v != "" {
 		cfg.OTLPEndpoint = v
+	}
+
+	// Email (OTP delivery)
+	cfg.EmailFromName = "Banzami"
+	cfg.EmailNoreplyName = "Banzami"
+	if v := os.Getenv("EMAIL_PROVIDER"); v != "" {
+		cfg.EmailProvider = v
+	}
+	if v := os.Getenv("RESEND_API_KEY"); v != "" {
+		cfg.ResendAPIKey = v
+	}
+	if v := os.Getenv("SMTP_HOST"); v != "" {
+		cfg.SMTPHost = v
+	}
+	if v := os.Getenv("SMTP_PORT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil {
+			cfg.SMTPPort = n
+		}
+	}
+	if v := os.Getenv("SMTP_USER"); v != "" {
+		cfg.SMTPUser = v
+	}
+	if v := os.Getenv("SMTP_PASSWORD"); v != "" {
+		cfg.SMTPPassword = v
+	}
+	if v := os.Getenv("EMAIL_FROM_NAME"); v != "" {
+		cfg.EmailFromName = v
+	}
+	if v := os.Getenv("EMAIL_FROM_ADDRESS"); v != "" {
+		cfg.EmailFromAddress = v
+	}
+	if v := os.Getenv("EMAIL_REPLY_TO"); v != "" {
+		cfg.EmailReplyTo = v
+	}
+	if v := os.Getenv("EMAIL_NOREPLY_ADDRESS"); v != "" {
+		cfg.EmailNoreplyAddress = v
+	}
+	if os.Getenv("EMAIL_DRY_RUN") == "true" {
+		cfg.EmailDryRun = true
 	}
 
 	return cfg, nil

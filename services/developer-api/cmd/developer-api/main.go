@@ -16,8 +16,11 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/redis/go-redis/v9"
 
+	ce "github.com/banzami/banzami/services/common/email"
 	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/config"
 	"github.com/banzami/banzami/services/developer-api/internal/server"
 )
@@ -43,10 +46,52 @@ func main() {
 		}
 		defer pool.Close()
 	} else {
-		slog.Warn("DATABASE_URL not set — management endpoints disabled (health only)")
+		slog.Warn("DATABASE_URL not set — using in-memory Account Identity store (local dev only)")
 	}
 
-	handler := server.New(cfg, server.Deps{Pool: pool})
+	// Redis backs OTP rate limiting / resend cooldown; falls back to in-memory
+	// for local dev (sandbox uses its own isolated Redis).
+	var rdb *redis.Client
+	if cfg.RedisURL != "" {
+		opt, perr := redis.ParseURL(cfg.RedisURL)
+		if perr != nil {
+			slog.Error("invalid REDIS_URL", "error", perr)
+			os.Exit(1)
+		}
+		rdb = redis.NewClient(opt)
+		defer rdb.Close()
+	}
+
+	// Account Identity wiring.
+	var store accountidentity.Store
+	if pool != nil {
+		store = accountidentity.NewPGStore(pool)
+	} else {
+		store = accountidentity.NewMemStore()
+	}
+	var limiter accountidentity.RateLimiter
+	if rdb != nil {
+		limiter = accountidentity.NewRedisLimiter(rdb)
+	} else {
+		limiter = accountidentity.NewMemLimiter()
+	}
+	if cfg.OTPPepper == "" || cfg.SessionSecret == "" {
+		slog.Warn("OTP_PEPPER / SESSION_SECRET not set — auth fails closed until configured")
+	}
+	mailer := accountidentity.NewMailer(ce.Config{
+		Provider: cfg.EmailProvider, DryRun: cfg.EmailDryRun, ResendAPIKey: cfg.ResendAPIKey,
+		SMTPHost: cfg.SMTPHost, SMTPPort: cfg.SMTPPort, SMTPUser: cfg.SMTPUser, SMTPPassword: cfg.SMTPPassword,
+		FromName: cfg.EmailFromName, FromAddress: cfg.EmailFromAddress, ReplyTo: cfg.EmailReplyTo,
+		NoreplyName: cfg.EmailNoreplyName, NoreplyAddress: cfg.EmailNoreplyAddress,
+	})
+	svc := accountidentity.NewService(store, limiter, mailer, accountidentity.ServiceConfig{
+		OTPPepper:     cfg.OTPPepper,
+		SessionSecret: cfg.SessionSecret,
+		SessionTTL:    time.Duration(cfg.SessionTTLHours) * time.Hour,
+	})
+	auth := accountidentity.NewHandlers(svc, cfg.ConsoleOrigin, cfg.SecureCookies())
+
+	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth})
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
