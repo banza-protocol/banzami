@@ -358,37 +358,28 @@ class _DashboardHeader extends StatelessWidget {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  // Solid warm-white pill → high contrast on the red header,
-                  // reads as tappable (distinct from the flat balance text).
-                  color: BanzamiColors.white,
+                  // Same translucent style as the Business/Sandbox header chips.
+                  color: BanzamiColors.white.withValues(alpha: 0.15),
                   borderRadius: BanzamiRadius.fullAll,
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF7A0D16).withValues(alpha: 0.22),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: BanzamiColors.white.withValues(alpha: 0.25)),
                 ),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  const Icon(Icons.savings_rounded, size: 18, color: BanzamiColors.primary),
-                  const SizedBox(width: 8),
+                  const Icon(Icons.savings_rounded, size: 15, color: BanzamiColors.white),
+                  const SizedBox(width: 7),
                   Text(
                     'Retido em campanhas ',
-                    style: BanzamiTextStyles.bodySm.copyWith(
-                      color: BanzamiColors.primaryDark,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: BanzamiTextStyles.bodySm.copyWith(color: BanzamiColors.white),
                   ),
                   Text(
                     formatMinor(balance!.heldMinor, balance!.currency),
-                    style: BanzamiTextStyles.bodyMd.copyWith(
-                      color: BanzamiColors.primary,
-                      fontWeight: FontWeight.w800,
+                    style: BanzamiTextStyles.bodySm.copyWith(
+                      color: BanzamiColors.white,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(width: 4),
-                  const Icon(Icons.chevron_right_rounded, size: 18, color: BanzamiColors.primary),
+                  Icon(Icons.chevron_right_rounded, size: 16,
+                      color: BanzamiColors.white.withValues(alpha: 0.75)),
                 ]),
               ),
             ),
