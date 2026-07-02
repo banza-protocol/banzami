@@ -33,7 +33,7 @@ REPO_ROOT="$(cd "$(dirname "$0")" && pwd)"
 GIT_SHA="$(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
 LABEL_ARGS="--label org.opencontainers.image.revision=$GIT_SHA"
 
-ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
+ALL_SERVICES=(core-api admin-api api-gateway public-api sandbox-operator developer-api admin-frontend dashboard-frontend pay-frontend checkout-frontend website-frontend staging)
 
 # ─── Colour helpers ───────────────────────────────────────────────────────────
 
@@ -160,6 +160,32 @@ deploy_sandbox_operator() {
   info "Recreating container..."
   ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d sandbox-operator 2>&1"
   _wait_healthy "banzami-sandbox-operator-1"
+}
+
+deploy_developer_api() {
+  step "developer-api" "Go Developer Platform API (sandbox: developer-api.banzami.com)"
+
+  info "Syncing source to server..."
+  # Build context contains common/ + developer-api/ as siblings for the shared
+  # modules (replace ../common/obs and ../common/email).
+  ssh "$REMOTE" "mkdir -p /srv/banzami/developer-api-build/common /srv/banzami/developer-api-build/developer-api"
+  rsync -az --delete --exclude='.git' --exclude='node_modules' \
+    "$REPO_ROOT/services/common/" \
+    "$REMOTE:/srv/banzami/developer-api-build/common/"
+  rsync -az --delete --exclude='.git' \
+    "$REPO_ROOT/services/developer-api/" \
+    "$REMOTE:/srv/banzami/developer-api-build/developer-api/"
+  ok "Sync complete"
+
+  info "Building Docker image on server..."
+  ssh "$REMOTE" "cd /srv/banzami/developer-api-build && docker build $NO_CACHE $LABEL_ARGS -f developer-api/Dockerfile -t banzami/developer-api:latest . 2>&1" \
+    | grep -E "^(#[0-9]+ DONE|#[0-9]+ ERROR|error|Step|Successfully)" || true
+  ok "Image built"
+
+  info "Recreating container (sandbox-only: banzami_staging + isolated Redis)..."
+  ssh "$REMOTE" "cd $REMOTE_COMPOSE_DIR && docker compose up -d developer-api 2>&1"
+  _wait_healthy "banzami-developer-api-1"
+  _reload_nginx
 }
 
 deploy_public_api() {
@@ -311,6 +337,7 @@ for svc in "${SERVICES[@]}"; do
     api-gateway)        deploy_api_gateway ;;
     public-api)         deploy_public_api ;;
     sandbox-operator)   deploy_sandbox_operator ;;
+    developer-api)      deploy_developer_api ;;
     admin-frontend)     deploy_admin_frontend ;;
     dashboard-frontend) deploy_dashboard_frontend ;;
     pay-frontend)       deploy_pay_frontend ;;
