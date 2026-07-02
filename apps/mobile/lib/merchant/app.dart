@@ -19,9 +19,9 @@ class BanzamiMerchantApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(
-          create: (_) => MerchantSessionService()..initialize(),
-        ),
+        // Session is NOT auto-initialized here — the splash (_MerchantBoot) owns
+        // bootstrap, exactly like the consumer app's SplashScreen.
+        ChangeNotifierProvider(create: (_) => MerchantSessionService()),
         ProxyProvider<MerchantSessionService, BanzamiClient>(
           update: (_, session, prev) {
             final s = session.session;
@@ -45,30 +45,68 @@ class BanzamiMerchantApp extends StatelessWidget {
           },
         ),
       ],
-      child: Consumer<MerchantSessionService>(
-        builder: (context, session, _) {
-          return MaterialApp(
-            title:                      'Banzami Business',
-            debugShowCheckedModeBanner: false,
-            theme:                      _buildTheme(),
-            home:                       _home(session),
-          );
-        },
+      child: MaterialApp(
+        title:                      'Banzami Business',
+        debugShowCheckedModeBanner: false,
+        theme:                      _buildTheme(),
+        home:                       const _MerchantBoot(),
       ),
     );
-  }
-
-  Widget _home(MerchantSessionService session) {
-    if (!session.initialized) return const SplashScreen();
-    if (!session.hasSession)  return const MerchantWelcomeScreen();
-    if (session.isLocked)     return const MerchantPinScreen();
-    return const MerchantMainScreen();
   }
 
   ThemeData _buildTheme() {
     final base = BanzamiTheme.light;
     return base.copyWith(
       textTheme: base.textTheme.apply(fontFamily: 'Inter'),
+    );
+  }
+}
+
+/// Boot step — mirrors the consumer app's SplashScreen logic exactly:
+/// show the animated welcome (SplashScreen) for at least the animation duration
+/// (1200 ms) WHILE the session initializes, then hand off to the reactive router
+/// (login / lock / main). Owning the splash here — via local widget state set
+/// from a post-frame callback — guarantees the animated welcome always renders
+/// fully on cold start, independent of how fast the session loads.
+class _MerchantBoot extends StatefulWidget {
+  const _MerchantBoot();
+
+  @override
+  State<_MerchantBoot> createState() => _MerchantBootState();
+}
+
+class _MerchantBootState extends State<_MerchantBoot> {
+  bool _ready = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // After the first frame (so the splash is on screen and animating).
+    WidgetsBinding.instance.addPostFrameCallback((_) => _boot());
+  }
+
+  Future<void> _boot() async {
+    final session = context.read<MerchantSessionService>();
+    // Wait for the longer of: minimum splash duration OR session load.
+    await Future.wait([
+      Future<void>.delayed(const Duration(milliseconds: 1200)),
+      session.initialize(),
+    ]);
+    if (mounted) setState(() => _ready = true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_ready) return const SplashScreen();
+
+    // Bootstrap done → reactive routing. The Consumer swaps screens on
+    // login / logout / lock / unlock (unchanged behaviour).
+    return Consumer<MerchantSessionService>(
+      builder: (context, session, _) {
+        if (!session.hasSession) return const MerchantWelcomeScreen();
+        if (session.isLocked)    return const MerchantPinScreen();
+        return const MerchantMainScreen();
+      },
     );
   }
 }
