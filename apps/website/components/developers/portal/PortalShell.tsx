@@ -1,8 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import type { CSSProperties, ReactNode } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { ToastProvider, useToast, copyText } from './Toast';
+import { DeveloperAuthProvider, useDeveloperAuth } from './DeveloperAuth';
 import {
   BrandTile,
   IconArrowRight,
@@ -221,7 +223,21 @@ function Sidebar({ active }: { active: PortalKey }) {
   );
 }
 
+function initialsOf(user: { name?: string; email?: string } | null): string {
+  if (user?.name) {
+    const parts = user.name.trim().split(/\s+/);
+    return (parts[0][0] + (parts[1]?.[0] ?? '')).toUpperCase();
+  }
+  return (user?.email ?? '?').slice(0, 2).toUpperCase();
+}
+
 function TopBar() {
+  const { user, logout } = useDeveloperAuth();
+  const router = useRouter();
+  const onLogout = async () => {
+    await logout();
+    router.push('/developers/login');
+  };
   return (
     <header
       style={{
@@ -351,7 +367,9 @@ function TopBar() {
           <IconHelp size={18} />
         </Link>
         <button
-          aria-label="Conta"
+          onClick={onLogout}
+          aria-label="Terminar sessão"
+          title={user?.email ? `${user.email} — Terminar sessão` : 'Terminar sessão'}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -377,7 +395,7 @@ function TopBar() {
               justifyContent: 'center',
             }}
           >
-            JM
+            {initialsOf(user)}
           </span>
           <span style={{ color: '#b8a4a6', display: 'inline-flex' }}>
             <IconChevronDown size={14} />
@@ -469,29 +487,60 @@ function Main({ showBanner, children }: { showBanner: boolean; children: ReactNo
   );
 }
 
-export function PortalPage({
-  active,
-  showBanner,
-  children,
-}: {
-  active: PortalKey;
-  showBanner?: boolean;
-  children: ReactNode;
-}) {
+type PortalPageProps = { active: PortalKey; showBanner?: boolean; children: ReactNode };
+
+// PortalGuard runs inside the auth provider: it shows a loading state while the
+// session is restored via /auth/me, redirects to sign-in when unauthenticated,
+// and renders the shell only when authenticated.
+function PortalGuard({ active, showBanner, children }: PortalPageProps) {
+  const { status } = useDeveloperAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (status === 'anon') router.replace('/developers/login');
+  }, [status, router]);
+
+  if (status !== 'authed') {
+    return (
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: '#FFF9F8',
+          color: '#8a7a7e',
+          fontWeight: 700,
+          fontSize: 14,
+        }}
+      >
+        {status === 'loading' ? 'A carregar…' : 'A redirecionar…'}
+      </div>
+    );
+  }
+
   // Banner shows everywhere except Go Live and Docs (dossier §Banner Sandbox).
   const banner = showBanner ?? (active !== 'golive' && active !== 'docs');
   return (
-    <ToastProvider>
-      <div
-        className="bz-shellgrid"
-        style={{ display: 'grid', gridTemplateColumns: '248px 1fr', minHeight: '100vh', background: '#FFF9F8' }}
-      >
-        <Sidebar active={active} />
-        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-          <TopBar />
-          <Main showBanner={banner}>{children}</Main>
-        </div>
+    <div
+      className="bz-shellgrid"
+      style={{ display: 'grid', gridTemplateColumns: '248px 1fr', minHeight: '100vh', background: '#FFF9F8' }}
+    >
+      <Sidebar active={active} />
+      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+        <TopBar />
+        <Main showBanner={banner}>{children}</Main>
       </div>
-    </ToastProvider>
+    </div>
+  );
+}
+
+export function PortalPage(props: PortalPageProps) {
+  return (
+    <DeveloperAuthProvider>
+      <ToastProvider>
+        <PortalGuard {...props} />
+      </ToastProvider>
+    </DeveloperAuthProvider>
   );
 }

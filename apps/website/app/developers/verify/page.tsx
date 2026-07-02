@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconChevronLeft, IconEnvelopeOpen } from '@/components/developers/portal/icons';
+import { developerApi, ApiError } from '@/lib/developer-api';
 
 // OTP verification — dossier ecrã 2. Six single-digit inputs with auto-focus,
 // backspace-to-previous, paste-distribute; the "Verificar código" button stays
@@ -62,8 +63,40 @@ function VerifyInner() {
     refs.current[Math.min(d.length, OTP_LEN - 1)]?.focus();
   };
 
-  const verify = () => {
-    if (filled) router.push('/developers/onboarding/profile');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+
+  const verify = async () => {
+    if (!filled || busy) return;
+    setError('');
+    setBusy(true);
+    try {
+      // On success the API sets the host-only session cookie; the portal restores
+      // the session (and a fresh CSRF token) via /auth/me on load.
+      await developerApi.verify(email, digits.join(''));
+      router.push('/developers/dashboard');
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
+      setError(
+        code === 'RATE_LIMITED'
+          ? 'Demasiadas tentativas. Tente novamente daqui a pouco.'
+          : code === 'UNAUTHENTICATED' || code === 'VALIDATION'
+            ? 'Código inválido ou expirado.'
+            : 'Não foi possível verificar. Tente novamente.',
+      );
+      setBusy(false);
+    }
+  };
+
+  const resendOtp = async () => {
+    if (resend > 0) return;
+    try {
+      await developerApi.requestOtp(email);
+      setResend(45);
+      setError('');
+    } catch {
+      setError('Não foi possível reenviar o código.');
+    }
   };
 
   return (
@@ -156,9 +189,15 @@ function VerifyInner() {
         ))}
       </div>
 
+      {error ? (
+        <p role="alert" style={{ margin: '14px 0 0', textAlign: 'center', fontSize: 13, fontWeight: 700, color: '#C4303C' }}>
+          {error}
+        </p>
+      ) : null}
+
       <button
         onClick={verify}
-        disabled={!filled}
+        disabled={!filled || busy}
         className="bz-cta"
         style={{
           width: '100%',
@@ -170,12 +209,12 @@ function VerifyInner() {
           color: '#fff',
           fontWeight: 800,
           fontSize: 15.5,
-          cursor: filled ? 'pointer' : 'not-allowed',
-          opacity: filled ? 1 : 0.5,
+          cursor: filled && !busy ? 'pointer' : 'not-allowed',
+          opacity: filled && !busy ? 1 : 0.5,
           boxShadow: '0 16px 30px -12px rgba(181,16,31,.55)',
         }}
       >
-        Verificar código
+        {busy ? 'A verificar…' : 'Verificar código'}
       </button>
 
       <div
@@ -197,7 +236,7 @@ function VerifyInner() {
           </span>
         ) : (
           <button
-            onClick={() => setResend(45)}
+            onClick={resendOtp}
             style={{
               color: '#B5101F',
               fontWeight: 800,

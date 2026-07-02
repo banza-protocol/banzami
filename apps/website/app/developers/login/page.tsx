@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { AuthShell } from '@/components/developers/portal/AuthShell';
 import { IconEnvelope } from '@/components/developers/portal/icons';
+import { developerApi, ApiError } from '@/lib/developer-api';
 
 // Login (Email only) — dossier ecrã 1. Auth V1 is Email + OTP: no password,
 // phone, Google or name at entry. "Continuar" sends the email to the OTP screen;
@@ -14,10 +15,28 @@ const ctaGradient = 'linear-gradient(160deg,#B5101F,#7C1016)';
 
 export default function DevelopersLoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState('exemplo@empresa.co.ao');
+  const [email, setEmail] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
 
-  const goVerify = () => {
-    router.push(`/developers/verify?email=${encodeURIComponent(email)}`);
+  const goVerify = async () => {
+    setError('');
+    setBusy(true);
+    try {
+      await developerApi.requestOtp(email);
+      // Uniform response — always advance to the code screen.
+      router.push(`/developers/verify?email=${encodeURIComponent(email)}`);
+    } catch (e) {
+      const code = e instanceof ApiError ? e.code : 'UNAVAILABLE';
+      setError(
+        code === 'RATE_LIMITED'
+          ? 'Demasiados pedidos. Tente novamente daqui a pouco.'
+          : code === 'VALIDATION'
+            ? 'Introduza um email válido.'
+            : 'Não foi possível enviar o código. Tente novamente.',
+      );
+      setBusy(false);
+    }
   };
 
   return (
@@ -83,6 +102,7 @@ export default function DevelopersLoginPage() {
         />
         <button
           onClick={goVerify}
+          disabled={busy}
           className="bz-cta"
           style={{
             width: '100%',
@@ -94,12 +114,18 @@ export default function DevelopersLoginPage() {
             color: '#fff',
             fontWeight: 800,
             fontSize: 15.5,
-            cursor: 'pointer',
+            cursor: busy ? 'not-allowed' : 'pointer',
+            opacity: busy ? 0.6 : 1,
             boxShadow: '0 16px 30px -12px rgba(181,16,31,.55)',
           }}
         >
-          Continuar
+          {busy ? 'A enviar…' : 'Continuar'}
         </button>
+        {error ? (
+          <p role="alert" style={{ margin: '12px 0 0', fontSize: 13, fontWeight: 700, color: '#C4303C' }}>
+            {error}
+          </p>
+        ) : null}
         <p
           style={{
             margin: '14px 0 0',
@@ -130,7 +156,7 @@ export default function DevelopersLoginPage() {
         </p>
         <p style={{ margin: '16px 0 0', textAlign: 'center', fontSize: 14, fontWeight: 700, color: '#7a6a6e' }}>
           Já tem uma conta?{' '}
-          <Link href="/developers/dashboard" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>
+          <Link href="/developers/login" style={{ color: '#B5101F', fontWeight: 800, textDecoration: 'none' }}>
             Entrar
           </Link>
         </p>
