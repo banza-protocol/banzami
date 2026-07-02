@@ -11,7 +11,13 @@ import 'pin_screen.dart';
 import 'main_screen.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({super.key});
+  /// Called immediately AFTER the splash has navigated to its target
+  /// (Main/Welcome/Pin). The app uses this to process a cold-start deep link
+  /// once — deterministically after this navigation — so it is never replaced
+  /// by the splash's own pushReplacement.
+  final VoidCallback? onBootComplete;
+
+  const SplashScreen({super.key, this.onBootComplete});
 
   @override
   State<SplashScreen> createState() => _SplashScreenState();
@@ -147,6 +153,10 @@ class _SplashScreenState extends State<SplashScreen>
         reverseTransitionDuration: Duration.zero,
       ),
     );
+
+    // Splash has navigated — now safe to process a cold-start deep link on top
+    // of the target route (no pushReplacement will replace it anymore).
+    widget.onBootComplete?.call();
   }
 
   @override

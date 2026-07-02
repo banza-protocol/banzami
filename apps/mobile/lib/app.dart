@@ -48,11 +48,15 @@ class _BanzamiAppState extends State<BanzamiApp> {
 
   // ── Cold-start deferred link ───────────────────────────────────────────────
   // On cold start the deep link fires before SplashScreen has bootstrapped the
-  // session. We park the code/slug here and process it as soon as the session
-  // loads. _pendingRequestCode is a payment-request code (banzami://pay?request);
-  // _pendingLinkSlug is a payment-link slug (pay.banzami.com/pay/{slug}).
+  // session. We park the code/slug here and process it ONLY AFTER the splash has
+  // navigated (_splashComplete) — pushing earlier races the splash's
+  // pushReplacement(MainScreen), which would replace the payment screen and land
+  // the user on home. _pendingRequestCode is a payment-request code
+  // (banzami://pay?request); _pendingLinkSlug is a payment-link slug
+  // (pay.banzami.com/pay/{slug}).
   String?   _pendingRequestCode;
   String?   _pendingLinkSlug;
+  bool      _splashComplete = false;
 
   // ── Locked deep link ───────────────────────────────────────────────────────
   // When a Universal Link arrives while the session is locked, we park the URI
@@ -395,6 +399,39 @@ class _BanzamiAppState extends State<BanzamiApp> {
     }
   }
 
+  // Called by SplashScreen right after it navigates to its target. The splash is
+  // done, so it is now safe to open a cold-start deep link on top of the target
+  // route without it being replaced.
+  void _onSplashBootComplete() {
+    _splashComplete = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
+  }
+
+  // Opens a deferred cold-start deep link once the splash has navigated and the
+  // session is present + unlocked. No-op (leaves it parked) while locked — the
+  // Consumer rebuild on unlock re-invokes this. Idempotent: clears on consume.
+  void _processPendingDeepLink() {
+    if (!_splashComplete) return;
+    final ctx = _navigatorKey.currentContext;
+    if (ctx == null) return;
+    final svc = ctx.read<SessionService>();
+    if (!svc.hasSession || svc.isLocked) return;
+
+    final slug = _pendingLinkSlug;
+    if (slug != null) {
+      _pendingLinkSlug = null;
+      debugPrint('[deep-link] coldStart processing slug=$slug (post-splash)');
+      _openPaymentLink(slug);
+      return;
+    }
+    final code = _pendingRequestCode;
+    if (code != null) {
+      _pendingRequestCode = null;
+      debugPrint('[deep-link] coldStart processing code=$code (post-splash)');
+      _openPaymentRequest(code);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
@@ -415,44 +452,15 @@ class _BanzamiAppState extends State<BanzamiApp> {
           final client = context.read<ConsumerPublicClient>();
           if (session.session != null) {
             client.setToken(session.session!.token);
-            // Cold-start deep link: session now ready — process any deferred code.
-            final pending = _pendingRequestCode;
-            if (pending != null) {
-              if (session.isLocked && _pendingDeepLinkUri == null) {
-                // Session loaded but locked — park URI and show PIN before
-                // processing the payment link.
-                _pendingDeepLinkUri = Uri.parse('banzami://pay?request=$pending');
-                _pendingRequestCode = null;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  debugPrint('[deep-link] coldStart+locked → triggering unlock code=$pending');
-                  _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
-                });
-              } else if (!session.isLocked) {
-                _pendingRequestCode = null;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  debugPrint('[deep-link] processingDeferred=true code=$pending');
-                  _openPaymentRequest(pending);
-                });
-              }
-            }
-            // Cold-start deep link (payment link): session now ready — process
-            // any deferred slug the same way as a deferred request code.
-            final pendingSlug = _pendingLinkSlug;
-            if (pendingSlug != null) {
-              if (session.isLocked && _pendingDeepLinkUri == null) {
-                _pendingDeepLinkUri = Uri.parse('banzami://pay/link/$pendingSlug');
-                _pendingLinkSlug = null;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  debugPrint('[deep-link] coldStart+locked → triggering unlock slug=$pendingSlug');
-                  _guardKey.currentState?.triggerUnlock(_onDeepLinkUnlocked);
-                });
-              } else if (!session.isLocked) {
-                _pendingLinkSlug = null;
-                WidgetsBinding.instance.addPostFrameCallback((_) {
-                  debugPrint('[deep-link] processingDeferred=true slug=$pendingSlug');
-                  _openPaymentLink(pendingSlug);
-                });
-              }
+            // Cold-start deep link: only process AFTER the splash has navigated
+            // (_splashComplete) and the session is unlocked — otherwise the
+            // splash's pushReplacement would replace the payment screen. This
+            // covers the locked→unlocked transition (unlock rebuilds this
+            // Consumer); the initial unlocked case is kicked by onBootComplete.
+            if (_splashComplete &&
+                !session.isLocked &&
+                (_pendingLinkSlug != null || _pendingRequestCode != null)) {
+              WidgetsBinding.instance.addPostFrameCallback((_) => _processPendingDeepLink());
             }
           }
           // Auto-logout on 401: clear session and return to WelcomeScreen.
@@ -468,7 +476,7 @@ class _BanzamiAppState extends State<BanzamiApp> {
             debugShowCheckedModeBanner: false,
             theme:                      _buildTheme(),
             navigatorKey:               _navigatorKey,
-            home:                       const SplashScreen(),
+            home:                       SplashScreen(onBootComplete: _onSplashBootComplete),
             builder: (_, child) => SecureAppLifecycleGuard(
               key:          _guardKey,
               navigatorKey: _navigatorKey,
