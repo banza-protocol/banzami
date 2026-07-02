@@ -1,0 +1,65 @@
+// Package server wires the developer-api HTTP router (chi) and its middleware.
+package server
+
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/banzami/banzami/services/common/obs"
+	"github.com/banzami/banzami/services/developer-api/internal/config"
+	"github.com/banzami/banzami/services/developer-api/internal/httpx"
+)
+
+// Deps are the runtime dependencies injected into the router. Both may be nil in
+// minimal/health-only boots.
+type Deps struct {
+	Pool *pgxpool.Pool
+}
+
+// New builds the developer-api HTTP handler.
+func New(cfg *config.Config, deps Deps) http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(obs.Correlation)
+	r.Use(chimw.RealIP)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.Timeout(30 * time.Second))
+	r.Use(cors(cfg.ConsoleOrigin))
+
+	r.Get("/health", health(cfg, deps.Pool))
+
+	return r
+}
+
+// health reports liveness and, when a DB pool is present, readiness (a quick
+// ping). It never exposes connection strings or internal detail.
+func health(cfg *config.Config, pool *pgxpool.Pool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		status := "ok"
+		db := "skipped"
+		if pool != nil {
+			ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+			defer cancel()
+			if err := pool.Ping(ctx); err != nil {
+				status, db = "degraded", "down"
+			} else {
+				db = "up"
+			}
+		}
+		code := http.StatusOK
+		if status != "ok" {
+			code = http.StatusServiceUnavailable
+		}
+		httpx.JSON(w, code, map[string]string{
+			"status":  status,
+			"service": "developer-api",
+			"env":     cfg.Environment,
+			"db":      db,
+		})
+	}
+}

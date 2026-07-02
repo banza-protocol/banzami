@@ -6,6 +6,7 @@ use (
 	./services/api-gateway
 	./services/common/documents
 	./services/common/obs
+	./services/developer-api
 	./services/public-api
 	./services/sandbox-operator
 )
