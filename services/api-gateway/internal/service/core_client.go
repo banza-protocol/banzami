@@ -237,6 +237,7 @@ type coreWalletBalanceResp struct {
 	Available  coreMoneyResp `json:"available"`
 	Reserved   coreMoneyResp `json:"reserved"`
 	Total      coreMoneyResp `json:"total"`
+	HeldMinor  int64         `json:"held_minor"`
 	ComputedAt time.Time     `json:"computed_at"`
 }
 
@@ -277,6 +278,7 @@ func (s *CoreApiWalletService) Balance(ctx context.Context, id string) (*WalletB
 		AvailableMinor: resp.Available.AmountMinor,
 		ReservedMinor:  resp.Reserved.AmountMinor,
 		TotalMinor:     resp.Total.AmountMinor,
+		HeldMinor:      resp.HeldMinor,
 		ComputedAt:     resp.ComputedAt,
 	}, nil
 }
