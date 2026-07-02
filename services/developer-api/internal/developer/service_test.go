@@ -8,7 +8,7 @@ import (
 
 func newSvc(ttl time.Duration) (*Service, *memStore) {
 	st := NewMemStore()
-	return NewService(st, "invite-secret", ttl), st
+	return NewService(st, "invite-secret", "key-pepper", ttl), st
 }
 
 var bg = context.Background()

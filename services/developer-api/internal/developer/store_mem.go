@@ -17,8 +17,16 @@ type memStore struct {
 	members    []*Member
 	invites    map[string]*Invite
 	inviteHash map[string]string // tokenHash -> inviteID
+	projects   map[string]*Project
+	apiKeys    []*apiKeyRec
 
 	Audits []AuditEvent
+}
+
+// apiKeyRec holds the full key row incl. the secret hash (never exposed).
+type apiKeyRec struct {
+	APIKey
+	keyHash string
 }
 
 // NewMemStore builds an in-memory developer Store.
@@ -27,6 +35,7 @@ func NewMemStore() *memStore {
 		workspaces: map[string]*Workspace{},
 		invites:    map[string]*Invite{},
 		inviteHash: map[string]string{},
+		projects:   map[string]*Project{},
 	}
 }
 
@@ -205,4 +214,125 @@ func (m *memStore) InsertAudit(_ context.Context, ev AuditEvent) error {
 	defer m.mu.Unlock()
 	m.Audits = append(m.Audits, ev)
 	return nil
+}
+
+// ── projects ─────────────────────────────────────────────────────────────────
+
+func (m *memStore) CreateProject(_ context.Context, workspaceID, name, slug string) (Project, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, p := range m.projects {
+		if p.WorkspaceID == workspaceID && p.Slug == slug {
+			return Project{}, ErrConflict
+		}
+	}
+	now := time.Now()
+	p := &Project{ID: m.id("prj_"), WorkspaceID: workspaceID, Name: name, Slug: slug, Status: "ACTIVE", CreatedAt: now, UpdatedAt: now}
+	m.projects[p.ID] = p
+	return *p, nil
+}
+
+func (m *memStore) ProjectsForWorkspace(_ context.Context, workspaceID string) ([]Project, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []Project
+	for _, p := range m.projects {
+		if p.WorkspaceID == workspaceID {
+			out = append(out, *p)
+		}
+	}
+	return out, nil
+}
+
+func (m *memStore) Project(_ context.Context, id string) (*Project, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	if p, ok := m.projects[id]; ok {
+		cp := *p
+		return &cp, nil
+	}
+	return nil, ErrNotFound
+}
+
+// ── api keys ─────────────────────────────────────────────────────────────────
+
+func (m *memStore) insertKey(in APIKeyInsert) APIKey {
+	k := APIKey{
+		ID: m.id("key_"), ProjectID: in.ProjectID, Environment: in.Environment, Kind: in.Kind,
+		Name: in.Name, KeyPrefix: in.KeyPrefix, PublicValue: in.PublicValue, Scopes: in.Scopes,
+		Status: "ACTIVE", RotatedFrom: in.RotatedFrom, CreatedAt: time.Now(),
+	}
+	m.apiKeys = append(m.apiKeys, &apiKeyRec{APIKey: k, keyHash: in.KeyHash})
+	return k
+}
+
+func (m *memStore) CreateAPIKey(_ context.Context, in APIKeyInsert) (APIKey, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return m.insertKey(in), nil
+}
+
+func (m *memStore) APIKeysForProject(_ context.Context, projectID string) ([]APIKey, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var out []APIKey
+	for _, r := range m.apiKeys {
+		if r.ProjectID == projectID {
+			out = append(out, r.APIKey) // metadata only; keyHash stays internal
+		}
+	}
+	return out, nil
+}
+
+func (m *memStore) APIKeyByID(_ context.Context, id string) (*APIKey, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, r := range m.apiKeys {
+		if r.ID == id {
+			cp := r.APIKey
+			return &cp, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (m *memStore) APIKeyByHash(_ context.Context, keyHash string) (*APIKeyAuth, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, r := range m.apiKeys {
+		if r.keyHash == keyHash {
+			return &APIKeyAuth{ID: r.ID, ProjectID: r.ProjectID, Environment: r.Environment, Status: r.Status, Scopes: r.Scopes}, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+func (m *memStore) RevokeAPIKey(_ context.Context, id string) error {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	for _, r := range m.apiKeys {
+		if r.ID == id && r.Status == "ACTIVE" {
+			r.Status = "REVOKED"
+			return nil
+		}
+	}
+	return ErrNotFound
+}
+
+func (m *memStore) RotateAPIKey(_ context.Context, oldID string, replacement APIKeyInsert) (APIKey, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	var old *apiKeyRec
+	for _, r := range m.apiKeys {
+		if r.ID == oldID {
+			old = r
+			break
+		}
+	}
+	if old == nil {
+		return APIKey{}, ErrNotFound
+	}
+	nk := m.insertKey(replacement)
+	old.Status = "REVOKED" // atomic in the mem model (under lock)
+	return nk, nil
 }

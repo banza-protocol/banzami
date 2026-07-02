@@ -27,6 +27,26 @@ func ValidRole(r string) bool {
 	return false
 }
 
+// Key kinds and environments.
+const (
+	KindPublishable = "PUBLISHABLE"
+	KindSecret      = "SECRET"
+	EnvSandbox      = "SANDBOX"
+	EnvLive         = "LIVE"
+)
+
+// AllowedScopes is the closed set of scopes a sandbox key may carry (Slice 1).
+var AllowedScopes = map[string]bool{
+	"payments:read":   true,
+	"payments:write":  true,
+	"transfers:read":  true,
+	"transfers:write": true,
+	"refunds:write":   true,
+	"webhooks:read":   true,
+	"webhooks:write":  true,
+	"customers:read":  true,
+}
+
 var (
 	ErrNotFound    = errors.New("not found")
 	ErrConflict    = errors.New("conflict")
@@ -111,5 +131,69 @@ type Store interface {
 	AcceptInvite(ctx context.Context, inviteID, userID string) (Member, error)
 	RevokeInvite(ctx context.Context, inviteID string) error
 
+	// Projects
+	CreateProject(ctx context.Context, workspaceID, name, slug string) (Project, error)
+	ProjectsForWorkspace(ctx context.Context, workspaceID string) ([]Project, error)
+	Project(ctx context.Context, id string) (*Project, error)
+
+	// API keys
+	CreateAPIKey(ctx context.Context, in APIKeyInsert) (APIKey, error)
+	APIKeysForProject(ctx context.Context, projectID string) ([]APIKey, error)
+	APIKeyByID(ctx context.Context, id string) (*APIKey, error)
+	APIKeyByHash(ctx context.Context, keyHash string) (*APIKeyAuth, error)
+	RevokeAPIKey(ctx context.Context, id string) error
+	// RotateAPIKey atomically inserts the replacement (rotated_from=oldID) and
+	// revokes the old key.
+	RotateAPIKey(ctx context.Context, oldID string, replacement APIKeyInsert) (APIKey, error)
+
 	InsertAudit(ctx context.Context, ev AuditEvent) error
+}
+
+type Project struct {
+	ID          string
+	WorkspaceID string
+	Name        string
+	Slug        string
+	Status      string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// APIKey is key metadata — never carries the secret hash or a raw secret.
+type APIKey struct {
+	ID          string
+	ProjectID   string
+	Environment string
+	Kind        string // PUBLISHABLE | SECRET
+	Name        string
+	KeyPrefix   string
+	PublicValue string // full pk value (PUBLISHABLE only); empty for SECRET
+	Scopes      []string
+	Status      string
+	RotatedFrom *string
+	CreatedAt   time.Time
+	LastUsedAt  *time.Time
+}
+
+type APIKeyInsert struct {
+	ProjectID   string
+	Environment string
+	Kind        string
+	Name        string
+	KeyPrefix   string
+	KeyHash     string // HMAC(raw, API_KEY_PEPPER)
+	HashVersion int
+	PublicValue string
+	Scopes      []string
+	CreatedBy   string
+	RotatedFrom *string
+}
+
+// APIKeyAuth is the minimal record returned when authorizing a presented key.
+type APIKeyAuth struct {
+	ID          string
+	ProjectID   string
+	Environment string
+	Status      string
+	Scopes      []string
 }

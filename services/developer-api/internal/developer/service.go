@@ -12,14 +12,20 @@ import (
 type Service struct {
 	store        Store
 	inviteSecret string
+	apiKeyPepper string
 	inviteTTL    time.Duration
 }
 
-func NewService(store Store, inviteSecret string, inviteTTL time.Duration) *Service {
+func NewService(store Store, inviteSecret, apiKeyPepper string, inviteTTL time.Duration) *Service {
 	if inviteTTL == 0 {
 		inviteTTL = 7 * 24 * time.Hour
 	}
-	return &Service{store: store, inviteSecret: inviteSecret, inviteTTL: inviteTTL}
+	return &Service{store: store, inviteSecret: inviteSecret, apiKeyPepper: apiKeyPepper, inviteTTL: inviteTTL}
+}
+
+// canBuild reports whether a role may create projects / issue API keys.
+func canBuild(role string) bool {
+	return role == RoleOwner || role == RoleAdmin || role == RoleDeveloper
 }
 
 // ── authorization helpers ────────────────────────────────────────────────────
@@ -229,6 +235,222 @@ func (s *Service) RemoveMember(ctx context.Context, actor, wsID, targetUser, ip,
 	}
 	s.audit(ctx, &actor, &wsID, nil, "member.removed", "USER:"+targetUser, ip, reqID, nil)
 	return nil
+}
+
+// ── projects ─────────────────────────────────────────────────────────────────
+
+func (s *Service) CreateProject(ctx context.Context, actor, wsID, name, ip, reqID string) (Project, error) {
+	role, err := s.roleOf(ctx, wsID, actor)
+	if err != nil || !canBuild(role) {
+		return Project{}, ErrForbidden
+	}
+	name = strings.TrimSpace(name)
+	if name == "" || len(name) > 80 {
+		return Project{}, ErrValidation
+	}
+	base := slugify(name)
+	if base == "" {
+		base = "project"
+	}
+	slug := base
+	for i := 0; i < 5; i++ {
+		p, err := s.store.CreateProject(ctx, wsID, name, slug)
+		if err == nil {
+			s.audit(ctx, &actor, &wsID, &p.ID, "project.created", "PROJECT:"+p.ID, ip, reqID, nil)
+			return p, nil
+		}
+		if err != ErrConflict {
+			return Project{}, ErrUnavailable
+		}
+		suffix, _, terr := newToken(s.inviteSecret)
+		if terr != nil {
+			return Project{}, ErrUnavailable
+		}
+		slug = base + "-" + suffix[:6]
+	}
+	return Project{}, ErrConflict
+}
+
+func (s *Service) ListProjects(ctx context.Context, actor, wsID string) ([]Project, error) {
+	if _, err := s.roleOf(ctx, wsID, actor); err != nil {
+		return nil, ErrForbidden
+	}
+	return s.store.ProjectsForWorkspace(ctx, wsID)
+}
+
+// projectAuthz resolves a project and the actor's role in its workspace.
+func (s *Service) projectAuthz(ctx context.Context, actor, projectID string) (*Project, string, error) {
+	p, err := s.store.Project(ctx, projectID)
+	if err != nil || p == nil {
+		return nil, "", ErrNotFound
+	}
+	role, err := s.roleOf(ctx, p.WorkspaceID, actor)
+	if err != nil {
+		return nil, "", ErrForbidden // cross-workspace project access denied
+	}
+	return p, role, nil
+}
+
+func (s *Service) GetProject(ctx context.Context, actor, projectID string) (Project, error) {
+	p, _, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return Project{}, err
+	}
+	return *p, nil
+}
+
+// ── API keys ─────────────────────────────────────────────────────────────────
+
+func validScopes(scopes []string) bool {
+	for _, sc := range scopes {
+		if !AllowedScopes[sc] {
+			return false
+		}
+	}
+	return true
+}
+
+// CreateAPIKey issues a SANDBOX key. The raw secret is returned exactly once (in
+// `rawSecret` for SECRET keys); publishable keys carry their full value in the
+// returned metadata. The raw secret is never stored, logged or audited.
+func (s *Service) CreateAPIKey(ctx context.Context, actor, projectID, kind, name string, scopes []string, ip, reqID string) (APIKey, string, error) {
+	p, role, err := s.projectAuthz(ctx, actor, projectID)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	if !canBuild(role) {
+		return APIKey{}, "", ErrForbidden
+	}
+	if (kind != KindPublishable && kind != KindSecret) || strings.TrimSpace(name) == "" || !validScopes(scopes) {
+		return APIKey{}, "", ErrValidation
+	}
+	if s.apiKeyPepper == "" {
+		return APIKey{}, "", ErrUnavailable // fail closed
+	}
+	raw, prefix, err := newAPIKey(kind) // SANDBOX bz_test_ prefixes only
+	if err != nil {
+		return APIKey{}, "", ErrValidation
+	}
+	in := APIKeyInsert{
+		ProjectID: p.ID, Environment: EnvSandbox, Kind: kind, Name: strings.TrimSpace(name),
+		KeyPrefix: prefix, KeyHash: hashKey(raw, s.apiKeyPepper), HashVersion: 1,
+		Scopes: scopes, CreatedBy: actor,
+	}
+	rawSecret := ""
+	if kind == KindPublishable {
+		in.PublicValue = raw // non-secret, re-displayable
+	} else {
+		rawSecret = raw // shown once
+	}
+	key, err := s.store.CreateAPIKey(ctx, in)
+	if err != nil {
+		return APIKey{}, "", ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "apikey.created", "APIKEY:"+key.ID, ip, reqID,
+		map[string]any{"kind": kind, "prefix": prefix}) // never the raw key
+	return key, rawSecret, nil
+}
+
+func (s *Service) ListAPIKeys(ctx context.Context, actor, projectID string) ([]APIKey, error) {
+	if _, _, err := s.projectAuthz(ctx, actor, projectID); err != nil {
+		return nil, err
+	}
+	return s.store.APIKeysForProject(ctx, projectID) // metadata only
+}
+
+func (s *Service) keyAuthz(ctx context.Context, actor, keyID string) (*APIKey, *Project, error) {
+	key, err := s.store.APIKeyByID(ctx, keyID)
+	if err != nil || key == nil {
+		return nil, nil, ErrNotFound
+	}
+	p, role, err := s.projectAuthz(ctx, actor, key.ProjectID)
+	if err != nil {
+		return nil, nil, err
+	}
+	if !canBuild(role) {
+		return nil, nil, ErrForbidden
+	}
+	return key, p, nil
+}
+
+func (s *Service) RevokeAPIKey(ctx context.Context, actor, keyID, ip, reqID string) error {
+	key, p, err := s.keyAuthz(ctx, actor, keyID)
+	if err != nil {
+		return err
+	}
+	if err := s.store.RevokeAPIKey(ctx, key.ID); err != nil {
+		return ErrNotFound
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "apikey.revoked", "APIKEY:"+key.ID, ip, reqID, nil)
+	return nil
+}
+
+// RotateAPIKey atomically issues a replacement (same kind/scopes) and revokes the
+// old key. The old key is immediately rejected by AuthorizeKey.
+func (s *Service) RotateAPIKey(ctx context.Context, actor, keyID, ip, reqID string) (APIKey, string, error) {
+	key, p, err := s.keyAuthz(ctx, actor, keyID)
+	if err != nil {
+		return APIKey{}, "", err
+	}
+	if s.apiKeyPepper == "" {
+		return APIKey{}, "", ErrUnavailable
+	}
+	raw, prefix, err := newAPIKey(key.Kind)
+	if err != nil {
+		return APIKey{}, "", ErrValidation
+	}
+	old := key.ID
+	in := APIKeyInsert{
+		ProjectID: key.ProjectID, Environment: EnvSandbox, Kind: key.Kind, Name: key.Name,
+		KeyPrefix: prefix, KeyHash: hashKey(raw, s.apiKeyPepper), HashVersion: 1,
+		Scopes: key.Scopes, CreatedBy: actor, RotatedFrom: &old,
+	}
+	rawSecret := ""
+	if key.Kind == KindPublishable {
+		in.PublicValue = raw
+	} else {
+		rawSecret = raw
+	}
+	nk, err := s.store.RotateAPIKey(ctx, old, in)
+	if err != nil {
+		return APIKey{}, "", ErrUnavailable
+	}
+	s.audit(ctx, &actor, &p.WorkspaceID, &p.ID, "apikey.rotated", "APIKEY:"+nk.ID, ip, reqID,
+		map[string]any{"rotated_from": old})
+	return nk, rawSecret, nil
+}
+
+// AuthorizeKey resolves a presented raw key to its authorization. Rejects Live
+// prefixes outright (never issued in Slice 1), revoked/rotated/inactive keys,
+// non-sandbox keys, and missing scopes. This is where scope + revoke + rotate +
+// sandbox-only enforcement live.
+func (s *Service) AuthorizeKey(ctx context.Context, rawKey, requiredScope string) (*APIKeyAuth, error) {
+	if strings.HasPrefix(rawKey, PrefixLivePub) || strings.HasPrefix(rawKey, PrefixLiveSec) {
+		return nil, ErrForbidden // live keys have no path in Slice 1
+	}
+	if s.apiKeyPepper == "" {
+		return nil, ErrUnavailable
+	}
+	auth, err := s.store.APIKeyByHash(ctx, hashKey(rawKey, s.apiKeyPepper))
+	if err != nil || auth == nil {
+		return nil, ErrForbidden
+	}
+	if auth.Status != "ACTIVE" || auth.Environment != EnvSandbox {
+		return nil, ErrForbidden // revoked / rotated-away / non-sandbox
+	}
+	if requiredScope != "" {
+		ok := false
+		for _, sc := range auth.Scopes {
+			if sc == requiredScope {
+				ok = true
+				break
+			}
+		}
+		if !ok {
+			return nil, ErrForbidden
+		}
+	}
+	return auth, nil
 }
 
 func (s *Service) audit(ctx context.Context, actor, wsID, projID *string, action, subject, ip, reqID string, meta map[string]any) {
