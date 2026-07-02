@@ -17,6 +17,12 @@ const (
 	BlockerWalletMissing       = "WALLET_MISSING"
 	BlockerWalletAccountMissing = "WALLET_ACCOUNT_MISSING"
 	BlockerPricingMissing      = "PRICING_MISSING"
+
+	// WarnWebhookEndpointMissing is ADVISORY (not a settlement blocker): with no
+	// active webhook endpoint the app depends on client-side polling and may miss
+	// confirmations. Reconciliation is the backstop; the app should register a
+	// webhook. Surfaced in Warnings, never in Blockers.
+	WarnWebhookEndpointMissing = "WEBHOOK_ENDPOINT_MISSING"
 )
 
 // BusinessResolution is the operator's authoritative, consolidated view of ONE
@@ -52,6 +58,7 @@ type BusinessResolution struct {
 	WalletReady          bool
 
 	Blockers        []string
+	Warnings        []string // advisory (does not block settlement) — e.g. WEBHOOK_ENDPOINT_MISSING
 	SettlementReady bool
 }
 
@@ -234,6 +241,18 @@ func (s *BusinessSelfService) Self(ctx context.Context, merchantID, environment 
 		r.Blockers = append(r.Blockers, BlockerPricingMissing)
 	}
 	r.SettlementReady = len(r.Blockers) == 0
+
+	// Advisory warnings (do NOT affect SettlementReady). No active webhook endpoint
+	// ⇒ the app relies on polling and may miss confirmations — recommend registering
+	// one. Best-effort: a query error simply omits the warning.
+	r.Warnings = r.Warnings[:0]
+	var hasWebhook bool
+	if err := s.pool.QueryRow(ctx,
+		`SELECT EXISTS(SELECT 1 FROM webhook_endpoints WHERE merchant_id = $1 AND active = true)`,
+		merchantID,
+	).Scan(&hasWebhook); err == nil && !hasWebhook {
+		r.Warnings = append(r.Warnings, WarnWebhookEndpointMissing)
+	}
 
 	return &r, nil
 }

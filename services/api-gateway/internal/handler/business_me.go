@@ -75,6 +75,10 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 	if blockers == nil {
 		blockers = []string{}
 	}
+	warnings := res.Warnings
+	if warnings == nil {
+		warnings = []string{}
+	}
 
 	var pricingCategory any
 	if res.PricingCategory != "" {
@@ -127,5 +131,6 @@ func (h *BusinessMeHandler) Me(w http.ResponseWriter, r *http.Request) {
 			"blockers": blockers,
 		},
 		"blockers": blockers,
+		"warnings": warnings,
 	})
 }
