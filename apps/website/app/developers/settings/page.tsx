@@ -3,6 +3,7 @@
 import { PortalPage } from '@/components/developers/portal/PortalShell';
 import { Card } from '@/components/developers/portal/ui';
 import { IconCopy } from '@/components/developers/portal/icons';
+import { MembersManager } from '@/components/developers/portal/MembersManager';
 
 // Definições — dossier ecrã 10. Geral, Membros da equipa, Segurança and a
 // danger card for critical actions (all OTP-gated at wire time).
@@ -22,13 +23,6 @@ const ghostBtn = {
 } as const;
 
 const fieldLabel = { margin: '0 0 5px', fontSize: 12, fontWeight: 800, color: '#a89a9e' } as const;
-
-type Member = { initials: string; name: string; email: string; role: string; avatar: string; avatarColor: string; roleBg: string; roleColor: string };
-const MEMBERS: Member[] = [
-  { initials: 'JM', name: 'João Manuel', email: 'joao@minhaloja.co.ao', role: 'Owner', avatar: 'linear-gradient(150deg,#B5101F,#7C1016)', avatarColor: '#fff', roleBg: '#FFF1F0', roleColor: '#B5101F' },
-  { initials: 'AS', name: 'Ana Silva', email: 'ana@minhaloja.co.ao', role: 'Developer', avatar: '#FBD2D0', avatarColor: '#9A1B22', roleBg: '#F3EDEC', roleColor: '#6a5a5e' },
-  { initials: 'PC', name: 'Pedro Costa', email: 'pedro@minhaloja.co.ao', role: 'Finance', avatar: '#F8B4B1', avatarColor: '#9A1B22', roleBg: '#F3EDEC', roleColor: '#6a5a5e' },
-];
 
 const DANGER = ['Encerrar projeto', 'Revogar todas as chaves', 'Remover membro'];
 
@@ -78,29 +72,10 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Membros */}
+        {/* Membros — real data (workspace members + invites) */}
         <Card style={{ padding: 24, marginBottom: 16 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 900 }}>Membros da equipa</h3>
-            <button
-              className="bz-cta"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 15px', border: 'none', borderRadius: 10, background: ctaGradient, color: '#fff', fontSize: 13, fontWeight: 800, cursor: 'pointer' }}
-            >
-              Convidar
-            </button>
-          </div>
-          {MEMBERS.map((m, i) => (
-            <div key={m.email} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: i === MEMBERS.length - 1 ? undefined : '1px solid #F5E9E7' }}>
-              <span style={{ width: 36, height: 36, borderRadius: '50%', background: m.avatar, color: m.avatarColor, fontWeight: 900, fontSize: 13, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-                {m.initials}
-              </span>
-              <div style={{ flex: 1 }}>
-                <p style={{ margin: 0, fontSize: 14, fontWeight: 800 }}>{m.name}</p>
-                <p style={{ margin: '1px 0 0', fontSize: 12.5, color: '#a89a9e', fontWeight: 700 }}>{m.email}</p>
-              </div>
-              <span style={{ padding: '4px 11px', borderRadius: 30, background: m.roleBg, fontSize: 12, fontWeight: 800, color: m.roleColor }}>{m.role}</span>
-            </div>
-          ))}
+          <h3 style={{ margin: '0 0 8px', fontSize: 16, fontWeight: 900 }}>Membros da equipa</h3>
+          <MembersManager />
         </Card>
 
         {/* Segurança */}

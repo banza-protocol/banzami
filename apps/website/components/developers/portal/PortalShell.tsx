@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useEffect, type CSSProperties, type ReactNode } from 'react';
 import { ToastProvider, useToast, copyText } from './Toast';
 import { DeveloperAuthProvider, useDeveloperAuth } from './DeveloperAuth';
+import { DeveloperDataProvider, useDeveloperData } from './DeveloperData';
+import { WorkspaceSwitcher } from './WorkspaceSwitcher';
 import {
   BrandTile,
   IconArrowRight,
@@ -12,7 +14,6 @@ import {
   IconBolt,
   IconBriefcase,
   IconChevronDown,
-  IconChevronUpDown,
   IconDoc,
   IconFlask,
   IconGear,
@@ -118,55 +119,8 @@ function Sidebar({ active }: { active: PortalKey }) {
         </span>
       </Link>
 
-      {/* project selector */}
-      <div
-        style={{
-          margin: '0 2px 12px',
-          padding: '11px 12px',
-          border: '1.5px solid #F0E2E0',
-          borderRadius: 14,
-          background: '#FFFAF9',
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-          cursor: 'pointer',
-        }}
-      >
-        <span
-          style={{
-            flex: 'none',
-            width: 30,
-            height: 30,
-            borderRadius: 9,
-            background: 'linear-gradient(150deg,#FBD2D0,#FFE7E5)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#B5101F',
-          }}
-        >
-          <IconBriefcase size={16} />
-        </span>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <p style={{ margin: 0, fontSize: 9.5, fontWeight: 800, letterSpacing: '.06em', color: '#a89a9e' }}>PROJETO ATUAL</p>
-          <p
-            style={{
-              margin: '1px 0 0',
-              fontSize: 13.5,
-              fontWeight: 800,
-              color: '#2a2024',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            Minha Loja Online
-          </p>
-        </div>
-        <span style={{ color: '#c2a8aa', display: 'inline-flex' }}>
-          <IconChevronUpDown size={15} />
-        </span>
-      </div>
+      {/* workspace + project switcher (real data) */}
+      <WorkspaceSwitcher />
       <div style={{ margin: '0 12px 14px' }}>
         <span
           style={{
@@ -233,6 +187,7 @@ function initialsOf(user: { name?: string; email?: string } | null): string {
 
 function TopBar() {
   const { user, logout } = useDeveloperAuth();
+  const { activeWs, activeProject } = useDeveloperData();
   const router = useRouter();
   const onLogout = async () => {
     await logout();
@@ -273,7 +228,7 @@ function TopBar() {
           <span style={{ color: '#B5101F', display: 'inline-flex' }}>
             <IconBriefcase size={15} />
           </span>
-          Minha Loja Online
+          {activeProject?.name ?? activeWs?.name ?? 'Sandbox'}
           <span style={{ color: '#b8a4a6', marginLeft: 2, display: 'inline-flex' }}>
             <IconChevronDown size={14} />
           </span>
@@ -522,16 +477,18 @@ function PortalGuard({ active, showBanner, children }: PortalPageProps) {
   // Banner shows everywhere except Go Live and Docs (dossier §Banner Sandbox).
   const banner = showBanner ?? (active !== 'golive' && active !== 'docs');
   return (
-    <div
-      className="bz-shellgrid"
-      style={{ display: 'grid', gridTemplateColumns: '248px 1fr', minHeight: '100vh', background: '#FFF9F8' }}
-    >
-      <Sidebar active={active} />
-      <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-        <TopBar />
-        <Main showBanner={banner}>{children}</Main>
+    <DeveloperDataProvider>
+      <div
+        className="bz-shellgrid"
+        style={{ display: 'grid', gridTemplateColumns: '248px 1fr', minHeight: '100vh', background: '#FFF9F8' }}
+      >
+        <Sidebar active={active} />
+        <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+          <TopBar />
+          <Main showBanner={banner}>{children}</Main>
+        </div>
       </div>
-    </div>
+    </DeveloperDataProvider>
   );
 }
 
