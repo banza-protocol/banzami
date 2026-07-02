@@ -346,12 +346,34 @@ class _DashboardHeader extends StatelessWidget {
             ),
           ],
           if (balance != null && balance!.heldMinor > 0) ...[
-            const SizedBox(height: BanzamiSpacing.xs),
-            Text(
-              'Retido em campanhas: ${formatMinor(balance!.heldMinor, balance!.currency)}',
-              style: BanzamiTextStyles.bodySm.copyWith(
-                color: BanzamiColors.white.withValues(alpha: 0.50),
+            const SizedBox(height: BanzamiSpacing.sm),
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: BanzamiSpacing.md,
+                vertical: 7,
               ),
+              decoration: BoxDecoration(
+                color: BanzamiColors.white.withValues(alpha: 0.16),
+                borderRadius: BanzamiRadius.fullAll,
+                border: Border.all(color: BanzamiColors.white.withValues(alpha: 0.28)),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.savings_rounded, size: 15, color: BanzamiColors.white),
+                const SizedBox(width: 7),
+                Text(
+                  'Retido em campanhas ',
+                  style: BanzamiTextStyles.bodySm.copyWith(
+                    color: BanzamiColors.white.withValues(alpha: 0.85),
+                  ),
+                ),
+                Text(
+                  formatMinor(balance!.heldMinor, balance!.currency),
+                  style: BanzamiTextStyles.bodySm.copyWith(
+                    color: BanzamiColors.white,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ]),
             ),
           ],
         ],
