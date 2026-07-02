@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { navMenus } from '@/lib/nav-menus';
-import { mailto } from '@/lib/site';
+import { mailto, DEVELOPERS_LOGIN_URL } from '@/lib/site';
 
 // Banzami main navigation — header + desktop mega menu + mobile accordion.
 // Faithful port of HANDOFF_Banzami_Nav.md. The desktop mega menu is CSS-only
@@ -262,7 +262,7 @@ export function BanzamiNav() {
         <div className="bz-ctas-desktop" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <NavA
             className="bz-start"
-            href="/developers/login"
+            href={DEVELOPERS_LOGIN_URL}
             style={{
               display: 'inline-flex',
               alignItems: 'center',
@@ -382,6 +382,20 @@ export function BanzamiNav() {
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 24 }}>
+            {/* Mobile "Começar" — same Developers portal entry as the desktop
+                header CTA (design handoff §Ponto de entrada), so mobile and
+                desktop lead to the exact same frontend route. */}
+            <NavA
+              className="bz-start"
+              href={DEVELOPERS_LOGIN_URL}
+              onClick={closeMenu}
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: 16, borderRadius: 30, background: RED, color: '#fff', fontWeight: 800, fontSize: 16, textDecoration: 'none' }}
+            >
+              Começar
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M5 12h14M13 6l6 6-6 6" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </NavA>
             <a
               href={mailto('Waitlist Banzami')}
               onClick={closeMenu}

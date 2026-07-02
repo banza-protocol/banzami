@@ -17,6 +17,16 @@ export const SITE = {
 export const mailto = (subject?: string) =>
   subject ? `mailto:${SITE.email}?subject=${encodeURIComponent(subject)}` : `mailto:${SITE.email}`;
 
+// Developer Console entry point (design handoff §"Ponto de entrada"). The
+// homepage "Começar" CTA leads here. This is the Console *frontend* host — a
+// full, keyboard-navigable browser route — NOT the backend API. The browser
+// must never be sent to developer-api.banzami.com directly; that host is an
+// authenticated API reached only via fetch() from the loaded Console. The
+// absolute host is deliberate: the Console must load on developers.banzami.com
+// (the only origin the developer-api allows via CORS), so a relative
+// "/developers/login" from banzami.com would land it on the wrong origin.
+export const DEVELOPERS_LOGIN_URL = 'https://developers.banzami.com/developers/login';
+
 // ---------------------------------------------------------------------------
 // Navigation taxonomy (README §"Sistema de navegação").
 // Order is fixed: Produtos · Developers · Suporte · FAQ · Sobre · Começar.
@@ -116,7 +126,7 @@ export const NAV_LINKS: NavLink[] = [
   { key: 'sobre', label: 'Sobre', href: '/sobre', active: ['/sobre'] },
 ];
 
-export const NAV_CTA = { label: 'Começar', href: '/produto#contacto' } as const;
+export const NAV_CTA = { label: 'Começar', href: DEVELOPERS_LOGIN_URL } as const;
 
 // Active top-level key for a given pathname (README §"Estado ativo por página").
 export function activeNavKey(pathname: string): string | null {
