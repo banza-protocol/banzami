@@ -113,6 +113,9 @@ class MerchantBalance {
   final int availableMinor;
   final int reservedMinor;
   final int totalMinor;
+  /// Money held in the wallet's segregated non-PRIMARY accounts (e.g. campaign
+  /// accounts) — received but not part of the spendable available balance.
+  final int heldMinor;
   final DateTime computedAt;
 
   const MerchantBalance({
@@ -121,6 +124,7 @@ class MerchantBalance {
     required this.availableMinor,
     required this.reservedMinor,
     required this.totalMinor,
+    this.heldMinor = 0,
     required this.computedAt,
   });
 
@@ -130,6 +134,7 @@ class MerchantBalance {
         availableMinor: (json['available_minor'] as num).toInt(),
         reservedMinor:  (json['reserved_minor']  as num).toInt(),
         totalMinor:     (json['total_minor']     as num).toInt(),
+        heldMinor:      (json['held_minor'] as num?)?.toInt() ?? 0,
         computedAt:     DateTime.parse(json['computed_at'] as String),
       );
 }

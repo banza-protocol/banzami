@@ -345,6 +345,15 @@ class _DashboardHeader extends StatelessWidget {
               ),
             ),
           ],
+          if (balance != null && balance!.heldMinor > 0) ...[
+            const SizedBox(height: BanzamiSpacing.xs),
+            Text(
+              'Retido em campanhas: ${formatMinor(balance!.heldMinor, balance!.currency)}',
+              style: BanzamiTextStyles.bodySm.copyWith(
+                color: BanzamiColors.white.withValues(alpha: 0.50),
+              ),
+            ),
+          ],
         ],
       ),
     );

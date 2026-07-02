@@ -82,7 +82,29 @@ pub async fn balance(
         other => ApiError::internal(other.to_string()),
     })?;
 
-    Ok(Json(serde_json::to_value(&bal).unwrap()))
+    // `held_minor`: funds sitting in the wallet's segregated non-PRIMARY accounts
+    // (CAMPAIGN/PROJECT/EVENT/ESCROW/…) — money received but not part of the
+    // merchant's spendable available balance. Surfaced so the dashboard can show
+    // "held in campaigns" alongside the available balance. Best-effort → 0.
+    let held_minor: i64 = sqlx::query_scalar(
+        "SELECT COALESCE(SUM(CASE WHEN le.entry_type = 'CREDIT'
+                                  THEN le.amount_minor ELSE -le.amount_minor END), 0)::bigint
+           FROM wallet_accounts wa
+           JOIN ledger_entries le ON le.account_id = wa.account_id
+          WHERE wa.wallet_id = $1
+            AND wa.purpose <> 'PRIMARY'
+            AND wa.status = 'ACTIVE'",
+    )
+    .bind(wallet_id.as_uuid())
+    .fetch_one(&state.pool)
+    .await
+    .unwrap_or(0);
+
+    let mut val = serde_json::to_value(&bal).unwrap();
+    if let Some(obj) = val.as_object_mut() {
+        obj.insert("held_minor".to_string(), serde_json::json!(held_minor));
+    }
+    Ok(Json(val))
 }
 
 // ---------------------------------------------------------------------------
