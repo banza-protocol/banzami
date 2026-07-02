@@ -27,6 +27,14 @@ webhooks, so that applications never have to.
 
 ---
 
+## Strategic positioning
+
+Read [Banzami — Posicionamento Competitivo em Angola](./Banzami_Posicionamento_Competitivo_Angola.md) for the official strategic comparison with the Angolan payments market, the QR-without-TPA positioning, verifiable payment-proof model, and the BANZA ↔ Banzami ecosystem distinction.
+
+It is a **strategic positioning and communication reference — target positioning, not a claim of production readiness or BANZA certification.** For real launch and certification status, see [Status](#status) and [BANZA protocol conformance](#banza-protocol-conformance) below.
+
+---
+
 ## What is Banzami?
 
 **Banzami is a BANZA Operator.** It implements the BANZA protocol and runs the
