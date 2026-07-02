@@ -165,6 +165,30 @@ func emDetailRows(rows []infoRow) string {
       </table>`
 }
 
+// emOTPBoxes: verification-code panel — blush rounded box with a label and six
+// white digit boxes (46×58, radius 12, cherry 27px/700 mono). The code is the
+// action; the template carries no button/URL. Email-robust: a centred table of
+// boxes with border-spacing for the inter-box gap.
+func emOTPBoxes(code string) string {
+	var cells strings.Builder
+	for _, r := range code {
+		cells.WriteString(
+			`<td align="center" valign="middle" width="46" height="58" ` +
+				`style="width:46px;height:58px;background:` + cWhite + `;border:1.5px solid ` + cSecBorder +
+				`;border-radius:12px;font-family:` + fMono + `;font-size:27px;font-weight:700;color:` + cRed +
+				`;box-shadow:0 6px 14px -10px rgba(181,16,31,.4);">` + esc(string(r)) + `</td>`)
+	}
+	return `
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-collapse:separate;border-spacing:0;margin:20px 0 4px;">
+        <tr><td align="center" style="background:` + cSoftBg + `;border:1px solid ` + cSecBorder + `;border-radius:16px;padding:26px 20px;">
+          <div style="font-family:` + fSans + `;font-size:12px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:` + cMuted + `;margin-bottom:15px;">Código de verificação</div>
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="border-collapse:separate;border-spacing:8px 0;margin:0 auto;">
+            <tr>` + cells.String() + `</tr>
+          </table>
+        </td></tr>
+      </table>`
+}
+
 // emNotice: icon + text callout — single rounded element. kind: clock|shield|doc.
 func emNotice(kind, text string) string {
 	var icon string

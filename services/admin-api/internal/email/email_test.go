@@ -48,7 +48,8 @@ func renderAll() map[string]string {
 	i, _ := RenderAdminInvite(AdminInviteData{Role: "SUPER_ADMIN", InvitedBy: "security@banzami.com", AcceptURL: "https://admin.banzami.com/invite/accept?token=DEF"})
 	rs, _ := RenderAdminPasswordReset(AdminResetData{ResetURL: "https://admin.banzami.com/reset?token=GHI"})
 	rc, _ := RenderReceipt(ReceiptData{FromHandle: "joaomanuel", ToHandle: "mercadocentral", Reference: "BZM-7F3A-92K1", DateText: "27 jun 2026, 14:32", AmountText: "Kz 25.000,00", ReceiptURL: "https://banzami.com/r/BZM-7F3A-92K1"})
-	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs, "receipt": rc}
+	o, _ := RenderDeveloperOTP(DeveloperOTPData{Code: "482915"})
+	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs, "receipt": rc, "otp": o}
 }
 
 func TestTemplatesContainExpectedCopy(t *testing.T) {
@@ -59,6 +60,7 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 		"invite":   {"Foi convidado para o BANZADMIN", "Criar palavra-passe", "Administrador", "security@banzami.com", "7 dias"},
 		"reset":    {"Recupere a sua palavra-passe", "Recuperar palavra-passe", "30 minutos"},
 		"receipt":  {"Recebeu um pagamento", "Kz 25.000,00", "Recebido de @joaomanuel", "Descarregar comprovativo", "Confirmado"},
+		"otp":      {"O seu código de verificação", "Developers", "Código de verificação", "10 minutos"},
 	}
 	for name, musts := range cases {
 		html := all[name]
@@ -156,6 +158,42 @@ func TestSenderIdentitiesAndReplyTo(t *testing.T) {
 	}
 	if auth != "Bearer test-key" {
 		t.Error("Authorization header not set")
+	}
+}
+
+func TestDeveloperVerificationCode(t *testing.T) {
+	var captured []resendPayload
+	var auth string
+	s := newCapturingSender(t, &captured, &auth)
+
+	s.DeveloperVerificationCode("dev@x.test", "482915")
+
+	if len(captured) != 1 {
+		t.Fatalf("expected 1 message, got %d", len(captured))
+	}
+	m := captured[0]
+	// Security email → From noreply@, no Reply-To (no link, code is the action).
+	if m.From != "Banzami <noreply@banzami.com>" {
+		t.Errorf("From = %q, want noreply@", m.From)
+	}
+	if m.ReplyTo != "" {
+		t.Errorf("ReplyTo = %q, want empty", m.ReplyTo)
+	}
+	if m.Subject != "O seu código de verificação Banzami" {
+		t.Errorf("Subject = %q", m.Subject)
+	}
+	if !strings.Contains(m.HTML, "O seu código de verificação") {
+		t.Error("HTML must contain the title")
+	}
+	// The six digits render in separate boxes, so the code is not contiguous in
+	// HTML; each digit must still be present, and the plain-text carries it whole.
+	for _, d := range []string{"4", "8", "2", "9", "1", "5"} {
+		if !strings.Contains(m.HTML, ">"+d+"</td>") {
+			t.Errorf("HTML missing digit box for %q", d)
+		}
+	}
+	if !strings.Contains(m.Text, "482915") {
+		t.Error("plain-text alternative must contain the code")
 	}
 }
 

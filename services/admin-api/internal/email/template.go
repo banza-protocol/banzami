@@ -206,6 +206,31 @@ func RenderAdminPasswordReset(d AdminResetData) (html, text string) {
 	return
 }
 
+// ── 6. Código de Verificação — Developers OTP ────────────────────────────────
+// Sent when someone requests access to the developer portal (login → "Continuar").
+// The 6-digit code is the whole action: no button, no fallback URL. The real
+// code comes from the backend; the placeholder in the design is not used.
+
+type DeveloperOTPData struct {
+	Code string // 6-digit verification code from the backend
+}
+
+func RenderDeveloperOTP(d DeveloperOTPData) (html, text string) {
+	intro := "Bem-vindo(a) de volta. Use o código abaixo para continuar o acesso à plataforma de developers Banzami — basta introduzi-lo no ecrã de verificação."
+	notice := "Este código expira em 10 minutos. Se não pediu este código, ignore este email com segurança."
+	body := emTitle("O seu código de verificação") +
+		emPara(intro) +
+		emOTPBoxes(d.Code) +
+		emNotice("clock", notice)
+	html = renderLayout(layoutOpts{Subtitle: "Developers", BadgeKind: "security", SafetyKind: "security",
+		Preheader: "O seu código de verificação Banzami Developers.", Body: body})
+	text = textDoc("O seu código de verificação",
+		[]string{intro, notice},
+		[]infoRow{{Label: "Código de verificação", Value: d.Code, Mono: true}},
+		"", "", footerSafety("security"))
+	return
+}
+
 // ── 5. Comprovativo de transferência (email) ─────────────────────────────────
 
 type ReceiptData struct {

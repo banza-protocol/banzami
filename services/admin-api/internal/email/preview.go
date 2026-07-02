@@ -24,12 +24,14 @@ func Previews() map[string]string {
 	welcome, _ := RenderMerchantWelcome(MerchantWelcomeData{
 		MerchantName: "Mercado Central, Lda.", MerchantID: "mch_8a7b6c5d4e3f", APIKey: "bz_live_SAMPLE_nao_valida_0000",
 	})
+	otp, _ := RenderDeveloperOTP(DeveloperOTPData{Code: "482915"})
 	return map[string]string{
 		"1-comerciante-aprovado":    approved,
 		"2-comerciante-recusado":    rejected,
 		"3-convite-banzadmin":       invite,
 		"4-recuperar-palavra-passe": reset,
 		"5-comprovativo":            receipt,
-		"6-comerciante-welcome":     welcome,
+		"6-codigo-verificacao":      otp,
+		"7-comerciante-welcome":     welcome,
 	}
 }

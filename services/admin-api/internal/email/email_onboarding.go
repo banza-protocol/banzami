@@ -40,6 +40,15 @@ func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 		"Recupere a sua palavra-passe Banzami", html, text, ""))
 }
 
+// DeveloperVerificationCode — "O seu código de verificação". OTP for the
+// Developers portal login. Security → From noreply@, no Reply-To. The code is
+// the action; there is no link. Non-blocking; call in a goroutine.
+func (s *Sender) DeveloperVerificationCode(to, code string) {
+	html, text := RenderDeveloperOTP(DeveloperOTPData{Code: code})
+	s.deliver(s.automated("developer_verification_code", to,
+		"O seu código de verificação Banzami", html, text, ""))
+}
+
 // PaymentReceipt — "Recebeu um pagamento — <valor>". Automatic notification →
 // From noreply@, Reply-To contact@. The subject carries the dynamic amount.
 // (Not wired to a payment event yet — no such trigger exists in this service.)
