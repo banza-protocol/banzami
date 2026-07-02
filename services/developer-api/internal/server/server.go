@@ -13,6 +13,7 @@ import (
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/config"
+	"github.com/banzami/banzami/services/developer-api/internal/developer"
 	"github.com/banzami/banzami/services/developer-api/internal/httpx"
 )
 
@@ -21,6 +22,7 @@ import (
 type Deps struct {
 	Pool *pgxpool.Pool
 	Auth *accountidentity.Handlers
+	Dev  *developer.Handlers
 }
 
 // New builds the developer-api HTTP handler.
@@ -38,6 +40,14 @@ func New(cfg *config.Config, deps Deps) http.Handler {
 	// Account Identity auth surface (developer-api.banzami.com).
 	if deps.Auth != nil {
 		deps.Auth.Register(r.Get, r.Post)
+
+		// Developer surface: session-guarded; mutations also Origin+CSRF guarded.
+		if deps.Dev != nil {
+			r.Group(func(gr chi.Router) {
+				gr.Use(deps.Auth.RequireAuth)
+				deps.Dev.Mount(gr, deps.Auth.EnforceCSRF)
+			})
+		}
 	}
 
 	return r

@@ -22,6 +22,7 @@ import (
 	"github.com/banzami/banzami/services/common/obs"
 	"github.com/banzami/banzami/services/developer-api/internal/accountidentity"
 	"github.com/banzami/banzami/services/developer-api/internal/config"
+	"github.com/banzami/banzami/services/developer-api/internal/developer"
 	"github.com/banzami/banzami/services/developer-api/internal/server"
 )
 
@@ -91,7 +92,17 @@ func main() {
 	})
 	auth := accountidentity.NewHandlers(svc, cfg.ConsoleOrigin, cfg.SecureCookies())
 
-	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth})
+	// Developer domain (workspaces, members, projects, sandbox API keys).
+	var devStore developer.Store
+	if pool != nil {
+		devStore = developer.NewPGStore(pool)
+	} else {
+		devStore = developer.NewMemStore()
+	}
+	devSvc := developer.NewService(devStore, cfg.SessionSecret, cfg.APIKeyPepper, 0)
+	devH := developer.NewHandlers(devSvc)
+
+	handler := server.New(cfg, server.Deps{Pool: pool, Auth: auth, Dev: devH})
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
