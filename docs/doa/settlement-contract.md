@@ -4,7 +4,7 @@
 Accounts) · ADR-021 (Application Settlement) · **Version:** 1.0
 
 > **DOA defines the commercial rule. Banzami executes the money. BANZA defines the
-> standards.** The DOA 5% is DOA's policy — never a Banzami `pricing_rule`.
+> standards.** The DOA 2% is DOA's policy — never a Banzami `pricing_rule`.
 
 ## Two fees, never confused
 
@@ -22,7 +22,7 @@ A DOA campaign carries the commercial policy DOA owns:
 
 | Field | Meaning |
 |-------|---------|
-| `campaign_fee_bps` | DOA's fee rate in basis points (e.g. `500` = 5%) |
+| `campaign_fee_bps` | DOA's fee rate in basis points (e.g. `200` = 2%) |
 | `fee_destination_banza_name` | where the fee goes (`@doa`) |
 | `beneficiary_banza_name` | who receives the net (`@maria`) |
 | `settlement_policy_version` | which policy version applied |
@@ -64,7 +64,7 @@ DOA sends **no amount** — Banzami reads the campaign account's real balance.
 6. `application_fee_bps` within the operator safety bound (`0..=5000` = 50% cap);
 7. settlement idempotent; ledger posting balanced.
 
-**Banzami does NOT decide** whether the fee is 5%, whether a campaign charges a
+**Banzami does NOT decide** whether the fee is 2%, whether a campaign charges a
 fee, or any campaign rule. That is DOA's.
 
 ## DOA Admin (deferred app build — the requirements)

@@ -188,7 +188,7 @@ Application fees are the **app's** commercial policy:
 
 | App | Application fee |
 |-----|-----------------|
-| DOA | 5% |
+| DOA | 2% |
 | Mongo | 12% |
 | Marketplace | 15% |
 | Ticketing | 8% |
@@ -214,7 +214,7 @@ An application **requests**; the operator **executes**.
 
 ## DOA — a worked example
 
-![DOA worked example — campaign donations settle 5% to @doa, 95% to the beneficiary](docs/diagrams/banzami-doa-example-v1.svg)
+![DOA worked example — campaign donations settle 2% to @doa, 98% to the beneficiary](docs/diagrams/banzami-doa-example-v1.svg)
 
 DOA **never** calculates the balance and **never** distributes money. DOA only
 asks the operator: *"execute this settlement."* The operator reads the real

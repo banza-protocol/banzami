@@ -44,7 +44,7 @@ app-owned fee. We must separate the two cleanly and forever.
    balance** (the app never sends an amount); `application_fee_bps` is within the
    operator's safety bounds (`0 ≤ bps ≤ 5000` = 50% hard cap); the settlement is
    idempotent; and the ledger posting is balanced. Banzami does **not** decide
-   whether the fee is 5%, whether a campaign charges a fee, or any campaign rule.
+   whether the fee is 2%, whether a campaign charges a fee, or any campaign rule.
 
 4. **Safety bound, not pricing.** The `0..=5000` bps cap is an anti-abuse guardrail
    (a fat-finger 100000 bps is rejected), not the operator pricing a product.

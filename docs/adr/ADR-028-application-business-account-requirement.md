@@ -66,7 +66,7 @@ business_account_type ∈ { MERCHANT, APPLICATION, PLATFORM, NGO,
 ### DOA worked example
 
 - DOA is the Business Account `@doa` (type `APPLICATION`), KYB-approved.
-- The 5% DOA fee lands in `@doa`'s Business wallet (a valid fee destination).
+- The 2% DOA fee lands in `@doa`'s Business wallet (a valid fee destination).
 - The campaign net goes to the beneficiary `@banza`.
 - Banzami executes the settlement; DOA only **requests** it and consumes the
   `application_settlement.completed` webhook.

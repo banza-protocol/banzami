@@ -14,7 +14,7 @@ operator-side readiness checklist.
 |------|--------------------|---------|
 | One isolated balance per campaign | `CAMPAIGN` wallet account | `POST /v1/business/wallet-accounts` |
 | Donations land in the campaign balance | dynamic QR bound to the account | `wallet_account_id` on QR create |
-| Pay the campaign out (5% app fee + net to beneficiary) | settle FROM the account | `source_wallet_account_id` on `POST /v1/application-settlements` |
+| Pay the campaign out (2% app fee + net to beneficiary) | settle FROM the account | `source_wallet_account_id` on `POST /v1/application-settlements` |
 | Know when a settlement finished | webhook | `application_settlement.completed` / `.failed` / `.cancelled` |
 | Operator can see campaign balances | read-only admin | `GET /admin/v1/wallets/{id}/accounts` |
 
@@ -31,7 +31,7 @@ operator-side readiness checklist.
                           fee_destination_banza_name:"@doa", application_fee_bps:500,
                           reference_type:"DOA_CAMPAIGN", reference_id:<campaign_id>,
                           idempotency_key:<...>}
-                         → 5% to @doa, net to the beneficiary, only the campaign account debited
+                         → 2% to @doa, net to the beneficiary, only the campaign account debited
 4. mark SETTLED       → on application_settlement.completed webhook
 ```
 
@@ -42,7 +42,7 @@ operator-side readiness checklist.
   computes them.
 - **No amounts on settlement.** The gross is the campaign account's balance, read
   by the operator. DOA never sends an amount. DOA defines its own fee rate
-  (`application_fee_bps`, e.g. 500 = 5%, ADR-029); the operator computes the fee
+  (`application_fee_bps`, e.g. 200 = 2%, ADR-029); the operator computes the fee
   from the real balance and **never** uses an operator `pricing_rule` for it.
 - **DOA never sees ledger account ids.** It references `wallet_id` /
   `wallet_account_id` only.
@@ -56,7 +56,7 @@ DOA is a monetised application, so it MUST exist as a Banzami Business Account:
   at onboarding and copied on KYB approval).
 - **KYB approved** and an **active wallet** — this is the fee destination.
 
-The Application Settlement guard is fail-closed: if the 5% fee destination is not a
+The Application Settlement guard is fail-closed: if the 2% fee destination is not a
 KYB-approved `APPLICATION`/`PLATFORM` Business Account, the settlement is **rejected**
 (`FEE_DESTINATION_*` errors). So DOA cannot take a fee until `@doa` is properly set up.
 
