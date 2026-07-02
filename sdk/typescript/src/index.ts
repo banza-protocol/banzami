@@ -41,6 +41,7 @@ export type {
   Merchant,
   BusinessProfile,
   BusinessBlocker,
+  BusinessWarning,
   BusinessPricing,
   BusinessWallet,
   BusinessSettlement,

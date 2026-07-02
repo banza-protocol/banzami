@@ -231,6 +231,12 @@ export interface BusinessProfile {
   settlement:            BusinessSettlement;
   /** Machine-readable settlement blockers (empty when settlement-ready). */
   blockers:              BusinessBlocker[];
+  /**
+   * Advisory warnings that DO NOT block settlement, but flag a degraded
+   * integration the app should fix (e.g. no active webhook endpoint ⇒ the app
+   * relies on polling and may miss confirmations). Empty when nothing to advise.
+   */
+  warnings:              BusinessWarning[];
 }
 
 /** Settlement-readiness blocker reason codes returned by the operator. */
@@ -240,6 +246,16 @@ export type BusinessBlocker =
   | 'WALLET_MISSING'
   | 'WALLET_ACCOUNT_MISSING'
   | 'PRICING_MISSING'
+  | string;
+
+/**
+ * Advisory warning reason codes (never block settlement). WEBHOOK_ENDPOINT_MISSING:
+ * no active webhook endpoint is registered, so payment confirmations depend on
+ * client-side polling and may be missed — register a webhook (reconciliation is
+ * the backstop, not a substitute).
+ */
+export type BusinessWarning =
+  | 'WEBHOOK_ENDPOINT_MISSING'
   | string;
 
 export interface BusinessPricing {
