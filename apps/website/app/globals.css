@@ -282,3 +282,46 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bz-mega, .bz-chev, .bz-acc-chev, .bz-megacta, .bz-start { transition-duration: .001ms !important; }
 }
+
+/* ============================================================
+   Banzami Developers portal — faithful port of
+   design_handoff_banzami_developers (Banzami Developers.dc.html).
+   Screen-entry animation is transform-only (no opacity) so content
+   never becomes invisible if the animation is throttled.
+   ============================================================ */
+@keyframes bzpop { 0% { transform: translateY(9px); } 100% { transform: none; } }
+@keyframes bzbarg { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+
+.bz-view { animation: bzpop .34s cubic-bezier(.16, 1, .3, 1); }
+.bz-bar { transform-origin: bottom; animation: bzbarg .7s ease; }
+
+.bz-otp:focus { border-color: #b5101f !important; box-shadow: 0 0 0 4px rgba(181, 16, 31, .12) !important; }
+.bz-in:focus { border-color: #b5101f !important; box-shadow: 0 0 0 4px rgba(181, 16, 31, .10) !important; }
+
+.bz-navi { transition: background .16s, color .16s; }
+.bz-navi:hover { background: #fff4f3; }
+.bz-row:hover { background: #fffaf9; }
+.bz-cta { transition: transform .18s, box-shadow .18s, background .18s; }
+.bz-cta:hover { transform: translateY(-2px); box-shadow: 0 16px 30px -10px rgba(181, 16, 31, .5); }
+.bz-ghost { transition: background .16s, border-color .16s; }
+.bz-ghost:hover { background: #fff1f0; border-color: #f0c9c6; }
+.bz-icobtn { transition: background .16s; }
+.bz-icobtn:hover { background: #fff1f0; }
+.bz-side::-webkit-scrollbar { width: 0; }
+
+@media (max-width: 1080px) { .bz-2rail { grid-template-columns: 1fr !important; } }
+@media (max-width: 900px) {
+  .bz-kpi { grid-template-columns: repeat(2, 1fr) !important; }
+  .bz-2col { grid-template-columns: 1fr !important; }
+  .bz-docsgrid { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 720px) {
+  .bz-side { display: none !important; }
+  .bz-shellgrid { grid-template-columns: 1fr !important; }
+  .bz-topmeta { display: none !important; }
+}
+@media (max-width: 520px) { .bz-kpi { grid-template-columns: 1fr !important; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bz-view, .bz-bar { animation: none !important; }
+}
