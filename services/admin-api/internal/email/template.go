@@ -53,30 +53,6 @@ func roleLabel(role string) string {
 	}
 }
 
-// textDoc assembles a simple plain-text alternative.
-func textDoc(title string, paras []string, lines []infoRow, ctaLabel, url, safety string) string {
-	var b strings.Builder
-	b.WriteString("Banzami\n\n")
-	b.WriteString(title + "\n\n")
-	for _, p := range paras {
-		b.WriteString(p + "\n\n")
-	}
-	for _, l := range lines {
-		b.WriteString(l.Label + ": " + l.Value + "\n")
-	}
-	if len(lines) > 0 {
-		b.WriteString("\n")
-	}
-	if ctaLabel != "" && url != "" {
-		b.WriteString(ctaLabel + ": " + url + "\n\n")
-	}
-	if safety != "" {
-		b.WriteString(safety + "\n")
-	}
-	b.WriteString("\n— Banzami · Pagamentos modernos para África\n" + contactEmail + " · " + siteURL + "\n")
-	return b.String()
-}
-
 // ── 1. Comerciante Aprovado ──────────────────────────────────────────────────
 
 type MerchantApprovedData struct {
@@ -203,31 +179,6 @@ func RenderAdminPasswordReset(d AdminResetData) (html, text string) {
 	html = renderLayout(layoutOpts{Subtitle: "BANZADMIN", BadgeKind: "security", SafetyKind: "security",
 		Preheader: "Recupere a sua palavra-passe BANZADMIN.", Body: body})
 	text = textDoc("Recupere a sua palavra-passe", paras, nil, "Recuperar palavra-passe", d.ResetURL, footerSafety("security"))
-	return
-}
-
-// ── 6. Código de Verificação — Developers OTP ────────────────────────────────
-// Sent when someone requests access to the developer portal (login → "Continuar").
-// The 6-digit code is the whole action: no button, no fallback URL. The real
-// code comes from the backend; the placeholder in the design is not used.
-
-type DeveloperOTPData struct {
-	Code string // 6-digit verification code from the backend
-}
-
-func RenderDeveloperOTP(d DeveloperOTPData) (html, text string) {
-	intro := "Bem-vindo(a) de volta. Use o código abaixo para continuar o acesso à plataforma de developers Banzami — basta introduzi-lo no ecrã de verificação."
-	notice := "Este código expira em 10 minutos. Se não pediu este código, ignore este email com segurança."
-	body := emTitle("O seu código de verificação") +
-		emPara(intro) +
-		emOTPBoxes(d.Code) +
-		emNotice("clock", notice)
-	html = renderLayout(layoutOpts{Subtitle: "Developers", BadgeKind: "security", SafetyKind: "security",
-		Preheader: "O seu código de verificação Banzami Developers.", Body: body})
-	text = textDoc("O seu código de verificação",
-		[]string{intro, notice},
-		[]infoRow{{Label: "Código de verificação", Value: d.Code, Mono: true}},
-		"", "", footerSafety("security"))
 	return
 }
 

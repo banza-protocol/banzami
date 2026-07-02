@@ -11,8 +11,8 @@ func (s *Sender) MerchantApplicationApproved(to, businessName, handle, environme
 	html, text := RenderMerchantApproved(MerchantApprovedData{
 		MerchantName: businessName, Handle: handle, Environment: environment, ActivateURL: activationURL,
 	})
-	s.deliver(s.automated("application_approved", to,
-		"A sua conta Business está pronta", html, text, s.replyTo))
+	s.Deliver(s.Automated("application_approved", to,
+		"A sua conta Business está pronta", html, text, s.ReplyTo()))
 }
 
 // MerchantApplicationRejected — "Sobre o seu pedido Banzami". The merchant may
@@ -20,7 +20,7 @@ func (s *Sender) MerchantApplicationApproved(to, businessName, handle, environme
 // interface compatibility; the dossier copy does not display it.
 func (s *Sender) MerchantApplicationRejected(to, businessName, message, environment string) {
 	html, text := RenderMerchantRejected(MerchantRejectedData{Reason: message, Sandbox: envIsSandbox(environment)})
-	s.deliver(s.institutional("application_rejected", to,
+	s.Deliver(s.Institutional("application_rejected", to,
 		"Atualização sobre o seu pedido Banzami", html, text))
 }
 
@@ -28,7 +28,7 @@ func (s *Sender) MerchantApplicationRejected(to, businessName, message, environm
 // noreply@, no Reply-To. fullName is accepted for compatibility (not shown).
 func (s *Sender) AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL string) {
 	html, text := RenderAdminInvite(AdminInviteData{Role: role, InvitedBy: invitedBy, AcceptURL: inviteURL})
-	s.deliver(s.automated("admin_operator_invite", to,
+	s.Deliver(s.Automated("admin_operator_invite", to,
 		"Foi convidado para o BANZADMIN", html, text, ""))
 }
 
@@ -36,17 +36,8 @@ func (s *Sender) AdminOperatorInvite(to, fullName, role, invitedBy, inviteURL st
 // no Reply-To. fullName is accepted for compatibility (not shown).
 func (s *Sender) AdminPasswordReset(to, fullName, resetURL string) {
 	html, text := RenderAdminPasswordReset(AdminResetData{ResetURL: resetURL})
-	s.deliver(s.automated("admin_password_reset", to,
+	s.Deliver(s.Automated("admin_password_reset", to,
 		"Recupere a sua palavra-passe Banzami", html, text, ""))
-}
-
-// DeveloperVerificationCode — "O seu código de verificação". OTP for the
-// Developers portal login. Security → From noreply@, no Reply-To. The code is
-// the action; there is no link. Non-blocking; call in a goroutine.
-func (s *Sender) DeveloperVerificationCode(to, code string) {
-	html, text := RenderDeveloperOTP(DeveloperOTPData{Code: code})
-	s.deliver(s.automated("developer_verification_code", to,
-		"O seu código de verificação Banzami", html, text, ""))
 }
 
 // PaymentReceipt — "Recebeu um pagamento — <valor>". Automatic notification →
@@ -54,6 +45,6 @@ func (s *Sender) DeveloperVerificationCode(to, code string) {
 // (Not wired to a payment event yet — no such trigger exists in this service.)
 func (s *Sender) PaymentReceipt(to string, d ReceiptData) {
 	html, text := RenderReceipt(d)
-	s.deliver(s.automated("payment_receipt", to,
-		"Recebeu um pagamento — "+d.AmountText, html, text, s.replyTo))
+	s.Deliver(s.Automated("payment_receipt", to,
+		"Recebeu um pagamento — "+d.AmountText, html, text, s.ReplyTo()))
 }

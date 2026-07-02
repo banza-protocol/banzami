@@ -36,14 +36,14 @@ type resendPayload struct {
 	ReplyTo string   `json:"reply_to,omitempty"`
 }
 
-func (t *resendTransport) send(m message) error {
+func (t *resendTransport) send(m Message) error {
 	body, err := json.Marshal(resendPayload{
-		From:    fmt.Sprintf("%s <%s>", m.fromName, m.fromAddr),
-		To:      []string{m.to},
-		Subject: m.subject,
-		HTML:    m.html,
-		Text:    m.text,
-		ReplyTo: m.replyTo,
+		From:    fmt.Sprintf("%s <%s>", m.FromName, m.FromAddr),
+		To:      []string{m.To},
+		Subject: m.Subject,
+		HTML:    m.HTML,
+		Text:    m.Text,
+		ReplyTo: m.ReplyTo,
 	})
 	if err != nil {
 		return fmt.Errorf("marshal resend payload: %w", err)
@@ -68,8 +68,6 @@ func (t *resendTransport) send(m message) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode/100 != 2 {
-		// Surface only Resend's structured error message (safe — no secrets),
-		// bounded in size. Never return/log the raw API key or auth header.
 		var er struct {
 			Message string `json:"message"`
 			Name    string `json:"name"`
@@ -81,8 +79,6 @@ func (t *resendTransport) send(m message) error {
 		return fmt.Errorf("resend status %d", resp.StatusCode)
 	}
 
-	// Drain the success body (contains only a non-sensitive email id) so the
-	// connection can be reused; do not log it.
 	_, _ = io.Copy(io.Discard, io.LimitReader(resp.Body, 2048))
 	return nil
 }

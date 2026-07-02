@@ -20,18 +20,18 @@ func (t *smtpTransport) configured() bool {
 	return t.host != ""
 }
 
-func (t *smtpTransport) send(m message) error {
+func (t *smtpTransport) send(m Message) error {
 	headers := []string{
-		fmt.Sprintf("From: %s <%s>", m.fromName, m.fromAddr),
-		fmt.Sprintf("To: %s", m.to),
-		fmt.Sprintf("Subject: %s", m.subject),
+		fmt.Sprintf("From: %s <%s>", m.FromName, m.FromAddr),
+		fmt.Sprintf("To: %s", m.To),
+		fmt.Sprintf("Subject: %s", m.Subject),
 	}
-	if m.replyTo != "" {
-		headers = append(headers, fmt.Sprintf("Reply-To: %s", m.replyTo))
+	if m.ReplyTo != "" {
+		headers = append(headers, fmt.Sprintf("Reply-To: %s", m.ReplyTo))
 	}
 	headers = append(headers, "MIME-Version: 1.0")
 
-	if m.text != "" {
+	if m.Text != "" {
 		// multipart/alternative: plain-text first, then HTML.
 		const boundary = "bz-alt-boundary-9f3a"
 		headers = append(headers,
@@ -40,12 +40,12 @@ func (t *smtpTransport) send(m message) error {
 			"--"+boundary,
 			`Content-Type: text/plain; charset="UTF-8"`,
 			"",
-			m.text,
+			m.Text,
 			"",
 			"--"+boundary,
 			`Content-Type: text/html; charset="UTF-8"`,
 			"",
-			m.html,
+			m.HTML,
 			"",
 			"--"+boundary+"--",
 		)
@@ -53,7 +53,7 @@ func (t *smtpTransport) send(m message) error {
 		headers = append(headers,
 			`Content-Type: text/html; charset="UTF-8"`,
 			"",
-			m.html,
+			m.HTML,
 		)
 	}
 	msg := strings.Join(headers, "\r\n")
@@ -76,10 +76,10 @@ func (t *smtpTransport) send(m message) error {
 		if err := client.Auth(auth); err != nil {
 			return fmt.Errorf("smtp auth: %w", err)
 		}
-		if err := client.Mail(m.fromAddr); err != nil {
+		if err := client.Mail(m.FromAddr); err != nil {
 			return err
 		}
-		if err := client.Rcpt(m.to); err != nil {
+		if err := client.Rcpt(m.To); err != nil {
 			return err
 		}
 		w, err := client.Data()
@@ -92,5 +92,5 @@ func (t *smtpTransport) send(m message) error {
 		return w.Close()
 	}
 
-	return smtp.SendMail(addr, auth, m.fromAddr, []string{m.to}, []byte(msg))
+	return smtp.SendMail(addr, auth, m.FromAddr, []string{m.To}, []byte(msg))
 }

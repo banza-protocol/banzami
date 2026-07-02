@@ -12,44 +12,46 @@ type roundTripFunc func(*http.Request) (*http.Response, error)
 
 func (f roundTripFunc) RoundTrip(r *http.Request) (*http.Response, error) { return f(r) }
 
-func newCapturingSender(t *testing.T, captured *[]resendPayload, gotAuth *string) *Sender {
+// capturedMsg mirrors the Resend JSON payload — a local view so the test does
+// not depend on the shared module's internal types.
+type capturedMsg struct {
+	From    string   `json:"from"`
+	To      []string `json:"to"`
+	Subject string   `json:"subject"`
+	HTML    string   `json:"html"`
+	Text    string   `json:"text"`
+	ReplyTo string   `json:"reply_to"`
+}
+
+// newCapturingSender builds a real sender whose Resend transport is fed a
+// capturing HTTP client (via the exported Config.HTTPClient hook) — no network.
+func newCapturingSender(t *testing.T, captured *[]capturedMsg, gotAuth *string) *Sender {
 	t.Helper()
-	s := NewSender(Config{
-		Provider: "resend", ResendAPIKey: "test-key", DryRun: false,
-		FromName: "Banzami", FromAddress: "contact@banzami.com", ReplyTo: "contact@banzami.com",
-		NoreplyName: "Banzami", NoreplyAddress: "noreply@banzami.com",
-	})
-	rt := s.tx.(*resendTransport)
-	rt.client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+	client := &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		*gotAuth = r.Header.Get("Authorization")
-		var p resendPayload
+		var p capturedMsg
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			t.Fatalf("decode payload: %v", err)
 		}
 		*captured = append(*captured, p)
 		return &http.Response{StatusCode: 200, Body: io.NopCloser(strings.NewReader(`{"id":"x"}`)), Header: make(http.Header)}, nil
 	})}
-	return s
+	return NewSender(Config{
+		Provider: "resend", ResendAPIKey: "test-key", DryRun: false,
+		FromName: "Banzami", FromAddress: "contact@banzami.com", ReplyTo: "contact@banzami.com",
+		NoreplyName: "Banzami", NoreplyAddress: "noreply@banzami.com",
+		HTTPClient: client,
+	})
 }
 
-func TestProviderSelection(t *testing.T) {
-	if _, ok := NewSender(Config{Provider: "resend", ResendAPIKey: "k"}).tx.(*resendTransport); !ok {
-		t.Error("explicit resend should select resendTransport")
-	}
-	if _, ok := NewSender(Config{SMTPHost: "smtp.x"}).tx.(*smtpTransport); !ok {
-		t.Error("no resend key should default to smtpTransport")
-	}
-}
-
-// renderAll returns the HTML of every template for content assertions.
+// renderAll returns the HTML of every domain template for content assertions.
 func renderAll() map[string]string {
 	a, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Mercado Central, Lda.", Handle: "mercadocentral", Environment: "SANDBOX", ActivateURL: "https://business.banzami.com/activate?token=ABC"})
 	r, _ := RenderMerchantRejected(MerchantRejectedData{})
 	i, _ := RenderAdminInvite(AdminInviteData{Role: "SUPER_ADMIN", InvitedBy: "security@banzami.com", AcceptURL: "https://admin.banzami.com/invite/accept?token=DEF"})
 	rs, _ := RenderAdminPasswordReset(AdminResetData{ResetURL: "https://admin.banzami.com/reset?token=GHI"})
 	rc, _ := RenderReceipt(ReceiptData{FromHandle: "joaomanuel", ToHandle: "mercadocentral", Reference: "BZM-7F3A-92K1", DateText: "27 jun 2026, 14:32", AmountText: "Kz 25.000,00", ReceiptURL: "https://banzami.com/r/BZM-7F3A-92K1"})
-	o, _ := RenderDeveloperOTP(DeveloperOTPData{Code: "482915"})
-	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs, "receipt": rc, "otp": o}
+	return map[string]string{"approved": a, "rejected": r, "invite": i, "reset": rs, "receipt": rc}
 }
 
 func TestTemplatesContainExpectedCopy(t *testing.T) {
@@ -60,7 +62,6 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 		"invite":   {"Foi convidado para o BANZADMIN", "Criar palavra-passe", "Administrador", "security@banzami.com", "7 dias"},
 		"reset":    {"Recupere a sua palavra-passe", "Recuperar palavra-passe", "30 minutos"},
 		"receipt":  {"Recebeu um pagamento", "Kz 25.000,00", "Recebido de @joaomanuel", "Descarregar comprovativo", "Confirmado"},
-		"otp":      {"O seu código de verificação", "Developers", "Código de verificação", "10 minutos"},
 	}
 	for name, musts := range cases {
 		html := all[name]
@@ -69,7 +70,6 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 				t.Errorf("%s: missing %q", name, m)
 			}
 		}
-		// shared anatomy
 		for _, m := range []string{"Banzami", "Pagamentos modernos para África", "banzami.com"} {
 			if !strings.Contains(html, m) {
 				t.Errorf("%s: missing shared anatomy %q", name, m)
@@ -78,9 +78,7 @@ func TestTemplatesContainExpectedCopy(t *testing.T) {
 	}
 }
 
-// TestEmailRobustHTML enforces the handoff's email-compatibility rules: Nunito
-// stack, rounded panels with border-collapse:separate (no square corners), and
-// URL fallbacks that wrap.
+// TestEmailRobustHTML enforces the handoff's email-compatibility rules.
 func TestEmailRobustHTML(t *testing.T) {
 	all := renderAll()
 	for name, html := range all {
@@ -94,13 +92,11 @@ func TestEmailRobustHTML(t *testing.T) {
 			t.Errorf("%s: must not use border-collapse:collapse (square corners)", name)
 		}
 	}
-	// templates with an action link must show a wrapping URL fallback
 	for _, name := range []string{"approved", "invite", "reset", "receipt"} {
 		if !strings.Contains(all[name], "overflow-wrap:anywhere") {
 			t.Errorf("%s: URL fallback must use overflow-wrap:anywhere", name)
 		}
 	}
-	// no inline SVG (Gmail strips it); icons are hosted PNGs
 	for name, html := range all {
 		if strings.Contains(html, "<svg") {
 			t.Errorf("%s: must not use inline SVG (Gmail strips it)", name)
@@ -124,7 +120,7 @@ func TestTemplatesHaveNoSecrets(t *testing.T) {
 }
 
 func TestSenderIdentitiesAndReplyTo(t *testing.T) {
-	var captured []resendPayload
+	var captured []capturedMsg
 	var auth string
 	s := newCapturingSender(t, &captured, &auth)
 
@@ -161,44 +157,8 @@ func TestSenderIdentitiesAndReplyTo(t *testing.T) {
 	}
 }
 
-func TestDeveloperVerificationCode(t *testing.T) {
-	var captured []resendPayload
-	var auth string
-	s := newCapturingSender(t, &captured, &auth)
-
-	s.DeveloperVerificationCode("dev@x.test", "482915")
-
-	if len(captured) != 1 {
-		t.Fatalf("expected 1 message, got %d", len(captured))
-	}
-	m := captured[0]
-	// Security email → From noreply@, no Reply-To (no link, code is the action).
-	if m.From != "Banzami <noreply@banzami.com>" {
-		t.Errorf("From = %q, want noreply@", m.From)
-	}
-	if m.ReplyTo != "" {
-		t.Errorf("ReplyTo = %q, want empty", m.ReplyTo)
-	}
-	if m.Subject != "O seu código de verificação Banzami" {
-		t.Errorf("Subject = %q", m.Subject)
-	}
-	if !strings.Contains(m.HTML, "O seu código de verificação") {
-		t.Error("HTML must contain the title")
-	}
-	// The six digits render in separate boxes, so the code is not contiguous in
-	// HTML; each digit must still be present, and the plain-text carries it whole.
-	for _, d := range []string{"4", "8", "2", "9", "1", "5"} {
-		if !strings.Contains(m.HTML, ">"+d+"</td>") {
-			t.Errorf("HTML missing digit box for %q", d)
-		}
-	}
-	if !strings.Contains(m.Text, "482915") {
-		t.Error("plain-text alternative must contain the code")
-	}
-}
-
 func TestSubjects(t *testing.T) {
-	var captured []resendPayload
+	var captured []capturedMsg
 	var auth string
 	s := newCapturingSender(t, &captured, &auth)
 	s.MerchantApplicationApproved("m@x.test", "Loja", "loja", "LIVE", "https://x/a?token=Z")
@@ -226,11 +186,11 @@ func TestDryRunDoesNotCallTransport(t *testing.T) {
 		Provider: "resend", ResendAPIKey: "k", DryRun: true,
 		FromName: "Banzami", FromAddress: "contact@banzami.com", ReplyTo: "contact@banzami.com",
 		NoreplyName: "Banzami", NoreplyAddress: "noreply@banzami.com",
+		HTTPClient: &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
+			called = true
+			return nil, http.ErrUseLastResponse
+		})},
 	})
-	s.tx.(*resendTransport).client = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
-		called = true
-		return nil, http.ErrUseLastResponse
-	})}
 	s.AdminPasswordReset("u@x.test", "User", "https://admin.banzami.com/reset?token=secret")
 	if called {
 		t.Error("dry-run must not invoke the transport")
@@ -258,7 +218,6 @@ func TestApprovedEmailEnvironment(t *testing.T) {
 		t.Errorf("live email must NOT contain the sandbox notice")
 	}
 
-	// Fail-safe: an empty/unknown environment is treated as SANDBOX (never production).
 	fs, _ := RenderMerchantApproved(MerchantApprovedData{MerchantName: "Loja", Handle: "loja", Environment: "", ActivateURL: "https://x/a"})
 	if strings.Contains(fs, "Produção") || !strings.Contains(fs, "Ambiente SANDBOX") {
 		t.Errorf("empty environment must fail-safe to SANDBOX")
