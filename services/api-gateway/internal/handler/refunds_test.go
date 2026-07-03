@@ -27,7 +27,7 @@ func (f *fakeRefundSvc) Create(_ context.Context, req service.CreateRefundReques
 		MerchantID: req.MerchantID, AmountMinor: req.AmountMinor, Currency: req.Currency, Status: "SUCCEEDED",
 	}, nil
 }
-func (f *fakeRefundSvc) Get(_ context.Context, _ string) (*service.Refund, error) {
+func (f *fakeRefundSvc) Get(_ context.Context, _, _ string) (*service.Refund, error) {
 	return nil, service.ErrRefundNotFound
 }
 func (f *fakeRefundSvc) List(_ context.Context, _, _ string, _ int) (*service.RefundPage, error) {

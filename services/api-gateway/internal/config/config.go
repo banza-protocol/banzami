@@ -36,6 +36,12 @@ type Config struct {
 	// only by admin-api). Empty → /internal endpoints are disabled (fail closed).
 	InternalAPIKey string
 
+	// CoreInternalKey authenticates THIS gateway to Core's protected internal
+	// route groups (refunds, F4). Sent as the X-Internal-Key header; Core verifies
+	// it against CORE_INTERNAL_KEY. A DISTINCT credential from InternalAPIKey —
+	// the gateway→Core boundary is separate from the admin-api→gateway boundary.
+	CoreInternalKey string
+
 	// KYB document storage (Track 3). All empty → storage disabled and the
 	// document endpoints respond 503 STORAGE_NOT_CONFIGURED (no startup panic).
 	KYBStorageProvider     string // "r2" | "s3"
@@ -96,6 +102,9 @@ func Load() (*Config, error) {
 	}
 	if v := os.Getenv("INTERNAL_API_KEY"); v != "" {
 		cfg.InternalAPIKey = v
+	}
+	if v := os.Getenv("CORE_INTERNAL_KEY"); v != "" {
+		cfg.CoreInternalKey = v
 	}
 	if cfg.CoreAPIURL == "" {
 		cfg.CoreAPIURL = "http://127.0.0.1:8081"

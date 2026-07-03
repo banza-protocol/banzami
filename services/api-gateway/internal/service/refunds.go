@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 )
 
@@ -68,7 +69,7 @@ type CreateRefundRequest struct {
 
 type RefundService interface {
 	Create(ctx context.Context, req CreateRefundRequest) (*Refund, error)
-	Get(ctx context.Context, id string) (*Refund, error)
+	Get(ctx context.Context, id, merchantID string) (*Refund, error)
 	List(ctx context.Context, sourceID, merchantID string, limit int) (*RefundPage, error)
 }
 
@@ -96,7 +97,8 @@ func (s *CoreApiRefundService) Create(ctx context.Context, req CreateRefundReque
 		"reason":          req.Reason,
 		"idempotency_key": req.IdempotencyKey,
 	}
-	status, raw, err := s.client.postRaw(ctx, "/internal/v1/refunds", body)
+	// Explicit service-auth opt-in: ONLY the Refund boundary carries CORE_INTERNAL_KEY.
+	status, raw, err := s.client.postRaw(ctx, "/internal/v1/refunds", body, s.client.internalAuth())
 	if err != nil {
 		return nil, err
 	}
@@ -116,9 +118,13 @@ func (s *CoreApiRefundService) Create(ctx context.Context, req CreateRefundReque
 	return &resp, nil
 }
 
-func (s *CoreApiRefundService) Get(ctx context.Context, id string) (*Refund, error) {
+func (s *CoreApiRefundService) Get(ctx context.Context, id, merchantID string) (*Refund, error) {
+	// Tenant-scoped read (F1): merchant_id is derived from the verified principal
+	// and forwarded to Core, which returns the identical not-found for a
+	// non-existent or cross-tenant refund.
 	var resp Refund
-	if err := s.client.get(ctx, "/internal/v1/refunds/"+id, &resp); err != nil {
+	path := "/internal/v1/refunds/" + id + "?merchant_id=" + url.QueryEscape(merchantID)
+	if err := s.client.get(ctx, path, &resp, s.client.internalAuth()); err != nil {
 		if errors.Is(err, ErrNotFound) {
 			return nil, ErrRefundNotFound
 		}
@@ -139,7 +145,7 @@ func (s *CoreApiRefundService) List(ctx context.Context, sourceID, merchantID st
 		path += "&merchant_id=" + merchantID
 	}
 	var resp RefundPage
-	if err := s.client.get(ctx, path, &resp); err != nil {
+	if err := s.client.get(ctx, path, &resp, s.client.internalAuth()); err != nil {
 		return nil, err
 	}
 	return &resp, nil

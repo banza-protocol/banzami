@@ -32,17 +32,39 @@ type coreErrBody struct {
 type CoreApiClient struct {
 	baseURL    string
 	httpClient *http.Client
+	// coreInternalKey authenticates this gateway to Core's protected internal
+	// route groups (sent as X-Internal-Key). Empty → header omitted (Core's
+	// service-authed groups then fail closed).
+	coreInternalKey string
 }
 
-func NewCoreApiClient(baseURL string) *CoreApiClient {
+func NewCoreApiClient(baseURL, coreInternalKey string) *CoreApiClient {
 	return &CoreApiClient{
-		baseURL: baseURL,
+		baseURL:         baseURL,
+		coreInternalKey: coreInternalKey,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 			// Propagate the flow's correlation_id to core-api so Go and Rust logs
 			// can be joined end-to-end.
 			Transport: obs.NewPropagationTransport(nil),
 		},
+	}
+}
+
+// coreReqOption mutates an outgoing Core request before it is sent. Reusable,
+// but each option must be passed EXPLICITLY per call — nothing is attached by
+// default, so a credential can never travel to an unrelated route group.
+type coreReqOption func(*http.Request)
+
+// internalAuth is the EXPLICIT opt-in that attaches the Gateway→Core service
+// credential (X-Internal-Key). It is applied ONLY at the Refund service boundary
+// (create/get/list); no other Gateway→Core traffic carries CORE_INTERNAL_KEY.
+// The value is never logged (only method/path/status are traced).
+func (c *CoreApiClient) internalAuth() coreReqOption {
+	return func(req *http.Request) {
+		if c.coreInternalKey != "" {
+			req.Header.Set("X-Internal-Key", c.coreInternalKey)
+		}
 	}
 }
 
@@ -1151,7 +1173,7 @@ func (s *CoreApiComplianceService) GetMerchantStatus(ctx context.Context, mercha
 // handler forward the core's structured responses (e.g. KYC_REQUIRED,
 // INSUFFICIENT_FUNDS, QR_ALREADY_USED) to the caller unchanged. Only a transport
 // failure returns a non-nil error.
-func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any) (int, json.RawMessage, error) {
+func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any, opts ...coreReqOption) (int, json.RawMessage, error) {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return 0, nil, fmt.Errorf("core-api marshal: %w", err)
@@ -1161,6 +1183,9 @@ func (c *CoreApiClient) postRaw(ctx context.Context, path string, body any) (int
 		return 0, nil, fmt.Errorf("core-api request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
+	for _, o := range opts {
+		o(req)
+	}
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -1219,10 +1244,13 @@ func (c *CoreApiClient) post(ctx context.Context, path string, body any, out any
 	return c.do(req, out)
 }
 
-func (c *CoreApiClient) get(ctx context.Context, path string, out any) error {
+func (c *CoreApiClient) get(ctx context.Context, path string, out any, opts ...coreReqOption) error {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, c.baseURL+path, nil)
 	if err != nil {
 		return fmt.Errorf("core-api request: %w", err)
+	}
+	for _, o := range opts {
+		o(req)
 	}
 	return c.do(req, out)
 }

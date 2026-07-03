@@ -144,8 +144,15 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 // GET /v1/refunds/{id}
 func (h *RefundHandler) Get(w http.ResponseWriter, r *http.Request) {
+	// Tenant scope (F1): merchant_id comes ONLY from the verified JWT principal —
+	// never from the public request — and is passed to Core, which scopes the read.
+	principal, ok := middleware.GetPrincipal(r.Context())
+	if !ok || principal.MerchantID == "" {
+		apierror.Respond(w, r, http.StatusUnauthorized, "UNAUTHORIZED", "valid merchant credentials required")
+		return
+	}
 	id := chi.URLParam(r, "id")
-	refund, err := h.svc.Get(r.Context(), id)
+	refund, err := h.svc.Get(r.Context(), id, principal.MerchantID)
 	if err != nil {
 		if errors.Is(err, service.ErrRefundNotFound) {
 			apierror.Respond(w, r, http.StatusNotFound, "NOT_FOUND", "refund not found")

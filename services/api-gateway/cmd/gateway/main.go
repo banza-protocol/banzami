@@ -61,7 +61,7 @@ func main() {
 	}
 
 	// Real core-api client — delegates all financial operations to the Rust core.
-	coreClient := service.NewCoreApiClient(cfg.CoreAPIURL)
+	coreClient := service.NewCoreApiClient(cfg.CoreAPIURL, cfg.CoreInternalKey)
 
 	// Webhook service: use PostgreSQL-backed implementation when DATABASE_URL is
 	// set; fall back to the in-memory stub for local dev without a full stack.
