@@ -15,6 +15,13 @@ const nextConfig = {
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
+  async redirects() {
+    // /docs is the public shortcut to the Developer Documentation (canonical at
+    // /developers/docs). The URL hash (e.g. #reembolsos) is preserved by the browser.
+    return [
+      { source: '/docs', destination: '/developers/docs', permanent: true },
+    ];
+  },
 };
 
 export default nextConfig;
