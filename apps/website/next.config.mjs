@@ -15,13 +15,10 @@ const nextConfig = {
   async headers() {
     return [{ source: '/(.*)', headers: securityHeaders }];
   },
-  async redirects() {
-    // /docs is the public shortcut to the Developer Documentation (canonical at
-    // /developers/docs). The URL hash (e.g. #reembolsos) is preserved by the browser.
-    return [
-      { source: '/docs', destination: '/developers/docs', permanent: true },
-    ];
-  },
+  // NOTE: docs URL routing is intentionally NOT done here. next.config redirects
+  // run before middleware and are host-agnostic, which would invert the canonical
+  // (/docs) on the console host and loop with the host-aware middleware. All
+  // docs/console host routing lives in middleware.ts + lib/console-routing.ts.
 };
 
 export default nextConfig;

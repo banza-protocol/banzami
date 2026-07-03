@@ -12,11 +12,32 @@
 
 export const CONSOLE_HOST = 'developers.banzami.com';
 
+// Marketing hosts (banzami.com + its www alias). The Developer Documentation is
+// canonical on the console host only; on these hosts any docs URL is redirected
+// there so the marketing site never becomes a second canonical docs host.
+export const MARKETING_HOSTS = ['banzami.com', 'www.banzami.com'];
+
+// The single canonical documentation URL.
+export const CANONICAL_DOCS_URL = 'https://developers.banzami.com/docs';
+
 // Physical Next segment the console pages live under.
 const INTERNAL_PREFIX = '/developers';
 
 // What "/" renders on the console host (the authenticated dashboard).
 const ROOT_INTERNAL = '/developers/dashboard';
+
+/**
+ * True for any documentation URL — the clean canonical /docs and the legacy
+ * prefixed /developers/docs (and deep paths under it). Used to consolidate docs
+ * traffic on marketing hosts to the canonical console URL.
+ */
+export function isDocsPath(pathname: string): boolean {
+  return (
+    pathname === '/docs' ||
+    pathname === INTERNAL_PREFIX + '/docs' ||
+    pathname.startsWith(INTERNAL_PREFIX + '/docs/')
+  );
+}
 
 /** True for the legacy prefixed console URLs that must permanently redirect. */
 export function isLegacyConsolePath(pathname: string): boolean {

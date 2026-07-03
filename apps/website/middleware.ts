@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import {
   CONSOLE_HOST,
+  MARKETING_HOSTS,
+  CANONICAL_DOCS_URL,
+  isDocsPath,
   isLegacyConsolePath,
   legacyToClean,
   cleanToInternal,
@@ -25,21 +28,34 @@ import {
 
 export function middleware(req: NextRequest): NextResponse {
   const host = (req.headers.get('host') ?? '').split(':')[0].toLowerCase();
-  if (host !== CONSOLE_HOST) return NextResponse.next();
-
   const url = req.nextUrl;
 
-  // 1) Legacy prefixed console URL → 308 permanent redirect to the clean URL.
-  if (isLegacyConsolePath(url.pathname)) {
+  // Console host: legacy /developers/* → clean (308); clean host-root → rewrite.
+  if (host === CONSOLE_HOST) {
+    // 1) Legacy prefixed console URL → 308 permanent redirect to the clean URL.
+    if (isLegacyConsolePath(url.pathname)) {
+      const dest = url.clone();
+      dest.pathname = legacyToClean(url.pathname); // query string preserved by clone()
+      return NextResponse.redirect(dest, 308);
+    }
+    // 2) Clean host-root URL → internal rewrite to the physical console page.
     const dest = url.clone();
-    dest.pathname = legacyToClean(url.pathname); // query string preserved by clone()
-    return NextResponse.redirect(dest, 308);
+    dest.pathname = cleanToInternal(url.pathname);
+    return NextResponse.rewrite(dest);
   }
 
-  // 2) Clean host-root URL → internal rewrite to the physical console page.
-  const dest = url.clone();
-  dest.pathname = cleanToInternal(url.pathname);
-  return NextResponse.rewrite(dest);
+  // Marketing hosts (banzami.com / www): the documentation is canonical on the
+  // console host only. Consolidate any docs URL (clean /docs or legacy
+  // /developers/docs) to https://developers.banzami.com/docs with a 308, so the
+  // marketing host never renders a duplicated / second-canonical docs experience.
+  // The browser preserves the original URL fragment (e.g. #reembolsos). Every
+  // other marketing path is untouched.
+  if (MARKETING_HOSTS.includes(host) && isDocsPath(url.pathname)) {
+    return NextResponse.redirect(CANONICAL_DOCS_URL, 308);
+  }
+
+  // Every other host/path is a pass-through — the marketing site is untouched.
+  return NextResponse.next();
 }
 
 export const config = {
