@@ -628,6 +628,21 @@ export interface PaymentSession {
   expires_at: string | null;
   created_at: string;
   interfaces: PaymentSessionInterface[];
+  /**
+   * Merchant-safe refundable-source reference (Banzami operator extension).
+   * Present only after the session's payment has settled; carries the PUBLIC
+   * typed source you feed straight into `createRefund`. Absent (undefined)
+   * before payment. `source_type` is `ACQUIRING_PAYMENT` | `WALLET_PAYMENT` —
+   * never an internal token. NOT a BANZA-normative field (see ADR-045 draft).
+   */
+  refund_source?: RefundSource;
+}
+
+/** The typed source pair returned by refundable-source discovery and accepted
+ *  by {@link CreateRefundParams}. */
+export interface RefundSource {
+  source_type: RefundSourceType;
+  source_id: string;
 }
 
 export interface CreatePaymentSessionParams {

@@ -57,6 +57,8 @@ export type {
   WebhookEventType,
   Refund,
   RefundStatus,
+  RefundSourceType,
+  RefundSource,
   CreateRefundParams,
   Dispute,
   DisputeStatus,
