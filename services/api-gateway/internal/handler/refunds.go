@@ -36,6 +36,18 @@ func coreSourceType(public string) (string, bool) {
 	}
 }
 
+// publicizeRefund normalizes a Core refund into the PUBLIC vocabulary before it
+// leaves the gateway. The Core persists TRANSACTION as the bounded acquiring
+// compatibility token (pending BANZA clarification); the public API only ever
+// exposes ACQUIRING_PAYMENT / WALLET_PAYMENT. The internal token is never
+// surfaced to developers. WALLET_PAYMENT passes through unchanged. This maps only
+// the response representation — Core persistence is untouched.
+func publicizeRefund(r *service.Refund) {
+	if r != nil && r.SourceType == "TRANSACTION" {
+		r.SourceType = sourceAcquiring
+	}
+}
+
 type RefundHandler struct {
 	svc service.RefundService
 }
@@ -126,6 +138,7 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Proof-state correction is owned by the Core (ADR-034): it flips the source
 	// proof to REVERSED only when cumulative restitution reaches the captured
 	// amount. The gateway deliberately does not touch the proof here.
+	publicizeRefund(refund)
 	respond(w, http.StatusCreated, refund)
 }
 
@@ -141,6 +154,7 @@ func (h *RefundHandler) Get(w http.ResponseWriter, r *http.Request) {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not fetch refund")
 		return
 	}
+	publicizeRefund(refund)
 	respond(w, http.StatusOK, refund)
 }
 
@@ -170,6 +184,11 @@ func (h *RefundHandler) List(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "could not list refunds")
 		return
+	}
+	if page != nil {
+		for _, rf := range page.Data {
+			publicizeRefund(rf)
+		}
 	}
 	respond(w, http.StatusOK, page)
 }

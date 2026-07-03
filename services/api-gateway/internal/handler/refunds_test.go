@@ -113,6 +113,55 @@ func TestRefundCreate_MapsPublicSourceToCore(t *testing.T) {
 	})
 }
 
+func sourceTypeOf(w *httptest.ResponseRecorder) string {
+	var r struct {
+		SourceType string `json:"source_type"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &r)
+	return r.SourceType
+}
+
+// The public response must speak the public vocabulary only: the Core persistence
+// token TRANSACTION is normalized back to ACQUIRING_PAYMENT and is never surfaced
+// to developers. WALLET_PAYMENT is unchanged. Core persistence is untouched — the
+// request forwarded to Core still carries the TRANSACTION token.
+func TestRefundCreate_NormalizesPublicResponseVocabulary(t *testing.T) {
+	t.Run("ACQUIRING_PAYMENT in → ACQUIRING_PAYMENT out (never TRANSACTION)", func(t *testing.T) {
+		f := &fakeRefundSvc{} // fake echoes CoreSourceType (TRANSACTION) as the response source_type
+		w, r := refundReq("m1", `{"source_type":"ACQUIRING_PAYMENT","source_id":"tx-1","amount_minor":100,"currency":"AOA","idempotency_key":"k1"}`)
+		NewRefundHandler(f).Create(w, r)
+		if got := sourceTypeOf(w); got != "ACQUIRING_PAYMENT" {
+			t.Fatalf("response source_type = %q, want ACQUIRING_PAYMENT", got)
+		}
+		if strings.Contains(w.Body.String(), "TRANSACTION") {
+			t.Fatalf("public response leaked the internal TRANSACTION token: %s", w.Body.String())
+		}
+		if f.got.CoreSourceType != "TRANSACTION" {
+			t.Fatalf("Core persistence changed: forwarded source_type = %q, want TRANSACTION", f.got.CoreSourceType)
+		}
+	})
+	t.Run("WALLET_PAYMENT in → WALLET_PAYMENT out (unchanged)", func(t *testing.T) {
+		f := &fakeRefundSvc{}
+		w, r := refundReq("m1", `{"source_type":"WALLET_PAYMENT","source_id":"wp-1","amount_minor":100,"currency":"AOA","idempotency_key":"k2"}`)
+		NewRefundHandler(f).Create(w, r)
+		if got := sourceTypeOf(w); got != "WALLET_PAYMENT" {
+			t.Fatalf("response source_type = %q, want WALLET_PAYMENT", got)
+		}
+	})
+	t.Run("idempotent replay returns the same normalized public source type", func(t *testing.T) {
+		body := `{"source_type":"ACQUIRING_PAYMENT","source_id":"tx-9","amount_minor":100,"currency":"AOA","idempotency_key":"same"}`
+		first := &fakeRefundSvc{}
+		w1, r1 := refundReq("m1", body)
+		NewRefundHandler(first).Create(w1, r1)
+		second := &fakeRefundSvc{}
+		w2, r2 := refundReq("m1", body)
+		NewRefundHandler(second).Create(w2, r2)
+		if a, b := sourceTypeOf(w1), sourceTypeOf(w2); a != "ACQUIRING_PAYMENT" || b != "ACQUIRING_PAYMENT" {
+			t.Fatalf("replay source types = %q,%q, want ACQUIRING_PAYMENT both", a, b)
+		}
+	})
+}
+
 // A core rejection (ceiling/eligibility/authz/not-found) must surface with its
 // real status + code, not a generic 500.
 func TestRefundCreate_PropagatesCoreRejection(t *testing.T) {
