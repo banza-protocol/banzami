@@ -309,11 +309,17 @@ body {
 .bz-icobtn:hover { background: #fff1f0; }
 .bz-side::-webkit-scrollbar { width: 0; }
 
+/* Docs sidebar: sticky beside the article on desktop. */
+.bz-docsnav { position: sticky; top: 20px; }
+
 @media (max-width: 1080px) { .bz-2rail { grid-template-columns: 1fr !important; } }
 @media (max-width: 900px) {
   .bz-kpi { grid-template-columns: repeat(2, 1fr) !important; }
   .bz-2col { grid-template-columns: 1fr !important; }
   .bz-docsgrid { grid-template-columns: 1fr !important; }
+  /* Single column: the nav is normal-flow above the article — never sticky, so it
+     can never overlap the scrolling documentation content. */
+  .bz-docsnav { position: static !important; top: auto !important; margin-bottom: 18px; }
 }
 @media (max-width: 720px) {
   .bz-side { display: none !important; }

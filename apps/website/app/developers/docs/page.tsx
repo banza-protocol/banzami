@@ -90,7 +90,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Reembolsos',
     desc: 'Devolva pagamentos processados.',
     href: '#reembolsos',
-    tone: 'val',
+    tone: 'ok',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M20 11a8 8 0 10-1 5" stroke={RED} strokeWidth="1.8" strokeLinecap="round" />
@@ -278,8 +278,9 @@ export default function DocsPage() {
 
       <main style={{ flex: 1, maxWidth: 1200, width: '100%', margin: '0 auto', padding: '10px 26px 72px' }}>
         <div className="bz-docsgrid" style={{ display: 'grid', gridTemplateColumns: '210px 1fr', gap: 26, alignItems: 'start' }}>
-          {/* Sidebar (sticky) — seven items, active state synced to scroll */}
-          <aside style={{ position: 'sticky', top: 20 }}>
+          {/* Sidebar — sticky beside the article on desktop; normal-flow above the
+              content on narrow screens (never overlaps, see .bz-docsnav in globals.css). */}
+          <aside className="bz-docsnav">
             <p style={{ margin: '0 0 10px', fontSize: 11, fontWeight: 900, letterSpacing: '.06em', color: '#a89a9e' }}>DOCUMENTAÇÃO</p>
             <nav aria-label="Secções da documentação" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
               {SECTIONS.map((s) => {
@@ -449,16 +450,36 @@ export default function DocsPage() {
                 ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </P>
 
-              <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
+              <H3 id="reembolsos">Reembolsos <Badge tone="ok" /></H3>
               <P>
-                Devolução de um pagamento já processado, controlada pelo operador. O endpoint existe no Sandbox e o SDK expõe a operação;
-                o percurso está em validação contínua no Sandbox.
+                Reembolsos Banzami permitem devolver, total ou parcialmente, o valor de um pagamento elegível confirmado no Sandbox.
+                Cada pedido identifica a origem do pagamento, respeita o valor já capturado e é processado de forma idempotente.
+              </P>
+              <UL>
+                <LI><Code>ACQUIRING_PAYMENT</Code> — pagamento realizado por um trilho externo.</LI>
+                <LI><Code>WALLET_PAYMENT</Code> — pagamento nativo entre carteiras Banzami.</LI>
+                <LI>A moeda é confirmada contra a origem original.</LI>
+                <LI>Reembolsos parciais são permitidos até ao limite acumulado do pagamento.</LI>
+                <LI>Repetir a mesma <Code>idempotency_key</Code> não devolve valor duas vezes.</LI>
+                <LI>A Produção permanece <em>Produção em preparação</em>.</LI>
+              </UL>
+
+              <P>
+                <strong>Campos do pedido:</strong> <Code>source_type</Code> (<Code>ACQUIRING_PAYMENT</Code> ou
+                {' '}<Code>WALLET_PAYMENT</Code>), <Code>source_id</Code>, <Code>amount_minor</Code>, <Code>currency</Code>
+                {' '}e <Code>idempotency_key</Code>.
               </P>
 
-              <Callout tone="warn">
-                Cada endpoint é publicado apenas quando confirmado no código e acessível no Sandbox. Um exemplo de endpoint não é
-                uma promessa de que já é possível processar dinheiro real.
+              <Callout>
+                <strong>Percurso verificado em Sandbox.</strong> O reembolso foi validado ponta a ponta através do gateway público
+                (<Code>POST /v1/refunds</Code>): origens acquiring e de carteira, reembolsos totais e parciais, limite acumulado por
+                origem, validação da moeda contra a origem, repetição idempotente e conflito de <Code>idempotency_key</Code>,
+                autorização do pedido e correção do estado do comprovativo. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </Callout>
+
+              <P style={{ fontSize: 13, color: '#a89a9e' }}>
+                Referência técnica: a origem do pagamento é tipada conforme BANZA ADR-030.
+              </P>
             </Section>
 
             {/* ------------------------------------------------ SDKS */}

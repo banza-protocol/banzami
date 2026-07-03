@@ -207,9 +207,9 @@ const ENDPOINT_DETAILS: {
     path: '/v1/refunds',
     does: 'Devolve, total ou parcialmente, um pagamento já confirmado.',
     when: 'Quando é preciso reverter uma venda ou corrigir um valor.',
-    fields: 'payment_id, amount (opcional para reembolso parcial).',
+    fields: 'source_type (ACQUIRING_PAYMENT | WALLET_PAYMENT), source_id, amount_minor, currency, idempotency_key.',
     typical: 'O comerciante reembolsa um cliente que devolveu o produto.',
-    failures: 'payment_not_found, payment_not_confirmed.',
+    failures: 'INVALID_SOURCE_TYPE, CURRENCY_MISMATCH, REFUND_EXCEEDS_CAPTURED.',
   },
   {
     method: 'GET',
@@ -502,7 +502,11 @@ const EXAMPLES: {
         {'\n\n'}
         <C>{'// se a entrega for cancelada:'}</C>
         {'\n'}
-        <K>await</K> client.refunds.<F>create</F>({'{'} payment_id: payment.id {'}'});
+        <K>await</K> client.refunds.<F>create</F>({'{\n'}
+        {'  '}source_type: <S>&quot;ACQUIRING_PAYMENT&quot;</S>, source_id: payment.id,{'\n'}
+        {'  '}amount_minor: payment.amount_minor, currency: <S>&quot;AOA&quot;</S>,{'\n'}
+        {'  '}idempotency_key: `refund_${'{'}payment.id{'}'}`,{'\n'}
+        {'}'});
       </>
     ),
   },

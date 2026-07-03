@@ -51,9 +51,10 @@ describe('Public Developer Docs (/docs) — full content', () => {
       expect(card.tagName).toBe('A');
       expect(card.textContent).toContain(title);
     }
-    // honest statuses, not blanket "Em breve"
+    // honest statuses, not blanket "Em breve": capabilities are Sandbox-available
+    // (Refunds is now "Disponível em Sandbox" too), while Produção stays gated.
     expect(screen.getAllByText('Disponível em Sandbox').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Em validação contínua no Sandbox').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Produção em preparação').length).toBeGreaterThan(0);
   });
 
   it('presents the three layers and DOA as the reference integration', () => {
