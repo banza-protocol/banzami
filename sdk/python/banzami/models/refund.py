@@ -25,7 +25,6 @@ class Refund(BaseModel):
     id:             str
     source_type:    RefundSourceType
     source_id:      str
-    transaction_id: str | None = None  # ACQUIRING_PAYMENT only
     merchant_id:    str
     consumer_id:    str | None = None  # WALLET_PAYMENT only (the payer)
     amount_minor:   int

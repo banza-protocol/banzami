@@ -261,17 +261,28 @@ class BanzamiClient
      * an inferred type.
      *
      * Required params: source_type (ACQUIRING_PAYMENT | WALLET_PAYMENT),
-     * source_id, amount_minor, currency. Optional: reason, idempotency_key.
+     * source_id, amount_minor, currency, idempotency_key. Optional: reason.
+     *
+     * idempotency_key is MANDATORY and validated before any HTTP dispatch: a
+     * refund moves money, so the SDK never mints a key — a generated one would
+     * let a retried refund create a second movement. Supply a stable,
+     * server-generated key scoped to the refund intent.
      */
     public function createRefund(array $params): array
     {
+        $key = $params['idempotency_key'] ?? null;
+        if (!is_string($key) || trim($key) === '') {
+            throw new \InvalidArgumentException(
+                'createRefund requires an explicit idempotency_key (a stable, server-generated key scoped to the refund intent). The SDK does not generate one for financial writes.'
+            );
+        }
         return $this->request('POST', '/refunds', [
             'source_type'     => $params['source_type'],
             'source_id'       => $params['source_id'],
             'amount_minor'    => $params['amount_minor'],
             'currency'        => $params['currency'],
             'reason'          => $params['reason'] ?? null,
-            'idempotency_key' => $params['idempotency_key'] ?? $this->generateIdempotencyKey(),
+            'idempotency_key' => $key,
         ]);
     }
 

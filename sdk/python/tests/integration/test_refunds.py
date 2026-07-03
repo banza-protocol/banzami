@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 import httpx
+import pytest
 import respx
 
 from banzami import Banzami
@@ -40,6 +41,7 @@ async def test_create_refund_sends_typed_source():
                 amount=20000,
                 currency="AOA",
                 reason="Produto devolvido",
+                idempotency_key="k-refund-1",
             )
 
     body = json.loads(route.calls.last.request.content)
@@ -54,17 +56,32 @@ async def test_create_refund_sends_typed_source():
 
 
 async def test_create_acquiring_refund():
-    acq = {**REFUND, "source_type": "ACQUIRING_PAYMENT", "source_id": "tx_001", "transaction_id": "tx_001", "consumer_id": None}
+    acq = {**REFUND, "source_type": "ACQUIRING_PAYMENT", "source_id": "tx_001", "consumer_id": None}
     with respx.mock(base_url=BASE) as mock:
         route = mock.post("/v1/refunds").mock(return_value=httpx.Response(200, json=acq))
         async with Banzami(api_key="bz_test", base_url=BASE) as c:
             refund = await c.refunds.create(
                 source_type="ACQUIRING_PAYMENT", source_id="tx_001", amount=20000, currency="AOA",
+                idempotency_key="k-refund-2",
             )
 
     body = json.loads(route.calls.last.request.content)
     assert body["source_type"] == "ACQUIRING_PAYMENT"
     assert refund.source_type == RefundSourceType.ACQUIRING_PAYMENT
+
+
+async def test_create_refund_requires_idempotency_key():
+    """A refund is a financial write — the SDK must refuse to dispatch without an
+    explicit key, and must never auto-mint one."""
+    with respx.mock(base_url=BASE, assert_all_called=False) as mock:
+        route = mock.post("/v1/refunds").mock(return_value=httpx.Response(200, json=REFUND))
+        async with Banzami(api_key="bz_test", base_url=BASE) as c:
+            with pytest.raises(ValueError, match="idempotency_key"):
+                await c.refunds.create(
+                    source_type="WALLET_PAYMENT", source_id="wp_001", amount=100, currency="AOA",
+                    idempotency_key="",
+                )
+    assert route.call_count == 0  # nothing dispatched
 
 
 async def test_retrieve_refund():

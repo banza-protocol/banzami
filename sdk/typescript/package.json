@@ -1,6 +1,6 @@
 {
   "name": "@banzami/sdk",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Official JavaScript/TypeScript SDK for the Banzami payment platform",
   "license": "UNLICENSED",
   "main": "./dist/cjs/index.js",

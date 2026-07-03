@@ -885,6 +885,16 @@ export class BanzamiClient {
   createRefund(params: CreateRefundParams): Promise<Refund> {
     // A refund always names its TYPED source explicitly (BANZA ADR-030) — the
     // SDK never infers a source type from an arbitrary id.
+    //
+    // idempotency_key is MANDATORY and is validated BEFORE any HTTP dispatch: a
+    // refund moves money, and an SDK-generated random key would let a retried
+    // refund create a second movement. The caller owns the key (server-side,
+    // persisted, scoped to the refund intent). No auto-generation here.
+    if (typeof params.idempotency_key !== 'string' || params.idempotency_key.trim() === '') {
+      throw new BanzamiConfigError(
+        'createRefund requires an explicit idempotency_key (a stable, server-generated key scoped to the refund intent). The SDK does not generate one for financial writes.',
+      );
+    }
     return this.request<Refund>('/refunds', {
       method: 'POST',
       body:   JSON.stringify({
@@ -893,7 +903,7 @@ export class BanzamiClient {
         amount_minor:    params.amount_minor,
         currency:        params.currency,
         reason:          params.reason ?? null,
-        idempotency_key: params.idempotency_key ?? crypto.randomUUID(),
+        idempotency_key: params.idempotency_key,
       }),
     });
   }

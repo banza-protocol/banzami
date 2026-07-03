@@ -46,17 +46,32 @@ describe('createRefund — typed source (ADR-030)', () => {
     expect('transaction_id' in body).toBe(false);
   });
 
-  it('sends ACQUIRING_PAYMENT and auto-generates an idempotency key when omitted', async () => {
+  it('sends ACQUIRING_PAYMENT with an explicit idempotency key', async () => {
     stubFetch(() => jsonResponse(201, {
-      id: 'r2', source_type: 'ACQUIRING_PAYMENT', source_id: 'tx-1', transaction_id: 'tx-1',
+      id: 'r2', source_type: 'ACQUIRING_PAYMENT', source_id: 'tx-1',
       merchant_id: 'm1', amount_minor: 100, currency: 'AOA', status: 'SUCCEEDED',
       created_at: '2026-07-03T00:00:00Z', updated_at: '2026-07-03T00:00:00Z',
     }));
-    await client.createRefund({ source_type: 'ACQUIRING_PAYMENT', source_id: 'tx-1', amount_minor: 100, currency: 'AOA' });
+    await client.createRefund({ source_type: 'ACQUIRING_PAYMENT', source_id: 'tx-1', amount_minor: 100, currency: 'AOA', idempotency_key: 'k2' });
     const body = lastBody();
     expect(body.source_type).toBe('ACQUIRING_PAYMENT');
     expect(body.source_id).toBe('tx-1');
-    expect(typeof body.idempotency_key).toBe('string');
-    expect((body.idempotency_key as string).length).toBeGreaterThan(0);
+    expect(body.idempotency_key).toBe('k2');
+  });
+
+  it('REFUSES to dispatch a refund without an idempotency key (financial safety)', () => {
+    let dispatched = false;
+    stubFetch(() => { dispatched = true; return jsonResponse(201, {}); });
+    // Validation is synchronous and happens BEFORE any HTTP dispatch — the SDK
+    // never auto-mints a key for a financial write.
+    expect(() =>
+      // @ts-expect-error — intentionally omitting the now-required key
+      client.createRefund({ source_type: 'WALLET_PAYMENT', source_id: 'wp-1', amount_minor: 100, currency: 'AOA' }),
+    ).toThrow(/idempotency_key/);
+    // Blank/whitespace is also rejected.
+    expect(() =>
+      client.createRefund({ source_type: 'WALLET_PAYMENT', source_id: 'wp-1', amount_minor: 100, currency: 'AOA', idempotency_key: '   ' }),
+    ).toThrow(/idempotency_key/);
+    expect(dispatched).toBe(false);
   });
 });

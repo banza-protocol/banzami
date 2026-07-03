@@ -367,8 +367,6 @@ export interface Refund {
   id:              string;
   source_type:     RefundSourceType;
   source_id:       string;
-  /** Present only for ACQUIRING_PAYMENT refunds. */
-  transaction_id?: string | null;
   merchant_id:     string;
   /** Present only for WALLET_PAYMENT refunds (the payer). */
   consumer_id?:    string | null;
@@ -390,8 +388,14 @@ export interface CreateRefundParams {
   /** ISO-4217 code; the authoritative refund currency is the source's currency. */
   currency:         string;
   reason?:          string;
-  /** Idempotency key — auto-generated if omitted. */
-  idempotency_key?: string;
+  /**
+   * Idempotency key — REQUIRED. A refund is a financial write; the caller MUST
+   * supply a stable key scoped to the refund intent so that retries converge on
+   * the original result. The SDK never generates one: a browser- or SDK-minted
+   * random key would make a retried refund create a second movement. Generate it
+   * server-side and persist it before the first attempt.
+   */
+  idempotency_key:  string;
 }
 
 // ---------------------------------------------------------------------------

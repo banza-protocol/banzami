@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from banzami.models.refund import Refund, RefundSourceType
 from banzami.pagination import Page
-from banzami.utils.ids import new_idempotency_key
 
 from .base import AsyncResource
 
@@ -18,7 +17,7 @@ class RefundsResource(AsyncResource):
         amount:          int,
         currency:        str,
         reason:          str | None = None,
-        idempotency_key: str | None = None,
+        idempotency_key: str,
     ) -> Refund:
         """Issue a refund against a TYPED, captured payment source (BANZA ADR-030).
 
@@ -39,8 +38,16 @@ class RefundsResource(AsyncResource):
         reason:
             Optional free-text reason recorded on the refund.
         idempotency_key:
-            Supply your own key to safely retry on network failures.
+            REQUIRED. A refund moves money; the SDK never mints a key — supply a
+            stable, server-generated key scoped to the refund intent so a retry
+            converges on the original result instead of creating a second refund.
         """
+        if not isinstance(idempotency_key, str) or not idempotency_key.strip():
+            raise ValueError(
+                "create() requires an explicit idempotency_key (a stable, "
+                "server-generated key scoped to the refund intent). The SDK does "
+                "not generate one for financial writes."
+            )
         data = await self._post(
             "/refunds",
             {
@@ -50,7 +57,7 @@ class RefundsResource(AsyncResource):
                 "currency":     currency,
                 "reason":       reason,
             },
-            idempotency_key=idempotency_key or new_idempotency_key(),
+            idempotency_key=idempotency_key,
         )
         return Refund.model_validate(data)
 
