@@ -64,7 +64,7 @@ const CARDS: { title: string; desc: string; href: string; tone: Tone; icon: Reac
     title: 'Transferências',
     desc: 'Movimente valor entre contas.',
     href: '#transferencias',
-    tone: 'val',
+    tone: 'ok',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
         <path d="M4 12h13l-3-3M20 12H7" stroke={RED} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
@@ -425,10 +425,15 @@ export default function DocsPage() {
                 <LI><strong>Reservado à Produção:</strong> movimentação de dinheiro real — <em>Produção em preparação</em>.</LI>
               </UL>
 
-              <H3 id="transferencias">Transferências <Badge tone="val" /></H3>
+              <H3 id="transferencias">Transferências <Badge tone="ok" /></H3>
               <P>
-                Movimentação de valor entre contas dentro do modelo Banzami. Os endpoints existem no Sandbox e o SDK expõe a operação;
-                o percurso está em validação contínua no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
+                Movimente valor entre contas Banzami. Um utilizador autenticado envia para o <Code>@banza</Code> do destinatário,
+                com o montante em unidades menores (AOA) e uma idempotency key. A transferência é confirmada de forma síncrona no
+                Sandbox, ficando <strong>COMPLETED</strong>, com débito e crédito atómicos no ledger e um comprovativo oficial disponível.
+              </P>
+              <P>
+                Repetir a mesma idempotency key devolve a transferência original, sem mover fundos duas vezes. Validado de ponta a
+                ponta no Sandbox. Nunca há dinheiro real — <em>Produção em preparação</em>.
               </P>
 
               <H3 id="reembolsos">Reembolsos <Badge tone="val" /></H3>
