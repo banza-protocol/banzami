@@ -39,6 +39,13 @@ describe('Login page — "Voltar ao Banzami" back link', () => {
     expect(back.getAttribute('tabindex')).not.toBe('-1');
   });
 
+  it('the "Documentação →" header link points exactly to /docs', () => {
+    render(<LoginPage />);
+    const docs = screen.getByRole('link', { name: /Documentação/i });
+    expect(docs.tagName).toBe('A');
+    expect(docs.getAttribute('href')).toBe('/docs');
+  });
+
   it('no link on the login page points at the backend developer-api host', () => {
     const { container } = render(<LoginPage />);
     const anchors = Array.from(container.querySelectorAll('a[href]'));
