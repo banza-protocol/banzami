@@ -99,7 +99,6 @@ pub enum RestitutionError {
     SourceNotFound,
     InvalidTransactionStatus(String),
     InvalidPaymentStatus(String),
-    NotAuthorized,
     AccountFrozen,
     CurrencyMismatch { supplied: String, source: String },
     ExceedsCaptured { remaining: i64, requested: i64, captured: i64 },
@@ -435,9 +434,12 @@ async fn resolve_wallet_payment(
     .map_err(db)?
     .ok_or(RestitutionError::SourceNotFound)?;
 
+    // Tenant isolation (F2): a wallet payment owned by another merchant is
+    // treated as NOT FOUND — byte-identical public behaviour to an unknown
+    // source. Never reveal existence or ownership on this merchant-facing path.
     let wp_merchant: Uuid = row.get("merchant_id");
     if wp_merchant != merchant_id {
-        return Err(RestitutionError::NotAuthorized);
+        return Err(RestitutionError::SourceNotFound);
     }
     let status: String = row.get("status");
     if status != "COMPLETED" {

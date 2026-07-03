@@ -552,10 +552,6 @@ fn map_dispute_restitution_err(e: restitution::RestitutionError) -> ApiError {
     use restitution::RestitutionError::*;
     match e {
         SourceNotFound => ApiError::not_found("dispute source not found"),
-        NotAuthorized => ApiError::unprocessable(
-            "RESTITUTION_NOT_AUTHORIZED",
-            "source belongs to a different merchant",
-        ),
         InvalidTransactionStatus(s) | InvalidPaymentStatus(s) => {
             ApiError::unprocessable("SOURCE_NOT_ELIGIBLE", format!("source status {s} is not eligible"))
         }

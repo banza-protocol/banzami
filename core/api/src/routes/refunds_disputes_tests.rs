@@ -7,7 +7,7 @@
 //! or external withdrawal provider is assumed or exercised.
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     Json,
 };
 use sqlx::PgPool;
@@ -457,7 +457,9 @@ async fn wallet_native_refund_idempotent(pool: PgPool) {
     assert_eq!(count_postings(&pool, &format!("refund-{}", a.id)).await, 1);
 }
 
-// Only the owning merchant may refund a wallet payment.
+// Only the owning merchant may refund a wallet payment. Cross-tenant access is
+// indistinguishable from an unknown source (F2): NOT_FOUND, "refund source not
+// found" — never REFUND_NOT_AUTHORIZED or any ownership-revealing message.
 #[sqlx::test(migrations = "../../db/migrations")]
 async fn wrong_merchant_cannot_refund_wallet_payment(pool: PgPool) {
     let state = build_state(pool.clone()).await;
@@ -467,7 +469,9 @@ async fn wrong_merchant_cannot_refund_wallet_payment(pool: PgPool) {
     let err = refunds::create(State(state), Json(body))
         .await
         .expect_err("foreign merchant cannot refund");
-    assert_eq!(err.code, "REFUND_NOT_AUTHORIZED");
+    assert_eq!(err.code, "NOT_FOUND");
+    assert_eq!(err.message, "refund source not found");
+    assert_ne!(err.code, "REFUND_NOT_AUTHORIZED");
 }
 
 // A P2P transfer (no wallet_payment row) is not refundable through this path.
@@ -1086,4 +1090,89 @@ async fn refund_and_dispute_remain_separate(pool: PgPool) {
     assert_eq!(alloc_refund, 1, "one REFUND allocation");
     assert_eq!(alloc_dispute, 1, "one DISPUTE allocation");
     assert_eq!(alloc_sum(&pool, "TRANSACTION", seed.transaction_id).await, 1_000, "combined ≤ captured");
+}
+
+// ═══════════════ D0/F1+F3 — tenant-scoped refund reads ═══════════════
+
+// F1: refund GET is tenant-scoped. The owner reads it; a different merchant, a
+// missing merchant context, and an unknown id all return the SAME controlled
+// 404 "refund not found" — externally indistinguishable, no enumeration.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_get_is_tenant_scoped_and_indistinguishable(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let (_, Json(created)) = refunds::create(State(state.clone()), Json(refund_body(&seed, 400, "g")))
+        .await
+        .unwrap();
+    let rid = created.id.clone();
+
+    // Owner → ok.
+    let owner = refunds::get(
+        State(state.clone()),
+        Path(rid.clone()),
+        Query(refunds::GetRefundQuery { merchant_id: Some(seed.merchant_id.to_string()) }),
+    )
+    .await;
+    assert!(owner.is_ok(), "owner can read its refund");
+
+    // Cross-tenant → NOT_FOUND.
+    let other = refunds::get(
+        State(state.clone()),
+        Path(rid.clone()),
+        Query(refunds::GetRefundQuery { merchant_id: Some(Uuid::new_v4().to_string()) }),
+    )
+    .await
+    .expect_err("cross-tenant read blocked");
+    assert_eq!(other.code, "NOT_FOUND");
+    assert_eq!(other.message, "refund not found");
+
+    // Missing merchant context → NOT_FOUND (fail closed, indistinguishable).
+    let nomid = refunds::get(
+        State(state.clone()),
+        Path(rid.clone()),
+        Query(refunds::GetRefundQuery { merchant_id: None }),
+    )
+    .await
+    .expect_err("no merchant context");
+    assert_eq!(nomid.code, "NOT_FOUND");
+
+    // Unknown id (valid merchant) → byte-identical NOT_FOUND to the cross-tenant case.
+    let unknown = refunds::get(
+        State(state),
+        Path(Uuid::new_v4().to_string()),
+        Query(refunds::GetRefundQuery { merchant_id: Some(seed.merchant_id.to_string()) }),
+    )
+    .await
+    .expect_err("unknown refund");
+    assert_eq!((unknown.code, unknown.message.clone()), (other.code, other.message.clone()));
+}
+
+// F3: refund LIST fails closed — no merchant context can never enumerate tenants.
+#[sqlx::test(migrations = "../../db/migrations")]
+async fn refund_list_fails_closed_without_merchant(pool: PgPool) {
+    let state = build_state(pool.clone()).await;
+    // Seed a refund so the table is non-empty — a fail-open bug would leak it.
+    let seed = seed_captured_tx(&pool, 1_000).await;
+    let _ = refunds::create(State(state.clone()), Json(refund_body(&seed, 100, "l"))).await.unwrap();
+
+    // No merchant_id → rejected, never enumerates.
+    let err = refunds::list(
+        State(state.clone()),
+        Query(refunds::ListRefundsQuery { source_id: None, transaction_id: None, merchant_id: None, limit: None }),
+    )
+    .await
+    .expect_err("list must fail closed");
+    assert_eq!(err.code, "BAD_REQUEST");
+
+    // A different merchant → scoped result never contains the seed's refund.
+    let Json(other) = refunds::list(
+        State(state),
+        Query(refunds::ListRefundsQuery {
+            source_id: None, transaction_id: None,
+            merchant_id: Some(Uuid::new_v4().to_string()), limit: None,
+        }),
+    )
+    .await
+    .unwrap();
+    assert_eq!(other["data"].as_array().unwrap().len(), 0, "other merchant sees nothing");
 }

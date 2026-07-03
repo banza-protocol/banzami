@@ -123,7 +123,7 @@ pub async fn create(
     // Idempotent replay — return the ORIGINAL refund; create nothing new.
     if result.replayed {
         tx.rollback().await.ok();
-        let refund = fetch_refund(&state.pool, result.origin_id).await?;
+        let refund = fetch_refund(&state.pool, result.origin_id, merchant_id).await?;
         return Ok((StatusCode::CREATED, Json(refund)));
     }
 
@@ -212,7 +212,7 @@ pub async fn create(
         }
     }
 
-    let refund = fetch_refund(&state.pool, refund_id).await?;
+    let refund = fetch_refund(&state.pool, refund_id, merchant_id).await?;
     Ok((StatusCode::CREATED, Json(refund)))
 }
 
@@ -230,10 +230,6 @@ fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
         InvalidPaymentStatus(s) => ApiError::unprocessable(
             "INVALID_PAYMENT_STATUS",
             format!("wallet payment status {s} is not refundable"),
-        ),
-        NotAuthorized => ApiError::unprocessable(
-            "REFUND_NOT_AUTHORIZED",
-            "this wallet payment belongs to a different merchant",
         ),
         AccountFrozen => ApiError::unprocessable(
             "ACCOUNT_FROZEN",
@@ -267,14 +263,30 @@ fn map_restitution_err(e: restitution::RestitutionError) -> ApiError {
 // GET /internal/v1/refunds/:id
 // ---------------------------------------------------------------------------
 
+#[derive(Deserialize)]
+pub struct GetRefundQuery {
+    /// Required tenant scope — supplied by the gateway from the verified JWT
+    /// principal, never from the public request.
+    pub merchant_id: Option<String>,
+}
+
 pub async fn get(
     State(state): State<AppState>,
     Path(id): Path<String>,
+    Query(q): Query<GetRefundQuery>,
 ) -> ApiResult<Json<RefundResponse>> {
-    let id: Uuid = id
-        .parse()
-        .map_err(|_| ApiError::bad_request("invalid refund id"))?;
-    let refund = fetch_refund(&state.pool, id).await?;
+    // Tenant-scoped read (F1): a missing merchant context, a malformed id, a
+    // non-existent refund and a refund owned by another merchant all resolve to
+    // the SAME controlled 404 — externally indistinguishable, no enumeration.
+    let id: Uuid = match id.parse() {
+        Ok(v) => v,
+        Err(_) => return Err(ApiError::not_found("refund not found")),
+    };
+    let merchant_id: Uuid = match q.merchant_id.as_deref().and_then(|s| s.parse().ok()) {
+        Some(v) => v,
+        None => return Err(ApiError::not_found("refund not found")),
+    };
+    let refund = fetch_refund(&state.pool, id, merchant_id).await?;
     Ok(Json(refund))
 }
 
@@ -301,22 +313,29 @@ pub async fn list(
         .or(q.transaction_id.as_deref())
         .and_then(|s| s.parse::<Uuid>().ok());
 
+    // Fail CLOSED (F3): a valid merchant context is mandatory. There is no
+    // nullable "all merchants" fallback — an absent/malformed merchant_id is
+    // rejected and can never enumerate another tenant's refunds. The gateway
+    // always supplies it from the verified principal, so this only trips a
+    // malformed direct Core call.
+    let merchant_id: Uuid = q
+        .merchant_id
+        .as_deref()
+        .and_then(|s| s.parse::<Uuid>().ok())
+        .ok_or_else(|| ApiError::bad_request("merchant_id is required"))?;
+
     let rows = sqlx::query(
         "SELECT id, source_type, source_id, transaction_id, merchant_id, consumer_id, wallet_id,
                 amount_minor, currency, reason, status, failure_reason,
                 processed_at, created_at, updated_at
          FROM refunds
-         WHERE ($1::uuid IS NULL OR source_id = $1)
-           AND ($2::uuid IS NULL OR merchant_id = $2)
+         WHERE merchant_id = $2
+           AND ($1::uuid IS NULL OR source_id = $1)
          ORDER BY created_at DESC
          LIMIT $3",
     )
     .bind(source_filter)
-    .bind(
-        q.merchant_id
-            .as_deref()
-            .and_then(|s| s.parse::<Uuid>().ok()),
-    )
+    .bind(merchant_id)
     .bind(limit)
     .fetch_all(&state.pool)
     .await
@@ -352,14 +371,21 @@ fn row_to_json(r: &sqlx::postgres::PgRow) -> serde_json::Value {
 // Shared fetch helper
 // ---------------------------------------------------------------------------
 
-async fn fetch_refund(pool: &sqlx::PgPool, id: Uuid) -> ApiResult<RefundResponse> {
+async fn fetch_refund(
+    pool: &sqlx::PgPool,
+    id: Uuid,
+    merchant_id: Uuid,
+) -> ApiResult<RefundResponse> {
+    // Tenant-scoped (F1): query by refund id AND merchant id. A refund owned by
+    // another merchant returns the identical `not found` as a non-existent one.
     let r = sqlx::query(
         "SELECT id, source_type, source_id, transaction_id, merchant_id, consumer_id, wallet_id,
                 amount_minor, currency, reason, status, failure_reason,
                 processed_at, created_at, updated_at
-         FROM refunds WHERE id = $1",
+         FROM refunds WHERE id = $1 AND merchant_id = $2",
     )
     .bind(id)
+    .bind(merchant_id)
     .fetch_optional(pool)
     .await
     .map_err(|e| ApiError::internal(e.to_string()))?

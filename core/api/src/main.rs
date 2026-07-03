@@ -178,6 +178,25 @@ async fn main() {
         Duration::from_secs(balance_check_secs),
     ));
 
+    // Refund routes are the first Core `/internal` group to require an
+    // authenticated service caller (Banzami D0/F4). The Gateway sends the shared
+    // `X-Internal-Key`; Core verifies it against CORE_INTERNAL_KEY, constant-time,
+    // fail-closed, BEFORE any handler/source/merchant/ledger lookup. Scoped to the
+    // refund group only via a nested router + route_layer — no other internal
+    // route group is gated in this stage.
+    let core_internal_key = env::var("CORE_INTERNAL_KEY").ok();
+    let refund_service_auth = axum_middleware::from_fn(move |req: axum::extract::Request, next: axum_middleware::Next| {
+        let key = core_internal_key.clone();
+        async move { middleware::internal_service_auth(key, req, next).await }
+    });
+    let refund_routes = Router::new()
+        .route(
+            "/internal/v1/refunds",
+            post(routes::refunds::create).get(routes::refunds::list),
+        )
+        .route("/internal/v1/refunds/:id", get(routes::refunds::get))
+        .route_layer(refund_service_auth);
+
     let app = Router::new()
         // Health
         .route("/health", get(health))
@@ -718,12 +737,8 @@ async fn main() {
             "/internal/v1/consumer-deposits/test-confirm",
             post(routes::consumer_deposits::test_confirm),
         )
-        // Refunds — full and partial refunds on captured/settled transactions
-        .route(
-            "/internal/v1/refunds",
-            post(routes::refunds::create).get(routes::refunds::list),
-        )
-        .route("/internal/v1/refunds/:id", get(routes::refunds::get))
+        // Refunds are registered separately (refund_routes, service-authed) and
+        // merged below — see the CORE_INTERNAL_KEY gate above.
         // Disputes — consumer-initiated chargebacks with evidence and admin resolution
         .route(
             "/internal/v1/disputes",
@@ -793,6 +808,8 @@ async fn main() {
             "/internal/v1/consumer-pay-links/:code/pay",
             post(routes::consumer_pay_links::pay),
         )
+        // Service-authenticated refund route group (CORE_INTERNAL_KEY, F4).
+        .merge(refund_routes)
         .with_state(state)
         .layer(axum_middleware::from_fn(middleware::request_id))
         // Outermost: enter the correlation span first so request_id + handlers log
