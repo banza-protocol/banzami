@@ -280,6 +280,15 @@ jobs:
       - name: Active sequence applies cleanly from scratch (order + completeness)
         run: sqlx migrate run --source db/migrations
 
+      # Authoritative physical-schema gate: the from-scratch DB must satisfy the
+      # reviewable manifest (tools/schema-manifest.json). This is the same detector
+      # deploy.sh runs pre-deploy — here it proves the manifest tracks the migrations
+      # so a missing object (the 0090–0095 drift class) fails CI, not production.
+      - name: Schema-manifest drift detector (authoritative, from-scratch)
+        run: |
+          psql "$DATABASE_URL" -tAc "$(cat tools/introspect-schema.sql)" > /tmp/inv.json
+          node tools/check-schema-manifest.mjs tools/schema-manifest.json /tmp/inv.json
+
       - name: No pending migrations after run
         run: |
           if sqlx migrate info --source db/migrations | grep -qi pending; then
@@ -369,6 +378,19 @@ jobs:
                -v \$(pwd)/db/migrations:/migrations \
                ghcr.io/launchbadge/sqlx-cli:latest \
                sqlx migrate run --source /migrations"
+
+      # Enforced rollout gate: introspect the JUST-MIGRATED target database and run
+      # the authoritative manifest drift detector. Runs AFTER migrate, BEFORE any
+      # image build/restart — a drift here FAILS the job so no application is
+      # deployed against a schema that does not satisfy the manifest.
+      - name: Schema-manifest drift detector (target DB) — blocks deploy on drift
+        if: env.DEPLOY_SKIP != 'true'
+        run: |
+          ssh -i /tmp/deploy_key -o StrictHostKeyChecking=no \
+            "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            'cd /srv/banzami/source && source /srv/banzami/.env && \
+             psql "$DATABASE_URL" -tAc "$(cat tools/introspect-schema.sql)"' > /tmp/inv.json
+          node tools/check-schema-manifest.mjs tools/schema-manifest.json /tmp/inv.json
 
       # Rebuild application images on the server (uses Docker layer cache —
       # unchanged layers are fast). Then perform a rolling restart so at least

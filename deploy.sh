@@ -72,8 +72,27 @@ done
 
 # ─── Per-service deploy functions ─────────────────────────────────────────────
 
+# ─── Financial-core rollout gate (Banzami ADR-034) ────────────────────────────
+# Enforced before ANY financial Core deployment: migrate the explicit target DB,
+# introspect it, run the authoritative manifest drift detector, and ABORT the
+# deploy on drift. There is no silent skip — a core deploy without a reachable,
+# labelled target DB is refused. `sqlx migrate run` is the only migration path;
+# tools/sqlx-backfill.sh is disabled (it caused the 0090–0095 drift).
+_rollout_gate() {
+  local target_label="$1"
+  step "rollout-gate" "migrate + schema drift detector → '$target_label' (financial Core)"
+  [ -n "${BANZAMI_MIGRATE_URL:-}" ] || die \
+    "Financial-core deploy requires the rollout gate. Export BANZAMI_MIGRATE_URL (a reachable connection to '$target_label') and re-run. The gate runs tools/migrate-and-verify.sh (migrate → introspect → drift detector) and blocks the deploy on drift."
+  DATABASE_URL="$BANZAMI_MIGRATE_URL" BANZAMI_DB_TARGET="$target_label" \
+    bash "$REPO_ROOT/tools/migrate-and-verify.sh" \
+    || die "Rollout gate FAILED for '$target_label' — deployment BLOCKED (migration error or schema drift)."
+  ok "Rollout gate passed for '$target_label' — proceeding with deploy"
+}
+
 deploy_core_api() {
   step "core-api" "Rust financial core"
+
+  _rollout_gate "${BANZAMI_DB_TARGET:-banzami_staging}"
 
   info "Syncing source to server..."
   rsync -az --delete \
@@ -301,6 +320,10 @@ _wait_healthy() {
 
 deploy_staging() {
   step "staging" "Staging sandbox (core-api-staging + public-api-staging)"
+
+  # Financial-core rollout gate — the staging stack IS the sandbox financial core.
+  _rollout_gate "banzami_staging"
+
   # Ensure env vars added to services since initial server setup are present.
   # Idempotent: grep exits 0 if already there, insert after LOG_LEVEL if missing.
   info "Checking server compose env vars..."

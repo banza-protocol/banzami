@@ -54,6 +54,28 @@
         { "name": "subject_type", "nullable": false },
         { "name": "status", "nullable": false }
       ], "indexes": ["uq_kyc_verifications_provider_ref", "idx_kyc_verifications_subject", "idx_kyc_verifications_status"] } ]
+    },
+    {
+      "feature": "restitution-allocations (0096 / Banzami ADR-034)",
+      "tables": [ { "name": "restitution_allocations", "columns": [
+        { "name": "source_type", "nullable": false },
+        { "name": "source_id", "nullable": false },
+        { "name": "origin", "nullable": false },
+        { "name": "origin_id", "nullable": false },
+        { "name": "amount_minor", "nullable": false },
+        { "name": "currency", "nullable": false },
+        { "name": "idempotency_key", "nullable": false },
+        { "name": "posting_id", "nullable": false }
+      ], "indexes": ["restitution_alloc_origin_unique", "restitution_alloc_idem_unique", "idx_restitution_alloc_source"] } ]
+    },
+    {
+      "feature": "disputes-source-typed (0097 / Banzami ADR-034)",
+      "tables": [ { "name": "disputes", "columns": [
+        { "name": "source_type", "nullable": false },
+        { "name": "source_id", "nullable": false },
+        { "name": "restitution_amount_minor", "nullable": true },
+        { "name": "restitution_reason", "nullable": true }
+      ], "indexes": ["idx_disputes_source"] } ]
     }
   ]
 }
