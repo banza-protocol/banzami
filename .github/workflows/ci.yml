@@ -246,6 +246,18 @@ jobs:
         working-directory: sdk/typescript
         run: npm test
 
+      - name: Build distribution
+        working-directory: sdk/typescript
+        run: npm run build
+
+      # WS2 provenance guard — the built dist must honour the typed-source refund
+      # contract (mandatory idempotency key, no auto-minted key, no transaction_id
+      # input, no internal TRANSACTION token) at the version it claims. This is
+      # what a re-vendor into DOA copies, so a green build here means a green
+      # vendored copy. The same script runs in DOA's CI against the vendored dist.
+      - name: Refund-contract drift guard
+        run: node tools/check-sdk-refund-contract.mjs sdk/typescript/dist sdk/typescript/package.json
+
   # ─── Migration governance ───────────────────────────────────────────────────
   # Fails the pipeline on any migration drift: an invalid/out-of-order sequence, a
   # migration that does not apply from scratch, leftover pending migrations, a
