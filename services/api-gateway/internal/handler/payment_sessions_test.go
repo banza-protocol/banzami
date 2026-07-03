@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -74,14 +75,47 @@ func TestPaymentSession_CreateReturnsInterfaces(t *testing.T) {
 	if rec.Code != http.StatusCreated {
 		t.Fatalf("want 201, got %d (%s)", rec.Code, rec.Body.String())
 	}
-	body := rec.Body.String()
-	for _, want := range []string{"payment_link", "dynamic_qr", "deep_link", "wa-1", "/public/pay/abc123"} {
-		if !strings.Contains(body, want) {
-			t.Fatalf("response missing %q: %s", want, body)
-		}
+	// Canonical response (BANZA ADR-043): one financial object exposed as a typed
+	// `interfaces` ARRAY of {type, value, format} — PAYMENT_LINK, DEEP_LINK,
+	// DYNAMIC_QR — never a flat payment_link/dynamic_qr/deep_link field. This is
+	// the contract the SDK (PaymentSessionInterface[]) and DOA (via
+	// paymentSessionInterface) actually consume.
+	var resp struct {
+		WalletAccountID string `json:"wallet_account_id"`
+		Interfaces      []struct {
+			Type   string `json:"type"`
+			Value  string `json:"value"`
+			Format string `json:"format"`
+			QrURL  string `json:"qr_url"`
+		} `json:"interfaces"`
 	}
-	if strings.Contains(body, "account_id\":\"led") || strings.Contains(body, "ledger") {
-		t.Fatalf("must not leak ledger ids: %s", body)
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("response is not the canonical payment-session DTO: %v (%s)", err, rec.Body.String())
+	}
+	if resp.WalletAccountID != "wa-1" {
+		t.Fatalf("wallet_account_id = %q, want wa-1", resp.WalletAccountID)
+	}
+	byType := map[string]string{}
+	for _, i := range resp.Interfaces {
+		byType[i.Type] = i.Value
+	}
+	// The three payment interfaces are present, typed, and carry real values.
+	if got := byType["PAYMENT_LINK"]; got != "https://x/public/pay/abc123" {
+		t.Fatalf("PAYMENT_LINK interface value = %q, want the public pay URL", got)
+	}
+	if got := byType["DEEP_LINK"]; got != "banzami://pay/abc123" {
+		t.Fatalf("DEEP_LINK interface value = %q, want banzami://pay/abc123", got)
+	}
+	if _, ok := byType["DYNAMIC_QR"]; !ok {
+		t.Fatalf("missing DYNAMIC_QR interface: %s", rec.Body.String())
+	}
+
+	// The obsolete flat fields must NOT reappear, and no ledger id may leak.
+	body := rec.Body.String()
+	for _, forbidden := range []string{`"payment_link"`, `"dynamic_qr"`, `"deep_link"`, "ledger", `account_id":"led`} {
+		if strings.Contains(body, forbidden) {
+			t.Fatalf("response must not contain %q (canonical contract is interfaces[]): %s", forbidden, body)
+		}
 	}
 }
 
