@@ -3,8 +3,8 @@ package handler
 import (
 	"encoding/json"
 	"errors"
-	"log/slog"
 	"net/http"
+	"regexp"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
@@ -14,16 +14,45 @@ import (
 	"github.com/banzami/banzami/services/api-gateway/internal/service"
 )
 
-type RefundHandler struct {
-	svc    service.RefundService
-	proofs *service.ProofService // optional; flips the transaction proof to REVERSED
+// Public refund source vocabulary — the BANZA ADR-030 canonical names. These are
+// operator-facing; the mapping to the core vocabulary is explicit + validated.
+const (
+	sourceAcquiring = "ACQUIRING_PAYMENT"
+	sourceWallet    = "WALLET_PAYMENT"
+)
+
+var currencyRe = regexp.MustCompile(`^[A-Z]{3}$`)
+
+// coreSourceType maps the public typed source to the core vocabulary. There is
+// NO silent default: an empty/unknown value is rejected by the caller.
+func coreSourceType(public string) (string, bool) {
+	switch public {
+	case sourceAcquiring:
+		return "TRANSACTION", true // ADR-030 §2: ACQUIRING_PAYMENT a.k.a. TRANSACTION
+	case sourceWallet:
+		return "WALLET_PAYMENT", true
+	default:
+		return "", false
+	}
 }
 
-func NewRefundHandler(svc service.RefundService, proofs *service.ProofService) *RefundHandler {
-	return &RefundHandler{svc: svc, proofs: proofs}
+type RefundHandler struct {
+	svc service.RefundService
+}
+
+// NewRefundHandler wires the refund proxy. Proof-state correction is NOT done
+// here: the Rust Core owns it (Banzami ADR-034 — a source proof stays CONFIRMED
+// after a partial restitution and becomes REVERSED only when cumulative
+// restitution equals the captured amount). The gateway must never flip the
+// proof itself, or a partial refund would wrongly read as REVERSED.
+func NewRefundHandler(svc service.RefundService) *RefundHandler {
+	return &RefundHandler{svc: svc}
 }
 
 // POST /v1/refunds
+//
+// Refunds a TYPED source (BANZA ADR-030) — never a generic transfer, never an
+// inferred source. The caller MUST specify source_type + source_id explicitly.
 func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	principal, ok := middleware.GetPrincipal(r.Context())
 	if !ok || principal.MerchantID == "" {
@@ -32,8 +61,10 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var body struct {
-		TransactionID  string `json:"transaction_id"`
+		SourceType     string `json:"source_type"`
+		SourceID       string `json:"source_id"`
 		AmountMinor    int64  `json:"amount_minor"`
+		Currency       string `json:"currency"`
 		Reason         string `json:"reason"`
 		IdempotencyKey string `json:"idempotency_key"`
 	}
@@ -42,42 +73,59 @@ func (h *RefundHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// --- Typed-source validation matrix (no ambiguity, no silent default) ---
 	switch {
-	case body.TransactionID == "":
-		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "transaction_id is required")
+	case body.SourceType == "":
+		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "source_type is required")
+		return
+	case body.SourceID == "":
+		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "source_id is required")
 		return
 	case body.AmountMinor <= 0:
 		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_AMOUNT", "amount_minor must be a positive integer")
+		return
+	case body.Currency == "":
+		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "currency is required")
+		return
+	case !currencyRe.MatchString(body.Currency):
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_CURRENCY", "currency must be a 3-letter ISO-4217 code")
 		return
 	case body.IdempotencyKey == "":
 		apierror.Respond(w, r, http.StatusBadRequest, "MISSING_FIELD", "idempotency_key is required")
 		return
 	}
 
+	coreType, valid := coreSourceType(body.SourceType)
+	if !valid {
+		apierror.Respond(w, r, http.StatusBadRequest, "INVALID_SOURCE_TYPE",
+			"source_type must be ACQUIRING_PAYMENT or WALLET_PAYMENT")
+		return
+	}
+
 	refund, err := h.svc.Create(r.Context(), service.CreateRefundRequest{
-		TransactionID:  body.TransactionID,
+		CoreSourceType: coreType,
+		SourceID:       body.SourceID,
 		MerchantID:     principal.MerchantID,
 		AmountMinor:    body.AmountMinor,
+		Currency:       body.Currency,
 		Reason:         body.Reason,
 		IdempotencyKey: body.IdempotencyKey,
 	})
 	if err != nil {
-		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", err.Error())
+		// Surface the core's rejection faithfully (ceiling, eligibility, authz,
+		// not-found) instead of collapsing everything to a 500.
+		var re *service.RefundError
+		if errors.As(err, &re) {
+			apierror.Respond(w, r, re.Status, re.Code, re.Message)
+			return
+		}
+		apierror.Respond(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "refund could not be processed")
 		return
 	}
 
-	// Proactively flip the transaction's public proof to REVERSED: a refunded
-	// payment must not keep showing a green "verified" proof. Best-effort +
-	// idempotent (MarkReversed is a no-op if there is no proof yet; Ensure will
-	// then materialize it as REVERSED on the next receipt). Audit Part 7 / Unit 3.
-	if h.proofs != nil {
-		if err := h.proofs.MarkReversed(r.Context(), body.TransactionID, principal.Environment); err != nil {
-			slog.ErrorContext(r.Context(), "proof.mark_reversed.failed", "transaction_id", body.TransactionID, "error", err)
-		} else {
-			slog.InfoContext(r.Context(), "proof.reversed", "transaction_id", body.TransactionID, "cause", "refund")
-		}
-	}
-
+	// Proof-state correction is owned by the Core (ADR-034): it flips the source
+	// proof to REVERSED only when cumulative restitution reaches the captured
+	// amount. The gateway deliberately does not touch the proof here.
 	respond(w, http.StatusCreated, refund)
 }
 
@@ -96,7 +144,7 @@ func (h *RefundHandler) Get(w http.ResponseWriter, r *http.Request) {
 	respond(w, http.StatusOK, refund)
 }
 
-// GET /v1/refunds?transaction_id=&limit=
+// GET /v1/refunds?source_id=&limit=
 func (h *RefundHandler) List(w http.ResponseWriter, r *http.Request) {
 	principal, ok := middleware.GetPrincipal(r.Context())
 	if !ok || principal.MerchantID == "" {
@@ -115,7 +163,7 @@ func (h *RefundHandler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page, err := h.svc.List(r.Context(),
-		r.URL.Query().Get("transaction_id"),
+		r.URL.Query().Get("source_id"),
 		principal.MerchantID,
 		limit,
 	)

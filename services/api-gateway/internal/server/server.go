@@ -121,7 +121,7 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
 	sandboxHandler := handler.NewSandboxHandler(deps.TransactionSvc, deps.WalletSvc)
-	refundHandler := handler.NewRefundHandler(deps.RefundSvc, deps.ProofSvc)
+	refundHandler := handler.NewRefundHandler(deps.RefundSvc)
 	disputeHandler := handler.NewDisputeHandler(deps.DisputeSvc)
 	paymentReqHandler := handler.NewPaymentRequestHandler(deps.PaymentRequestSvc)
 	profileHandler := handler.NewMerchantProfileHandler(deps.MerchantProfileSvc)

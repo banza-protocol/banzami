@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
@@ -9,15 +10,30 @@ import (
 
 var ErrRefundNotFound = errors.New("refund not found")
 
+// RefundError carries a core-api refund rejection (status + code + message) so
+// the gateway handler can surface it faithfully instead of collapsing every
+// core rejection into a 500. Scoped to refunds on purpose.
+type RefundError struct {
+	Status  int
+	Code    string
+	Message string
+}
+
+func (e *RefundError) Error() string { return e.Code + ": " + e.Message }
+
 // ---------------------------------------------------------------------------
 // Domain types
 // ---------------------------------------------------------------------------
 
+// Refund mirrors the core response. A refund references a TYPED source
+// (BANZA ADR-030): source_type is TRANSACTION (acquiring) or WALLET_PAYMENT.
 type Refund struct {
 	ID            string     `json:"id"`
-	TransactionID string     `json:"transaction_id"`
+	SourceType    string     `json:"source_type"`
+	SourceID      string     `json:"source_id"`
+	TransactionID *string    `json:"transaction_id"` // acquiring only
 	MerchantID    string     `json:"merchant_id"`
-	ConsumerID    *string    `json:"consumer_id"`
+	ConsumerID    *string    `json:"consumer_id"` // wallet-native only
 	WalletID      string     `json:"wallet_id"`
 	AmountMinor   int64      `json:"amount_minor"`
 	Currency      string     `json:"currency"`
@@ -33,10 +49,15 @@ type RefundPage struct {
 	Data []*Refund `json:"data"`
 }
 
+// CreateRefundRequest carries the already-validated, already-mapped typed source.
+// CoreSourceType is the core vocabulary ("TRANSACTION" | "WALLET_PAYMENT"); the
+// public ACQUIRING_PAYMENT name is mapped to TRANSACTION in the handler.
 type CreateRefundRequest struct {
-	TransactionID  string
+	CoreSourceType string
+	SourceID       string
 	MerchantID     string
 	AmountMinor    int64
+	Currency       string
 	Reason         string
 	IdempotencyKey string
 }
@@ -48,7 +69,7 @@ type CreateRefundRequest struct {
 type RefundService interface {
 	Create(ctx context.Context, req CreateRefundRequest) (*Refund, error)
 	Get(ctx context.Context, id string) (*Refund, error)
-	List(ctx context.Context, transactionID, merchantID string, limit int) (*RefundPage, error)
+	List(ctx context.Context, sourceID, merchantID string, limit int) (*RefundPage, error)
 }
 
 // ---------------------------------------------------------------------------
@@ -64,16 +85,33 @@ func NewCoreApiRefundService(client *CoreApiClient) *CoreApiRefundService {
 }
 
 func (s *CoreApiRefundService) Create(ctx context.Context, req CreateRefundRequest) (*Refund, error) {
+	// Forward the EXPLICIT typed source (ADR-030). No transaction_id, no silent
+	// default — the source is always fully specified.
 	body := map[string]any{
-		"transaction_id":  req.TransactionID,
+		"source_type":     req.CoreSourceType,
+		"source_id":       req.SourceID,
 		"merchant_id":     req.MerchantID,
 		"amount_minor":    req.AmountMinor,
+		"currency":        req.Currency,
 		"reason":          req.Reason,
 		"idempotency_key": req.IdempotencyKey,
 	}
-	var resp Refund
-	if err := s.client.post(ctx, "/internal/v1/refunds", body, &resp); err != nil {
+	status, raw, err := s.client.postRaw(ctx, "/internal/v1/refunds", body)
+	if err != nil {
 		return nil, err
+	}
+	if status >= 400 {
+		var e coreErrBody
+		_ = json.Unmarshal(raw, &e)
+		code := e.Error.Code
+		if code == "" {
+			code = "REFUND_FAILED"
+		}
+		return nil, &RefundError{Status: status, Code: code, Message: e.Error.Message}
+	}
+	var resp Refund
+	if err := json.Unmarshal(raw, &resp); err != nil {
+		return nil, fmt.Errorf("core-api decode: %w", err)
 	}
 	return &resp, nil
 }
@@ -89,13 +127,13 @@ func (s *CoreApiRefundService) Get(ctx context.Context, id string) (*Refund, err
 	return &resp, nil
 }
 
-func (s *CoreApiRefundService) List(ctx context.Context, transactionID, merchantID string, limit int) (*RefundPage, error) {
+func (s *CoreApiRefundService) List(ctx context.Context, sourceID, merchantID string, limit int) (*RefundPage, error) {
 	if limit <= 0 {
 		limit = 20
 	}
 	path := fmt.Sprintf("/internal/v1/refunds?limit=%d", limit)
-	if transactionID != "" {
-		path += "&transaction_id=" + transactionID
+	if sourceID != "" {
+		path += "&source_id=" + sourceID
 	}
 	if merchantID != "" {
 		path += "&merchant_id=" + merchantID
