@@ -209,7 +209,6 @@ func main() {
 		ProofHashSalt:            proofHashSalt(),
 		ActivationSvc:            activationSvc,
 		ComplianceSvc:            service.NewCoreApiComplianceService(coreClient),
-		SplitSvc:                 service.NewCoreApiSplitService(coreClient),
 		WalletPaymentSvc:         walletPaymentSvc,
 		WalletPaymentLister:      walletPaymentLister,
 	}

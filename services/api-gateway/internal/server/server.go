@@ -53,7 +53,6 @@ type Dependencies struct {
 	MerchantKybSvc           *service.PostgresMerchantKybService
 	ActivationSvc            service.ActivationService
 	ComplianceSvc            service.ComplianceService
-	SplitSvc                 service.SplitService
 	WalletPaymentSvc         service.WalletPaymentReader
 	WalletPaymentLister      service.WalletPaymentLister
 	NotificationsSvc         *service.NotificationsService
@@ -116,7 +115,8 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 	consumerWltHandler := handler.NewConsumerWalletHandler(deps.ConsumerWalletSvc)
 	transferHandler := handler.NewTransferHandler(deps.TransferSvc, deps.FCMSvc, deps.ComplianceSvc)
 	qrHandler := handler.NewQrHandler(deps.QrSvc)
-	splitHandler := handler.NewSplitHandler(deps.SplitSvc)
+	// Split Sessions is SUPERSEDED by Collections (ADR-036) — answered at the edge, never proxied.
+	splitsSuperseded := handler.SplitsSuperseded()
 	paymentLinkHandler := handler.NewPaymentLinkHandler(deps.PaymentLinkSvc, deps.MerchantSvc, deps.WebhookSvc)
 	collectionHandler := handler.NewCollectionHandler(deps.CollectionSvc)
 	acquiringHandler := handler.NewAcquiringHandler(deps.AcquiringSvc, deps.PaymentLinkSvc, deps.FCMSvc)
@@ -353,11 +353,11 @@ func New(cfg *config.Config, deps Dependencies) *http.Server {
 				r.Post("/{id}/use", qrHandler.MarkUsed)
 			})
 
-			r.Route("/splits", func(r chi.Router) {
-				r.Post("/", splitHandler.Create)
-				r.Get("/{id}", splitHandler.Get)
-				r.Post("/{id}/pay", splitHandler.Pay)
-			})
+			// Split Sessions — SUPERSEDED by Collections (ADR-036). Every legacy
+			// path + method (list/create, detail, pay, nested, malformed) → 410
+			// at the edge; never proxied to Core (no upstream 502/500).
+			r.Handle("/splits", splitsSuperseded)
+			r.Handle("/splits/*", splitsSuperseded)
 
 			// Payment links
 			r.Route("/payment-links", func(r chi.Router) {
