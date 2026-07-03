@@ -1,4 +1,22 @@
 #!/usr/bin/env bash
+# =============================================================================
+# DEPRECATED — DO NOT USE. RETIRED 2026-07-03.
+#
+# This tool records migrations as applied WITHOUT running their DDL. It is the
+# root cause of the banzami_staging schema drift (0041/0043/0044/0047/0049/0050
+# marked applied while their objects were physically absent). History backfill is
+# BANNED for new environments and for repairs.
+#
+# The ONLY approved migration path is `sqlx migrate run` (checksum-verified),
+# gated by the physical schema-manifest drift detector (tools/check-schema-manifest.mjs).
+# Remediate drift with forward-only, idempotent repair migrations — never a backfill.
+# =============================================================================
+if [[ "${I_UNDERSTAND_BACKFILL_CAUSED_DRIFT:-}" != "1" ]]; then
+  echo "sqlx-backfill.sh is DEPRECATED and disabled (it caused schema drift)." >&2
+  echo "Use 'sqlx migrate run' + a forward-only repair migration instead." >&2
+  exit 2
+fi
+
 # sqlx-backfill.sh — emit SQL that records the ACTIVE migrations in db/migrations/
 # as already-applied in a database's _sqlx_migrations table, WITHOUT re-running them.
 #

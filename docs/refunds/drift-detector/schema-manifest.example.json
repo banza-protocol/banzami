@@ -1,0 +1,82 @@
+{
+  "$comment": "PROPOSAL — authoritative expected-schema manifest for the drift detector. Reviewable, declarative source of truth. The SQL-parser reconciliation is SUPPLEMENTARY only. Extend per critical feature; this seed covers the refund/restitution critical path + the objects the Sandbox repair restores.",
+  "version": 1,
+  "features": [
+    {
+      "feature": "refunds-source-aware (0047)",
+      "tables": [
+        {
+          "name": "refunds",
+          "columns": [
+            { "name": "source_type", "nullable": false },
+            { "name": "source_id",   "nullable": false },
+            { "name": "transaction_id", "nullable": true }
+          ],
+          "indexes": ["idx_refunds_source"]
+        }
+      ]
+    },
+    {
+      "feature": "wallet-payments (0046)",
+      "tables": [
+        { "name": "wallet_payments", "columns": [
+          { "name": "transfer_id", "nullable": false },
+          { "name": "merchant_id", "nullable": false },
+          { "name": "consumer_id", "nullable": false },
+          { "name": "status", "nullable": false }
+        ], "indexes": ["idx_wallet_payments_merchant", "idx_wallet_payments_consumer"] }
+      ]
+    },
+    {
+      "feature": "restitution-allocations (proposed — Core impl held)",
+      "tables": [
+        {
+          "name": "restitution_allocations",
+          "columns": [
+            { "name": "source_type", "nullable": false },
+            { "name": "source_id",   "nullable": false },
+            { "name": "origin",      "nullable": false },
+            { "name": "origin_id",   "nullable": false },
+            { "name": "amount_minor","nullable": false },
+            { "name": "currency",    "nullable": false },
+            { "name": "idempotency_key", "nullable": false },
+            { "name": "posting_id",  "nullable": false }
+          ],
+          "indexes": ["idx_restitution_alloc_source", "uq_restitution_alloc_source_origin_idem"]
+        }
+      ]
+    },
+    {
+      "feature": "merchant-team (0041)",
+      "tables": [
+        { "name": "merchant_team_members", "columns": [
+          { "name": "merchant_id", "nullable": false },
+          { "name": "email", "nullable": false },
+          { "name": "role", "nullable": false }
+        ], "indexes": ["merchant_team_members_unique_email", "merchant_team_members_merchant_idx"] },
+        { "name": "merchant_access_log", "columns": [], "indexes": ["merchant_access_log_merchant_idx"] }
+      ]
+    },
+    {
+      "feature": "risk-flag-resolution (0043)",
+      "tables": [
+        { "name": "risk_flags", "columns": [ { "name": "resolution", "nullable": true } ], "indexes": ["risk_flags_open_idx"] }
+      ]
+    },
+    {
+      "feature": "consumer-devices (0044)",
+      "tables": [ { "name": "consumer_devices", "columns": [], "indexes": ["consumer_devices_consumer_idx"] } ]
+    },
+    {
+      "feature": "merchant-kyb-profile (0049)",
+      "tables": [ { "name": "merchant_kyb_profile", "columns": [ { "name": "merchant_id", "nullable": false } ], "indexes": [] } ]
+    },
+    {
+      "feature": "kyc-verifications (0050)",
+      "tables": [ { "name": "kyc_verifications", "columns": [
+        { "name": "subject_type", "nullable": false },
+        { "name": "status", "nullable": false }
+      ], "indexes": ["uq_kyc_verifications_provider_ref", "idx_kyc_verifications_subject", "idx_kyc_verifications_status"] } ]
+    }
+  ]
+}
