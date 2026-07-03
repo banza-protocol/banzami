@@ -57,12 +57,37 @@ export function AuthShell({ children }: { children: React.ReactNode }) {
           margin: '0 auto',
         }}
       >
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }}>
-          <BrandTile size={34} radius={11} />
-          <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: '-.02em', color: '#2a2024' }}>
-            Banzami <span style={{ color: '#B5101F' }}>Developers</span>
-          </span>
-        </Link>
+        {/* Top-left: secondary "back to the public site" control above the brand.
+            A real absolute anchor (works from a bookmark / fresh session — no
+            history.back), secondary to the login action, keyboard-focusable with
+            a visible focus ring via .bz-toplink. */}
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 6 }}>
+          <a
+            href="https://banzami.com"
+            aria-label="Voltar ao Banzami"
+            className="bz-toplink"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#7a6a6e',
+              textDecoration: 'none',
+              padding: '3px 9px 3px 6px',
+              borderRadius: 8,
+            }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 15, lineHeight: 1 }}>←</span>
+            Voltar ao Banzami
+          </a>
+          <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 11, textDecoration: 'none' }}>
+            <BrandTile size={34} radius={11} />
+            <span style={{ fontWeight: 900, fontSize: 19, letterSpacing: '-.02em', color: '#2a2024' }}>
+              Banzami <span style={{ color: '#B5101F' }}>Developers</span>
+            </span>
+          </Link>
+        </div>
         <Link
           href="/docs"
           style={{ fontSize: 14, fontWeight: 800, color: '#7a6a6e', textDecoration: 'none' }}
