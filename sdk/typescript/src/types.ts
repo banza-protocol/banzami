@@ -355,21 +355,40 @@ export interface PaymentQr {
 
 export type RefundStatus = 'PENDING' | 'SUCCEEDED' | 'FAILED';
 
+/**
+ * Typed refund source (BANZA ADR-030). A refund is always tied to an explicit
+ * captured payment source — never a generic transfer, never an inferred type.
+ *  - `ACQUIRING_PAYMENT`: an external-rail payment; the refund credit lands in transit.
+ *  - `WALLET_PAYMENT`: a wallet-native merchant payment; the credit returns to the payer's wallet.
+ */
+export type RefundSourceType = 'ACQUIRING_PAYMENT' | 'WALLET_PAYMENT';
+
 export interface Refund {
-  id:             string;
-  transaction_id: string;
-  merchant_id:    string;
-  amount_minor:   number;
-  currency:       string;
-  status:         RefundStatus;
-  reason?:        string;
-  created_at:     string;
-  updated_at:     string;
+  id:              string;
+  source_type:     RefundSourceType;
+  source_id:       string;
+  /** Present only for ACQUIRING_PAYMENT refunds. */
+  transaction_id?: string | null;
+  merchant_id:     string;
+  /** Present only for WALLET_PAYMENT refunds (the payer). */
+  consumer_id?:    string | null;
+  amount_minor:    number;
+  currency:        string;
+  status:          RefundStatus;
+  reason?:         string | null;
+  created_at:      string;
+  updated_at:      string;
 }
 
 export interface CreateRefundParams {
-  transaction_id:   string;
+  /** The typed source class (BANZA ADR-030). Required — never inferred. */
+  source_type:      RefundSourceType;
+  /** Id of the typed source object (a transaction id, or a wallet-payment id). */
+  source_id:        string;
+  /** Partial amount in minor units; must stay within the source's refund ceiling. */
   amount_minor:     number;
+  /** ISO-4217 code; the authoritative refund currency is the source's currency. */
+  currency:         string;
   reason?:          string;
   /** Idempotency key — auto-generated if omitted. */
   idempotency_key?: string;

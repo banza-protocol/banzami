@@ -883,11 +883,15 @@ export class BanzamiClient {
   // ---------------------------------------------------------------------------
 
   createRefund(params: CreateRefundParams): Promise<Refund> {
+    // A refund always names its TYPED source explicitly (BANZA ADR-030) — the
+    // SDK never infers a source type from an arbitrary id.
     return this.request<Refund>('/refunds', {
       method: 'POST',
       body:   JSON.stringify({
-        transaction_id:  params.transaction_id,
+        source_type:     params.source_type,
+        source_id:       params.source_id,
         amount_minor:    params.amount_minor,
+        currency:        params.currency,
         reason:          params.reason ?? null,
         idempotency_key: params.idempotency_key ?? crypto.randomUUID(),
       }),
@@ -898,9 +902,9 @@ export class BanzamiClient {
     return this.request<Refund>(`/refunds/${id}`);
   }
 
-  listRefunds(params: { transactionId?: string; limit?: number } = {}): Promise<Page<Refund>> {
+  listRefunds(params: { sourceId?: string; limit?: number } = {}): Promise<Page<Refund>> {
     return this.request<Page<Refund>>(
-      `/refunds${this.qs({ transaction_id: params.transactionId, limit: params.limit })}`,
+      `/refunds${this.qs({ source_id: params.sourceId, limit: params.limit })}`,
     );
   }
 

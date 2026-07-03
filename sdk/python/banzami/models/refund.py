@@ -14,10 +14,20 @@ class RefundStatus(StrEnum):
     FAILED    = "FAILED"
 
 
+class RefundSourceType(StrEnum):
+    """Typed refund source (BANZA ADR-030) — never a generic transfer."""
+
+    ACQUIRING_PAYMENT = "ACQUIRING_PAYMENT"  # external-rail; credit lands in transit
+    WALLET_PAYMENT    = "WALLET_PAYMENT"     # wallet-native; credit returns to the payer
+
+
 class Refund(BaseModel):
     id:             str
-    transaction_id: str
+    source_type:    RefundSourceType
+    source_id:      str
+    transaction_id: str | None = None  # ACQUIRING_PAYMENT only
     merchant_id:    str
+    consumer_id:    str | None = None  # WALLET_PAYMENT only (the payer)
     amount_minor:   int
     currency:       str
     status:         RefundStatus

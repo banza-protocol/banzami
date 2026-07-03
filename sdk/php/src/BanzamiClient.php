@@ -255,11 +255,21 @@ class BanzamiClient
     // Refunds
     // -------------------------------------------------------------------------
 
+    /**
+     * Issue a refund against a TYPED, captured payment source (BANZA ADR-030).
+     * The source is always named explicitly — never a generic transfer, never
+     * an inferred type.
+     *
+     * Required params: source_type (ACQUIRING_PAYMENT | WALLET_PAYMENT),
+     * source_id, amount_minor, currency. Optional: reason, idempotency_key.
+     */
     public function createRefund(array $params): array
     {
         return $this->request('POST', '/refunds', [
-            'transaction_id'  => $params['transaction_id'],
+            'source_type'     => $params['source_type'],
+            'source_id'       => $params['source_id'],
             'amount_minor'    => $params['amount_minor'],
+            'currency'        => $params['currency'],
             'reason'          => $params['reason'] ?? null,
             'idempotency_key' => $params['idempotency_key'] ?? $this->generateIdempotencyKey(),
         ]);
@@ -270,11 +280,11 @@ class BanzamiClient
         return $this->request('GET', "/refunds/{$id}");
     }
 
-    public function listRefunds(int $limit = 20, ?string $transactionId = null): array
+    public function listRefunds(int $limit = 20, ?string $sourceId = null): array
     {
         return $this->request('GET', '/refunds' . $this->qs([
-            'limit'          => $limit,
-            'transaction_id' => $transactionId,
+            'limit'     => $limit,
+            'source_id' => $sourceId,
         ]));
     }
 
