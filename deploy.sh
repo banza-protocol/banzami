@@ -96,7 +96,7 @@ deploy_core_api() {
 
   info "Syncing source to server..."
   rsync -az --delete \
-    --exclude='.git' \
+    --exclude='.git' --exclude='.env' --exclude='.env.*' \
     --exclude='target/' \
     "$REPO_ROOT/core/" \
     "$REMOTE:/srv/banzami/src/core/"
@@ -119,10 +119,10 @@ deploy_admin_api() {
   info "Syncing source to server..."
   # Build context contains common/ + admin-api/ as siblings so the shared
   # Document Engine module (replace ../common/documents) resolves in Docker.
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/common/" \
     "$REMOTE:/srv/banzami/admin-api-build/common/"
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/admin-api/" \
     "$REMOTE:/srv/banzami/admin-api-build/admin-api/"
   ok "Sync complete"
@@ -143,10 +143,10 @@ deploy_api_gateway() {
   info "Syncing source to server..."
   # Build context contains common/ + api-gateway/ as siblings for the shared
   # Document Engine module (replace ../common/documents).
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/common/" \
     "$REMOTE:/srv/banzami/api-gateway-build/common/"
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/api-gateway/" \
     "$REMOTE:/srv/banzami/api-gateway-build/api-gateway/"
   ok "Sync complete"
@@ -166,7 +166,7 @@ deploy_sandbox_operator() {
 
   info "Syncing source to server..."
   rsync -az --delete \
-    --exclude='.git' \
+    --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/sandbox-operator/" \
     "$REMOTE:/srv/banzami/sandbox-operator-build/"
   ok "Sync complete"
@@ -188,10 +188,10 @@ deploy_developer_api() {
   # Build context contains common/ + developer-api/ as siblings for the shared
   # modules (replace ../common/obs and ../common/email).
   ssh "$REMOTE" "mkdir -p /srv/banzami/developer-api-build/common /srv/banzami/developer-api-build/developer-api"
-  rsync -az --delete --exclude='.git' --exclude='node_modules' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' --exclude='node_modules' \
     "$REPO_ROOT/services/common/" \
     "$REMOTE:/srv/banzami/developer-api-build/common/"
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/developer-api/" \
     "$REMOTE:/srv/banzami/developer-api-build/developer-api/"
   ok "Sync complete"
@@ -213,10 +213,10 @@ deploy_public_api() {
   info "Syncing source to server..."
   # Build context contains common/ + public-api/ as siblings for the shared
   # Document Engine module (replace ../common/documents).
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/common/" \
     "$REMOTE:/srv/banzami/public-api-build/common/"
-  rsync -az --delete --exclude='.git' \
+  rsync -az --delete --exclude='.git' --exclude='.env' --exclude='.env.*' \
     "$REPO_ROOT/services/public-api/" \
     "$REMOTE:/srv/banzami/public-api-build/public-api/"
   ok "Sync complete"
@@ -274,7 +274,7 @@ _deploy_frontend() {
 
   info "Syncing source to server..."
   rsync -az --delete \
-    --exclude='.git' \
+    --exclude='.git' --exclude='.env' --exclude='.env.*' \
     --exclude='node_modules/' \
     --exclude='.next/' \
     "$REPO_ROOT/apps/$app_name/" \
