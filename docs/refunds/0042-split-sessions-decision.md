@@ -1,8 +1,31 @@
-# Product decision required — migration `0042_split_sessions`
+# Product decision — migration `0042_split_sessions` (DECIDED · IMPLEMENTED)
 
-> **STATUS: DECISION PENDING — product-owner approval required.** Do not apply and
-> do not silently retire `0042`. It is **excluded** from the Sandbox refund/drift
-> repair rollout until this is decided.
+> **STATUS: DECIDED — Option 2 (Supersede with Collections). IMPLEMENTED.**
+> Split Sessions is **retired**. Collections (BANZA ADR-036) is the replacement
+> product direction. The legacy `/internal/v1/splits*` routes now return a
+> deliberate **`410 Gone` · `SPLIT_SESSIONS_SUPERSEDED`** instead of a missing-table
+> `500`. Migration `0042` remains **intentionally unapplied** — its
+> `_sqlx_migrations` row stays (history is not rewritten) and the tables stay
+> absent by design. This is a route-safety cleanup only: it did **not** create
+> tables, add migrations, or change Collections behaviour.
+>
+> **Implemented in** `fix(core): supersede legacy Split Sessions routes`:
+> - `core/api/src/routes/splits.rs` — all handlers replaced by one state-free,
+>   database-free `superseded()` → `410 SPLIT_SESSIONS_SUPERSEDED`
+>   ("Split Sessions foi substituído por Collections."). Reaches no repository,
+>   service, SQL query or table; leaks no DB/table/migration/stack detail.
+> - `core/api/src/main.rs` — the three split routes replaced by `any()` on
+>   `/internal/v1/splits` + wildcard `/internal/v1/splits/*rest`, so every method
+>   and nested path resolves to `410` (no fall-through `500`).
+> - `core/api/src/error.rs` — `ApiError::gone(code, msg)` (410).
+> - Route-level tests assert 410 + code + no leak + no DB across the create/detail/
+>   pay/malformed/unsupported-method/nested matrix.
+>
+> **Caller:** the api-gateway proxies `/v1/splits*` → core (no app/SDK/frontend
+> consumer). With core returning `410`, the gateway's `create`/`pay` forward it
+> verbatim; `get` maps a non-2xx to `502 UPSTREAM_ERROR`. Neither is a missing-table
+> `500`. A separate (out-of-scope) gateway follow-up may quarantine `/v1/splits*`
+> at the edge; not done here to keep this change Core-only.
 
 ## Evidence
 

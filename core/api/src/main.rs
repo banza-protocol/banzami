@@ -7,7 +7,7 @@ use std::{env, time::Duration};
 
 use axum::{
     middleware as axum_middleware,
-    routing::{get, post},
+    routing::{any, get, post},
     Router,
 };
 use tower_http::trace::TraceLayer;
@@ -592,9 +592,12 @@ async fn main() {
         .route("/internal/v1/qr/dynamic", post(routes::qr::create_dynamic))
         .route("/internal/v1/qr/decode", post(routes::qr::decode))
         .route("/internal/v1/qr/pay", post(routes::qr::pay))
-        .route("/internal/v1/splits", post(routes::splits::create))
-        .route("/internal/v1/splits/:id", get(routes::splits::get))
-        .route("/internal/v1/splits/:id/pay", post(routes::splits::pay))
+        // Split Sessions is SUPERSEDED by Collections (ADR-036). The legacy
+        // routes are retired: every method + nested path under /internal/v1/splits
+        // returns a deliberate 410 SPLIT_SESSIONS_SUPERSEDED without touching the
+        // (intentionally unapplied 0042) tables — removing the missing-table 500.
+        .route("/internal/v1/splits", any(routes::splits::superseded))
+        .route("/internal/v1/splits/*rest", any(routes::splits::superseded))
         .route("/internal/v1/qr/:id", get(routes::qr::get))
         .route("/internal/v1/qr/:id/use", post(routes::qr::mark_used))
         // Payment links

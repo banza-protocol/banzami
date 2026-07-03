@@ -62,6 +62,17 @@ impl ApiError {
             message: msg.into(),
         }
     }
+
+    /// 410 Gone — a retired capability whose legacy routes are intentionally kept
+    /// as a stable, safe response (e.g. a superseded feature) instead of being
+    /// removed or left to error. The envelope leaks no implementation detail.
+    pub fn gone(code: &'static str, msg: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::GONE,
+            code,
+            message: msg.into(),
+        }
+    }
 }
 
 impl IntoResponse for ApiError {

@@ -45,3 +45,9 @@ tokio                = { workspace = true }
 axum                 = { workspace = true }
 tower                = { workspace = true }
 tower-http           = { workspace = true }
+
+[dev-dependencies]
+# Test-only: `util` enables tower::util::ServiceExt::oneshot for route-level
+# tests (e.g. the Split Sessions supersession router test). Not in the release
+# binary — feature-unions onto the runtime `tower` dep only for test builds.
+tower                = { workspace = true, features = ["util"] }
