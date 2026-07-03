@@ -15,8 +15,9 @@ import (
 )
 
 type fakePaymentSessions struct {
-	merchantID string
-	withQR     bool
+	merchantID   string
+	withQR       bool
+	refundSource *service.RefundSource
 }
 
 func (f *fakePaymentSessions) Create(ctx context.Context, in service.CreatePaymentSessionInput) (*service.PaymentSession, error) {
@@ -53,6 +54,7 @@ func (f *fakePaymentSessions) Get(ctx context.Context, id string) (*service.Paym
 	return &service.PaymentSession{
 		SessionID: id, MerchantID: f.merchantID, WalletAccountID: "wa-1",
 		Currency: "AOA", Status: "ACTIVE", PaymentLinkSlug: &slug, QrPayload: qr, CreatedAt: "2026-06-30T00:00:00Z",
+		RefundSource: f.refundSource,
 	}, nil
 }
 
@@ -116,6 +118,54 @@ func TestPaymentSession_CreateReturnsInterfaces(t *testing.T) {
 		if strings.Contains(body, forbidden) {
 			t.Fatalf("response must not contain %q (canonical contract is interfaces[]): %s", forbidden, body)
 		}
+	}
+}
+
+// Merchant-safe refundable-source discovery: a settled session exposes the
+// PUBLIC typed source to its owner; an unsettled one omits the field entirely;
+// the internal TRANSACTION token never appears.
+func TestPaymentSession_RefundSourceExposedWhenPaid(t *testing.T) {
+	fake := &fakePaymentSessions{
+		merchantID:   "doa-merchant",
+		withQR:       true,
+		refundSource: &service.RefundSource{SourceType: "WALLET_PAYMENT", SourceID: "wp-77"},
+	}
+	h := NewPaymentSessionHandler(fake, activeMerchant())
+	r := chi.NewRouter()
+	r.Get("/v1/business/payment-sessions/{id}", h.Get)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/business/payment-sessions/sess-1", "", "doa-merchant"))
+	if rec.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d (%s)", rec.Code, rec.Body.String())
+	}
+	var resp struct {
+		RefundSource *struct {
+			SourceType string `json:"source_type"`
+			SourceID   string `json:"source_id"`
+		} `json:"refund_source"`
+	}
+	if err := json.Unmarshal(rec.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("bad DTO: %v (%s)", err, rec.Body.String())
+	}
+	if resp.RefundSource == nil {
+		t.Fatalf("settled session must expose refund_source: %s", rec.Body.String())
+	}
+	if resp.RefundSource.SourceType != "WALLET_PAYMENT" || resp.RefundSource.SourceID != "wp-77" {
+		t.Fatalf("refund_source = %+v, want WALLET_PAYMENT/wp-77", resp.RefundSource)
+	}
+	if strings.Contains(rec.Body.String(), "TRANSACTION") {
+		t.Fatalf("refund_source must never expose the internal TRANSACTION token: %s", rec.Body.String())
+	}
+}
+
+func TestPaymentSession_RefundSourceOmittedWhenUnpaid(t *testing.T) {
+	h := NewPaymentSessionHandler(&fakePaymentSessions{merchantID: "doa-merchant", withQR: true}, activeMerchant())
+	r := chi.NewRouter()
+	r.Get("/v1/business/payment-sessions/{id}", h.Get)
+	rec := httptest.NewRecorder()
+	r.ServeHTTP(rec, reqWith("GET", "https://x/v1/business/payment-sessions/sess-1", "", "doa-merchant"))
+	if strings.Contains(rec.Body.String(), "refund_source") {
+		t.Fatalf("unsettled session must omit refund_source entirely: %s", rec.Body.String())
 	}
 }
 

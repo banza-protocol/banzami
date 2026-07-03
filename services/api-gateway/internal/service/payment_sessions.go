@@ -27,6 +27,19 @@ type PaymentSession struct {
 	QrPayload        *string `json:"qr_payload"`
 	ExpiresAt        *string `json:"expires_at"`
 	CreatedAt        string  `json:"created_at"`
+	// Merchant-safe refundable-source discovery (operator extension). Non-nil
+	// only after the session's payment has settled; carries the PUBLIC typed
+	// source the Refunds endpoint accepts. Never contains a Core TRANSACTION
+	// token. Passed through to the owning merchant only (Get is owner-scoped).
+	RefundSource *RefundSource `json:"refund_source"`
+}
+
+// RefundSource is the public typed-source pair {source_type, source_id} a
+// merchant feeds back into POST /v1/refunds. source_type is ACQUIRING_PAYMENT
+// or WALLET_PAYMENT — never the internal TRANSACTION token.
+type RefundSource struct {
+	SourceType string `json:"source_type"`
+	SourceID   string `json:"source_id"`
 }
 
 type CreatePaymentSessionInput struct {

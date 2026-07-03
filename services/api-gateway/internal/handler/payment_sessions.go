@@ -62,7 +62,7 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 			"qr_url": qrURL, "expires_at": s.ExpiresAt,
 		})
 	}
-	return map[string]any{
+	dto := map[string]any{
 		"session_id":        s.SessionID,
 		"wallet_account_id": s.WalletAccountID,
 		"currency":          s.Currency,
@@ -75,6 +75,13 @@ func (h *PaymentSessionHandler) safeDTO(r *http.Request, s *service.PaymentSessi
 		"created_at":        s.CreatedAt,
 		"interfaces":        interfaces,
 	}
+	// Merchant-safe refund source: additive, present only once the payment has
+	// settled. Reaches only the owning merchant — Get/load enforce ownership
+	// (sess.MerchantID == principal.MerchantID) before this DTO is built.
+	if s.RefundSource != nil {
+		dto["refund_source"] = s.RefundSource
+	}
+	return dto
 }
 
 func (h *PaymentSessionHandler) authedActiveMerchant(w http.ResponseWriter, r *http.Request) (string, bool) {
