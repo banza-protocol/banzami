@@ -325,3 +325,59 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .bz-view, .bz-bar { animation: none !important; }
 }
+
+/* ===== Contextual glossary terms (docs GlossaryTerm.tsx) ===== */
+/* Screen-reader-only text: definitions stay available to AT, never hover-only. */
+.bz-sr {
+  position: absolute !important;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0);
+  white-space: nowrap; border: 0;
+}
+.bz-termwrap { white-space: nowrap; }
+/* Inline term trigger: subtle dotted underline, no layout shift, real button. */
+.bz-term {
+  font: inherit; color: inherit; line-height: inherit;
+  background: none; border: 0; padding: 0; margin: 0;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: rgba(181, 16, 31, .45);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.bz-term:hover { text-decoration-color: rgba(181, 16, 31, .8); }
+.bz-term:focus-visible {
+  outline: 2px solid #B5101F; outline-offset: 2px; border-radius: 4px;
+}
+/* Header/handle-like terms render as a monospace chip, keeping the affordance. */
+.bz-term-code {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 13px; font-weight: 700;
+  background: #FFF1F0; color: #9A1B22;
+  padding: 1px 6px; border-radius: 6px;
+}
+/* Popover — body portal, position:fixed (never clipped by cards/code/overflow). */
+.bz-pop {
+  z-index: 80;
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: 5px;
+  background: #fff;
+  border: 1px solid #F2E2E0;
+  border-radius: 12px;
+  padding: 11px 13px;
+  box-shadow: 0 20px 46px -26px rgba(181, 16, 31, .5), 0 6px 16px -10px rgba(0, 0, 0, .2);
+  animation: bzpopin .14s ease;
+}
+.bz-pop-term { font-size: 12px; font-weight: 900; letter-spacing: .01em; color: #B5101F; }
+.bz-pop-def { font-size: 13px; line-height: 1.5; color: #5a4a4e; font-weight: 500; }
+.bz-pop-link {
+  align-self: flex-start; margin-top: 1px;
+  font-size: 11.5px; font-weight: 800; color: #B5101F; text-decoration: none;
+}
+.bz-pop-link:hover { text-decoration: underline; }
+.bz-pop-link:focus-visible { outline: 2px solid #B5101F; outline-offset: 2px; border-radius: 4px; }
+@keyframes bzpopin { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .bz-pop { animation: none !important; }
+}

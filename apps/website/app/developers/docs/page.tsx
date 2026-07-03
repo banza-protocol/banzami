@@ -2,6 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { BrandTile } from '@/components/developers/portal/icons';
+import { GlossaryTerm } from './GlossaryTerm';
+import { GLOSSARY } from './glossary';
 
 // Public Developer Documentation (developers.banzami.com/docs).
 //
@@ -296,6 +298,17 @@ export default function DocsPage() {
                 );
               })}
             </nav>
+            {/* Secondary appendix link — deliberately outside the seven-item nav. */}
+            <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid #F2E2E0' }}>
+              <a
+                href="#glossario"
+                onClick={go('glossario')}
+                className="bz-toplink"
+                style={{ display: 'block', padding: '8px 12px', borderRadius: 10, color: '#8a7a7e', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}
+              >
+                Glossário
+              </a>
+            </div>
           </aside>
 
           <article style={{ minWidth: 0 }}>
@@ -303,8 +316,8 @@ export default function DocsPage() {
             <Section id="introducao">
               <h1 style={{ margin: '0 0 8px', fontSize: 30, fontWeight: 900, letterSpacing: '-.02em', color: INK }}>Introdução</h1>
               <P style={{ fontSize: 15.5, color: MUT, fontWeight: 600 }}>
-                Comece a integrar Banzami em poucos minutos. Todas as chamadas usam o ambiente Sandbox por defeito.
-                Construa e valide a sua integração no Sandbox — a Produção será ativada quando a plataforma estiver
+                Comece a integrar Banzami em poucos minutos. Todas as chamadas usam o ambiente <GlossaryTerm id="sandbox">Sandbox</GlossaryTerm> por defeito.
+                Construa e valide a sua integração no Sandbox — a <GlossaryTerm id="producao">Produção</GlossaryTerm> será ativada quando a plataforma estiver
                 habilitada para pagamentos reais.
               </P>
 
@@ -331,9 +344,9 @@ export default function DocsPage() {
               <H3>Três camadas</H3>
               <P>Ao integrar Banzami, distinga sempre três camadas:</P>
               <UL>
-                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e OTP, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis. A Console não é uma API pública para terceiros chamarem diretamente.</LI>
-                <LI><strong>Camada de integração Banzami</strong> — o que a sua aplicação usa para pagamentos: links de pagamento, sessões, QR, confirmação, comprovativos, webhooks assinados e liquidação controlada pelo operador.</LI>
-                <LI><strong>Banzami Operator / Core</strong> — a camada financeira do Banzami: executa o pagamento, mantém saldos e integridade, calcula e controla a liquidação. A sua aplicação nunca cria nem gere um ledger financeiro próprio.</LI>
+                <LI><strong>Banzami Developers Console</strong> — o portal onde entra por email e <GlossaryTerm id="otp">OTP</GlossaryTerm>, cria workspaces, projetos Sandbox e <strong>chaves de teste</strong>, gere membros e papéis. A Console não é uma API pública para terceiros chamarem diretamente.</LI>
+                <LI><strong>Camada de integração Banzami</strong> — o que a sua aplicação usa para pagamentos: links de pagamento, sessões, QR, confirmação, comprovativos, <GlossaryTerm id="webhook">webhooks</GlossaryTerm> assinados e <GlossaryTerm id="liquidacao">liquidação</GlossaryTerm> controlada pelo operador.</LI>
+                <LI><strong>Banzami Operator / Core</strong> — a camada financeira do Banzami: executa o pagamento, mantém saldos e integridade, calcula e controla a liquidação. A sua aplicação nunca cria nem gere um <GlossaryTerm id="ledger">ledger</GlossaryTerm> financeiro próprio.</LI>
               </UL>
 
               {/* DOA reference block */}
@@ -347,9 +360,9 @@ export default function DocsPage() {
                   gere a sua própria lógica de negócio — campanhas e doações — enquanto delega toda a parte financeira ao Banzami.
                 </P>
                 <UL>
-                  <LI>Cria uma jornada de pagamento Banzami e apresenta link e QR ao doador.</LI>
+                  <LI>Cria uma jornada de pagamento Banzami e apresenta link e <GlossaryTerm id="qr">QR</GlossaryTerm> ao doador.</LI>
                   <LI>Acompanha a confirmação e valida webhooks assinados no servidor.</LI>
-                  <LI>Emite comprovativos e solicita a liquidação dentro do modelo do operador.</LI>
+                  <LI>Emite <GlossaryTerm id="comprovativo">comprovativos</GlossaryTerm> e solicita a liquidação dentro do modelo do operador.</LI>
                   <LI>Não cria ledger, saldo financeiro nem infraestrutura de pagamentos próprios.</LI>
                 </UL>
                 <P style={{ margin: 0 }}>
@@ -375,14 +388,14 @@ export default function DocsPage() {
                 <LI>Crie uma <strong>chave de teste</strong>.</LI>
                 <LI>Guarde a chave <strong>secreta</strong> quando ela aparece — é mostrada uma única vez.</LI>
                 <LI>Use a camada de integração Banzami na sua aplicação (via SDK).</LI>
-                <LI>Crie uma sessão de pagamento e apresente o link/QR.</LI>
+                <LI>Crie uma <GlossaryTerm id="sessao-pagamento">sessão de pagamento</GlossaryTerm> e apresente o link/QR.</LI>
                 <LI>Acompanhe a confirmação e emita o comprovativo.</LI>
                 <LI>Valide webhooks assinados quando aplicável.</LI>
               </ol>
               <CodeBlock label="chaves de teste" raw={SAMPLE_KEYS} onCopy={copy} />
               <UL>
-                <LI><Code>bz_test_pk_</Code> — chave <strong>publicável</strong> (pode ir no cliente).</LI>
-                <LI><Code>bz_test_sk_</Code> — chave <strong>secreta</strong> (apenas no servidor).</LI>
+                <LI><Code>bz_test_pk_</Code> — <GlossaryTerm id="chave-publicavel">chave publicável</GlossaryTerm> (pode ir no cliente).</LI>
+                <LI><Code>bz_test_sk_</Code> — <GlossaryTerm id="chave-secreta">chave secreta</GlossaryTerm> (apenas no servidor).</LI>
                 <LI>A chave secreta aparece <strong>uma única vez</strong>; pode <strong>rodar</strong> ou <strong>revogar</strong> chaves a qualquer momento.</LI>
               </UL>
               <Callout>Nunca exponha chaves secretas no browser, app móvel, repositório, logs, capturas de ecrã ou analytics.</Callout>
@@ -407,7 +420,7 @@ export default function DocsPage() {
 
               <H3>Integração Banzami</H3>
               <P>
-                A sua aplicação autentica-se com uma chave <Code>bz_test_</Code> (trocada por um token de curta duração) e chama
+                A sua aplicação autentica-se com uma <GlossaryTerm id="api-key">API key</GlossaryTerm> <Code>bz_test_</Code> (trocada por um token de curta duração) e chama
                 a camada de integração em <Code>sandbox-api.banzami.com</Code>. O fluxo principal é <strong>sessão de pagamento</strong>
                 (link e QR), tal como usado pelo DOA.
               </P>
@@ -427,8 +440,8 @@ export default function DocsPage() {
 
               <H3 id="transferencias">Transferências <Badge tone="ok" /></H3>
               <P>
-                Movimente valor entre contas Banzami. Um utilizador autenticado envia para o <Code>@banza</Code> do destinatário,
-                com o montante em unidades menores (AOA) e uma idempotency key. A transferência é confirmada de forma síncrona no
+                Movimente valor entre contas Banzami. Um utilizador autenticado envia para o <GlossaryTerm id="banza-handle" code>@banza</GlossaryTerm> do destinatário,
+                com o montante em unidades menores (AOA) e uma <GlossaryTerm id="idempotencia">idempotency key</GlossaryTerm>. A transferência é confirmada de forma síncrona no
                 Sandbox, ficando <strong>COMPLETED</strong>, com débito e crédito atómicos no ledger e um comprovativo oficial disponível.
               </P>
               <P>
@@ -501,9 +514,9 @@ export default function DocsPage() {
               <H3>Como funciona</H3>
               <UL>
                 <LI>O Banzami envia um <Code>POST</Code> para o seu endpoint com o corpo do evento em JSON.</LI>
-                <LI>A assinatura vai no header <Code>banza-signature</Code>, no formato <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
-                <LI>A assinatura é <strong>HMAC-SHA256</strong> sobre <Code>&quot;{'{'}t{'}'}.{'{'}corpo{'}'}&quot;</Code>, com uma janela de repetição de <strong>5 minutos</strong>.</LI>
-                <LI>Processe de forma <strong>idempotente</strong> e responda <Code>2xx</Code> rapidamente; a entrega é <strong>at-least-once</strong>, sem garantia de ordem, com reentrega em caso de falha.</LI>
+                <LI>A assinatura vai no header <GlossaryTerm id="banza-signature" code>banza-signature</GlossaryTerm>, no formato <Code>t=&lt;unix&gt;,v1=&lt;hmac_sha256_hex&gt;</Code>.</LI>
+                <LI>A assinatura é <GlossaryTerm id="hmac-sha256">HMAC-SHA256</GlossaryTerm> sobre <Code>&quot;{'{'}t{'}'}.{'{'}corpo{'}'}&quot;</Code>, com uma janela de repetição de <strong>5 minutos</strong>.</LI>
+                <LI>Processe de forma <strong>idempotente</strong> e responda <Code>2xx</Code> rapidamente; a entrega é <GlossaryTerm id="at-least-once" code>at-least-once</GlossaryTerm>, sem garantia de ordem, com <GlossaryTerm id="replay">reentrega</GlossaryTerm> em caso de falha.</LI>
               </UL>
               <CodeBlock label="ts · verificar e tratar um evento" raw={SAMPLE_WEBHOOK} onCopy={copy} />
               <H3>Eventos</H3>
@@ -559,6 +572,27 @@ export default function DocsPage() {
                 ))}
               </ul>
             </Section>
+
+            {/* ------------------------------------------------ GLOSSÁRIO */}
+            {/* Secondary appendix (NOT one of the seven primary sidebar items). */}
+            <section id="glossario" style={{ scrollMarginTop: 72, marginBottom: 40 }}>
+              <H2>Glossário</H2>
+              <P>Definições rápidas dos termos usados nesta documentação, no contexto do Banzami.</P>
+              <dl style={{ margin: 0, maxWidth: 660, display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {GLOSSARY.map((e) => (
+                  <div key={e.id} id={`glossario-${e.id}`} style={{ scrollMarginTop: 80 }}>
+                    <dt style={{ margin: 0 }}>
+                      {e.code ? (
+                        <code style={{ fontFamily: mono, fontSize: 13, background: '#FFF1F0', color: '#9A1B22', padding: '1px 6px', borderRadius: 6, fontWeight: 700 }}>{e.term}</code>
+                      ) : (
+                        <span style={{ fontSize: 14, fontWeight: 900, color: INK }}>{e.term}</span>
+                      )}
+                    </dt>
+                    <dd style={{ margin: '4px 0 0', fontSize: 13.5, lineHeight: 1.6, color: '#5a4a4e', fontWeight: 500 }}>{e.def}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
 
             {/* Blush help card */}
             <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 14, background: '#FFF1F0', border: '1px solid #F7DAD7', borderRadius: 16, padding: '18px 20px' }}>
